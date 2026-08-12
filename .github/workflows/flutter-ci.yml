@@ -1,4 +1,5 @@
 name: Flutter CI
+# Hosted verification marker: keep this workflow observable before branch protection.
 
 on:
   workflow_dispatch:
