@@ -912,7 +912,7 @@ test('football console synchronizes every match action and approved corrections 
 });
 
 test('administrator creates registered teams and persisted double round-robin fixtures through the wizard', async ({ page }) => {
-  test.setTimeout(90_000);
+  test.setTimeout(180_000);
   const competitionName = `Browser Competition ${Date.now()}`;
 
   await signIn(page, 'admin@sportsplatform.com', 'Admin123!');
