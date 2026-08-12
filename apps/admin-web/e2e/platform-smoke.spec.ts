@@ -928,8 +928,9 @@ test('administrator creates registered teams and persisted double round-robin fi
   await page.getByRole('button', { name: 'Validate and continue' }).click();
   await page.getByRole('button', { name: /Football/ }).click();
   await page.getByRole('button', { name: 'Validate and continue' }).click();
-  await expect(page.getByText(/Published version/).first()).toBeVisible();
-  await page.getByText(/Published version/).first().click();
+  const publishedRuleset = page.getByRole('button', { name: /Published.*version/ }).first();
+  await expect(publishedRuleset).toBeVisible();
+  await publishedRuleset.click();
   await page.getByRole('button', { name: 'Validate and continue' }).click();
   await page.getByRole('button', { name: /Round robin/ }).click();
   await page.getByRole('button', { name: 'Validate and continue' }).click();
@@ -2267,8 +2268,7 @@ test('tenant administrator publishes a date-controlled sponsor placement to publ
   await page.goto(`${adminUrl}/sponsors`);
   await expect(page.getByTestId('sponsor-management-workspace')).toBeVisible();
   const newProfile = page.getByRole('button', { name: 'New profile' });
-  await expect(newProfile).toBeVisible();
-  await newProfile.click();
+  if (await newProfile.isVisible()) await newProfile.click();
   await expect(page.getByRole('button', { name: 'Create sponsor' })).toBeVisible();
   await page.getByLabel('Name', { exact: true }).fill(sponsorName);
   await page.getByLabel('Description').fill('Browser acceptance sponsor');

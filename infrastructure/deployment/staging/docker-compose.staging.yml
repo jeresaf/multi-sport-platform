@@ -16,6 +16,7 @@ services:
       - Jwt__Audience=SportsPlatformUsers
       - Jwt__AccessTokenExpirationMinutes=60
       - SeedData__EnableDemoData=true
+      - Security__RateLimits__GlobalPerMinute=${GLOBAL_RATE_LIMIT_PER_MINUTE:-300}
       - Logging__LogLevel__Default=Information
       - Logging__LogLevel__Microsoft=Warning
       - Storage__Endpoint=http://minio:9000

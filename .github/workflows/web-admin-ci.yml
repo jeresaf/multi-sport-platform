@@ -120,7 +120,7 @@ jobs:
 
       - name: Create CI staging environment
         run: |
-          printf 'DB_PASSWORD=ci-database-password\nJWT_SECRET=ci-jwt-secret-at-least-thirty-two-characters-long\nDB_HOST_PORT=5434\n' > infrastructure/deployment/staging/.env.staging
+          printf 'DB_PASSWORD=ci-database-password\nJWT_SECRET=ci-jwt-secret-at-least-thirty-two-characters-long\nDB_HOST_PORT=5434\nGLOBAL_RATE_LIMIT_PER_MINUTE=10000\n' > infrastructure/deployment/staging/.env.staging
 
       - name: Start Docker-backed platform
         run: ./infrastructure/deployment/staging/deploy-staging.sh start

@@ -16,6 +16,35 @@ namespace SportsPlatform.IntegrationTests;
 public sealed class DemoSeedDataTests
 {
     [Fact]
+    public async Task InitializeAsync_schedules_canonical_team_sport_fixtures_for_public_views()
+    {
+        var options = new DbContextOptionsBuilder<SportsPlatformDbContext>()
+            .UseInMemoryDatabase($"canonical-seed-{Guid.NewGuid()}")
+            .Options;
+        await using var context = new SportsPlatformDbContext(options);
+
+        await SeedData.InitializeAsync(context);
+        context.ChangeTracker.Clear();
+
+        var competitionId = Guid.Parse("00000000-0000-0000-0000-000000000300");
+        var stageIds = await context.Competitions
+            .Where(item => item.Id == competitionId)
+            .SelectMany(item => item.Editions)
+            .SelectMany(item => item.Stages)
+            .Select(item => item.Id)
+            .ToArrayAsync();
+        var fixtures = await context.Contests
+            .Where(item => item.StageId.HasValue && stageIds.Contains(item.StageId.Value))
+            .ToArrayAsync();
+
+        fixtures.Should().HaveCount(28);
+        fixtures.Should().OnlyContain(item =>
+            item.Status == ContestStatus.Scheduled
+            && item.StartTime.HasValue
+            && item.Venue == "Premier League venue TBC");
+    }
+
+    [Fact]
     public async Task EnsureAsync_creates_an_idempotent_isolated_complete_football_demo()
     {
         var options = new DbContextOptionsBuilder<SportsPlatformDbContext>()

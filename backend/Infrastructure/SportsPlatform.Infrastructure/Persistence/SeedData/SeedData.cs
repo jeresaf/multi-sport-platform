@@ -451,6 +451,11 @@ public static class SeedData
             footballTeams,
             "Matchday {0}",
             1);
+        ScheduleContests(
+            plContests,
+            "Premier League venue TBC",
+            now.AddDays(1),
+            7);
         context.Contests.AddRange(plContests);
 
         // Generate Round-Robin contests for NBA (8 teams = 28 matches)
@@ -462,6 +467,11 @@ public static class SeedData
             basketballTeams,
             "Game {0}",
             1001);
+        ScheduleContests(
+            nbaContests,
+            "NBA venue TBC",
+            now.AddDays(1),
+            2);
         context.Contests.AddRange(nbaContests);
 
         // Generate leaderboard entries for Golf Masters
@@ -491,6 +501,11 @@ public static class SeedData
             cricketTeams,
             "Match {0}",
             4001);
+        ScheduleContests(
+            cricketContests,
+            "T20 venue TBC",
+            now.AddDays(1),
+            2);
         context.Contests.AddRange(cricketContests);
 
         // Generate fight card for UFC
@@ -512,12 +527,7 @@ public static class SeedData
             "Match {0}",
             6001);
         var rugbyStart = new DateTime(2026, 2, 5, 20, 0, 0, DateTimeKind.Utc);
-        for (var index = 0; index < rugbyContests.Count; index++)
-        {
-            rugbyContests[index].Schedule(
-                "Six Nations venue TBC",
-                rugbyStart.AddDays(index * 3));
-        }
+        ScheduleContests(rugbyContests, "Six Nations venue TBC", rugbyStart, 3);
         context.Contests.AddRange(rugbyContests);
 
         await context.SaveChangesAsync();
@@ -643,6 +653,16 @@ public static class SeedData
         }
 
         return contests;
+    }
+
+    private static void ScheduleContests(
+        IReadOnlyList<Contest> contests,
+        string venue,
+        DateTime firstStart,
+        int daysBetweenContests)
+    {
+        for (var index = 0; index < contests.Count; index++)
+            contests[index].Schedule(venue, firstStart.AddDays(index * daysBetweenContests));
     }
 
     /// <summary>
