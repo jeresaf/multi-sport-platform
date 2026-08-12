@@ -94,6 +94,8 @@ observe the backend, web, Flutter, and OSV workflows on GitHub-hosted runners
 before their exact successful check names are made required on `main`.
 
 Workflow syntax, local equivalents, and the passive DAST baseline above are
-validated. Hosted workflow results, SARIF visibility, and merge-gate behavior
-must be recorded from that pull request before branch protection is considered
-verified.
+validated. This private repository does not currently provide GitHub Code
+Scanning ingestion, so OSV retains the fail-on-vulnerability gate, workflow
+annotations, and downloadable JSON/SARIF artifacts while dashboard upload is
+disabled. Hosted workflow results and merge-gate behavior must be recorded from
+that pull request before branch protection is considered verified.

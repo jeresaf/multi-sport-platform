@@ -20,4 +20,7 @@ jobs:
   scan-full:
     name: Scan all supported dependency manifests
     uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@8deb546fdb875b9996d27d4950be7312dac076a1 # v2.5.0
-
+    with:
+      # Preserve the vulnerability gate and downloadable artifacts when Code
+      # Scanning/SARIF ingestion is unavailable for this private repository.
+      upload-sarif: false
