@@ -88,8 +88,12 @@ passive baseline scans; no active attack scan was run.
 
 ## Current verification boundary
 
-The current exported Windows workspace contains no `.git` directory and the
-GitHub CLI is not installed. Workflow syntax, local equivalents, and the passive
-DAST baseline above are validated here, but GitHub-hosted runs, SARIF upload,
-branch protection, and merge-gate behavior must be observed after these files
-are applied to the actual repository checkout.
+The project is published to the private GitHub repository
+`jeresaf/multi-sport-platform`. A dedicated draft pull request is used to
+observe the backend, web, Flutter, and OSV workflows on GitHub-hosted runners
+before their exact successful check names are made required on `main`.
+
+Workflow syntax, local equivalents, and the passive DAST baseline above are
+validated. Hosted workflow results, SARIF visibility, and merge-gate behavior
+must be recorded from that pull request before branch protection is considered
+verified.
