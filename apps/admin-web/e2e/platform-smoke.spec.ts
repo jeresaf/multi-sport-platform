@@ -915,7 +915,7 @@ test('administrator creates registered teams and persisted double round-robin fi
   test.setTimeout(180_000);
   const competitionName = `Browser Competition ${Date.now()}`;
 
-  await signIn(page, 'admin@sportsplatform.com', 'Admin123!');
+  await signIn(page, 'admin@premier.com', 'TenantAdmin123!');
   await page.goto(`${adminUrl}/competitions/new`);
   await page.getByRole('button', { name: 'Validate and continue' }).click();
   await expect(page.locator('p[role="alert"]')).toContainText('competition name and edition');
