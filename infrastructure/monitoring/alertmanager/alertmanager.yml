@@ -1,0 +1,18 @@
+global:
+  resolve_timeout: 5m
+  smtp_smarthost: mailpit:1025
+  smtp_from: monitoring@sportsplatform.local
+  smtp_require_tls: false
+
+route:
+  receiver: operations-email
+  group_by: [alertname, service, severity]
+  group_wait: 15s
+  group_interval: 5m
+  repeat_interval: 4h
+
+receivers:
+  - name: operations-email
+    email_configs:
+      - to: operations@sportsplatform.local
+        send_resolved: true

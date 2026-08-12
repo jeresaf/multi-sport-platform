@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="coverlet.collector" Version="10.0.1">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="FluentAssertions" Version="6.12.0" />
+    <PackageReference Include="Moq" Version="4.20.70" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\backend\Shared\SportsPlatform.Shared\SportsPlatform.Shared.csproj" />
+    <ProjectReference Include="..\..\backend\Modules\SportsPlatform.Modules.Contests\SportsPlatform.Modules.Contests.csproj" />
+    <ProjectReference Include="..\..\backend\Modules\SportsPlatform.Modules.Competitions\SportsPlatform.Modules.Competitions.csproj" />
+    <ProjectReference Include="..\..\backend\Modules\SportsPlatform.Modules.Brackets\SportsPlatform.Modules.Brackets.csproj" />
+    <ProjectReference Include="..\..\backend\Modules\SportsPlatform.Modules.LiveScoring\SportsPlatform.Modules.LiveScoring.csproj" />
+    <ProjectReference Include="..\..\backend\Modules\SportsPlatform.Modules.Results\SportsPlatform.Modules.Results.csproj" />
+    <ProjectReference Include="..\..\backend\Modules\SportsPlatform.Modules.Standings\SportsPlatform.Modules.Standings.csproj" />
+    <ProjectReference Include="..\..\backend\Modules\SportsPlatform.Modules.Subscriptions\SportsPlatform.Modules.Subscriptions.csproj" />
+    <ProjectReference Include="..\..\backend\Modules\SportsPlatform.Modules.Scheduling\SportsPlatform.Modules.Scheduling.csproj" />
+    <ProjectReference Include="..\..\backend\Modules\SportsPlatform.Modules.Sports\SportsPlatform.Modules.Sports.csproj" />
+    <ProjectReference Include="..\..\backend\Modules\SportsPlatform.Modules.Notifications\SportsPlatform.Modules.Notifications.csproj" />
+    <ProjectReference Include="..\..\backend\Modules\SportsPlatform.Modules.Participants\SportsPlatform.Modules.Participants.csproj" />
+    <ProjectReference Include="..\..\backend\Modules\SportsPlatform.Modules.Registrations\SportsPlatform.Modules.Registrations.csproj" />
+  </ItemGroup>
+
+</Project>

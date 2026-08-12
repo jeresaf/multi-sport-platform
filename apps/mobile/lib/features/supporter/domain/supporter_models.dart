@@ -1,0 +1,364 @@
+class SupporterFixture {
+  final String id;
+  final String competitionId;
+  final String competitionName;
+  final String name;
+  final String sportCode;
+  final String status;
+  final DateTime? startTime;
+  final String? venue;
+  final List<String> participants;
+
+  const SupporterFixture({
+    required this.id,
+    required this.competitionId,
+    required this.competitionName,
+    required this.name,
+    required this.sportCode,
+    required this.status,
+    this.startTime,
+    this.venue,
+    this.participants = const [],
+  });
+
+  factory SupporterFixture.fromJson(Map<String, dynamic> json) {
+    final sportId = json['sportId']?.toString().toLowerCase() ?? '';
+    return SupporterFixture(
+      id: json['id']?.toString() ?? '',
+      competitionId: json['competitionId']?.toString() ?? '',
+      competitionName: json['competitionName']?.toString() ?? 'Competition',
+      name: json['name']?.toString().trim().isNotEmpty == true
+          ? json['name'].toString()
+          : json['contestShape']?.toString() ?? 'Fixture',
+      sportCode: sportCodes[sportId] ?? 'sport',
+      status: json['status']?.toString() ?? 'Scheduled',
+      startTime: DateTime.tryParse(json['startTime']?.toString() ?? ''),
+      venue: json['venue']?.toString(),
+      participants: _maps(json['participants'])
+          .map((item) => item['name']?.toString() ?? 'Participant')
+          .toList(),
+    );
+  }
+}
+
+class SupporterResult {
+  final String id;
+  final String contestId;
+  final String contestName;
+  final String participantName;
+  final int? rank;
+  final String score;
+  final String status;
+  final DateTime? approvedAt;
+
+  const SupporterResult({
+    required this.id,
+    required this.contestId,
+    required this.contestName,
+    required this.participantName,
+    this.rank,
+    required this.score,
+    required this.status,
+    this.approvedAt,
+  });
+
+  factory SupporterResult.fromJson(Map<String, dynamic> json) =>
+      SupporterResult(
+        id: json['id']?.toString() ?? '',
+        contestId: json['contestId']?.toString() ?? '',
+        contestName: json['contestName']?.toString() ?? 'Contest',
+        participantName: json['participantName']?.toString() ?? 'Participant',
+        rank: _integer(json['rank'] ?? json['position']),
+        score: json['scoreDisplay']?.toString().trim().isNotEmpty == true
+            ? json['scoreDisplay'].toString()
+            : json['score']?.toString() ?? json['time']?.toString() ?? '—',
+        status: json['status']?.toString() ?? 'Official',
+        approvedAt: DateTime.tryParse(json['approvedAt']?.toString() ?? ''),
+      );
+}
+
+class SupporterStanding {
+  final String id;
+  final String competitionId;
+  final String competitionName;
+  final String? groupName;
+  final String participantName;
+  final int position;
+  final int played;
+  final int won;
+  final int drawn;
+  final int lost;
+  final num points;
+  final num differential;
+
+  const SupporterStanding({
+    required this.id,
+    required this.competitionId,
+    required this.competitionName,
+    this.groupName,
+    required this.participantName,
+    required this.position,
+    required this.played,
+    required this.won,
+    required this.drawn,
+    required this.lost,
+    required this.points,
+    required this.differential,
+  });
+
+  factory SupporterStanding.fromJson(Map<String, dynamic> json) =>
+      SupporterStanding(
+        id: json['id']?.toString() ?? '',
+        competitionId: json['competitionId']?.toString() ?? '',
+        competitionName: json['competitionName']?.toString() ?? 'Competition',
+        groupName: json['groupName']?.toString(),
+        participantName: json['participantName']?.toString() ?? 'Participant',
+        position: _integer(json['position']) ?? 0,
+        played: _integer(json['played']) ?? 0,
+        won: _integer(json['won']) ?? 0,
+        drawn: _integer(json['drawn']) ?? 0,
+        lost: _integer(json['lost']) ?? 0,
+        points: json['points'] is num
+            ? json['points'] as num
+            : num.tryParse(json['points']?.toString() ?? '') ?? 0,
+        differential: json['pointDifferential'] is num
+            ? json['pointDifferential'] as num
+            : num.tryParse(json['pointDifferential']?.toString() ?? '') ?? 0,
+      );
+}
+
+class SupporterFeed {
+  final List<SupporterFixture> fixtures;
+  final List<SupporterResult> results;
+  final List<SupporterStanding> standings;
+  final bool isFromCache;
+  final DateTime? cachedAt;
+
+  const SupporterFeed({
+    this.fixtures = const [],
+    this.results = const [],
+    this.standings = const [],
+    this.isFromCache = false,
+    this.cachedAt,
+  });
+}
+
+class SupporterBracket {
+  final String id;
+  final String competitionId;
+  final String name;
+  final String status;
+  final String? championName;
+  final List<SupporterBracketRound> rounds;
+  final bool isFromCache;
+  final DateTime? cachedAt;
+
+  const SupporterBracket({
+    required this.id,
+    required this.competitionId,
+    required this.name,
+    required this.status,
+    this.championName,
+    this.rounds = const [],
+    this.isFromCache = false,
+    this.cachedAt,
+  });
+
+  factory SupporterBracket.fromJson(
+    Map<String, dynamic> json, {
+    bool isFromCache = false,
+    DateTime? cachedAt,
+  }) =>
+      SupporterBracket(
+        id: json['id']?.toString() ?? '',
+        competitionId: json['competitionId']?.toString() ?? '',
+        name: json['name']?.toString() ?? 'Playoffs',
+        status: json['status']?.toString() ?? 'Pending',
+        championName: json['championName']?.toString(),
+        rounds:
+            _maps(json['rounds']).map(SupporterBracketRound.fromJson).toList(),
+        isFromCache: isFromCache,
+        cachedAt: cachedAt,
+      );
+}
+
+class SupporterBracketRound {
+  final String id;
+  final int number;
+  final String name;
+  final List<SupporterBracketMatch> matches;
+
+  const SupporterBracketRound({
+    required this.id,
+    required this.number,
+    required this.name,
+    this.matches = const [],
+  });
+
+  factory SupporterBracketRound.fromJson(Map<String, dynamic> json) =>
+      SupporterBracketRound(
+        id: json['id']?.toString() ?? '',
+        number: _integer(json['roundNumber']) ?? 0,
+        name: json['name']?.toString() ?? 'Round',
+        matches:
+            _maps(json['matches']).map(SupporterBracketMatch.fromJson).toList(),
+      );
+}
+
+class SupporterBracketMatch {
+  final String id;
+  final String? contestId;
+  final int number;
+  final String participant1;
+  final String participant2;
+  final String? score1;
+  final String? score2;
+  final String? winnerName;
+  final String status;
+  final bool isThirdPlace;
+  final int bestOf;
+
+  const SupporterBracketMatch({
+    required this.id,
+    this.contestId,
+    required this.number,
+    required this.participant1,
+    required this.participant2,
+    this.score1,
+    this.score2,
+    this.winnerName,
+    required this.status,
+    this.isThirdPlace = false,
+    this.bestOf = 1,
+  });
+
+  factory SupporterBracketMatch.fromJson(Map<String, dynamic> json) =>
+      SupporterBracketMatch(
+        id: json['id']?.toString() ?? '',
+        contestId: json['contestId']?.toString(),
+        number: _integer(json['matchNumber']) ?? 0,
+        participant1: json['participant1Name']?.toString() ?? 'TBD',
+        participant2: json['participant2Name']?.toString() ?? 'TBD',
+        score1: json['score1']?.toString(),
+        score2: json['score2']?.toString(),
+        winnerName: json['winnerName']?.toString(),
+        status: json['status']?.toString() ?? 'Pending',
+        isThirdPlace: json['isThirdPlace'] == true,
+        bestOf: _integer(json['bestOf']) ?? 1,
+      );
+}
+
+class GolfLeaderboard {
+  final String id;
+  final String name;
+  final String status;
+  final int parPerRound;
+  final String? courseName;
+  final String? courseLocation;
+  final int cutAfterRound;
+  final bool cutApplied;
+  final List<GolfLeaderboardEntry> entries;
+  final bool isFromCache;
+  final DateTime? cachedAt;
+
+  const GolfLeaderboard({
+    required this.id,
+    required this.name,
+    required this.status,
+    required this.parPerRound,
+    this.courseName,
+    this.courseLocation,
+    required this.cutAfterRound,
+    required this.cutApplied,
+    this.entries = const [],
+    this.isFromCache = false,
+    this.cachedAt,
+  });
+
+  factory GolfLeaderboard.fromJson(
+    Map<String, dynamic> json, {
+    bool isFromCache = false,
+    DateTime? cachedAt,
+  }) =>
+      GolfLeaderboard(
+        id: json['id']?.toString() ?? '',
+        name: json['name']?.toString() ?? 'Golf leaderboard',
+        status: json['status']?.toString() ?? 'Scheduled',
+        parPerRound: _integer(json['parPerRound']) ?? 72,
+        courseName: json['courseName']?.toString(),
+        courseLocation: json['courseLocation']?.toString(),
+        cutAfterRound: _integer(json['cutAfterRound']) ?? 2,
+        cutApplied: json['cutAppliedAt'] != null,
+        entries:
+            _maps(json['entries']).map(GolfLeaderboardEntry.fromJson).toList(),
+        isFromCache: isFromCache,
+        cachedAt: cachedAt,
+      );
+}
+
+class GolfLeaderboardEntry {
+  final String participantId;
+  final String name;
+  final int position;
+  final bool isTied;
+  final String status;
+  final int totalStrokes;
+  final int toPar;
+  final int roundsPlayed;
+  final List<int> roundScores;
+
+  const GolfLeaderboardEntry({
+    required this.participantId,
+    required this.name,
+    required this.position,
+    required this.isTied,
+    required this.status,
+    required this.totalStrokes,
+    required this.toPar,
+    required this.roundsPlayed,
+    this.roundScores = const [],
+  });
+
+  factory GolfLeaderboardEntry.fromJson(Map<String, dynamic> json) =>
+      GolfLeaderboardEntry(
+        participantId: json['participantId']?.toString() ?? '',
+        name: json['name']?.toString() ?? 'Golfer',
+        position: _integer(json['position']) ?? 0,
+        isTied: json['isTied'] == true,
+        status: json['status']?.toString() ?? 'Active',
+        totalStrokes: _integer(json['totalStrokes']) ?? 0,
+        toPar: _integer(json['toPar']) ?? 0,
+        roundsPlayed: _integer(json['roundsPlayed']) ?? 0,
+        roundScores: json['roundScores'] is List
+            ? (json['roundScores'] as List)
+                .map((item) => _integer(item) ?? 0)
+                .toList()
+            : const [],
+      );
+
+  String get toParDisplay => toPar == 0
+      ? 'E'
+      : toPar > 0
+          ? '+$toPar'
+          : '$toPar';
+}
+
+const sportCodes = {
+  '00000000-0000-0000-0000-000000000100': 'football',
+  '00000000-0000-0000-0000-000000000101': 'basketball',
+  '00000000-0000-0000-0000-000000000102': 'golf',
+  '00000000-0000-0000-0000-000000000103': 'athletics',
+  '00000000-0000-0000-0000-000000000104': 'cricket',
+  '00000000-0000-0000-0000-000000000105': 'combat',
+  '00000000-0000-0000-0000-000000000106': 'rugby',
+};
+
+List<Map<String, dynamic>> _maps(dynamic value) => value is List
+    ? value
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList()
+    : const [];
+
+int? _integer(dynamic value) =>
+    value is num ? value.toInt() : int.tryParse(value?.toString() ?? '');

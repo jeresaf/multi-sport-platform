@@ -1,0 +1,32 @@
+# The build context for this file must be the repository root.
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+WORKDIR /src
+
+COPY . .
+RUN dotnet restore apps/api/SportsPlatform.Api.csproj
+RUN dotnet publish apps/api/SportsPlatform.Api.csproj \
+    --configuration Release \
+    --no-restore \
+    --output /app/publish
+
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
+WORKDIR /app
+
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends curl fonts-dejavu-core \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /app/logs
+
+COPY --from=build /app/publish .
+
+ENV ASPNETCORE_URLS=http://+:8080
+ENV ASPNETCORE_ENVIRONMENT=Staging
+ENV DOTNET_EnableDiagnostics=0
+
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl --fail http://localhost:8080/health/live || exit 1
+
+ENTRYPOINT ["dotnet", "SportsPlatform.Api.dll"]

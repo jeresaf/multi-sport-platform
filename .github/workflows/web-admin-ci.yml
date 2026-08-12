@@ -1,0 +1,174 @@
+name: Web Admin CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'apps/admin-web/**'
+      - 'apps/public-web/**'
+      - 'apps/api/**'
+      - 'backend/**'
+      - 'infrastructure/deployment/staging/**'
+      - '.github/workflows/web-admin-ci.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'apps/admin-web/**'
+      - 'apps/public-web/**'
+      - 'apps/api/**'
+      - 'backend/**'
+      - 'infrastructure/deployment/staging/**'
+      - '.github/workflows/web-admin-ci.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20.x'
+
+jobs:
+  lint-and-type-check:
+    name: Lint and Type Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: apps/admin-web/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./apps/admin-web
+        run: npm ci
+
+      - name: Run ESLint
+        working-directory: ./apps/admin-web
+        run: npm run lint
+
+      - name: Run TypeScript type check
+        working-directory: ./apps/admin-web
+        run: npm run type-check
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: lint-and-type-check
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: apps/admin-web/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./apps/admin-web
+        run: npm ci
+
+      - name: Build application
+        working-directory: ./apps/admin-web
+        run: npm run build
+        env:
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          NEXT_PUBLIC_WS_URL: ${{ secrets.NEXT_PUBLIC_WS_URL }}
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: admin-web-build
+          path: apps/admin-web/.next
+          retention-days: 7
+
+  e2e:
+    name: End-to-End Tests
+    runs-on: ubuntu-latest
+    needs: build
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: apps/admin-web/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./apps/admin-web
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: ./apps/admin-web
+        run: npx playwright install --with-deps chromium
+
+      - name: Create CI staging environment
+        run: |
+          printf 'DB_PASSWORD=ci-database-password\nJWT_SECRET=ci-jwt-secret-at-least-thirty-two-characters-long\nDB_HOST_PORT=5434\n' > infrastructure/deployment/staging/.env.staging
+
+      - name: Start Docker-backed platform
+        run: ./infrastructure/deployment/staging/deploy-staging.sh start
+
+      - name: Run Playwright tests
+        working-directory: ./apps/admin-web
+        run: npm run test:e2e
+        env:
+          E2E_ADMIN_URL: http://localhost:3000
+          E2E_PUBLIC_URL: http://localhost:3001
+
+      - name: Upload Playwright diagnostics
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: admin-web-playwright-diagnostics
+          path: |
+            apps/admin-web/test-results
+            apps/admin-web/playwright-report
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Show service logs
+        if: failure()
+        run: docker compose -f infrastructure/deployment/staging/docker-compose.staging.yml --env-file infrastructure/deployment/staging/.env.staging logs --tail 200 api admin-web public-web
+
+      - name: Stop Docker-backed platform
+        if: always()
+        run: docker compose -f infrastructure/deployment/staging/docker-compose.staging.yml --env-file infrastructure/deployment/staging/.env.staging down -v
+
+  dependency-check:
+    name: Dependency Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: apps/admin-web/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./apps/admin-web
+        run: npm ci
+
+      - name: Run npm audit
+        working-directory: ./apps/admin-web
+        run: npm audit --audit-level=high

@@ -1,0 +1,22 @@
+name: OSV-Scanner PR Scan
+
+on:
+  pull_request:
+    branches: [main, develop]
+  merge_group:
+    branches: [main, develop]
+
+permissions:
+  actions: read
+  contents: read
+  security-events: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  scan-pr:
+    name: Reject newly introduced vulnerable dependencies
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable-pr.yml@8deb546fdb875b9996d27d4950be7312dac076a1 # v2.5.0
+

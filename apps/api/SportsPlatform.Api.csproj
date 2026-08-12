@@ -1,0 +1,56 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>sports-platform-api-development</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FirebaseAdmin" Version="3.6.0" />
+    <PackageReference Include="ClosedXML" Version="0.105.1" />
+    <PackageReference Include="PDFsharp-MigraDoc" Version="6.2.4" />
+    <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.18" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.18" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.18" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.18">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Minio" Version="7.0.0" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
+    <PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.17.0" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.17.0" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.17.0" />
+    <PackageReference Include="Serilog.AspNetCore" Version="9.0.0" />
+    <PackageReference Include="Serilog.Settings.Configuration" Version="9.0.0" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
+    <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
+    <PackageReference Include="StackExchange.Redis" Version="2.8.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Versioning" Version="5.1.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Versioning.ApiExplorer" Version="5.1.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="7.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\backend\Shared\SportsPlatform.Shared\SportsPlatform.Shared.csproj" />
+    <ProjectReference Include="..\..\backend\BuildingBlocks\SportsPlatform.BuildingBlocks\SportsPlatform.BuildingBlocks.csproj" />
+    <ProjectReference Include="..\..\backend\Modules\SportsPlatform.Modules.Tenancy\SportsPlatform.Modules.Tenancy.csproj" />
+    <ProjectReference Include="..\..\backend\Modules\SportsPlatform.Modules.Sports\SportsPlatform.Modules.Sports.csproj" />
+    <ProjectReference Include="..\..\backend\Modules\SportsPlatform.Modules.Competitions\SportsPlatform.Modules.Competitions.csproj" />
+    <ProjectReference Include="..\..\backend\Modules\SportsPlatform.Modules.Contests\SportsPlatform.Modules.Contests.csproj" />
+    <ProjectReference Include="..\..\backend\Modules\SportsPlatform.Modules.Participants\SportsPlatform.Modules.Participants.csproj" />
+    <ProjectReference Include="..\..\backend\Modules\SportsPlatform.Modules.Audit\SportsPlatform.Modules.Audit.csproj" />
+    <ProjectReference Include="..\..\backend\Modules\SportsPlatform.Modules.Branding\SportsPlatform.Modules.Branding.csproj" />
+    <ProjectReference Include="..\..\backend\Modules\SportsPlatform.Modules.Subscriptions\SportsPlatform.Modules.Subscriptions.csproj" />
+    <ProjectReference Include="..\..\backend\Infrastructure\SportsPlatform.Infrastructure\SportsPlatform.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\backend\Modules\SportsPlatform.Modules.Identity\SportsPlatform.Modules.Identity.csproj" />
+    <ProjectReference Include="..\..\backend\Modules\SportsPlatform.Modules.LiveScoring\SportsPlatform.Modules.LiveScoring.csproj" />
+    <ProjectReference Include="..\..\backend\Modules\SportsPlatform.Modules.FormatEngines\SportsPlatform.Modules.FormatEngines.csproj" />
+    <ProjectReference Include="..\..\backend\Modules\SportsPlatform.Modules.Registrations\SportsPlatform.Modules.Registrations.csproj" />
+    <ProjectReference Include="..\..\backend\Modules\SportsPlatform.Modules.Notifications\SportsPlatform.Modules.Notifications.csproj" />
+  </ItemGroup>
+
+</Project>

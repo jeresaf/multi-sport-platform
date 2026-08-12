@@ -1,0 +1,22 @@
+{
+  "completedAtUtc": "2026-08-09T07:12:50.8888847Z",
+  "redisOutage": {
+    "healthStatus": 200,
+    "healthBody": "Healthy",
+    "dependencyHealthStatus": 200,
+    "dependencyHealthBody": "Degraded",
+    "publicContestStatus": 200,
+    "recoveryStatus": 200,
+    "passed": true,
+    "behavior": "Critical health remains HTTP 200; dependency health reports Degraded; PostgreSQL-backed public reads remain available."
+  },
+  "databaseRestart": {
+    "outageHealthStatus": 503,
+    "recoveryHealthStatus": 200,
+    "recoverySeconds": 0.117,
+    "persistedStateVerified": true,
+    "passed": true,
+    "behavior": "Health becomes HTTP 503 while PostgreSQL is unavailable and returns to HTTP 200 after restart; exact score and notification counts survive."
+  },
+  "passed": true
+}

@@ -1,0 +1,23 @@
+FROM node:20-alpine AS build
+ARG APP_DIR
+ARG NEXT_PUBLIC_API_URL=http://localhost:8080
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+WORKDIR /app
+COPY ${APP_DIR}/package.json ${APP_DIR}/package-lock.json ./
+RUN npm ci
+COPY ${APP_DIR}/ ./
+RUN npm run build
+
+FROM node:20-alpine AS runtime
+ENV NODE_ENV=production
+ENV HOSTNAME=0.0.0.0
+ENV PORT=3000
+WORKDIR /app
+COPY --from=build /app/package.json /app/package-lock.json ./
+COPY --from=build /app/next.config.js ./next.config.js
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/.next ./.next
+EXPOSE 3000
+HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=4 \
+  CMD wget --quiet --tries=1 --spider http://localhost:3000/ || exit 1
+CMD ["npm", "start"]

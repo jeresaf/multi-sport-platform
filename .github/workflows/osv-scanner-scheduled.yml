@@ -1,0 +1,23 @@
+name: OSV-Scanner Full Scan
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '30 12 * * 1'
+  push:
+    branches: [main]
+
+permissions:
+  actions: read
+  contents: read
+  security-events: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  scan-full:
+    name: Scan all supported dependency manifests
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@8deb546fdb875b9996d27d4950be7312dac076a1 # v2.5.0
+
