@@ -110,7 +110,7 @@ jobs:
 
       - name: Build debug APK
         working-directory: ./apps/mobile
-        run: flutter build apk --debug
+        run: flutter build apk --debug --dart-define=API_BASE_URL=http://192.168.1.67:8080 --dart-define=PUBLIC_WEB_BASE_URL=http://192.168.1.67:3001
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
