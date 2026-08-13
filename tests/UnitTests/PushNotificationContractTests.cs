@@ -20,6 +20,20 @@ public sealed class PushNotificationContractTests
     }
 
     [Fact]
+    public void AlertTopics_MatchFineGrainedMobilePreferences()
+    {
+        var contestId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+        var competitionId = Guid.Parse("22222222-2222-2222-2222-222222222222");
+
+        PushTopics.ContestAlert("Nairobi Rugby Club", contestId, competitionId,
+                PushNotificationTypes.ScoreChanged)
+            .Should().Equal(
+                "tenant-nairobi-rugby-club",
+                $"favourite-contest-{contestId}-score_changed",
+                $"favourite-competition-{competitionId}-score_changed");
+    }
+
+    [Fact]
     public void NotificationTypes_CoverAuthoritativeTaskList()
     {
         new[]
@@ -33,5 +47,13 @@ public sealed class PushNotificationContractTests
             PushNotificationTypes.Qualification,
             PushNotificationTypes.Announcement
         }.Should().OnlyHaveUniqueItems().And.NotContain(string.Empty);
+    }
+
+    [Theory]
+    [InlineData("Tenant-Uganda Sports Demo", "tenant-uganda-sports-demo")]
+    [InlineData(" favourite-contest-ABC ", "favourite-contest-abc")]
+    public void TopicNormalization_MatchesMobileTopicRules(string input, string expected)
+    {
+        PushTopics.Normalize(input).Should().Be(expected);
     }
 }

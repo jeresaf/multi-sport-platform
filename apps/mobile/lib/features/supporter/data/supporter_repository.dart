@@ -73,6 +73,21 @@ class SupporterRepository {
     );
   }
 
+  Future<FightCard> getFightCard(
+    String competitionId, {
+    bool forceRefresh = false,
+    bool preferCache = false,
+  }) async {
+    final snapshot = await _loadObject(
+      'fight-card:$competitionId',
+      () => _remote.getFightCard(competitionId),
+      forceRefresh: forceRefresh,
+      preferCache: preferCache,
+    );
+    return FightCard.fromJson(snapshot.data,
+        isFromCache: snapshot.fromCache, cachedAt: snapshot.cachedAt);
+  }
+
   Future<_Snapshot> _load(
     String kind,
     Future<List<Map<String, dynamic>>> Function() remoteLoad, {

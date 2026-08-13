@@ -16,6 +16,7 @@ services:
       - Jwt__Audience=SportsPlatformUsers
       - Jwt__AccessTokenExpirationMinutes=60
       - SeedData__EnableDemoData=true
+      - SeedData__PublicCsvPackPath=/app/seed-data
       - Security__RateLimits__GlobalPerMinute=${GLOBAL_RATE_LIMIT_PER_MINUTE:-300}
       - Logging__LogLevel__Default=Information
       - Logging__LogLevel__Microsoft=Warning
@@ -28,11 +29,15 @@ services:
       - Email__UseTls=false
       - Email__FromAddress=no-reply@sportsplatform.local
       - Email__AdminWebBaseUrl=http://localhost:3000
+      - Firebase__ProjectId=${FIREBASE_PROJECT_ID:-}
+      - Firebase__CredentialsPath=/run/secrets/firebase-admin-staging.json
       - Security__AllowedOrigins__0=http://localhost:3000
       - Security__AllowedOrigins__1=http://localhost:3001
       - Security__DataProtectionKeyPath=/app/data-protection-keys
     volumes:
       - data_protection_keys:/app/data-protection-keys
+      - ../../../../docs/public_multi_sport_seed_csv_pack:/app/seed-data:ro
+      - ${FIREBASE_CREDENTIALS_DIR:-./secrets}:/run/secrets:ro
     depends_on:
       db:
         condition: service_healthy
@@ -56,7 +61,8 @@ services:
       dockerfile: infrastructure/deployment/staging/Dockerfile.web
       args:
         APP_DIR: apps/admin-web
-        NEXT_PUBLIC_API_URL: http://localhost:8080
+        NEXT_PUBLIC_API_URL: ""
+        API_PROXY_TARGET: http://api:8080
     ports:
       - "3000:3000"
     depends_on:
@@ -72,7 +78,9 @@ services:
       dockerfile: infrastructure/deployment/staging/Dockerfile.web
       args:
         APP_DIR: apps/public-web
-        NEXT_PUBLIC_API_URL: http://localhost:8080
+        NEXT_PUBLIC_API_URL: ""
+        API_PROXY_TARGET: http://api:8080
+        NEXT_PUBLIC_TENANT_SLUG: uganda-sports-demo
     ports:
       - "3001:3000"
     depends_on:

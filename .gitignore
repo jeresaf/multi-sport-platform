@@ -12,6 +12,7 @@ npm-debug.log*
 **/playwright-report/
 **/coverage/
 **/TestResults/
+**/test/failures/
 *.trx
 *.coverage
 infrastructure/database/backups/
@@ -29,6 +30,11 @@ infrastructure/database/backups/
 !.env.*.example
 !**/.env.example
 !**/.env.*.example
+**/google-services.json
+**/GoogleService-Info.plist
+**/firebase-admin*.json
+**/*service-account*.json
+infrastructure/deployment/staging/secrets/
 
 # IDE / operating system
 .idea/
@@ -43,3 +49,4 @@ Thumbs.db
 artifacts/security/
 artifacts/tools/
 artifacts/migrations/
+artifacts/android/

@@ -45,6 +45,94 @@ public sealed class DemoSeedDataTests
     }
 
     [Fact]
+    public async Task InitializeAsync_creates_a_complete_public_e2e_showcase()
+    {
+        var options = new DbContextOptionsBuilder<SportsPlatformDbContext>()
+            .UseInMemoryDatabase($"public-e2e-showcase-{Guid.NewGuid()}")
+            .Options;
+        await using var context = new SportsPlatformDbContext(options);
+
+        await SeedData.InitializeAsync(context);
+        await PublicE2eShowcaseSeedData.EnsureAsync(context);
+        context.ChangeTracker.Clear();
+
+        var tenant = await context.Tenants.SingleAsync(
+            item => item.Id == PublicE2eShowcaseSeedData.TenantId);
+        tenant.Slug.Should().Be("public-e2e-showcase");
+        tenant.Name.Should().Be("Public E2E Sports Showcase");
+
+        var enabledSports = await context.TenantSports
+            .Where(item => item.TenantId == tenant.Id && item.IsEnabled)
+            .Select(item => item.SportId)
+            .Distinct()
+            .ToArrayAsync();
+        enabledSports.Should().HaveCount(7);
+
+        var competitions = await context.Competitions
+            .Include(item => item.Editions)
+            .ThenInclude(item => item.Stages)
+            .Where(item => item.TenantId == tenant.Id)
+            .ToArrayAsync();
+        competitions.Should().HaveCount(9);
+        competitions.Should().OnlyContain(item => item.Status == CompetitionStatus.Published);
+        competitions.Select(item => item.SportId).Distinct().Should().HaveCount(7);
+        competitions.SelectMany(item => item.Editions)
+            .SelectMany(item => item.Stages)
+            .Select(item => item.Type)
+            .Should().Contain(new[]
+            {
+                StageType.Group,
+                StageType.Knockout,
+                StageType.GroupAndKnockout,
+                StageType.League,
+                StageType.Leaderboard,
+                StageType.Heat,
+                StageType.FightCard
+            });
+
+        var contests = await context.Contests
+            .Where(item => item.TenantId == tenant.Id)
+            .ToArrayAsync();
+        contests.Should().HaveCount(36);
+        contests.Count(item => item.Status == ContestStatus.Published).Should().Be(9);
+        contests.Count(item => item.Status == ContestStatus.InProgress).Should().Be(9);
+        contests.Count(item => item.Status == ContestStatus.Ready).Should().Be(9);
+        contests.Count(item => item.Status == ContestStatus.Scheduled).Should().Be(9);
+        contests.Where(item => item.ContestShape == "Bout")
+            .OrderBy(item => item.SortOrder)
+            .Select(item => item.CardSection)
+            .Should().Equal("PreliminaryCard", "MainCard", "CoMainEvent", "MainEvent");
+        contests.Where(item => item.Status == ContestStatus.Published)
+            .Should().OnlyContain(item => item.StartTime < DateTime.UtcNow);
+        contests.Where(item => item.Status is ContestStatus.Ready or ContestStatus.Scheduled)
+            .Should().OnlyContain(item => item.StartTime > DateTime.UtcNow);
+
+        var participants = await context.Participants
+            .Where(item => item.TenantId == tenant.Id)
+            .ToArrayAsync();
+        participants.Should().HaveCount(36);
+        participants.Select(item => item.Name).Should().OnlyHaveUniqueItems();
+        participants.Should().OnlyContain(item =>
+            !item.Name.Contains("Demo", StringComparison.OrdinalIgnoreCase)
+            && !item.Name.Any(char.IsDigit));
+
+        var results = await context.ContestResults
+            .Where(item => contests.Select(contest => contest.Id).Contains(item.ContestId))
+            .ToArrayAsync();
+        results.Should().HaveCount(22);
+        results.Should().OnlyContain(item => item.Status == ContestResultStatus.Published);
+
+        (await context.Standings.CountAsync(item =>
+            competitions.Select(competition => competition.Id).Contains(item.CompetitionId)))
+            .Should().Be(20);
+        (await context.Brackets.CountAsync(item => item.CompetitionId ==
+            Guid.Parse("80000000-0000-0000-0000-000000000102")))
+            .Should().Be(1);
+        (await context.LiveScores.CountAsync(item => item.TenantId == tenant.Id
+            && item.MetricName == "strokes")).Should().Be(72);
+    }
+
+    [Fact]
     public async Task EnsureAsync_creates_an_idempotent_isolated_complete_football_demo()
     {
         var options = new DbContextOptionsBuilder<SportsPlatformDbContext>()

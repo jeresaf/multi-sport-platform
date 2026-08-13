@@ -1,91 +1,135 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../features/auth/presentation/providers/auth_provider.dart';
+import '../theme/ui_tokens.dart';
 
-/// Main scaffold with bottom navigation
-class MainScaffold extends ConsumerWidget {
-  final Widget child;
-
-  const MainScaffold({
-    super.key,
-    required this.child,
-  });
+/// Adaptive public-first navigation: bottom tabs on phones and a rail on tablets.
+class MainScaffold extends ConsumerStatefulWidget {
+  final StatefulNavigationShell navigationShell;
+  const MainScaffold({super.key, required this.navigationShell});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final auth = ref.watch(authStateProvider);
-    final isAuthenticated = auth.isAuthenticated;
-    final canScore = auth.canScore;
-    final items = <_NavigationItem>[
-      const _NavigationItem(
-        path: '/',
-        destination: NavigationDestination(
-          icon: Icon(Icons.home_outlined),
-          selectedIcon: Icon(Icons.home),
-          label: 'Home',
-        ),
-      ),
-      const _NavigationItem(
-        path: '/support',
-        destination: NavigationDestination(
-          icon: Icon(Icons.sports_score_outlined),
-          selectedIcon: Icon(Icons.sports_score),
-          label: 'Scores',
-        ),
-      ),
-      const _NavigationItem(
-        path: '/competitions',
-        destination: NavigationDestination(
-          icon: Icon(Icons.emoji_events_outlined),
-          selectedIcon: Icon(Icons.emoji_events),
-          label: 'Events',
-        ),
-      ),
-      if (canScore)
-        const _NavigationItem(
-          path: '/scoring',
-          destination: NavigationDestination(
-            icon: Icon(Icons.scoreboard_outlined),
-            selectedIcon: Icon(Icons.scoreboard),
-            label: 'Scoring',
-          ),
-        ),
-      _NavigationItem(
-        path: isAuthenticated ? '/settings' : '/login',
-        destination: NavigationDestination(
-          icon: Icon(isAuthenticated ? Icons.settings_outlined : Icons.login),
-          selectedIcon: Icon(isAuthenticated ? Icons.settings : Icons.login),
-          label: isAuthenticated ? 'Settings' : 'Login',
-        ),
-      ),
-    ];
+  ConsumerState<MainScaffold> createState() => _MainScaffoldState();
+}
 
-    return Scaffold(
-      body: child,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _calculateSelectedIndex(context, items),
-        onDestinationSelected: (index) => context.go(items[index].path),
-        destinations: items.map((item) => item.destination).toList(),
-      ),
+class _MainScaffoldState extends ConsumerState<MainScaffold> {
+  DateTime? _lastHomeBackPress;
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = ref.watch(authStateProvider);
+    final morePath = auth.isAuthenticated ? '/settings' : '/login';
+    final phoneItems = <_NavigationItem>[
+      const _NavigationItem(0, '/', 'Home', Icons.home_outlined, Icons.home),
+      const _NavigationItem(
+          1, '/live', 'Live', Icons.sensors_outlined, Icons.sensors),
+      const _NavigationItem(2, '/favourites', 'Favourites',
+          Icons.favorite_border, Icons.favorite),
+      const _NavigationItem(3, '/competitions', 'Competitions',
+          Icons.emoji_events_outlined, Icons.emoji_events),
+      _NavigationItem(
+          5, morePath, 'More', Icons.grid_view_outlined, Icons.grid_view),
+    ];
+    final tabletItems = <_NavigationItem>[
+      ...phoneItems.take(2),
+      const _NavigationItem(
+          4, '/search', 'Search', Icons.search, Icons.manage_search),
+      ...phoneItems.skip(2),
+    ];
+    final currentPath = GoRouterState.of(context).uri.path;
+    final isHome = currentPath == '/' ||
+        currentPath == '/home' ||
+        currentPath.startsWith('/sport/');
+
+    return PopScope(
+      canPop: !isHome,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop || !isHome) return;
+        final now = DateTime.now();
+        if (_lastHomeBackPress != null &&
+            now.difference(_lastHomeBackPress!) < const Duration(seconds: 2)) {
+          SystemNavigator.pop();
+          return;
+        }
+        _lastHomeBackPress = now;
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+              const SnackBar(content: Text('Press back again to exit')));
+      },
+      child: LayoutBuilder(builder: (context, constraints) {
+        final tablet = MediaQuery.sizeOf(context).shortestSide >=
+            UiTokens.tabletShortestSide;
+        final items = tablet ? tabletItems : phoneItems;
+        final selected = _selectedIndex(context, items);
+        if (tablet) {
+          return Scaffold(
+            body: Row(children: [
+              SafeArea(
+                child: NavigationRail(
+                  selectedIndex: selected,
+                  labelType: NavigationRailLabelType.all,
+                  onDestinationSelected: (index) => _select(items[index]),
+                  destinations: items
+                      .map((item) => NavigationRailDestination(
+                            icon: Icon(item.icon),
+                            selectedIcon: Icon(item.selectedIcon),
+                            label: Text(item.label),
+                          ))
+                      .toList(),
+                ),
+              ),
+              const VerticalDivider(width: 1),
+              Expanded(child: widget.navigationShell),
+            ]),
+          );
+        }
+        return Scaffold(
+          body: widget.navigationShell,
+          bottomNavigationBar: NavigationBar(
+            selectedIndex: selected,
+            onDestinationSelected: (index) => _select(items[index]),
+            destinations: items
+                .map((item) => NavigationDestination(
+                      icon: Icon(item.icon),
+                      selectedIcon: Icon(item.selectedIcon),
+                      label: item.label,
+                    ))
+                .toList(),
+          ),
+        );
+      }),
     );
   }
 
-  int _calculateSelectedIndex(
-    BuildContext context,
-    List<_NavigationItem> items,
-  ) {
-    final location = GoRouterState.of(context).uri.path;
-    for (var index = 1; index < items.length; index++) {
-      if (location.startsWith(items[index].path)) return index;
+  int _selectedIndex(BuildContext context, List<_NavigationItem> items) {
+    final selected = items.indexWhere(
+      (item) => item.branchIndex == widget.navigationShell.currentIndex,
+    );
+    return selected < 0 ? 0 : selected;
+  }
+
+  void _select(_NavigationItem item) {
+    if (item.path == '/login') {
+      context.go(item.path);
+      return;
     }
-    return 0;
+    widget.navigationShell.goBranch(
+      item.branchIndex,
+      initialLocation: item.branchIndex == widget.navigationShell.currentIndex,
+    );
   }
 }
 
 class _NavigationItem {
+  final int branchIndex;
   final String path;
-  final NavigationDestination destination;
-
-  const _NavigationItem({required this.path, required this.destination});
+  final String label;
+  final IconData icon;
+  final IconData selectedIcon;
+  const _NavigationItem(
+      this.branchIndex, this.path, this.label, this.icon, this.selectedIcon);
 }

@@ -44,6 +44,42 @@ public sealed class ApiWorkflowTests : IClassFixture<ApiWebApplicationFactory>
     }
 
     [Fact]
+    public async Task PublicShowcase_ExposesEverySportAndLifecycleScenario()
+    {
+        using var client = _factory.CreateClient();
+        const string root = "/api/public/tenants/public-e2e-showcase";
+
+        var home = await client.GetFromJsonAsync<JsonElement>($"{root}/home");
+        home.GetProperty("tenant").GetProperty("slug").GetString()
+            .Should().Be("public-e2e-showcase");
+        home.GetProperty("liveContests").GetArrayLength().Should().Be(9);
+        home.GetProperty("upcomingContests").GetArrayLength().Should().Be(18);
+
+        var competitions = await client.GetFromJsonAsync<JsonElement>($"{root}/competitions");
+        competitions.GetArrayLength().Should().Be(9);
+        competitions.EnumerateArray()
+            .Select(item => item.GetProperty("sportId").GetGuid())
+            .Distinct().Should().HaveCount(7);
+
+        var fixtures = await client.GetFromJsonAsync<JsonElement>($"{root}/fixtures?pageSize=100");
+        var fixtureItems = fixtures.EnumerateArray().ToArray();
+        fixtureItems.Should().HaveCount(36);
+        var statusCounts = fixtureItems
+            .GroupBy(item => item.GetProperty("status").GetString())
+            .ToDictionary(group => group.Key!, group => group.Count());
+        statusCounts[nameof(ContestStatus.Published)].Should().Be(9);
+        statusCounts[nameof(ContestStatus.InProgress)].Should().Be(9);
+        statusCounts[nameof(ContestStatus.Ready)].Should().Be(9);
+        statusCounts[nameof(ContestStatus.Scheduled)].Should().Be(9);
+
+        var golf = await client.GetAsync(
+            $"{root}/golf/leaderboard?competitionId=80000000-0000-0000-0000-000000000104");
+        golf.StatusCode.Should().Be(HttpStatusCode.OK);
+        var golfPayload = await golf.Content.ReadFromJsonAsync<JsonElement>();
+        golfPayload.GetProperty("entries").GetArrayLength().Should().Be(4);
+    }
+
+    [Fact]
     public async Task OperationalMetrics_ExposeEveryAuthoritativeDashboardSignal()
     {
         using var client = _factory.CreateClient();
@@ -119,8 +155,31 @@ public sealed class ApiWorkflowTests : IClassFixture<ApiWebApplicationFactory>
         {
             fixture.GetProperty("competitionId").GetGuid()
                 .Should().NotBe(Guid.Empty);
+            fixture.GetProperty("sportCode").GetString()
+                .Should().NotBeNullOrWhiteSpace();
+            fixture.GetProperty("sportName").GetString()
+                .Should().NotBeNullOrWhiteSpace();
+            fixture.GetProperty("renderer").GetString()
+                .Should().BeOneOf("head-to-head", "multi-participant-leaderboard",
+                    "race-heat", "fight-card-bout", "cricket-scorecard");
             fixture.GetProperty("participants").ValueKind
                 .Should().Be(JsonValueKind.Array);
+            var presentation = fixture.GetProperty("presentation");
+            presentation.ValueKind.Should().Be(JsonValueKind.Object);
+            presentation.TryGetProperty("scoreVariant", out _).Should().BeTrue();
+            presentation.TryGetProperty("periodLabel", out _).Should().BeTrue();
+            presentation.TryGetProperty("clock", out _).Should().BeTrue();
+            presentation.GetProperty("eventSummary").ValueKind
+                .Should().Be(JsonValueKind.Array);
+            foreach (var participant in fixture.GetProperty("participants").EnumerateArray())
+            {
+                participant.GetProperty("participantId").GetGuid()
+                    .Should().NotBe(Guid.Empty);
+                participant.GetProperty("name").GetString()
+                    .Should().NotBeNullOrWhiteSpace();
+                participant.TryGetProperty("scoreDisplay", out _).Should().BeTrue();
+                participant.TryGetProperty("resultStatus", out _).Should().BeTrue();
+            }
         }
     }
 
@@ -143,6 +202,16 @@ public sealed class ApiWorkflowTests : IClassFixture<ApiWebApplicationFactory>
         {
             var tabs = detail.RootElement.GetProperty("availableTabs")
                 .EnumerateArray().Select(item => item.GetString()).ToArray();
+            detail.RootElement.GetProperty("presentation")
+                .GetProperty("primaryContestRenderer").ValueKind
+                .Should().Be(JsonValueKind.Null);
+            detail.RootElement.GetProperty("sport").GetProperty("code")
+                .GetString().Should().Be("FOOTBALL");
+            detail.RootElement.TryGetProperty("region", out _).Should().BeTrue();
+            detail.RootElement.GetProperty("sponsors").ValueKind
+                .Should().Be(JsonValueKind.Array);
+            detail.RootElement.GetProperty("medals").ValueKind
+                .Should().Be(JsonValueKind.Array);
             tabs.Should().Contain("overview");
             detail.RootElement.GetProperty("labels").GetProperty("fixtures")
                 .GetString().Should().Be("Fixtures");
@@ -162,6 +231,9 @@ public sealed class ApiWorkflowTests : IClassFixture<ApiWebApplicationFactory>
                 .GetProperty("contestCount").GetInt32()
                 .Should().Be(fixtures.GetArrayLength());
             tabs.Contains("fixtures").Should().Be(fixtures.GetArrayLength() > 0);
+            foreach (var fixture in fixtures.EnumerateArray())
+                fixture.GetProperty("renderer").GetString()
+                    .Should().NotBeNullOrWhiteSpace();
             tabs.Contains("results").Should().Be(results.GetArrayLength() > 0);
             tabs.Contains("standings").Should().Be(standings.GetArrayLength() > 0);
             tabs.Contains("participants").Should().Be(participants.GetArrayLength() > 0);
@@ -182,6 +254,69 @@ public sealed class ApiWorkflowTests : IClassFixture<ApiWebApplicationFactory>
         golf.RootElement.GetProperty("availableTabs")
             .EnumerateArray().Select(item => item.GetString())
             .Should().Contain("leaderboard");
+    }
+
+    [Fact]
+    public async Task CompetitionPresentationSettings_AreValidatedPersistedAndPubliclyApplied()
+    {
+        using var client = _factory.CreateClient();
+        var admin = await LoginAsync(client, "admin@premier.com", "TenantAdmin123!",
+            $"presentation-{Guid.NewGuid():N}");
+        client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", admin.AccessToken);
+        var competitionId = Guid.Parse("00000000-0000-0000-0000-000000000300");
+        var route = $"/api/competitions/{competitionId}/presentation";
+
+        try
+        {
+            var update = await client.PutAsJsonAsync(route, new
+            {
+                primaryContestRenderer = "cricket-scorecard",
+                visibleTabs = new[] { "overview", "fixtures" },
+                defaultTab = "fixtures",
+                scoreVariant = "compact",
+                standingsVariant = "full",
+                leaderboardVariant = (string?)null,
+                bracketEnabled = false,
+                seriesEnabled = false,
+                medalTableEnabled = false
+            });
+            update.StatusCode.Should().Be(HttpStatusCode.OK,
+                await update.Content.ReadAsStringAsync());
+
+            var stored = await client.GetFromJsonAsync<JsonElement>(route);
+            stored.GetProperty("defaultTab").GetString().Should().Be("fixtures");
+            stored.GetProperty("visibleTabs").EnumerateArray()
+                .Select(item => item.GetString()).Should().BeEquivalentTo("overview", "fixtures");
+
+            client.DefaultRequestHeaders.Authorization = null;
+            var detail = await client.GetFromJsonAsync<JsonElement>(
+                $"/api/public/tenants/premier-league/competitions/{competitionId}");
+            detail.GetProperty("presentation").GetProperty("defaultTab")
+                .GetString().Should().Be("fixtures");
+            detail.GetProperty("availableTabs").EnumerateArray()
+                .Select(item => item.GetString()).Should().BeEquivalentTo("overview", "fixtures");
+            detail.GetProperty("fixtures").EnumerateArray()
+                .Should().OnlyContain(item => item.GetProperty("renderer").GetString()
+                    == "cricket-scorecard");
+        }
+        finally
+        {
+            client.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Bearer", admin.AccessToken);
+            await client.PutAsJsonAsync(route, new
+            {
+                primaryContestRenderer = (string?)null,
+                visibleTabs = Array.Empty<string>(),
+                defaultTab = (string?)null,
+                scoreVariant = (string?)null,
+                standingsVariant = (string?)null,
+                leaderboardVariant = (string?)null,
+                bracketEnabled = (bool?)null,
+                seriesEnabled = (bool?)null,
+                medalTableEnabled = (bool?)null
+            });
+        }
     }
 
     [Fact]
@@ -528,6 +663,13 @@ public sealed class ApiWorkflowTests : IClassFixture<ApiWebApplicationFactory>
         teams.RootElement.GetProperty("items").EnumerateArray()
             .Select(item => item.GetProperty("id").GetString())
             .Should().Contain(teamId.ToString());
+        using var sports = JsonDocument.Parse(await (await client.GetAsync(
+            "/api/public/tenants/premier-league/search?type=sport&q=Football"))
+            .Content.ReadAsStringAsync());
+        sports.RootElement.GetProperty("items").EnumerateArray()
+            .Should().ContainSingle(item =>
+                item.GetProperty("type").GetString() == "Sport"
+                && item.GetProperty("href").GetString() == "/sport/football");
         using var privateVenue = JsonDocument.Parse(await (await client.GetAsync(
             "/api/public/tenants/premier-league/search?type=venue&q=Private%20Draft%20Venue"))
             .Content.ReadAsStringAsync());
@@ -998,6 +1140,8 @@ public sealed class ApiWorkflowTests : IClassFixture<ApiWebApplicationFactory>
             TaskCreationOptions.RunContinuationsAsynchronously);
         var contestUpdate = new TaskCompletionSource<LiveScoreUpdateDto>(
             TaskCreationOptions.RunContinuationsAsynchronously);
+        var contestPatch = new TaskCompletionSource<ContestLiveUpdateDto>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
         var participantUpdate = new TaskCompletionSource<LiveScoreUpdateDto>(
             TaskCreationOptions.RunContinuationsAsynchronously);
         var competitionUpdate = new TaskCompletionSource<LiveScoreUpdateDto>(
@@ -1006,6 +1150,8 @@ public sealed class ApiWorkflowTests : IClassFixture<ApiWebApplicationFactory>
             "ContestSnapshot", snapshot => initialSnapshot.TrySetResult(snapshot));
         contestConnection.On<LiveScoreUpdateDto>(
             "LiveScoreUpdated", update => contestUpdate.TrySetResult(update));
+        contestConnection.On<ContestLiveUpdateDto>(
+            "ContestLiveUpdated", update => contestPatch.TrySetResult(update));
         participantConnection.On<LiveScoreUpdateDto>(
             "LiveScoreUpdated", update => participantUpdate.TrySetResult(update));
         competitionConnection.On<LiveScoreUpdateDto>(
@@ -1050,6 +1196,11 @@ public sealed class ApiWorkflowTests : IClassFixture<ApiWebApplicationFactory>
             && item.ParticipantId == participantId
             && item.MetricName == "score"
             && item.Value == 1);
+        var patch = await contestPatch.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        patch.ContestId.Should().Be(contestId);
+        patch.Version.Should().BePositive();
+        patch.Participants.Should().ContainSingle(item =>
+            item.ParticipantId == participantId && item.Score == "1");
 
         await contestConnection.StopAsync();
         await using var reconnected = BuildConnection();
@@ -1066,6 +1217,8 @@ public sealed class ApiWorkflowTests : IClassFixture<ApiWebApplicationFactory>
             && item.ParticipantId == participantId
             && item.MetricName == "score"
             && item.Value == 1);
+        recovered.ParticipantScores.Should().ContainSingle(item =>
+            item.ParticipantId == participantId && item.Score == "1");
 
         using (var scope = _factory.Services.CreateScope())
         {
@@ -2811,6 +2964,10 @@ public sealed class ApiWorkflowTests : IClassFixture<ApiWebApplicationFactory>
             .GetProperty("seriesGames")
             .GetArrayLength()
             .Should().Be(3);
+        publicPlayoffs.GetProperty("rounds")[0]
+            .GetProperty("matches")[0]
+            .GetProperty("seriesGames")[0]
+            .TryGetProperty("homeScore", out _).Should().BeTrue();
     }
 
     [Fact]
@@ -3126,6 +3283,8 @@ public sealed class ApiWorkflowTests : IClassFixture<ApiWebApplicationFactory>
                 .GetProperty("position").GetInt32());
         entries[0].GetProperty("roundPositions").EnumerateArray()
             .Should().OnlyContain(position => position.GetInt32() == 1);
+        entries[0].GetProperty("todayToPar").GetInt32().Should().Be(0);
+        entries[0].GetProperty("thru").GetInt32().Should().Be(18);
 
         var liveScores = await client.GetFromJsonAsync<JsonElement>(
             $"/api/livescoring/contests/{contestId}/scores");

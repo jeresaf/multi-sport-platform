@@ -172,6 +172,7 @@ class NotificationService {
           'token': token,
           'platform': _platformName(),
           'deviceId': await _deviceId(),
+          'tenantSlug': Environment.tenantSlug,
         },
       );
       return true;
@@ -188,6 +189,7 @@ class NotificationService {
         data: {
           if (_fcmToken != null) 'token': _fcmToken,
           'deviceId': await _deviceId(),
+          'tenantSlug': Environment.tenantSlug,
         },
       );
     } catch (_) {
@@ -202,12 +204,32 @@ class NotificationService {
 
   Future<void> subscribeToTopic(String topic) async {
     if (!pushAvailable) return;
-    await FirebaseMessaging.instance.subscribeToTopic(_safeTopic(topic));
+    final safeTopic = _safeTopic(topic);
+    await FirebaseMessaging.instance.subscribeToTopic(safeTopic);
+    await _synchronizeServerTopic(safeTopic, true);
   }
 
   Future<void> unsubscribeFromTopic(String topic) async {
     if (!pushAvailable) return;
-    await FirebaseMessaging.instance.unsubscribeFromTopic(_safeTopic(topic));
+    final safeTopic = _safeTopic(topic);
+    await FirebaseMessaging.instance.unsubscribeFromTopic(safeTopic);
+    await _synchronizeServerTopic(safeTopic, false);
+  }
+
+  Future<void> _synchronizeServerTopic(String topic, bool enabled) async {
+    final client = _registrationClient;
+    if (client == null || !await client.isAuthenticated()) {
+      throw StateError('Authenticated push registration is not ready.');
+    }
+    final token = _fcmToken ?? await FirebaseMessaging.instance.getToken();
+    if (token == null || token.isEmpty) {
+      throw StateError('The Firebase device token is not ready.');
+    }
+    _fcmToken = token;
+    await client.put(
+      '/api/notifications/devices/current/topics',
+      data: {'token': token, 'topic': topic, 'enabled': enabled},
+    );
   }
 
   void handleNotificationTap(NotificationData notification) {

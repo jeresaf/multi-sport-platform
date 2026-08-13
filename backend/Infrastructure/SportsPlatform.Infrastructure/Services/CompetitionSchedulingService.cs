@@ -216,7 +216,7 @@ public sealed class CompetitionSchedulingService : ICompetitionSchedulingService
                 ? PushNotificationTypes.Postponement
                 : PushNotificationTypes.Announcement;
             await _pushDelivery.SendToTopicsAsync(
-                PushTopics.Contest(tenantSlug, contestId, competitionId),
+                PushTopics.ContestAlert(tenantSlug, contestId, competitionId, type),
                 new PushDelivery(
                     $"schedule-{contestId:N}-{startTime.ToUniversalTime().Ticks}",
                     type,

@@ -40,16 +40,53 @@ void main() {
     );
 
     final updateFuture = service.contestUpdates.first;
+    final patchFuture = service.livePatches.first;
     connection.emit('ContestSnapshot', <String, Object?>{
       'contestId': 'contest-1',
       'status': 'InProgress',
       'lastUpdated': '2026-08-04T10:00:00Z',
       'recentScores': <Object>[],
+      'participantScores': <Object>[
+        <String, Object?>{
+          'participantId': 'team-1',
+          'score': '12',
+          'scoreDisplay': '12',
+        },
+      ],
     });
     final update = await updateFuture;
 
     expect(update.contestId, 'contest-1');
     expect(update.status, 'InProgress');
+    final patch = await patchFuture;
+    expect(patch.participants.single.participantId, 'team-1');
+    expect(patch.participants.single.score, '12');
+  });
+
+  test('authoritative live patch carries version, totals, and summary',
+      () async {
+    final connection = _FakeSignalRConnection();
+    final service = SignalRService(ApiClient(),
+        connectionFactory: (_, __) => connection,
+        isAuthenticated: () async => false);
+    addTearDown(service.dispose);
+    await service.connect(contestId: 'contest-3');
+
+    final future = service.livePatches.first;
+    connection.emit('ContestLiveUpdated', <String, Object?>{
+      'contestId': 'contest-3',
+      'version': 42,
+      'status': 'InProgress',
+      'summary': 'Second half',
+      'participants': <Object>[
+        <String, Object?>{'participantId': 'team-1', 'score': '19'}
+      ],
+    });
+    final patch = await future;
+    expect(patch.version, 42);
+    expect(patch.status, 'InProgress');
+    expect(patch.summary, 'Second half');
+    expect(patch.participants.single.score, '19');
   });
 
   test('authenticated subscription uses protected join and leave methods',

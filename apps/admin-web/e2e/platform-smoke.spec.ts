@@ -1,4 +1,6 @@
 import { expect, test } from '@playwright/test';
+import { mkdirSync } from 'node:fs';
+import path from 'node:path';
 
 const adminUrl = process.env.E2E_ADMIN_URL ?? 'http://localhost:3000';
 const publicUrl = process.env.E2E_PUBLIC_URL ?? 'http://localhost:3001';
@@ -77,29 +79,41 @@ test('tenant public homepage is branded, complete, responsive, and safely cached
   }
 
   await page.goto(`${publicUrl}/?tenant=nba`);
-  await expect(page.getByTestId('tenant-home-hero')).toContainText('NBA');
-  for (const heading of [
-    'Live now',
-    'Featured competitions',
-    'Upcoming contests',
-    'Recent results',
-    'Sponsors',
-  ]) {
-    await expect(page.getByRole('heading', { name: heading })).toBeVisible();
-  }
-  await expect(page.getByRole('link', { name: 'Browse competitions' }))
+  await expect(page.getByRole('link', { name: 'NBA home' }))
     .toHaveAttribute('href', /tenant=nba/);
+  await expect(page.getByTestId('match-centre-header')).toContainText('Scores & schedule');
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(page.getByRole('navigation', { name: 'Public navigation' }))
+  await expect(page.getByRole('navigation', { name: 'Mobile navigation' }))
     .toContainText('Competitions');
-  await expect(page.getByRole('heading', { name: 'Live sport, open to everyone' }))
+  await expect(page.getByRole('heading', { name: 'Scores & schedule' }))
     .toBeVisible();
   const dimensions = await page.evaluate(() => ({
     viewport: window.innerWidth,
     document: document.documentElement.scrollWidth,
   }));
   expect(dimensions.document).toBeLessThanOrEqual(dimensions.viewport);
+});
+
+test('public match centre renders the required visual device matrix', async ({ page }) => {
+  const targets = [
+    [1440, 1000], [1280, 900], [1024, 1366], [768, 1024],
+    [430, 932], [390, 844], [360, 800],
+  ] as const;
+  const output = path.resolve(process.cwd(), '../../artifacts/ui-matrix');
+  mkdirSync(output, { recursive: true });
+  for (const [width, height] of targets) {
+    await page.setViewportSize({ width, height });
+    await page.goto(`${publicUrl}/?tenant=uganda-sports-demo&date=2026-08-13`);
+    await expect(page.getByRole('heading', { name: 'Scores & schedule' })).toBeVisible();
+    await expect(page.getByRole('status', { name: 'Loading contests' })).toHaveCount(0);
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await page.screenshot({
+      path: path.join(output, `public-home-${width}x${height}.png`),
+      fullPage: true,
+      animations: 'disabled',
+    });
+  }
 });
 
 test('public competition detail exposes only relevant labelled tabs and empty states', async ({ page }) => {
@@ -338,8 +352,7 @@ test('platform administrator creates a tenant that is immediately available on p
     });
 
     await page.goto(`${publicUrl}/?tenant=${tenantSlug}`);
-    await expect(page.getByTestId('tenant-home-hero')).toContainText(tenantName);
-    await expect(page.getByRole('link', { name: 'Browse competitions' }))
+    await expect(page.getByRole('link', { name: `${tenantName} home` }))
       .toHaveAttribute('href', new RegExp(`tenant=${tenantSlug}`));
   } finally {
     const tenantToDelete = createdTenant as { id: string } | null;

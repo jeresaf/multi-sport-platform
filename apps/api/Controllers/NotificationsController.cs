@@ -307,6 +307,17 @@ public sealed class NotificationsController : ControllerBase
         if (platform is not ("android" or "ios" or "web"))
             return BadRequest(new { error = "Platform must be android, ios, or web." });
 
+        string? tenantTopic = null;
+        if (!string.IsNullOrWhiteSpace(request.TenantSlug))
+        {
+            var tenantSlug = request.TenantSlug.Trim();
+            var tenantExists = await _database.Tenants.AsNoTracking()
+                .AnyAsync(item => item.Slug == tenantSlug, cancellationToken);
+            if (!tenantExists)
+                return BadRequest(new { error = "The selected tenant was not found." });
+            tenantTopic = PushTopics.Tenant(tenantSlug);
+        }
+
         var token = request.Token.Trim();
         var registration = await _database.PushDeviceRegistrations
             .SingleOrDefaultAsync(item => item.Token == token, cancellationToken);
@@ -331,12 +342,22 @@ public sealed class NotificationsController : ControllerBase
                 userId.Value, token, platform, request.DeviceId);
         }
         await _database.SaveChangesAsync(cancellationToken);
+
+        if (tenantTopic is not null)
+        {
+            if (!await _pushDelivery.SetTopicSubscriptionAsync(
+                    token, tenantTopic, true, cancellationToken))
+                return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                    new { error = "The device was registered, but Firebase could not synchronize its tenant topic." });
+        }
+
         return Ok(new
         {
             registration.Id,
             registration.Platform,
             registration.IsEnabled,
-            registration.LastSeenAt
+            registration.LastSeenAt,
+            tenantTopic
         });
     }
 
@@ -359,7 +380,51 @@ public sealed class NotificationsController : ControllerBase
             .ToArrayAsync(cancellationToken);
         foreach (var registration in registrations) registration.Disable();
         await _database.SaveChangesAsync(cancellationToken);
+
+        if (!string.IsNullOrWhiteSpace(request.TenantSlug))
+        {
+            var topic = PushTopics.Tenant(request.TenantSlug.Trim());
+            foreach (var registration in registrations)
+            {
+                await _pushDelivery.SetTopicSubscriptionAsync(
+                    registration.Token, topic, false, cancellationToken);
+            }
+        }
         return NoContent();
+    }
+
+    [HttpPut("devices/current/topics")]
+    public async Task<IActionResult> SetCurrentDeviceTopic(
+        [FromBody] SetPushDeviceTopicRequest request,
+        CancellationToken cancellationToken)
+    {
+        var userId = User.UserId();
+        if (!userId.HasValue) return Unauthorized();
+        if (string.IsNullOrWhiteSpace(request.Token)
+            || string.IsNullOrWhiteSpace(request.Topic))
+            return BadRequest(new { error = "A push token and topic are required." });
+
+        var token = request.Token.Trim();
+        var topic = PushTopics.Normalize(request.Topic.Trim());
+        if (topic is not { Length: > 0 }
+            || !(topic.StartsWith("tenant-", StringComparison.Ordinal)
+                || topic.StartsWith("favourite-contest-", StringComparison.Ordinal)
+                || topic.StartsWith("favourite-competition-", StringComparison.Ordinal)))
+            return BadRequest(new { error = "The push topic is not supported." });
+
+        var registration = await _database.PushDeviceRegistrations.AsNoTracking()
+            .SingleOrDefaultAsync(item => item.UserId == userId.Value
+                && item.Token == token
+                && item.IsEnabled, cancellationToken);
+        if (registration is null) return NotFound(new { error = "The push device is not registered." });
+
+        var synchronized = await _pushDelivery.SetTopicSubscriptionAsync(
+            token, topic, request.Enabled, cancellationToken);
+        if (!synchronized)
+            return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                new { error = "Firebase could not synchronize the device topic." });
+
+        return Ok(new { topic, enabled = request.Enabled });
     }
 
     private async Task<Notification?> FindOwnedAsync(
@@ -473,11 +538,18 @@ public sealed class NotificationsController : ControllerBase
 public sealed record RegisterPushDeviceRequest(
     string Token,
     string Platform,
-    string? DeviceId);
+    string? DeviceId,
+    string? TenantSlug = null);
 
 public sealed record DisablePushDeviceRequest(
     string? Token,
-    string? DeviceId);
+    string? DeviceId,
+    string? TenantSlug = null);
+
+public sealed record SetPushDeviceTopicRequest(
+    string Token,
+    string Topic,
+    bool Enabled);
 
 public sealed record CreateNotificationCampaignRequest(
     Guid TenantId,

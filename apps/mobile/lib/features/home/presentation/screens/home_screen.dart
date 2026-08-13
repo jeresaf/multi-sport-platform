@@ -1,34 +1,96 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/router/app_router.dart';
-import '../../../competitions/presentation/providers/competition_provider.dart';
-import '../../../contests/presentation/providers/contest_provider.dart';
-import '../../../auth/presentation/providers/auth_provider.dart';
-import '../../../competitions/data/repositories/competition_repository_impl.dart';
-import '../../../notifications/presentation/providers/notification_provider.dart';
-import '../../../branding/presentation/providers/branding_provider.dart';
-import '../../../supporter/data/supporter_preferences.dart';
+import 'package:intl/intl.dart';
 
-/// Home screen - main dashboard
-class HomeScreen extends ConsumerWidget {
-  const HomeScreen({super.key});
+import '../../../../core/router/app_router.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../branding/presentation/providers/branding_provider.dart';
+import '../../../notifications/presentation/providers/notification_provider.dart';
+import '../../../supporter/data/supporter_preferences.dart';
+import '../../../supporter/domain/supporter_models.dart';
+import '../../../supporter/presentation/providers/supporter_provider.dart';
+import '../../../supporter/presentation/widgets/alert_preferences_sheet.dart';
+
+({bool loading, String? error, String structure}) _feedSignal(
+    AsyncValue<SupporterFeed> feed) {
+  final data = feed.valueOrNull;
+  final structure = data == null
+      ? ''
+      : '${data.isFromCache}|${data.fixtures.map((fixture) => [
+            fixture.id,
+            fixture.competitionId,
+            fixture.competitionName,
+            fixture.sportCode,
+            fixture.sportName,
+            fixture.status,
+            fixture.startTime?.toIso8601String() ?? '',
+            fixture.participantDetails.map((item) => item.id).join(','),
+          ].join(':')).join('|')}';
+  return (
+    loading: feed.isLoading && !feed.hasValue,
+    error: feed.hasError && !feed.hasValue ? feed.error.toString() : null,
+    structure: structure,
+  );
+}
+
+class HomeScreen extends ConsumerStatefulWidget {
+  const HomeScreen({super.key, this.initialDate, this.initialSportSlug});
+
+  final DateTime? initialDate;
+  final String? initialSportSlug;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final authState = ref.watch(authStateProvider);
-    final competitionsState = ref.watch(competitionsProvider);
-    final liveContestsState = ref.watch(liveContestsProvider);
-    final unreadCount = ref.watch(unreadNotificationCountProvider);
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  late DateTime selectedDate;
+  String filter = 'all';
+  String? sport;
+
+  @override
+  void initState() {
+    super.initState();
+    selectedDate = DateUtils.dateOnly(widget.initialDate ?? DateTime.now());
+    sport = widget.initialSportSlug;
+  }
+
+  @override
+  void didUpdateWidget(covariant HomeScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialDate != null &&
+        !DateUtils.isSameDay(widget.initialDate, selectedDate)) {
+      selectedDate = DateUtils.dateOnly(widget.initialDate!);
+    }
+    if (widget.initialSportSlug != oldWidget.initialSportSlug) {
+      sport = widget.initialSportSlug;
+    }
+  }
+
+  void _changeDate(DateTime value) {
+    final next = DateUtils.dateOnly(value);
+    setState(() => selectedDate = next);
+    final current = GoRouterState.of(context).uri;
+    final parameters = Map<String, String>.from(current.queryParameters)
+      ..['date'] = DateFormat('yyyy-MM-dd').format(next);
+    context.go(current.replace(queryParameters: parameters).toString());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = ref.watch(authStateProvider);
     final branding = ref.watch(tenantBrandingProvider).valueOrNull;
-    final lowDataMode = ref.watch(
+    final feedSignal = ref.watch(supporterFeedProvider.select(_feedSignal));
+    final feed = ref.read(supporterFeedProvider);
+    final unread = ref.watch(unreadNotificationCountProvider);
+    final lowData = ref.watch(
       supporterPreferencesProvider.select((state) => state.lowDataMode),
     );
-
     return Scaffold(
       appBar: AppBar(
         title: Text(branding?.tenantName ?? 'Sports Platform'),
-        leading: branding?.logoUrl == null || lowDataMode
+        leading: branding?.logoUrl == null || lowData
             ? IconButton(
                 tooltip: 'Change organisation',
                 onPressed: () => context.push(Routes.tenant),
@@ -40,34 +102,22 @@ class HomeScreen extends ConsumerWidget {
                   onTap: () => context.push(Routes.tenant),
                   child: Image.network(
                     branding!.logoUrl!,
+                    cacheWidth:
+                        (36 * MediaQuery.devicePixelRatioOf(context)).round(),
                     errorBuilder: (_, __, ___) => const Icon(Icons.sports),
                   ),
                 ),
               ),
         actions: [
-          if (authState.isAuthenticated)
-            Stack(
-              alignment: Alignment.center,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.notifications_outlined),
-                  onPressed: () => context.push('/notifications'),
-                ),
-                if (unreadCount > 0)
-                  Positioned(
-                    right: 8,
-                    top: 8,
-                    child: CircleAvatar(
-                      radius: 8,
-                      backgroundColor: Colors.red,
-                      child: Text(
-                        unreadCount > 9 ? '9+' : unreadCount.toString(),
-                        style:
-                            const TextStyle(color: Colors.white, fontSize: 9),
-                      ),
-                    ),
-                  ),
-              ],
+          if (auth.isAuthenticated)
+            Badge(
+              isLabelVisible: unread > 0,
+              label: Text(unread > 9 ? '9+' : '$unread'),
+              child: IconButton(
+                tooltip: 'Notifications',
+                onPressed: () => context.push('/notifications'),
+                icon: const Icon(Icons.notifications_outlined),
+              ),
             )
           else
             TextButton.icon(
@@ -76,440 +126,504 @@ class HomeScreen extends ConsumerWidget {
               label: const Text('Login'),
             ),
         ],
-      ),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          ref.invalidate(competitionsProvider);
-          ref.invalidate(liveContestsProvider);
-        },
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            // Welcome card
-            _WelcomeCard(
-              tenantName: branding?.tenantName,
-              displayName: authState.displayName,
-              email: authState.email,
-              isAuthenticated: authState.isAuthenticated,
-            ),
-            const SizedBox(height: 24),
-
-            // Quick actions
-            Text(
-              'Quick Actions',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-            const SizedBox(height: 12),
-            _QuickActionsGrid(canScore: authState.canScore),
-            const SizedBox(height: 24),
-
-            // Live contests
-            Text(
-              'Live Contests',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-            const SizedBox(height: 12),
-            _LiveContestsList(
-              contests: liveContestsState.contests,
-              isLoading: liveContestsState.isLoading,
-              error: liveContestsState.error,
-            ),
-            const SizedBox(height: 24),
-
-            // Recent competitions
-            Text(
-              'Recent Competitions',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-            const SizedBox(height: 12),
-            _CompetitionsList(
-              competitions: competitionsState.competitions.take(5).toList(),
-              isLoading: competitionsState.isLoading,
-              error: competitionsState.error,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _WelcomeCard extends StatelessWidget {
-  final String? tenantName;
-  final String? displayName;
-  final String? email;
-  final bool isAuthenticated;
-
-  const _WelcomeCard({
-    this.tenantName,
-    this.displayName,
-    this.email,
-    required this.isAuthenticated,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 24,
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                  child: Text(
-                    (displayName ?? email ?? 'S')[0].toUpperCase(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        isAuthenticated && displayName != null
-                            ? 'Welcome, $displayName!'
-                            : 'Follow live sport',
-                        style:
-                            Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
+        bottom: auth.isAuthenticated
+            ? PreferredSize(
+                preferredSize: const Size.fromHeight(44),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 8, 8),
+                  child: Row(children: [
+                    Expanded(
+                      child: Text(
+                        'Welcome, ${auth.displayName ?? auth.email ?? 'supporter'}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      if (email != null)
-                        Text(
-                          email!,
-                          style:
-                              Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: Colors.grey,
-                                  ),
-                        ),
-                      if (!isAuthenticated)
-                        Text(
-                          'Browse competitions and live results. Sign in only when you need scorer or account tools.',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodySmall
-                              ?.copyWith(color: Colors.grey),
-                        ),
-                      if (tenantName != null)
-                        Text(
-                          tenantName!,
-                          style: Theme.of(context)
-                              .textTheme
-                              .labelMedium
-                              ?.copyWith(
-                                color: Theme.of(context).colorScheme.primary,
-                                fontWeight: FontWeight.w700,
-                              ),
-                        ),
-                    ],
-                  ),
+                    ),
+                    if (auth.canScore)
+                      TextButton.icon(
+                        onPressed: () => context.go('/scoring'),
+                        icon: const Icon(Icons.scoreboard_outlined),
+                        label: const Text('Scoring'),
+                      ),
+                  ]),
                 ),
-              ],
+              )
+            : null,
+      ),
+      body: feedSignal.loading
+          ? const _LoadingFeed()
+          : feedSignal.error != null
+              ? _FeedMessage(
+                  icon: Icons.cloud_off,
+                  title: 'Coverage unavailable',
+                  detail: feedSignal.error!,
+                  action: FilledButton.icon(
+                    onPressed: () =>
+                        ref.read(supporterFeedProvider.notifier).refresh(),
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Try again'),
+                  ),
+                )
+              : _buildFeed(context, feed.valueOrNull ?? const SupporterFeed()),
+    );
+  }
+
+  Widget _buildFeed(BuildContext context, SupporterFeed data) {
+    final sports = <String, String>{};
+    for (final fixture in data.fixtures) {
+      sports[fixture.sportCode] = fixture.sportName;
+    }
+    final favouriteKeys = ref.watch(supporterPreferencesProvider
+        .select((value) => value.favourites.keys.join('|')));
+    final favourites = favouriteKeys.isEmpty
+        ? const <String>{}
+        : favouriteKeys.split('|').toSet();
+    final visible = data.fixtures.where((fixture) {
+      final date = fixture.startTime?.toLocal();
+      if (date == null || !DateUtils.isSameDay(date, selectedDate)) {
+        return false;
+      }
+      if (sport != null &&
+          !_matchesSport(fixture.sportCode, fixture.sportName, sport)) {
+        return false;
+      }
+      final status = fixture.status.toLowerCase();
+      if (filter == 'live' && status != 'live' && status != 'inprogress') {
+        return false;
+      }
+      if (filter == 'upcoming' &&
+          !['scheduled', 'ready', 'checkinopen'].contains(status)) {
+        return false;
+      }
+      if (filter == 'finished' &&
+          !['completed', 'approved', 'published'].contains(status)) {
+        return false;
+      }
+      if (filter == 'favourites' &&
+          !favourites.contains('contest:${fixture.id}') &&
+          !favourites.contains('competition:${fixture.competitionId}') &&
+          !fixture.participantDetails
+              .any((item) => favourites.contains('participant:${item.id}'))) {
+        return false;
+      }
+      return true;
+    }).toList();
+    final grouped = <String, List<SupporterFixture>>{};
+    for (final fixture in visible) {
+      grouped.putIfAbsent(fixture.competitionName, () => []).add(fixture);
+    }
+
+    return RefreshIndicator(
+      onRefresh: () => ref.read(supporterFeedProvider.notifier).refresh(),
+      child: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Match centre',
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                            color: Theme.of(context).colorScheme.primary,
+                            fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 4),
+                    Text('Scores & schedule',
+                        style: Theme.of(context)
+                            .textTheme
+                            .headlineMedium
+                            ?.copyWith(fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 16),
+                    _DateNavigator(
+                      date: selectedDate,
+                      onChanged: _changeDate,
+                    ),
+                    const SizedBox(height: 12),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: SegmentedButton<String>(
+                        segments: const [
+                          ButtonSegment(value: 'all', label: Text('All')),
+                          ButtonSegment(value: 'live', label: Text('Live')),
+                          ButtonSegment(
+                              value: 'upcoming', label: Text('Upcoming')),
+                          ButtonSegment(
+                              value: 'finished', label: Text('Finished')),
+                          ButtonSegment(
+                              value: 'favourites', label: Text('Favourites')),
+                        ],
+                        selected: {filter},
+                        onSelectionChanged: (value) =>
+                            setState(() => filter = value.first),
+                      ),
+                    ),
+                    if (sports.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        height: 42,
+                        child: ListView(
+                          scrollDirection: Axis.horizontal,
+                          children: [
+                            ChoiceChip(
+                                label: const Text('All sports'),
+                                selected: sport == null,
+                                onSelected: (_) =>
+                                    setState(() => sport = null)),
+                            const SizedBox(width: 8),
+                            ...sports.entries.expand((entry) => [
+                                  ChoiceChip(
+                                      label: Text(entry.value),
+                                      selected: _matchesSport(
+                                        entry.key,
+                                        entry.value,
+                                        sport,
+                                      ),
+                                      onSelected: (_) =>
+                                          setState(() => sport = entry.key)),
+                                  const SizedBox(width: 8),
+                                ]),
+                          ],
+                        ),
+                      ),
+                    ],
+                    if (data.isFromCache)
+                      const Padding(
+                          padding: EdgeInsets.only(top: 12),
+                          child: Row(children: [
+                            Icon(Icons.offline_bolt, size: 18),
+                            SizedBox(width: 6),
+                            Text('Showing saved data')
+                          ])),
+                  ]),
             ),
-          ],
+          ),
+          if (grouped.isEmpty)
+            const SliverFillRemaining(
+              hasScrollBody: false,
+              child: _FeedMessage(
+                  icon: Icons.event_busy,
+                  title: 'No contests found',
+                  detail: 'Try another date, sport or filter.'),
+            )
+          else
+            ...grouped.entries.expand((group) => [
+                  SliverToBoxAdapter(
+                      child: Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+                          child: Text(group.key,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleLarge
+                                  ?.copyWith(fontWeight: FontWeight.bold)))),
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    sliver:
+                        SliverLayoutBuilder(builder: (context, constraints) {
+                      final columns = constraints.crossAxisExtent >= 900
+                          ? 3
+                          : constraints.crossAxisExtent >= 600
+                              ? 2
+                              : 1;
+                      return SliverGrid(
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: columns,
+                            mainAxisSpacing: 10,
+                            crossAxisSpacing: 10,
+                            mainAxisExtent: 196),
+                        delegate: SliverChildBuilderDelegate(
+                            (context, index) =>
+                                _ContestCard(fixtureId: group.value[index].id),
+                            childCount: group.value.length),
+                      );
+                    }),
+                  ),
+                ]),
+          const SliverToBoxAdapter(child: SizedBox(height: 24)),
+        ],
+      ),
+    );
+  }
+}
+
+class _DateNavigator extends StatelessWidget {
+  final DateTime date;
+  final ValueChanged<DateTime> onChanged;
+  const _DateNavigator({required this.date, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    final tablet = MediaQuery.sizeOf(context).shortestSide >= 600;
+    final radius = tablet ? 2 : 1;
+    final days = [
+      for (var offset = -radius; offset <= radius; offset++)
+        date.add(Duration(days: offset)),
+    ];
+    return GestureDetector(
+      onHorizontalDragEnd: (details) {
+        final velocity = details.primaryVelocity ?? 0;
+        if (velocity.abs() < 200) return;
+        onChanged(date.add(Duration(days: velocity < 0 ? 1 : -1)));
+      },
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+          child: Column(children: [
+            Row(children: [
+              IconButton(
+                  tooltip: 'Previous day',
+                  onPressed: () =>
+                      onChanged(date.subtract(const Duration(days: 1))),
+                  icon: const Icon(Icons.chevron_left)),
+              Expanded(
+                child: TextButton.icon(
+                  onPressed: () async {
+                    final selected = await showDatePicker(
+                        context: context,
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime(2035),
+                        initialDate: date);
+                    if (selected != null) onChanged(selected);
+                  },
+                  icon: const Icon(Icons.calendar_today_outlined, size: 18),
+                  label: Text(DateUtils.isSameDay(date, DateTime.now())
+                      ? 'Today'
+                      : DateFormat.MMMEd().format(date)),
+                ),
+              ),
+              IconButton(
+                  tooltip: 'Next day',
+                  onPressed: () => onChanged(date.add(const Duration(days: 1))),
+                  icon: const Icon(Icons.chevron_right)),
+            ]),
+            Row(
+              children: days
+                  .map((item) => Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 2),
+                          child: TextButton(
+                            onPressed: () => onChanged(item),
+                            style: TextButton.styleFrom(
+                              backgroundColor: DateUtils.isSameDay(item, date)
+                                  ? Theme.of(context)
+                                      .colorScheme
+                                      .primaryContainer
+                                  : null,
+                              padding: const EdgeInsets.symmetric(vertical: 6),
+                            ),
+                            child: Column(children: [
+                              Text(DateFormat.E().format(item),
+                                  style:
+                                      Theme.of(context).textTheme.labelSmall),
+                              Text('${item.day}',
+                                  style:
+                                      Theme.of(context).textTheme.labelLarge),
+                            ]),
+                          ),
+                        ),
+                      ))
+                  .toList(),
+            ),
+          ]),
         ),
       ),
     );
   }
 }
 
-class _QuickActionsGrid extends StatelessWidget {
-  final bool canScore;
+bool _matchesSport(String code, String name, String? selected) {
+  if (selected == null) return false;
+  final normalized = selected.toLowerCase();
+  return code.toLowerCase() == normalized || _sportSlug(name) == normalized;
+}
 
-  const _QuickActionsGrid({required this.canScore});
+String _sportSlug(String value) => value
+    .toLowerCase()
+    .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
+    .replaceAll(RegExp(r'^-|-$'), '');
+
+class _ContestCard extends ConsumerWidget {
+  final String fixtureId;
+  const _ContestCard({required this.fixtureId});
 
   @override
-  Widget build(BuildContext context) {
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 12,
-      crossAxisSpacing: 12,
-      childAspectRatio: 1.5,
-      children: [
-        _QuickActionCard(
-          icon: Icons.emoji_events,
-          title: 'Competitions',
-          color: Colors.blue,
-          onTap: () => context.go('/competitions'),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final fixture = ref.watch(supporterFixtureProvider(fixtureId));
+    if (fixture == null) return const SizedBox.shrink();
+    final favourite = SupporterFavourite(
+        type: 'contest',
+        id: fixture.id,
+        title: fixture.participants.isEmpty
+            ? fixture.name
+            : fixture.participants.join(' vs '),
+        subtitle: fixture.competitionName,
+        route: '/contest/${fixture.id}');
+    final saved = ref.watch(supporterPreferencesProvider
+        .select((value) => value.isFavourite('contest', fixture.id)));
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => context.push('/contest/${fixture.id}'),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Expanded(
+                  child: Text(fixture.sportName.toUpperCase(),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontWeight: FontWeight.bold))),
+              _StatusBadge(status: fixture.status),
+            ]),
+            const SizedBox(height: 10),
+            if (fixture.participantDetails.isEmpty)
+              Expanded(
+                  child: Text(fixture.name,
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium
+                          ?.copyWith(fontWeight: FontWeight.bold)))
+            else
+              Expanded(
+                  child: Column(
+                      children: fixture.participantDetails
+                          .take(4)
+                          .map((participant) => Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              child: Row(children: [
+                                CircleAvatar(
+                                    radius: 13,
+                                    child: Text(
+                                        participant.name
+                                            .substring(
+                                                0,
+                                                participant.name.length
+                                                    .clamp(1, 2))
+                                            .toUpperCase(),
+                                        style: const TextStyle(fontSize: 9))),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                    child: Text(participant.name,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.w600))),
+                                Text(participant.result,
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold))
+                              ])))
+                          .toList())),
+            Row(children: [
+              const Icon(Icons.schedule, size: 15),
+              const SizedBox(width: 4),
+              Text(
+                  fixture.startTime == null
+                      ? 'TBC'
+                      : DateFormat.Hm().format(fixture.startTime!.toLocal()),
+                  style: Theme.of(context).textTheme.bodySmall),
+              const Spacer(),
+              IconButton(
+                  visualDensity: VisualDensity.compact,
+                  tooltip:
+                      saved ? 'Choose alerts' : 'Favourite to enable alerts',
+                  onPressed: saved
+                      ? () => showSupporterAlertPreferences(context, ref,
+                          favourite: favourite, sportCode: fixture.sportCode)
+                      : null,
+                  icon: Icon(
+                    ref.watch(supporterPreferencesProvider.select((value) =>
+                            value.alertsFor('contest', fixture.id).isNotEmpty))
+                        ? Icons.notifications_active
+                        : Icons.notifications_none,
+                  )),
+              IconButton(
+                  visualDensity: VisualDensity.compact,
+                  tooltip: saved ? 'Remove favourite' : 'Add favourite',
+                  onPressed: () => ref
+                      .read(supporterPreferencesProvider.notifier)
+                      .toggleFavourite(favourite),
+                  icon: Icon(saved ? Icons.favorite : Icons.favorite_border,
+                      color: saved
+                          ? Theme.of(context).colorScheme.tertiary
+                          : null)),
+            ]),
+          ]),
         ),
-        if (canScore)
-          _QuickActionCard(
-            icon: Icons.scoreboard,
-            title: 'Scoring',
-            color: Colors.green,
-            onTap: () => context.go('/scoring'),
-          ),
-        _QuickActionCard(
-          icon: Icons.sports_score,
-          title: 'Scores & Fixtures',
-          color: Colors.indigo,
-          onTap: () => context.go(Routes.support),
-        ),
-        _QuickActionCard(
-          icon: Icons.apartment,
-          title: 'Organisation',
-          color: Colors.teal,
-          onTap: () => context.push(Routes.tenant),
-        ),
-        _QuickActionCard(
-          icon: Icons.schedule,
-          title: 'Schedule',
-          color: Colors.orange,
-          onTap: () {
-            // TODO: Navigate to schedule
-          },
-        ),
-        _QuickActionCard(
-          icon: Icons.people,
-          title: 'Participants',
-          color: Colors.purple,
-          onTap: () {
-            // TODO: Navigate to participants
-          },
-        ),
-      ],
+      ),
     );
   }
 }
 
-class _QuickActionCard extends StatelessWidget {
+class _StatusBadge extends StatelessWidget {
+  final String status;
+  const _StatusBadge({required this.status});
+  @override
+  Widget build(BuildContext context) {
+    final value = status.toLowerCase();
+    final live = value == 'live' || value == 'inprogress';
+    final finished = ['completed', 'approved', 'published'].contains(value);
+    final color = live
+        ? Colors.red
+        : finished
+            ? Colors.green
+            : Theme.of(context).colorScheme.primary;
+    return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+            color: color.withValues(alpha: .12),
+            borderRadius: BorderRadius.circular(99)),
+        child: Text(
+            live
+                ? 'LIVE'
+                : finished
+                    ? 'FINISHED'
+                    : 'UPCOMING',
+            style: TextStyle(
+                color: color, fontSize: 10, fontWeight: FontWeight.bold)));
+  }
+}
+
+class _LoadingFeed extends StatelessWidget {
+  const _LoadingFeed();
+  @override
+  Widget build(BuildContext context) =>
+      ListView(padding: const EdgeInsets.all(16), children: [
+        Container(
+            height: 48,
+            decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(12))),
+        const SizedBox(height: 20),
+        ...List.generate(3, (_) => const Card(child: SizedBox(height: 180)))
+      ]);
+}
+
+class _FeedMessage extends StatelessWidget {
   final IconData icon;
   final String title;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _QuickActionCard({
-    required this.icon,
-    required this.title,
-    required this.color,
-    required this.onTap,
-  });
-
+  final String detail;
+  final Widget? action;
+  const _FeedMessage(
+      {required this.icon,
+      required this.title,
+      required this.detail,
+      this.action});
   @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 32, color: color),
-              const SizedBox(height: 8),
-              Text(
-                title,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w500,
-                    ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _LiveContestsList extends StatelessWidget {
-  final List<Contest> contests;
-  final bool isLoading;
-  final String? error;
-
-  const _LiveContestsList({
-    required this.contests,
-    required this.isLoading,
-    this.error,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    if (isLoading) {
-      return const Card(
-        child: Padding(
-          padding: EdgeInsets.all(24),
-          child: Center(child: CircularProgressIndicator()),
-        ),
-      );
-    }
-
-    if (error != null) {
-      return Card(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            children: [
-              Icon(Icons.error_outline, size: 48, color: Colors.red.shade300),
-              const SizedBox(height: 12),
-              Text(
-                'Failed to load contests',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.red,
-                    ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    if (contests.isEmpty) {
-      return Card(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            children: [
-              Icon(Icons.sports, size: 48, color: Colors.grey.shade400),
-              const SizedBox(height: 12),
-              Text(
-                'No live contests',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.grey,
-                    ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return Column(
-      children: contests.map((contest) {
-        return Card(
-          margin: const EdgeInsets.only(bottom: 8),
-          child: ListTile(
-            leading: CircleAvatar(
-              backgroundColor:
-                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-              child: Icon(
-                Icons.sports,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-            ),
-            title: Text(contest.name),
-            subtitle: Text(contest.sportCode.toUpperCase()),
-            trailing: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: contest.status == 'Live' ? Colors.red : Colors.orange,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                contest.status,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-            onTap: () => context.push('/contest/${contest.id}'),
-          ),
-        );
-      }).toList(),
-    );
-  }
-}
-
-class _CompetitionsList extends StatelessWidget {
-  final List<Competition> competitions;
-  final bool isLoading;
-  final String? error;
-
-  const _CompetitionsList({
-    required this.competitions,
-    required this.isLoading,
-    this.error,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    if (isLoading) {
-      return const Card(
-        child: Padding(
-          padding: EdgeInsets.all(24),
-          child: Center(child: CircularProgressIndicator()),
-        ),
-      );
-    }
-
-    if (error != null) {
-      return Card(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            children: [
-              Icon(Icons.error_outline, size: 48, color: Colors.red.shade300),
-              const SizedBox(height: 12),
-              Text(
-                'Failed to load competitions',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.red,
-                    ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    if (competitions.isEmpty) {
-      return Card(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            children: [
-              Icon(Icons.emoji_events, size: 48, color: Colors.grey.shade400),
-              const SizedBox(height: 12),
-              Text(
-                'No competitions available',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.grey,
-                    ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return Column(
-      children: competitions.map((competition) {
-        return Card(
-          margin: const EdgeInsets.only(bottom: 8),
-          child: ListTile(
-            leading: CircleAvatar(
-              backgroundColor: Colors.amber.withValues(alpha: 0.1),
-              child: const Icon(
-                Icons.emoji_events,
-                color: Colors.amber,
-              ),
-            ),
-            title: Text(competition.name),
-            subtitle: Text(competition.sportCode.toUpperCase()),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => context.push('/competitions/${competition.id}'),
-          ),
-        );
-      }).toList(),
-    );
-  }
+  Widget build(BuildContext context) => Center(
+      child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Icon(icon, size: 52, color: Theme.of(context).colorScheme.outline),
+            const SizedBox(height: 12),
+            Text(title,
+                style: Theme.of(context)
+                    .textTheme
+                    .titleMedium
+                    ?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            Text(detail, textAlign: TextAlign.center),
+            if (action != null) ...[const SizedBox(height: 16), action!]
+          ])));
 }

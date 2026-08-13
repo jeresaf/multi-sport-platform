@@ -386,6 +386,91 @@ public class CompetitionsController : ControllerBase
         return NoContent();
     }
 
+    [HttpGet("{id:guid}/presentation")]
+    [RequirePermission("competitions.read")]
+    public async Task<IActionResult> GetPresentation(
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        var competition = await _database.Competitions.AsNoTracking()
+            .SingleOrDefaultAsync(item => item.Id == id, cancellationToken);
+        if (competition is null) return NotFound();
+        if (!User.CanAccessTenant(competition.TenantId)) return Forbid();
+        return Ok(PresentationSettingsResponse(competition.PresentationConfiguration));
+    }
+
+    [HttpPut("{id:guid}/presentation")]
+    [RequirePermission("competitions.manage")]
+    public async Task<IActionResult> UpdatePresentation(
+        Guid id,
+        [FromBody] CompetitionPresentationRequest request,
+        CancellationToken cancellationToken)
+    {
+        var competition = await _database.Competitions
+            .SingleOrDefaultAsync(item => item.Id == id, cancellationToken);
+        if (competition is null) return NotFound();
+        if (!User.CanAccessTenant(competition.TenantId)) return Forbid();
+
+        var renderers = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "head-to-head", "multi-participant-leaderboard", "race-heat",
+            "fight-card-bout", "cricket-scorecard"
+        };
+        var tabs = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "overview", "fixtures", "results", "standings", "bracket",
+            "groups", "series", "leaderboard", "medals", "participants",
+            "statistics"
+        };
+        if (!string.IsNullOrWhiteSpace(request.PrimaryContestRenderer)
+            && !renderers.Contains(request.PrimaryContestRenderer))
+            return BadRequest(new { error = "The selected contest renderer is unsupported." });
+        var requestedTabs = request.VisibleTabs ?? Array.Empty<string>();
+        if (requestedTabs.Any(tab => !tabs.Contains(tab)))
+            return BadRequest(new { error = "Visible tabs contain an unsupported value." });
+        if (!string.IsNullOrWhiteSpace(request.DefaultTab)
+            && !tabs.Contains(request.DefaultTab))
+            return BadRequest(new { error = "The default tab is unsupported." });
+        if (!string.IsNullOrWhiteSpace(request.DefaultTab)
+            && requestedTabs.Count > 0
+            && !requestedTabs.Contains(request.DefaultTab,
+                StringComparer.OrdinalIgnoreCase))
+            return BadRequest(new { error = "The default tab must also be visible." });
+
+        var normalized = new CompetitionPresentationRequest(
+            request.PrimaryContestRenderer?.Trim(),
+            requestedTabs.Distinct(StringComparer.OrdinalIgnoreCase)
+                .Select(item => item.ToLowerInvariant()).ToArray(),
+            request.DefaultTab?.Trim().ToLowerInvariant(),
+            request.ScoreVariant?.Trim(),
+            request.StandingsVariant?.Trim(),
+            request.LeaderboardVariant?.Trim(),
+            request.BracketEnabled,
+            request.SeriesEnabled,
+            request.MedalTableEnabled);
+        competition.UpdatePresentationConfiguration(JsonSerializer.Serialize(
+            normalized,
+            new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+        await _database.SaveChangesAsync(cancellationToken);
+        return Ok(normalized);
+    }
+
+    private static CompetitionPresentationRequest PresentationSettingsResponse(
+        string configuration)
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<CompetitionPresentationRequest>(
+                configuration,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
+                ?? CompetitionPresentationRequest.Default;
+        }
+        catch (JsonException)
+        {
+            return CompetitionPresentationRequest.Default;
+        }
+    }
+
     [HttpPost("{id:guid}/archive")]
     [RequirePermission("competitions.manage")]
     public async Task<IActionResult> Archive(Guid id)
@@ -3911,6 +3996,22 @@ public sealed record GenerateKnockoutPlayoffsRequest(
     bool IncludeThirdPlace = false,
     bool RandomDraw = false,
     int? DrawSeed = null);
+
+public sealed record CompetitionPresentationRequest(
+    string? PrimaryContestRenderer,
+    IReadOnlyList<string> VisibleTabs,
+    string? DefaultTab,
+    string? ScoreVariant,
+    string? StandingsVariant,
+    string? LeaderboardVariant,
+    bool? BracketEnabled,
+    bool? SeriesEnabled,
+    bool? MedalTableEnabled)
+{
+    public static CompetitionPresentationRequest Default { get; } = new(
+        null, Array.Empty<string>(), null, null, null, null,
+        null, null, null);
+}
 
 public sealed record RequestBracketOverride(Guid WinnerId, string Reason);
 public sealed record ReviewBracketOverride(string? Notes);

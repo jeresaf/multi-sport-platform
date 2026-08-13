@@ -225,14 +225,24 @@ public sealed class PublicController : ControllerBase
                 x.Name,
                 x.Description,
                 x.SportId,
+                SportCode = _db.Sports.Where(sport => sport.Id == x.SportId)
+                    .Select(sport => sport.Code).FirstOrDefault(),
+                SportName = _db.Sports.Where(sport => sport.Id == x.SportId)
+                    .Select(sport => sport.Name).FirstOrDefault(),
                 Status = x.Status.ToString(),
                 x.PublishedAt
             })
             .ToListAsync(cancellationToken);
 
         var contests = await PublicContests(tenant.Id)
-            .OrderBy(x => x.StartTime)
-            .Take(12)
+            .Where(x => x.Status == ContestStatus.InProgress
+                || x.Status == ContestStatus.Ready
+                || x.Status == ContestStatus.Scheduled)
+            .OrderBy(x => x.Status == ContestStatus.InProgress
+                ? 0
+                : x.Status == ContestStatus.Ready ? 1 : 2)
+            .ThenBy(x => x.StartTime)
+            .Take(30)
             .Select(x => new
             {
                 x.Id,
@@ -412,6 +422,10 @@ public sealed class PublicController : ControllerBase
                 x.Name,
                 x.Description,
                 x.SportId,
+                SportCode = _db.Sports.Where(sport => sport.Id == x.SportId)
+                    .Select(sport => sport.Code).FirstOrDefault(),
+                SportName = _db.Sports.Where(sport => sport.Id == x.SportId)
+                    .Select(sport => sport.Name).FirstOrDefault(),
                 Status = x.Status.ToString(),
                 x.PublishedAt
             })
@@ -446,7 +460,7 @@ public sealed class PublicController : ControllerBase
             : type.Trim().ToLowerInvariant();
         var supportedTypes = new HashSet<string>
         {
-            "all", "competition", "team", "athlete", "contest", "venue"
+            "all", "competition", "team", "athlete", "contest", "venue", "sport"
         };
         if (!supportedTypes.Contains(normalizedType))
             return BadRequest(new { Message = "The requested search type is not supported." });
@@ -527,7 +541,24 @@ public sealed class PublicController : ControllerBase
         bool Matches(string? value) => string.IsNullOrWhiteSpace(term)
             || (!string.IsNullOrWhiteSpace(value)
                 && value.Contains(term, StringComparison.OrdinalIgnoreCase));
+        var filterSportIds = await PublishedCompetitions(tenant.Id)
+            .Select(item => item.SportId)
+            .Concat(PublicContests(tenant.Id).Select(item => item.SportId))
+            .Distinct()
+            .ToArrayAsync(cancellationToken);
+        var filterSports = await _db.Sports.AsNoTracking()
+            .Where(item => filterSportIds.Contains(item.Id) && item.IsActive)
+            .OrderBy(item => item.Name)
+            .Select(item => new { item.Id, item.Code, item.Name, item.Description })
+            .ToListAsync(cancellationToken);
         var items = new List<PublicSearchItem>();
+        if (normalizedType is "all" or "sport")
+            items.AddRange(filterSports.Where(item =>
+                    Matches(item.Name) || Matches(item.Code) || Matches(item.Description))
+                .Select(item => new PublicSearchItem(
+                    item.Id.ToString(), "Sport", item.Name,
+                    item.Description, item.Id, null, "Active", null, null,
+                    $"/sport/{item.Code.ToLowerInvariant()}")));
         if (normalizedType is "all" or "competition")
             items.AddRange(competitions.Where(item =>
                     Matches(item.Name) || Matches(item.Description))
@@ -535,7 +566,7 @@ public sealed class PublicController : ControllerBase
                     item.Id.ToString(), "Competition", item.Name,
                     item.Description, item.SportId, item.PublishedAt,
                     item.Status.ToString(), item.Id, null,
-                    $"/competitions/{item.Id}")));
+                    $"/competition/{item.Id}")));
         if (normalizedType is "all" or "contest")
             items.AddRange(contests.Where(item =>
                     Matches(item.Name) || Matches(item.Venue)
@@ -551,14 +582,14 @@ public sealed class PublicController : ControllerBase
                 .Select(item => new PublicSearchItem(
                     item.Id.ToString(), "Team", item.Name, item.ShortName,
                     null, null, item.Status.ToString(), null, null,
-                    $"/participants/{item.Id}")));
+                    $"/team/{item.Id}")));
         if (normalizedType is "all" or "athlete")
             items.AddRange(participants.Where(item => item.Type == ParticipantType.Athlete
                     && (Matches(item.Name) || Matches(item.ShortName)))
                 .Select(item => new PublicSearchItem(
                     item.Id.ToString(), "Athlete", item.Name, item.ShortName,
                     null, null, item.Status.ToString(), null, null,
-                    $"/participants/{item.Id}")));
+                    $"/athlete/{item.Id}")));
         if (normalizedType is "all" or "venue")
             items.AddRange(contests.Where(item => !string.IsNullOrWhiteSpace(item.Venue)
                     && Matches(item.Venue))
@@ -581,17 +612,6 @@ public sealed class PublicController : ControllerBase
             .OrderBy(item => item.Name)
             .Select(item => new { item.Id, item.Name })
             .ToListAsync(cancellationToken);
-        var filterSportIds = await PublishedCompetitions(tenant.Id)
-            .Select(item => item.SportId)
-            .Concat(PublicContests(tenant.Id).Select(item => item.SportId))
-            .Distinct()
-            .ToArrayAsync(cancellationToken);
-        var filterSports = await _db.Sports.AsNoTracking()
-            .Where(item => filterSportIds.Contains(item.Id))
-            .OrderBy(item => item.Name)
-            .Select(item => new { item.Id, item.Name })
-            .ToListAsync(cancellationToken);
-
         Response.Headers.CacheControl = "public, max-age=15, stale-while-revalidate=60";
         return Ok(new
         {
@@ -603,7 +623,7 @@ public sealed class PublicController : ControllerBase
             Items = pageItems,
             Filters = new
             {
-                Sports = filterSports,
+                Sports = filterSports.Select(item => new { item.Id, item.Name }),
                 Competitions = filterCompetitionRows,
                 Statuses = Enum.GetNames<ContestStatus>()
                     .Concat(Enum.GetNames<CompetitionStatus>())
@@ -669,6 +689,41 @@ public sealed class PublicController : ControllerBase
             .OrderBy(item => item.GroupId)
             .ThenBy(item => item.Position)
             .ToListAsync(cancellationToken);
+        var athleticsCompetition = competition.SportId == Guid.Parse(
+            "00000000-0000-0000-0000-000000000103");
+        var medalRows = results
+            .Select(item => new
+            {
+                item.ParticipantId,
+                Medal = item.Position is not null
+                    && (item.Position.Equals("Gold", StringComparison.OrdinalIgnoreCase)
+                        || item.Position.Equals("Silver", StringComparison.OrdinalIgnoreCase)
+                        || item.Position.Equals("Bronze", StringComparison.OrdinalIgnoreCase))
+                    ? item.Position
+                    : athleticsCompetition && item.Rank is >= 1 and <= 3
+                        ? item.Rank == 1 ? "Gold" : item.Rank == 2 ? "Silver" : "Bronze"
+                        : null
+            })
+            .Where(item => item.Medal is not null)
+            .GroupBy(item => item.ParticipantId)
+            .Select(group => new
+            {
+                ParticipantId = group.Key,
+                ParticipantName = participantNames.GetValueOrDefault(group.Key,
+                    "Participant"),
+                Gold = group.Count(item => item.Medal!.Equals("Gold",
+                    StringComparison.OrdinalIgnoreCase)),
+                Silver = group.Count(item => item.Medal!.Equals("Silver",
+                    StringComparison.OrdinalIgnoreCase)),
+                Bronze = group.Count(item => item.Medal!.Equals("Bronze",
+                    StringComparison.OrdinalIgnoreCase)),
+                Total = group.Count()
+            })
+            .OrderByDescending(item => item.Gold)
+            .ThenByDescending(item => item.Silver)
+            .ThenByDescending(item => item.Bronze)
+            .ThenBy(item => item.ParticipantName)
+            .ToArray();
         var groupNames = competition.Editions
             .SelectMany(edition => edition.Stages)
             .SelectMany(stage => stage.Groups)
@@ -677,8 +732,34 @@ public sealed class PublicController : ControllerBase
             .AsNoTracking()
             .AsSplitQuery()
             .Include(item => item.Rounds)
+            .ThenInclude(round => round.Matches)
             .FirstOrDefaultAsync(item => item.CompetitionId == competition.Id,
                 cancellationToken);
+        var sponsors = await (
+                from sponsorship in _db.Sponsorships.AsNoTracking()
+                join sponsor in _db.Sponsors.AsNoTracking()
+                    on sponsorship.SponsorId equals sponsor.Id
+                where sponsorship.TenantId == tenant.Id
+                    && sponsor.IsActive
+                    && sponsorship.Status == SponsorshipStatus.Active
+                    && (sponsorship.CompetitionId == competition.Id
+                        || (sponsorship.CompetitionId == null
+                            && sponsorship.Placement == SponsorPlacements.CompetitionHeader))
+                    && (!sponsorship.StartDate.HasValue
+                        || sponsorship.StartDate <= DateTime.UtcNow)
+                    && (!sponsorship.EndDate.HasValue
+                        || sponsorship.EndDate >= DateTime.UtcNow)
+                orderby sponsorship.DisplayOrder, sponsor.Name
+                select new
+                {
+                    sponsor.Id,
+                    sponsor.Name,
+                    sponsor.LogoUrl,
+                    sponsor.Website,
+                    Tier = sponsor.Tier.ToString(),
+                    sponsorship.Placement
+                })
+            .ToArrayAsync(cancellationToken);
         var scoringEventCount = await _db.LiveScores
             .AsNoTracking()
             .CountAsync(item => contestIds.Contains(item.ContestId), cancellationToken);
@@ -697,18 +778,37 @@ public sealed class PublicController : ControllerBase
         var labels = CompetitionTabLabels(
             competition.SportId,
             ruleset?.DisplayConfiguration);
+        var presentation = PublicCompetitionPresentation.Parse(
+            competition.PresentationConfiguration);
 
         var availableTabs = new List<string> { "overview" };
         if (contests.Count > 0) availableTabs.Add("fixtures");
         if (results.Count > 0) availableTabs.Add("results");
         if (standings.Count > 0) availableTabs.Add("standings");
-        if (bracket is not null) availableTabs.Add("bracket");
+        if (standings.Select(item => item.GroupId).Distinct().Count() > 1)
+            availableTabs.Add("groups");
+        if (bracket is not null && presentation.BracketEnabled != false)
+            availableTabs.Add("bracket");
+        if ((bracket?.Rounds.SelectMany(round => round.Matches)
+                .Any(match => match.SeriesId.HasValue) == true
+                || contests.Any(contest => contest.SeriesId.HasValue))
+            && presentation.SeriesEnabled != false)
+            availableTabs.Add("series");
         if (competition.SportId == Guid.Parse(
                 "00000000-0000-0000-0000-000000000102"))
             availableTabs.Add("leaderboard");
+        if (medalRows.Length > 0 && presentation.MedalTableEnabled != false)
+            availableTabs.Add("medals");
         if (participantIds.Length > 0) availableTabs.Add("participants");
         if (scoringEventCount > 0 || results.Count > 0)
             availableTabs.Add("statistics");
+        if (presentation.VisibleTabs.Count > 0)
+        {
+            availableTabs = availableTabs
+                .Where(presentation.VisibleTabs.Contains)
+                .ToList();
+            if (!availableTabs.Contains("overview")) availableTabs.Insert(0, "overview");
+        }
 
         return Ok(new
         {
@@ -716,8 +816,21 @@ public sealed class PublicController : ControllerBase
             competition.Name,
             competition.Description,
             competition.SportId,
+            Sport = sport is null ? null : new { sport.Id, sport.Code, sport.Name },
+            Region = tenant.Country,
             Status = competition.Status.ToString(),
             competition.PublishedAt,
+            Presentation = new
+            {
+                presentation.PrimaryContestRenderer,
+                presentation.DefaultTab,
+                presentation.ScoreVariant,
+                presentation.StandingsVariant,
+                presentation.LeaderboardVariant,
+                presentation.BracketEnabled,
+                presentation.SeriesEnabled,
+                presentation.MedalTableEnabled
+            },
             Ruleset = ruleset is null ? null : new
             {
                 ruleset.Id,
@@ -748,6 +861,9 @@ public sealed class PublicController : ControllerBase
                 contest.Id,
                 contest.Name,
                 contest.ContestShape,
+                Renderer = presentation.PrimaryContestRenderer
+                    ?? PublicContestRenderer(contest.SportId, contest.ContestShape,
+                        contest.Participants.Count),
                 Status = contest.Status.ToString(),
                 contest.StartTime,
                 contest.EndTime,
@@ -796,7 +912,8 @@ public sealed class PublicController : ControllerBase
                 item.PointsFor,
                 item.PointsAgainst,
                 item.PointDifferential,
-                item.Points
+                item.Points,
+                item.Metadata
             }),
             Bracket = bracket is null ? null : new
             {
@@ -822,11 +939,13 @@ public sealed class PublicController : ControllerBase
                     item.ScoreDisplay
                 })
                 : null,
+            Medals = medalRows,
             Participants = participantIds.Select(participantId => new
             {
                 Id = participantId,
                 Name = participantNames.GetValueOrDefault(participantId, "Participant")
             }),
+            Sponsors = sponsors,
             Statistics = new
             {
                 ContestCount = contests.Count,
@@ -1178,6 +1297,8 @@ public sealed class PublicController : ControllerBase
         string slug,
         [FromQuery] Guid? competitionId,
         [FromQuery] string? status,
+        [FromQuery] DateTime? from,
+        [FromQuery] DateTime? to,
         CancellationToken cancellationToken)
     {
         var tenant = await ResolveTenantAsync(slug, cancellationToken);
@@ -1190,6 +1311,11 @@ public sealed class PublicController : ControllerBase
             competitionsQuery = competitionsQuery.Where(item => item.Id == competitionId.Value);
 
         var competitions = await competitionsQuery.ToArrayAsync(cancellationToken);
+        var fixtureSportIds = competitions.Select(item => item.SportId).Distinct().ToArray();
+        var fixtureSports = await _db.Sports.AsNoTracking()
+            .Where(item => fixtureSportIds.Contains(item.Id))
+            .Select(item => new { item.Id, item.Code, item.Name })
+            .ToDictionaryAsync(item => item.Id, cancellationToken);
         var stages = competitions
             .SelectMany(competition => competition.Editions.SelectMany(edition =>
                 edition.Stages.Select(stage => new
@@ -1197,18 +1323,26 @@ public sealed class PublicController : ControllerBase
                     StageId = stage.Id,
                     CompetitionId = competition.Id,
                     CompetitionName = competition.Name,
-                    competition.SportId
+                    competition.SportId,
+                    competition.PresentationConfiguration,
+                    SportCode = fixtureSports.GetValueOrDefault(competition.SportId)?.Code,
+                    SportName = fixtureSports.GetValueOrDefault(competition.SportId)?.Name
                 })))
             .ToArray();
         var stageIds = stages.Select(item => item.StageId).ToArray();
         var stageLookup = stages.ToDictionary(item => item.StageId);
 
         var query = PublicContests(tenant.Id)
+            .AsSplitQuery()
             .Include(item => item.Participants)
+            .Include(item => item.Metrics)
+            .Include(item => item.Events)
             .Where(item => item.StageId.HasValue && stageIds.Contains(item.StageId.Value));
         if (!string.IsNullOrWhiteSpace(status)
             && Enum.TryParse<ContestStatus>(status, true, out var parsedStatus))
             query = query.Where(item => item.Status == parsedStatus);
+        if (from.HasValue) query = query.Where(item => item.StartTime >= from.Value);
+        if (to.HasValue) query = query.Where(item => item.StartTime < to.Value);
 
         var contests = await query
             .OrderBy(item => item.StartTime)
@@ -1224,24 +1358,103 @@ public sealed class PublicController : ControllerBase
             .Where(item => item.TenantId == tenant.Id
                 && participantIds.Contains(item.Id))
             .ToDictionaryAsync(item => item.Id, item => item.Name, cancellationToken);
+        var contestIds = contests.Select(item => item.Id).ToArray();
+        var publishedResults = await _db.ContestResults.AsNoTracking()
+            .Where(item => contestIds.Contains(item.ContestId)
+                && (item.Status == ContestResultStatus.Published
+                    || item.Status == ContestResultStatus.Official))
+            .Select(item => new
+            {
+                item.ContestId,
+                item.ParticipantId,
+                item.Rank,
+                item.Position,
+                item.Score,
+                item.ScoreDisplay,
+                ResultStatus = item.Status.ToString()
+            })
+            .ToArrayAsync(cancellationToken);
+        var resultLookup = publishedResults.ToLookup(
+            item => (item.ContestId, item.ParticipantId));
+        var liveScoreRows = await _db.LiveScores.AsNoTracking()
+            .Where(item => contestIds.Contains(item.ContestId)
+                && item.MetricName == "score")
+            .OrderBy(item => item.Sequence)
+            .ThenBy(item => item.ServerTimestamp)
+            .Select(item => new
+            {
+                item.ContestId,
+                item.ParticipantId,
+                item.Value,
+                item.DisplayValue
+            })
+            .ToArrayAsync(cancellationToken);
+        var liveScoreLookup = liveScoreRows
+            .GroupBy(item => (item.ContestId, item.ParticipantId))
+            .ToDictionary(
+                group => group.Key,
+                group => (
+                    Score: group.Sum(item => item.Value),
+                    Display: group.Count() == 1
+                        ? group.Single().DisplayValue
+                        : null));
 
         Response.Headers["Cache-Control"] =
             "public, max-age=30, stale-while-revalidate=120";
         return Ok(contests.Select(contest =>
         {
             var stage = stageLookup[contest.StageId!.Value];
+            var presentation = PublicCompetitionPresentation.Parse(
+                stage.PresentationConfiguration);
+            var presentationMetrics = contest.Metrics
+                .Where(item => item.Name.StartsWith("presentation.",
+                    StringComparison.OrdinalIgnoreCase))
+                .GroupBy(item => item.Name["presentation.".Length..],
+                    StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(group => group.Key,
+                    group => group.OrderByDescending(item => item.RecordedAt)
+                        .First().TextValue,
+                    StringComparer.OrdinalIgnoreCase);
             return new
             {
                 contest.Id,
                 stage.CompetitionId,
                 stage.CompetitionName,
                 stage.SportId,
+                stage.SportCode,
+                stage.SportName,
                 contest.Name,
                 contest.ContestShape,
+                Renderer = presentation.PrimaryContestRenderer
+                    ?? PublicContestRenderer(
+                    contest.SportId,
+                    contest.ContestShape,
+                    contest.Participants.Count),
                 Status = contest.Status.ToString(),
                 contest.StartTime,
                 contest.EndTime,
                 contest.Venue,
+                Presentation = new
+                {
+                    presentation.ScoreVariant,
+                    StageLabel = presentationMetrics.GetValueOrDefault("stageLabel"),
+                    PeriodLabel = presentationMetrics.GetValueOrDefault("periodLabel"),
+                    Clock = presentationMetrics.GetValueOrDefault("clock"),
+                    Summary = presentationMetrics.GetValueOrDefault("summary"),
+                    contest.SeriesGameNumber,
+                    contest.SeriesBestOf,
+                    EventSummary = contest.Events
+                        .Where(item => item.Status == EventStatus.Approved)
+                        .GroupBy(item => new { item.ParticipantId, item.EventType })
+                        .Select(group => new
+                        {
+                            group.Key.ParticipantId,
+                            group.Key.EventType,
+                            Count = group.Count()
+                        })
+                        .OrderBy(item => item.ParticipantId)
+                        .ThenBy(item => item.EventType)
+                },
                 Participants = contest.Participants
                     .OrderBy(item => item.SortOrder)
                     .Select(item => new
@@ -1249,7 +1462,30 @@ public sealed class PublicController : ControllerBase
                         item.ParticipantId,
                         Name = participantNames.GetValueOrDefault(
                             item.ParticipantId,
-                            "Participant")
+                            "Participant"),
+                        Score = resultLookup[(contest.Id, item.ParticipantId)]
+                            .Select(result => result.Score)
+                            .FirstOrDefault()
+                            ?? (liveScoreLookup.TryGetValue(
+                                (contest.Id, item.ParticipantId), out var liveScore)
+                                ? liveScore.Score
+                                : null),
+                        ScoreDisplay = resultLookup[(contest.Id, item.ParticipantId)]
+                            .Select(result => result.ScoreDisplay)
+                            .FirstOrDefault()
+                            ?? (liveScoreLookup.TryGetValue(
+                                (contest.Id, item.ParticipantId), out var liveDisplay)
+                                ? liveDisplay.Display
+                                : null),
+                        Position = resultLookup[(contest.Id, item.ParticipantId)]
+                            .Select(result => result.Position)
+                            .FirstOrDefault(),
+                        Rank = resultLookup[(contest.Id, item.ParticipantId)]
+                            .Select(result => result.Rank)
+                            .FirstOrDefault(),
+                        ResultStatus = resultLookup[(contest.Id, item.ParticipantId)]
+                            .Select(result => result.ResultStatus)
+                            .FirstOrDefault()
                     })
             };
         }));
@@ -1412,6 +1648,9 @@ public sealed class PublicController : ControllerBase
         var tenant = await ResolveTenantAsync(slug, cancellationToken);
         if (tenant is null) return NotFound();
         var competition = await PublishedCompetitions(tenant.Id)
+            .AsSplitQuery()
+            .Include(item => item.Editions)
+            .ThenInclude(edition => edition.Stages)
             .SingleOrDefaultAsync(item => item.Id == competitionId, cancellationToken);
         if (competition is null) return NotFound();
 
@@ -1422,7 +1661,158 @@ public sealed class PublicController : ControllerBase
             .SingleOrDefaultAsync(
                 item => item.CompetitionId == competitionId,
                 cancellationToken);
-        if (bracket is null) return NotFound();
+        if (bracket is null)
+        {
+            var stageIds = competition.Editions
+                .SelectMany(edition => edition.Stages)
+                .Select(stage => stage.Id)
+                .ToArray();
+            var games = await PublicContests(tenant.Id)
+                .AsNoTracking()
+                .Include(item => item.Participants)
+                .Where(item => item.StageId.HasValue
+                    && stageIds.Contains(item.StageId.Value)
+                    && item.SeriesId.HasValue)
+                .OrderBy(item => item.SeriesGameNumber)
+                .ToArrayAsync(cancellationToken);
+            if (games.Length == 0) return NotFound();
+
+            var gameIds = games.Select(item => item.Id).ToArray();
+            var seriesParticipantIds = games
+                .SelectMany(item => item.Participants)
+                .Select(item => item.ParticipantId)
+                .Distinct()
+                .ToArray();
+            var seriesNames = await _db.Participants.AsNoTracking()
+                .Where(item => item.TenantId == tenant.Id
+                    && seriesParticipantIds.Contains(item.Id))
+                .ToDictionaryAsync(item => item.Id, item => item.Name,
+                    cancellationToken);
+            var gameResults = await _db.ContestResults.AsNoTracking()
+                .Where(item => gameIds.Contains(item.ContestId)
+                    && (item.Status == ContestResultStatus.Published
+                        || item.Status == ContestResultStatus.Official))
+                .Select(item => new
+                {
+                    item.ContestId,
+                    item.ParticipantId,
+                    item.Rank,
+                    item.Score,
+                    item.ScoreDisplay
+                })
+                .ToArrayAsync(cancellationToken);
+            var gameResultLookup = gameResults.ToLookup(
+                item => (item.ContestId, item.ParticipantId));
+            var stages = competition.Editions.SelectMany(item => item.Stages)
+                .ToDictionary(item => item.Id, item => item.Name);
+            var groupedByStage = games
+                .GroupBy(item => item.StageId!.Value)
+                .OrderBy(group => competition.Editions
+                    .SelectMany(item => item.Stages)
+                    .First(stage => stage.Id == group.Key).SortOrder)
+                .ToArray();
+
+            return Ok(new
+            {
+                Id = competition.Id,
+                CompetitionId = competition.Id,
+                Name = $"{competition.Name} Series",
+                Status = competition.Status.ToString(),
+                ChampionName = (string?)null,
+                Rounds = groupedByStage.Select((stage, roundIndex) => new
+                {
+                    Id = stage.Key,
+                    RoundNumber = roundIndex + 1,
+                    Name = stages.GetValueOrDefault(stage.Key, "Series"),
+                    Matches = stage.GroupBy(item => item.SeriesId!.Value)
+                        .Select((series, matchIndex) =>
+                        {
+                            var orderedGames = series
+                                .OrderBy(item => item.SeriesGameNumber)
+                                .ToArray();
+                            var first = orderedGames[0];
+                            var participants = first.Participants
+                                .OrderBy(item => item.SortOrder)
+                                .Select(item => item.ParticipantId)
+                                .ToArray();
+                            Guid? GameWinner(Contest game)
+                            {
+                                if (game.WinnerId.HasValue) return game.WinnerId;
+                                foreach (var participant in game.Participants)
+                                    if (gameResultLookup[(game.Id, participant.ParticipantId)]
+                                        .Any(result => result.Rank == 1))
+                                        return participant.ParticipantId;
+                                return null;
+                            }
+                            var wins = orderedGames
+                                .Select(GameWinner)
+                                .Where(item => item.HasValue)
+                                .GroupBy(item => item!.Value)
+                                .ToDictionary(group => group.Key, group => group.Count());
+                            var requiredWins = (first.SeriesBestOf ?? 1) / 2 + 1;
+                            var winnerId = wins.FirstOrDefault(item => item.Value >= requiredWins).Key;
+                            return new
+                            {
+                                Id = series.Key,
+                                ContestId = first.Id,
+                                SeriesId = series.Key,
+                                BestOf = first.SeriesBestOf ?? orderedGames.Length,
+                                IsAggregateTie = false,
+                                IsThirdPlace = false,
+                                Score1 = participants.ElementAtOrDefault(0) != Guid.Empty
+                                    ? wins.GetValueOrDefault(participants[0]).ToString()
+                                    : null,
+                                Score2 = participants.ElementAtOrDefault(1) != Guid.Empty
+                                    ? wins.GetValueOrDefault(participants[1]).ToString()
+                                    : null,
+                                MatchNumber = matchIndex + 1,
+                                Participant1Name = participants.ElementAtOrDefault(0) != Guid.Empty
+                                    ? seriesNames.GetValueOrDefault(participants[0])
+                                    : null,
+                                Participant2Name = participants.ElementAtOrDefault(1) != Guid.Empty
+                                    ? seriesNames.GetValueOrDefault(participants[1])
+                                    : null,
+                                WinnerName = winnerId != Guid.Empty
+                                    ? seriesNames.GetValueOrDefault(winnerId)
+                                    : null,
+                                Status = winnerId != Guid.Empty ? "Completed" : "InProgress",
+                                SeriesGames = orderedGames.Select(game =>
+                                {
+                                    var gameParticipants = game.Participants
+                                        .OrderBy(item => item.SortOrder)
+                                        .Select(item => item.ParticipantId)
+                                        .ToArray();
+                                    string? Score(Guid participantId) => gameResultLookup[
+                                            (game.Id, participantId)]
+                                        .Select(result => result.ScoreDisplay
+                                            ?? result.Score.ToString())
+                                        .FirstOrDefault();
+                                    var gameWinnerId = GameWinner(game);
+                                    return new
+                                    {
+                                        game.Id,
+                                        game.SeriesGameNumber,
+                                        HomeParticipantName = gameParticipants.ElementAtOrDefault(0) != Guid.Empty
+                                            ? seriesNames.GetValueOrDefault(gameParticipants[0])
+                                            : null,
+                                        AwayParticipantName = gameParticipants.ElementAtOrDefault(1) != Guid.Empty
+                                            ? seriesNames.GetValueOrDefault(gameParticipants[1])
+                                            : null,
+                                        Status = game.Status.ToString(),
+                                        WinnerName = gameWinnerId.HasValue
+                                            ? seriesNames.GetValueOrDefault(gameWinnerId.Value)
+                                            : null,
+                                        HomeScore = gameParticipants.ElementAtOrDefault(0) != Guid.Empty
+                                            ? Score(gameParticipants[0]) : null,
+                                        AwayScore = gameParticipants.ElementAtOrDefault(1) != Guid.Empty
+                                            ? Score(gameParticipants[1]) : null
+                                    };
+                                })
+                            };
+                        })
+                })
+            });
+        }
 
         var participantIds = bracket.Rounds
             .SelectMany(round => round.Matches)
@@ -1456,6 +1846,21 @@ public sealed class PublicController : ControllerBase
                 && seriesIds.Contains(item.SeriesId.Value))
             .OrderBy(item => item.SeriesGameNumber)
             .ToArrayAsync(cancellationToken);
+        var seriesGameIds = seriesGames.Select(item => item.Id).ToArray();
+        var seriesGameResults = await _db.ContestResults.AsNoTracking()
+            .Where(item => seriesGameIds.Contains(item.ContestId)
+                && (item.Status == ContestResultStatus.Published
+                    || item.Status == ContestResultStatus.Official))
+            .Select(item => new
+            {
+                item.ContestId,
+                item.ParticipantId,
+                item.Score,
+                item.ScoreDisplay
+            })
+            .ToArrayAsync(cancellationToken);
+        var seriesResultLookup = seriesGameResults.ToLookup(
+            item => (item.ContestId, item.ParticipantId));
 
         return Ok(new
         {
@@ -1521,7 +1926,23 @@ public sealed class PublicController : ControllerBase
                                         WinnerName = game.WinnerId.HasValue
                                             ? names.GetValueOrDefault(
                                                 game.WinnerId.Value)
-                                            : null
+                                            : null,
+                                        HomeScore = game.Participants
+                                            .Where(item => item.SortOrder == 1)
+                                            .Select(item => seriesResultLookup[
+                                                (game.Id, item.ParticipantId)]
+                                                .Select(result => result.ScoreDisplay
+                                                    ?? result.Score.ToString())
+                                                .FirstOrDefault())
+                                            .FirstOrDefault(),
+                                        AwayScore = game.Participants
+                                            .Where(item => item.SortOrder == 2)
+                                            .Select(item => seriesResultLookup[
+                                                (game.Id, item.ParticipantId)]
+                                                .Select(result => result.ScoreDisplay
+                                                    ?? result.Score.ToString())
+                                                .FirstOrDefault())
+                                            .FirstOrDefault()
                                     })
                                 : Array.Empty<object>()
                         })
@@ -1550,10 +1971,14 @@ public sealed class PublicController : ControllerBase
             .Include(item => item.Participants)
             .Include(item => item.Segments)
             .ThenInclude(item => item.NestedSegments)
-            .SingleOrDefaultAsync(item => item.StageId.HasValue
+            .Where(item => item.StageId.HasValue
                 && stageIds.Contains(item.StageId.Value)
-                && item.ContestShape == "MultiRoundLeaderboard",
-                cancellationToken);
+                && item.ContestShape == "MultiRoundLeaderboard")
+            .OrderBy(item => item.Status == ContestStatus.Published
+                ? 0
+                : item.Status == ContestStatus.InProgress ? 1 : 2)
+            .ThenBy(item => item.StartTime)
+            .FirstOrDefaultAsync(cancellationToken);
         if (contest is null) return NotFound();
 
         var participantIds = contest.Participants
@@ -1564,11 +1989,13 @@ public sealed class PublicController : ControllerBase
             .Where(item => item.TenantId == tenant.Id
                 && participantIds.Contains(item.Id))
             .ToDictionaryAsync(item => item.Id, item => item.Name, cancellationToken);
-        var roundByHole = contest.Segments
+        var holeById = contest.Segments
             .SelectMany(round => round.NestedSegments.Select(
-                hole => new { hole.Id, Round = round.SortOrder }))
-            .ToDictionary(item => item.Id, item => item.Round);
-        var holeIds = roundByHole.Keys.ToArray();
+                hole => new { hole.Id, Round = round.SortOrder, Hole = hole.SortOrder }))
+            .ToDictionary(item => item.Id);
+        var holeIds = holeById.Keys.ToArray();
+        var holePars = JsonSerializer.Deserialize<int[]>(contest.HoleParsJson ?? "[]")
+            ?? Array.Empty<int>();
         var scores = await _db.LiveScores
             .AsNoTracking()
             .Where(item => item.ContestId == contest.Id
@@ -1583,10 +2010,25 @@ public sealed class PublicController : ControllerBase
                 .Where(item => item.ParticipantId == participant.ParticipantId)
                 .ToArray();
             var rounds = participantScores
-                .GroupBy(item => roundByHole[item.SegmentId!.Value])
+                .GroupBy(item => holeById[item.SegmentId!.Value].Round)
                 .ToDictionary(
                     group => group.Key,
                     group => decimal.ToInt32(group.Sum(item => item.Value)));
+            var currentRound = rounds.Count == 0 ? 0 : rounds.Keys.Max();
+            var currentRoundHoles = participantScores
+                .Where(item => currentRound > 0
+                    && holeById[item.SegmentId!.Value].Round == currentRound)
+                .GroupBy(item => item.SegmentId!.Value)
+                .Select(group => new
+                {
+                    Hole = holeById[group.Key].Hole,
+                    Score = decimal.ToInt32(group.Sum(item => item.Value))
+                })
+                .ToArray();
+            var todayPar = currentRoundHoles.Sum(item =>
+                item.Hole > 0 && item.Hole <= holePars.Length
+                    ? holePars[item.Hole - 1]
+                    : (contest.ParPerRound ?? 72) / 18);
             var total = rounds.Values.Sum();
             var toPar = total - (rounds.Count * (contest.ParPerRound ?? 72));
             var status = participant.Status switch
@@ -1614,6 +2056,8 @@ public sealed class PublicController : ControllerBase
                 TotalStrokes = total,
                 ToPar = toPar,
                 RoundsPlayed = rounds.Count,
+                TodayToPar = currentRoundHoles.Sum(item => item.Score) - todayPar,
+                Thru = currentRoundHoles.Length,
                 RoundScores = Enumerable.Range(1, 4)
                     .Select(round => rounds.GetValueOrDefault(round))
                     .ToArray()
@@ -1678,6 +2122,8 @@ public sealed class PublicController : ControllerBase
                 entry.TotalStrokes,
                 entry.ToPar,
                 entry.RoundsPlayed,
+                entry.TodayToPar,
+                entry.Thru,
                 entry.RoundScores,
                 RoundPositions = Enumerable.Range(1, 4)
                     .Select(roundNumber => positionsByRound[roundNumber]
@@ -1699,7 +2145,7 @@ public sealed class PublicController : ControllerBase
             contest.ParPerRound,
             contest.CourseName,
             contest.CourseLocation,
-            HolePars = JsonSerializer.Deserialize<int[]>(contest.HoleParsJson ?? "[]"),
+            HolePars = holePars,
             contest.CutAfterRound,
             contest.CutToParticipants,
             contest.CutAppliedAt,
@@ -2097,5 +2543,60 @@ public sealed class PublicController : ControllerBase
             // A malformed optional display block must not break public coverage.
         }
         return labels;
+    }
+
+    private sealed record PublicCompetitionPresentation(
+        string? PrimaryContestRenderer,
+        IReadOnlySet<string> VisibleTabs,
+        string? DefaultTab,
+        string? ScoreVariant,
+        string? StandingsVariant,
+        string? LeaderboardVariant,
+        bool? BracketEnabled,
+        bool? SeriesEnabled,
+        bool? MedalTableEnabled)
+    {
+        public static PublicCompetitionPresentation Parse(string? configuration)
+        {
+            if (string.IsNullOrWhiteSpace(configuration)) return Empty;
+            try
+            {
+                using var document = JsonDocument.Parse(configuration);
+                var root = document.RootElement;
+                var tabs = root.TryGetProperty("visibleTabs", out var visibleTabs)
+                    && visibleTabs.ValueKind == JsonValueKind.Array
+                    ? visibleTabs.EnumerateArray()
+                        .Where(item => item.ValueKind == JsonValueKind.String)
+                        .Select(item => item.GetString()!)
+                        .ToHashSet(StringComparer.OrdinalIgnoreCase)
+                    : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                return new(
+                    Text(root, "primaryContestRenderer"), tabs,
+                    Text(root, "defaultTab"), Text(root, "scoreVariant"),
+                    Text(root, "standingsVariant"), Text(root, "leaderboardVariant"),
+                    Boolean(root, "bracketEnabled"), Boolean(root, "seriesEnabled"),
+                    Boolean(root, "medalTableEnabled"));
+            }
+            catch (JsonException)
+            {
+                return Empty;
+            }
+        }
+
+        private static string? Text(JsonElement root, string name) =>
+            root.TryGetProperty(name, out var value)
+                && value.ValueKind == JsonValueKind.String
+                ? value.GetString()
+                : null;
+
+        private static bool? Boolean(JsonElement root, string name) =>
+            root.TryGetProperty(name, out var value)
+                && value.ValueKind is JsonValueKind.True or JsonValueKind.False
+                ? value.GetBoolean()
+                : null;
+
+        private static PublicCompetitionPresentation Empty { get; } = new(
+            null, new HashSet<string>(StringComparer.OrdinalIgnoreCase),
+            null, null, null, null, null, null, null);
     }
 }

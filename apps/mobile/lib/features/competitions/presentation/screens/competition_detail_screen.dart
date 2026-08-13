@@ -7,6 +7,8 @@ import '../../../supporter/presentation/providers/supporter_provider.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../supporter/data/supporter_preferences.dart';
 import '../../../supporter/data/supporter_share_service.dart';
+import '../widgets/competition_output_renderer.dart';
+import '../../../supporter/presentation/widgets/alert_preferences_sheet.dart';
 
 /// Competition detail screen
 class CompetitionDetailScreen extends ConsumerWidget {
@@ -41,6 +43,21 @@ class CompetitionDetailScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Competition'),
         actions: [
+          if (favourite != null)
+            IconButton(
+              tooltip:
+                  isFavourite ? 'Choose alerts' : 'Favourite to enable alerts',
+              onPressed: isFavourite
+                  ? () => showSupporterAlertPreferences(context, ref,
+                      favourite: favourite, sportCode: competition!.sportCode)
+                  : null,
+              icon: Icon(ref.watch(supporterPreferencesProvider.select(
+                      (value) => value
+                          .alertsFor('competition', competitionId)
+                          .isNotEmpty))
+                  ? Icons.notifications_active
+                  : Icons.notifications_none),
+            ),
           if (favourite != null)
             IconButton(
               tooltip:
@@ -105,6 +122,13 @@ class _CompetitionContent extends ConsumerWidget {
             .where((item) => item.competitionId == competition.id)
             .toList() ??
         const [];
+    final bracket = competition.availableTabs.contains('bracket') ||
+            competition.availableTabs.contains('series')
+        ? ref.watch(supporterBracketProvider(competition.id)).valueOrNull
+        : null;
+    final leaderboard = competition.availableTabs.contains('leaderboard')
+        ? ref.watch(golfLeaderboardProvider(competition.id)).valueOrNull
+        : null;
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -220,7 +244,9 @@ class _CompetitionContent extends ConsumerWidget {
         const SizedBox(height: 24),
 
         if (competition.availableTabs.contains('bracket') ||
-            competition.availableTabs.contains('leaderboard')) ...[
+            competition.availableTabs.contains('series') ||
+            competition.availableTabs.contains('leaderboard') ||
+            competition.availableTabs.contains('medals')) ...[
           Text(
             'Tournament views',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -245,14 +271,52 @@ class _CompetitionContent extends ConsumerWidget {
                   icon: const Icon(Icons.leaderboard),
                   label: const Text('Open leaderboard'),
                 ),
+              if (competition.sportCode.toLowerCase() == 'combat' ||
+                  competition.sportCode.toLowerCase() == 'mma')
+                FilledButton.tonalIcon(
+                  onPressed: () =>
+                      context.push(Routes.fightCard(competition.id)),
+                  icon: const Icon(Icons.sports_mma),
+                  label: const Text('Open fight card'),
+                ),
             ],
           ),
+          if (competition.availableTabs.contains('bracket')) ...[
+            const SizedBox(height: 16),
+            CompetitionOutputRenderer(
+              kind: CompetitionOutputKind.bracket,
+              bracket: bracket,
+              onContest: (id) => context.push('/contest/$id'),
+            ),
+          ],
+          if (competition.availableTabs.contains('series')) ...[
+            const SizedBox(height: 16),
+            CompetitionOutputRenderer(
+              kind: CompetitionOutputKind.series,
+              bracket: bracket,
+            ),
+          ],
+          if (competition.availableTabs.contains('leaderboard')) ...[
+            const SizedBox(height: 16),
+            CompetitionOutputRenderer(
+              kind: CompetitionOutputKind.leaderboard,
+              leaderboard: leaderboard,
+              compact: true,
+            ),
+          ],
+          if (competition.availableTabs.contains('medals')) ...[
+            const SizedBox(height: 16),
+            CompetitionOutputRenderer(
+              kind: CompetitionOutputKind.medals,
+              medals: competition.medals,
+            ),
+          ],
           const SizedBox(height: 24),
         ],
 
-        // Fixtures
+        // Schedule
         Text(
-          'Fixtures & Results',
+          'Schedule & Results',
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
@@ -262,7 +326,7 @@ class _CompetitionContent extends ConsumerWidget {
           child: fixtures.isEmpty
               ? const Padding(
                   padding: EdgeInsets.all(24),
-                  child: Center(child: Text('No published fixtures yet')),
+                  child: Center(child: Text('No published contests yet')),
                 )
               : Column(
                   children: fixtures.map((fixture) {
@@ -300,29 +364,11 @@ class _CompetitionContent extends ConsumerWidget {
               ),
         ),
         const SizedBox(height: 12),
-        Card(
-          child: standings.isEmpty
-              ? const Padding(
-                  padding: EdgeInsets.all(24),
-                  child: Center(child: Text('No standings available yet')),
-                )
-              : Column(
-                  children: standings
-                      .map((standing) => ListTile(
-                            leading: CircleAvatar(
-                                child: Text('${standing.position}')),
-                            title: Text(standing.participantName),
-                            subtitle: Text(
-                              'P ${standing.played} · W ${standing.won} · D ${standing.drawn} · L ${standing.lost}',
-                            ),
-                            trailing: Text(
-                              '${standing.points}',
-                              style:
-                                  const TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                          ))
-                      .toList(),
-                ),
+        CompetitionOutputRenderer(
+          kind: competition.availableTabs.contains('groups')
+              ? CompetitionOutputKind.groups
+              : CompetitionOutputKind.standings,
+          standings: standings,
         ),
       ],
     );

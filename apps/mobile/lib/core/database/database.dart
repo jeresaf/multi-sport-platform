@@ -262,6 +262,15 @@ class AppDatabase extends _$AppDatabase {
   Future<int> clearUserSessions() {
     return delete(userSessions).go();
   }
+
+  Future<void> clearReadCaches() async {
+    await transaction(() async {
+      await delete(cachedContests).go();
+      await delete(cachedParticipants).go();
+      await delete(cachedCompetitions).go();
+      await delete(cachedSupporterResponses).go();
+    });
+  }
 }
 
 LazyDatabase _openConnection() {

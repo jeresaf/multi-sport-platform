@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, Calendar, MapPin, Shield, Trophy, UserRound, Users } from 'lucide-react';
+import { ArrowLeft, Calendar, MapPin, Shield, Star, Trophy, UserRound, Users } from 'lucide-react';
 import { use, useEffect, useState } from 'react';
 import { formatSport, publicApi, resolveTenantSlug, tenantPath } from '@/lib/public-api';
 
@@ -68,13 +68,14 @@ export default function ParticipantPage({ params }: { params: Promise<{ id: stri
   const [participant, setParticipant] = useState<Participant | null>(null);
   const [tenantSlug, setTenantSlug] = useState('premier-league');
   const [error, setError] = useState<string | null>(null);
+  const [favourite, setFavourite] = useState(false);
 
   useEffect(() => {
     const slug = resolveTenantSlug();
     let disposed = false;
     queueMicrotask(() => !disposed && setTenantSlug(slug));
     publicApi<Participant>(`/participants/${id}`, undefined, slug)
-      .then(value => !disposed && setParticipant(value))
+      .then(value => { if (!disposed) { setParticipant(value); setFavourite(readParticipantFavourite(value.id)); } })
       .catch((reason: Error) => !disposed && setError(reason.message));
     return () => { disposed = true; };
   }, [id]);
@@ -101,11 +102,16 @@ export default function ParticipantPage({ params }: { params: Promise<{ id: stri
               <Shield className="h-12 w-12 text-primary" />
             )}
           </div>
-          <div>
+          <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold uppercase tracking-wider text-primary">{participant.profile.kind}</p>
             <h1 className="mt-1 text-4xl font-bold text-gray-900">{participant.name}</h1>
             <p className="mt-2 text-gray-500">{participant.shortName} · {participant.status}</p>
           </div>
+          <button onClick={() => {
+            const values = favouriteKeys(); const key = `participant:${participant.id}`;
+            if (values.has(key)) values.delete(key); else values.add(key);
+            try { localStorage.setItem('sports-platform:favourite-contests', JSON.stringify([...values])); setFavourite(values.has(key)); } catch { /* retain prior state */ }
+          }} aria-pressed={favourite} className="inline-flex items-center gap-2 rounded-xl border px-4 py-2 font-semibold"><Star className="h-4 w-4" fill={favourite ? 'currentColor' : 'none'} />{favourite ? 'Following' : 'Follow'}</button>
         </div>
         <ProfileDetails participant={participant} tenantSlug={tenantSlug} />
       </section>
@@ -142,3 +148,5 @@ function Detail({ label, value }: { label: string; value?: string | null }) { re
 function Stat({ label, value }: { label: string; value: number }) { return <div className="rounded-xl border bg-white p-5 text-center"><p className="text-3xl font-black text-primary">{value}</p><p className="mt-1 text-sm text-gray-500">{label}</p></div>; }
 function Empty({ message }: { message: string }) { return <div className="rounded-xl border border-dashed bg-gray-50 px-4 py-10 text-center text-gray-500">{message}</div>; }
 function State({ message }: { message: string }) { return <div className="container mx-auto px-4 py-24 text-center text-gray-500">{message}</div>; }
+function favouriteKeys() { try { const values = JSON.parse(localStorage.getItem('sports-platform:favourite-contests') ?? '[]') as string[]; return new Set(values.map(value => value.includes(':') ? value : `contest:${value}`)); } catch { return new Set<string>(); } }
+function readParticipantFavourite(id: string) { return typeof window !== 'undefined' && favouriteKeys().has(`participant:${id}`); }

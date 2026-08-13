@@ -18,6 +18,12 @@ public interface IPushDeliveryClient
         IEnumerable<string> topics,
         PushDelivery delivery,
         CancellationToken cancellationToken = default);
+
+    Task<bool> SetTopicSubscriptionAsync(
+        string token,
+        string topic,
+        bool enabled,
+        CancellationToken cancellationToken = default);
 }
 
 public static partial class PushTopics
@@ -28,6 +34,12 @@ public static partial class PushTopics
 
     public static string FavouriteCompetition(Guid competitionId) =>
         Build("favourite-competition", competitionId.ToString());
+
+    public static string FavouriteContestAlert(Guid contestId, string type) =>
+        Build("favourite-contest", $"{contestId}-{type}");
+
+    public static string FavouriteCompetitionAlert(Guid competitionId, string type) =>
+        Build("favourite-competition", $"{competitionId}-{type}");
 
     public static IReadOnlyList<string> Contest(
         string tenantSlug,
@@ -44,9 +56,27 @@ public static partial class PushTopics
         return topics;
     }
 
+    public static IReadOnlyList<string> ContestAlert(
+        string tenantSlug, Guid contestId, Guid? competitionId, string type)
+    {
+        var topics = new List<string>
+        {
+            Tenant(tenantSlug),
+            FavouriteContestAlert(contestId, type)
+        };
+        if (competitionId.HasValue)
+            topics.Add(FavouriteCompetitionAlert(competitionId.Value, type));
+        return topics;
+    }
+
     private static string Build(string prefix, string value)
     {
-        var topic = $"{prefix}-{value}".ToLowerInvariant();
+        return Normalize($"{prefix}-{value}");
+    }
+
+    public static string Normalize(string value)
+    {
+        var topic = value.ToLowerInvariant();
         topic = InvalidTopicCharacter().Replace(topic, "-").Trim('-');
         if (topic.Length > 900) topic = topic[..900].TrimEnd('-');
         if (string.IsNullOrWhiteSpace(topic))

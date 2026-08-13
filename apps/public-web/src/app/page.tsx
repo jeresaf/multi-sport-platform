@@ -1,294 +1,258 @@
 'use client';
 
-import Image from 'next/image';
+import * as signalR from '@microsoft/signalr';
 import Link from 'next/link';
-import { Calendar, Medal, Radio, Trophy } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { CalendarX2, RefreshCw, Trophy } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ContestCard } from '@/components/contest-card';
+import { ContestFilterBar } from '@/components/contest-filter-bar';
+import { DateNavigator } from '@/components/date-navigator';
 import {
   formatSport,
   publicApi,
-  PublicHome,
+  PUBLIC_CONTEST_HUB_URL,
+  type PublicCompetition,
+  type PublicContest,
   resolveTenantSlug,
-  TENANT_SLUG,
   tenantPath,
 } from '@/lib/public-api';
+import { applyContestLiveUpdate, type ContestLiveUpdate } from '@/lib/contest-live-update';
+import { invalidateDailyFeed, loadDailyFeed, readDailyFeed, updateDailyFeed } from '@/lib/daily-feed-cache';
+import { contestPhase, groupByCompetition, localDateKey, type ContestFilter } from '@/lib/presentation';
 
-export default function PublicHomePage() {
-  const [data, setData] = useState<PublicHome | null>(null);
+const FAVOURITES_KEY = 'sports-platform:favourite-contests';
+
+export function MatchCentrePage({ initialFilter = 'all', initialSportSlug }: { initialFilter?: ContestFilter; initialSportSlug?: string }) {
+  const [tenantSlug] = useState(resolveTenantSlug);
+  const [date, setDate] = useState(initialDate);
+  const [filter, setFilter] = useState<ContestFilter>(() => initialContestFilter(initialFilter));
+  const [sportId, setSportId] = useState<string | null>(() => browserQuery('sport'));
+  const [contests, setContests] = useState<PublicContest[]>([]);
+  const [competitions, setCompetitions] = useState<PublicCompetition[]>([]);
+  const [favourites, setFavourites] = useState<Set<string>>(loadFavourites);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [tenantSlug, setTenantSlug] = useState(TENANT_SLUG);
+  const liveVersions = useRef(new Map<string, number>());
+  const requestVersion = useRef(0);
 
   useEffect(() => {
-    const resolvedTenant = resolveTenantSlug();
-    publicApi<PublicHome>('/home', undefined, resolvedTenant)
-      .then(home => {
-        setTenantSlug(resolvedTenant);
-        setData(home);
+    publicApi<PublicCompetition[]>('/competitions', undefined, tenantSlug)
+      .then(items => {
+        setCompetitions(items);
+        if (initialSportSlug) {
+          const match = items.find(item => slugify(item.sportName || formatSport(item.sportId)) === initialSportSlug);
+          if (match) setSportId(match.sportId);
+        }
       })
-      .catch((reason: Error) => setError(reason.message));
+      .catch(() => undefined);
+  }, [initialSportSlug, tenantSlug]);
+
+  const load = useCallback(async (force = false) => {
+    const request = ++requestVersion.current;
+    if (force) invalidateDailyFeed(tenantSlug, date);
+    const cached = readDailyFeed(tenantSlug, date);
+    if (cached) {
+      setContests(cached);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    const from = new Date(`${date}T00:00:00`);
+    const to = new Date(from);
+    to.setDate(to.getDate() + 1);
+    try {
+      const query = new URLSearchParams({ from: from.toISOString(), to: to.toISOString() });
+      const data = await loadDailyFeed(tenantSlug, date,
+        () => publicApi<PublicContest[]>(`/fixtures?${query}`, undefined, tenantSlug));
+      if (request !== requestVersion.current) return;
+      setContests(data);
+    } catch (reason) {
+      if (request !== requestVersion.current) return;
+      setError(reason instanceof Error ? reason.message : 'Unable to load contests');
+    } finally {
+      if (request === requestVersion.current) setLoading(false);
+    }
+  }, [date, tenantSlug]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => void load(), 0);
+    return () => window.clearTimeout(timer);
+  }, [load]);
+
+  const subscriptionKey = useMemo(() => contests.map(item => item.id).sort().join(','), [contests]);
+  useEffect(() => {
+    const ids = subscriptionKey ? subscriptionKey.split(',') : [];
+    if (ids.length === 0) return;
+    let disposed = false;
+    const connection = new signalR.HubConnectionBuilder()
+      .withUrl(PUBLIC_CONTEST_HUB_URL, { withCredentials: false })
+      .withAutomaticReconnect([0, 2_000, 5_000, 10_000])
+      .configureLogging(signalR.LogLevel.Warning)
+      .build();
+    const patch = (update: ContestLiveUpdate) => {
+      if (!update.contestId || (liveVersions.current.get(update.contestId) ?? -1) > update.version) return;
+      liveVersions.current.set(update.contestId, update.version);
+      setContests(current => {
+        const next = current.map(item => applyContestLiveUpdate(item, update));
+        updateDailyFeed(tenantSlug, date, cached => cached.map(item => applyContestLiveUpdate(item, update)));
+        return next;
+      });
+    };
+    connection.on('ContestLiveUpdated', patch);
+    connection.on('ContestSnapshot', (snapshot: { contestId: string; status: string; lastUpdated: string; participantScores?: ContestLiveUpdate['participants'] }) => patch({
+      contestId: snapshot.contestId,
+      version: Date.parse(snapshot.lastUpdated) || Date.now(),
+      status: snapshot.status,
+      participants: snapshot.participantScores,
+    }));
+    const joinAll = () => Promise.all(ids.map(id => connection.invoke('JoinPublicContestGroup', tenantSlug, id)));
+    connection.onreconnected(() => { if (!disposed) void joinAll(); });
+    connection.start().then(joinAll).catch(() => undefined);
+    return () => { disposed = true; void connection.stop(); };
+  }, [date, subscriptionKey, tenantSlug]);
+
+  const updateDate = (next: string) => {
+    setDate(next);
+    const url = new URL(window.location.href);
+    url.searchParams.set('date', next);
+    window.history.replaceState({}, '', url);
+  };
+
+  const toggleFavourite = useCallback((id: string) => {
+    setFavourites(current => {
+      const next = new Set(current);
+      const key = `contest:${id}`;
+      if (next.has(key)) next.delete(key); else next.add(key);
+      try { localStorage.setItem(FAVOURITES_KEY, JSON.stringify([...next])); return next; }
+      catch { return current; }
+    });
   }, []);
 
-  const branding = data?.tenant.branding;
-  const primary = validHex(branding?.primaryColor) ?? '#0e7490';
-  const secondary = validHex(branding?.secondaryColor) ?? '#312e81';
-  const accent = validHex(branding?.accentColor) ?? '#f59e0b';
+  const sports = useMemo(() => Array.from(new Map(competitions.map(item => [item.sportId, item.sportName || formatSport(item.sportId)])).entries()), [competitions]);
+  const visible = useMemo(() => contests.filter(contest => {
+    if (sportId && contest.sportId !== sportId) return false;
+    if (filter === 'favourites') return favourites.has(`contest:${contest.id}`)
+      || (!!contest.competitionId && favourites.has(`competition:${contest.competitionId}`))
+      || contest.participants?.some(item => favourites.has(`participant:${item.participantId}`)) === true;
+    return filter === 'all' || contestPhase(contest.status) === filter;
+  }), [contests, favourites, filter, sportId]);
+  const groups = useMemo(() => groupByCompetition(visible), [visible]);
 
   return (
-    <div className="container mx-auto px-4 py-6 sm:py-8">
-      <section
-        className="overflow-hidden rounded-3xl px-6 py-14 text-center text-white shadow-xl sm:px-10 md:py-20"
-        style={{ background: `linear-gradient(135deg, ${primary}, ${secondary})` }}
-        data-testid="tenant-home-hero"
-      >
-        {branding?.logoUrl && (
-          <Image
-            unoptimized
-            width={80}
-            height={80}
-            src={branding.logoUrl}
-            alt={`${data?.tenant.name ?? 'Tenant'} logo`}
-            className="mx-auto mb-5 h-16 w-16 rounded-2xl bg-white object-contain p-2 sm:h-20 sm:w-20"
-          />
-        )}
-        <p className="mb-3 text-sm font-semibold uppercase tracking-[0.25em] text-white/80">
-          {data?.tenant.name ?? 'Sports Platform'}
-        </p>
-        <h1 className="mb-4 text-4xl font-bold md:text-6xl">
-          Live sport, open to everyone
-        </h1>
-        <p className="mx-auto mb-8 max-w-2xl text-base text-white/80 sm:text-lg">
-          Follow published competitions, live contests, official results and
-          standings. No account is required.
-        </p>
-        <div className="flex flex-col justify-center gap-3 sm:flex-row">
-          <Link
-            className="rounded-lg px-6 py-3 font-semibold text-gray-950"
-            style={{ backgroundColor: accent }}
-            href={tenantPath('/competitions', tenantSlug)}
-          >
-            Browse competitions
-          </Link>
-          <Link
-            className="rounded-lg border border-white/40 bg-white/10 px-6 py-3 font-semibold"
-            href={tenantPath('/results', tenantSlug)}
-          >
-            Official results
-          </Link>
-        </div>
-      </section>
+    <div className="app-container py-5 sm:py-7">
+      <header className="mb-6" data-testid="match-centre-header">
+        <p className="text-sm font-bold uppercase tracking-[0.18em] text-[var(--brand-primary)]">Match centre</p>
+        <h1 className="mt-1 text-3xl font-extrabold tracking-tight sm:text-4xl">Scores & schedule</h1>
+        <p className="mt-2 muted">Live, upcoming and official results across every published sport.</p>
+      </header>
 
-      {error && (
-        <div role="alert" className="mt-8 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
-          Public data is temporarily unavailable: {error}
-        </div>
-      )}
+      <div className="grid gap-6 xl:grid-cols-[220px_minmax(0,1fr)_260px]">
+        <aside className="hidden xl:block" aria-label="Sports">
+          <div className="surface sticky top-24 overflow-hidden rounded-2xl p-2">
+            <button onClick={() => setSportId(null)} className={`w-full rounded-xl px-3 py-2.5 text-left text-sm font-semibold ${!sportId ? 'bg-[var(--color-surface-muted)] text-[var(--brand-primary)]' : ''}`}>All sports</button>
+            {sports.map(([id, name]) => (
+              <button key={id} onClick={() => setSportId(id)} className={`w-full rounded-xl px-3 py-2.5 text-left text-sm font-semibold ${sportId === id ? 'bg-[var(--color-surface-muted)] text-[var(--brand-primary)]' : ''}`}>{name}</button>
+            ))}
+          </div>
+        </aside>
 
-      {!data && !error && (
-        <div role="status" className="py-16 text-center text-gray-500">
-          Loading live coverage…
-        </div>
-      )}
+        <main className="min-w-0">
+          <div className="mb-4 grid gap-3 xl:grid-cols-[minmax(0,1fr)_220px] xl:items-center">
+            <DateNavigator value={date} onChange={updateDate} />
+            <select className="surface rounded-xl px-3 py-3 text-sm xl:hidden" value={sportId ?? ''} onChange={event => setSportId(event.target.value || null)} aria-label="Choose sport">
+              <option value="">All sports</option>
+              {sports.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+            </select>
+          </div>
+          <ContestFilterBar value={filter} onChange={setFilter} />
 
-      {data && (
-        <div className="space-y-6 py-10 sm:space-y-10 sm:py-12">
-          <HomeSection
-            title="Live now"
-            aside={(
-              <span className="flex items-center gap-2 rounded-full bg-red-50 px-3 py-1 text-sm font-medium text-red-700">
-                <Radio className="h-4 w-4" /> {data.liveContests.length} live
-              </span>
-            )}
-          >
-            {data.liveContests.length === 0 ? (
-              <EmptyState message="There are no live contests right now." />
-            ) : (
-              <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-                {data.liveContests.map(contest => (
-                  <ContestCard key={contest.id} contest={contest} tenantSlug={tenantSlug} />
-                ))}
-              </div>
-            )}
-          </HomeSection>
-
-          <HomeSection
-            title="Featured competitions"
-            aside={(
-              <Link href={tenantPath('/competitions', tenantSlug)} className="font-medium hover:underline" style={{ color: primary }}>
-                View all
-              </Link>
-            )}
-          >
-            {data.featuredCompetitions.length === 0 ? (
-              <EmptyState message="No featured competitions are published yet." />
-            ) : (
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                {data.featuredCompetitions.map(competition => (
-                  <Link
-                    key={competition.id}
-                    href={tenantPath(`/competitions/${competition.id}`, tenantSlug)}
-                    className="rounded-2xl border border-gray-200 bg-white p-5 transition hover:-translate-y-0.5 hover:shadow-md"
-                  >
-                    <Trophy className="mb-4 h-7 w-7" style={{ color: primary }} />
-                    <h3 className="font-bold text-gray-900">{competition.name}</h3>
-                    <p className="mt-1 text-sm text-gray-500">
-                      {formatSport(competition.sportId)} · {competition.status}
-                    </p>
-                    {competition.description && (
-                      <p className="mt-3 line-clamp-2 text-sm text-gray-600">{competition.description}</p>
-                    )}
-                  </Link>
-                ))}
-              </div>
-            )}
-          </HomeSection>
-
-          <HomeSection title="Upcoming contests">
-            {data.upcomingContests.length === 0 ? (
-              <EmptyState message="No upcoming contests have been published." />
-            ) : (
-              <div className="grid gap-4 md:grid-cols-2">
-                {data.upcomingContests.map(contest => (
-                  <ContestCard key={contest.id} contest={contest} tenantSlug={tenantSlug} />
-                ))}
-              </div>
-            )}
-          </HomeSection>
-
-          <HomeSection
-            title="Recent results"
-            aside={(
-              <Link href={tenantPath('/results', tenantSlug)} className="font-medium hover:underline" style={{ color: primary }}>
-                All results
-              </Link>
-            )}
-          >
-            {data.recentResults.length === 0 ? (
-              <EmptyState message="Official results will appear here after publication." />
-            ) : (
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                {data.recentResults.map(result => (
-                  <Link
-                    key={result.id}
-                    href={tenantPath(`/contest/${result.contestId}`, tenantSlug)}
-                    className="rounded-xl border border-gray-200 bg-white p-4 hover:shadow-md"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <Medal className="h-5 w-5 shrink-0" style={{ color: accent }} />
-                      <span className="text-xs font-semibold uppercase text-gray-500">{result.status}</span>
+          {loading ? <ContestSkeleton /> : error ? (
+            <StatePanel icon={<RefreshCw />} title="Coverage could not be loaded" detail={error} action={<button onClick={() => void load(true)} className="rounded-lg bg-[var(--brand-primary)] px-4 py-2 font-semibold text-white">Try again</button>} />
+          ) : groups.length === 0 ? (
+            <StatePanel icon={<CalendarX2 />} title="No contests found" detail={filter === 'favourites' ? 'Favourite a contest to keep it close at hand.' : 'Try another date, sport or filter.'} />
+          ) : (
+            <div className="mt-6 space-y-7">
+              {groups.map(group => (
+                <section key={group.id} aria-labelledby={`competition-${group.id}`}>
+                  <div className="mb-3 flex items-end justify-between gap-4">
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold uppercase tracking-wider text-[var(--brand-primary)]">{formatSport(group.sportId)}</p>
+                      <h2 id={`competition-${group.id}`} className="truncate text-xl font-bold">{group.name}</h2>
                     </div>
-                    <p className="mt-3 text-sm text-gray-500">{result.contestName}</p>
-                    <h3 className="mt-1 font-bold text-gray-900">{result.participantName}</h3>
-                    <p className="mt-2 text-lg font-semibold" style={{ color: primary }}>
-                      {result.scoreDisplay ?? result.time ?? result.score ?? result.position ?? 'Official'}
-                    </p>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </HomeSection>
+                    {group.id !== group.sportId && <Link className="shrink-0 text-sm font-semibold text-[var(--brand-primary)]" href={tenantPath(`/competition/${group.id}`, tenantSlug)}>Competition</Link>}
+                  </div>
+                  <div className="contest-grid">
+                    {group.contests.map(contest => <ContestCard key={contest.id} contest={contest} tenantSlug={tenantSlug} favourite={favourites.has(`contest:${contest.id}`)} onToggleFavourite={toggleFavourite} />)}
+                  </div>
+                </section>
+              ))}
+            </div>
+          )}
+        </main>
 
-          <HomeSection title="Sponsors">
-            {data.sponsors.length === 0 ? (
-              <EmptyState message="Sponsor partners will be shown here." />
-            ) : (
-              <div className="grid gap-4 grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
-                {data.sponsors.map(sponsor => {
-                  const content = (
-                    <>
-                      {sponsor.logoUrl ? (
-                        <Image
-                          unoptimized
-                          width={120}
-                          height={64}
-                          src={sponsor.logoUrl}
-                          alt={`${sponsor.name} logo`}
-                          className="mx-auto h-12 w-full object-contain"
-                        />
-                      ) : (
-                        <span className="flex h-12 items-center justify-center text-center font-bold text-gray-800">
-                          {sponsor.name}
-                        </span>
-                      )}
-                      <span className="mt-3 block text-center text-xs uppercase tracking-wide text-gray-500">
-                        {sponsor.tier}
-                      </span>
-                    </>
-                  );
-                  return sponsor.website ? (
-                    <a key={sponsor.id} href={sponsor.website} target="_blank" rel="noreferrer" className="rounded-xl border bg-white p-4 hover:shadow-md">
-                      {content}
-                    </a>
-                  ) : (
-                    <div key={sponsor.id} className="rounded-xl border bg-white p-4">{content}</div>
-                  );
-                })}
-              </div>
-            )}
-          </HomeSection>
-        </div>
-      )}
+        <aside className="hidden xl:block" aria-label="Featured competitions">
+          <div className="surface sticky top-24 rounded-2xl p-4">
+            <div className="mb-3 flex items-center gap-2"><Trophy className="h-5 w-5 text-[var(--brand-accent)]" /><h2 className="font-bold">Competitions</h2></div>
+            <div className="space-y-1">
+              {competitions.slice(0, 8).map(competition => (
+                <Link key={competition.id} href={tenantPath(`/competition/${competition.id}`, tenantSlug)} className="block rounded-xl p-3 hover:bg-[var(--color-surface-muted)]">
+                  <span className="block text-sm font-semibold">{competition.name}</span>
+                  <span className="text-xs muted">{formatSport(competition.sportId)}</span>
+                </Link>
+              ))}
+            </div>
+            <Link className="mt-3 block rounded-xl border border-[var(--color-border)] px-3 py-2 text-center text-sm font-semibold" href={tenantPath('/competitions', tenantSlug)}>View all competitions</Link>
+          </div>
+        </aside>
+      </div>
     </div>
   );
 }
 
-function HomeSection({
-  title,
-  aside,
-  children,
-}: {
-  title: string;
-  aside?: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <section aria-labelledby={`section-${title.toLowerCase().replaceAll(' ', '-')}`}>
-      <div className="mb-5 flex items-center justify-between gap-4">
-        <h2 id={`section-${title.toLowerCase().replaceAll(' ', '-')}`} className="text-2xl font-bold text-gray-900">
-          {title}
-        </h2>
-        {aside}
-      </div>
-      {children}
-    </section>
-  );
+export default function PublicHomePage() {
+  return <MatchCentrePage />;
 }
 
-function ContestCard({
-  contest,
-  tenantSlug,
-}: {
-  contest: PublicHome['liveContests'][number];
-  tenantSlug: string;
-}) {
-  return (
-    <Link
-      href={tenantPath(`/contest/${contest.id}`, tenantSlug)}
-      className="rounded-xl border border-gray-200 bg-white p-5 transition hover:-translate-y-0.5 hover:shadow-md"
-    >
-      <div className="mb-4 flex items-center justify-between gap-3 text-sm">
-        <span className="font-medium" style={{ color: 'var(--brand-primary)' }}>
-          {formatSport(contest.sportId)}
-        </span>
-        <span className="rounded-full bg-gray-100 px-2 py-1">{contest.status}</span>
-      </div>
-      <h3 className="text-lg font-bold text-gray-900">{contest.name || contest.contestShape}</h3>
-      <div className="mt-4 flex items-start gap-2 text-sm text-gray-500">
-        <Calendar className="mt-0.5 h-4 w-4 shrink-0" />
-        {contest.startTime ? new Date(contest.startTime).toLocaleString() : 'Time to be confirmed'}
-      </div>
-      {contest.venue && <p className="mt-2 text-sm text-gray-500">{contest.venue}</p>}
-    </Link>
-  );
+function ContestSkeleton() {
+  return <div className="contest-grid mt-6" role="status" aria-label="Loading contests">{[0, 1, 2].map(item => <div key={item} className="surface h-52 animate-pulse rounded-2xl bg-[var(--color-surface-muted)]" />)}</div>;
 }
 
-function EmptyState({ message }: { message: string }) {
-  return (
-    <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-8 text-center text-gray-500">
-      {message}
-    </div>
-  );
+function StatePanel({ icon, title, detail, action }: { icon: React.ReactNode; title: string; detail: string; action?: React.ReactNode }) {
+  return <div className="surface mt-6 rounded-2xl px-6 py-14 text-center"><div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--color-surface-muted)] text-[var(--brand-primary)]">{icon}</div><h2 className="text-lg font-bold">{title}</h2><p className="mx-auto mt-1 max-w-md text-sm muted">{detail}</p>{action && <div className="mt-5">{action}</div>}</div>;
 }
 
-function validHex(value?: string | null) {
-  return value && /^#[0-9a-fA-F]{6}$/.test(value) ? value : null;
+function slugify(value: string) {
+  return value.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-').replaceAll(/(^-|-$)/g, '');
+}
+
+function browserQuery(name: string) {
+  return typeof window === 'undefined'
+    ? null
+    : new URLSearchParams(window.location.search).get(name);
+}
+
+function initialDate() {
+  const requested = browserQuery('date');
+  return requested && /^\d{4}-\d{2}-\d{2}$/.test(requested)
+    ? requested
+    : localDateKey(new Date());
+}
+
+function initialContestFilter(fallback: ContestFilter): ContestFilter {
+  const requested = browserQuery('filter');
+  return requested && ['all', 'live', 'upcoming', 'finished', 'favourites'].includes(requested)
+    ? requested as ContestFilter
+    : fallback;
+}
+
+function loadFavourites() {
+  if (typeof window === 'undefined') return new Set<string>();
+  try {
+    const values = JSON.parse(localStorage.getItem(FAVOURITES_KEY) ?? '[]') as string[];
+    return new Set(values.map(value => value.includes(':') ? value : `contest:${value}`));
+  } catch {
+    return new Set<string>();
+  }
 }
