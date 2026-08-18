@@ -42,7 +42,7 @@ public sealed class ContestStateV2Controller : ControllerBase
             .Select(item => item.Status)
             .ToArrayAsync(cancellationToken);
 
-        var activeSession = await _database.ScoringSessions
+        var activeSession = await _database.LiveScoreSessions
             .AsNoTracking()
             .Where(item => item.ContestId == id)
             .OrderByDescending(item => item.CreatedAt)
