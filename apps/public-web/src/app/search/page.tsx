@@ -1,13 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { Calendar, ChevronLeft, ChevronRight, MapPin, Search, Trophy, UserRound, Users } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, MapPin, Medal, Search, Trophy, UserRound, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { formatSport, publicApi, resolveTenantSlug, TENANT_SLUG, tenantPath } from '@/lib/public-api';
 
 type SearchItem = {
   id: string;
-  type: 'Competition' | 'Team' | 'Athlete' | 'Contest' | 'Venue';
+  type: 'Competition' | 'Team' | 'Athlete' | 'Contest' | 'Venue' | 'Sport';
   title: string;
   subtitle?: string | null;
   sportId?: string | null;
@@ -81,7 +81,7 @@ export default function SearchPage() {
   return <div className="container mx-auto max-w-6xl px-4 py-10">
     <p className="text-sm font-semibold uppercase tracking-wider text-primary">Public directory</p>
     <h1 className="mt-2 text-3xl font-bold">Search</h1>
-    <p className="mt-2 text-gray-600">Find competitions, teams, athletes, contests, and venues published by this tenant.</p>
+    <p className="mt-2 text-gray-600">Find sports, competitions, teams, athletes, contests, and venues published by this tenant.</p>
 
     <section aria-label="Search filters" className="mt-8 rounded-2xl border bg-gray-50 p-4">
       <label className="relative block">
@@ -90,7 +90,7 @@ export default function SearchPage() {
         <input value={filters.q} onChange={event => update('q', event.target.value)} placeholder="Search names, contests, or venues" className="w-full rounded-xl border bg-white py-3 pl-11 pr-4 text-base" />
       </label>
       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <Select label="Result type" value={filters.type} onChange={value => update('type', value)} options={[['all', 'All result types'], ['competition', 'Competitions'], ['team', 'Teams'], ['athlete', 'Athletes'], ['contest', 'Contests'], ['venue', 'Venues']]} />
+        <Select label="Result type" value={filters.type} onChange={value => update('type', value)} options={[['all', 'All result types'], ['sport', 'Sports'], ['competition', 'Competitions'], ['team', 'Teams'], ['athlete', 'Athletes'], ['contest', 'Contests'], ['venue', 'Venues']]} />
         <Select label="Sport" value={filters.sportId} onChange={value => update('sportId', value)} options={[['', 'All sports'], ...(response?.filters.sports.map(item => [item.id, item.name] as [string, string]) ?? [])]} />
         <Select label="Status" value={filters.status} onChange={value => update('status', value)} options={[['', 'All statuses'], ...(response?.filters.statuses.map(value => [value, splitLabel(value)] as [string, string]) ?? [])]} />
         <Select label="Competition" value={filters.competitionId} onChange={value => update('competitionId', value)} options={[['', 'All competitions'], ...(response?.filters.competitions.map(item => [item.id, item.name] as [string, string]) ?? [])]} />
@@ -122,6 +122,7 @@ function TypeIcon({ type }: { type: SearchItem['type'] }) {
   if (type === 'Team') return <Users className="h-5 w-5" />;
   if (type === 'Athlete') return <UserRound className="h-5 w-5" />;
   if (type === 'Venue') return <MapPin className="h-5 w-5" />;
+  if (type === 'Sport') return <Medal className="h-5 w-5" />;
   return <Calendar className="h-5 w-5" />;
 }
 

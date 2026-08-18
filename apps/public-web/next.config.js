@@ -1,9 +1,18 @@
+const browserApiUrl = process.env.NEXT_PUBLIC_API_URL || '';
+const apiProxyTarget = process.env.API_PROXY_TARGET || 'http://localhost:8080';
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080',
+    NEXT_PUBLIC_API_URL: browserApiUrl,
+  },
+  async rewrites() {
+    return [
+      { source: '/api/:path*', destination: `${apiProxyTarget}/api/:path*` },
+      { source: '/hubs/:path*', destination: `${apiProxyTarget}/hubs/:path*` },
+    ];
   },
   async headers() {
     return securityHeaders();
@@ -11,8 +20,9 @@ const nextConfig = {
 };
 
 function securityHeaders() {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-  const websocketUrl = process.env.NEXT_PUBLIC_WS_URL || apiUrl.replace(/^http/, 'ws');
+  const externalConnections = browserApiUrl
+    ? ` ${browserApiUrl} ${process.env.NEXT_PUBLIC_WS_URL || browserApiUrl.replace(/^http/, 'ws')}`
+    : '';
   return [{
     source: '/(.*)',
     headers: [
@@ -28,7 +38,7 @@ function securityHeaders() {
           "font-src 'self' data:",
           "style-src 'self' 'unsafe-inline'",
           "script-src 'self' 'unsafe-inline'",
-          `connect-src 'self' ${apiUrl} ${websocketUrl}`,
+          `connect-src 'self'${externalConnections}`,
         ].join('; '),
       },
       { key: 'X-Frame-Options', value: 'DENY' },

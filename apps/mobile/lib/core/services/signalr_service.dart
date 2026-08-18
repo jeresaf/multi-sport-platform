@@ -109,6 +109,8 @@ class SignalRService {
       StreamController<ScoreUpdate>.broadcast();
   final StreamController<ContestEvent> _contestEventController =
       StreamController<ContestEvent>.broadcast();
+  final StreamController<ContestLivePatch> _livePatchController =
+      StreamController<ContestLivePatch>.broadcast();
   final StreamController<SignalRConnectionStatus> _statusController =
       StreamController<SignalRConnectionStatus>.broadcast();
 
@@ -127,6 +129,7 @@ class SignalRService {
   Stream<ContestUpdate> get contestUpdates => _contestUpdateController.stream;
   Stream<ScoreUpdate> get scoreUpdates => _scoreUpdateController.stream;
   Stream<ContestEvent> get contestEvents => _contestEventController.stream;
+  Stream<ContestLivePatch> get livePatches => _livePatchController.stream;
   Stream<SignalRConnectionStatus> get connectionStatuses =>
       _statusController.stream;
 
@@ -186,12 +189,21 @@ class SignalRService {
     );
     connection.on('ContestSnapshot', _handleContestSnapshot);
     connection.on('LiveScoreUpdated', _handleLiveScoreUpdated);
+    connection.on('ContestLiveUpdated', _handleContestLiveUpdated);
     connection.on('ContestStatusChanged', _handleContestStatusChanged);
     connection.on('ContestResultFinalized', _handleContestChanged);
     connection.on('SegmentStarted', _handleContestChanged);
     connection.on('SegmentEnded', _handleContestChanged);
     connection.on('ParticipantStatusChanged', _handleContestChanged);
     connection.on('EventRecorded', _handleContestEvent);
+    for (final eventName in const [
+      'contest.timeline.event.created',
+      'contest.timeline.event.updated',
+      'contest.timeline.event.corrected',
+      'contest.timeline.event.reversed',
+    ]) {
+      connection.on(eventName, _handleCanonicalTimelineEvent);
+    }
     connection.onReconnecting((_) {
       if (!_manuallyStopped) {
         _setStatus(SignalRConnectionStatus.reconnecting);
@@ -294,6 +306,13 @@ class SignalRService {
     final payload = _payload(arguments);
     if (payload == null) return;
     _contestUpdateController.add(ContestUpdate.fromJson(payload));
+    _livePatchController.add(ContestLivePatch.fromJson({
+      ...payload,
+      'version': DateTime.tryParse(payload['lastUpdated']?.toString() ?? '')
+              ?.millisecondsSinceEpoch ??
+          DateTime.now().millisecondsSinceEpoch,
+      'participants': payload['participantScores'],
+    }));
     final scores = payload['recentScores'];
     if (scores is List) {
       for (final score in scores.whereType<Map>()) {
@@ -301,6 +320,13 @@ class SignalRService {
           ScoreUpdate.fromJson(Map<String, dynamic>.from(score)),
         );
       }
+    }
+  }
+
+  void _handleContestLiveUpdated(List<Object?>? arguments) {
+    final payload = _payload(arguments);
+    if (payload != null) {
+      _livePatchController.add(ContestLivePatch.fromJson(payload));
     }
   }
 
@@ -353,6 +379,14 @@ class SignalRService {
     }
   }
 
+  void _handleCanonicalTimelineEvent(List<Object?>? arguments) {
+    final payload = _payload(arguments);
+    if (payload == null || payload['event'] is! Map) return;
+    final event = Map<String, dynamic>.from(payload['event'] as Map);
+    event['contestId'] = payload['contestId'];
+    _contestEventController.add(ContestEvent.fromJson(event));
+  }
+
   Map<String, dynamic>? _payload(List<Object?>? arguments) {
     if (arguments == null || arguments.isEmpty || arguments.first is! Map) {
       return null;
@@ -385,8 +419,57 @@ class SignalRService {
     _contestUpdateController.close();
     _scoreUpdateController.close();
     _contestEventController.close();
+    _livePatchController.close();
     _statusController.close();
   }
+}
+
+class ContestLiveParticipantPatch {
+  final String participantId;
+  final String? score;
+  final String? scoreDisplay;
+
+  const ContestLiveParticipantPatch(
+      {required this.participantId, this.score, this.scoreDisplay});
+
+  factory ContestLiveParticipantPatch.fromJson(Map<String, dynamic> json) =>
+      ContestLiveParticipantPatch(
+        participantId: json['participantId']?.toString() ?? '',
+        score: json['score']?.toString(),
+        scoreDisplay: json['scoreDisplay']?.toString(),
+      );
+}
+
+class ContestLivePatch {
+  final String contestId;
+  final int version;
+  final String? status;
+  final String? summary;
+  final List<ContestLiveParticipantPatch> participants;
+
+  const ContestLivePatch(
+      {required this.contestId,
+      required this.version,
+      this.status,
+      this.summary,
+      this.participants = const []});
+
+  factory ContestLivePatch.fromJson(Map<String, dynamic> json) =>
+      ContestLivePatch(
+        contestId: json['contestId']?.toString() ?? '',
+        version: json['version'] is num
+            ? (json['version'] as num).toInt()
+            : int.tryParse(json['version']?.toString() ?? '') ?? 0,
+        status: json['contestStatus']?.toString() ?? json['status']?.toString(),
+        summary: json['summary']?.toString(),
+        participants: json['participants'] is List
+            ? (json['participants'] as List)
+                .whereType<Map>()
+                .map((item) => ContestLiveParticipantPatch.fromJson(
+                    Map<String, dynamic>.from(item)))
+                .toList()
+            : const [],
+      );
 }
 
 class ContestUpdate {
@@ -404,7 +487,9 @@ class ContestUpdate {
 
   factory ContestUpdate.fromJson(Map<String, dynamic> json) => ContestUpdate(
         contestId: json['contestId']?.toString() ?? '',
-        status: json['status']?.toString() ?? '',
+        status: json['contestStatus']?.toString() ??
+            json['status']?.toString() ??
+            '',
         timestamp: _dateTime(json['timestamp'] ?? json['lastUpdated']),
         data: json,
       );
@@ -456,15 +541,39 @@ class ContestEvent {
   });
 
   factory ContestEvent.fromJson(Map<String, dynamic> json) => ContestEvent(
-        eventId: json['eventId']?.toString() ?? '',
+        eventId: json['id']?.toString() ?? json['eventId']?.toString() ?? '',
         contestId: json['contestId']?.toString() ?? '',
-        eventType: json['eventType']?.toString() ?? '',
-        participantId: json['participantId']?.toString(),
+        eventType: json['type']?.toString() ?? json['eventType']?.toString() ?? '',
+        participantId: json['primaryParticipantId']?.toString() ??
+            json['participantId']?.toString(),
         secondaryParticipantId: json['secondaryParticipantId']?.toString(),
-        metrics: json['metrics'] is Map
-            ? Map<String, dynamic>.from(json['metrics'] as Map)
-            : null,
-        timestamp: _dateTime(json['timestamp'] ?? json['scoredAt']),
+        metrics: {
+          if (json['metrics'] is Map)
+            ...Map<String, dynamic>.from(json['metrics'] as Map),
+          if (json.containsKey('category')) 'category': json['category'],
+          if (json.containsKey('status')) 'status': json['status'],
+          if (json.containsKey('importance')) 'importance': json['importance'],
+          if (json.containsKey('clock')) 'clock': json['clock'],
+          if (json.containsKey('value')) 'value': json['value'],
+          if (json.containsKey('sportCode')) 'sportCode': json['sportCode'],
+          if (json.containsKey('primaryParticipantName'))
+            'primaryParticipantName': json['primaryParticipantName'],
+          if (json.containsKey('secondaryParticipantName'))
+            'secondaryParticipantName': json['secondaryParticipantName'],
+          if (json.containsKey('primaryPlayerName'))
+            'primaryPlayerName': json['primaryPlayerName'],
+          if (json.containsKey('secondaryPlayerName'))
+            'secondaryPlayerName': json['secondaryPlayerName'],
+          if (json.containsKey('homeScoreAfter'))
+            'homeScoreAfter': json['homeScoreAfter'],
+          if (json.containsKey('awayScoreAfter'))
+            'awayScoreAfter': json['awayScoreAfter'],
+          if (json.containsKey('shootoutHomeScoreAfter'))
+            'shootoutHomeScoreAfter': json['shootoutHomeScoreAfter'],
+          if (json.containsKey('shootoutAwayScoreAfter'))
+            'shootoutAwayScoreAfter': json['shootoutAwayScoreAfter'],
+        },
+        timestamp: _dateTime(json['occurredAt'] ?? json['timestamp'] ?? json['scoredAt']),
         clientId: json['clientId']?.toString(),
       );
 }

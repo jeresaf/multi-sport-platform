@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'ui_tokens.dart';
 
 /// Application theme configuration
 class AppTheme {
@@ -36,6 +37,13 @@ class AppTheme {
     'boxing': Color(0xFFDC2626),
     'athletics': Color(0xFF3B82F6),
     'cricket': Color(0xFF8B5CF6),
+    'rugby': Color(0xFF0F766E),
+    'rugby7': Color(0xFF0D9488),
+    'rugby15': Color(0xFF115E59),
+    'volleyball': Color(0xFFEA580C),
+    'netball': Color(0xFFDB2777),
+    'hockey': Color(0xFF0891B2),
+    'tennis': Color(0xFF65A30D),
   };
 
   /// Light theme
@@ -57,7 +65,7 @@ class AppTheme {
         color: cardColor,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(UiTokens.radiusLarge),
           side: const BorderSide(color: dividerColor),
         ),
       ),
@@ -161,7 +169,8 @@ class AppTheme {
       chipTheme: ChipThemeData(
         backgroundColor: backgroundColor,
         selectedColor: primaryColor.withValues(alpha: 0.1),
-        labelStyle: const TextStyle(fontSize: 14),
+        labelStyle: const TextStyle(fontSize: 14, color: textPrimary),
+        secondaryLabelStyle: const TextStyle(fontSize: 14, color: primaryColor),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
@@ -217,6 +226,11 @@ class AppTheme {
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(foregroundColor: brandPrimary),
+      ),
+      chipTheme: base.chipTheme.copyWith(
+        selectedColor: brandPrimary.withValues(alpha: 0.1),
+        secondaryLabelStyle:
+            base.chipTheme.secondaryLabelStyle?.copyWith(color: brandPrimary),
       ),
       progressIndicatorTheme: ProgressIndicatorThemeData(color: brandPrimary),
     );

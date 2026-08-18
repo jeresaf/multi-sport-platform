@@ -106,7 +106,9 @@ public sealed record LiveEventSubmission(
     string DeviceId,
     int? SequenceNumber,
     string IdempotencyKey,
-    Guid? RulesetVersionId);
+    Guid? RulesetVersionId,
+    Guid? PrimaryPlayerId = null,
+    Guid? SecondaryPlayerId = null);
 
 public enum LiveScoringFailureKind { None, InvalidSequence, Validation }
 

@@ -33,19 +33,38 @@ class Participant {
   });
 
   factory Participant.fromJson(Map<String, dynamic> json) {
+    final profile = json['profile'] is Map
+        ? Map<String, dynamic>.from(json['profile'] as Map)
+        : const <String, dynamic>{};
+    final statistics = json['statistics'] is Map
+        ? Map<String, dynamic>.from(json['statistics'] as Map)
+        : const <String, dynamic>{};
     return Participant(
       id: json['id']?.toString() ?? '',
       name: json['name'] ?? '',
-      type: json['participantType']?.toString().toLowerCase() ?? 'athlete',
-      sportCode: json['sportCode'],
-      avatarUrl: json['logoUrl'] ?? json['avatarUrl'],
-      country: json['country'],
-      homeVenue: json['homeVenue'],
+      type: profile['kind']?.toString().toLowerCase() ??
+          json['type']?.toString().toLowerCase() ??
+          json['participantType']?.toString().toLowerCase() ??
+          'athlete',
+      sportCode: json['sportCode']?.toString() ??
+          (profile['sports'] is List && (profile['sports'] as List).isNotEmpty
+              ? ((profile['sports'] as List).first as Map)['name']?.toString()
+              : null),
+      avatarUrl: profile['photoUrl']?.toString() ??
+          json['logo']?.toString() ??
+          json['logoUrl']?.toString() ??
+          json['avatarUrl']?.toString(),
+      country:
+          profile['nationality']?.toString() ?? json['country']?.toString(),
+      homeVenue:
+          profile['homeVenue']?.toString() ?? json['homeVenue']?.toString(),
       metadata: json['metadata'],
-      matchesPlayed: json['matchesPlayed'] ?? 0,
-      wins: json['wins'] ?? 0,
-      losses: json['losses'] ?? 0,
-      draws: json['draws'] ?? 0,
+      matchesPlayed: statistics['resultCount'] as int? ??
+          json['matchesPlayed'] as int? ??
+          0,
+      wins: statistics['wins'] as int? ?? json['wins'] as int? ?? 0,
+      losses: json['losses'] as int? ?? 0,
+      draws: json['draws'] as int? ?? 0,
     );
   }
 
@@ -104,9 +123,10 @@ class ParticipantState {
 
 /// Participant notifier
 class ParticipantNotifier extends StateNotifier<ParticipantState> {
+  final ParticipantRemoteDataSource _remote;
   final String participantId;
 
-  ParticipantNotifier(ApiClient apiClient, this.participantId)
+  ParticipantNotifier(this._remote, this.participantId)
       : super(const ParticipantState()) {
     loadParticipant();
   }
@@ -115,27 +135,27 @@ class ParticipantNotifier extends StateNotifier<ParticipantState> {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
-      // In a real app, this would call the API
-      // For now, simulate loading
-      await Future.delayed(const Duration(milliseconds: 500));
-
-      // Mock participant data
-      final participant = Participant(
-        id: participantId,
-        name: 'Team ${participantId.substring(0, 8)}',
-        type: 'team',
-        sportCode: 'football',
-        matchesPlayed: 10,
-        wins: 7,
-        losses: 2,
-        draws: 1,
-      );
+      final data = await _remote.getParticipant(participantId);
+      if (data == null) throw StateError('Participant is unavailable');
+      final participant = Participant.fromJson(data);
 
       state = ParticipantState(
         participant: participant,
-        upcomingMatches: const [],
-        recentResults: const [],
-        statistics: const {},
+        upcomingMatches: data['upcomingContests'] is List
+            ? (data['upcomingContests'] as List)
+                .whereType<Map>()
+                .map((item) => Map<String, dynamic>.from(item))
+                .toList()
+            : const [],
+        recentResults: data['results'] is List
+            ? (data['results'] as List)
+                .whereType<Map>()
+                .map((item) => Map<String, dynamic>.from(item))
+                .toList()
+            : const [],
+        statistics: data['statistics'] is Map
+            ? Map<String, dynamic>.from(data['statistics'] as Map)
+            : const {},
         isLoading: false,
       );
     } catch (e) {
@@ -167,8 +187,8 @@ final participantRemoteDataSourceProvider =
 final participantDetailProvider =
     StateNotifierProvider.family<ParticipantNotifier, ParticipantState, String>(
   (ref, participantId) {
-    final apiClient = ref.watch(participantApiClientProvider);
-    return ParticipantNotifier(apiClient, participantId);
+    return ParticipantNotifier(
+        ref.watch(participantRemoteDataSourceProvider), participantId);
   },
 );
 

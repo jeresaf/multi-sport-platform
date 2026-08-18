@@ -33,6 +33,13 @@ class SupporterRemoteDataSource {
       ))
           .data);
 
+  Future<Map<String, dynamic>> getFightCard(String competitionId) async =>
+      _map((await _apiClient.get(
+        '$_root/combat/card',
+        queryParameters: {'competitionId': competitionId},
+      ))
+          .data);
+
   List<Map<String, dynamic>> _list(dynamic value) => value is List
       ? value
           .whereType<Map>()

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-import '../../domain/supporter_models.dart';
+import '../../../competitions/presentation/widgets/competition_output_renderer.dart';
 import '../providers/supporter_provider.dart';
 
 class GolfLeaderboardScreen extends ConsumerWidget {
@@ -75,43 +75,12 @@ class GolfLeaderboardScreen extends ConsumerWidget {
                   child: Center(child: Text('No leaderboard entries yet')),
                 )
               else
-                Card(
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: DataTable(
-                      columns: const [
-                        DataColumn(label: Text('#')),
-                        DataColumn(label: Text('Golfer')),
-                        DataColumn(label: Text('R1'), numeric: true),
-                        DataColumn(label: Text('R2'), numeric: true),
-                        DataColumn(label: Text('R3'), numeric: true),
-                        DataColumn(label: Text('R4'), numeric: true),
-                        DataColumn(label: Text('Total'), numeric: true),
-                        DataColumn(label: Text('To par'), numeric: true),
-                        DataColumn(label: Text('Status')),
-                      ],
-                      rows: data.entries.map(_row).toList(),
-                    ),
-                  ),
-                ),
+                LeaderboardTable(leaderboard: data),
             ],
           ),
         ),
       ),
     );
-  }
-
-  DataRow _row(GolfLeaderboardEntry entry) {
-    final rounds = [...entry.roundScores, 0, 0, 0, 0];
-    return DataRow(cells: [
-      DataCell(Text('${entry.isTied ? 'T' : ''}${entry.position}')),
-      DataCell(Text(entry.name)),
-      for (var index = 0; index < 4; index++)
-        DataCell(Text(rounds[index] == 0 ? '—' : '${rounds[index]}')),
-      DataCell(Text(entry.totalStrokes == 0 ? '—' : '${entry.totalStrokes}')),
-      DataCell(Text(entry.roundsPlayed == 0 ? '—' : entry.toParDisplay)),
-      DataCell(Text(entry.status)),
-    ]);
   }
 }
 

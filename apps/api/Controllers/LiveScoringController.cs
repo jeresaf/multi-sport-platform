@@ -175,7 +175,8 @@ public class LiveScoringController : ControllerBase
             if (existing is not null)
                 return Ok(new
                 {
-                    EventId = existing.Id,
+                    EventId = existing.EventId,
+                    InternalEventId = existing.Id,
                     Event = existing,
                     IsReplay = true,
                     Message = "Score event was already submitted."
@@ -202,7 +203,7 @@ public class LiveScoringController : ControllerBase
                 HttpContext.RequestAborted);
             if (ruleset.Error is not null)
                 return BadRequest(new { Message = ruleset.Error });
-            var validationError = ruleset.Definition?.RequiredMetric is null
+            var validationError = ruleset.Definition is null
                 ? ValidateEvent(schema, effectiveRequest, contest)
                 : ValidateConfiguredEvent(ruleset.Definition, effectiveRequest, contest);
             if (validationError is not null)
@@ -210,7 +211,10 @@ public class LiveScoringController : ControllerBase
                 return BadRequest(new { Message = validationError });
             }
             var secondaryParticipantError = await ValidateSecondaryParticipantAsync(
-                contest!, effectiveRequest.ParticipantId, effectiveRequest.SecondaryParticipantId);
+                contest!, effectiveRequest.ParticipantId,
+                effectiveRequest.SecondaryParticipantId,
+                effectiveRequest.PrimaryPlayerId,
+                effectiveRequest.SecondaryPlayerId);
             if (secondaryParticipantError is not null)
                 return BadRequest(new { Message = secondaryParticipantError });
             if (request.DeviceTimestamp.HasValue
@@ -233,7 +237,9 @@ public class LiveScoringController : ControllerBase
                     deviceId,
                     effectiveRequest.SequenceNumber,
                     idempotencyKey,
-                    contest.RulesetVersionId));
+                    contest.RulesetVersionId,
+                    effectiveRequest.PrimaryPlayerId,
+                    effectiveRequest.SecondaryPlayerId));
 
             if (!result.Success)
             {
@@ -280,7 +286,8 @@ public class LiveScoringController : ControllerBase
 
             return Ok(new
             {
-                EventId = result.Event.Id,
+                EventId = result.Event.EventId,
+                InternalEventId = result.Event.Id,
                 Event = result.Event,
                 result.IsReplay,
                 result.Message
@@ -333,7 +340,9 @@ public class LiveScoringController : ControllerBase
                     existing.ClockSeconds,
                     existing.EventType,
                     existing.SecondaryParticipantId,
-                    existing.DeviceTimestamp);
+                    existing.DeviceTimestamp,
+                    PrimaryPlayerId: existing.PrimaryPlayerId,
+                    SecondaryPlayerId: existing.SecondaryPlayerId);
             var validationError = contest is null
                 ? "The contest was not found."
                 : await ValidateEventAgainstRulesetAsync(
@@ -440,7 +449,9 @@ public class LiveScoringController : ControllerBase
                     request.ClockSeconds ?? existing.ClockSeconds,
                     request.EventType ?? existing.EventType,
                     request.SecondaryParticipantId ?? existing.SecondaryParticipantId,
-                    existing.DeviceTimestamp);
+                    existing.DeviceTimestamp,
+                    PrimaryPlayerId: existing.PrimaryPlayerId,
+                    SecondaryPlayerId: existing.SecondaryPlayerId);
         var validationError = kind == LiveScoreCorrectionKind.Reverse
             ? null
             : await ValidateEventAgainstRulesetAsync(
@@ -1299,7 +1310,18 @@ public class LiveScoringController : ControllerBase
         SubmitEventRequest request,
         Contest contest)
     {
-        if (!contest.Participants.Any(item => item.ParticipantId == request.ParticipantId))
+        if (definition.Code.Equals("SUBSTITUTION", StringComparison.OrdinalIgnoreCase)
+            && (!request.PrimaryPlayerId.HasValue || !request.SecondaryPlayerId.HasValue))
+            return "A substitution requires both the player leaving and the player entering.";
+        if (definition.Code.Equals("SUBSTITUTION", StringComparison.OrdinalIgnoreCase)
+            && request.PrimaryPlayerId == request.SecondaryPlayerId)
+            return "The player leaving and the player entering must be different.";
+        if (definition.RequiresParticipant
+            && !contest.Participants.Any(item => item.ParticipantId == request.ParticipantId))
+            return "The participant does not belong to this contest.";
+        if (!definition.RequiresParticipant
+            && request.ParticipantId != Guid.Empty
+            && !contest.Participants.Any(item => item.ParticipantId == request.ParticipantId))
             return "The participant does not belong to this contest.";
         var segment = request.SegmentId.HasValue
             ? FlattenSegments(contest).Select(item => item.Segment)
@@ -1446,24 +1468,35 @@ public class LiveScoringController : ControllerBase
     private async Task<string?> ValidateSecondaryParticipantAsync(
         Contest contest,
         Guid primaryParticipantId,
-        Guid? secondaryParticipantId)
+        Guid? secondaryParticipantId,
+        Guid? primaryPlayerId,
+        Guid? secondaryPlayerId)
     {
-        if (!secondaryParticipantId.HasValue) return null;
-        if (contest.Participants.Any(item => item.ParticipantId == secondaryParticipantId.Value))
-            return null;
+        var playerIds = new[] { secondaryParticipantId, primaryPlayerId, secondaryPlayerId }
+            .Where(item => item.HasValue)
+            .Select(item => item!.Value)
+            .Distinct()
+            .ToArray();
+        if (playerIds.Length == 0) return null;
+        if (primaryPlayerId.HasValue && primaryPlayerId == secondaryPlayerId)
+            return "Primary and secondary players must be different.";
+        var participantIds = contest.Participants.Select(item => item.ParticipantId).ToHashSet();
+        var rosterPlayerIds = playerIds.Where(id => !participantIds.Contains(id)).ToArray();
+        if (rosterPlayerIds.Length == 0) return null;
 
-        var belongsToActiveRoster = await _database.Set<TeamRoster>()
+        var activeRosterPlayers = await _database.Set<TeamRoster>()
             .AsNoTracking()
             .Where(roster => roster.TenantId == contest.TenantId
                 && roster.TeamId == primaryParticipantId
                 && roster.IsActive)
             .SelectMany(roster => roster.Entries)
-            .AnyAsync(entry => entry.IsActive
-                && entry.AthleteId == secondaryParticipantId.Value,
-                HttpContext.RequestAborted);
-        return belongsToActiveRoster
+            .Where(entry => entry.IsActive && rosterPlayerIds.Contains(entry.AthleteId))
+            .Select(entry => entry.AthleteId)
+            .Distinct()
+            .ToArrayAsync(HttpContext.RequestAborted);
+        return rosterPlayerIds.All(activeRosterPlayers.Contains)
             ? null
-            : "The selected player does not belong to an active roster for this team.";
+            : "Every selected player must belong to an active roster for this team.";
     }
 
     private static IEnumerable<(
@@ -1559,7 +1592,7 @@ public class LiveScoringController : ControllerBase
             ? null
             : ruleset.Definitions.FirstOrDefault(item =>
                 item.Code.Equals(request.EventType, StringComparison.OrdinalIgnoreCase));
-        return definition?.RequiredMetric is not null
+        return definition is not null
             ? ValidateConfiguredEvent(definition, request, contest)
             : ValidateEvent(SchemaFor(contest), request, contest);
     }
@@ -1581,7 +1614,9 @@ public record SubmitEventRequest(
     DateTime? DeviceTimestamp = null,
     string? DeviceId = null,
     int? SequenceNumber = null,
-    string? IdempotencyKey = null);
+    string? IdempotencyKey = null,
+    Guid? PrimaryPlayerId = null,
+    Guid? SecondaryPlayerId = null);
 
 /// <summary>
 /// Request for updating an event.

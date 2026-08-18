@@ -15,6 +15,7 @@ class Competition {
   final int participantCount;
   final int contestCount;
   final List<String> availableTabs;
+  final List<CompetitionMedal> medals;
 
   const Competition({
     required this.id,
@@ -30,6 +31,7 @@ class Competition {
     this.participantCount = 0,
     this.contestCount = 0,
     this.availableTabs = const ['overview'],
+    this.medals = const [],
   });
 
   factory Competition.fromJson(Map<String, dynamic> json) {
@@ -40,28 +42,36 @@ class Competition {
       sportCode:
           json['sportCode']?.toString() ?? _sportCodes[sportId] ?? 'sport',
       status: json['status']?.toString() ?? 'Draft',
-      format: json['format'],
-      tenantId: json['tenantId'],
-      description: json['description'],
-      venue: json['venue'],
+      format: json['format']?.toString(),
+      tenantId: json['tenantId']?.toString(),
+      description: json['description']?.toString(),
+      venue: json['venue']?.toString(),
       startDate: json['startDate'] != null
           ? DateTime.tryParse(json['startDate'])
           : null,
       endDate:
           json['endDate'] != null ? DateTime.tryParse(json['endDate']) : null,
-      participantCount: json['participantCount'] ??
+      participantCount: _integer(json['participantCount']) ??
           (json['participants'] is List
               ? (json['participants'] as List).length
               : 0),
-      contestCount: json['contestCount'] ??
+      contestCount: _integer(json['contestCount']) ??
           (json['statistics'] is Map
-              ? (json['statistics'] as Map)['contestCount'] ?? 0
+              ? _integer((json['statistics'] as Map)['contestCount']) ?? 0
               : 0),
       availableTabs: json['availableTabs'] is List
           ? (json['availableTabs'] as List)
               .map((item) => item.toString().toLowerCase())
               .toList()
           : const ['overview'],
+      medals: json['medals'] is List
+          ? (json['medals'] as List)
+              .whereType<Map>()
+              .map((item) => CompetitionMedal.fromJson(
+                    Map<String, dynamic>.from(item),
+                  ))
+              .toList()
+          : const [],
     );
   }
 
@@ -79,6 +89,47 @@ class Competition {
         'participantCount': participantCount,
         'contestCount': contestCount,
         'availableTabs': availableTabs,
+        'medals': medals.map((item) => item.toJson()).toList(),
+      };
+}
+
+int? _integer(dynamic value) =>
+    value is num ? value.toInt() : int.tryParse(value?.toString() ?? '');
+
+class CompetitionMedal {
+  final String participantId;
+  final String participantName;
+  final int gold;
+  final int silver;
+  final int bronze;
+  final int total;
+
+  const CompetitionMedal({
+    required this.participantId,
+    required this.participantName,
+    required this.gold,
+    required this.silver,
+    required this.bronze,
+    required this.total,
+  });
+
+  factory CompetitionMedal.fromJson(Map<String, dynamic> json) =>
+      CompetitionMedal(
+        participantId: json['participantId']?.toString() ?? '',
+        participantName: json['participantName']?.toString() ?? 'Participant',
+        gold: json['gold'] as int? ?? 0,
+        silver: json['silver'] as int? ?? 0,
+        bronze: json['bronze'] as int? ?? 0,
+        total: json['total'] as int? ?? 0,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'participantId': participantId,
+        'participantName': participantName,
+        'gold': gold,
+        'silver': silver,
+        'bronze': bronze,
+        'total': total,
       };
 }
 

@@ -107,4 +107,34 @@ public sealed class FirebasePushDeliveryClient : IPushDeliveryClient
             }
         }
     }
+
+    public async Task<bool> SetTopicSubscriptionAsync(
+        string token,
+        string topic,
+        bool enabled,
+        CancellationToken cancellationToken = default)
+    {
+        if (_messaging is null) return false;
+
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var tokens = new[] { token };
+            var response = enabled
+                ? await _messaging.SubscribeToTopicAsync(tokens, topic)
+                : await _messaging.UnsubscribeFromTopicAsync(tokens, topic);
+            if (response.SuccessCount == 1) return true;
+
+            _logger.LogWarning(
+                "Firebase topic synchronization failed for topic {Topic}: {FailureCount} failure(s).",
+                topic, response.FailureCount);
+            return false;
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception,
+                "Firebase topic synchronization failed for topic {Topic}.", topic);
+            return false;
+        }
+    }
 }

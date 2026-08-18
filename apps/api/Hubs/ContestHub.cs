@@ -302,9 +302,19 @@ public class ContestHub : Hub
                     || item.Status == SessionStatus.Paused))
             .OrderByDescending(item => item.CreatedAt)
             .FirstOrDefaultAsync();
+        var participantScores = await _database.LiveScores.AsNoTracking()
+            .Where(item => item.ContestId == contestId
+                && item.MetricName == "score")
+            .GroupBy(item => item.ParticipantId)
+            .Select(group => new ContestLiveParticipantDto(
+                group.Key,
+                group.Sum(item => item.Value).ToString(),
+                null))
+            .ToListAsync();
         return new ContestSnapshotDto(
             contest.Id,
             contest.Status.ToString(),
+            contest.CanonicalStatus.ToCode(),
             scores.LastOrDefault()?.ScoredAt ?? contest.UpdatedAt ?? contest.CreatedAt,
             scores,
             contest.Participants.Select(item => new ParticipantStatusChangeDto(
@@ -313,7 +323,8 @@ public class ContestHub : Hub
                 item.Status.ToString(),
                 null,
                 contest.UpdatedAt ?? contest.CreatedAt)).ToList(),
-            session?.ActiveSegmentId);
+            session?.ActiveSegmentId,
+            participantScores);
     }
 }
 
@@ -327,19 +338,22 @@ public class ContestHubNotifier
     private readonly IContestsService _contestsService;
     private readonly SportsPlatformDbContext _database;
     private readonly IPushDeliveryClient _pushDelivery;
+    private readonly ContestTimelineService _timeline;
 
     public ContestHubNotifier(
         IHubContext<ContestHub> hubContext,
         ILogger<ContestHubNotifier> logger,
         IContestsService contestsService,
         SportsPlatformDbContext database,
-        IPushDeliveryClient pushDelivery)
+        IPushDeliveryClient pushDelivery,
+        ContestTimelineService timeline)
     {
         _hubContext = hubContext;
         _logger = logger;
         _contestsService = contestsService;
         _database = database;
         _pushDelivery = pushDelivery;
+        _timeline = timeline;
     }
 
     /// <summary>
@@ -358,6 +372,8 @@ public class ContestHubNotifier
         };
         if (competitionId.HasValue) groups.Add($"competition:{competitionId.Value}");
         await _hubContext.Clients.Groups(groups).SendAsync("LiveScoreUpdated", update);
+        await BroadcastCanonicalTimelineEventAsync(contestId, tenantId.Value, groups, update);
+        await BroadcastContestLivePatchAsync(contestId, groups);
 
         await SendContestPushAsync(
             contestId,
@@ -371,6 +387,39 @@ public class ContestHubNotifier
         _logger.LogDebug(
             "Broadcast live score update to group {GroupName}: {UpdateType}",
             groupName, update.UpdateType);
+    }
+
+    private async Task BroadcastCanonicalTimelineEventAsync(
+        Guid contestId,
+        Guid tenantId,
+        IReadOnlyList<string> groups,
+        LiveScoreUpdateDto update)
+    {
+        var logicalEventId = await _database.LiveScores.AsNoTracking()
+            .Where(item => item.ContestId == contestId
+                && (item.Id == update.EventId || item.EventId == update.EventId))
+            .Select(item => item.EventId == Guid.Empty ? item.Id : item.EventId)
+            .FirstOrDefaultAsync();
+        if (logicalEventId == Guid.Empty) logicalEventId = update.EventId;
+        var timeline = await _timeline.GetAsync(
+            contestId, tenantId, "all", null, null, null, 1_000_000,
+            CancellationToken.None);
+        var canonicalEvent = timeline?.Events.FirstOrDefault(item => item.Id == logicalEventId);
+        if (timeline is null || canonicalEvent is null) return;
+
+        var updateType = update.UpdateType.ToUpperInvariant();
+        var messageName = updateType.Contains("REVERSE", StringComparison.Ordinal)
+            ? "contest.timeline.event.reversed"
+            : updateType.Contains("CORRECT", StringComparison.Ordinal)
+                || updateType.Contains("REPLACE", StringComparison.Ordinal)
+                ? "contest.timeline.event.corrected"
+                : updateType == "CREATED"
+                    ? "contest.timeline.event.created"
+                    : "contest.timeline.event.updated";
+        await _hubContext.Clients.Groups(groups).SendAsync(
+            messageName,
+            new ContestTimelineEventEnvelope(
+                messageName, contestId, timeline.TimelineVersion, canonicalEvent));
     }
 
     public async Task BroadcastContestStarted(Guid contestId, Guid? tenantId)
@@ -410,9 +459,26 @@ public class ContestHubNotifier
         tenantId = await ResolveContestTenantAsync(contestId);
         var groupName = GetContestGroupName(contestId, tenantId);
         
+        var canonical = await _database.Contests.AsNoTracking()
+            .Where(item => item.Id == contestId)
+            .Select(item => new
+            {
+                item.CanonicalStatus,
+                item.StatusReason,
+                item.CanonicalStatusChangedAt
+            })
+            .SingleAsync();
         await _hubContext.Clients
             .Group(groupName)
-            .SendAsync("ContestStatusChanged", new { ContestId = contestId, Status = newStatus });
+            .SendAsync("ContestStatusChanged", new
+            {
+                ContestId = contestId,
+                Status = newStatus,
+                ContestStatus = canonical.CanonicalStatus.ToCode(),
+                canonical.StatusReason,
+                LastChangedAt = canonical.CanonicalStatusChangedAt
+            });
+        await BroadcastContestLivePatchAsync(contestId, [groupName]);
         
         _logger.LogDebug(
             "Broadcast contest status change to group {GroupName}: {Status}",
@@ -430,6 +496,8 @@ public class ContestHubNotifier
         await _hubContext.Clients
             .Groups(groupName, GetContestGroupName(contestId, tenantId))
             .SendAsync("SegmentStarted", segment);
+        await BroadcastContestLivePatchAsync(contestId,
+            [GetContestGroupName(contestId, tenantId)], segment.SegmentName);
         
         _logger.LogDebug(
             "Broadcast segment start to group {GroupName}",
@@ -447,6 +515,8 @@ public class ContestHubNotifier
         await _hubContext.Clients
             .Groups(groupName, GetContestGroupName(contestId, tenantId))
             .SendAsync("SegmentEnded", segment);
+        await BroadcastContestLivePatchAsync(contestId,
+            [GetContestGroupName(contestId, tenantId)], $"{segment.SegmentName} ended");
 
         await SendContestPushAsync(
             contestId,
@@ -471,6 +541,7 @@ public class ContestHubNotifier
         await _hubContext.Clients
             .Group(groupName)
             .SendAsync("ContestResultFinalized", result);
+        await BroadcastContestLivePatchAsync(contestId, [groupName], "Final result");
 
         var winner = result.Results.OrderBy(item => item.Rank).FirstOrDefault();
         await SendContestPushAsync(
@@ -573,6 +644,34 @@ public class ContestHubNotifier
             .SingleOrDefaultAsync();
     }
 
+    private async Task BroadcastContestLivePatchAsync(
+        Guid contestId,
+        IReadOnlyList<string> groups,
+        string? summary = null)
+    {
+        var contest = await _database.Contests.AsNoTracking()
+            .SingleAsync(item => item.Id == contestId);
+        var scores = await _database.LiveScores.AsNoTracking()
+            .Where(item => item.ContestId == contestId
+                && item.MetricName == "score")
+            .GroupBy(item => item.ParticipantId)
+            .Select(group => new ContestLiveParticipantDto(
+                group.Key,
+                group.Sum(item => item.Value).ToString(),
+                null))
+            .ToListAsync();
+        var updatedAt = contest.UpdatedAt ?? DateTime.UtcNow;
+        await _hubContext.Clients.Groups(groups).SendAsync(
+            "ContestLiveUpdated",
+            new ContestLiveUpdateDto(
+                contestId,
+                new DateTimeOffset(updatedAt).ToUnixTimeMilliseconds(),
+                contest.Status.ToString(),
+                contest.CanonicalStatus.ToCode(),
+                scores,
+                summary));
+    }
+
     private async Task SendContestPushAsync(
         Guid contestId,
         string notificationId,
@@ -604,7 +703,7 @@ public class ContestHubNotifier
             data["competitionId"] = competitionId.Value.ToString();
 
         await _pushDelivery.SendToTopicsAsync(
-            PushTopics.Contest(context.TenantSlug, contestId, competitionId),
+            PushTopics.ContestAlert(context.TenantSlug, contestId, competitionId, type),
             new PushDelivery(
                 notificationId,
                 type,
@@ -629,6 +728,25 @@ public record LiveScoreUpdateDto(
     string? DisplayValue,
     string UpdateType,
     DateTime ScoredAt);
+
+public sealed record ContestTimelineEventEnvelope(
+    string Type,
+    Guid ContestId,
+    long TimelineVersion,
+    ContestTimelineEvent Event);
+
+public record ContestLiveParticipantDto(
+    Guid ParticipantId,
+    string? Score,
+    string? ScoreDisplay);
+
+public record ContestLiveUpdateDto(
+    Guid ContestId,
+    long Version,
+    string Status,
+    string ContestStatus,
+    List<ContestLiveParticipantDto> Participants,
+    string? Summary);
 
 /// <summary>
 /// DTO for segment start.
@@ -683,7 +801,9 @@ public record ParticipantStatusChangeDto(
 public record ContestSnapshotDto(
     Guid ContestId,
     string Status,
+    string ContestStatus,
     DateTime LastUpdated,
     List<LiveScoreUpdateDto> RecentScores,
     List<ParticipantStatusChangeDto> ParticipantStatuses,
-    Guid? CurrentSegmentId);
+    Guid? CurrentSegmentId,
+    List<ContestLiveParticipantDto> ParticipantScores);

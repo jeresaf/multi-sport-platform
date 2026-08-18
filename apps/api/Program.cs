@@ -124,6 +124,7 @@ builder.Services.AddScoped<IResultService, ResultService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<ITenantNotificationDeliveryPolicy, TenantNotificationDeliveryPolicy>();
 builder.Services.AddScoped<ContestDerivedStateService>();
+builder.Services.AddScoped<ContestTimelineService>();
 builder.Services.AddSingleton<IPushDeliveryClient, FirebasePushDeliveryClient>();
 builder.Services.AddScoped<ReportDocumentBuilder>();
 builder.Services.AddSingleton<IReportGenerationQueue, ReportGenerationQueue>();

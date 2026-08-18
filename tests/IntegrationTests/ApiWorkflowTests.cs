@@ -44,6 +44,55 @@ public sealed class ApiWorkflowTests : IClassFixture<ApiWebApplicationFactory>
     }
 
     [Fact]
+    public async Task PublicShowcase_ExposesEverySportAndLifecycleScenario()
+    {
+        using var client = _factory.CreateClient();
+        const string root = "/api/public/tenants/public-e2e-showcase";
+
+        var home = await client.GetFromJsonAsync<JsonElement>($"{root}/home");
+        home.GetProperty("tenant").GetProperty("slug").GetString()
+            .Should().Be("public-e2e-showcase");
+        home.GetProperty("liveContests").GetArrayLength().Should().Be(9);
+        home.GetProperty("upcomingContests").GetArrayLength().Should().Be(18);
+
+        var competitions = await client.GetFromJsonAsync<JsonElement>($"{root}/competitions");
+        competitions.GetArrayLength().Should().Be(9);
+        competitions.EnumerateArray()
+            .Select(item => item.GetProperty("sportId").GetGuid())
+            .Distinct().Should().HaveCount(7);
+        competitions.EnumerateArray().Should().OnlyContain(item =>
+            !string.IsNullOrWhiteSpace(item.GetProperty("format").GetString())
+            && item.GetProperty("participantCount").GetInt32() > 0
+            && item.GetProperty("contestCount").GetInt32() > 0
+            && item.GetProperty("startDate").ValueKind == JsonValueKind.String
+            && item.GetProperty("endDate").ValueKind == JsonValueKind.String);
+
+        var fixtures = await client.GetFromJsonAsync<JsonElement>($"{root}/fixtures?pageSize=100");
+        var fixtureItems = fixtures.EnumerateArray().ToArray();
+        fixtureItems.Should().HaveCount(36);
+        var statusCounts = fixtureItems
+            .GroupBy(item => item.GetProperty("status").GetString())
+            .ToDictionary(group => group.Key!, group => group.Count());
+        statusCounts[nameof(ContestStatus.Published)].Should().Be(9);
+        statusCounts[nameof(ContestStatus.InProgress)].Should().Be(9);
+        statusCounts[nameof(ContestStatus.Ready)].Should().Be(9);
+        statusCounts[nameof(ContestStatus.Scheduled)].Should().Be(9);
+        var canonicalStatusCounts = fixtureItems
+            .GroupBy(item => item.GetProperty("contestStatus").GetString())
+            .ToDictionary(group => group.Key!, group => group.Count());
+        canonicalStatusCounts["CLOSED"].Should().Be(9);
+        canonicalStatusCounts["LIVE"].Should().Be(9);
+        canonicalStatusCounts["STARTING_SOON"].Should().Be(9);
+        canonicalStatusCounts["NOT_STARTED"].Should().Be(9);
+
+        var golf = await client.GetAsync(
+            $"{root}/golf/leaderboard?competitionId=80000000-0000-0000-0000-000000000104");
+        golf.StatusCode.Should().Be(HttpStatusCode.OK);
+        var golfPayload = await golf.Content.ReadFromJsonAsync<JsonElement>();
+        golfPayload.GetProperty("entries").GetArrayLength().Should().Be(4);
+    }
+
+    [Fact]
     public async Task OperationalMetrics_ExposeEveryAuthoritativeDashboardSignal()
     {
         using var client = _factory.CreateClient();
@@ -119,8 +168,31 @@ public sealed class ApiWorkflowTests : IClassFixture<ApiWebApplicationFactory>
         {
             fixture.GetProperty("competitionId").GetGuid()
                 .Should().NotBe(Guid.Empty);
+            fixture.GetProperty("sportCode").GetString()
+                .Should().NotBeNullOrWhiteSpace();
+            fixture.GetProperty("sportName").GetString()
+                .Should().NotBeNullOrWhiteSpace();
+            fixture.GetProperty("renderer").GetString()
+                .Should().BeOneOf("head-to-head", "multi-participant-leaderboard",
+                    "race-heat", "fight-card-bout", "cricket-scorecard");
             fixture.GetProperty("participants").ValueKind
                 .Should().Be(JsonValueKind.Array);
+            var presentation = fixture.GetProperty("presentation");
+            presentation.ValueKind.Should().Be(JsonValueKind.Object);
+            presentation.TryGetProperty("scoreVariant", out _).Should().BeTrue();
+            presentation.TryGetProperty("periodLabel", out _).Should().BeTrue();
+            presentation.TryGetProperty("clock", out _).Should().BeTrue();
+            presentation.GetProperty("eventSummary").ValueKind
+                .Should().Be(JsonValueKind.Array);
+            foreach (var participant in fixture.GetProperty("participants").EnumerateArray())
+            {
+                participant.GetProperty("participantId").GetGuid()
+                    .Should().NotBe(Guid.Empty);
+                participant.GetProperty("name").GetString()
+                    .Should().NotBeNullOrWhiteSpace();
+                participant.TryGetProperty("scoreDisplay", out _).Should().BeTrue();
+                participant.TryGetProperty("resultStatus", out _).Should().BeTrue();
+            }
         }
     }
 
@@ -143,6 +215,16 @@ public sealed class ApiWorkflowTests : IClassFixture<ApiWebApplicationFactory>
         {
             var tabs = detail.RootElement.GetProperty("availableTabs")
                 .EnumerateArray().Select(item => item.GetString()).ToArray();
+            detail.RootElement.GetProperty("presentation")
+                .GetProperty("primaryContestRenderer").ValueKind
+                .Should().Be(JsonValueKind.Null);
+            detail.RootElement.GetProperty("sport").GetProperty("code")
+                .GetString().Should().Be("FOOTBALL");
+            detail.RootElement.TryGetProperty("region", out _).Should().BeTrue();
+            detail.RootElement.GetProperty("sponsors").ValueKind
+                .Should().Be(JsonValueKind.Array);
+            detail.RootElement.GetProperty("medals").ValueKind
+                .Should().Be(JsonValueKind.Array);
             tabs.Should().Contain("overview");
             detail.RootElement.GetProperty("labels").GetProperty("fixtures")
                 .GetString().Should().Be("Fixtures");
@@ -158,10 +240,19 @@ public sealed class ApiWorkflowTests : IClassFixture<ApiWebApplicationFactory>
             var participants = detail.RootElement.GetProperty("participants");
             participants.ValueKind
                 .Should().Be(JsonValueKind.Array);
+            detail.RootElement.GetProperty("format").GetString()
+                .Should().NotBeNullOrWhiteSpace();
+            detail.RootElement.GetProperty("participantCount").GetInt32()
+                .Should().Be(participants.GetArrayLength());
+            detail.RootElement.GetProperty("contestCount").GetInt32()
+                .Should().Be(fixtures.GetArrayLength());
             detail.RootElement.GetProperty("statistics")
                 .GetProperty("contestCount").GetInt32()
                 .Should().Be(fixtures.GetArrayLength());
             tabs.Contains("fixtures").Should().Be(fixtures.GetArrayLength() > 0);
+            foreach (var fixture in fixtures.EnumerateArray())
+                fixture.GetProperty("renderer").GetString()
+                    .Should().NotBeNullOrWhiteSpace();
             tabs.Contains("results").Should().Be(results.GetArrayLength() > 0);
             tabs.Contains("standings").Should().Be(standings.GetArrayLength() > 0);
             tabs.Contains("participants").Should().Be(participants.GetArrayLength() > 0);
@@ -182,6 +273,69 @@ public sealed class ApiWorkflowTests : IClassFixture<ApiWebApplicationFactory>
         golf.RootElement.GetProperty("availableTabs")
             .EnumerateArray().Select(item => item.GetString())
             .Should().Contain("leaderboard");
+    }
+
+    [Fact]
+    public async Task CompetitionPresentationSettings_AreValidatedPersistedAndPubliclyApplied()
+    {
+        using var client = _factory.CreateClient();
+        var admin = await LoginAsync(client, "admin@premier.com", "TenantAdmin123!",
+            $"presentation-{Guid.NewGuid():N}");
+        client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", admin.AccessToken);
+        var competitionId = Guid.Parse("00000000-0000-0000-0000-000000000300");
+        var route = $"/api/competitions/{competitionId}/presentation";
+
+        try
+        {
+            var update = await client.PutAsJsonAsync(route, new
+            {
+                primaryContestRenderer = "cricket-scorecard",
+                visibleTabs = new[] { "overview", "fixtures" },
+                defaultTab = "fixtures",
+                scoreVariant = "compact",
+                standingsVariant = "full",
+                leaderboardVariant = (string?)null,
+                bracketEnabled = false,
+                seriesEnabled = false,
+                medalTableEnabled = false
+            });
+            update.StatusCode.Should().Be(HttpStatusCode.OK,
+                await update.Content.ReadAsStringAsync());
+
+            var stored = await client.GetFromJsonAsync<JsonElement>(route);
+            stored.GetProperty("defaultTab").GetString().Should().Be("fixtures");
+            stored.GetProperty("visibleTabs").EnumerateArray()
+                .Select(item => item.GetString()).Should().BeEquivalentTo("overview", "fixtures");
+
+            client.DefaultRequestHeaders.Authorization = null;
+            var detail = await client.GetFromJsonAsync<JsonElement>(
+                $"/api/public/tenants/premier-league/competitions/{competitionId}");
+            detail.GetProperty("presentation").GetProperty("defaultTab")
+                .GetString().Should().Be("fixtures");
+            detail.GetProperty("availableTabs").EnumerateArray()
+                .Select(item => item.GetString()).Should().BeEquivalentTo("overview", "fixtures");
+            detail.GetProperty("fixtures").EnumerateArray()
+                .Should().OnlyContain(item => item.GetProperty("renderer").GetString()
+                    == "cricket-scorecard");
+        }
+        finally
+        {
+            client.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Bearer", admin.AccessToken);
+            await client.PutAsJsonAsync(route, new
+            {
+                primaryContestRenderer = (string?)null,
+                visibleTabs = Array.Empty<string>(),
+                defaultTab = (string?)null,
+                scoreVariant = (string?)null,
+                standingsVariant = (string?)null,
+                leaderboardVariant = (string?)null,
+                bracketEnabled = (bool?)null,
+                seriesEnabled = (bool?)null,
+                medalTableEnabled = (bool?)null
+            });
+        }
     }
 
     [Fact]
@@ -222,9 +376,26 @@ public sealed class ApiWorkflowTests : IClassFixture<ApiWebApplicationFactory>
         {
             detail.RootElement.GetProperty("renderer").GetString()
                 .Should().Be("head-to-head");
+            detail.RootElement.GetProperty("contestStatus").GetString()
+                .Should().Be("NOT_STARTED");
+            detail.RootElement.GetProperty("resultStatus").GetString()
+                .Should().Be("NONE");
+            detail.RootElement.GetProperty("phase").ValueKind
+                .Should().Be(JsonValueKind.Null);
+            detail.RootElement.GetProperty("lastChangedAt").ValueKind
+                .Should().Be(JsonValueKind.String);
             detail.RootElement.GetProperty("configuration").ValueKind
                 .Should().Be(JsonValueKind.Object);
             detail.RootElement.GetProperty("liveScores").ValueKind
+                .Should().Be(JsonValueKind.Array);
+            detail.RootElement.GetProperty("participants")
+                .EnumerateArray().Should().OnlyContain(participant =>
+                    !string.IsNullOrWhiteSpace(
+                        participant.GetProperty("name").GetString()));
+            detail.RootElement.GetProperty("statistics")
+                .GetProperty("totalEvents").GetInt32().Should().Be(0);
+            detail.RootElement.GetProperty("statistics")
+                .GetProperty("eventBreakdown").ValueKind
                 .Should().Be(JsonValueKind.Array);
         }
         (await client.GetAsync(
@@ -528,6 +699,13 @@ public sealed class ApiWorkflowTests : IClassFixture<ApiWebApplicationFactory>
         teams.RootElement.GetProperty("items").EnumerateArray()
             .Select(item => item.GetProperty("id").GetString())
             .Should().Contain(teamId.ToString());
+        using var sports = JsonDocument.Parse(await (await client.GetAsync(
+            "/api/public/tenants/premier-league/search?type=sport&q=Football"))
+            .Content.ReadAsStringAsync());
+        sports.RootElement.GetProperty("items").EnumerateArray()
+            .Should().ContainSingle(item =>
+                item.GetProperty("type").GetString() == "Sport"
+                && item.GetProperty("href").GetString() == "/sport/football");
         using var privateVenue = JsonDocument.Parse(await (await client.GetAsync(
             "/api/public/tenants/premier-league/search?type=venue&q=Private%20Draft%20Venue"))
             .Content.ReadAsStringAsync());
@@ -998,6 +1176,10 @@ public sealed class ApiWorkflowTests : IClassFixture<ApiWebApplicationFactory>
             TaskCreationOptions.RunContinuationsAsynchronously);
         var contestUpdate = new TaskCompletionSource<LiveScoreUpdateDto>(
             TaskCreationOptions.RunContinuationsAsynchronously);
+        var contestPatch = new TaskCompletionSource<ContestLiveUpdateDto>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        var canonicalTimelineUpdate = new TaskCompletionSource<ContestTimelineEventEnvelope>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
         var participantUpdate = new TaskCompletionSource<LiveScoreUpdateDto>(
             TaskCreationOptions.RunContinuationsAsynchronously);
         var competitionUpdate = new TaskCompletionSource<LiveScoreUpdateDto>(
@@ -1006,6 +1188,11 @@ public sealed class ApiWorkflowTests : IClassFixture<ApiWebApplicationFactory>
             "ContestSnapshot", snapshot => initialSnapshot.TrySetResult(snapshot));
         contestConnection.On<LiveScoreUpdateDto>(
             "LiveScoreUpdated", update => contestUpdate.TrySetResult(update));
+        contestConnection.On<ContestLiveUpdateDto>(
+            "ContestLiveUpdated", update => contestPatch.TrySetResult(update));
+        contestConnection.On<ContestTimelineEventEnvelope>(
+            "contest.timeline.event.created",
+            update => canonicalTimelineUpdate.TrySetResult(update));
         participantConnection.On<LiveScoreUpdateDto>(
             "LiveScoreUpdated", update => participantUpdate.TrySetResult(update));
         competitionConnection.On<LiveScoreUpdateDto>(
@@ -1050,6 +1237,18 @@ public sealed class ApiWorkflowTests : IClassFixture<ApiWebApplicationFactory>
             && item.ParticipantId == participantId
             && item.MetricName == "score"
             && item.Value == 1);
+        var patch = await contestPatch.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        patch.ContestId.Should().Be(contestId);
+        patch.Version.Should().BePositive();
+        patch.Participants.Should().ContainSingle(item =>
+            item.ParticipantId == participantId && item.Score == "1");
+        var timelineUpdate = await canonicalTimelineUpdate.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        timelineUpdate.Type.Should().Be("contest.timeline.event.created");
+        timelineUpdate.ContestId.Should().Be(contestId);
+        timelineUpdate.TimelineVersion.Should().Be(1);
+        timelineUpdate.Event.Id.Should().Be(eventId);
+        timelineUpdate.Event.Sequence.Should().Be(1);
+        timelineUpdate.Event.Category.Should().Be("SCORING");
 
         await contestConnection.StopAsync();
         await using var reconnected = BuildConnection();
@@ -1066,6 +1265,8 @@ public sealed class ApiWorkflowTests : IClassFixture<ApiWebApplicationFactory>
             && item.ParticipantId == participantId
             && item.MetricName == "score"
             && item.Value == 1);
+        recovered.ParticipantScores.Should().ContainSingle(item =>
+            item.ParticipantId == participantId && item.Score == "1");
 
         using (var scope = _factory.Services.CreateScope())
         {
@@ -2811,6 +3012,10 @@ public sealed class ApiWorkflowTests : IClassFixture<ApiWebApplicationFactory>
             .GetProperty("seriesGames")
             .GetArrayLength()
             .Should().Be(3);
+        publicPlayoffs.GetProperty("rounds")[0]
+            .GetProperty("matches")[0]
+            .GetProperty("seriesGames")[0]
+            .TryGetProperty("homeScore", out _).Should().BeTrue();
     }
 
     [Fact]
@@ -3126,6 +3331,8 @@ public sealed class ApiWorkflowTests : IClassFixture<ApiWebApplicationFactory>
                 .GetProperty("position").GetInt32());
         entries[0].GetProperty("roundPositions").EnumerateArray()
             .Should().OnlyContain(position => position.GetInt32() == 1);
+        entries[0].GetProperty("todayToPar").GetInt32().Should().Be(0);
+        entries[0].GetProperty("thru").GetInt32().Should().Be(18);
 
         var liveScores = await client.GetFromJsonAsync<JsonElement>(
             $"/api/livescoring/contests/{contestId}/scores");
@@ -6231,6 +6438,10 @@ public sealed class ApiWorkflowTests : IClassFixture<ApiWebApplicationFactory>
             $"/api/contests/{contestId}/lifecycle");
         lifecycle.GetProperty("usesSportPolicy").GetBoolean().Should().BeTrue();
         lifecycle.GetProperty("allowedTransitions").GetArrayLength().Should().Be(0);
+        lifecycle.GetProperty("canonicalStatusCode").GetString()
+            .Should().Be("ABANDONED");
+        lifecycle.GetProperty("statusReason").GetString()
+            .Should().Be("Unsafe weather continued");
         var history = await client.GetFromJsonAsync<JsonElement[]>(
             $"/api/contests/{contestId}/lifecycle/history");
         history.Should().HaveCount(3);
@@ -6244,6 +6455,18 @@ public sealed class ApiWorkflowTests : IClassFixture<ApiWebApplicationFactory>
         using (var scope = _factory.Services.CreateScope())
         {
             var database = scope.ServiceProvider.GetRequiredService<SportsPlatformDbContext>();
+            var persisted = await database.Contests.SingleAsync(item => item.Id == contestId);
+            persisted.CanonicalStatus.Should().Be(CanonicalContestStatus.Abandoned);
+            persisted.CanonicalStatusChangedAt.Should().BeAfter(persisted.CreatedAt);
+            var canonicalHistory = await database.ContestStatusHistory
+                .AsNoTracking()
+                .Where(item => item.ContestId == contestId)
+                .OrderBy(item => item.OccurredAt)
+                .ToArrayAsync();
+            canonicalHistory.Should().HaveCount(3);
+            canonicalHistory.Last().ToStatus.Should().Be(CanonicalContestStatus.Abandoned);
+            canonicalHistory.Last().ActorId.Should().NotBeNull();
+            canonicalHistory.Last().Reason.Should().Be("Unsafe weather continued");
             database.ContestLifecyclePolicies.RemoveRange(database.ContestLifecyclePolicies.Where(item =>
                 item.TenantId == admin.TenantId && item.SportId == sportId));
             database.Contests.RemoveRange(database.Contests.Where(item => item.Id == contestId));

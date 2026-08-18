@@ -95,12 +95,27 @@ export default function FightCardPage() {
             </p>
           </div>
 
-          <div className="mt-8 space-y-5" data-testid="fight-card">
-            {[...card.bouts].reverse().map((bout) => (
-              <article
-                key={bout.id}
-                className={`overflow-hidden rounded-xl border bg-white shadow-sm ${
-                  bout.cardSection === 'MainEvent' ? 'border-red-500' : 'border-gray-200'
+          <div className="mt-8 space-y-10" data-testid="fight-card">
+            {groupBouts(card.bouts).map(section => (
+              <section key={section.key} aria-labelledby={`fight-section-${section.key}`}>
+                <div className="mb-4 flex items-center gap-3">
+                  <h2 id={`fight-section-${section.key}`} className="text-xl font-extrabold">{section.label}</h2>
+                  <span className="rounded-full bg-[var(--color-surface-muted)] px-2.5 py-1 text-xs font-bold muted">{section.bouts.length} {section.bouts.length === 1 ? 'bout' : 'bouts'}</span>
+                </div>
+                <div className="space-y-5">{section.bouts.map(bout => <BoutCard key={bout.id} bout={bout} />)}</div>
+              </section>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function BoutCard({ bout }: { bout: Bout }) {
+  return <article
+                className={`overflow-hidden rounded-xl border bg-[var(--color-surface)] shadow-sm ${
+                  bout.cardSection === 'MainEvent' ? 'border-red-500' : 'border-[var(--color-border)]'
                 }`}
               >
                 <div className="flex flex-wrap items-center justify-between gap-2 bg-gray-100 px-5 py-3 text-sm">
@@ -135,13 +150,24 @@ export default function FightCardPage() {
                     ).join(', ')}
                   </p>
                 </div>
-              </article>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
-  );
+              </article>;
+}
+
+const sectionOrder = ['MainEvent', 'CoMainEvent', 'MainCard', 'PreliminaryCard'];
+function groupBouts(bouts: Bout[]) {
+  const grouped = new Map<string, Bout[]>();
+  bouts.forEach(bout => grouped.set(bout.cardSection || 'MainCard', [...(grouped.get(bout.cardSection || 'MainCard') ?? []), bout]));
+  return [...grouped.entries()]
+    .sort(([left], [right]) => sectionRank(left) - sectionRank(right))
+    .map(([key, values]) => ({ key, label: sectionLabel(key), bouts: [...values].sort((a, b) => b.boutNumber - a.boutNumber) }));
+}
+function sectionRank(value: string) { const index = sectionOrder.indexOf(value); return index < 0 ? sectionOrder.length : index; }
+function sectionLabel(value: string) {
+  if (value === 'MainEvent') return 'Main Event';
+  if (value === 'CoMainEvent') return 'Co-Main Event';
+  if (value === 'MainCard') return 'Main Card';
+  if (value === 'PreliminaryCard' || value === 'Preliminaries') return 'Preliminaries';
+  return formatSection(value);
 }
 
 function FighterName({

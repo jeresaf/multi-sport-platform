@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/services/signalr_service.dart'
     show SignalRConnectionStatus;
+import '../../../../core/formatters/public_date_time.dart';
+import '../../../../core/widgets/contest_status_label.dart';
 import '../providers/contest_provider.dart';
 
 /// Contest detail screen - shows contest info, timeline, and live updates
@@ -125,43 +127,55 @@ class _ContestDetailContent extends StatelessWidget {
       return const Center(child: Text('Contest not found'));
     }
 
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        // Contest header
-        _ContestHeader(contest: contest!),
-        const SizedBox(height: 24),
-
-        // Score display
-        _ScoreDisplay(contest: contest!),
-        const SizedBox(height: 24),
-
-        // Timeline
-        Text(
-          'Timeline',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-        ),
-        const SizedBox(height: 12),
-        _EventTimeline(
-          events: events,
-          homeParticipantId: contest!.homeParticipantId,
-        ),
-        const SizedBox(height: 24),
-
-        // Match stats from metadata
-        if (contest!.metadata != null) ...[
-          Text(
-            'Statistics',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+    return DefaultTabController(
+      length: 3,
+      child: Column(
+        children: [
+          const TabBar(
+            tabs: [
+              Tab(text: 'Overview'),
+              Tab(text: 'Timeline'),
+              Tab(text: 'Statistics'),
+            ],
           ),
-          const SizedBox(height: 12),
-          _MatchStats(metadata: contest!.metadata!),
+          Expanded(
+            child: TabBarView(
+              children: [
+                ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    _ContestHeader(contest: contest!),
+                    const SizedBox(height: 16),
+                    _ScoreDisplay(contest: contest!),
+                  ],
+                ),
+                ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    _EventTimeline(
+                      events: events,
+                      homeParticipantId: contest!.homeParticipantId,
+                    ),
+                  ],
+                ),
+                ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    _MatchStats(
+                      metadata: contest!.metadata ?? const {},
+                      homeParticipantId: contest!.homeParticipantId,
+                      awayParticipantId: contest!.awayParticipantId,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ],
-      ],
+      ),
     );
   }
 }
@@ -181,23 +195,7 @@ class _ContestHeader extends StatelessWidget {
           children: [
             Row(
               children: [
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color:
-                        _getStatusColor(contest.status).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    contest.status,
-                    style: TextStyle(
-                      color: _getStatusColor(contest.status),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
+                ContestStatusLabel(status: contest.status),
                 const Spacer(),
                 Container(
                   padding:
@@ -262,24 +260,8 @@ class _ContestHeader extends StatelessWidget {
     );
   }
 
-  Color _getStatusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'live':
-      case 'inprogress':
-        return Colors.red;
-      case 'scheduled':
-        return Colors.blue;
-      case 'completed':
-        return Colors.green;
-      case 'cancelled':
-        return Colors.grey;
-      default:
-        return Colors.orange;
-    }
-  }
-
   String _formatDateTime(DateTime dateTime) {
-    return '${dateTime.day}/${dateTime.month}/${dateTime.year} ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
+    return formatPublicDateTime(dateTime);
   }
 }
 
@@ -324,7 +306,9 @@ class _ScoreDisplay extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    contest.homeScore?.toString() ?? '-',
+                    contest.homeScoreDisplay ??
+                        contest.homeScore?.toString() ??
+                        '-',
                     style: const TextStyle(
                       fontSize: 36,
                       fontWeight: FontWeight.bold,
@@ -375,7 +359,9 @@ class _ScoreDisplay extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    contest.awayScore?.toString() ?? '-',
+                    contest.awayScoreDisplay ??
+                        contest.awayScore?.toString() ??
+                        '-',
                     style: const TextStyle(
                       fontSize: 36,
                       fontWeight: FontWeight.bold,
@@ -435,9 +421,37 @@ class _EventTimeline extends StatelessWidget {
                 size: 20,
               ),
             ),
-            title: Text(_formatEventType(event.eventType)),
-            subtitle: Text(_formatTime(event.timestamp)),
-            trailing: event.participantId != null
+            title: Text([
+              _formatEventType(event.eventType),
+              if (event.data?['primaryPlayerName'] != null)
+                event.data!['primaryPlayerName'],
+              if (event.data?['primaryPlayerName'] == null &&
+                  event.data?['secondaryParticipantName'] != null)
+                event.data!['secondaryParticipantName'],
+              if (event.data?['primaryPlayerName'] == null &&
+                  event.data?['secondaryParticipantName'] == null &&
+                  event.data?['primaryParticipantName'] != null)
+                event.data!['primaryParticipantName'],
+            ].join(' · ')),
+            subtitle: Text([
+              if (event.eventType == 'SUBSTITUTION' &&
+                  event.data?['secondaryPlayerName'] != null)
+                '${event.data!['secondaryPlayerName']} on',
+              if (event.data?['clock'] != null) event.data!['clock'],
+              if (event.data?['category'] != null)
+                _formatEventType(event.data!['category'].toString()),
+              if (event.data?['status'] != null &&
+                  event.data!['status'] != 'CONFIRMED')
+                _formatEventType(event.data!['status'].toString()),
+              _formatTime(event.timestamp),
+            ].join(' · ')),
+            trailing: event.data?['sportCode'] == 'FOOTBALL' &&
+                    event.data?['category'] == 'SCORING'
+                ? Text(
+                    '${event.data?['homeScoreAfter'] ?? 0}–${event.data?['awayScoreAfter'] ?? 0}',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  )
+                : event.participantId != null
                 ? Text(
                     isHome ? 'Home' : 'Away',
                     style: TextStyle(color: Colors.grey.shade600),
@@ -457,6 +471,9 @@ class _EventTimeline extends StatelessWidget {
       case 'foul':
         return Colors.orange;
       case 'card':
+      case 'yellow_card':
+      case 'second_yellow_card':
+      case 'red_card':
         return Colors.red;
       default:
         return Colors.blue;
@@ -471,7 +488,14 @@ class _EventTimeline extends StatelessWidget {
       case 'foul':
         return Icons.warning;
       case 'card':
+      case 'yellow_card':
+      case 'second_yellow_card':
+      case 'red_card':
         return Icons.card_giftcard;
+      case 'substitution':
+      case 'player_in':
+      case 'player_out':
+        return Icons.swap_horiz;
       default:
         return Icons.info;
     }
@@ -491,47 +515,106 @@ class _EventTimeline extends StatelessWidget {
 
 class _MatchStats extends StatelessWidget {
   final Map<String, dynamic> metadata;
+  final String? homeParticipantId;
+  final String? awayParticipantId;
 
-  const _MatchStats({required this.metadata});
+  const _MatchStats({
+    required this.metadata,
+    this.homeParticipantId,
+    this.awayParticipantId,
+  });
 
   @override
   Widget build(BuildContext context) {
-    // Extract stats from metadata if available
     final stats = metadata['stats'] as Map<String, dynamic>? ?? {};
+    final breakdown = stats['eventBreakdown'] is List
+        ? (stats['eventBreakdown'] as List)
+            .whereType<Map>()
+            .map((item) => Map<String, dynamic>.from(item))
+            .toList()
+        : <Map<String, dynamic>>[];
 
-    if (stats.isEmpty) {
-      return const SizedBox.shrink();
+    if (stats.isEmpty ||
+        (breakdown.isEmpty && (stats['totalEvents'] as num? ?? 0) == 0)) {
+      return const Card(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Column(
+            children: [
+              Icon(Icons.query_stats_outlined, size: 36),
+              SizedBox(height: 8),
+              Text('Statistics will appear when match events are recorded.'),
+            ],
+          ),
+        ),
+      );
     }
 
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
-          children: stats.entries.map((entry) {
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      entry.value.toString(),
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontWeight: FontWeight.w600),
+          children: [
+            if (breakdown.isNotEmpty)
+              const Padding(
+                padding: EdgeInsets.only(bottom: 8),
+                child: Row(
+                  children: [
+                    Expanded(child: Text('Home', textAlign: TextAlign.center)),
+                    Expanded(
+                      flex: 2,
+                      child: Text('Event', textAlign: TextAlign.center),
                     ),
-                  ),
-                  Expanded(
-                    flex: 2,
-                    child: Text(
-                      entry.key,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey.shade600),
-                    ),
-                  ),
-                  const Expanded(child: SizedBox()),
-                ],
+                    Expanded(child: Text('Away', textAlign: TextAlign.center)),
+                  ],
+                ),
               ),
-            );
-          }).toList(),
+            ...breakdown.map((entry) {
+              final participants = entry['participants'] is List
+                  ? (entry['participants'] as List).whereType<Map>()
+                  : const Iterable<Map>.empty();
+              int participantCount(String? participantId) => participants
+                  .where(
+                    (item) =>
+                        item['participantId']?.toString() == participantId,
+                  )
+                  .fold(
+                    0,
+                    (total, item) =>
+                        total + ((item['count'] as num?)?.toInt() ?? 0),
+                  );
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        participantCount(homeParticipantId).toString(),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        entry['label']?.toString().replaceAll('_', ' ') ??
+                            'Event',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.grey.shade600),
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        participantCount(awayParticipantId).toString(),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
         ),
       ),
     );

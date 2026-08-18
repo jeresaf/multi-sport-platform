@@ -1,4 +1,5 @@
 using SportsPlatform.BuildingBlocks;
+using System.Text.Json;
 
 namespace SportsPlatform.Modules.Competitions.Entities;
 
@@ -12,6 +13,7 @@ public class Competition : TenantAggregateRoot<Guid>
     public new DateTime CreatedAt { get; private set; }
     public new DateTime? UpdatedAt { get; private set; }
     public DateTime? PublishedAt { get; private set; }
+    public string PresentationConfiguration { get; private set; } = "{}";
 
     private readonly List<Edition> _editions = new();
     public IReadOnlyCollection<Edition> Editions => _editions.AsReadOnly();
@@ -37,6 +39,17 @@ public class Competition : TenantAggregateRoot<Guid>
             throw new InvalidOperationException(
                 "A competition's ruleset version cannot change after assignment.");
         RulesetVersionId = rulesetVersionId;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void UpdatePresentationConfiguration(string configuration)
+    {
+        if (string.IsNullOrWhiteSpace(configuration)) configuration = "{}";
+        using var document = JsonDocument.Parse(configuration);
+        if (document.RootElement.ValueKind != JsonValueKind.Object)
+            throw new ArgumentException(
+                "Presentation configuration must be a JSON object.", nameof(configuration));
+        PresentationConfiguration = configuration.Trim();
         UpdatedAt = DateTime.UtcNow;
     }
 
