@@ -19,4 +19,11 @@ jobs:
   scan-pr:
     name: Reject newly introduced vulnerable dependencies
     uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable-pr.yml@8deb546fdb875b9996d27d4950be7312dac076a1 # v2.5.0
+    with:
+      # The scanner/reporter still compares the base and PR dependency graphs and
+      # fails on newly introduced vulnerabilities. SARIF upload is disabled until
+      # GitHub Code Scanning is enabled for this repository; otherwise the scan is
+      # falsely marked failed after reporting "No issues found".
+      upload-sarif: false
+      fail-on-vuln: true
 
