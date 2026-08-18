@@ -12,6 +12,8 @@ import type { CompetitionDetail, CompetitionFixture, CompetitionResult, Competit
 import { publicApi, resolveTenantSlug, TENANT_SLUG, tenantPath } from '@/lib/public-api';
 import { AlertPreferencesDialog } from '@/components/alert-preferences-dialog';
 import { loadAlerts } from '@/lib/alert-preferences';
+import { ContestStatus } from '@/components/contest-status';
+import { normalizeStatus } from '@/lib/presentation';
 
 export default function CompetitionDetailPage() {
   const params = useParams<{ id: string }>();
@@ -100,8 +102,8 @@ export default function CompetitionDetailPage() {
 }
 
 function Overview({ competition, playoffs, tenantSlug, onView }: { competition: CompetitionDetail; playoffs: Playoffs | null; tenantSlug: string; onView: (view: CompetitionView) => void }) {
-  const live = competition.fixtures.filter(item => item.status.toLowerCase() === 'inprogress').slice(0, 4);
-  const upcoming = competition.fixtures.filter(item => ['scheduled', 'ready', 'checkinopen'].includes(item.status.toLowerCase())).slice(0, 4);
+  const live = competition.fixtures.filter(item => normalizeStatus(item.contestStatus ?? item.status) === 'live').slice(0, 4);
+  const upcoming = competition.fixtures.filter(item => ['notstarted', 'startingsoon', 'scheduled', 'ready', 'checkinopen'].includes(normalizeStatus(item.contestStatus ?? item.status))).slice(0, 4);
   const latest = competition.results.slice(0, 6);
   return <div className="space-y-6">
     {['combat', 'mma'].includes(competition.sport?.code?.toLowerCase() ?? '') && <Link href={tenantPath(`/fight-card?competitionId=${competition.id}`, tenantSlug)} className="surface flex items-center justify-between rounded-2xl p-5 font-bold hover:shadow-md"><span>Open the full fight card</span><span aria-hidden>→</span></Link>}
@@ -127,7 +129,7 @@ function OverviewModule({ title, action, children }: { title: string; action: ()
 
 function Fixtures({ fixtures, tenantSlug, label, compact = false }: { fixtures: CompetitionFixture[]; tenantSlug: string; label: string; compact?: boolean }) {
   if (fixtures.length === 0) return <Empty message={`No ${label.toLowerCase()} are published.`} />;
-  return <div className={`grid gap-3 ${compact ? 'md:grid-cols-2' : 'md:grid-cols-2 xl:grid-cols-3'}`}>{fixtures.map(fixture => <Link key={fixture.id} href={tenantPath(`/contest/${fixture.id}`, tenantSlug)} className="surface rounded-xl p-4 transition hover:-translate-y-0.5 hover:shadow-md"><div className="flex justify-between gap-3 text-xs font-bold uppercase muted"><span>{friendlyStatus(fixture.status)}</span><span>{formatDate(fixture.startTime)}</span></div><h3 className="mt-3 font-bold">{fixture.name || fixture.participants.map(item => item.name).join(' vs ') || fixture.contestShape}</h3>{fixture.venue && <p className="mt-2 text-sm muted">{fixture.venue}</p>}</Link>)}</div>;
+  return <div className={`grid gap-3 ${compact ? 'md:grid-cols-2' : 'md:grid-cols-2 xl:grid-cols-3'}`}>{fixtures.map(fixture => <Link key={fixture.id} href={tenantPath(`/contest/${fixture.id}`, tenantSlug)} className="surface rounded-xl p-4 transition hover:-translate-y-0.5 hover:shadow-md"><div className="flex items-center justify-between gap-3"><ContestStatus status={fixture.contestStatus ?? fixture.status} /><span className="text-xs font-bold uppercase muted">{formatDate(fixture.startTime)}</span></div><h3 className="mt-3 font-bold">{fixture.name || fixture.participants.map(item => item.name).join(' vs ') || fixture.contestShape}</h3>{fixture.venue && <p className="mt-2 text-sm muted">{fixture.venue}</p>}</Link>)}</div>;
 }
 
 function Results({ results, tenantSlug, compact = false }: { results: CompetitionResult[]; tenantSlug: string; compact?: boolean }) {
@@ -148,4 +150,3 @@ function loadFavouriteKeys() {
 }
 function readFavourite(id: string) { return loadFavouriteKeys().has(`competition:${id}`); }
 function formatDate(value?: string | null) { return value ? new Date(value).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : 'TBC'; }
-function friendlyStatus(value: string) { return value.toLowerCase() === 'inprogress' ? 'Live' : value; }

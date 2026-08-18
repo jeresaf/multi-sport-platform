@@ -87,6 +87,11 @@ public class Contest : TenantAggregateRoot<Guid>
     public string? Name { get; private set; }
     public Guid? WinnerId { get; private set; }
     public ContestStatus Status { get; private set; } = ContestStatus.Draft;
+    public CanonicalContestStatus CanonicalStatus { get; private set; } =
+        CanonicalContestStatus.NotStarted;
+    public string? StatusReason { get; private set; }
+    public DateTime CanonicalStatusChangedAt { get; private set; }
+    public long TimelineVersion { get; private set; }
     public string? Venue { get; private set; }
     public DateTime? StartTime { get; private set; }
     public DateTime? EndTime { get; private set; }
@@ -94,6 +99,13 @@ public class Contest : TenantAggregateRoot<Guid>
     public int SortOrder { get; private set; }
     public new DateTime CreatedAt { get; private set; }
     public new DateTime? UpdatedAt { get; private set; }
+
+    public void IncrementTimelineVersion(long increment = 1)
+    {
+        if (increment < 1) throw new ArgumentOutOfRangeException(nameof(increment));
+        checked { TimelineVersion += increment; }
+        UpdatedAt = DateTime.UtcNow;
+    }
 
     private readonly List<ContestParticipant> _participants = new();
     private readonly List<ContestSegment> _segments = new();
@@ -119,6 +131,7 @@ public class Contest : TenantAggregateRoot<Guid>
         ContestShape = contestShape.Trim();
         Status = ContestStatus.Draft;
         CreatedAt = DateTime.UtcNow;
+        CanonicalStatusChangedAt = CreatedAt;
     }
 
     private static readonly string[] ParticipantTypeNames =
@@ -582,15 +595,22 @@ public class Contest : TenantAggregateRoot<Guid>
 
     public void TransitionTo(
         ContestStatus target,
-        IReadOnlyDictionary<ContestStatus, IReadOnlySet<ContestStatus>>? transitions = null)
+        IReadOnlyDictionary<ContestStatus, IReadOnlySet<ContestStatus>>? transitions = null,
+        Guid? actorId = null,
+        string? reason = null)
     {
         if (!CanTransitionTo(target, transitions))
             throw new InvalidOperationException(
                 $"Contest cannot transition from {Status} to {target}.");
         var original = Status;
+        var originalCanonical = CanonicalStatus;
         Status = target;
+        CanonicalStatus = target.ToCanonical();
+        StatusReason = string.IsNullOrWhiteSpace(reason) ? null : reason.Trim();
+        CanonicalStatusChangedAt = DateTime.UtcNow;
         _pendingTransitions.Add(new ContestStatusTransition(
-            original, target, DateTime.UtcNow));
+            original, target, originalCanonical, CanonicalStatus,
+            CanonicalStatusChangedAt, actorId, StatusReason));
         if (target is ContestStatus.Completed or ContestStatus.Abandoned)
             EndTime = DateTime.UtcNow;
         UpdatedAt = DateTime.UtcNow;
@@ -685,7 +705,11 @@ public sealed class ContestMetric : TenantEntity<Guid>
 public sealed record ContestStatusTransition(
     ContestStatus From,
     ContestStatus To,
-    DateTime OccurredAt);
+    CanonicalContestStatus CanonicalFrom,
+    CanonicalContestStatus CanonicalTo,
+    DateTime OccurredAt,
+    Guid? ActorId,
+    string? Reason);
 
 public enum ContestStatus
 {
@@ -827,6 +851,7 @@ public class ContestEvent : TenantEntity<Guid>
     public Guid? ScorerId { get; private set; }
     public string DeviceId { get; private set; } = string.Empty;
     public long SequenceNumber { get; private set; }
+    public long TimelineSequence { get; private set; }
     public string IdempotencyKey { get; private set; } = string.Empty;
     public DateTime DeviceTimestamp { get; private set; }
     public DateTime ServerTimestamp { get; private set; }
@@ -854,6 +879,13 @@ public class ContestEvent : TenantEntity<Guid>
     }
 
     public void Approve() { Status = EventStatus.Approved; }
+    public void AssignTimelineSequence(long sequence)
+    {
+        if (sequence < 1) throw new ArgumentOutOfRangeException(nameof(sequence));
+        if (TimelineSequence > 0 && TimelineSequence != sequence)
+            throw new InvalidOperationException("A timeline sequence cannot be reassigned.");
+        TimelineSequence = sequence;
+    }
     public void Reject(string reason) { Status = EventStatus.Rejected; }
     public void Correct(string reason, Guid supersededByEventId)
     {

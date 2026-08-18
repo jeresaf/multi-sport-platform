@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../../core/formatters/public_date_time.dart';
+import '../../../../core/widgets/contest_status_label.dart';
 import '../../domain/supporter_models.dart';
 
 enum RugbyVariant { sevens, fifteens }
@@ -102,7 +104,7 @@ class HeadToHeadContestCard extends StatelessWidget {
   final VoidCallback onFavourite;
   final VoidCallback onShare;
 
-  bool get _isLive => fixture.status.toLowerCase() == 'inprogress';
+  bool get _isLive => contestStatusIsLive(fixture.status);
 
   @override
   Widget build(BuildContext context) {
@@ -131,7 +133,7 @@ class HeadToHeadContestCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.labelLarge),
                   ),
-                  _StatusLabel(status: fixture.status, isLive: _isLive),
+                  ContestStatusLabel(status: fixture.status, compact: true),
                   IconButton(
                     visualDensity: VisualDensity.compact,
                     tooltip: isFavourite
@@ -177,6 +179,10 @@ class HeadToHeadContestCard extends StatelessWidget {
                 ...fixture.participantDetails.take(2).map(
                       (participant) => _ParticipantScoreRow(
                         participant: participant,
+                        onTap: participant.id.isEmpty
+                            ? null
+                            : () =>
+                                context.push('/participant/${participant.id}'),
                       ),
                     ),
               if (secondarySummary?.trim().isNotEmpty == true) ...[
@@ -194,9 +200,7 @@ class HeadToHeadContestCard extends StatelessWidget {
                 runSpacing: 4,
                 children: [
                   if (fixture.startTime != null)
-                    Text(DateFormat.MMMd()
-                        .add_Hm()
-                        .format(fixture.startTime!.toLocal())),
+                    Text(formatPublicDateTime(fixture.startTime)),
                   if (fixture.venue?.trim().isNotEmpty == true)
                     Text(fixture.venue!),
                 ],
@@ -256,66 +260,45 @@ class RugbyStageBadge extends StatelessWidget {
 }
 
 class _ParticipantScoreRow extends StatelessWidget {
-  const _ParticipantScoreRow({required this.participant});
+  const _ParticipantScoreRow({required this.participant, this.onTap});
 
   final SupporterFixtureParticipant participant;
+  final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 14,
-              child: Text(participant.name
-                  .split(' ')
-                  .where((part) => part.isNotEmpty)
-                  .take(2)
-                  .map((part) => part[0])
-                  .join()
-                  .toUpperCase()),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(participant.name,
-                  maxLines: 1, overflow: TextOverflow.ellipsis),
-            ),
-            const SizedBox(width: 10),
-            Text(participant.result,
-                style: Theme.of(context)
-                    .textTheme
-                    .titleMedium
-                    ?.copyWith(fontWeight: FontWeight.bold)),
-          ],
-        ),
-      );
-}
-
-class _StatusLabel extends StatelessWidget {
-  const _StatusLabel({required this.status, required this.isLive});
-
-  final String status;
-  final bool isLive;
-
-  @override
-  Widget build(BuildContext context) => Semantics(
-        label: isLive ? 'Live contest' : 'Contest status $status',
-        child: Text(
-          isLive ? 'LIVE' : _friendlyStatus(status),
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: isLive ? Theme.of(context).colorScheme.error : null,
-                fontWeight: FontWeight.bold,
+  Widget build(BuildContext context) => InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 14,
+                child: Text(participant.name
+                    .split(' ')
+                    .where((part) => part.isNotEmpty)
+                    .take(2)
+                    .map((part) => part[0])
+                    .join()
+                    .toUpperCase()),
               ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(participant.name,
+                    maxLines: 1, overflow: TextOverflow.ellipsis),
+              ),
+              const SizedBox(width: 10),
+              Text(participant.result,
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(fontWeight: FontWeight.bold)),
+            ],
+          ),
         ),
       );
 }
-
-String _friendlyStatus(String value) => switch (value.toLowerCase()) {
-      'completed' || 'published' || 'approved' => 'FT',
-      'suspended' => 'POSTPONED',
-      'cancelled' || 'abandoned' => 'CANCELLED',
-      _ => value.toUpperCase(),
-    };
 
 String _adapterLabel(String variant) => switch (variant) {
       'FOOTBALL' || 'SOCCER' => 'Football',

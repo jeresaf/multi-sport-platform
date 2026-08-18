@@ -8,6 +8,7 @@ export type CompetitionFixture = {
   name?: string | null;
   contestShape: string;
   status: string;
+  contestStatus?: string | null;
   startTime?: string | null;
   venue?: string | null;
   participants: Array<{ participantId: string; name: string }>;

@@ -42,22 +42,22 @@ class Competition {
       sportCode:
           json['sportCode']?.toString() ?? _sportCodes[sportId] ?? 'sport',
       status: json['status']?.toString() ?? 'Draft',
-      format: json['format'],
-      tenantId: json['tenantId'],
-      description: json['description'],
-      venue: json['venue'],
+      format: json['format']?.toString(),
+      tenantId: json['tenantId']?.toString(),
+      description: json['description']?.toString(),
+      venue: json['venue']?.toString(),
       startDate: json['startDate'] != null
           ? DateTime.tryParse(json['startDate'])
           : null,
       endDate:
           json['endDate'] != null ? DateTime.tryParse(json['endDate']) : null,
-      participantCount: json['participantCount'] ??
+      participantCount: _integer(json['participantCount']) ??
           (json['participants'] is List
               ? (json['participants'] as List).length
               : 0),
-      contestCount: json['contestCount'] ??
+      contestCount: _integer(json['contestCount']) ??
           (json['statistics'] is Map
-              ? (json['statistics'] as Map)['contestCount'] ?? 0
+              ? _integer((json['statistics'] as Map)['contestCount']) ?? 0
               : 0),
       availableTabs: json['availableTabs'] is List
           ? (json['availableTabs'] as List)
@@ -92,6 +92,9 @@ class Competition {
         'medals': medals.map((item) => item.toJson()).toList(),
       };
 }
+
+int? _integer(dynamic value) =>
+    value is num ? value.toInt() : int.tryParse(value?.toString() ?? '');
 
 class CompetitionMedal {
   final String participantId;

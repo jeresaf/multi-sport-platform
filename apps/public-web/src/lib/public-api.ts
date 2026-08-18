@@ -14,6 +14,7 @@ export type PublicCompetition = {
   sportCode?: string | null;
   sportName?: string | null;
   status: string;
+  contestStatus?: string | null;
   publishedAt?: string | null;
 };
 
@@ -28,6 +29,7 @@ export type PublicContest = {
   contestShape: string;
   renderer?: ContestRenderer;
   status: string;
+  contestStatus?: string | null;
   venue?: string | null;
   startTime?: string | null;
   endTime?: string | null;

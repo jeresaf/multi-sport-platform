@@ -101,10 +101,11 @@ export function MatchCentrePage({ initialFilter = 'all', initialSportSlug }: { i
       });
     };
     connection.on('ContestLiveUpdated', patch);
-    connection.on('ContestSnapshot', (snapshot: { contestId: string; status: string; lastUpdated: string; participantScores?: ContestLiveUpdate['participants'] }) => patch({
+    connection.on('ContestSnapshot', (snapshot: { contestId: string; status: string; contestStatus?: string; lastUpdated: string; participantScores?: ContestLiveUpdate['participants'] }) => patch({
       contestId: snapshot.contestId,
       version: Date.parse(snapshot.lastUpdated) || Date.now(),
       status: snapshot.status,
+      contestStatus: snapshot.contestStatus,
       participants: snapshot.participantScores,
     }));
     const joinAll = () => Promise.all(ids.map(id => connection.invoke('JoinPublicContestGroup', tenantSlug, id)));
@@ -136,7 +137,7 @@ export function MatchCentrePage({ initialFilter = 'all', initialSportSlug }: { i
     if (filter === 'favourites') return favourites.has(`contest:${contest.id}`)
       || (!!contest.competitionId && favourites.has(`competition:${contest.competitionId}`))
       || contest.participants?.some(item => favourites.has(`participant:${item.participantId}`)) === true;
-    return filter === 'all' || contestPhase(contest.status) === filter;
+    return filter === 'all' || contestPhase(contest.contestStatus ?? contest.status) === filter;
   }), [contests, favourites, filter, sportId]);
   const groups = useMemo(() => groupByCompetition(visible), [visible]);
 

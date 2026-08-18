@@ -22,9 +22,15 @@ class ContestRemoteDataSource {
 
   Future<Map<String, dynamic>?> getContest(String id) async {
     final authenticated = await _apiClient.isAuthenticated();
-    final response = await _apiClient.get(
-      authenticated ? '/api/contests/$id' : '$_publicRoot/contests/$id',
-    );
+    dynamic response;
+    try {
+      // Published contest pages use one stable contract for guests and signed-in
+      // supporters. Internal/draft contests still fall back to the admin API.
+      response = await _apiClient.get('$_publicRoot/contests/$id');
+    } catch (_) {
+      if (!authenticated) rethrow;
+      response = await _apiClient.get('/api/contests/$id');
+    }
     return response.data is Map
         ? Map<String, dynamic>.from(response.data as Map)
         : null;
@@ -43,14 +49,25 @@ class ContestRemoteDataSource {
   }
 
   Future<List<Map<String, dynamic>>> getContestEvents(String contestId) async {
-    if (await _apiClient.isAuthenticated()) {
+    try {
       final response = await _apiClient.get(
-        '/api/livescoring/contests/$contestId/scores',
+        '$_publicRoot/contests/$contestId/timeline',
+        queryParameters: {'mode': 'all', 'limit': 200},
       );
-      return _asList(response.data);
+      if (response.data is Map) {
+        return _asList((response.data as Map)['events']);
+      }
+      return const [];
+    } catch (_) {
+      if (!await _apiClient.isAuthenticated()) rethrow;
+      final response = await _apiClient.get(
+        '/api/v1/contests/$contestId/timeline',
+        queryParameters: {'mode': 'all', 'limit': 200},
+      );
+      return response.data is Map
+          ? _asList((response.data as Map)['events'])
+          : const [];
     }
-    final contest = await getContest(contestId);
-    return _asList(contest?['events']);
   }
 
   Future<List<Map<String, dynamic>>> getContestParticipants(
@@ -116,6 +133,9 @@ class ContestRemoteDataSource {
     }
     if (value is Map && value['items'] is List) {
       return _asList(value['items']);
+    }
+    if (value is Map && value['events'] is List) {
+      return _asList(value['events']);
     }
     return [];
   }

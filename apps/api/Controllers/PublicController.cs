@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using SportsPlatform.Infrastructure.Persistence;
+using SportsPlatform.Api.Services;
 using SportsPlatform.Modules.Competitions.Entities;
 using SportsPlatform.Modules.Contests.Entities;
 using SportsPlatform.Modules.Participants.Entities;
@@ -26,10 +27,46 @@ public sealed class PublicController : ControllerBase
     private static readonly Guid RugbySportId =
         Guid.Parse("00000000-0000-0000-0000-000000000106");
     private readonly SportsPlatformDbContext _db;
+    private readonly ContestTimelineService _timeline;
 
-    public PublicController(SportsPlatformDbContext db)
+    public PublicController(SportsPlatformDbContext db, ContestTimelineService timeline)
     {
         _db = db;
+        _timeline = timeline;
+    }
+
+    [HttpGet("contests/{id:guid}/timeline")]
+    public async Task<IActionResult> GetContestTimeline(
+        string slug,
+        Guid id,
+        [FromQuery] string mode = "all",
+        [FromQuery] long? afterSequence = null,
+        [FromQuery] long? afterVersion = null,
+        [FromQuery] string? period = null,
+        [FromQuery] int limit = 100,
+        CancellationToken cancellationToken = default)
+    {
+        if (mode is not ("all" or "key"))
+            return BadRequest(new { Message = "Mode must be 'all' or 'key'." });
+        var tenant = await ResolveTenantAsync(slug, cancellationToken);
+        if (tenant is null) return NotFound();
+        var isPublic = await PublicContests(tenant.Id)
+            .AnyAsync(item => item.Id == id, cancellationToken);
+        if (!isPublic) return NotFound();
+
+        Response.Headers.CacheControl = "no-store";
+        var response = await _timeline.GetAsync(
+            id, tenant.Id, mode, afterSequence, afterVersion, period,
+            Math.Clamp(limit, 1, 200), cancellationToken);
+        if (response is null) return NotFound();
+        return response.VersionConflict
+            ? Conflict(new
+            {
+                Message = "The supplied timeline version is newer than the server timeline.",
+                response.ContestId,
+                response.TimelineVersion
+            })
+            : Ok(response);
     }
 
     [HttpGet("cricket/tournament")]
@@ -230,7 +267,34 @@ public sealed class PublicController : ControllerBase
                 SportName = _db.Sports.Where(sport => sport.Id == x.SportId)
                     .Select(sport => sport.Name).FirstOrDefault(),
                 Status = x.Status.ToString(),
-                x.PublishedAt
+                x.PublishedAt,
+                Format = x.Editions
+                    .SelectMany(edition => edition.Stages)
+                    .OrderBy(stage => stage.SortOrder)
+                    .Select(stage => stage.Type.ToString())
+                    .FirstOrDefault(),
+                StartDate = x.Editions
+                    .OrderBy(edition => edition.StartDate)
+                    .Select(edition => (DateTime?)edition.StartDate)
+                    .FirstOrDefault(),
+                EndDate = x.Editions
+                    .OrderByDescending(edition => edition.EndDate ?? edition.StartDate)
+                    .Select(edition => edition.EndDate ?? edition.StartDate)
+                    .FirstOrDefault(),
+                ContestCount = _db.Contests.Count(contest =>
+                    contest.TenantId == tenant.Id
+                    && contest.StageId.HasValue
+                    && x.Editions.SelectMany(edition => edition.Stages)
+                        .Any(stage => stage.Id == contest.StageId.Value)),
+                ParticipantCount = _db.Contests
+                    .Where(contest => contest.TenantId == tenant.Id
+                        && contest.StageId.HasValue
+                        && x.Editions.SelectMany(edition => edition.Stages)
+                            .Any(stage => stage.Id == contest.StageId.Value))
+                    .SelectMany(contest => contest.Participants)
+                    .Select(participant => participant.ParticipantId)
+                    .Distinct()
+                    .Count()
             })
             .ToListAsync(cancellationToken);
 
@@ -250,6 +314,7 @@ public sealed class PublicController : ControllerBase
                 x.SportId,
                 x.ContestShape,
                 Status = x.Status.ToString(),
+                x.CanonicalStatus,
                 x.Venue,
                 x.StartTime,
                 x.EndTime
@@ -371,8 +436,23 @@ public sealed class PublicController : ControllerBase
             },
             Competitions = competitions,
             FeaturedCompetitions = competitions.Take(6),
-            LiveContests = contests.Where(x => x.Status == nameof(ContestStatus.InProgress)),
-            UpcomingContests = contests.Where(x => x.Status is nameof(ContestStatus.Scheduled) or nameof(ContestStatus.Ready)),
+            LiveContests = contests
+                .Where(x => x.Status == nameof(ContestStatus.InProgress))
+                .Select(x => new
+                {
+                    x.Id, x.Name, x.SportId, x.ContestShape, x.Status,
+                    ContestStatus = x.CanonicalStatus.ToCode(),
+                    x.Venue, x.StartTime, x.EndTime
+                }),
+            UpcomingContests = contests
+                .Where(x => x.Status is nameof(ContestStatus.Scheduled)
+                    or nameof(ContestStatus.Ready))
+                .Select(x => new
+                {
+                    x.Id, x.Name, x.SportId, x.ContestShape, x.Status,
+                    ContestStatus = x.CanonicalStatus.ToCode(),
+                    x.Venue, x.StartTime, x.EndTime
+                }),
             RecentResults = recentResultRows.Select(item => new
             {
                 item.Id,
@@ -427,7 +507,34 @@ public sealed class PublicController : ControllerBase
                 SportName = _db.Sports.Where(sport => sport.Id == x.SportId)
                     .Select(sport => sport.Name).FirstOrDefault(),
                 Status = x.Status.ToString(),
-                x.PublishedAt
+                x.PublishedAt,
+                Format = x.Editions
+                    .SelectMany(edition => edition.Stages)
+                    .OrderBy(stage => stage.SortOrder)
+                    .Select(stage => stage.Type.ToString())
+                    .FirstOrDefault(),
+                StartDate = x.Editions
+                    .OrderBy(edition => edition.StartDate)
+                    .Select(edition => (DateTime?)edition.StartDate)
+                    .FirstOrDefault(),
+                EndDate = x.Editions
+                    .OrderByDescending(edition => edition.EndDate ?? edition.StartDate)
+                    .Select(edition => edition.EndDate ?? edition.StartDate)
+                    .FirstOrDefault(),
+                ContestCount = _db.Contests.Count(contest =>
+                    contest.TenantId == tenant.Id
+                    && contest.StageId.HasValue
+                    && x.Editions.SelectMany(edition => edition.Stages)
+                        .Any(stage => stage.Id == contest.StageId.Value)),
+                ParticipantCount = _db.Contests
+                    .Where(contest => contest.TenantId == tenant.Id
+                        && contest.StageId.HasValue
+                        && x.Editions.SelectMany(edition => edition.Stages)
+                            .Any(stage => stage.Id == contest.StageId.Value))
+                    .SelectMany(contest => contest.Participants)
+                    .Select(participant => participant.ParticipantId)
+                    .Distinct()
+                    .Count()
             })
             .ToListAsync(cancellationToken);
         return Ok(results);
@@ -820,6 +927,21 @@ public sealed class PublicController : ControllerBase
             Region = tenant.Country,
             Status = competition.Status.ToString(),
             competition.PublishedAt,
+            Format = competition.Editions
+                .SelectMany(edition => edition.Stages)
+                .OrderBy(stage => stage.SortOrder)
+                .Select(stage => stage.Type.ToString())
+                .FirstOrDefault(),
+            StartDate = competition.Editions
+                .OrderBy(edition => edition.StartDate)
+                .Select(edition => (DateTime?)edition.StartDate)
+                .FirstOrDefault(),
+            EndDate = competition.Editions
+                .OrderByDescending(edition => edition.EndDate ?? edition.StartDate)
+                .Select(edition => edition.EndDate ?? edition.StartDate)
+                .FirstOrDefault(),
+            ParticipantCount = participantIds.Length,
+            ContestCount = contests.Count,
             Presentation = new
             {
                 presentation.PrimaryContestRenderer,
@@ -865,6 +987,7 @@ public sealed class PublicController : ControllerBase
                     ?? PublicContestRenderer(contest.SportId, contest.ContestShape,
                         contest.Participants.Count),
                 Status = contest.Status.ToString(),
+                ContestStatus = contest.CanonicalStatus.ToCode(),
                 contest.StartTime,
                 contest.EndTime,
                 contest.Venue,
@@ -1027,18 +1150,94 @@ public sealed class PublicController : ControllerBase
                 x.ClockStartedAt
             })
             .FirstOrDefaultAsync(cancellationToken);
+        var competitionContext = contest.StageId.HasValue
+            ? await PublishedCompetitions(tenant.Id)
+                .Where(competition => competition.Editions.Any(edition =>
+                    edition.Stages.Any(stage => stage.Id == contest.StageId.Value)))
+                .Select(competition => new
+                {
+                    CompetitionId = competition.Id,
+                    CompetitionName = competition.Name,
+                    SportCode = _db.Sports
+                        .Where(sport => sport.Id == competition.SportId)
+                        .Select(sport => sport.Code)
+                        .FirstOrDefault()
+                })
+                .FirstOrDefaultAsync(cancellationToken)
+            : null;
+        var resultLookup = results
+            .GroupBy(item => item.ParticipantId)
+            .ToDictionary(group => group.Key, group => group.First());
+        var liveScoreLookup = liveScores
+            .Where(item => item.MetricName.Equals("score", StringComparison.OrdinalIgnoreCase))
+            .GroupBy(item => item.ParticipantId)
+            .ToDictionary(
+                group => group.Key,
+                group => (
+                    Score: group.Sum(item => item.Value),
+                    Display: group.Count() == 1
+                        ? group.Single().DisplayValue
+                        : null));
+        var eventStatistics = contest.Events
+            .GroupBy(item => item.EventType, StringComparer.OrdinalIgnoreCase)
+            .OrderBy(group => group.Key)
+            .Select(group => new
+            {
+                Label = group.Key,
+                Total = group.Count(),
+                Participants = group
+                    .Where(item => item.ParticipantId != Guid.Empty)
+                    .GroupBy(item => item.ParticipantId)
+                    .Select(participantGroup => new
+                    {
+                        ParticipantId = participantGroup.Key,
+                        Count = participantGroup.Count()
+                    })
+            })
+            .ToArray();
+        var activeSegment = session?.ActiveSegmentId is Guid activeSegmentId
+            ? contest.Segments.FirstOrDefault(segment => segment.Id == activeSegmentId)
+            : null;
+        var phase = activeSegment is null
+            ? null
+            : new ContestPhase(
+                PublicStatusCode(activeSegment.SegmentType),
+                activeSegment.Name,
+                activeSegment.SortOrder,
+                session is null ? null : PublicClock(session.ClockSeconds),
+                activeSegment.SegmentType.Contains("break", StringComparison.OrdinalIgnoreCase)
+                    || activeSegment.SegmentType.Contains("interval", StringComparison.OrdinalIgnoreCase),
+                activeSegment.SegmentType.Contains("overtime", StringComparison.OrdinalIgnoreCase)
+                    || activeSegment.SegmentType.Contains("extra", StringComparison.OrdinalIgnoreCase));
+        var resultStatus = results.Count > 0
+            ? ResultStatus.Approved
+            : contest.Status switch
+            {
+                ContestStatus.PendingApproval => ResultStatus.Submitted,
+                ContestStatus.Approved or ContestStatus.Published => ResultStatus.Approved,
+                ContestStatus.Corrected => ResultStatus.Corrected,
+                _ => ResultStatus.None
+            };
 
         return Ok(new
         {
             contest.Id,
             contest.Name,
             contest.SportId,
+            CompetitionId = competitionContext?.CompetitionId,
+            CompetitionName = competitionContext?.CompetitionName,
+            SportCode = competitionContext?.SportCode,
             contest.ContestShape,
             Renderer = PublicContestRenderer(
                 contest.SportId,
                 contest.ContestShape,
                 contest.Participants.Count),
             Status = contest.Status.ToString(),
+            ContestStatus = contest.CanonicalStatus.ToCode(),
+            ResultStatus = resultStatus.ToCode(),
+            Phase = phase,
+            contest.StatusReason,
+            LastChangedAt = contest.CanonicalStatusChangedAt,
             contest.Venue,
             contest.StartTime,
             contest.EndTime,
@@ -1060,13 +1259,30 @@ public sealed class PublicController : ControllerBase
                 contest.AthleticsMaxAttempts
             },
             Session = session,
+            CurrentSegment = activeSegment?.Name,
             Participants = contest.Participants.OrderBy(x => x.SortOrder).Select(x => new
             {
                 x.ParticipantId,
                 Name = names.GetValueOrDefault(x.ParticipantId, "Participant"),
                 x.ParticipantType,
                 Status = x.Status.ToString(),
-                x.SortOrder
+                x.SortOrder,
+                Score = resultLookup.TryGetValue(x.ParticipantId, out var result)
+                    ? result.Score
+                    : liveScoreLookup.TryGetValue(x.ParticipantId, out var liveScore)
+                        ? liveScore.Score
+                        : null,
+                ScoreDisplay = resultLookup.TryGetValue(x.ParticipantId, out var displayResult)
+                    ? displayResult.ScoreDisplay
+                    : liveScoreLookup.TryGetValue(x.ParticipantId, out var liveDisplay)
+                        ? liveDisplay.Display
+                        : null,
+                Rank = resultLookup.TryGetValue(x.ParticipantId, out var rankResult)
+                    ? rankResult.Rank
+                    : null,
+                Position = resultLookup.TryGetValue(x.ParticipantId, out var positionResult)
+                    ? positionResult.Position
+                    : null
             }),
             Segments = contest.Segments.OrderBy(x => x.SortOrder).Select(x => new
             {
@@ -1098,6 +1314,12 @@ public sealed class PublicController : ControllerBase
                 x.SequenceNumber,
                 x.CreatedAt
             }),
+            Statistics = new
+            {
+                TotalEvents = contest.Events.Count,
+                LiveUpdates = liveScores.Count,
+                EventBreakdown = eventStatistics
+            },
             Results = results,
             LiveScores = liveScores
         });
@@ -1255,6 +1477,7 @@ public sealed class PublicController : ControllerBase
                 contest.SportId,
                 contest.ContestShape,
                 Status = contest.Status.ToString(),
+                ContestStatus = contest.CanonicalStatus.ToCode(),
                 contest.Venue,
                 contest.StartTime,
                 Opponents = contest.Participants
@@ -1431,6 +1654,7 @@ public sealed class PublicController : ControllerBase
                     contest.ContestShape,
                     contest.Participants.Count),
                 Status = contest.Status.ToString(),
+                ContestStatus = contest.CanonicalStatus.ToCode(),
                 contest.StartTime,
                 contest.EndTime,
                 contest.Venue,
@@ -2457,6 +2681,17 @@ public sealed class PublicController : ControllerBase
         Guid? CompetitionId,
         string? Venue,
         string? Href);
+
+    private static string PublicStatusCode(string value) => value.Trim()
+        .Replace("-", "_", StringComparison.Ordinal)
+        .Replace(" ", "_", StringComparison.Ordinal)
+        .ToUpperInvariant();
+
+    private static string PublicClock(decimal seconds)
+    {
+        var wholeSeconds = Math.Max(0, (int)Math.Floor(seconds));
+        return $"{wholeSeconds / 60:00}:{wholeSeconds % 60:00}";
+    }
 
     private static string PublicContestRenderer(
         Guid sportId,

@@ -49,7 +49,9 @@ class SupporterFixture {
       sportName:
           json['sportName']?.toString() ?? sportNames[sportId] ?? 'Sport',
       renderer: json['renderer']?.toString() ?? 'head-to-head',
-      status: json['status']?.toString() ?? 'Scheduled',
+      status: json['contestStatus']?.toString() ??
+          json['status']?.toString() ??
+          'NOT_STARTED',
       startTime: DateTime.tryParse(json['startTime']?.toString() ?? ''),
       venue: json['venue']?.toString(),
       participants: participantDetails.map((item) => item.name).toList(),

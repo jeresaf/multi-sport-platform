@@ -28,7 +28,7 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
           1, '/live', 'Live', Icons.sensors_outlined, Icons.sensors),
       const _NavigationItem(2, '/favourites', 'Favourites',
           Icons.favorite_border, Icons.favorite),
-      const _NavigationItem(3, '/competitions', 'Competitions',
+      const _NavigationItem(3, '/competitions', 'Events',
           Icons.emoji_events_outlined, Icons.emoji_events),
       _NavigationItem(
           5, morePath, 'More', Icons.grid_view_outlined, Icons.grid_view),
@@ -40,14 +40,25 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
       ...phoneItems.skip(2),
     ];
     final currentPath = GoRouterState.of(context).uri.path;
-    final isHome = currentPath == '/' ||
-        currentPath == '/home' ||
+    final isHome = currentPath == '/' || currentPath == '/home';
+    final isShellRoot = isHome ||
+        currentPath == '/live' ||
+        currentPath == '/favourites' ||
+        currentPath == '/competitions' ||
+        currentPath == '/search' ||
+        currentPath == '/settings' ||
+        currentPath == '/support' ||
+        currentPath == '/scoring' ||
         currentPath.startsWith('/sport/');
 
     return PopScope(
-      canPop: !isHome,
+      canPop: !isShellRoot,
       onPopInvokedWithResult: (didPop, _) {
-        if (didPop || !isHome) return;
+        if (didPop) return;
+        if (!isHome) {
+          widget.navigationShell.goBranch(0, initialLocation: true);
+          return;
+        }
         final now = DateTime.now();
         if (_lastHomeBackPress != null &&
             now.difference(_lastHomeBackPress!) < const Duration(seconds: 2)) {
@@ -94,8 +105,18 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
             onDestinationSelected: (index) => _select(items[index]),
             destinations: items
                 .map((item) => NavigationDestination(
-                      icon: Icon(item.icon),
-                      selectedIcon: Icon(item.selectedIcon),
+                      icon: Tooltip(
+                        message: item.path == '/competitions'
+                            ? 'Competitions'
+                            : item.label,
+                        child: Icon(item.icon),
+                      ),
+                      selectedIcon: Tooltip(
+                        message: item.path == '/competitions'
+                            ? 'Competitions'
+                            : item.label,
+                        child: Icon(item.selectedIcon),
+                      ),
                       label: item.label,
                     ))
                 .toList(),

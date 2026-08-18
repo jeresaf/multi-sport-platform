@@ -9,6 +9,8 @@ import '../../../supporter/data/supporter_preferences.dart';
 import '../../../supporter/data/supporter_share_service.dart';
 import '../widgets/competition_output_renderer.dart';
 import '../../../supporter/presentation/widgets/alert_preferences_sheet.dart';
+import '../../../../core/formatters/public_date_time.dart';
+import '../../../../core/widgets/contest_status_label.dart';
 
 /// Competition detail screen
 class CompetitionDetailScreen extends ConsumerWidget {
@@ -129,248 +131,316 @@ class _CompetitionContent extends ConsumerWidget {
     final leaderboard = competition.availableTabs.contains('leaderboard')
         ? ref.watch(golfLeaderboardProvider(competition.id)).valueOrNull
         : null;
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        // Competition header
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: _getStatusColor(competition.status)
-                            .withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        competition.status,
-                        style: TextStyle(
-                          color: _getStatusColor(competition.status),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.sports,
-                              size: 14, color: Colors.grey.shade600),
-                          const SizedBox(width: 4),
-                          Text(
-                            competition.sportCode.toUpperCase(),
-                            style: TextStyle(
-                              color: Colors.grey.shade600,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  competition.name,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
-                if (competition.description != null) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    competition.description!,
-                    style: TextStyle(color: Colors.grey.shade600),
-                  ),
-                ],
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    _InfoChip(
-                      icon: Icons.calendar_today,
-                      label: _formatDate(competition.startDate),
-                    ),
-                    const SizedBox(width: 16),
-                    _InfoChip(
-                      icon: Icons.location_on,
-                      label: competition.venue ?? 'TBD',
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 24),
-
-        // Format info
-        Text(
-          'Format',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-        ),
-        const SizedBox(height: 12),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                _FormatRow(label: 'Type', value: competition.format ?? 'N/A'),
-                _FormatRow(
-                    label: 'Participants',
-                    value: '${competition.participantCount}'),
-                _FormatRow(
-                    label: 'Contests', value: '${competition.contestCount}'),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 24),
-
-        if (competition.availableTabs.contains('bracket') ||
-            competition.availableTabs.contains('series') ||
-            competition.availableTabs.contains('leaderboard') ||
-            competition.availableTabs.contains('medals')) ...[
-          Text(
-            'Tournament views',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: [
-              if (competition.availableTabs.contains('bracket'))
-                FilledButton.tonalIcon(
-                  onPressed: () => context.push(Routes.bracket(competition.id)),
-                  icon: const Icon(Icons.account_tree),
-                  label: const Text('Open playoff bracket'),
-                ),
-              if (competition.availableTabs.contains('leaderboard'))
-                FilledButton.tonalIcon(
-                  onPressed: () =>
-                      context.push(Routes.golfLeaderboard(competition.id)),
-                  icon: const Icon(Icons.leaderboard),
-                  label: const Text('Open leaderboard'),
-                ),
-              if (competition.sportCode.toLowerCase() == 'combat' ||
-                  competition.sportCode.toLowerCase() == 'mma')
-                FilledButton.tonalIcon(
-                  onPressed: () =>
-                      context.push(Routes.fightCard(competition.id)),
-                  icon: const Icon(Icons.sports_mma),
-                  label: const Text('Open fight card'),
-                ),
+    final hasGames = fixtures.isNotEmpty ||
+        results.isNotEmpty ||
+        competition.availableTabs.any(
+          const {
+            'fixtures',
+            'results',
+            'bracket',
+            'series',
+            'leaderboard',
+            'medals',
+          }.contains,
+        );
+    final hasTable = standings.isNotEmpty ||
+        competition.availableTabs.any(
+          const {'standings', 'groups', 'conference'}.contains,
+        );
+    return DefaultTabController(
+      length: 1 + (hasGames ? 1 : 0) + (hasTable ? 1 : 0),
+      child: Column(
+        children: [
+          TabBar(
+            tabs: [
+              const Tab(text: 'Overview'),
+              if (hasGames) const Tab(text: 'Games'),
+              if (hasTable) const Tab(text: 'Table'),
             ],
           ),
-          if (competition.availableTabs.contains('bracket')) ...[
-            const SizedBox(height: 16),
-            CompetitionOutputRenderer(
-              kind: CompetitionOutputKind.bracket,
-              bracket: bracket,
-              onContest: (id) => context.push('/contest/$id'),
-            ),
-          ],
-          if (competition.availableTabs.contains('series')) ...[
-            const SizedBox(height: 16),
-            CompetitionOutputRenderer(
-              kind: CompetitionOutputKind.series,
-              bracket: bracket,
-            ),
-          ],
-          if (competition.availableTabs.contains('leaderboard')) ...[
-            const SizedBox(height: 16),
-            CompetitionOutputRenderer(
-              kind: CompetitionOutputKind.leaderboard,
-              leaderboard: leaderboard,
-              compact: true,
-            ),
-          ],
-          if (competition.availableTabs.contains('medals')) ...[
-            const SizedBox(height: 16),
-            CompetitionOutputRenderer(
-              kind: CompetitionOutputKind.medals,
-              medals: competition.medals,
-            ),
-          ],
-          const SizedBox(height: 24),
-        ],
-
-        // Schedule
-        Text(
-          'Schedule & Results',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-        ),
-        const SizedBox(height: 12),
-        Card(
-          child: fixtures.isEmpty
-              ? const Padding(
-                  padding: EdgeInsets.all(24),
-                  child: Center(child: Text('No published contests yet')),
-                )
-              : Column(
-                  children: fixtures.map((fixture) {
-                    final fixtureResults = results
-                        .where((item) => item.contestId == fixture.id)
-                        .toList();
-                    return ListTile(
-                      leading: Icon(
-                        fixture.status == 'Completed'
-                            ? Icons.check_circle_outline
-                            : Icons.schedule,
+          Expanded(
+            child: TabBarView(
+              children: [
+                if (hasGames)
+                  ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(16),
+                    children: [
+                      // Competition header
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: _getStatusColor(competition.status)
+                                          .withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      competition.status,
+                                      style: TextStyle(
+                                        color:
+                                            _getStatusColor(competition.status),
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey.shade100,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.sports,
+                                            size: 14,
+                                            color: Colors.grey.shade600),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          competition.sportCode.toUpperCase(),
+                                          style: TextStyle(
+                                            color: Colors.grey.shade600,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                competition.name,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .headlineSmall
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                              ),
+                              if (competition.description != null) ...[
+                                const SizedBox(height: 8),
+                                Text(
+                                  competition.description!,
+                                  style: TextStyle(color: Colors.grey.shade600),
+                                ),
+                              ],
+                              const SizedBox(height: 16),
+                              Row(
+                                children: [
+                                  _InfoChip(
+                                    icon: Icons.calendar_today,
+                                    label: _formatDate(competition.startDate),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  _InfoChip(
+                                    icon: Icons.location_on,
+                                    label: competition.venue ?? 'TBD',
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                      title: Text(fixture.participants.isEmpty
-                          ? fixture.name
-                          : fixture.participants.join(' vs ')),
-                      subtitle: Text(fixtureResults.isEmpty
-                          ? fixture.status
-                          : fixtureResults
-                              .map((item) =>
-                                  '${item.participantName} ${item.score}')
-                              .join(' · ')),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () => context.push('/contest/${fixture.id}'),
-                    );
-                  }).toList(),
-                ),
-        ),
-        const SizedBox(height: 24),
+                      const SizedBox(height: 24),
 
-        // Standings
-        Text(
-          'Standings',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-        ),
-        const SizedBox(height: 12),
-        CompetitionOutputRenderer(
-          kind: competition.availableTabs.contains('groups')
-              ? CompetitionOutputKind.groups
-              : CompetitionOutputKind.standings,
-          standings: standings,
-        ),
-      ],
+                      // Format info
+                      Text(
+                        'Format',
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                      ),
+                      const SizedBox(height: 12),
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            children: [
+                              _FormatRow(
+                                  label: 'Type',
+                                  value: competition.format ?? 'N/A'),
+                              _FormatRow(
+                                  label: 'Participants',
+                                  value: '${competition.participantCount}'),
+                              _FormatRow(
+                                  label: 'Contests',
+                                  value: '${competition.contestCount}'),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                    ],
+                  ),
+                if (hasTable)
+                  ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(16),
+                    children: [
+                      if (competition.availableTabs.contains('bracket') ||
+                          competition.availableTabs.contains('series') ||
+                          competition.availableTabs.contains('leaderboard') ||
+                          competition.availableTabs.contains('medals')) ...[
+                        Text(
+                          'Tournament views',
+                          style:
+                              Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                        ),
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 12,
+                          children: [
+                            if (competition.availableTabs.contains('bracket'))
+                              FilledButton.tonalIcon(
+                                onPressed: () => context
+                                    .push(Routes.bracket(competition.id)),
+                                icon: const Icon(Icons.account_tree),
+                                label: const Text('Open playoff bracket'),
+                              ),
+                            if (competition.availableTabs
+                                .contains('leaderboard'))
+                              FilledButton.tonalIcon(
+                                onPressed: () => context.push(
+                                    Routes.golfLeaderboard(competition.id)),
+                                icon: const Icon(Icons.leaderboard),
+                                label: const Text('Open leaderboard'),
+                              ),
+                            if (competition.sportCode.toLowerCase() ==
+                                    'combat' ||
+                                competition.sportCode.toLowerCase() == 'mma')
+                              FilledButton.tonalIcon(
+                                onPressed: () => context
+                                    .push(Routes.fightCard(competition.id)),
+                                icon: const Icon(Icons.sports_mma),
+                                label: const Text('Open fight card'),
+                              ),
+                          ],
+                        ),
+                        if (competition.availableTabs.contains('bracket')) ...[
+                          const SizedBox(height: 16),
+                          CompetitionOutputRenderer(
+                            kind: CompetitionOutputKind.bracket,
+                            bracket: bracket,
+                            onContest: (id) => context.push('/contest/$id'),
+                          ),
+                        ],
+                        if (competition.availableTabs.contains('series')) ...[
+                          const SizedBox(height: 16),
+                          CompetitionOutputRenderer(
+                            kind: CompetitionOutputKind.series,
+                            bracket: bracket,
+                          ),
+                        ],
+                        if (competition.availableTabs
+                            .contains('leaderboard')) ...[
+                          const SizedBox(height: 16),
+                          CompetitionOutputRenderer(
+                            kind: CompetitionOutputKind.leaderboard,
+                            leaderboard: leaderboard,
+                            compact: true,
+                          ),
+                        ],
+                        if (competition.availableTabs.contains('medals')) ...[
+                          const SizedBox(height: 16),
+                          CompetitionOutputRenderer(
+                            kind: CompetitionOutputKind.medals,
+                            medals: competition.medals,
+                          ),
+                        ],
+                        const SizedBox(height: 24),
+                      ],
+
+                      // Schedule
+                      Text(
+                        'Schedule & Results',
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                      ),
+                      const SizedBox(height: 12),
+                      Card(
+                        child: fixtures.isEmpty
+                            ? const Padding(
+                                padding: EdgeInsets.all(24),
+                                child: Center(
+                                    child: Text('No published contests yet')),
+                              )
+                            : Column(
+                                children: fixtures.map((fixture) {
+                                  final fixtureResults = results
+                                      .where((item) =>
+                                          item.contestId == fixture.id)
+                                      .toList();
+                                  return ListTile(
+                                    leading: Icon(
+                                      contestStatusTone(fixture.status) ==
+                                              ContestStatusTone.finished
+                                          ? Icons.check_circle_outline
+                                          : Icons.schedule,
+                                    ),
+                                    title: Text(fixture.participants.isEmpty
+                                        ? fixture.name
+                                        : fixture.participants.join(' vs ')),
+                                    subtitle: Text(fixtureResults.isEmpty
+                                        ? contestStatusLabel(fixture.status)
+                                        : fixtureResults
+                                            .map((item) =>
+                                                '${item.participantName} ${item.score}')
+                                            .join(' · ')),
+                                    trailing: const Icon(Icons.chevron_right),
+                                    onTap: () =>
+                                        context.push('/contest/${fixture.id}'),
+                                  );
+                                }).toList(),
+                              ),
+                      ),
+                      const SizedBox(height: 24),
+                    ],
+                  ),
+                ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    // Standings
+                    Text(
+                      'Standings',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                    const SizedBox(height: 12),
+                    CompetitionOutputRenderer(
+                      kind: competition.availableTabs.contains('groups')
+                          ? CompetitionOutputKind.groups
+                          : CompetitionOutputKind.standings,
+                      standings: standings,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -392,8 +462,7 @@ class _CompetitionContent extends ConsumerWidget {
   }
 
   String _formatDate(DateTime? date) {
-    if (date == null) return 'TBD';
-    return '${date.day}/${date.month}/${date.year}';
+    return formatPublicDate(date);
   }
 }
 

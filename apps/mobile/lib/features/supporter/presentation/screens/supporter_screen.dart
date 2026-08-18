@@ -20,108 +20,124 @@ class SupporterScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final feed = ref.watch(supporterFeedProvider);
     final preferences = ref.watch(supporterPreferencesProvider);
-    return DefaultTabController(
-      length: 4,
-      initialIndex: initialTab,
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(liveOnly
-              ? 'Live'
-              : initialTab == 3
-                  ? 'Favourites'
-                  : 'Schedule & results'),
-          actions: [
-            IconButton(
-              tooltip: preferences.lowDataMode
-                  ? 'Disable low-data mode'
-                  : 'Enable low-data mode',
-              onPressed: () => ref
-                  .read(supporterPreferencesProvider.notifier)
-                  .setLowDataMode(!preferences.lowDataMode),
-              icon: Icon(preferences.lowDataMode
-                  ? Icons.data_saver_on
-                  : Icons.data_saver_off),
-            ),
-          ],
-          bottom: const TabBar(
-            isScrollable: true,
-            tabs: [
-              Tab(text: 'Schedule'),
-              Tab(text: 'Results'),
-              Tab(text: 'Standings'),
-              Tab(text: 'Favourites'),
-            ],
+    final scaffold = Scaffold(
+      appBar: AppBar(
+        title: Text(liveOnly
+            ? 'Live'
+            : initialTab == 3
+                ? 'Favourites'
+                : 'Schedule & results'),
+        actions: [
+          IconButton(
+            tooltip: preferences.lowDataMode
+                ? 'Disable low-data mode'
+                : 'Enable low-data mode',
+            onPressed: () => ref
+                .read(supporterPreferencesProvider.notifier)
+                .setLowDataMode(!preferences.lowDataMode),
+            icon: Icon(preferences.lowDataMode
+                ? Icons.data_saver_on
+                : Icons.data_saver_off),
           ),
+        ],
+        bottom: liveOnly
+            ? null
+            : const TabBar(
+                isScrollable: true,
+                tabs: [
+                  Tab(text: 'Schedule'),
+                  Tab(text: 'Results'),
+                  Tab(text: 'Standings'),
+                  Tab(text: 'Favourites'),
+                ],
+              ),
+      ),
+      body: feed.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, _) => _ErrorView(
+          message: error.toString(),
+          onRetry: () => ref.read(supporterFeedProvider.notifier).refresh(),
         ),
-        body: feed.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, _) => _ErrorView(
-            message: error.toString(),
-            onRetry: () => ref.read(supporterFeedProvider.notifier).refresh(),
-          ),
-          data: (data) {
-            final fixtures = liveOnly
-                ? data.fixtures.where((item) {
-                    final status = item.status.toLowerCase();
-                    return status == 'live' || status == 'inprogress';
-                  }).toList()
-                : data.fixtures;
-            return Column(
-              children: [
-                if (data.isFromCache)
-                  MaterialBanner(
-                    leading: const Icon(Icons.offline_bolt),
-                    content: Text(
-                      data.cachedAt == null
-                          ? 'Showing saved data'
-                          : 'Showing saved data from ${DateFormat.MMMd().add_Hm().format(data.cachedAt!.toLocal())}',
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () =>
-                            ref.read(supporterFeedProvider.notifier).refresh(),
-                        child: const Text('RETRY'),
-                      ),
-                    ],
+        data: (data) {
+          final fixtures = liveOnly
+              ? data.fixtures.where((item) {
+                  final status = item.status.toLowerCase();
+                  return status == 'live' || status == 'inprogress';
+                }).toList()
+              : data.fixtures;
+          return Column(
+            children: [
+              if (data.isFromCache)
+                MaterialBanner(
+                  leading: const Icon(Icons.offline_bolt),
+                  content: Text(
+                    data.cachedAt == null
+                        ? 'Showing saved data'
+                        : 'Showing saved data from ${DateFormat.MMMd().add_Hm().format(data.cachedAt!.toLocal())}',
                   ),
-                Expanded(
-                  child: TabBarView(
-                    children: [
-                      _RefreshableList(
-                        emptyMessage: 'No upcoming contests',
+                  actions: [
+                    TextButton(
+                      onPressed: () =>
+                          ref.read(supporterFeedProvider.notifier).refresh(),
+                      child: const Text('RETRY'),
+                    ),
+                  ],
+                ),
+              Expanded(
+                child: liveOnly
+                    ? _RefreshableList(
+                        emptyMessage: 'No contests are live right now',
                         itemCount: fixtures.length,
                         onRefresh: () =>
                             ref.read(supporterFeedProvider.notifier).refresh(),
                         itemBuilder: (context, index) =>
                             _FixtureCard(fixture: fixtures[index]),
+                      )
+                    : TabBarView(
+                        children: [
+                          _RefreshableList(
+                            emptyMessage: 'No upcoming contests',
+                            itemCount: fixtures.length,
+                            onRefresh: () => ref
+                                .read(supporterFeedProvider.notifier)
+                                .refresh(),
+                            itemBuilder: (context, index) =>
+                                _FixtureCard(fixture: fixtures[index]),
+                          ),
+                          _RefreshableList(
+                            emptyMessage: 'No published results',
+                            itemCount: data.results.length,
+                            onRefresh: () => ref
+                                .read(supporterFeedProvider.notifier)
+                                .refresh(),
+                            itemBuilder: (context, index) =>
+                                _ResultTile(result: data.results[index]),
+                          ),
+                          _RefreshableList(
+                            emptyMessage: 'No standings available',
+                            itemCount: data.standings.length,
+                            onRefresh: () => ref
+                                .read(supporterFeedProvider.notifier)
+                                .refresh(),
+                            itemBuilder: (context, index) =>
+                                _StandingTile(standing: data.standings[index]),
+                          ),
+                          _FavouritesList(
+                            favourites: preferences.favourites.values.toList(),
+                          ),
+                        ],
                       ),
-                      _RefreshableList(
-                        emptyMessage: 'No published results',
-                        itemCount: data.results.length,
-                        onRefresh: () =>
-                            ref.read(supporterFeedProvider.notifier).refresh(),
-                        itemBuilder: (context, index) =>
-                            _ResultTile(result: data.results[index]),
-                      ),
-                      _RefreshableList(
-                        emptyMessage: 'No standings available',
-                        itemCount: data.standings.length,
-                        onRefresh: () =>
-                            ref.read(supporterFeedProvider.notifier).refresh(),
-                        itemBuilder: (context, index) =>
-                            _StandingTile(standing: data.standings[index]),
-                      ),
-                      _FavouritesList(
-                        favourites: preferences.favourites.values.toList(),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            );
-          },
-        ),
+              ),
+            ],
+          );
+        },
       ),
+    );
+    if (liveOnly) return scaffold;
+    return DefaultTabController(
+      length: 4,
+      initialIndex: initialTab,
+      child: scaffold,
     );
   }
 }

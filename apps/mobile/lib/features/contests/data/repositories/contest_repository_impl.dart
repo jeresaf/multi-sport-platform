@@ -25,6 +25,8 @@ class Contest {
   final String? awayParticipantName;
   final int? homeScore;
   final int? awayScore;
+  final String? homeScoreDisplay;
+  final String? awayScoreDisplay;
   final String? currentSegment;
   final Map<String, dynamic>? metadata;
 
@@ -43,6 +45,8 @@ class Contest {
     this.awayParticipantName,
     this.homeScore,
     this.awayScore,
+    this.homeScoreDisplay,
+    this.awayScoreDisplay,
     this.currentSegment,
     this.metadata,
   });
@@ -62,7 +66,7 @@ class Contest {
       name: json['name']?.toString().trim().isNotEmpty == true
           ? json['name'].toString()
           : json['contestShape']?.toString() ?? 'Contest',
-      status: _statusName(json['status']),
+      status: _statusName(json['contestStatus'] ?? json['status']),
       sportId: sportId,
       sportCode: json['sportCode']?.toString().toLowerCase() ??
           _sportCodes[sportId] ??
@@ -70,20 +74,31 @@ class Contest {
       scheduledAt: DateTime.tryParse(
         json['scheduledAt']?.toString() ??
             json['scheduledStart']?.toString() ??
+            json['startTime']?.toString() ??
             '',
       ),
       homeParticipantId: json['homeParticipantId']?.toString() ??
           _participantId(participants, 0),
-      homeParticipantName: json['homeParticipantName']?.toString(),
+      homeParticipantName: _nonEmpty(json['homeParticipantName']) ??
+          _participantValue(participants, 0, 'name'),
       awayParticipantId: json['awayParticipantId']?.toString() ??
           _participantId(participants, 1),
-      awayParticipantName: json['awayParticipantName']?.toString(),
-      homeScore: _integer(json['homeScore']),
-      awayScore: _integer(json['awayScore']),
+      awayParticipantName: _nonEmpty(json['awayParticipantName']) ??
+          _participantValue(participants, 1, 'name'),
+      homeScore: _integer(json['homeScore']) ??
+          _integer(_participantRaw(participants, 0, 'score')),
+      awayScore: _integer(json['awayScore']) ??
+          _integer(_participantRaw(participants, 1, 'score')),
+      homeScoreDisplay: _nonEmpty(json['homeScoreDisplay']) ??
+          _participantScoreDisplay(participants, 0),
+      awayScoreDisplay: _nonEmpty(json['awayScoreDisplay']) ??
+          _participantScoreDisplay(participants, 1),
       currentSegment: json['currentSegment']?.toString(),
       metadata: {
         if (json['metadata'] is Map)
           ...Map<String, dynamic>.from(json['metadata'] as Map),
+        if (json['statistics'] is Map)
+          'stats': Map<String, dynamic>.from(json['statistics'] as Map),
         'participants': participants,
       },
     );
@@ -96,6 +111,32 @@ class Contest {
       participants.length > index
           ? participants[index]['participantId']?.toString()
           : null;
+
+  static dynamic _participantRaw(
+    List<Map<String, dynamic>> participants,
+    int index,
+    String key,
+  ) =>
+      participants.length > index ? participants[index][key] : null;
+
+  static String? _participantValue(
+    List<Map<String, dynamic>> participants,
+    int index,
+    String key,
+  ) =>
+      _nonEmpty(_participantRaw(participants, index, key));
+
+  static String? _participantScoreDisplay(
+    List<Map<String, dynamic>> participants,
+    int index,
+  ) =>
+      _participantValue(participants, index, 'scoreDisplay') ??
+      _participantValue(participants, index, 'score');
+
+  static String? _nonEmpty(dynamic value) {
+    final text = value?.toString().trim();
+    return text == null || text.isEmpty ? null : text;
+  }
 
   static int? _integer(dynamic value) =>
       value is num ? value.toInt() : int.tryParse(value?.toString() ?? '');
@@ -116,9 +157,12 @@ class Contest {
           .toList() ??
       const [];
 
-  bool get isLive => status == 'InProgress' || status == 'Live';
-  bool get isCompleted => status == 'Completed';
-  bool get isScheduled => status == 'Scheduled';
+  bool get isLive =>
+      const {'inprogress', 'live'}.contains(status.toLowerCase());
+  bool get isCompleted =>
+      const {'completed', 'ended', 'closed'}.contains(status.toLowerCase());
+  bool get isScheduled => const {'scheduled', 'not_started', 'starting_soon'}
+      .contains(status.toLowerCase());
 }
 
 class ContestEvent {
@@ -145,10 +189,12 @@ class ContestEvent {
   factory ContestEvent.fromJson(Map<String, dynamic> json) => ContestEvent(
         id: json['id']?.toString() ?? json['eventId']?.toString() ?? '',
         contestId: json['contestId']?.toString() ?? '',
-        eventType: json['eventType']?.toString() ??
+        eventType: json['type']?.toString() ??
+            json['eventType']?.toString() ??
             json['metricName']?.toString() ??
             '',
-        participantId: json['participantId']?.toString(),
+        participantId: json['primaryParticipantId']?.toString() ??
+            json['participantId']?.toString(),
         secondaryParticipantId: json['secondaryParticipantId']?.toString(),
         data: {
           if (json['data'] is Map)
@@ -157,9 +203,34 @@ class ContestEvent {
           if (json.containsKey('segmentId')) 'segmentId': json['segmentId'],
           if (json.containsKey('clockSeconds'))
             'clockSeconds': json['clockSeconds'],
+          if (json.containsKey('clock')) 'clock': json['clock'],
+          if (json.containsKey('category')) 'category': json['category'],
+          if (json.containsKey('status')) 'status': json['status'],
+          if (json.containsKey('importance')) 'importance': json['importance'],
+          if (json.containsKey('displayValue'))
+            'displayValue': json['displayValue'],
+          if (json.containsKey('sportCode')) 'sportCode': json['sportCode'],
+          if (json.containsKey('primaryParticipantName'))
+            'primaryParticipantName': json['primaryParticipantName'],
+          if (json.containsKey('secondaryParticipantName'))
+            'secondaryParticipantName': json['secondaryParticipantName'],
+          if (json.containsKey('primaryPlayerName'))
+            'primaryPlayerName': json['primaryPlayerName'],
+          if (json.containsKey('secondaryPlayerName'))
+            'secondaryPlayerName': json['secondaryPlayerName'],
+          if (json.containsKey('homeScoreAfter'))
+            'homeScoreAfter': json['homeScoreAfter'],
+          if (json.containsKey('awayScoreAfter'))
+            'awayScoreAfter': json['awayScoreAfter'],
+          if (json.containsKey('shootoutHomeScoreAfter'))
+            'shootoutHomeScoreAfter': json['shootoutHomeScoreAfter'],
+          if (json.containsKey('shootoutAwayScoreAfter'))
+            'shootoutAwayScoreAfter': json['shootoutAwayScoreAfter'],
         },
         timestamp: DateTime.tryParse(
               json['timestamp']?.toString() ??
+                  json['occurredAt']?.toString() ??
+                  json['recordedAt']?.toString() ??
                   json['createdAt']?.toString() ??
                   '',
             ) ??

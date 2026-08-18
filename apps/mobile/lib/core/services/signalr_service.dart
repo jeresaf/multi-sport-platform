@@ -196,6 +196,14 @@ class SignalRService {
     connection.on('SegmentEnded', _handleContestChanged);
     connection.on('ParticipantStatusChanged', _handleContestChanged);
     connection.on('EventRecorded', _handleContestEvent);
+    for (final eventName in const [
+      'contest.timeline.event.created',
+      'contest.timeline.event.updated',
+      'contest.timeline.event.corrected',
+      'contest.timeline.event.reversed',
+    ]) {
+      connection.on(eventName, _handleCanonicalTimelineEvent);
+    }
     connection.onReconnecting((_) {
       if (!_manuallyStopped) {
         _setStatus(SignalRConnectionStatus.reconnecting);
@@ -371,6 +379,14 @@ class SignalRService {
     }
   }
 
+  void _handleCanonicalTimelineEvent(List<Object?>? arguments) {
+    final payload = _payload(arguments);
+    if (payload == null || payload['event'] is! Map) return;
+    final event = Map<String, dynamic>.from(payload['event'] as Map);
+    event['contestId'] = payload['contestId'];
+    _contestEventController.add(ContestEvent.fromJson(event));
+  }
+
   Map<String, dynamic>? _payload(List<Object?>? arguments) {
     if (arguments == null || arguments.isEmpty || arguments.first is! Map) {
       return null;
@@ -444,7 +460,7 @@ class ContestLivePatch {
         version: json['version'] is num
             ? (json['version'] as num).toInt()
             : int.tryParse(json['version']?.toString() ?? '') ?? 0,
-        status: json['status']?.toString(),
+        status: json['contestStatus']?.toString() ?? json['status']?.toString(),
         summary: json['summary']?.toString(),
         participants: json['participants'] is List
             ? (json['participants'] as List)
@@ -471,7 +487,9 @@ class ContestUpdate {
 
   factory ContestUpdate.fromJson(Map<String, dynamic> json) => ContestUpdate(
         contestId: json['contestId']?.toString() ?? '',
-        status: json['status']?.toString() ?? '',
+        status: json['contestStatus']?.toString() ??
+            json['status']?.toString() ??
+            '',
         timestamp: _dateTime(json['timestamp'] ?? json['lastUpdated']),
         data: json,
       );
@@ -523,15 +541,39 @@ class ContestEvent {
   });
 
   factory ContestEvent.fromJson(Map<String, dynamic> json) => ContestEvent(
-        eventId: json['eventId']?.toString() ?? '',
+        eventId: json['id']?.toString() ?? json['eventId']?.toString() ?? '',
         contestId: json['contestId']?.toString() ?? '',
-        eventType: json['eventType']?.toString() ?? '',
-        participantId: json['participantId']?.toString(),
+        eventType: json['type']?.toString() ?? json['eventType']?.toString() ?? '',
+        participantId: json['primaryParticipantId']?.toString() ??
+            json['participantId']?.toString(),
         secondaryParticipantId: json['secondaryParticipantId']?.toString(),
-        metrics: json['metrics'] is Map
-            ? Map<String, dynamic>.from(json['metrics'] as Map)
-            : null,
-        timestamp: _dateTime(json['timestamp'] ?? json['scoredAt']),
+        metrics: {
+          if (json['metrics'] is Map)
+            ...Map<String, dynamic>.from(json['metrics'] as Map),
+          if (json.containsKey('category')) 'category': json['category'],
+          if (json.containsKey('status')) 'status': json['status'],
+          if (json.containsKey('importance')) 'importance': json['importance'],
+          if (json.containsKey('clock')) 'clock': json['clock'],
+          if (json.containsKey('value')) 'value': json['value'],
+          if (json.containsKey('sportCode')) 'sportCode': json['sportCode'],
+          if (json.containsKey('primaryParticipantName'))
+            'primaryParticipantName': json['primaryParticipantName'],
+          if (json.containsKey('secondaryParticipantName'))
+            'secondaryParticipantName': json['secondaryParticipantName'],
+          if (json.containsKey('primaryPlayerName'))
+            'primaryPlayerName': json['primaryPlayerName'],
+          if (json.containsKey('secondaryPlayerName'))
+            'secondaryPlayerName': json['secondaryPlayerName'],
+          if (json.containsKey('homeScoreAfter'))
+            'homeScoreAfter': json['homeScoreAfter'],
+          if (json.containsKey('awayScoreAfter'))
+            'awayScoreAfter': json['awayScoreAfter'],
+          if (json.containsKey('shootoutHomeScoreAfter'))
+            'shootoutHomeScoreAfter': json['shootoutHomeScoreAfter'],
+          if (json.containsKey('shootoutAwayScoreAfter'))
+            'shootoutAwayScoreAfter': json['shootoutAwayScoreAfter'],
+        },
+        timestamp: _dateTime(json['occurredAt'] ?? json['timestamp'] ?? json['scoredAt']),
         clientId: json['clientId']?.toString(),
       );
 }

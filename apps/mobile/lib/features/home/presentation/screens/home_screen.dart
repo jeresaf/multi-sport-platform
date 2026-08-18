@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import '../../../../core/widgets/contest_status_label.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/router/app_router.dart';
+import '../../../../core/formatters/public_date_time.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../branding/presentation/providers/branding_provider.dart';
 import '../../../notifications/presentation/providers/notification_provider.dart';
@@ -109,14 +111,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
               ),
         actions: [
+          IconButton(
+            tooltip: 'Search sports, teams and competitions',
+            onPressed: () => context.push('/search'),
+            icon: const Icon(Icons.search),
+          ),
           if (auth.isAuthenticated)
-            Badge(
-              isLabelVisible: unread > 0,
-              label: Text(unread > 9 ? '9+' : '$unread'),
-              child: IconButton(
-                tooltip: 'Notifications',
-                onPressed: () => context.push('/notifications'),
-                icon: const Icon(Icons.notifications_outlined),
+            Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: Badge(
+                alignment: Alignment.topRight,
+                offset: const Offset(-3, 6),
+                isLabelVisible: unread > 0,
+                label: Text(unread > 9 ? '9+' : '$unread'),
+                child: IconButton(
+                  tooltip: 'Notifications',
+                  onPressed: () => context.push('/notifications'),
+                  icon: const Icon(Icons.notifications_outlined),
+                ),
               ),
             )
           else
@@ -187,16 +199,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           !_matchesSport(fixture.sportCode, fixture.sportName, sport)) {
         return false;
       }
-      final status = fixture.status.toLowerCase();
-      if (filter == 'live' && status != 'live' && status != 'inprogress') {
+      final status = normalizeContestStatus(fixture.status);
+      if (filter == 'live' && !contestStatusIsLive(fixture.status)) {
         return false;
       }
       if (filter == 'upcoming' &&
-          !['scheduled', 'ready', 'checkinopen'].contains(status)) {
+          !['notstarted', 'startingsoon', 'scheduled', 'ready', 'checkinopen']
+              .contains(status)) {
         return false;
       }
       if (filter == 'finished' &&
-          !['completed', 'approved', 'published'].contains(status)) {
+          contestStatusTone(fixture.status) != ContestStatusTone.finished) {
         return false;
       }
       if (filter == 'favourites' &&
@@ -475,7 +488,7 @@ class _ContestCard extends ConsumerWidget {
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
                           color: Theme.of(context).colorScheme.primary,
                           fontWeight: FontWeight.bold))),
-              _StatusBadge(status: fixture.status),
+              ContestStatusLabel(status: fixture.status, compact: true),
             ]),
             const SizedBox(height: 10),
             if (fixture.participantDetails.isEmpty)
@@ -487,41 +500,54 @@ class _ContestCard extends ConsumerWidget {
                           ?.copyWith(fontWeight: FontWeight.bold)))
             else
               Expanded(
-                  child: Column(
-                      children: fixture.participantDetails
-                          .take(4)
-                          .map((participant) => Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 4),
-                              child: Row(children: [
-                                CircleAvatar(
-                                    radius: 13,
-                                    child: Text(
-                                        participant.name
-                                            .substring(
-                                                0,
-                                                participant.name.length
-                                                    .clamp(1, 2))
-                                            .toUpperCase(),
-                                        style: const TextStyle(fontSize: 9))),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                    child: Text(participant.name,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.w600))),
-                                Text(participant.result,
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.bold))
-                              ])))
-                          .toList())),
+                  child: Column(children: [
+                ...fixture.participantDetails.take(2).map((participant) =>
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: InkWell(
+                        onTap: participant.id.isEmpty
+                            ? null
+                            : () =>
+                                context.push('/participant/${participant.id}'),
+                        borderRadius: BorderRadius.circular(8),
+                        child: Row(children: [
+                          CircleAvatar(
+                              radius: 13,
+                              child: Text(
+                                  participant.name
+                                      .substring(0,
+                                          participant.name.length.clamp(1, 2))
+                                      .toUpperCase(),
+                                  style: const TextStyle(fontSize: 9))),
+                          const SizedBox(width: 8),
+                          Expanded(
+                              child: Text(participant.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w600))),
+                          Text(participant.result,
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold))
+                        ]),
+                      ),
+                    )),
+                if (fixture.participantDetails.length > 2)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 2, left: 34),
+                      child: Text(
+                        '+${fixture.participantDetails.length - 2} more',
+                        style: Theme.of(context).textTheme.labelSmall,
+                      ),
+                    ),
+                  ),
+              ])),
             Row(children: [
               const Icon(Icons.schedule, size: 15),
               const SizedBox(width: 4),
-              Text(
-                  fixture.startTime == null
-                      ? 'TBC'
-                      : DateFormat.Hm().format(fixture.startTime!.toLocal()),
+              Text(formatPublicDateTime(fixture.startTime),
                   style: Theme.of(context).textTheme.bodySmall),
               const Spacer(),
               IconButton(
@@ -553,35 +579,6 @@ class _ContestCard extends ConsumerWidget {
         ),
       ),
     );
-  }
-}
-
-class _StatusBadge extends StatelessWidget {
-  final String status;
-  const _StatusBadge({required this.status});
-  @override
-  Widget build(BuildContext context) {
-    final value = status.toLowerCase();
-    final live = value == 'live' || value == 'inprogress';
-    final finished = ['completed', 'approved', 'published'].contains(value);
-    final color = live
-        ? Colors.red
-        : finished
-            ? Colors.green
-            : Theme.of(context).colorScheme.primary;
-    return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-            color: color.withValues(alpha: .12),
-            borderRadius: BorderRadius.circular(99)),
-        child: Text(
-            live
-                ? 'LIVE'
-                : finished
-                    ? 'FINISHED'
-                    : 'UPCOMING',
-            style: TextStyle(
-                color: color, fontSize: 10, fontWeight: FontWeight.bold)));
   }
 }
 

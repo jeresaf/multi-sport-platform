@@ -4,6 +4,7 @@ export type ContestLiveUpdate = {
   contestId: string;
   version: number;
   status?: string | null;
+  contestStatus?: string | null;
   participants?: Array<{ participantId: string; score?: string | null; scoreDisplay?: string | null }>;
   summary?: string | null;
 };
@@ -13,7 +14,7 @@ export function applyContestLiveUpdate(contest: PublicContest, update: ContestLi
   const scores = new Map((update.participants ?? []).map(item => [item.participantId, item]));
   return {
     ...contest,
-    status: update.status || contest.status,
+    status: update.contestStatus || update.status || contest.status,
     participants: contest.participants?.map(participant => {
       const score = scores.get(participant.participantId);
       if (!score) return participant;

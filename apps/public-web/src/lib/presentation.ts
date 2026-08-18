@@ -4,16 +4,20 @@ export type ContestPhase = 'live' | 'upcoming' | 'finished' | 'postponed' | 'can
 export type ContestFilter = 'all' | ContestPhase | 'favourites';
 
 export function contestPhase(status: string): ContestPhase {
-  switch (status.trim().toLowerCase()) {
+  switch (normalizeStatus(status)) {
     case 'inprogress':
     case 'live':
       return 'live';
     case 'completed':
+    case 'ended':
+    case 'closed':
     case 'final':
     case 'finished':
       return 'finished';
     case 'postponed':
     case 'suspended':
+    case 'delayed':
+    case 'interrupted':
       return 'postponed';
     case 'cancelled':
     case 'canceled':
@@ -25,8 +29,21 @@ export function contestPhase(status: string): ContestPhase {
 }
 
 export function statusLabel(status: string) {
-  const phase = contestPhase(status);
-  return ({ live: 'Live', upcoming: 'Upcoming', finished: 'Finished', postponed: 'Postponed', cancelled: 'Cancelled' })[phase];
+  const normalized = normalizeStatus(status);
+  const labels: Record<string, string> = {
+    notstarted: 'Not started', scheduled: 'Not started', draft: 'Not started',
+    startingsoon: 'Starting soon', ready: 'Starting soon', checkinopen: 'Check-in open',
+    live: 'Live', inprogress: 'Live', delayed: 'Delayed', interrupted: 'Interrupted',
+    paused: 'Interrupted', suspended: 'Suspended', postponed: 'Postponed',
+    ended: 'Ended', completed: 'Ended', closed: 'Final', approved: 'Final',
+    published: 'Final', corrected: 'Corrected', cancelled: 'Cancelled',
+    canceled: 'Cancelled', abandoned: 'Abandoned',
+  };
+  return labels[normalized] ?? 'Status unavailable';
+}
+
+export function normalizeStatus(status: string) {
+  return status.trim().replaceAll('_', '').replaceAll('-', '').replaceAll(' ', '').toLowerCase();
 }
 
 export function localDateKey(value: Date | string) {

@@ -87,24 +87,7 @@ public class FootballRulesetService : IFootballRulesetService
     }
 
     public static string GetEventDefinitions()
-    {
-        var events = new object[]
-        {
-            new { id = "GOAL", name = "Goal", category = "Scoring", points = 1, isPrimary = true, requiresMinute = true, requiresParticipant = true, requiresAssist = false, validation = new { minMinute = 0, maxMinute = 90, allowInExtraTime = true, allowInPenalties = false } },
-            new { id = "OWN_GOAL", name = "Own Goal", category = "Scoring", points = 1, isPrimary = false, requiresMinute = true, requiresParticipant = true, requiresAssist = false, validation = new { minMinute = 0, maxMinute = 90, allowInExtraTime = true, allowInPenalties = false } },
-            new { id = "PENALTY_GOAL", name = "Penalty Goal", category = "Scoring", points = 1, isPrimary = false, requiresMinute = true, requiresParticipant = true, requiresAssist = false, validation = new { minMinute = 0, maxMinute = 90, allowInExtraTime = true, allowInPenalties = false } },
-            new { id = "YELLOW_CARD", name = "Yellow Card", category = "Discipline", points = 0, isPrimary = false, requiresMinute = true, requiresParticipant = true, requiresAssist = false, validation = new { minMinute = 0, maxMinute = 120 } },
-            new { id = "SECOND_YELLOW", name = "Second Yellow Card", category = "Discipline", points = 0, isPrimary = false, requiresMinute = true, requiresParticipant = true, requiresAssist = false, validation = new { minMinute = 0, maxMinute = 120 } },
-            new { id = "RED_CARD", name = "Red Card", category = "Discipline", points = 0, isPrimary = false, requiresMinute = true, requiresParticipant = true, requiresAssist = false, validation = new { minMinute = 0, maxMinute = 120 } },
-            new { id = "SUBSTITUTION_IN", name = "Substitution In", category = "Personnel", points = 0, isPrimary = false, requiresMinute = true, requiresParticipant = true, requiresAssist = false, validation = new { minMinute = 0, maxMinute = 120, maxSubstitutions = 5 } },
-            new { id = "SUBSTITUTION_OUT", name = "Substitution Out", category = "Personnel", points = 0, isPrimary = false, requiresMinute = true, requiresParticipant = true, requiresAssist = false, validation = new { minMinute = 0, maxMinute = 120, maxSubstitutions = 5 } },
-            new { id = "PENALTY_SCORED", name = "Penalty Scored", category = "Shootout", points = 1, isPrimary = false, requiresMinute = false, requiresParticipant = true, requiresAssist = false, validation = new { onlyInPenalties = true } },
-            new { id = "PENALTY_MISSED", name = "Penalty Missed", category = "Shootout", points = 0, isPrimary = false, requiresMinute = false, requiresParticipant = true, requiresAssist = false, validation = new { onlyInPenalties = true } },
-            new { id = "PENALTY_SAVED", name = "Penalty Saved", category = "Shootout", points = 0, isPrimary = false, requiresMinute = false, requiresParticipant = true, requiresAssist = false, validation = new { onlyInPenalties = true } }
-        };
-
-        return JsonSerializer.Serialize(events);
-    }
+        => FootballTimelinePackage.GetDefinitionsJson();
 
     public static string GetMetricDefinitions()
     {

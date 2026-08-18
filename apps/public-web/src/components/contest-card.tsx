@@ -30,7 +30,7 @@ export const ContestCard = memo(function ContestCard({ contest, tenantSlug, favo
             {contest.name && <h3 className="mt-1 truncate text-sm font-semibold">{contest.name}</h3>}
           </div>
           <div className="flex shrink-0 flex-col items-end gap-1">
-            <ContestStatus status={contest.status} />
+            <ContestStatus status={contest.contestStatus ?? contest.status} />
             {contest.presentation?.periodLabel && (
               <span className="text-xs font-bold tabular-nums text-[var(--color-text-muted)]">
                 {[contest.presentation.periodLabel, contest.presentation.clock].filter(Boolean).join(' · ')}

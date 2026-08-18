@@ -60,6 +60,12 @@ public sealed class ApiWorkflowTests : IClassFixture<ApiWebApplicationFactory>
         competitions.EnumerateArray()
             .Select(item => item.GetProperty("sportId").GetGuid())
             .Distinct().Should().HaveCount(7);
+        competitions.EnumerateArray().Should().OnlyContain(item =>
+            !string.IsNullOrWhiteSpace(item.GetProperty("format").GetString())
+            && item.GetProperty("participantCount").GetInt32() > 0
+            && item.GetProperty("contestCount").GetInt32() > 0
+            && item.GetProperty("startDate").ValueKind == JsonValueKind.String
+            && item.GetProperty("endDate").ValueKind == JsonValueKind.String);
 
         var fixtures = await client.GetFromJsonAsync<JsonElement>($"{root}/fixtures?pageSize=100");
         var fixtureItems = fixtures.EnumerateArray().ToArray();
@@ -71,6 +77,13 @@ public sealed class ApiWorkflowTests : IClassFixture<ApiWebApplicationFactory>
         statusCounts[nameof(ContestStatus.InProgress)].Should().Be(9);
         statusCounts[nameof(ContestStatus.Ready)].Should().Be(9);
         statusCounts[nameof(ContestStatus.Scheduled)].Should().Be(9);
+        var canonicalStatusCounts = fixtureItems
+            .GroupBy(item => item.GetProperty("contestStatus").GetString())
+            .ToDictionary(group => group.Key!, group => group.Count());
+        canonicalStatusCounts["CLOSED"].Should().Be(9);
+        canonicalStatusCounts["LIVE"].Should().Be(9);
+        canonicalStatusCounts["STARTING_SOON"].Should().Be(9);
+        canonicalStatusCounts["NOT_STARTED"].Should().Be(9);
 
         var golf = await client.GetAsync(
             $"{root}/golf/leaderboard?competitionId=80000000-0000-0000-0000-000000000104");
@@ -227,6 +240,12 @@ public sealed class ApiWorkflowTests : IClassFixture<ApiWebApplicationFactory>
             var participants = detail.RootElement.GetProperty("participants");
             participants.ValueKind
                 .Should().Be(JsonValueKind.Array);
+            detail.RootElement.GetProperty("format").GetString()
+                .Should().NotBeNullOrWhiteSpace();
+            detail.RootElement.GetProperty("participantCount").GetInt32()
+                .Should().Be(participants.GetArrayLength());
+            detail.RootElement.GetProperty("contestCount").GetInt32()
+                .Should().Be(fixtures.GetArrayLength());
             detail.RootElement.GetProperty("statistics")
                 .GetProperty("contestCount").GetInt32()
                 .Should().Be(fixtures.GetArrayLength());
@@ -357,9 +376,26 @@ public sealed class ApiWorkflowTests : IClassFixture<ApiWebApplicationFactory>
         {
             detail.RootElement.GetProperty("renderer").GetString()
                 .Should().Be("head-to-head");
+            detail.RootElement.GetProperty("contestStatus").GetString()
+                .Should().Be("NOT_STARTED");
+            detail.RootElement.GetProperty("resultStatus").GetString()
+                .Should().Be("NONE");
+            detail.RootElement.GetProperty("phase").ValueKind
+                .Should().Be(JsonValueKind.Null);
+            detail.RootElement.GetProperty("lastChangedAt").ValueKind
+                .Should().Be(JsonValueKind.String);
             detail.RootElement.GetProperty("configuration").ValueKind
                 .Should().Be(JsonValueKind.Object);
             detail.RootElement.GetProperty("liveScores").ValueKind
+                .Should().Be(JsonValueKind.Array);
+            detail.RootElement.GetProperty("participants")
+                .EnumerateArray().Should().OnlyContain(participant =>
+                    !string.IsNullOrWhiteSpace(
+                        participant.GetProperty("name").GetString()));
+            detail.RootElement.GetProperty("statistics")
+                .GetProperty("totalEvents").GetInt32().Should().Be(0);
+            detail.RootElement.GetProperty("statistics")
+                .GetProperty("eventBreakdown").ValueKind
                 .Should().Be(JsonValueKind.Array);
         }
         (await client.GetAsync(
@@ -1142,6 +1178,8 @@ public sealed class ApiWorkflowTests : IClassFixture<ApiWebApplicationFactory>
             TaskCreationOptions.RunContinuationsAsynchronously);
         var contestPatch = new TaskCompletionSource<ContestLiveUpdateDto>(
             TaskCreationOptions.RunContinuationsAsynchronously);
+        var canonicalTimelineUpdate = new TaskCompletionSource<ContestTimelineEventEnvelope>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
         var participantUpdate = new TaskCompletionSource<LiveScoreUpdateDto>(
             TaskCreationOptions.RunContinuationsAsynchronously);
         var competitionUpdate = new TaskCompletionSource<LiveScoreUpdateDto>(
@@ -1152,6 +1190,9 @@ public sealed class ApiWorkflowTests : IClassFixture<ApiWebApplicationFactory>
             "LiveScoreUpdated", update => contestUpdate.TrySetResult(update));
         contestConnection.On<ContestLiveUpdateDto>(
             "ContestLiveUpdated", update => contestPatch.TrySetResult(update));
+        contestConnection.On<ContestTimelineEventEnvelope>(
+            "contest.timeline.event.created",
+            update => canonicalTimelineUpdate.TrySetResult(update));
         participantConnection.On<LiveScoreUpdateDto>(
             "LiveScoreUpdated", update => participantUpdate.TrySetResult(update));
         competitionConnection.On<LiveScoreUpdateDto>(
@@ -1201,6 +1242,13 @@ public sealed class ApiWorkflowTests : IClassFixture<ApiWebApplicationFactory>
         patch.Version.Should().BePositive();
         patch.Participants.Should().ContainSingle(item =>
             item.ParticipantId == participantId && item.Score == "1");
+        var timelineUpdate = await canonicalTimelineUpdate.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        timelineUpdate.Type.Should().Be("contest.timeline.event.created");
+        timelineUpdate.ContestId.Should().Be(contestId);
+        timelineUpdate.TimelineVersion.Should().Be(1);
+        timelineUpdate.Event.Id.Should().Be(eventId);
+        timelineUpdate.Event.Sequence.Should().Be(1);
+        timelineUpdate.Event.Category.Should().Be("SCORING");
 
         await contestConnection.StopAsync();
         await using var reconnected = BuildConnection();
@@ -6390,6 +6438,10 @@ public sealed class ApiWorkflowTests : IClassFixture<ApiWebApplicationFactory>
             $"/api/contests/{contestId}/lifecycle");
         lifecycle.GetProperty("usesSportPolicy").GetBoolean().Should().BeTrue();
         lifecycle.GetProperty("allowedTransitions").GetArrayLength().Should().Be(0);
+        lifecycle.GetProperty("canonicalStatusCode").GetString()
+            .Should().Be("ABANDONED");
+        lifecycle.GetProperty("statusReason").GetString()
+            .Should().Be("Unsafe weather continued");
         var history = await client.GetFromJsonAsync<JsonElement[]>(
             $"/api/contests/{contestId}/lifecycle/history");
         history.Should().HaveCount(3);
@@ -6403,6 +6455,18 @@ public sealed class ApiWorkflowTests : IClassFixture<ApiWebApplicationFactory>
         using (var scope = _factory.Services.CreateScope())
         {
             var database = scope.ServiceProvider.GetRequiredService<SportsPlatformDbContext>();
+            var persisted = await database.Contests.SingleAsync(item => item.Id == contestId);
+            persisted.CanonicalStatus.Should().Be(CanonicalContestStatus.Abandoned);
+            persisted.CanonicalStatusChangedAt.Should().BeAfter(persisted.CreatedAt);
+            var canonicalHistory = await database.ContestStatusHistory
+                .AsNoTracking()
+                .Where(item => item.ContestId == contestId)
+                .OrderBy(item => item.OccurredAt)
+                .ToArrayAsync();
+            canonicalHistory.Should().HaveCount(3);
+            canonicalHistory.Last().ToStatus.Should().Be(CanonicalContestStatus.Abandoned);
+            canonicalHistory.Last().ActorId.Should().NotBeNull();
+            canonicalHistory.Last().Reason.Should().Be("Unsafe weather continued");
             database.ContestLifecyclePolicies.RemoveRange(database.ContestLifecyclePolicies.Where(item =>
                 item.TenantId == admin.TenantId && item.SportId == sportId));
             database.Contests.RemoveRange(database.Contests.Where(item => item.Id == contestId));

@@ -10,7 +10,10 @@ import type { ContestRenderer, PublicContest } from '@/lib/public-api';
 
 const renderers: ContestRenderer[] = ['head-to-head', 'multi-participant-leaderboard', 'race-heat', 'fight-card-bout', 'cricket-scorecard'];
 const sportVariants = ['FOOTBALL', 'BASKETBALL', 'RUGBY_15', 'RUGBY_7', 'NETBALL', 'HOCKEY', 'VOLLEYBALL', 'TENNIS'];
-const statuses = ['InProgress', 'Scheduled', 'Completed', 'Postponed', 'Cancelled'];
+const statuses = [
+  'NOT_STARTED', 'STARTING_SOON', 'LIVE', 'DELAYED', 'INTERRUPTED',
+  'SUSPENDED', 'POSTPONED', 'ENDED', 'CLOSED', 'CANCELLED', 'ABANDONED',
+];
 
 export default function UiGalleryPage() {
   const [date, setDate] = useState(localDateKey(new Date()));

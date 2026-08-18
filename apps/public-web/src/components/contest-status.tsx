@@ -4,6 +4,8 @@ export function ContestStatus({ status }: { status: string }) {
   const phase = contestPhase(status);
   return (
     <span
+      role={phase === 'live' ? 'status' : undefined}
+      aria-label={`Contest status: ${statusLabel(status)}`}
       className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold uppercase tracking-wide"
       style={{
         color: `var(--status-${phase})`,
