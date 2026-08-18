@@ -95,7 +95,8 @@ public static class CanonicalContestStatusExtensions
             "POSTPONED" => CanonicalContestStatus.Postponed,
             "ENDED" or "COMPLETED" => CanonicalContestStatus.Ended,
             "CLOSED" => CanonicalContestStatus.Closed,
-            "PUBLISHED" or "APPROVED" => CanonicalContestStatus.Ended,
+            "PENDING_APPROVAL" or "APPROVED" or "CORRECTED" or "PUBLISHED"
+                => CanonicalContestStatus.Ended,
             "CANCELLED" or "CANCELED" => CanonicalContestStatus.Cancelled,
             "ABANDONED" => CanonicalContestStatus.Abandoned,
             _ => CanonicalContestStatus.NotStarted
@@ -104,7 +105,7 @@ public static class CanonicalContestStatusExtensions
             or "STARTING_SOON" or "READY" or "LIVE" or "IN_PROGRESS"
             or "INPROGRESS" or "DELAYED" or "INTERRUPTED" or "PAUSED"
             or "SUSPENDED" or "POSTPONED" or "ENDED" or "COMPLETED"
-            or "CLOSED" or "PUBLISHED" or "APPROVED" or "CANCELLED"
-            or "CANCELED" or "ABANDONED";
+            or "CLOSED" or "PENDING_APPROVAL" or "APPROVED" or "CORRECTED"
+            or "PUBLISHED" or "CANCELLED" or "CANCELED" or "ABANDONED";
     }
 }
