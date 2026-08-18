@@ -3,6 +3,7 @@ namespace SportsPlatform.Modules.Contests.Entities;
 /// <summary>
 /// Stable, sport-neutral lifecycle exposed by public contracts. The persisted
 /// <see cref="ContestStatus"/> remains temporarily available during migration.
+/// Result approval/publication states are intentionally projected separately.
 /// </summary>
 public enum CanonicalContestStatus
 {
@@ -37,10 +38,15 @@ public static class CanonicalContestStatusExtensions
         ContestStatus.InProgress => CanonicalContestStatus.Live,
         ContestStatus.Paused => CanonicalContestStatus.Interrupted,
         ContestStatus.Suspended => CanonicalContestStatus.Suspended,
-        ContestStatus.Completed or ContestStatus.PendingApproval
+        ContestStatus.Completed
             => CanonicalContestStatus.Ended,
-        ContestStatus.Approved or ContestStatus.Corrected or ContestStatus.Published
-            => CanonicalContestStatus.Closed,
+
+        // These values are legacy result-workflow states stored in Contest.Status.
+        // They must not change the sporting lifecycle: once play has completed,
+        // approval, correction and publication remain an ENDED contest.
+        ContestStatus.PendingApproval or ContestStatus.Approved or ContestStatus.Corrected
+            or ContestStatus.Published => CanonicalContestStatus.Ended,
+
         ContestStatus.Cancelled => CanonicalContestStatus.Cancelled,
         ContestStatus.Abandoned => CanonicalContestStatus.Abandoned,
         _ => CanonicalContestStatus.NotStarted
@@ -62,6 +68,16 @@ public static class CanonicalContestStatusExtensions
         _ => "NOT_STARTED"
     };
 
+    // Compatibility alias used by the V2 state projection introduced while
+    // clients migrate from legacy Contest.Status values.
+    public static string ToApiCode(this CanonicalContestStatus status) => status.ToCode();
+
+    public static bool IsLegacyResultWorkflowState(this ContestStatus status) => status is
+        ContestStatus.PendingApproval
+        or ContestStatus.Approved
+        or ContestStatus.Corrected
+        or ContestStatus.Published;
+
     public static bool TryParseProviderStatus(
         string? value,
         out CanonicalContestStatus status)
@@ -78,7 +94,8 @@ public static class CanonicalContestStatusExtensions
             "SUSPENDED" => CanonicalContestStatus.Suspended,
             "POSTPONED" => CanonicalContestStatus.Postponed,
             "ENDED" or "COMPLETED" => CanonicalContestStatus.Ended,
-            "CLOSED" or "PUBLISHED" or "APPROVED" => CanonicalContestStatus.Closed,
+            "CLOSED" => CanonicalContestStatus.Closed,
+            "PUBLISHED" or "APPROVED" => CanonicalContestStatus.Ended,
             "CANCELLED" or "CANCELED" => CanonicalContestStatus.Cancelled,
             "ABANDONED" => CanonicalContestStatus.Abandoned,
             _ => CanonicalContestStatus.NotStarted
