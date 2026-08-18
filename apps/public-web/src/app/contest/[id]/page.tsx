@@ -16,6 +16,8 @@ type Participant = {
   name: string;
   participantType: string;
   status: string;
+  score?: number | null;
+  scoreDisplay?: string | null;
 };
 type LiveScore = {
   eventId: string;
@@ -29,6 +31,46 @@ type LiveScore = {
   clockSeconds?: number | null;
   scoredAt: string;
 };
+type TimelineEvent = {
+  id: string;
+  sequence: number;
+  category: string;
+  type: string;
+  sportCode: string;
+  sportVariant?: string | null;
+  period?: string | null;
+  clock?: string | null;
+  primaryParticipantId?: string | null;
+  primaryParticipantName?: string | null;
+  secondaryParticipantId?: string | null;
+  secondaryParticipantName?: string | null;
+  primaryPlayerId?: string | null;
+  primaryPlayerName?: string | null;
+  secondaryPlayerId?: string | null;
+  secondaryPlayerName?: string | null;
+  value?: number | null;
+  displayValue?: string | null;
+  metricName?: string | null;
+  status: string;
+  importance: string;
+  homeScoreAfter: number;
+  awayScoreAfter: number;
+  shootoutHomeScoreAfter: number;
+  shootoutAwayScoreAfter: number;
+  occurredAt: string;
+};
+type TimelineResponse = {
+  contestId: string;
+  timelineVersion: number;
+  events: TimelineEvent[];
+  nextSequence?: number | null;
+};
+type TimelineEnvelope = {
+  type: string;
+  contestId: string;
+  timelineVersion: number;
+  event: TimelineEvent;
+};
 type ContestDetails = {
   id: string;
   name?: string | null;
@@ -36,6 +78,7 @@ type ContestDetails = {
   contestShape: string;
   renderer: 'head-to-head' | 'multi-participant-leaderboard' | 'race-heat' | 'fight-card-bout' | 'cricket-scorecard';
   status: string;
+  contestStatus?: string;
   venue?: string | null;
   startTime?: string | null;
   winnerId?: string | null;
@@ -72,6 +115,15 @@ type ContestDetails = {
     time?: string | null;
   }>;
   liveScores: LiveScore[];
+  statistics?: {
+    totalEvents: number;
+    liveUpdates: number;
+    eventBreakdown: Array<{
+      label: string;
+      total: number;
+      participants: Array<{ participantId: string; count: number }>;
+    }>;
+  };
 };
 type Snapshot = {
   contestId: string;
@@ -84,13 +136,19 @@ type Snapshot = {
 export default function ContestPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const [contest, setContest] = useState<ContestDetails | null>(null);
+  const [timeline, setTimeline] = useState<TimelineResponse | null>(null);
   const [tenantSlug, setTenantSlug] = useState('premier-league');
   const [error, setError] = useState<string | null>(null);
   const [liveState, setLiveState] = useState<'connecting' | 'live' | 'reconnecting' | 'offline'>('connecting');
+  const [activeTab, setActiveTab] = useState<'overview' | 'timeline' | 'statistics' | 'details'>('overview');
 
   const loadContest = useCallback(async (slug: string) => {
-    const detail = await publicApi<ContestDetails>(`/contests/${id}`, { cache: 'no-store' }, slug);
-    setContest(detail);
+    const [detail, eventTimeline] = await Promise.all([
+      publicApi<ContestDetails>(`/contests/${id}`, { cache: 'no-store' }, slug),
+      publicApi<TimelineResponse>(`/contests/${id}/timeline?mode=all&limit=200`, { cache: 'no-store' }, slug),
+    ]);
+    setContest({ ...detail, status: detail.contestStatus ?? detail.status });
+    setTimeline(eventTimeline);
     setError(null);
   }, [id]);
 
@@ -106,6 +164,23 @@ export default function ContestPage({ params }: { params: Promise<{ id: string }
 
     const join = () => connection.invoke('JoinPublicContestGroup', slug, id);
     const refresh = () => void loadContest(slug).catch(() => undefined);
+    const applyTimelineEvent = (message: TimelineEnvelope) => {
+      setTimeline(current => {
+        if (current && message.timelineVersion < current.timelineVersion) return current;
+        if (current && message.timelineVersion > current.timelineVersion + 1) {
+          refresh();
+          return current;
+        }
+        const events = [...(current?.events ?? []).filter(item => item.id !== message.event.id), message.event]
+          .sort((left, right) => left.sequence - right.sequence);
+        return {
+          contestId: message.contestId,
+          timelineVersion: message.timelineVersion,
+          events,
+          nextSequence: current?.nextSequence,
+        };
+      });
+    };
     connection.on('ContestSnapshot', (snapshot: Snapshot) => {
       setContest(current => current ? {
         ...current,
@@ -126,9 +201,10 @@ export default function ContestPage({ params }: { params: Promise<{ id: string }
         ...current,
         liveScores: [...current.liveScores.filter(item => item.eventId !== score.eventId), score],
       } : current);
+      refresh();
     });
-    connection.on('ContestStatusChanged', (change: { status: string }) => {
-      setContest(current => current ? { ...current, status: change.status } : current);
+    connection.on('ContestStatusChanged', (change: { status: string; contestStatus?: string }) => {
+      setContest(current => current ? { ...current, status: change.contestStatus ?? change.status } : current);
     });
     connection.on('ParticipantStatusChanged', (change: { participantId: string; newStatus: string }) => {
       setContest(current => current ? {
@@ -138,6 +214,12 @@ export default function ContestPage({ params }: { params: Promise<{ id: string }
           : item),
       } : current);
     });
+    for (const eventName of [
+      'contest.timeline.event.created',
+      'contest.timeline.event.updated',
+      'contest.timeline.event.corrected',
+      'contest.timeline.event.reversed',
+    ]) connection.on(eventName, applyTimelineEvent);
     connection.on('ContestResultFinalized', refresh);
     connection.on('SegmentStarted', refresh);
     connection.on('SegmentEnded', refresh);
@@ -192,14 +274,21 @@ export default function ContestPage({ params }: { params: Promise<{ id: string }
         </div>
       </header>
 
-      <main data-testid={`contest-renderer-${contest.renderer}`} className="py-8">
-        <ContestRenderer contest={contest} tenantSlug={tenantSlug} />
+      <nav className="mt-6 flex max-w-full gap-1 overflow-x-auto border-b border-gray-200" aria-label="Contest sections">
+        {(['overview', 'timeline', 'statistics', 'details'] as const).map(tab => <button
+          key={tab}
+          type="button"
+          onClick={() => setActiveTab(tab)}
+          aria-current={activeTab === tab ? 'page' : undefined}
+          className={`shrink-0 border-b-2 px-4 py-3 text-sm font-semibold capitalize ${activeTab === tab ? 'border-primary text-primary' : 'border-transparent text-gray-500'}`}
+        >{tab}</button>)}
+      </nav>
+      <main data-testid={`contest-panel-${activeTab}`} className="min-w-0 py-8">
+        {activeTab === 'overview' && <div data-testid={`contest-renderer-${contest.renderer}`}><ContestRenderer contest={contest} tenantSlug={tenantSlug} /></div>}
+        {activeTab === 'timeline' && <Timeline events={timeline?.events ?? []} />}
+        {activeTab === 'statistics' && <Statistics contest={contest} />}
+        {activeTab === 'details' && <Segments contest={contest} />}
       </main>
-
-      <section className="grid gap-8 border-t border-gray-200 pt-8 lg:grid-cols-[1fr_280px]">
-        <Timeline contest={contest} />
-        <Segments contest={contest} />
-      </section>
     </div>
   );
 }
@@ -222,7 +311,9 @@ function totals(contest: ContestDetails) {
 
 function scoreText(contest: ContestDetails, participantId: string) {
   const result = contest.results.find(item => item.participantId === participantId);
+  const participant = contest.participants.find(item => item.participantId === participantId);
   return result?.scoreDisplay ?? result?.time ?? result?.score?.toString()
+    ?? participant?.scoreDisplay ?? participant?.score?.toString()
     ?? totals(contest).get(participantId)?.toString() ?? '—';
 }
 
@@ -269,14 +360,67 @@ function CricketScorecard({ contest }: { contest: ContestDetails }) {
   return <section><h2 className="text-2xl font-bold">Scorecard</h2><div className="mt-5 grid gap-4 md:grid-cols-2">{contest.participants.map(participant => <div key={participant.participantId} className="rounded-xl border bg-white p-6"><p className="text-sm text-gray-500">{participant.status}</p><h3 className="mt-1 text-lg font-bold">{participant.name}</h3><p className="mt-3 text-3xl font-black text-primary">{scoreText(contest, participant.participantId)}</p><p className="text-xs text-gray-500">Live total {scoreTotals.get(participant.participantId) ?? 0}</p></div>)}</div>{contest.participants.length === 0 && <State message="The scorecard will appear after the toss and lineup are published." compact />}</section>;
 }
 
-function Timeline({ contest }: { contest: ContestDetails }) {
-  const live = [...contest.liveScores].reverse();
-  return <div><h2 className="mb-4 text-2xl font-bold">Event timeline</h2>{live.length === 0 && contest.events.length === 0 ? <State message="No public events have been recorded." compact /> : <div className="space-y-3">{live.map(event => <div key={event.eventId} className="rounded-lg border p-4"><div className="flex justify-between gap-4"><strong>{event.eventType ?? event.metricName}</strong><time className="text-sm text-gray-500">{new Date(event.scoredAt).toLocaleTimeString()}</time></div><p className="mt-1 text-sm text-gray-600">{event.displayValue ?? `${event.metricName}: ${event.value}`}</p></div>)}{live.length === 0 && contest.events.map(event => <div key={event.id} className="rounded-lg border p-4"><strong>{event.eventType}</strong>{event.metricValue && <p className="text-sm text-gray-600">{event.metricValue}</p>}</div>)}</div>}</div>;
+function Timeline({ events }: { events: TimelineEvent[] }) {
+  const rows = [...events].reverse();
+  return <div><h2 className="mb-4 text-2xl font-bold">Event timeline</h2>{rows.length === 0 ? <State message="No public events have been recorded." compact /> : <div className="space-y-3">{rows.map(event => event.sportCode === 'FOOTBALL' ? <FootballTimelineEvent key={event.id} event={event} /> : <GenericTimelineEvent key={event.id} event={event} />)}</div>}</div>;
+}
+
+function GenericTimelineEvent({ event }: { event: TimelineEvent }) {
+  return <div className="rounded-lg border p-4"><div className="flex justify-between gap-4"><strong>{label(event.type)}</strong><span className="text-sm text-gray-500">{event.clock ?? new Date(event.occurredAt).toLocaleTimeString()}</span></div><p className="mt-1 text-sm text-gray-600">{event.displayValue ?? (event.metricName && event.value != null ? `${label(event.metricName)}: ${event.value}` : label(event.category))}</p><div className="mt-2 flex gap-2 text-xs font-semibold text-gray-500"><span>{label(event.category)}</span>{event.status !== 'CONFIRMED' && <span>· {label(event.status)}</span>}</div></div>;
+}
+
+function FootballTimelineEvent({ event }: { event: TimelineEvent }) {
+  const minute = event.clock ? `${Number(event.clock.split(':')[0])}'` : null;
+  const actor = event.primaryPlayerName ?? event.secondaryParticipantName ?? event.primaryParticipantName;
+  const isShootout = event.type.startsWith('PENALTY_SHOOTOUT_');
+  const score = event.category === 'SCORING' && event.type !== 'PENALTY_MISSED'
+    ? isShootout
+      ? `${event.shootoutHomeScoreAfter}–${event.shootoutAwayScoreAfter} pens`
+      : `${event.homeScoreAfter}–${event.awayScoreAfter}`
+    : null;
+  const symbol = event.type.includes('GOAL') || event.type === 'PENALTY_SHOOTOUT_SCORE'
+    ? '⚽'
+    : event.type.includes('CARD')
+      ? event.type === 'YELLOW_CARD' ? '🟨' : '🟥'
+      : event.type.includes('SUBSTITUTION') || event.type.startsWith('PLAYER_')
+        ? '↔'
+        : event.type.startsWith('VAR_')
+          ? 'VAR'
+          : '•';
+  return <article className={`rounded-xl border bg-white p-4 ${event.status === 'REVERSED' ? 'opacity-60' : ''}`}>
+    <div className="grid grid-cols-[3rem_2.25rem_minmax(0,1fr)_auto] items-start gap-2">
+      <time className="font-bold text-gray-500">{minute ?? '—'}</time>
+      <span aria-hidden className="text-center font-bold">{symbol}</span>
+      <div className="min-w-0"><strong>{label(event.type)}</strong>{actor && <p className="truncate text-sm text-gray-600">{actor}</p>}{event.type === 'SUBSTITUTION' && event.secondaryPlayerName && <p className="text-xs text-gray-500">{event.secondaryPlayerName} on</p>}{event.type === 'ASSIST' && actor && <p className="text-xs text-gray-500">Assist</p>}</div>
+      {score && <strong className="whitespace-nowrap text-primary">{score}</strong>}
+    </div>
+    {(event.status !== 'CONFIRMED' || event.type.startsWith('VAR_')) && <div className="mt-2 flex gap-2 pl-20 text-xs font-semibold"><span className="rounded-full bg-gray-100 px-2 py-1">{label(event.status)}</span>{event.type.startsWith('VAR_') && <span className="rounded-full bg-blue-50 px-2 py-1 text-blue-700">Video review</span>}</div>}
+  </article>;
+}
+
+function label(value: string) {
+  return value.replaceAll('_', ' ').toLowerCase().replace(/\b\w/g, letter => letter.toUpperCase());
 }
 
 function Segments({ contest }: { contest: ContestDetails }) {
   const current = contest.session?.activeSegmentId;
   return <aside><h2 className="mb-4 text-lg font-bold">Segments</h2>{contest.segments.length === 0 ? <State message="No segments configured." compact /> : <div className="space-y-2">{contest.segments.map(segment => <div key={segment.id} className={`rounded-lg p-3 ${segment.id === current ? 'bg-primary/10 ring-1 ring-primary' : 'bg-gray-50'}`}><p className="font-medium">{segment.name}</p><p className="text-xs text-gray-500">{segment.id === current ? 'Current' : segment.status}</p></div>)}</div>}</aside>;
+}
+
+function Statistics({ contest }: { contest: ContestDetails }) {
+  const breakdown = contest.statistics?.eventBreakdown ?? [];
+  if (breakdown.length === 0) return <State message="Statistics will appear when match events are recorded." compact />;
+  const participants = contest.participants.slice(0, 2);
+  const count = (row: (typeof breakdown)[number], id?: string) =>
+    id ? row.participants.find(item => item.participantId === id)?.count ?? 0 : 0;
+  return <section className="surface overflow-hidden rounded-2xl">
+    <div className="grid grid-cols-[minmax(0,1fr)_minmax(6rem,2fr)_minmax(0,1fr)] gap-2 bg-gray-950 p-3 text-center text-sm font-semibold text-white">
+      <span className="truncate">{participants[0]?.name ?? 'Home'}</span><span>Event</span><span className="truncate">{participants[1]?.name ?? 'Away'}</span>
+    </div>
+    {breakdown.map(row => <div key={row.label} className="grid grid-cols-[minmax(0,1fr)_minmax(6rem,2fr)_minmax(0,1fr)] gap-2 border-t border-gray-200 p-3 text-center">
+      <strong>{count(row, participants[0]?.participantId)}</strong><span className="capitalize text-gray-600">{row.label.replaceAll('_', ' ')}</span><strong>{count(row, participants[1]?.participantId)}</strong>
+    </div>)}
+  </section>;
 }
 
 function State({ message, compact = false }: { message: string; compact?: boolean }) {

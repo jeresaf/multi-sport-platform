@@ -11,10 +11,12 @@ import 'core/theme/app_theme.dart';
 import 'core/services/service_locator.dart';
 import 'core/services/connectivity_service.dart';
 import 'core/services/notification_service.dart';
+import 'core/services/tenant_topic_synchronizer.dart';
 import 'core/widgets/offline_indicator.dart';
 import 'features/auth/presentation/providers/auth_provider.dart';
 import 'features/tenant/presentation/providers/tenant_provider.dart';
 import 'features/branding/presentation/providers/branding_provider.dart';
+import 'features/supporter/data/supporter_preferences.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -52,7 +54,7 @@ class _SportsPlatformAppState extends ConsumerState<SportsPlatformApp> {
   late final ConnectivityService _connectivityService;
   late final NotificationService _notificationService;
   StreamSubscription<NotificationData>? _notificationInteractionSubscription;
-  String? _subscribedTenantTopic;
+  late final TenantTopicSynchronizer _tenantTopicSynchronizer;
 
   @override
   void initState() {
@@ -60,6 +62,10 @@ class _SportsPlatformAppState extends ConsumerState<SportsPlatformApp> {
     _appRouter = AppRouter();
     _connectivityService = ServiceLocator.get<ConnectivityService>();
     _notificationService = ServiceLocator.get<NotificationService>();
+    _tenantTopicSynchronizer = TenantTopicSynchronizer(
+      subscribe: _notificationService.subscribeToTopic,
+      unsubscribe: _notificationService.unsubscribeFromTopic,
+    );
     _notificationInteractionSubscription = _notificationService.interactions
         .listen(_handleNotificationInteraction);
 
@@ -99,20 +105,19 @@ class _SportsPlatformAppState extends ConsumerState<SportsPlatformApp> {
     }
   }
 
-  void _synchronizeTenantTopic(String? tenantSlug) {
-    if (!_notificationService.pushAvailable ||
-        tenantSlug == null ||
-        tenantSlug.isEmpty) {
-      return;
-    }
-    final next = 'tenant-$tenantSlug';
-    if (_subscribedTenantTopic == next) return;
-    final previous = _subscribedTenantTopic;
-    _subscribedTenantTopic = next;
-    if (previous != null) {
-      unawaited(_notificationService.unsubscribeFromTopic(previous));
-    }
-    unawaited(_notificationService.subscribeToTopic(next));
+  void _synchronizeTenantTopic(String? tenantSlug, bool enabled) {
+    unawaited(
+      _tenantTopicSynchronizer
+          .synchronize(
+        tenantSlug: tenantSlug,
+        enabled: _notificationService.pushAvailable && enabled,
+      )
+          .catchError((Object error) {
+        // A later preference/tenant update retries because failed topics are
+        // never recorded as subscribed.
+        debugPrint('Tenant push topic synchronization failed: $error');
+      }),
+    );
   }
 
   @override
@@ -128,7 +133,18 @@ class _SportsPlatformAppState extends ConsumerState<SportsPlatformApp> {
     final tenantState = ref.watch(tenantStateProvider);
     final connectivityState = ref.watch(connectivityServiceProvider);
     final branding = ref.watch(tenantBrandingProvider).valueOrNull;
-    _synchronizeTenantTopic(tenantState.selectedTenant?.slug);
+    final themePreference = ref.watch(
+      supporterPreferencesProvider.select((state) => state.themeMode),
+    );
+    final notificationsEnabled = ref.watch(
+      supporterPreferencesProvider.select(
+        (state) => state.notificationsEnabled,
+      ),
+    );
+    _synchronizeTenantTopic(
+      tenantState.selectedTenant?.slug,
+      notificationsEnabled,
+    );
 
     return MaterialApp.router(
       title: branding?.tenantName ?? AppConfig.appName,
@@ -143,7 +159,11 @@ class _SportsPlatformAppState extends ConsumerState<SportsPlatformApp> {
         secondary: branding?.secondaryColor,
         accent: branding?.accentColor,
       ),
-      themeMode: ThemeMode.system,
+      themeMode: switch (themePreference) {
+        'light' => ThemeMode.light,
+        'dark' => ThemeMode.dark,
+        _ => ThemeMode.system,
+      },
       routerConfig: _appRouter.getRouter(
         isAuthenticated: authState.isAuthenticated,
         selectedTenantId: tenantState.selectedTenantId,

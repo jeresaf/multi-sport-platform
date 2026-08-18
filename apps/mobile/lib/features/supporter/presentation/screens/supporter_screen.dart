@@ -7,49 +7,65 @@ import '../../domain/supporter_models.dart';
 import '../providers/supporter_provider.dart';
 import '../../data/supporter_preferences.dart';
 import '../../data/supporter_share_service.dart';
+import '../widgets/supporter_contest_card.dart';
 
 class SupporterScreen extends ConsumerWidget {
-  const SupporterScreen({super.key});
+  final int initialTab;
+  final bool liveOnly;
+
+  const SupporterScreen(
+      {super.key, this.initialTab = 0, this.liveOnly = false});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final feed = ref.watch(supporterFeedProvider);
     final preferences = ref.watch(supporterPreferencesProvider);
-    return DefaultTabController(
-      length: 4,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Scores & fixtures'),
-          actions: [
-            IconButton(
-              tooltip: preferences.lowDataMode
-                  ? 'Disable low-data mode'
-                  : 'Enable low-data mode',
-              onPressed: () => ref
-                  .read(supporterPreferencesProvider.notifier)
-                  .setLowDataMode(!preferences.lowDataMode),
-              icon: Icon(preferences.lowDataMode
-                  ? Icons.data_saver_on
-                  : Icons.data_saver_off),
-            ),
-          ],
-          bottom: const TabBar(
-            isScrollable: true,
-            tabs: [
-              Tab(text: 'Fixtures'),
-              Tab(text: 'Results'),
-              Tab(text: 'Standings'),
-              Tab(text: 'Favourites'),
-            ],
+    final scaffold = Scaffold(
+      appBar: AppBar(
+        title: Text(liveOnly
+            ? 'Live'
+            : initialTab == 3
+                ? 'Favourites'
+                : 'Schedule & results'),
+        actions: [
+          IconButton(
+            tooltip: preferences.lowDataMode
+                ? 'Disable low-data mode'
+                : 'Enable low-data mode',
+            onPressed: () => ref
+                .read(supporterPreferencesProvider.notifier)
+                .setLowDataMode(!preferences.lowDataMode),
+            icon: Icon(preferences.lowDataMode
+                ? Icons.data_saver_on
+                : Icons.data_saver_off),
           ),
+        ],
+        bottom: liveOnly
+            ? null
+            : const TabBar(
+                isScrollable: true,
+                tabs: [
+                  Tab(text: 'Schedule'),
+                  Tab(text: 'Results'),
+                  Tab(text: 'Standings'),
+                  Tab(text: 'Favourites'),
+                ],
+              ),
+      ),
+      body: feed.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, _) => _ErrorView(
+          message: error.toString(),
+          onRetry: () => ref.read(supporterFeedProvider.notifier).refresh(),
         ),
-        body: feed.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, _) => _ErrorView(
-            message: error.toString(),
-            onRetry: () => ref.read(supporterFeedProvider.notifier).refresh(),
-          ),
-          data: (data) => Column(
+        data: (data) {
+          final fixtures = liveOnly
+              ? data.fixtures.where((item) {
+                  final status = item.status.toLowerCase();
+                  return status == 'live' || status == 'inprogress';
+                }).toList()
+              : data.fixtures;
+          return Column(
             children: [
               if (data.isFromCache)
                 MaterialBanner(
@@ -68,42 +84,60 @@ class SupporterScreen extends ConsumerWidget {
                   ],
                 ),
               Expanded(
-                child: TabBarView(
-                  children: [
-                    _RefreshableList(
-                      emptyMessage: 'No upcoming fixtures',
-                      itemCount: data.fixtures.length,
-                      onRefresh: () =>
-                          ref.read(supporterFeedProvider.notifier).refresh(),
-                      itemBuilder: (context, index) =>
-                          _FixtureCard(fixture: data.fixtures[index]),
-                    ),
-                    _RefreshableList(
-                      emptyMessage: 'No published results',
-                      itemCount: data.results.length,
-                      onRefresh: () =>
-                          ref.read(supporterFeedProvider.notifier).refresh(),
-                      itemBuilder: (context, index) =>
-                          _ResultTile(result: data.results[index]),
-                    ),
-                    _RefreshableList(
-                      emptyMessage: 'No standings available',
-                      itemCount: data.standings.length,
-                      onRefresh: () =>
-                          ref.read(supporterFeedProvider.notifier).refresh(),
-                      itemBuilder: (context, index) =>
-                          _StandingTile(standing: data.standings[index]),
-                    ),
-                    _FavouritesList(
-                      favourites: preferences.favourites.values.toList(),
-                    ),
-                  ],
-                ),
+                child: liveOnly
+                    ? _RefreshableList(
+                        emptyMessage: 'No contests are live right now',
+                        itemCount: fixtures.length,
+                        onRefresh: () =>
+                            ref.read(supporterFeedProvider.notifier).refresh(),
+                        itemBuilder: (context, index) =>
+                            _FixtureCard(fixture: fixtures[index]),
+                      )
+                    : TabBarView(
+                        children: [
+                          _RefreshableList(
+                            emptyMessage: 'No upcoming contests',
+                            itemCount: fixtures.length,
+                            onRefresh: () => ref
+                                .read(supporterFeedProvider.notifier)
+                                .refresh(),
+                            itemBuilder: (context, index) =>
+                                _FixtureCard(fixture: fixtures[index]),
+                          ),
+                          _RefreshableList(
+                            emptyMessage: 'No published results',
+                            itemCount: data.results.length,
+                            onRefresh: () => ref
+                                .read(supporterFeedProvider.notifier)
+                                .refresh(),
+                            itemBuilder: (context, index) =>
+                                _ResultTile(result: data.results[index]),
+                          ),
+                          _RefreshableList(
+                            emptyMessage: 'No standings available',
+                            itemCount: data.standings.length,
+                            onRefresh: () => ref
+                                .read(supporterFeedProvider.notifier)
+                                .refresh(),
+                            itemBuilder: (context, index) =>
+                                _StandingTile(standing: data.standings[index]),
+                          ),
+                          _FavouritesList(
+                            favourites: preferences.favourites.values.toList(),
+                          ),
+                        ],
+                      ),
               ),
             ],
-          ),
-        ),
+          );
+        },
       ),
+    );
+    if (liveOnly) return scaffold;
+    return DefaultTabController(
+      length: 4,
+      initialIndex: initialTab,
+      child: scaffold,
     );
   }
 }
@@ -164,70 +198,19 @@ class _FixtureCard extends ConsumerWidget {
         (state) => state.isFavourite(favourite.type, favourite.id),
       ),
     );
-    return Card(
-        child: InkWell(
+    return SupporterContestCard(
+      fixture: fixture,
+      isFavourite: isFavourite,
       onTap: () => context.push('/contest/${fixture.id}'),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(fixture.competitionName,
-                      style: Theme.of(context).textTheme.labelLarge),
-                ),
-                Text(fixture.sportCode.toUpperCase(),
-                    style: Theme.of(context).textTheme.labelSmall),
-                IconButton(
-                  tooltip: isFavourite
-                      ? 'Remove from favourites'
-                      : 'Add to favourites',
-                  onPressed: () => ref
-                      .read(supporterPreferencesProvider.notifier)
-                      .toggleFavourite(favourite),
-                  icon: Icon(
-                    isFavourite ? Icons.favorite : Icons.favorite_border,
-                  ),
-                ),
-                IconButton(
-                  tooltip: 'Share fixture',
-                  onPressed: () => supporterShareService.share(
-                    title: favourite.title,
-                    description: fixture.competitionName,
-                    path: favourite.route,
-                  ),
-                  icon: const Icon(Icons.share_outlined),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              fixture.participants.isEmpty
-                  ? fixture.name
-                  : fixture.participants.join('  vs  '),
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 12,
-              children: [
-                if (fixture.startTime != null)
-                  Text(DateFormat.MMMd()
-                      .add_Hm()
-                      .format(fixture.startTime!.toLocal())),
-                if (fixture.venue != null) Text(fixture.venue!),
-                Text(fixture.status),
-              ],
-            ),
-          ],
-        ),
+      onFavourite: () => ref
+          .read(supporterPreferencesProvider.notifier)
+          .toggleFavourite(favourite),
+      onShare: () => supporterShareService.share(
+        title: favourite.title,
+        description: fixture.competitionName,
+        path: favourite.route,
       ),
-    ));
+    );
   }
 }
 

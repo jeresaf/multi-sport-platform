@@ -19,6 +19,8 @@ import '../../features/tenant/presentation/screens/tenant_code_screen.dart';
 import '../../features/supporter/presentation/screens/supporter_screen.dart';
 import '../../features/supporter/presentation/screens/bracket_screen.dart';
 import '../../features/supporter/presentation/screens/golf_leaderboard_screen.dart';
+import '../../features/supporter/presentation/screens/fight_card_screen.dart';
+import '../../features/search/presentation/screens/search_screen.dart';
 import '../../features/auth/presentation/providers/auth_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../widgets/main_scaffold.dart';
@@ -58,76 +60,117 @@ class AppRouter {
           builder: (context, state) => const TenantCodeScreen(),
         ),
 
-        // Main app shell with bottom navigation
-        ShellRoute(
-          builder: (context, state, child) => MainScaffold(child: child),
-          routes: [
-            // Home tab
-            GoRoute(
-              path: '/',
-              name: 'home',
-              builder: (context, state) => const HomeScreen(),
-            ),
-
-            // Competitions tab
-            GoRoute(
-              path: '/competitions',
-              name: 'competitions',
-              builder: (context, state) => const CompetitionListScreen(),
-              routes: [
-                GoRoute(
-                  path: ':competitionId',
-                  name: 'competition-detail',
-                  builder: (context, state) {
-                    final competitionId =
-                        state.pathParameters['competitionId']!;
-                    return CompetitionDetailScreen(
-                        competitionId: competitionId);
-                  },
+        // Stateful public shell preserves the scroll/navigation stack of every tab.
+        StatefulShellRoute.indexedStack(
+          builder: (context, state, navigationShell) =>
+              MainScaffold(navigationShell: navigationShell),
+          branches: [
+            StatefulShellBranch(routes: [
+              GoRoute(
+                path: '/',
+                name: 'home',
+                builder: (context, state) => HomeScreen(
+                  initialDate: _publicDate(state),
+                  initialSportSlug: state.uri.queryParameters['sport'],
                 ),
-              ],
-            ),
-
-            GoRoute(
-              path: '/support',
-              name: 'support',
-              builder: (context, state) => const SupporterScreen(),
-            ),
-
-            // Scoring tab
-            GoRoute(
-              path: '/scoring',
-              name: 'scoring',
-              builder: (context, state) => const _ScoringGate(),
-              routes: [
-                GoRoute(
-                  path: 'contest/:contestId',
-                  name: 'scoring-console',
-                  builder: (context, state) {
-                    final contestId = state.pathParameters['contestId']!;
-                    final sportCode = state.uri.queryParameters['sport'];
-                    return ScoringConsoleScreen(
-                      contestId: contestId,
-                      sportCode: sportCode,
-                    );
-                  },
+              ),
+              GoRoute(
+                path: '/home',
+                name: 'public-home',
+                builder: (context, state) => HomeScreen(
+                  initialDate: _publicDate(state),
+                  initialSportSlug: state.uri.queryParameters['sport'],
                 ),
-              ],
-            ),
-
-            // Settings tab
-            GoRoute(
-              path: '/settings',
-              name: 'settings',
-              builder: (context, state) => const SettingsScreen(),
-              routes: [
-                GoRoute(
-                  path: 'profile',
-                  name: 'profile',
-                  builder: (context, state) => const ProfileScreen(),
+              ),
+              GoRoute(
+                path: '/sport/:sportSlug',
+                name: 'sport-home',
+                builder: (context, state) => HomeScreen(
+                  initialDate: _publicDate(state),
+                  initialSportSlug: state.pathParameters['sportSlug'],
                 ),
-              ],
-            ),
+              ),
+            ]),
+            StatefulShellBranch(routes: [
+              GoRoute(
+                path: '/live',
+                name: 'public-live',
+                builder: (context, state) =>
+                    const SupporterScreen(liveOnly: true),
+              ),
+            ]),
+            StatefulShellBranch(routes: [
+              GoRoute(
+                path: '/favourites',
+                name: 'favourites',
+                builder: (context, state) =>
+                    const SupporterScreen(initialTab: 3),
+              ),
+            ]),
+            StatefulShellBranch(routes: [
+              GoRoute(
+                path: '/competitions',
+                name: 'competitions',
+                builder: (context, state) => const CompetitionListScreen(),
+                routes: [
+                  GoRoute(
+                    path: ':competitionId',
+                    name: 'competition-detail',
+                    builder: (context, state) => CompetitionDetailScreen(
+                      competitionId: state.pathParameters['competitionId']!,
+                    ),
+                  ),
+                ],
+              ),
+              GoRoute(
+                path: '/competition/:competitionId',
+                name: 'canonical-competition-detail',
+                builder: (context, state) => CompetitionDetailScreen(
+                  competitionId: state.pathParameters['competitionId']!,
+                ),
+              ),
+            ]),
+            StatefulShellBranch(routes: [
+              GoRoute(
+                path: '/search',
+                name: 'search',
+                builder: (context, state) => const SearchScreen(),
+              ),
+            ]),
+            StatefulShellBranch(routes: [
+              GoRoute(
+                path: '/settings',
+                name: 'settings',
+                builder: (context, state) => const SettingsScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'profile',
+                    name: 'profile',
+                    builder: (context, state) => const ProfileScreen(),
+                  ),
+                ],
+              ),
+              GoRoute(
+                path: '/support',
+                name: 'support',
+                builder: (context, state) => const SupporterScreen(),
+              ),
+              GoRoute(
+                path: '/scoring',
+                name: 'scoring',
+                builder: (context, state) => const _ScoringGate(),
+                routes: [
+                  GoRoute(
+                    path: 'contest/:contestId',
+                    name: 'scoring-console',
+                    builder: (context, state) => ScoringConsoleScreen(
+                      contestId: state.pathParameters['contestId']!,
+                      sportCode: state.uri.queryParameters['sport'],
+                    ),
+                  ),
+                ],
+              ),
+            ]),
           ],
         ),
 
@@ -160,6 +203,20 @@ class AppRouter {
             return ParticipantDetailScreen(participantId: participantId);
           },
         ),
+        GoRoute(
+          path: '/team/:participantId',
+          name: 'team-detail',
+          builder: (context, state) => ParticipantDetailScreen(
+            participantId: state.pathParameters['participantId']!,
+          ),
+        ),
+        GoRoute(
+          path: '/athlete/:participantId',
+          name: 'athlete-detail',
+          builder: (context, state) => ParticipantDetailScreen(
+            participantId: state.pathParameters['participantId']!,
+          ),
+        ),
 
         GoRoute(
           path: '/bracket/:competitionId',
@@ -173,6 +230,13 @@ class AppRouter {
           path: '/leaderboard/:competitionId',
           name: 'golf-leaderboard',
           builder: (context, state) => GolfLeaderboardScreen(
+            competitionId: state.pathParameters['competitionId']!,
+          ),
+        ),
+        GoRoute(
+          path: '/fight-card/:competitionId',
+          name: 'fight-card',
+          builder: (context, state) => FightCardScreen(
             competitionId: state.pathParameters['competitionId']!,
           ),
         ),
@@ -247,19 +311,26 @@ class Routes {
   static const String profile = '/settings/profile';
 
   static String competitionDetail(String competitionId) =>
-      '/competitions/$competitionId';
+      '/competition/$competitionId';
   static String contestDetail(String contestId) => '/contest/$contestId';
   static String liveScoring(String contestId) => '/live/$contestId';
   static String participantDetail(String participantId) =>
       '/participant/$participantId';
+  static String teamDetail(String participantId) => '/team/$participantId';
+  static String athleteDetail(String participantId) =>
+      '/athlete/$participantId';
   static String bracket(String competitionId) => '/bracket/$competitionId';
   static String golfLeaderboard(String competitionId) =>
       '/leaderboard/$competitionId';
+  static String fightCard(String competitionId) => '/fight-card/$competitionId';
   static String scoringConsole(String contestId, {String? sport}) {
     final queryParams = sport != null ? '?sport=$sport' : '';
     return '/scoring/contest/$contestId$queryParams';
   }
 }
+
+DateTime? _publicDate(GoRouterState state) =>
+    DateTime.tryParse(state.uri.queryParameters['date'] ?? '');
 
 class _ScoringGate extends ConsumerWidget {
   const _ScoringGate();

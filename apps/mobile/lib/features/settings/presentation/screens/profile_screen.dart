@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../../core/services/api_client.dart';
+import '../../../../core/services/service_locator.dart';
 
 /// Profile screen
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -186,9 +188,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   leading: const Icon(Icons.lock_outline),
                   title: const Text('Change Password'),
                   trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    // TODO: Navigate to change password
-                  },
+                  onTap: _showChangePasswordDialog,
                 ),
                 const Divider(height: 1),
                 ListTile(
@@ -202,9 +202,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   leading: const Icon(Icons.security),
                   title: const Text('Security'),
                   trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    // TODO: Navigate to security settings
-                  },
+                  onTap: () => _showAccountInformation(
+                    'Security',
+                    'Your session is protected with expiring access tokens. Sign out after using a shared device.',
+                  ),
                 ),
               ],
             ),
@@ -226,18 +227,20 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   leading: const Icon(Icons.link),
                   title: const Text('Link Google Account'),
                   trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    // TODO: Link Google account
-                  },
+                  onTap: () => _showAccountInformation(
+                    'Google Account',
+                    'Google account linking is not enabled for this deployment.',
+                  ),
                 ),
                 const Divider(height: 1),
                 ListTile(
                   leading: const Icon(Icons.link),
                   title: const Text('Link Apple Account'),
                   trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    // TODO: Link Apple account
-                  },
+                  onTap: () => _showAccountInformation(
+                    'Apple Account',
+                    'Apple account linking is not enabled for this deployment.',
+                  ),
                 ),
               ],
             ),
@@ -273,14 +276,104 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   void _saveProfile() {
     if (_formKey.currentState!.validate()) {
-      // TODO: Save profile
+      final auth = ref.read(authStateProvider);
+      _nameController.text = auth.displayName ?? '';
+      _emailController.text = auth.email ?? '';
       setState(() {
         _isEditing = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile saved')),
+        const SnackBar(
+          content: Text('Profile editing is not enabled for this deployment'),
+        ),
       );
     }
+  }
+
+  void _showAccountInformation(String title, String message) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showChangePasswordDialog() {
+    final current = TextEditingController();
+    final next = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Change Password'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: current,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: 'Current password'),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: next,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: 'New password (8+ characters)',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              final messenger = ScaffoldMessenger.of(context);
+              if (current.text.length < 8 || next.text.length < 8) {
+                messenger.showSnackBar(const SnackBar(
+                  content: Text('Both passwords must be at least 8 characters'),
+                ));
+                return;
+              }
+              try {
+                await ServiceLocator.get<ApiClient>().post<void>(
+                  '/api/auth/change-password',
+                  data: {
+                    'currentPassword': current.text,
+                    'newPassword': next.text,
+                  },
+                );
+                if (!dialogContext.mounted) return;
+                Navigator.pop(dialogContext);
+                messenger.showSnackBar(const SnackBar(
+                  content: Text('Password changed successfully'),
+                ));
+              } catch (_) {
+                if (!dialogContext.mounted) return;
+                messenger.showSnackBar(const SnackBar(
+                  content: Text(
+                      'Password change failed. Check the current password.'),
+                ));
+              }
+            },
+            child: const Text('Change'),
+          ),
+        ],
+      ),
+    ).whenComplete(() {
+      current.dispose();
+      next.dispose();
+    });
   }
 
   void _showDeleteAccountDialog() {
@@ -299,7 +392,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              // TODO: Delete account
+              _showAccountInformation(
+                'Delete Account',
+                'Self-service account deletion is not enabled. Contact your organisation administrator for an audited removal request.',
+              );
             },
             child: Text(
               'Delete',

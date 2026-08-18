@@ -84,6 +84,7 @@ public class LiveScoringService : ILiveScoringService
             submission.RulesetVersionId);
         score.SetDisplayValue(submission.Value.ToString(CultureInfo.InvariantCulture));
         score.SetScorer(submission.ScorerId.ToString(), null);
+        score.SetPlayers(submission.PrimaryPlayerId, submission.SecondaryPlayerId);
         score.SetSequence(sequence);
 
         await _context.LiveScores.AddAsync(score, cancellationToken);

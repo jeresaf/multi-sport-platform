@@ -151,6 +151,10 @@ type ScoringSession = {
 type LifecycleState = {
   contestId: string;
   status: number;
+  canonicalStatus: number;
+  canonicalStatusCode: string;
+  statusReason?: string | null;
+  lastChangedAt: string;
   allowedTransitions: number[];
   usesSportPolicy: boolean;
 };
@@ -216,6 +220,11 @@ const lifecycleLabels = [
 ];
 const reasonedLifecycleStatuses = new Set([6, 10, 12, 13]);
 const participantStatusLabels = ['Entered', 'Checked in', 'Withdrawn', 'Disqualified'];
+const formatCanonicalStatus = (value: string) => value
+  .toLowerCase()
+  .split('_')
+  .map(part => part ? `${part[0].toUpperCase()}${part.slice(1)}` : part)
+  .join(' ');
 
 export function ConnectedSportScoring({ config }: { config: SportScoringConfig }) {
   const [tenants, setTenants] = useState<Tenant[]>([]);
@@ -226,6 +235,7 @@ export function ConnectedSportScoring({ config }: { config: SportScoringConfig }
   const [scores, setScores] = useState<LiveScore[]>([]);
   const [rosters, setRosters] = useState<ContestRoster[]>([]);
   const [selectedPlayers, setSelectedPlayers] = useState<Record<string, string>>({});
+  const [selectedIncomingPlayers, setSelectedIncomingPlayers] = useState<Record<string, string>>({});
   const [golfScorecards, setGolfScorecards] = useState<GolfScorecardReview[]>([]);
   const [golfScorecardParticipantId, setGolfScorecardParticipantId] = useState('');
   const [golfScorecardRoundId, setGolfScorecardRoundId] = useState('');
@@ -331,6 +341,7 @@ export function ConnectedSportScoring({ config }: { config: SportScoringConfig }
       setRosters([]);
       setGolfScorecards([]);
       setSelectedPlayers({});
+      setSelectedIncomingPlayers({});
       setSession(null);
       setSchema(null);
       return;
@@ -589,18 +600,23 @@ export function ConnectedSportScoring({ config }: { config: SportScoringConfig }
     setError(null);
     try {
       const eventId = crypto.randomUUID();
+      const eventType = action.eventType ?? (schema?.sportCode === 'football'
+        ? action.code.toUpperCase().replaceAll('-', '_')
+        : undefined);
+      const primaryPlayerId = selectedPlayers[participantId] || null;
+      const secondaryPlayerId = eventType === 'SUBSTITUTION'
+        ? selectedIncomingPlayers[participantId] || null
+        : null;
       await adminApi(`/api/livescoring/contests/${activeContest.id}/events`, {
         method: 'POST',
         headers: { 'X-Tenant-Id': activeContest.tenantId },
         body: JSON.stringify({
           eventId,
           participantId,
-          secondaryParticipantId: action.requiresPlayer
-            ? selectedPlayers[participantId] || null
-            : null,
-          eventType: action.eventType ?? (schema?.sportCode === 'football'
-            ? action.code.toUpperCase().replaceAll('-', '_')
-            : undefined),
+          secondaryParticipantId: primaryPlayerId,
+          primaryPlayerId,
+          secondaryPlayerId,
+          eventType,
           metricName: action.metric,
           value,
           scoredBy: user?.email ?? 'admin-web',
@@ -1088,12 +1104,17 @@ export function ConnectedSportScoring({ config }: { config: SportScoringConfig }
               <div className="mb-5 rounded-lg border border-gray-200 p-3">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold text-gray-900">
-                      Lifecycle: {lifecycleLabels[lifecycle.status] ?? lifecycle.status}
+                    <p className="flex flex-wrap items-center gap-2 text-sm font-semibold text-gray-900">
+                      <span>Lifecycle:</span>
+                      <span className="rounded-full bg-blue-50 px-2 py-1 text-xs text-blue-800">
+                        {formatCanonicalStatus(lifecycle.canonicalStatusCode)}
+                      </span>
                     </p>
                     <p className="text-xs text-gray-500">
                       {lifecycle.usesSportPolicy ? 'Tenant sport policy' : 'Platform transition policy'}
+                      {' · '}internal workflow: {lifecycleLabels[lifecycle.status] ?? lifecycle.status}
                     </p>
+                    {lifecycle.statusReason && <p className="mt-1 text-xs text-amber-700">Reason: {lifecycle.statusReason}</p>}
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {lifecycle.allowedTransitions.map((target) => (
@@ -1558,6 +1579,29 @@ export function ConnectedSportScoring({ config }: { config: SportScoringConfig }
                             )}
                           </label>
                         )}
+                        {schema?.sportCode === 'football' &&
+                          schema.actions.some((action) => action.eventType === 'SUBSTITUTION') && (
+                          <label className="mt-3 block text-sm font-medium text-gray-700">
+                            Substitution player entering
+                            <select
+                              data-testid={`incoming-player-select-${participant.participantId}`}
+                              value={selectedIncomingPlayers[participant.participantId] ?? ''}
+                              onChange={(event) => setSelectedIncomingPlayers((current) => ({
+                                ...current,
+                                [participant.participantId]: event.target.value,
+                              }))}
+                              className="mt-1 block w-full rounded-md border border-gray-200 bg-white px-2 py-1.5"
+                            >
+                              <option value="">Select player entering</option>
+                              {rosterPlayers.map((player) => (
+                                <option key={player.athleteId} value={player.athleteId}>
+                                  {player.jerseyNumber ? `#${player.jerseyNumber} · ` : ''}
+                                  {player.name}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                        )}
                         <div className="mt-4 flex flex-wrap gap-2">
                           {schema?.actions.map((action) => {
                             const valueKey = `${participant.participantId}:${action.code}`;
@@ -1597,7 +1641,10 @@ export function ConnectedSportScoring({ config }: { config: SportScoringConfig }
                                         : 'default'
                                   }
                                   onClick={() => submit(participant.participantId, action)}
-                                  disabled={busy || session?.status !== 1}
+                                  disabled={busy || session?.status !== 1 ||
+                                    (action.requiresPlayer && !selectedPlayers[participant.participantId]) ||
+                                    (action.eventType === 'SUBSTITUTION' &&
+                                      !selectedIncomingPlayers[participant.participantId])}
                                 >
                                   {action.label}
                                   {action.unit ? ` (${action.unit})` : ''}

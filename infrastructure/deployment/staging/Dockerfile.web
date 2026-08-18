@@ -1,17 +1,23 @@
 FROM node:20-alpine AS build
 ARG APP_DIR
-ARG NEXT_PUBLIC_API_URL=http://localhost:8080
+ARG NEXT_PUBLIC_API_URL=
+ARG API_PROXY_TARGET=http://api:8080
+ARG NEXT_PUBLIC_TENANT_SLUG=premier-league
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ENV API_PROXY_TARGET=${API_PROXY_TARGET}
+ENV NEXT_PUBLIC_TENANT_SLUG=${NEXT_PUBLIC_TENANT_SLUG}
 WORKDIR /app
 COPY ${APP_DIR}/package.json ${APP_DIR}/package-lock.json ./
 RUN npm ci
 COPY ${APP_DIR}/ ./
+COPY packages/design-tokens/web.css ./src/styles/design-tokens.css
 RUN npm run build
 
 FROM node:20-alpine AS runtime
 ENV NODE_ENV=production
 ENV HOSTNAME=0.0.0.0
 ENV PORT=3000
+ENV API_PROXY_TARGET=http://api:8080
 WORKDIR /app
 COPY --from=build /app/package.json /app/package-lock.json ./
 COPY --from=build /app/next.config.js ./next.config.js

@@ -88,7 +88,7 @@ export default function CompetitionsPage() {
         {filtered.map((competition) => (
           <Link
             key={competition.id}
-            href={tenantPath(`/competitions/${competition.id}`, tenantSlug)}
+            href={tenantPath(`/competition/${competition.id}`, tenantSlug)}
             className="rounded-xl border border-gray-200 bg-white p-6 transition hover:shadow-md"
           >
             <div className="mb-5 flex items-center justify-between">

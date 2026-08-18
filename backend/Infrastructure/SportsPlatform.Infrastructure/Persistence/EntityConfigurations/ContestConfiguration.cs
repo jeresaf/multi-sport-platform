@@ -18,6 +18,11 @@ public class ContestConfiguration : IEntityTypeConfiguration<Contest>
         builder.Property(c => c.AllowedParticipantTypes).IsRequired().HasMaxLength(300);
         builder.Property(c => c.Venue).HasMaxLength(200);
         builder.Property(c => c.Status).IsRequired().HasMaxLength(50).HasConversion<string>();
+        builder.Property(c => c.CanonicalStatus).IsRequired().HasMaxLength(50)
+            .HasConversion<string>();
+        builder.Property(c => c.StatusReason).HasMaxLength(500);
+        builder.Property(c => c.CanonicalStatusChangedAt).IsRequired();
+        builder.Property(c => c.TimelineVersion).IsRequired().IsConcurrencyToken();
         builder.Property(c => c.TenantId).IsRequired();
         builder.Property(c => c.SportId).IsRequired();
         builder.Property(c => c.CreatedAt).IsRequired();
@@ -62,6 +67,7 @@ public class ContestConfiguration : IEntityTypeConfiguration<Contest>
 
         builder.HasIndex(c => new { c.TenantId, c.SportId });
         builder.HasIndex(c => c.Status);
+        builder.HasIndex(c => c.CanonicalStatus);
         builder.HasIndex(c => new { c.SeriesId, c.SeriesGameNumber }).IsUnique();
 
         // ContestParticipants
@@ -129,11 +135,13 @@ public class ContestConfiguration : IEntityTypeConfiguration<Contest>
             e.Property(e => e.DeviceId).IsRequired().HasMaxLength(200);
             e.Property(e => e.IdempotencyKey).IsRequired().HasMaxLength(200);
             e.Property(e => e.CorrectionReason).HasMaxLength(500);
+            e.Property(e => e.TimelineSequence).IsRequired();
             e.Property(e => e.Status).IsRequired().HasMaxLength(50).HasConversion<string>();
             e.Property(e => e.TenantId).IsRequired();
 
             e.HasIndex(e => e.IdempotencyKey).IsUnique();
             e.HasIndex(e => new { e.ContestId, e.SequenceNumber });
+            e.HasIndex(e => new { e.ContestId, e.TimelineSequence }).IsUnique();
         });
 
         // ContestOfficials

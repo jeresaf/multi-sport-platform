@@ -5,6 +5,7 @@ import { Plus, Search, Trophy } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { adminApi } from '@/lib/admin-api';
 import { HierarchyWorkspace } from '@/components/competitions/hierarchy-workspace';
+import { PresentationSettingsPanel } from '@/components/competitions/presentation-settings';
 
 type Competition = {
   id: string;
@@ -60,6 +61,7 @@ export default function CompetitionsPage() {
   const [loading, setLoading] = useState(false);
   const [selectedCompetition, setSelectedCompetition] = useState<Competition | null>(null);
   const [hierarchyCompetition, setHierarchyCompetition] = useState<Competition | null>(null);
+  const [presentationCompetition, setPresentationCompetition] = useState<Competition | null>(null);
   const [bracket, setBracket] = useState<Bracket | null>(null);
   const [overrideHistory, setOverrideHistory] = useState<BracketOverride[]>([]);
   const [playoffError, setPlayoffError] = useState<string | null>(null);
@@ -256,6 +258,9 @@ export default function CompetitionsPage() {
             <button onClick={() => setHierarchyCompetition(competition)} className="ml-2 mt-4 rounded-lg border px-3 py-2 text-sm font-semibold text-primary">
               Manage hierarchy
             </button>
+            <button onClick={() => setPresentationCompetition(competition)} className="mt-2 rounded-lg border px-3 py-2 text-sm font-semibold text-primary sm:ml-2">
+              Presentation
+            </button>
           </article>
         ))}
       </div>
@@ -264,6 +269,13 @@ export default function CompetitionsPage() {
           competitionId={hierarchyCompetition.id}
           competitionName={hierarchyCompetition.name}
           onClose={() => setHierarchyCompetition(null)}
+        />
+      )}
+      {presentationCompetition && (
+        <PresentationSettingsPanel
+          competitionId={presentationCompetition.id}
+          competitionName={presentationCompetition.name}
+          onClose={() => setPresentationCompetition(null)}
         />
       )}
       {selectedCompetition && (

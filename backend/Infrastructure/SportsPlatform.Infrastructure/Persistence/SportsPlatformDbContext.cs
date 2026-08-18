@@ -44,6 +44,7 @@ public class SportsPlatformDbContext : DbContext
     // Contests
     public DbSet<Contest> Contests => Set<Contest>();
     public DbSet<ContestLifecyclePolicy> ContestLifecyclePolicies => Set<ContestLifecyclePolicy>();
+    public DbSet<ContestStatusHistory> ContestStatusHistory => Set<ContestStatusHistory>();
 
     // Participants
     public DbSet<Participant> Participants => Set<Participant>();
@@ -161,6 +162,7 @@ public class SportsPlatformDbContext : DbContext
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         RejectAuditMutations();
+        await IncrementTimelineVersionsAsync(cancellationToken);
         // Set audit timestamps for all entities
         foreach (var entry in ChangeTracker.Entries())
         {
@@ -225,10 +227,18 @@ public class SportsPlatformDbContext : DbContext
                 && entry.Entity.Action == "ContestStatusChanged"
                 && entry.Entity.EntityType == "Contest"
                 && entry.Entity.EntityId == contest.Id.ToString());
-            if (alreadyRecorded) continue;
             foreach (var transition in contest.PendingTransitions)
             {
-                AuditEntries.Add(new AuditEntry(
+                ContestStatusHistory.Add(new ContestStatusHistory(
+                    Guid.NewGuid(),
+                    contest.TenantId,
+                    contest.Id,
+                    transition.CanonicalFrom,
+                    transition.CanonicalTo,
+                    transition.OccurredAt,
+                    transition.ActorId,
+                    transition.Reason));
+                if (!alreadyRecorded) AuditEntries.Add(new AuditEntry(
                     Guid.NewGuid(),
                     contest.TenantId,
                     null,
@@ -243,7 +253,7 @@ public class SportsPlatformDbContext : DbContext
                     {
                         status = transition.To.ToString()
                     }),
-                    null));
+                    transition.Reason));
             }
         }
 
@@ -266,9 +276,83 @@ public class SportsPlatformDbContext : DbContext
         }
     }
 
+    private async Task IncrementTimelineVersionsAsync(CancellationToken cancellationToken)
+    {
+        var changedEvents = ChangeTracker.Entries<LiveScore>()
+            .Where(entry => entry.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
+            .Select(entry => (entry.Entity.ContestId,
+                EventId: entry.Entity.EventId == Guid.Empty ? entry.Entity.Id : entry.Entity.EventId))
+            .Concat(ChangeTracker.Entries<ContestEvent>()
+                .Where(entry => entry.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
+                .Select(entry => (entry.Entity.ContestId, EventId: entry.Entity.Id)))
+            .Where(item => item.ContestId != Guid.Empty)
+            .ToList();
+        var changedScoreIds = ChangeTracker.Entries<LiveScoreUpdate>()
+            .Where(entry => entry.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
+            .Select(entry => entry.Entity.LiveScoreId)
+            .Distinct()
+            .ToArray();
+        if (changedScoreIds.Length > 0)
+        {
+            var updatedEvents = await LiveScores.AsNoTracking()
+                .Where(score => changedScoreIds.Contains(score.Id))
+                .Select(score => new
+                {
+                    score.ContestId,
+                    EventId = score.EventId == Guid.Empty ? score.Id : score.EventId
+                })
+                .ToArrayAsync(cancellationToken);
+            changedEvents.AddRange(updatedEvents.Select(item => (item.ContestId, item.EventId)));
+        }
+        var increments = changedEvents
+            .Distinct()
+            .GroupBy(item => item.ContestId)
+            .ToDictionary(group => group.Key, group => (long)group.Count());
+        if (increments.Count == 0) return;
+
+        var tracked = ChangeTracker.Entries<Contest>()
+            .Where(entry => entry.State != EntityState.Deleted && increments.ContainsKey(entry.Entity.Id))
+            .Select(entry => entry.Entity)
+            .ToDictionary(contest => contest.Id);
+        var missingIds = increments.Keys.Where(id => !tracked.ContainsKey(id)).ToArray();
+        var contests = missingIds.Length == 0
+            ? []
+            : await Contests
+            .Where(contest => missingIds.Contains(contest.Id))
+            .ToListAsync(cancellationToken);
+        foreach (var contest in contests) tracked[contest.Id] = contest;
+        foreach (var (contestId, increment) in increments)
+            if (tracked.TryGetValue(contestId, out var contest))
+            {
+                var sequences = changedEvents
+                    .Where(item => item.ContestId == contestId)
+                    .Select(item => item.EventId)
+                    .Distinct()
+                    .Select((eventId, index) => new
+                    {
+                        EventId = eventId,
+                        Sequence = contest.TimelineVersion + index + 1
+                    })
+                    .ToDictionary(item => item.EventId, item => item.Sequence);
+                foreach (var entry in ChangeTracker.Entries<LiveScore>().Where(entry =>
+                    entry.State == EntityState.Added && entry.Entity.ContestId == contestId))
+                {
+                    var eventId = entry.Entity.EventId == Guid.Empty
+                        ? entry.Entity.Id
+                        : entry.Entity.EventId;
+                    entry.Entity.AssignTimelineSequence(sequences[eventId]);
+                }
+                foreach (var entry in ChangeTracker.Entries<ContestEvent>().Where(entry =>
+                    entry.State == EntityState.Added && entry.Entity.ContestId == contestId))
+                    entry.Entity.AssignTimelineSequence(sequences[entry.Entity.Id]);
+                contest.IncrementTimelineVersion(increment);
+            }
+    }
+
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
         RejectAuditMutations();
+        IncrementTimelineVersionsAsync(CancellationToken.None).GetAwaiter().GetResult();
         return base.SaveChanges(acceptAllChangesOnSuccess);
     }
 
@@ -279,5 +363,11 @@ public class SportsPlatformDbContext : DbContext
         if (mutation is not null)
             throw new InvalidOperationException(
                 $"Audit entries are append-only and cannot be {mutation.State.ToString().ToLowerInvariant()}.");
+        var statusHistoryMutation = ChangeTracker.Entries<ContestStatusHistory>()
+            .FirstOrDefault(entry =>
+                entry.State is EntityState.Modified or EntityState.Deleted);
+        if (statusHistoryMutation is not null)
+            throw new InvalidOperationException(
+                $"Contest status history is append-only and cannot be {statusHistoryMutation.State.ToString().ToLowerInvariant()}.");
     }
 }

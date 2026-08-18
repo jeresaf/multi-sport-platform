@@ -64,7 +64,15 @@ public static class DatabaseExtensions
 
             var enableDemoData = app.Configuration.GetValue<bool>("SeedData:EnableDemoData");
             if (enableDemoData)
+            {
                 await SeedData.SeedData.InitializeAsync(context);
+                var publicCsvPackPath = app.Configuration["SeedData:PublicCsvPackPath"];
+                if (!string.IsNullOrWhiteSpace(publicCsvPackPath))
+                {
+                    logger.LogInformation("Importing public staging CSV seed pack from {Path}.", publicCsvPackPath);
+                    await SeedData.PublicCsvSeedData.EnsureAsync(context, publicCsvPackPath);
+                }
+            }
             else
                 logger.LogInformation("Demo data seeding is disabled for this environment.");
             await EnsureResultWorkflowPermissionsAsync(context);

@@ -11,12 +11,15 @@ public class LiveScore : AggregateRoot<Guid>
     public string EventType { get; private set; } = string.Empty;
     public Guid ParticipantId { get; private set; }
     public Guid? SecondaryParticipantId { get; private set; }
+    public Guid? PrimaryPlayerId { get; private set; }
+    public Guid? SecondaryPlayerId { get; private set; }
     public Guid? SegmentId { get; private set; }
     public decimal? ClockSeconds { get; private set; }
     public string MetricName { get; private set; } = string.Empty;
     public decimal Value { get; private set; }
     public string? DisplayValue { get; private set; }
     public int Sequence { get; private set; }
+    public long TimelineSequence { get; private set; }
     public string? ScorerId { get; private set; }
     public string? AssistId { get; private set; }
     public string? Metadata { get; private set; }
@@ -102,10 +105,26 @@ public class LiveScore : AggregateRoot<Guid>
         Sequence = sequence;
     }
 
+    public void AssignTimelineSequence(long sequence)
+    {
+        if (sequence < 1) throw new ArgumentOutOfRangeException(nameof(sequence));
+        if (TimelineSequence > 0 && TimelineSequence != sequence)
+            throw new InvalidOperationException("A timeline sequence cannot be reassigned.");
+        TimelineSequence = sequence;
+    }
+
     public void SetScorer(string? scorerId, string? assistId)
     {
         ScorerId = scorerId;
         AssistId = assistId;
+    }
+
+    public void SetPlayers(Guid? primaryPlayerId, Guid? secondaryPlayerId)
+    {
+        if (primaryPlayerId.HasValue && primaryPlayerId == secondaryPlayerId)
+            throw new ArgumentException("Primary and secondary players must be different.");
+        PrimaryPlayerId = primaryPlayerId;
+        SecondaryPlayerId = secondaryPlayerId;
     }
 
     public void SetMetadata(string? metadata)

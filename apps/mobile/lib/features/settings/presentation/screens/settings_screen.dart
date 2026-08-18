@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/router/app_router.dart';
@@ -6,6 +7,11 @@ import '../../../../core/services/notification_service.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../tenant/presentation/providers/tenant_provider.dart';
 import '../../../supporter/data/supporter_preferences.dart';
+import '../../../supporter/presentation/providers/supporter_provider.dart';
+import '../../../competitions/presentation/providers/competition_provider.dart';
+import '../../../contests/presentation/providers/contest_provider.dart';
+import '../../../../core/database/database.dart';
+import '../../../../core/services/service_locator.dart';
 
 /// Settings screen
 class SettingsScreen extends ConsumerWidget {
@@ -106,18 +112,18 @@ class SettingsScreen extends ConsumerWidget {
             title: const Text('Language'),
             subtitle: const Text('English'),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              // TODO: Navigate to language settings
-            },
+            onTap: () => _showInformation(
+              context,
+              'Language',
+              'English is currently the supported interface language. More languages will appear here when translations are available.',
+            ),
           ),
           ListTile(
             leading: const Icon(Icons.dark_mode_outlined),
             title: const Text('Theme'),
-            subtitle: const Text('System'),
+            subtitle: Text(_themeLabel(supporterPreferences.themeMode)),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              // TODO: Navigate to theme settings
-            },
+            onTap: () => _showThemeDialog(context, ref),
           ),
           const Divider(),
 
@@ -127,16 +133,15 @@ class SettingsScreen extends ConsumerWidget {
             leading: const Icon(Icons.sync),
             title: const Text('Sync Settings'),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              // TODO: Navigate to sync settings
-            },
+            subtitle: const Text('Refresh public data and review data usage'),
+            onTap: () => _showSyncSettings(context, ref),
           ),
           ListTile(
             leading: const Icon(Icons.storage),
             title: const Text('Clear Cache'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
-              _showClearCacheDialog(context);
+              _showClearCacheDialog(context, ref);
             },
           ),
           const Divider(),
@@ -147,16 +152,25 @@ class SettingsScreen extends ConsumerWidget {
             leading: const Icon(Icons.help_outline),
             title: const Text('Help & FAQ'),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              // TODO: Navigate to help
-            },
+            onTap: () => _showInformation(
+              context,
+              'Help & FAQ',
+              'Change organisation from the home icon. Use Schedule for upcoming contests and Results for completed contests. Pull down on lists to refresh. Scoring tools require an authorised scorer account.',
+            ),
           ),
           ListTile(
             leading: const Icon(Icons.feedback_outlined),
             title: const Text('Send Feedback'),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              // TODO: Navigate to feedback
+            onTap: () async {
+              await Clipboard.setData(const ClipboardData(
+                text: 'support@sportsplatform.local',
+              ));
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                  content: Text('Support email copied to clipboard'),
+                ));
+              }
             },
           ),
           ListTile(
@@ -187,7 +201,93 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  void _showClearCacheDialog(BuildContext context) {
+  String _themeLabel(String value) => switch (value) {
+        'light' => 'Light',
+        'dark' => 'Dark',
+        _ => 'System',
+      };
+
+  void _showThemeDialog(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => SimpleDialog(
+        title: const Text('Choose theme'),
+        children: [
+          for (final option in const [
+            ('system', 'System'),
+            ('light', 'Light'),
+            ('dark', 'Dark'),
+          ])
+            RadioListTile<String>(
+              value: option.$1,
+              groupValue: ref.read(supporterPreferencesProvider).themeMode,
+              title: Text(option.$2),
+              onChanged: (value) {
+                if (value != null) {
+                  ref
+                      .read(supporterPreferencesProvider.notifier)
+                      .setThemeMode(value);
+                }
+                Navigator.pop(dialogContext);
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _showSyncSettings(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('Sync Settings',
+                style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 8),
+            const Text(
+                'Public data refreshes when lists are opened or pulled down. Low-data mode prefers saved data.'),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              icon: const Icon(Icons.sync),
+              label: const Text('Sync now'),
+              onPressed: () {
+                ref.invalidate(supporterFeedProvider);
+                ref.invalidate(competitionsProvider);
+                ref.invalidate(liveContestsProvider);
+                Navigator.pop(sheetContext);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Refreshing sports data')),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showInformation(BuildContext context, String title, String content) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(title),
+        content: Text(content),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showClearCacheDialog(BuildContext context, WidgetRef ref) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -201,7 +301,12 @@ class SettingsScreen extends ConsumerWidget {
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
+              await ServiceLocator.get<AppDatabase>().clearReadCaches();
+              ref.invalidate(supporterFeedProvider);
+              ref.invalidate(competitionsProvider);
+              ref.invalidate(liveContestsProvider);
+              if (!context.mounted) return;
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Cache cleared')),
@@ -259,7 +364,7 @@ class SettingsScreen extends ConsumerWidget {
               Navigator.pop(context);
               await ref.read(authStateProvider.notifier).logout();
               if (context.mounted) {
-                context.go(Routes.login);
+                context.go(Routes.home);
               }
             },
             child: Text(

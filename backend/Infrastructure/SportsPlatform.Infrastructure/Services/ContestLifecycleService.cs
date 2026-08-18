@@ -9,6 +9,10 @@ namespace SportsPlatform.Infrastructure.Services;
 public sealed record ContestLifecycleState(
     Guid ContestId,
     ContestStatus Status,
+    CanonicalContestStatus CanonicalStatus,
+    string CanonicalStatusCode,
+    string? StatusReason,
+    DateTime LastChangedAt,
     IReadOnlyCollection<ContestStatus> AllowedTransitions,
     bool UsesSportPolicy);
 
@@ -75,7 +79,7 @@ public sealed class ContestLifecycleService : IContestLifecycleService
 
         var policy = await GetPolicyAsync(contest.TenantId, contest.SportId, cancellationToken);
         var original = contest.Status;
-        contest.TransitionTo(target, policy?.GetTransitions());
+        contest.TransitionTo(target, policy?.GetTransitions(), actorId, reason);
         _database.AuditEntries.Add(new AuditEntry(
             Guid.NewGuid(), contest.TenantId, actorId,
             "ContestStatusChanged", "Contest", contest.Id.ToString(),
@@ -133,6 +137,10 @@ public sealed class ContestLifecycleService : IContestLifecycleService
         ContestLifecyclePolicy? policy) => new(
         contest.Id,
         contest.Status,
+        contest.CanonicalStatus,
+        contest.CanonicalStatus.ToCode(),
+        contest.StatusReason,
+        contest.CanonicalStatusChangedAt,
         contest.AllowedTransitions(policy?.GetTransitions()),
         policy is not null);
 }

@@ -62,6 +62,18 @@ void main() {
     expect(cachedLeaderboard.entries.single.roundScores, [68, 72, 70, 70]);
   });
 
+  test('fight card remains available after a network failure', () async {
+    final online = SupporterRepository(_WorkingRemote(), database);
+    final card = await online.getFightCard('competition-1', forceRefresh: true);
+    expect(card.bouts.single.cardSection, 'MainEvent');
+
+    final offline = SupporterRepository(_FailingRemote(), database);
+    final cached =
+        await offline.getFightCard('competition-1', forceRefresh: true);
+    expect(cached.isFromCache, isTrue);
+    expect(cached.bouts.single.resultMethod, 'Knockout');
+  });
+
   test('low-data mode reads stale snapshots without network requests',
       () async {
     final old = DateTime.now().toUtc().subtract(const Duration(days: 1));
@@ -190,6 +202,27 @@ class _WorkingRemote extends SupporterRemoteDataSource {
           }
         ],
       };
+
+  @override
+  Future<Map<String, dynamic>> getFightCard(String competitionId) async => {
+        'id': 'card-1',
+        'name': 'Africa Fight Night',
+        'status': 'Completed',
+        'boutCount': 1,
+        'completedBoutCount': 1,
+        'bouts': [
+          {
+            'id': 'bout-1',
+            'name': 'Main event',
+            'boutNumber': 1,
+            'cardSection': 'MainEvent',
+            'weightClass': 'Heavyweight',
+            'scheduledRounds': 5,
+            'status': 'Completed',
+            'resultMethod': 'Knockout',
+          }
+        ],
+      };
 }
 
 class _FailingRemote extends SupporterRemoteDataSource {
@@ -214,6 +247,10 @@ class _FailingRemote extends SupporterRemoteDataSource {
   Future<Map<String, dynamic>> getGolfLeaderboard(
     String competitionId,
   ) async =>
+      _fail();
+
+  @override
+  Future<Map<String, dynamic>> getFightCard(String competitionId) async =>
       _fail();
 }
 

@@ -1,5 +1,5 @@
 const API_URL =
-  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '') ?? 'http://localhost:8080';
+  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '') ?? '';
 
 export const PUBLIC_CONTEST_HUB_URL = `${API_URL}/hubs/contest`;
 
@@ -11,19 +11,62 @@ export type PublicCompetition = {
   name: string;
   description?: string | null;
   sportId: string;
+  sportCode?: string | null;
+  sportName?: string | null;
   status: string;
+  contestStatus?: string | null;
   publishedAt?: string | null;
 };
 
 export type PublicContest = {
   id: string;
+  competitionId?: string;
+  competitionName?: string;
   name?: string | null;
   sportId: string;
+  sportCode?: string | null;
+  sportName?: string | null;
   contestShape: string;
+  renderer?: ContestRenderer;
   status: string;
+  contestStatus?: string | null;
   venue?: string | null;
   startTime?: string | null;
   endTime?: string | null;
+  presentation?: PublicContestPresentation | null;
+  participants?: PublicContestParticipant[];
+};
+
+export type PublicContestPresentation = {
+  scoreVariant?: string | null;
+  stageLabel?: string | null;
+  periodLabel?: string | null;
+  clock?: string | null;
+  summary?: string | null;
+  seriesGameNumber?: number | null;
+  seriesBestOf?: number | null;
+  eventSummary?: Array<{
+    participantId: string;
+    eventType: string;
+    count: number;
+  }>;
+};
+
+export type ContestRenderer =
+  | 'head-to-head'
+  | 'multi-participant-leaderboard'
+  | 'race-heat'
+  | 'fight-card-bout'
+  | 'cricket-scorecard';
+
+export type PublicContestParticipant = {
+  participantId: string;
+  name: string;
+  score?: number | null;
+  scoreDisplay?: string | null;
+  position?: string | null;
+  rank?: number | null;
+  resultStatus?: string | null;
 };
 
 export type PublicHome = {
@@ -118,4 +161,10 @@ export function formatSport(sportId: string) {
     '00000000-0000-0000-0000-000000000105': 'Combat',
     '00000000-0000-0000-0000-000000000106': 'Rugby Union (7s & 15s)',
   } as Record<string, string>)[sportId.toLowerCase()] ?? `Sport ${sportId.slice(0, 8)}`;
+}
+
+export function sportSlug(sportId: string, sportName?: string) {
+  const name = (sportName || formatSport(sportId)).toLowerCase();
+  if (name.startsWith('rugby')) return 'rugby';
+  return name.replaceAll(/[^a-z0-9]+/g, '-').replaceAll(/(^-|-$)/g, '');
 }

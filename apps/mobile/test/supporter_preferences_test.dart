@@ -13,7 +13,7 @@ void main() {
     Environment.selectTenant('six-nations');
   });
 
-  test('favourites and low-data mode persist across notifier recreation',
+  test('favourites, low-data mode, and theme persist across recreation',
       () async {
     final preferences = await SharedPreferences.getInstance();
     final first = SupporterPreferencesNotifier(preferences);
@@ -26,15 +26,21 @@ void main() {
     );
 
     await first.toggleFavourite(favourite);
+    await first.setAlertPreferences(favourite, {'start', 'score', 'final'});
     await first.setLowDataMode(true);
+    await first.setThemeMode('dark');
 
     final restored = SupporterPreferencesNotifier(preferences);
     expect(restored.state.lowDataMode, isTrue);
+    expect(restored.state.themeMode, 'dark');
     expect(restored.state.isFavourite('contest', 'fixture-1'), isTrue);
     expect(restored.state.favourites.values.single.route, '/contest/fixture-1');
+    expect(restored.state.alertsFor('contest', 'fixture-1'),
+        {'start', 'score', 'final'});
 
     await restored.toggleFavourite(favourite);
     expect(restored.state.favourites, isEmpty);
+    expect(restored.state.alertPreferences, isEmpty);
   });
 
   test('shared deep links retain tenant context', () {

@@ -225,6 +225,11 @@ public class ResultsController : ControllerBase
             };
             contest.TransitionTo(ContestStatus.InProgress, recovery);
         }
+        else if (contest.Status == ContestStatus.CheckInOpen)
+        {
+            contest.MarkReady();
+            contest.Start();
+        }
         else if (contest.Status is ContestStatus.Scheduled or ContestStatus.Ready)
         {
             contest.Start();

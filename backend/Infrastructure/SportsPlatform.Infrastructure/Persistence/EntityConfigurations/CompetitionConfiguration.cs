@@ -24,6 +24,11 @@ public class CompetitionConfiguration : IEntityTypeConfiguration<Competition>
 
         builder.Property(c => c.RulesetVersionId);
 
+        builder.Property(c => c.PresentationConfiguration)
+            .IsRequired()
+            .HasColumnType("jsonb")
+            .HasDefaultValue("{}");
+
         builder.Property(c => c.Status)
             .IsRequired()
             .HasMaxLength(50)

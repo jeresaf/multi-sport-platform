@@ -209,7 +209,10 @@ class ContestDetailNotifier extends StateNotifier<ContestDetailState> {
           clientId: signalREvent.clientId,
         );
         state = state.copyWith(
-          events: [...state.events, event],
+          events: [
+            ...state.events.where((item) => item.id != event.id),
+            event,
+          ]..sort((left, right) => left.timestamp.compareTo(right.timestamp)),
         );
       }
     });

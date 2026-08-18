@@ -488,6 +488,12 @@ namespace SportsPlatform.Infrastructure.Persistence.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<string>("PresentationConfiguration")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasDefaultValue("{}");
+
                     b.Property<DateTime?>("PublishedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -560,6 +566,14 @@ namespace SportsPlatform.Infrastructure.Persistence.Migrations
                     b.Property<decimal?>("AthleticsRecordThreshold")
                         .HasPrecision(12, 3)
                         .HasColumnType("numeric(12,3)");
+
+                    b.Property<string>("CanonicalStatus")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("CanonicalStatusChangedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("CardSection")
                         .HasMaxLength(50)
@@ -683,8 +697,16 @@ namespace SportsPlatform.Infrastructure.Persistence.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<string>("StatusReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uuid");
+
+                    b.Property<long>("TimelineVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -701,6 +723,8 @@ namespace SportsPlatform.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CanonicalStatus");
 
                     b.HasIndex("Status");
 
@@ -740,6 +764,57 @@ namespace SportsPlatform.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("ContestLifecyclePolicies", (string)null);
+                });
+
+            modelBuilder.Entity("SportsPlatform.Modules.Contests.Entities.ContestStatusHistory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ActorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ContestId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FromStatus")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("OccurredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PhaseCode")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ToStatus")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
+
+                    b.HasIndex("ContestId", "OccurredAt");
+
+                    b.ToTable("ContestStatusHistory", (string)null);
                 });
 
             modelBuilder.Entity("SportsPlatform.Modules.Identity.Entities.ConsentRecord", b =>
@@ -1500,6 +1575,9 @@ namespace SportsPlatform.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("ParticipantId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("PrimaryPlayerId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid?>("RulesetVersionId")
                         .HasColumnType("uuid");
 
@@ -1511,6 +1589,9 @@ namespace SportsPlatform.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(200)");
 
                     b.Property<Guid?>("SecondaryParticipantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("SecondaryPlayerId")
                         .HasColumnType("uuid");
 
                     b.Property<Guid?>("SegmentId")
@@ -1525,6 +1606,9 @@ namespace SportsPlatform.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uuid");
 
+                    b.Property<long>("TimelineSequence")
+                        .HasColumnType("bigint");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -1537,6 +1621,9 @@ namespace SportsPlatform.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.HasIndex("ContestId", "IdempotencyKey")
+                        .IsUnique();
+
+                    b.HasIndex("ContestId", "TimelineSequence")
                         .IsUnique();
 
                     b.HasIndex("ContestId", "DeviceId", "Sequence")
@@ -3950,6 +4037,9 @@ namespace SportsPlatform.Infrastructure.Persistence.Migrations
                             b1.Property<Guid>("TenantId")
                                 .HasColumnType("uuid");
 
+                            b1.Property<long>("TimelineSequence")
+                                .HasColumnType("bigint");
+
                             b1.Property<DateTime?>("UpdatedAt")
                                 .HasColumnType("timestamp with time zone");
 
@@ -3959,6 +4049,9 @@ namespace SportsPlatform.Infrastructure.Persistence.Migrations
                                 .IsUnique();
 
                             b1.HasIndex("ContestId", "SequenceNumber");
+
+                            b1.HasIndex("ContestId", "TimelineSequence")
+                                .IsUnique();
 
                             b1.ToTable("ContestEvents", (string)null);
 
@@ -4139,6 +4232,15 @@ namespace SportsPlatform.Infrastructure.Persistence.Migrations
                     b.Navigation("Participants");
 
                     b.Navigation("Segments");
+                });
+
+            modelBuilder.Entity("SportsPlatform.Modules.Contests.Entities.ContestStatusHistory", b =>
+                {
+                    b.HasOne("SportsPlatform.Modules.Contests.Entities.Contest", null)
+                        .WithMany()
+                        .HasForeignKey("ContestId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("SportsPlatform.Modules.Identity.Entities.ConsentRecord", b =>
