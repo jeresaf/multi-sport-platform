@@ -1,0 +1,7 @@
+group_id,competition_id,stage_id,name,display_order,is_public
+f-glcc-a,f-glcc-2026,f-glcc-groups,Group A,1,true
+f-glcc-b,f-glcc-2026,f-glcc-groups,Group B,2,true
+r7-pool-a,r7-kampala-2026,r7-pools,Pool A,1,true
+r7-pool-b,r7-kampala-2026,r7-pools,Pool B,2,true
+r7-pool-c,r7-kampala-2026,r7-pools,Pool C,3,true
+c-t20-all,c-t20-2026,c-t20-group,Championship Table,1,true
