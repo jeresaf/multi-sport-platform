@@ -1,0 +1,13 @@
+venue_id,tenant_id,name,city,country,is_public
+venue-kampala-central,tenant-uganda-demo,Kampala Central Sports Ground,Kampala,Uganda,true
+venue-victoria-arena,tenant-uganda-demo,Lake Victoria Arena,Entebbe,Uganda,true
+venue-jinja-riverside,tenant-uganda-demo,Jinja Riverside Stadium,Jinja,Uganda,true
+venue-mbarara-complex,tenant-uganda-demo,Mbarara City Sports Complex,Mbarara,Uganda,true
+venue-gulu-community,tenant-uganda-demo,Gulu Community Stadium,Gulu,Uganda,true
+venue-mbale-highlands,tenant-uganda-demo,Mbale Highlands Arena,Mbale,Uganda,true
+venue-fort-portal,tenant-uganda-demo,Fort Portal Recreation Ground,Fort Portal,Uganda,true
+venue-masaka-municipal,tenant-uganda-demo,Masaka Municipal Sports Centre,Masaka,Uganda,true
+venue-kololo-track,tenant-uganda-demo,Kololo Track & Field Centre,Kampala,Uganda,true
+venue-lake-victoria-golf,tenant-uganda-demo,Lake Victoria Golf Course,Entebbe,Uganda,true
+venue-kampala-fight-arena,tenant-uganda-demo,Kampala Fight Arena,Kampala,Uganda,true
+venue-kampala-tennis,tenant-uganda-demo,Kampala Tennis Centre,Kampala,Uganda,true
