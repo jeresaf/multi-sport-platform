@@ -1,0 +1,151 @@
+participant_id,tenant_id,sport_id,participant_type,display_name,short_name,is_public,seed_key
+football-team-01,tenant-uganda-demo,football,TEAM,Kampala City FC,KCF,true,seed:participant:football:01
+football-team-02,tenant-uganda-demo,football,TEAM,Entebbe United,EU,true,seed:participant:football:02
+football-team-03,tenant-uganda-demo,football,TEAM,Jinja Nile FC,JNF,true,seed:participant:football:03
+football-team-04,tenant-uganda-demo,football,TEAM,Mbarara Lions,ML,true,seed:participant:football:04
+football-team-05,tenant-uganda-demo,football,TEAM,Gulu Eagles,GE,true,seed:participant:football:05
+football-team-06,tenant-uganda-demo,football,TEAM,Mbale Volcanoes,MV,true,seed:participant:football:06
+football-team-07,tenant-uganda-demo,football,TEAM,Fort Portal Rovers,FPR,true,seed:participant:football:07
+football-team-08,tenant-uganda-demo,football,TEAM,Masaka Stars,MS,true,seed:participant:football:08
+basketball-team-01,tenant-uganda-demo,basketball,TEAM,Kampala Titans,KT,true,seed:participant:basketball:01
+basketball-team-02,tenant-uganda-demo,basketball,TEAM,City Falcons,CF,true,seed:participant:basketball:02
+basketball-team-03,tenant-uganda-demo,basketball,TEAM,Entebbe Mariners,EM,true,seed:participant:basketball:03
+basketball-team-04,tenant-uganda-demo,basketball,TEAM,Jinja Giants,JG,true,seed:participant:basketball:04
+basketball-team-05,tenant-uganda-demo,basketball,TEAM,Mbarara Flames,MF,true,seed:participant:basketball:05
+basketball-team-06,tenant-uganda-demo,basketball,TEAM,Gulu Warriors,GW,true,seed:participant:basketball:06
+rugby15-team-01,tenant-uganda-demo,rugby15,TEAM,Kampala Rhinos RFC,KR,true,seed:participant:rugby15:01
+rugby15-team-02,tenant-uganda-demo,rugby15,TEAM,Jinja Nile RFC,JN,true,seed:participant:rugby15:02
+rugby15-team-03,tenant-uganda-demo,rugby15,TEAM,Entebbe Sharks RFC,ES,true,seed:participant:rugby15:03
+rugby15-team-04,tenant-uganda-demo,rugby15,TEAM,Mbarara Bulls RFC,MB,true,seed:participant:rugby15:04
+rugby15-team-05,tenant-uganda-demo,rugby15,TEAM,Gulu Elephants RFC,GE,true,seed:participant:rugby15:05
+rugby15-team-06,tenant-uganda-demo,rugby15,TEAM,Mbale Highlanders RFC,MH,true,seed:participant:rugby15:06
+rugby7-team-01,tenant-uganda-demo,rugby7,TEAM,Kampala Rhinos 7s,KR,true,seed:participant:rugby7:01
+rugby7-team-02,tenant-uganda-demo,rugby7,TEAM,Jinja Nile 7s,JN,true,seed:participant:rugby7:02
+rugby7-team-03,tenant-uganda-demo,rugby7,TEAM,Entebbe Sharks 7s,ES,true,seed:participant:rugby7:03
+rugby7-team-04,tenant-uganda-demo,rugby7,TEAM,Mbarara Bulls 7s,MB,true,seed:participant:rugby7:04
+rugby7-team-05,tenant-uganda-demo,rugby7,TEAM,Gulu Elephants 7s,GE,true,seed:participant:rugby7:05
+rugby7-team-06,tenant-uganda-demo,rugby7,TEAM,Mbale Highlanders 7s,MH,true,seed:participant:rugby7:06
+rugby7-team-07,tenant-uganda-demo,rugby7,TEAM,Fort Portal Panthers 7s,FPP,true,seed:participant:rugby7:07
+rugby7-team-08,tenant-uganda-demo,rugby7,TEAM,Masaka Thunder 7s,MT,true,seed:participant:rugby7:08
+rugby7-team-09,tenant-uganda-demo,rugby7,TEAM,Mukono Chargers 7s,MC,true,seed:participant:rugby7:09
+rugby7-team-10,tenant-uganda-demo,rugby7,TEAM,Wakiso Rangers 7s,WR,true,seed:participant:rugby7:10
+rugby7-team-11,tenant-uganda-demo,rugby7,TEAM,Lira Lions 7s,LL,true,seed:participant:rugby7:11
+rugby7-team-12,tenant-uganda-demo,rugby7,TEAM,Soroti Hawks 7s,SH,true,seed:participant:rugby7:12
+cricket-team-01,tenant-uganda-demo,cricket,TEAM,Kampala Kings,KK,true,seed:participant:cricket:01
+cricket-team-02,tenant-uganda-demo,cricket,TEAM,Jinja Nile Cricket Club,JNCC,true,seed:participant:cricket:02
+cricket-team-03,tenant-uganda-demo,cricket,TEAM,Entebbe Aviators,EA,true,seed:participant:cricket:03
+cricket-team-04,tenant-uganda-demo,cricket,TEAM,Mbarara Strikers,MS,true,seed:participant:cricket:04
+volleyball-team-01,tenant-uganda-demo,volleyball,TEAM,Kampala Spikers,KS,true,seed:participant:volleyball:01
+volleyball-team-02,tenant-uganda-demo,volleyball,TEAM,Entebbe Waves,EW,true,seed:participant:volleyball:02
+volleyball-team-03,tenant-uganda-demo,volleyball,TEAM,Jinja Blockers,JB,true,seed:participant:volleyball:03
+volleyball-team-04,tenant-uganda-demo,volleyball,TEAM,Mbarara Vipers,MV,true,seed:participant:volleyball:04
+volleyball-team-05,tenant-uganda-demo,volleyball,TEAM,Gulu Servers,GS,true,seed:participant:volleyball:05
+volleyball-team-06,tenant-uganda-demo,volleyball,TEAM,Mbale Peaks,MP,true,seed:participant:volleyball:06
+netball-team-01,tenant-uganda-demo,netball,TEAM,Kampala Queens,KQ,true,seed:participant:netball:01
+netball-team-02,tenant-uganda-demo,netball,TEAM,Entebbe Swifts,ES,true,seed:participant:netball:02
+netball-team-03,tenant-uganda-demo,netball,TEAM,Jinja Stars,JS,true,seed:participant:netball:03
+netball-team-04,tenant-uganda-demo,netball,TEAM,Mbarara Gems,MG,true,seed:participant:netball:04
+netball-team-05,tenant-uganda-demo,netball,TEAM,Gulu Falcons,GF,true,seed:participant:netball:05
+netball-team-06,tenant-uganda-demo,netball,TEAM,Mbale Roses,MR,true,seed:participant:netball:06
+hockey-team-01,tenant-uganda-demo,hockey,TEAM,Kampala Sticks,KS,true,seed:participant:hockey:01
+hockey-team-02,tenant-uganda-demo,hockey,TEAM,Entebbe Mariners HC,EM,true,seed:participant:hockey:02
+hockey-team-03,tenant-uganda-demo,hockey,TEAM,Jinja Rapids,JR,true,seed:participant:hockey:03
+hockey-team-04,tenant-uganda-demo,hockey,TEAM,Mbarara Rangers,MR,true,seed:participant:hockey:04
+hockey-team-05,tenant-uganda-demo,hockey,TEAM,Gulu Hornets,GH,true,seed:participant:hockey:05
+hockey-team-06,tenant-uganda-demo,hockey,TEAM,Mbale Mountaineers,MM,true,seed:participant:hockey:06
+golf-athlete-01,tenant-uganda-demo,golf,ATHLETE,Daniel Kato,D. Kato,true,seed:participant:golf:01
+golf-athlete-02,tenant-uganda-demo,golf,ATHLETE,Samuel Mugisha,S. Mugisha,true,seed:participant:golf:02
+golf-athlete-03,tenant-uganda-demo,golf,ATHLETE,Brian Okello,B. Okello,true,seed:participant:golf:03
+golf-athlete-04,tenant-uganda-demo,golf,ATHLETE,Isaac Tumusiime,I. Tumusiime,true,seed:participant:golf:04
+golf-athlete-05,tenant-uganda-demo,golf,ATHLETE,Patrick Ssemanda,P. Ssemanda,true,seed:participant:golf:05
+golf-athlete-06,tenant-uganda-demo,golf,ATHLETE,Joel Wanyama,J. Wanyama,true,seed:participant:golf:06
+golf-athlete-07,tenant-uganda-demo,golf,ATHLETE,Martin Ochieng,M. Ochieng,true,seed:participant:golf:07
+golf-athlete-08,tenant-uganda-demo,golf,ATHLETE,Andrew Kiggundu,A. Kiggundu,true,seed:participant:golf:08
+golf-athlete-09,tenant-uganda-demo,golf,ATHLETE,Peter Nsubuga,P. Nsubuga,true,seed:participant:golf:09
+golf-athlete-10,tenant-uganda-demo,golf,ATHLETE,Joseph Byaruhanga,J. Byaruhanga,true,seed:participant:golf:10
+golf-athlete-11,tenant-uganda-demo,golf,ATHLETE,Michael Lule,M. Lule,true,seed:participant:golf:11
+golf-athlete-12,tenant-uganda-demo,golf,ATHLETE,David Akena,D. Akena,true,seed:participant:golf:12
+golf-athlete-13,tenant-uganda-demo,golf,ATHLETE,Ronald Kintu,R. Kintu,true,seed:participant:golf:13
+golf-athlete-14,tenant-uganda-demo,golf,ATHLETE,Stephen Walusimbi,S. Walusimbi,true,seed:participant:golf:14
+golf-athlete-15,tenant-uganda-demo,golf,ATHLETE,Henry Musoke,H. Musoke,true,seed:participant:golf:15
+golf-athlete-16,tenant-uganda-demo,golf,ATHLETE,Nicholas Sserunjogi,N. Sserunjogi,true,seed:participant:golf:16
+golf-athlete-17,tenant-uganda-demo,golf,ATHLETE,Robert Odongo,R. Odongo,true,seed:participant:golf:17
+golf-athlete-18,tenant-uganda-demo,golf,ATHLETE,Charles Mwesigwa,C. Mwesigwa,true,seed:participant:golf:18
+golf-athlete-19,tenant-uganda-demo,golf,ATHLETE,Allan Kabanda,A. Kabanda,true,seed:participant:golf:19
+golf-athlete-20,tenant-uganda-demo,golf,ATHLETE,Emmanuel Ouma,E. Ouma,true,seed:participant:golf:20
+golf-athlete-21,tenant-uganda-demo,golf,ATHLETE,Simon Kayondo,S. Kayondo,true,seed:participant:golf:21
+golf-athlete-22,tenant-uganda-demo,golf,ATHLETE,Paul Wekesa,P. Wekesa,true,seed:participant:golf:22
+golf-athlete-23,tenant-uganda-demo,golf,ATHLETE,James Atwine,J. Atwine,true,seed:participant:golf:23
+golf-athlete-24,tenant-uganda-demo,golf,ATHLETE,Richard Kiberu,R. Kiberu,true,seed:participant:golf:24
+athletics-athlete-01,tenant-uganda-demo,athletics,ATHLETE,Peter Nsubuga,P. Nsubuga,true,seed:participant:athletics:01
+athletics-athlete-02,tenant-uganda-demo,athletics,ATHLETE,Joseph Byaruhanga,J. Byaruhanga,true,seed:participant:athletics:02
+athletics-athlete-03,tenant-uganda-demo,athletics,ATHLETE,Michael Lule,M. Lule,true,seed:participant:athletics:03
+athletics-athlete-04,tenant-uganda-demo,athletics,ATHLETE,David Akena,D. Akena,true,seed:participant:athletics:04
+athletics-athlete-05,tenant-uganda-demo,athletics,ATHLETE,Ronald Kintu,R. Kintu,true,seed:participant:athletics:05
+athletics-athlete-06,tenant-uganda-demo,athletics,ATHLETE,Stephen Walusimbi,S. Walusimbi,true,seed:participant:athletics:06
+athletics-athlete-07,tenant-uganda-demo,athletics,ATHLETE,Henry Musoke,H. Musoke,true,seed:participant:athletics:07
+athletics-athlete-08,tenant-uganda-demo,athletics,ATHLETE,Nicholas Sserunjogi,N. Sserunjogi,true,seed:participant:athletics:08
+athletics-athlete-09,tenant-uganda-demo,athletics,ATHLETE,Robert Odongo,R. Odongo,true,seed:participant:athletics:09
+athletics-athlete-10,tenant-uganda-demo,athletics,ATHLETE,Charles Mwesigwa,C. Mwesigwa,true,seed:participant:athletics:10
+athletics-athlete-11,tenant-uganda-demo,athletics,ATHLETE,Allan Kabanda,A. Kabanda,true,seed:participant:athletics:11
+athletics-athlete-12,tenant-uganda-demo,athletics,ATHLETE,Emmanuel Ouma,E. Ouma,true,seed:participant:athletics:12
+athletics-athlete-13,tenant-uganda-demo,athletics,ATHLETE,Simon Kayondo,S. Kayondo,true,seed:participant:athletics:13
+athletics-athlete-14,tenant-uganda-demo,athletics,ATHLETE,Paul Wekesa,P. Wekesa,true,seed:participant:athletics:14
+athletics-athlete-15,tenant-uganda-demo,athletics,ATHLETE,James Atwine,J. Atwine,true,seed:participant:athletics:15
+athletics-athlete-16,tenant-uganda-demo,athletics,ATHLETE,Richard Kiberu,R. Kiberu,true,seed:participant:athletics:16
+athletics-athlete-17,tenant-uganda-demo,athletics,ATHLETE,Joshua Kintu,J. Kintu,true,seed:participant:athletics:17
+athletics-athlete-18,tenant-uganda-demo,athletics,ATHLETE,Moses Okello,M. Okello,true,seed:participant:athletics:18
+athletics-athlete-19,tenant-uganda-demo,athletics,ATHLETE,Brian Tumwesigye,B. Tumwesigye,true,seed:participant:athletics:19
+athletics-athlete-20,tenant-uganda-demo,athletics,ATHLETE,Daniel Ouma,D. Ouma,true,seed:participant:athletics:20
+athletics-athlete-21,tenant-uganda-demo,athletics,ATHLETE,Peter Wekesa,P. Wekesa,true,seed:participant:athletics:21
+athletics-athlete-22,tenant-uganda-demo,athletics,ATHLETE,Samuel Kato,S. Kato,true,seed:participant:athletics:22
+athletics-athlete-23,tenant-uganda-demo,athletics,ATHLETE,Isaac Mugisha,I. Mugisha,true,seed:participant:athletics:23
+athletics-athlete-24,tenant-uganda-demo,athletics,ATHLETE,Andrew Odongo,A. Odongo,true,seed:participant:athletics:24
+mma-athlete-01,tenant-uganda-demo,mma,ATHLETE,Joel Wanyama,J. Wanyama,true,seed:participant:mma:01
+mma-athlete-02,tenant-uganda-demo,mma,ATHLETE,Martin Ochieng,M. Ochieng,true,seed:participant:mma:02
+mma-athlete-03,tenant-uganda-demo,mma,ATHLETE,Andrew Kiggundu,A. Kiggundu,true,seed:participant:mma:03
+mma-athlete-04,tenant-uganda-demo,mma,ATHLETE,Peter Nsubuga,P. Nsubuga,true,seed:participant:mma:04
+mma-athlete-05,tenant-uganda-demo,mma,ATHLETE,Joseph Byaruhanga,J. Byaruhanga,true,seed:participant:mma:05
+mma-athlete-06,tenant-uganda-demo,mma,ATHLETE,Michael Lule,M. Lule,true,seed:participant:mma:06
+mma-athlete-07,tenant-uganda-demo,mma,ATHLETE,David Akena,D. Akena,true,seed:participant:mma:07
+mma-athlete-08,tenant-uganda-demo,mma,ATHLETE,Ronald Kintu,R. Kintu,true,seed:participant:mma:08
+mma-athlete-09,tenant-uganda-demo,mma,ATHLETE,Stephen Walusimbi,S. Walusimbi,true,seed:participant:mma:09
+mma-athlete-10,tenant-uganda-demo,mma,ATHLETE,Henry Musoke,H. Musoke,true,seed:participant:mma:10
+mma-athlete-11,tenant-uganda-demo,mma,ATHLETE,Nicholas Sserunjogi,N. Sserunjogi,true,seed:participant:mma:11
+mma-athlete-12,tenant-uganda-demo,mma,ATHLETE,Robert Odongo,R. Odongo,true,seed:participant:mma:12
+mma-athlete-13,tenant-uganda-demo,mma,ATHLETE,Charles Mwesigwa,C. Mwesigwa,true,seed:participant:mma:13
+mma-athlete-14,tenant-uganda-demo,mma,ATHLETE,Allan Kabanda,A. Kabanda,true,seed:participant:mma:14
+mma-athlete-15,tenant-uganda-demo,mma,ATHLETE,Emmanuel Ouma,E. Ouma,true,seed:participant:mma:15
+mma-athlete-16,tenant-uganda-demo,mma,ATHLETE,Simon Kayondo,S. Kayondo,true,seed:participant:mma:16
+boxing-athlete-01,tenant-uganda-demo,boxing,ATHLETE,Joel Wanyama,J. Wanyama,true,seed:participant:boxing:01
+boxing-athlete-02,tenant-uganda-demo,boxing,ATHLETE,Martin Ochieng,M. Ochieng,true,seed:participant:boxing:02
+boxing-athlete-03,tenant-uganda-demo,boxing,ATHLETE,Andrew Kiggundu,A. Kiggundu,true,seed:participant:boxing:03
+boxing-athlete-04,tenant-uganda-demo,boxing,ATHLETE,Peter Nsubuga,P. Nsubuga,true,seed:participant:boxing:04
+boxing-athlete-05,tenant-uganda-demo,boxing,ATHLETE,Joseph Byaruhanga,J. Byaruhanga,true,seed:participant:boxing:05
+boxing-athlete-06,tenant-uganda-demo,boxing,ATHLETE,Michael Lule,M. Lule,true,seed:participant:boxing:06
+boxing-athlete-07,tenant-uganda-demo,boxing,ATHLETE,David Akena,D. Akena,true,seed:participant:boxing:07
+boxing-athlete-08,tenant-uganda-demo,boxing,ATHLETE,Ronald Kintu,R. Kintu,true,seed:participant:boxing:08
+boxing-athlete-09,tenant-uganda-demo,boxing,ATHLETE,Stephen Walusimbi,S. Walusimbi,true,seed:participant:boxing:09
+boxing-athlete-10,tenant-uganda-demo,boxing,ATHLETE,Henry Musoke,H. Musoke,true,seed:participant:boxing:10
+boxing-athlete-11,tenant-uganda-demo,boxing,ATHLETE,Nicholas Sserunjogi,N. Sserunjogi,true,seed:participant:boxing:11
+boxing-athlete-12,tenant-uganda-demo,boxing,ATHLETE,Robert Odongo,R. Odongo,true,seed:participant:boxing:12
+boxing-athlete-13,tenant-uganda-demo,boxing,ATHLETE,Charles Mwesigwa,C. Mwesigwa,true,seed:participant:boxing:13
+boxing-athlete-14,tenant-uganda-demo,boxing,ATHLETE,Allan Kabanda,A. Kabanda,true,seed:participant:boxing:14
+boxing-athlete-15,tenant-uganda-demo,boxing,ATHLETE,Emmanuel Ouma,E. Ouma,true,seed:participant:boxing:15
+boxing-athlete-16,tenant-uganda-demo,boxing,ATHLETE,Simon Kayondo,S. Kayondo,true,seed:participant:boxing:16
+tennis-athlete-01,tenant-uganda-demo,tennis,ATHLETE,Joel Wanyama,J. Wanyama,true,seed:participant:tennis:01
+tennis-athlete-02,tenant-uganda-demo,tennis,ATHLETE,Martin Ochieng,M. Ochieng,true,seed:participant:tennis:02
+tennis-athlete-03,tenant-uganda-demo,tennis,ATHLETE,Andrew Kiggundu,A. Kiggundu,true,seed:participant:tennis:03
+tennis-athlete-04,tenant-uganda-demo,tennis,ATHLETE,Peter Nsubuga,P. Nsubuga,true,seed:participant:tennis:04
+tennis-athlete-05,tenant-uganda-demo,tennis,ATHLETE,Joseph Byaruhanga,J. Byaruhanga,true,seed:participant:tennis:05
+tennis-athlete-06,tenant-uganda-demo,tennis,ATHLETE,Michael Lule,M. Lule,true,seed:participant:tennis:06
+tennis-athlete-07,tenant-uganda-demo,tennis,ATHLETE,David Akena,D. Akena,true,seed:participant:tennis:07
+tennis-athlete-08,tenant-uganda-demo,tennis,ATHLETE,Ronald Kintu,R. Kintu,true,seed:participant:tennis:08
+tennis-athlete-09,tenant-uganda-demo,tennis,ATHLETE,Stephen Walusimbi,S. Walusimbi,true,seed:participant:tennis:09
+tennis-athlete-10,tenant-uganda-demo,tennis,ATHLETE,Henry Musoke,H. Musoke,true,seed:participant:tennis:10
+tennis-athlete-11,tenant-uganda-demo,tennis,ATHLETE,Nicholas Sserunjogi,N. Sserunjogi,true,seed:participant:tennis:11
+tennis-athlete-12,tenant-uganda-demo,tennis,ATHLETE,Robert Odongo,R. Odongo,true,seed:participant:tennis:12
+tennis-athlete-13,tenant-uganda-demo,tennis,ATHLETE,Charles Mwesigwa,C. Mwesigwa,true,seed:participant:tennis:13
+tennis-athlete-14,tenant-uganda-demo,tennis,ATHLETE,Allan Kabanda,A. Kabanda,true,seed:participant:tennis:14
+tennis-athlete-15,tenant-uganda-demo,tennis,ATHLETE,Emmanuel Ouma,E. Ouma,true,seed:participant:tennis:15
+tennis-athlete-16,tenant-uganda-demo,tennis,ATHLETE,Simon Kayondo,S. Kayondo,true,seed:participant:tennis:16

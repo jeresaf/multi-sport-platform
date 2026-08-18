@@ -36,7 +36,6 @@ services:
       - Security__DataProtectionKeyPath=/app/data-protection-keys
     volumes:
       - data_protection_keys:/app/data-protection-keys
-      - ../../../../docs/public_multi_sport_seed_csv_pack:/app/seed-data:ro
       - ${FIREBASE_CREDENTIALS_DIR:-./secrets}:/run/secrets:ro
     depends_on:
       db:

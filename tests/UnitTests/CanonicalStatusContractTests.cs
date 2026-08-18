@@ -13,7 +13,7 @@ public sealed class CanonicalStatusContractTests
     [InlineData(ContestStatus.InProgress, CanonicalContestStatus.Live, "LIVE")]
     [InlineData(ContestStatus.Paused, CanonicalContestStatus.Interrupted, "INTERRUPTED")]
     [InlineData(ContestStatus.Completed, CanonicalContestStatus.Ended, "ENDED")]
-    [InlineData(ContestStatus.Published, CanonicalContestStatus.Closed, "CLOSED")]
+    [InlineData(ContestStatus.Published, CanonicalContestStatus.Ended, "ENDED")]
     [InlineData(ContestStatus.Abandoned, CanonicalContestStatus.Abandoned, "ABANDONED")]
     public void LegacyContestStatuses_MapToStableCanonicalCodes(
         ContestStatus legacy,

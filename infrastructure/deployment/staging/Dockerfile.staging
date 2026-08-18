@@ -13,12 +13,35 @@ FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
 WORKDIR /app
 
 RUN apt-get update \
-    && apt-get install --yes --no-install-recommends curl fonts-dejavu-core \
+    && apt-get install --yes --no-install-recommends curl fonts-dejavu-core coreutils tar gzip \
     && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /app/logs
 
 COPY --from=build /app/publish .
+COPY infrastructure/deployment/staging/seed-pack/public-csv-seed.part-01.b64 /tmp/public-csv-seed.part-01.b64
+COPY infrastructure/deployment/staging/seed-pack/public-csv-seed.part-02.b64 /tmp/public-csv-seed.part-02.b64
+COPY infrastructure/deployment/staging/seed-pack/public-csv-seed.part-03.b64 /tmp/public-csv-seed.part-03.b64
+
+# The public staging dataset is versioned with the repository so clean CI runners
+# and local Docker staging use the exact same deterministic source. Reconstruct
+# it at image-build time, validate the decoded gzip before extraction, and fail
+# immediately if the numbered pack is incomplete rather than letting the API
+# fail later during startup.
+RUN mkdir -p /app/seed-data \
+    && cat /tmp/public-csv-seed.part-01.b64 \
+           /tmp/public-csv-seed.part-02.b64 \
+           /tmp/public-csv-seed.part-03.b64 \
+       | base64 --decode > /tmp/public-csv-seed.tar.gz \
+    && gzip -t /tmp/public-csv-seed.tar.gz \
+    && tar -xzf /tmp/public-csv-seed.tar.gz -C /app/seed-data \
+    && rm -f /tmp/public-csv-seed.part-*.b64 /tmp/public-csv-seed.tar.gz \
+    && test -f /app/seed-data/01_tenants.csv \
+    && test -f /app/seed-data/10_contests.csv \
+    && test -f /app/seed-data/11_contest_participants.csv \
+    && test -f /app/seed-data/18_presentation_metadata.csv \
+    && test -f /app/seed-data/19_sponsors.csv \
+    && test "$(find /app/seed-data -maxdepth 1 -type f -name '[0-9][0-9]_*.csv' | wc -l)" -eq 19
 
 ENV ASPNETCORE_URLS=http://+:8080
 ENV ASPNETCORE_ENVIRONMENT=Staging

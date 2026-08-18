@@ -1,0 +1,8 @@
+competition_id,stage_id,bracket_slot,contest_id,next_slot,status
+f-cup-2026,f-cup-qf,QF1,f-cup-qf1,SF1,COMPLETE
+f-cup-2026,f-cup-qf,QF2,f-cup-qf2,SF1,COMPLETE
+f-cup-2026,f-cup-qf,QF3,f-cup-qf3,SF2,PENDING
+f-cup-2026,f-cup-qf,QF4,f-cup-qf4,SF2,PENDING
+f-cup-2026,f-cup-sf,SF1,f-cup-sf1,FINAL,READY
+r7-kampala-2026,r7-cup-qf,CQF1,r7-qf1,CSF1,PENDING
+r7-kampala-2026,r7-cup-qf,CQF2,r7-qf2,CSF1,PENDING

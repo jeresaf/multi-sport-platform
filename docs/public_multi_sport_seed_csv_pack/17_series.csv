@@ -1,0 +1,3 @@
+series_id,competition_id,stage_id,name,participant_a_id,participant_b_id,best_of,wins_a,wins_b,status
+series-b-sf1,b-playoffs-2026,b-po-sf,Semifinal 1,basketball-team-01,basketball-team-04,3,1,0,IN_PROGRESS
+series-b-sf2,b-playoffs-2026,b-po-sf,Semifinal 2,basketball-team-02,basketball-team-03,3,1,1,IN_PROGRESS

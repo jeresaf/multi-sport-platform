@@ -1,0 +1,55 @@
+team_id,participant_id,sport_id,name,short_name,logo_url,city,is_public
+football-team-01,football-team-01,football,Kampala City FC,KCF,,Kampala,true
+football-team-02,football-team-02,football,Entebbe United,EU,,Entebbe,true
+football-team-03,football-team-03,football,Jinja Nile FC,JNF,,Jinja,true
+football-team-04,football-team-04,football,Mbarara Lions,ML,,Mbarara,true
+football-team-05,football-team-05,football,Gulu Eagles,GE,,Gulu,true
+football-team-06,football-team-06,football,Mbale Volcanoes,MV,,Mbale,true
+football-team-07,football-team-07,football,Fort Portal Rovers,FPR,,Fort,true
+football-team-08,football-team-08,football,Masaka Stars,MS,,Masaka,true
+basketball-team-01,basketball-team-01,basketball,Kampala Titans,KT,,Kampala,true
+basketball-team-02,basketball-team-02,basketball,City Falcons,CF,,City,true
+basketball-team-03,basketball-team-03,basketball,Entebbe Mariners,EM,,Entebbe,true
+basketball-team-04,basketball-team-04,basketball,Jinja Giants,JG,,Jinja,true
+basketball-team-05,basketball-team-05,basketball,Mbarara Flames,MF,,Mbarara,true
+basketball-team-06,basketball-team-06,basketball,Gulu Warriors,GW,,Gulu,true
+rugby15-team-01,rugby15-team-01,rugby15,Kampala Rhinos RFC,KR,,Kampala,true
+rugby15-team-02,rugby15-team-02,rugby15,Jinja Nile RFC,JN,,Jinja,true
+rugby15-team-03,rugby15-team-03,rugby15,Entebbe Sharks RFC,ES,,Entebbe,true
+rugby15-team-04,rugby15-team-04,rugby15,Mbarara Bulls RFC,MB,,Mbarara,true
+rugby15-team-05,rugby15-team-05,rugby15,Gulu Elephants RFC,GE,,Gulu,true
+rugby15-team-06,rugby15-team-06,rugby15,Mbale Highlanders RFC,MH,,Mbale,true
+rugby7-team-01,rugby7-team-01,rugby7,Kampala Rhinos 7s,KR,,Kampala,true
+rugby7-team-02,rugby7-team-02,rugby7,Jinja Nile 7s,JN,,Jinja,true
+rugby7-team-03,rugby7-team-03,rugby7,Entebbe Sharks 7s,ES,,Entebbe,true
+rugby7-team-04,rugby7-team-04,rugby7,Mbarara Bulls 7s,MB,,Mbarara,true
+rugby7-team-05,rugby7-team-05,rugby7,Gulu Elephants 7s,GE,,Gulu,true
+rugby7-team-06,rugby7-team-06,rugby7,Mbale Highlanders 7s,MH,,Mbale,true
+rugby7-team-07,rugby7-team-07,rugby7,Fort Portal Panthers 7s,FPP,,Fort,true
+rugby7-team-08,rugby7-team-08,rugby7,Masaka Thunder 7s,MT,,Masaka,true
+rugby7-team-09,rugby7-team-09,rugby7,Mukono Chargers 7s,MC,,Mukono,true
+rugby7-team-10,rugby7-team-10,rugby7,Wakiso Rangers 7s,WR,,Wakiso,true
+rugby7-team-11,rugby7-team-11,rugby7,Lira Lions 7s,LL,,Lira,true
+rugby7-team-12,rugby7-team-12,rugby7,Soroti Hawks 7s,SH,,Soroti,true
+cricket-team-01,cricket-team-01,cricket,Kampala Kings,KK,,Kampala,true
+cricket-team-02,cricket-team-02,cricket,Jinja Nile Cricket Club,JNCC,,Jinja,true
+cricket-team-03,cricket-team-03,cricket,Entebbe Aviators,EA,,Entebbe,true
+cricket-team-04,cricket-team-04,cricket,Mbarara Strikers,MS,,Mbarara,true
+volleyball-team-01,volleyball-team-01,volleyball,Kampala Spikers,KS,,Kampala,true
+volleyball-team-02,volleyball-team-02,volleyball,Entebbe Waves,EW,,Entebbe,true
+volleyball-team-03,volleyball-team-03,volleyball,Jinja Blockers,JB,,Jinja,true
+volleyball-team-04,volleyball-team-04,volleyball,Mbarara Vipers,MV,,Mbarara,true
+volleyball-team-05,volleyball-team-05,volleyball,Gulu Servers,GS,,Gulu,true
+volleyball-team-06,volleyball-team-06,volleyball,Mbale Peaks,MP,,Mbale,true
+netball-team-01,netball-team-01,netball,Kampala Queens,KQ,,Kampala,true
+netball-team-02,netball-team-02,netball,Entebbe Swifts,ES,,Entebbe,true
+netball-team-03,netball-team-03,netball,Jinja Stars,JS,,Jinja,true
+netball-team-04,netball-team-04,netball,Mbarara Gems,MG,,Mbarara,true
+netball-team-05,netball-team-05,netball,Gulu Falcons,GF,,Gulu,true
+netball-team-06,netball-team-06,netball,Mbale Roses,MR,,Mbale,true
+hockey-team-01,hockey-team-01,hockey,Kampala Sticks,KS,,Kampala,true
+hockey-team-02,hockey-team-02,hockey,Entebbe Mariners HC,EM,,Entebbe,true
+hockey-team-03,hockey-team-03,hockey,Jinja Rapids,JR,,Jinja,true
+hockey-team-04,hockey-team-04,hockey,Mbarara Rangers,MR,,Mbarara,true
+hockey-team-05,hockey-team-05,hockey,Gulu Hornets,GH,,Gulu,true
+hockey-team-06,hockey-team-06,hockey,Mbale Mountaineers,MM,,Mbale,true

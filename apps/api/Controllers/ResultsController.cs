@@ -236,7 +236,6 @@ public class ResultsController : ControllerBase
         }
         if (contest.Status is ContestStatus.InProgress or ContestStatus.Paused)
             contest.Complete();
-        contest.SubmitForApproval();
         await _contestsService.UpdateContestAsync(contest);
 
         return Ok(new
@@ -428,10 +427,7 @@ public class ResultsController : ControllerBase
         var result = await _resultService.ApproveResultAsync(id, approvedBy);
         var contestResults = await _resultService.GetResultsByContestAsync(
             result.ContestId);
-        if (contestResults.All(item =>
-                item.Status is ContestResultStatus.Approved
-                    or ContestResultStatus.Published
-                    or ContestResultStatus.Official))
+        if (contestResults.All(item => IsApprovedResultStatus(item.Status)))
         {
             var contest = await _contestsService.GetContestByIdAsync(
                 result.ContestId);
@@ -442,7 +438,6 @@ public class ResultsController : ControllerBase
                     .ThenByDescending(item => item.Score)
                     .First();
                 contest.SetWinner(winner.ParticipantId);
-                contest.Approve();
                 await _contestsService.UpdateContestAsync(contest);
                 var advanced = await AdvanceBracketAsync(contest, winner.ParticipantId);
                 await _notifier.BroadcastContestResult(
@@ -519,12 +514,17 @@ public class ResultsController : ControllerBase
         if (!actorId.HasValue) return Unauthorized();
         var contest = await _contestsService.GetContestByIdAsync(current.Result.ContestId);
         if (contest is null) return NotFound();
-        if (contest.Status is not (ContestStatus.Approved or ContestStatus.Published))
-            return Conflict(new { Message = $"Contest in {contest.Status} cannot be reopened." });
+        if (contest.Status != ContestStatus.Completed
+            && !contest.Status.IsLegacyResultWorkflowState())
+        {
+            return Conflict(new
+            {
+                Message = $"Contest in {contest.Status} has not ended and cannot be reopened."
+            });
+        }
 
         var results = await _resultService.GetResultsByContestAsync(contest.Id);
-        var eligible = results.Where(item => item.Status is
-            ContestResultStatus.Approved or ContestResultStatus.Published or ContestResultStatus.Official)
+        var eligible = results.Where(item => IsApprovedResultStatus(item.Status))
             .ToArray();
         if (eligible.Length == 0)
             return Conflict(new { Message = "No approved results are available to reopen." });
@@ -542,8 +542,6 @@ public class ResultsController : ControllerBase
                 reopened.Status,
                 request.Reason.Trim());
         }
-        contest.MarkCorrected();
-        await _contestsService.UpdateContestAsync(contest);
         await _derivedState.RebuildAsync(
             contest.Id,
             actorId.Value,
@@ -552,7 +550,8 @@ public class ResultsController : ControllerBase
         return Ok(new
         {
             ContestId = contest.Id,
-            ContestStatus = contest.Status,
+            LifecycleStatus = contest.Status.ToCanonical().ToApiCode(),
+            LegacyContestStatus = contest.Status,
             ResultStatus = ContestResultStatus.Corrected,
             ReopenedResults = eligible.Length,
             Reason = request.Reason.Trim(),
@@ -875,8 +874,12 @@ public class ResultsController : ControllerBase
             .ToArrayAsync();
         var expectedPerGroup = groupStage.TeamsPerGroup.Value
             * (groupStage.TeamsPerGroup.Value - 1) / 2;
-        if (groupContests.Length != expectedPerGroup * groupStage.GroupsCount.Value
-            || groupContests.Any(item => item.Status != ContestStatus.Approved))
+        if (groupContests.Length != expectedPerGroup * groupStage.GroupsCount.Value)
+            return;
+
+        var approvedGroupContestIds = await GetApprovedContestIdsAsync(
+            groupContests.Select(item => item.Id));
+        if (approvedGroupContestIds.Count != groupContests.Length)
             return;
 
         var standings = await _db.Standings
@@ -1015,12 +1018,13 @@ public class ResultsController : ControllerBase
                 .Where(game => game.SeriesId == contest.SeriesId)
                 .OrderBy(game => game.SeriesGameNumber)
                 .ToListAsync();
+            var gameIds = seriesGames.Select(game => game.Id).ToArray();
+            var approvedSeriesGameIds = await GetApprovedContestIdsAsync(gameIds);
             if (bracketMatch.IsAggregateTie)
             {
-                if (seriesGames.Count != 2 || seriesGames.Any(game => game.Status != ContestStatus.Approved))
+                if (seriesGames.Count != 2 || approvedSeriesGameIds.Count != 2)
                     return false;
 
-                var gameIds = seriesGames.Select(game => game.Id).ToArray();
                 var aggregate = await _db.ContestResults
                     .Where(result => gameIds.Contains(result.ContestId)
                         && result.Score.HasValue
@@ -1048,7 +1052,7 @@ public class ResultsController : ControllerBase
                 var requiredWins = ((contest.SeriesBestOf ?? bracketMatch.BestOf) / 2) + 1;
                 var seriesLeader = seriesGames
                     .Where(game => game.WinnerId.HasValue
-                        && game.Status == ContestStatus.Approved)
+                        && approvedSeriesGameIds.Contains(game.Id))
                     .GroupBy(game => game.WinnerId!.Value)
                     .Select(group => new
                     {
@@ -1059,7 +1063,7 @@ public class ResultsController : ControllerBase
                     .FirstOrDefault();
                 var seriesWins = seriesGames
                     .Where(game => game.WinnerId.HasValue
-                        && game.Status == ContestStatus.Approved)
+                        && approvedSeriesGameIds.Contains(game.Id))
                     .GroupBy(game => game.WinnerId!.Value)
                     .ToDictionary(group => group.Key, group => group.Count());
                 bracketMatch.SetScore(
@@ -1120,6 +1124,30 @@ public class ResultsController : ControllerBase
         await _db.SaveChangesAsync();
         return bracketMatch.NextMatchId.HasValue;
     }
+
+    private async Task<HashSet<Guid>> GetApprovedContestIdsAsync(IEnumerable<Guid> contestIds)
+    {
+        var ids = contestIds.Distinct().ToArray();
+        if (ids.Length == 0) return new HashSet<Guid>();
+
+        var statuses = await _db.ContestResults
+            .AsNoTracking()
+            .Where(item => ids.Contains(item.ContestId))
+            .Select(item => new { item.ContestId, item.Status })
+            .ToArrayAsync();
+
+        return statuses
+            .GroupBy(item => item.ContestId)
+            .Where(group => group.Any()
+                && group.All(item => IsApprovedResultStatus(item.Status)))
+            .Select(group => group.Key)
+            .ToHashSet();
+    }
+
+    private static bool IsApprovedResultStatus(ContestResultStatus status) => status is
+        ContestResultStatus.Approved
+        or ContestResultStatus.Published
+        or ContestResultStatus.Official;
 
     private async Task PopulateBracketMatchAsync(
         Guid matchId,

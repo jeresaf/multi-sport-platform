@@ -1,0 +1,3 @@
+tenant_id,seed_key,name,slug,country,timezone,currency,language,status,is_public,primary_color,secondary_color,accent_color
+tenant-uganda-demo,seed:tenant:uganda-sports-demo,Uganda Sports Demo,uganda-sports-demo,Uganda,Africa/Kampala,UGX,en,ACTIVE,true,#16A34A,#0F172A,#F59E0B
+tenant-east-africa-demo,seed:tenant:east-africa-demo,East Africa Tournament Demo,east-africa-demo,East Africa,Africa/Nairobi,KES,en,ACTIVE,true,#2563EB,#111827,#F97316

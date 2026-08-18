@@ -1,0 +1,4 @@
+sponsor_id,tenant_id,name,logo_url,website_url,active_from,active_to,is_public
+sp-1,tenant-uganda-demo,Nile Crest Telecom,,,2026-04-15,2026-12-11,true
+sp-2,tenant-uganda-demo,Pearl Beverages,,,2026-06-14,2026-10-12,true
+sp-3,tenant-uganda-demo,Victoria Mobility,,,2026-07-14,2026-11-11,true
