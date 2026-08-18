@@ -36,7 +36,6 @@ services:
       - Security__DataProtectionKeyPath=/app/data-protection-keys
     volumes:
       - data_protection_keys:/app/data-protection-keys
-      - ../../../../docs/public_multi_sport_seed_csv_pack:/app/seed-data:ro
       - ${FIREBASE_CREDENTIALS_DIR:-./secrets}:/run/secrets:ro
     depends_on:
       db:
@@ -192,7 +191,7 @@ services:
       - "9090:9090"
     volumes:
       - ../../monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ../../monitoring/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - ../../monitoring/prometheus/alerts.yml:/etc/prometheus/prometheus/alerts.yml:ro
       - prometheus_staging_data:/prometheus
     depends_on:
       api:
