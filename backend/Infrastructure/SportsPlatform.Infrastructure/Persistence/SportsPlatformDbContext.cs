@@ -324,6 +324,24 @@ public class SportsPlatformDbContext : DbContext
         foreach (var (contestId, increment) in increments)
             if (tracked.TryGetValue(contestId, out var contest))
             {
+                var persistedContestEventMax = await Contests
+                    .AsNoTracking()
+                    .Where(item => item.Id == contestId)
+                    .SelectMany(item => item.Events)
+                    .Select(item => (long?)item.TimelineSequence)
+                    .MaxAsync(cancellationToken) ?? 0;
+                var persistedLiveScoreMax = await LiveScores
+                    .AsNoTracking()
+                    .Where(item => item.ContestId == contestId)
+                    .Select(item => (long?)item.TimelineSequence)
+                    .MaxAsync(cancellationToken) ?? 0;
+                var persistedTimelineMax = Math.Max(
+                    persistedContestEventMax,
+                    persistedLiveScoreMax);
+                var sequenceBase = Math.Max(
+                    contest.TimelineVersion,
+                    persistedTimelineMax);
+
                 var sequences = changedEvents
                     .Where(item => item.ContestId == contestId)
                     .Select(item => item.EventId)
@@ -331,7 +349,7 @@ public class SportsPlatformDbContext : DbContext
                     .Select((eventId, index) => new
                     {
                         EventId = eventId,
-                        Sequence = contest.TimelineVersion + index + 1
+                        Sequence = sequenceBase + index + 1
                     })
                     .ToDictionary(item => item.EventId, item => item.Sequence);
                 foreach (var entry in ChangeTracker.Entries<LiveScore>().Where(entry =>
@@ -345,7 +363,8 @@ public class SportsPlatformDbContext : DbContext
                 foreach (var entry in ChangeTracker.Entries<ContestEvent>().Where(entry =>
                     entry.State == EntityState.Added && entry.Entity.ContestId == contestId))
                     entry.Entity.AssignTimelineSequence(sequences[entry.Entity.Id]);
-                contest.IncrementTimelineVersion(increment);
+                contest.IncrementTimelineVersion(
+                    (sequenceBase - contest.TimelineVersion) + increment);
             }
     }
 

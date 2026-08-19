@@ -151,9 +151,24 @@ export default function CreateCompetitionPage() {
         method: 'POST', body: JSON.stringify({ tenantId, name: data.name.trim(), sportId: data.sportId }),
       });
       await adminApi(`/api/competitions/${competition.id}/ruleset/${data.rulesetVersionId}`, { method: 'PUT' });
-      const participants = await Promise.all(data.participants.map((name, index) => adminApi<Created>('/api/participants', {
-        method: 'POST', body: JSON.stringify({ tenantId, name: name.trim(), shortName: `P${index + 1}`, type: data.participantType }),
-      })));
+      const participantNamespace = competition.id.replaceAll('-', '').slice(0, 8).toUpperCase();
+      const participants = await Promise.all(data.participants.map((name, index) => {
+        const trimmedName = name.trim();
+        const isGeneratedPlaceholder = /^Team \d+$/.test(trimmedName);
+        const persistedName = isGeneratedPlaceholder
+          ? `${trimmedName} ${participantNamespace}`
+          : trimmedName;
+        const shortName = `P${participantNamespace}${index + 1}`;
+        return adminApi<Created>('/api/participants', {
+          method: 'POST',
+          body: JSON.stringify({
+            tenantId,
+            name: persistedName,
+            shortName,
+            type: data.participantType,
+          }),
+        });
+      }));
       const registrations = await Promise.all(participants.map((participant) => adminApi<Created>(`/api/registrations/competition/${competition.id}`, {
         method: 'POST', body: JSON.stringify({ participantId: participant.id, type: registrationType[data.participantType] }),
       })));

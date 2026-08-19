@@ -68,12 +68,13 @@ public static class ScoringSchemaCatalog
                 Fixed("goal", "Goal", "score"),
                 Fixed("own-goal", "Own goal for team", "score"),
                 Fixed("penalty-goal", "Penalty goal", "score"),
-                Fixed("penalty-scored", "Shootout penalty scored", "shootout_score"),
-                Fixed("penalty-missed", "Shootout penalty missed", "shootout_misses", tone: "danger"),
+                Fixed("penalty-scored", "Shootout penalty scored", "shootout_score", eventType: "PENALTY_SHOOTOUT_SCORE"),
+                Fixed("penalty-missed", "Shootout penalty missed", "shootout_misses", tone: "danger", eventType: "PENALTY_SHOOTOUT_MISS"),
                 Fixed("yellow-card", "Yellow card", "yellow_cards", tone: "secondary"),
                 Fixed("second-yellow", "Second yellow", "red_cards", tone: "danger"),
                 Fixed("red-card", "Red card", "red_cards", tone: "danger"),
-                Fixed("substitution-in", "Substitution", "substitutions", tone: "secondary"));
+                Fixed("substitution", "Substitution", "substitutions",
+                    tone: "secondary", requiresPlayer: true, eventType: "SUBSTITUTION"));
         }
 
         if (sportId == Basketball)

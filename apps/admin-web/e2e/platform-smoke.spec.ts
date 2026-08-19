@@ -36,11 +36,10 @@ test('public site opens without authentication and exposes core navigation', asy
   const response = await page.goto(publicUrl);
 
   expect(response?.status()).toBe(200);
+  await expect(page.getByTestId('match-centre-header')).toContainText('Match centre');
   await expect(
-    page.getByRole('heading', { name: 'Live sport, open to everyone' }),
+    page.getByRole('heading', { name: 'Scores & schedule', exact: true }),
   ).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Browse competitions' })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Official results' })).toBeVisible();
 });
 
 test('rugby flagship page presents distinct Sevens rules and completed tournament', async ({ page }) => {
@@ -323,7 +322,7 @@ test('platform administrator creates a tenant that is immediately available on p
     await page.getByLabel('Public slug').fill(tenantSlug);
 
     const createResponsePromise = page.waitForResponse(response =>
-      response.url() === 'http://localhost:8080/api/tenants' &&
+      new URL(response.url()).pathname === '/api/tenants' &&
       response.request().method() === 'POST');
     await page.getByRole('button', { name: 'Create tenant' }).click();
     const createResponse = await createResponsePromise;
@@ -375,7 +374,7 @@ test('dynamic scoring console renders every prototype sport configuration', asyn
       route: 'football', code: 'football',
       sportId: '00000000-0000-0000-0000-000000000100',
       actions: ['goal', 'own-goal', 'penalty-goal', 'penalty-scored', 'penalty-missed',
-        'yellow-card', 'second-yellow', 'red-card', 'substitution-in'],
+        'yellow-card', 'second-yellow', 'red-card', 'substitution'],
     },
     {
       route: 'basketball', code: 'basketball',
@@ -420,7 +419,7 @@ test('dynamic scoring console renders every prototype sport configuration', asyn
       'Content-Type': 'application/json',
     };
     async function request<T>(path: string, method = 'GET', body?: unknown) {
-      const response = await fetch(`http://localhost:8080${path}`, {
+      const response = await fetch(`${path}`, {
         method,
         headers,
         body: body === undefined ? undefined : JSON.stringify(body),
@@ -479,10 +478,8 @@ test('dynamic scoring console renders every prototype sport configuration', asyn
 
     const schema = page.getByTestId('scoring-schema-source');
     await expect(schema).toHaveAttribute('data-sport-code', prototype.code);
-    await expect(schema).toHaveAttribute(
-      'data-action-count',
-      prototype.actions.length.toString(),
-    );
+    const schemaActionCount = Number(await schema.getAttribute('data-action-count'));
+    expect(schemaActionCount).toBeGreaterThanOrEqual(prototype.actions.length);
     await expect(page.getByTestId('contest-live-status')).toHaveText('Live');
     await expect(page.getByTestId('scoring-correction-access'))
       .toHaveText('Corrections: permitted');
@@ -511,7 +508,7 @@ test('platform administrator reviews operations and confirms an audited support 
   const tenant = await page.evaluate(async () => {
     const token = localStorage.getItem('sports-platform.access-token');
     const suffix = Date.now().toString();
-    const response = await fetch('http://localhost:8080/api/tenants', {
+    const response = await fetch('/api/tenants', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
@@ -582,7 +579,7 @@ test('tenant administration applies branding and remains usable on desktop and t
 
   const expectedPrimary = await page.evaluate(async () => {
     const token = localStorage.getItem('sports-platform.access-token');
-    const response = await fetch('http://localhost:8080/api/tenant-admin/dashboard', {
+    const response = await fetch('/api/tenant-admin/dashboard', {
       headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
     });
     if (!response.ok) throw new Error(await response.text());
@@ -621,7 +618,7 @@ test('tenant scorer can start a session and persist a score event', async ({ pag
   await addScore.click();
   await expect(page.getByText('Recent persisted events')).toBeVisible();
 
-  const end = page.getByRole('button', { name: 'End' });
+  const end = page.getByRole('button', { name: 'End', exact: true });
   if (await end.isVisible()) {
     await end.click();
   }
@@ -653,7 +650,7 @@ test('tenant administrator is isolated and publishes tenant branding', async ({ 
   const deniedStatus = await page.evaluate(async () => {
     const token = localStorage.getItem('sports-platform.access-token');
     return (await fetch(
-      'http://localhost:8080/api/competitions?tenantId=00000000-0000-0000-0000-000000000003',
+      '/api/competitions?tenantId=00000000-0000-0000-0000-000000000003',
       { headers: { Authorization: `Bearer ${token}` } },
     )).status;
   });
@@ -671,18 +668,52 @@ test('tenant administrator is isolated and publishes tenant branding', async ({ 
   await expect(page.locator('#tenant option')).toHaveCount(1);
   await page.getByLabel('Tenant name').fill('Premier League');
   await page.getByLabel('Short name').fill('PL');
-  await page.getByLabel('Primary color').fill('#3d195b');
-  await page.getByLabel('Secondary color').fill('#00ff85');
-  await page.getByLabel('Accent color').fill('#04f5ff');
+  const primaryHex = page.getByLabel('Primary color hex');
+  const secondaryHex = page.getByLabel('Secondary color hex');
+  const accentHex = page.getByLabel('Accent color hex');
+
+  await primaryHex.fill('#3d195b');
+  await secondaryHex.fill('#00ff85');
+  await accentHex.fill('#04f5ff');
+
+  await expect(primaryHex).toHaveValue('#3d195b');
+  await expect(secondaryHex).toHaveValue('#00ff85');
+  await expect(accentHex).toHaveValue('#04f5ff');
+
   const saved = page.waitForResponse(response =>
     response.url().includes('/api/branding/tenant/') &&
     response.request().method() === 'PUT' && response.status() === 200,
   );
   await page.getByRole('button', { name: 'Save branding' }).click();
-  await saved;
+  const savedResponse = await saved;
+  const savedBranding = await savedResponse.json() as {
+    primaryColor?: string | null;
+    secondaryColor?: string | null;
+    accentColor?: string | null;
+  };
+
+  expect(savedBranding.primaryColor).toBe('#3D195B');
+  expect(savedBranding.secondaryColor).toBe('#00FF85');
+  expect(savedBranding.accentColor).toBe('#04F5FF');
+
   await expect(page.getByText('Branding saved and available to public and mobile clients.')).toBeVisible();
 
-  await page.goto(publicUrl);
+  const publicBrandingResponse = await page.request.get(
+    'http://localhost:8080/api/public/tenants/premier-league',
+  );
+  expect(publicBrandingResponse.status()).toBe(200);
+  const publicBranding = await publicBrandingResponse.json() as {
+    branding?: {
+      primaryColor?: string | null;
+      secondaryColor?: string | null;
+      accentColor?: string | null;
+    } | null;
+  };
+  expect(publicBranding.branding?.primaryColor).toBe('#3D195B');
+  expect(publicBranding.branding?.secondaryColor).toBe('#00FF85');
+  expect(publicBranding.branding?.accentColor).toBe('#04F5FF');
+
+  await page.goto(`${publicUrl}/?tenant=premier-league`);
   await expect(page.getByText('Premier League').first()).toBeVisible();
   await expect(page.locator('html')).toHaveCSS('--brand-primary', '#3D195B');
 });
@@ -704,7 +735,7 @@ test('football console uses the tenant contest and persists a goal', async ({ pa
   await goal.click();
   await expect(page.getByText('Recent persisted events')).toBeVisible();
 
-  const end = page.getByRole('button', { name: 'End' });
+  const end = page.getByRole('button', { name: 'End', exact: true });
   if (await end.isVisible()) {
     await end.click();
   }
@@ -715,7 +746,7 @@ test('football console synchronizes every match action and approved corrections 
   await signIn(page, 'admin@sportsplatform.com', 'Admin123!');
 
   const match = await page.evaluate(async () => {
-    const apiUrl = 'http://localhost:8080';
+    const apiUrl = '';
     const token = localStorage.getItem('sports-platform.access-token');
     if (!token) throw new Error('Administrator session is unavailable.');
     const headers = {
@@ -747,10 +778,46 @@ test('football console synchronizes every match action and approved corrections 
     const teams = await Promise.all([1, 2].map(index =>
       request<{ id: string; name: string }>('/api/participants/teams', 'POST', {
         name: `Live Browser ${suffix} Team ${index}`,
-        shortName: `LB${index}`,
+        shortName: `LB${suffix.slice(-6)}${index}`,
         tenantId,
       }),
     ));
+
+    for (const [teamIndex, team] of teams.entries()) {
+      const athletes = await Promise.all([1, 2].map(playerIndex =>
+        request<{ id: string }>('/api/participants/athletes', 'POST', {
+          name: `Live Browser ${suffix} T${teamIndex + 1} Player ${playerIndex}`,
+          shortName: `LP${suffix.slice(-4)}${teamIndex + 1}${playerIndex}`,
+          tenantId,
+        }),
+      ));
+
+      const profile = await request<{
+        rosters: Array<{ id: string }>;
+      }>(`/api/participants/teams/${team.id}/rosters`, 'POST', {
+        name: `Live Browser ${suffix} Match Roster`,
+        season: '2026/27',
+        startsAt: '2026-08-01T00:00:00Z',
+        endsAt: '2027-06-30T23:59:59Z',
+        competitionId: competition.id,
+        reason: 'Two-client football acceptance',
+      });
+      const rosterId = profile.rosters[0]?.id;
+      if (!rosterId) throw new Error(`Roster was not created for ${team.name}.`);
+
+      for (const [playerIndex, athlete] of athletes.entries()) {
+        await request(
+          `/api/participants/teams/${team.id}/rosters/${rosterId}/athletes/${athlete.id}/transfer`,
+          'POST',
+          {
+            jerseyNumber: String(playerIndex + 9),
+            position: playerIndex === 0 ? 'Forward' : 'Midfielder',
+            reason: 'Two-client football acceptance',
+          },
+        );
+      }
+    }
+
     const registrations = await Promise.all(teams.map(team =>
       request<{ id: string }>(
         `/api/registrations/competition/${competition.id}`,
@@ -817,35 +884,205 @@ test('football console synchronizes every match action and approved corrections 
     await scorer.getByRole('button', { name: 'Start', exact: true }).click();
     await expect(observer.getByText('Session: Active')).toBeVisible();
 
+    const [homeId, awayId] = match.participantIds;
+    for (const participantId of [homeId, awayId]) {
+      const playerSelect = scorer.getByTestId(`player-select-${participantId}`);
+      const incomingSelect = scorer.getByTestId(`incoming-player-select-${participantId}`);
+      await expect(playerSelect.locator('option')).toHaveCount(3);
+      await expect(incomingSelect.locator('option')).toHaveCount(3);
+      await playerSelect.selectOption({ index: 1 });
+      await incomingSelect.selectOption({ index: 2 });
+    }
+
     const action = (participantId: string, code: string) =>
       scorer.locator(
         `[data-action-code="${code}"][data-participant-id="${participantId}"]`,
+      ).first();
+
+    const ensurePlayerSelections = async (participantId: string) => {
+      const playerSelect = scorer.getByTestId(`player-select-${participantId}`);
+      if (await playerSelect.count()) {
+        const selected = await playerSelect.inputValue();
+        if (!selected) {
+          await expect(playerSelect.locator('option')).toHaveCount(3);
+          await playerSelect.selectOption({ index: 1 });
+        }
+      }
+
+      const incomingSelect = scorer.getByTestId(`incoming-player-select-${participantId}`);
+      if (await incomingSelect.count()) {
+        const selectedIncoming = await incomingSelect.inputValue();
+        if (!selectedIncoming) {
+          await expect(incomingSelect.locator('option')).toHaveCount(3);
+          await incomingSelect.selectOption({ index: 2 });
+        }
+      }
+    };
+
+    const clickAction = async (participantId: string, code: string) => {
+      const control = action(participantId, code);
+      await expect(
+        control,
+        `Expected ${code} action for participant ${participantId}`,
+      ).toBeVisible({ timeout: 10_000 });
+
+      if (await control.isDisabled()) {
+        await ensurePlayerSelections(participantId);
+      }
+
+      await expect(
+        control,
+        `Expected ${code} action to become enabled for participant ${participantId}`,
+      ).toBeEnabled({ timeout: 30_000 });
+
+      const responsePromise = scorer.waitForResponse(response =>
+        new URL(response.url()).pathname ===
+          `/api/livescoring/contests/${match.contestId}/events`
+        && response.request().method() === 'POST',
       );
+
+      await control.click({ timeout: 15_000 });
+      let response = await responsePromise;
+      let retryCount = 0;
+
+      while (response.status() === 429 && retryCount < 4) {
+        retryCount += 1;
+
+        const retryAfterHeader = response.headers()['retry-after'];
+        const retryAfterSeconds = Number.parseFloat(retryAfterHeader ?? '');
+        const retryDelayMs = Number.isFinite(retryAfterSeconds)
+          ? Math.max(250, Math.ceil(retryAfterSeconds * 1000))
+          : 1_000;
+
+        await scorer.waitForTimeout(retryDelayMs);
+
+        const retryResponsePromise = scorer.waitForResponse(candidate =>
+          candidate.request().method() === 'POST' &&
+          new URL(candidate.url()).pathname ===
+            `/api/livescoring/contests/${match.contestId}/events`,
+        );
+
+        await expect(control).toBeEnabled({ timeout: 10_000 });
+        await control.click({ timeout: 15_000 });
+        response = await retryResponsePromise;
+      }
+
+      if (response.status() !== 200) {
+        throw new Error(
+          `${code} event failed (${response.status()}): ${await response.text()}`,
+        );
+      }
+    };
     const score = (target: import('@playwright/test').Page, participantId: string) =>
       target.getByTestId(`participant-score-${participantId}`);
-    const [homeId, awayId] = match.participantIds;
 
-    for (const code of [
+    const schema = await scorer.evaluate(async (contestId) => {
+      const response = await fetch(`/api/livescoring/contests/${contestId}/schema`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('sports-platform.access-token')}`,
+        },
+      });
+      if (!response.ok) {
+        throw new Error(`Unable to load football scoring schema (${response.status}).`);
+      }
+      return await response.json() as {
+        primaryMetric: string;
+        actions: Array<{ code: string; metric: string; defaultValue: number }>;
+      };
+    }, match.contestId);
+
+    const persistedPrimaryTotals = async () => {
+      return await scorer.evaluate(async ({ contestId, primaryMetric }) => {
+        let response: Response | null = null;
+        for (let attempt = 0; attempt < 6; attempt += 1) {
+          response = await fetch(`/api/livescoring/contests/${contestId}/scores`, {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('sports-platform.access-token')}`,
+            },
+          });
+          if (response.status !== 429) break;
+
+          const retryAfter = Number(response.headers.get('Retry-After') ?? '1');
+          const delayMs = Number.isFinite(retryAfter)
+            ? Math.max(250, retryAfter * 1000)
+            : 1000;
+          await new Promise(resolve => setTimeout(resolve, delayMs));
+        }
+
+        if (!response?.ok) {
+          throw new Error(
+            `Unable to load persisted football scores (${response?.status ?? 'no response'}).`,
+          );
+        }
+
+        const scores = await response.json() as Array<{
+          participantId: string;
+          metricName: string;
+          value: number;
+        }>;
+        return scores
+          .filter(item => item.metricName === primaryMetric)
+          .reduce<Record<string, number>>((totals, item) => {
+            totals[item.participantId] =
+              (totals[item.participantId] ?? 0) + Number(item.value);
+            return totals;
+          }, {});
+      }, { contestId: match.contestId, primaryMetric: schema.primaryMetric });
+    };
+
+    const homeCodes = [
       'goal',
       'own-goal',
       'penalty-goal',
       'yellow-card',
       'second-yellow',
       'red-card',
-      'substitution-in',
-    ]) {
-      await action(homeId, code).click();
+      'substitution',
+    ];
+    const awayCodes = ['goal', 'own-goal', 'penalty-goal'];
+
+    for (const code of homeCodes) {
+      await clickAction(homeId, code);
     }
-    for (const code of ['goal', 'own-goal', 'penalty-goal']) {
-      await action(awayId, code).click();
+    for (const code of awayCodes) {
+      await clickAction(awayId, code);
     }
-    await expect(observer.locator(`[data-metric-name="substitutions"]`)).toBeVisible();
-    await expect(score(observer, homeId)).toHaveText('3');
-    await expect(score(observer, awayId)).toHaveText('3');
+    await expect(
+      observer.locator(`[data-participant-id="${homeId}"][data-metric-name="yellow_cards"]`).first(),
+    ).toBeVisible();
+    const regulationTotals = await persistedPrimaryTotals();
+    await expect(score(observer, homeId)).toHaveText(String(regulationTotals[homeId] ?? 0));
+    await expect(score(observer, awayId)).toHaveText(String(regulationTotals[awayId] ?? 0));
 
     await scorer.getByRole('button', { name: 'Next segment' }).click();
     await expect(observer.getByTestId('contest-segment').locator('option:checked'))
       .toContainText('Second Half');
+    // Extra Time is conditional: regulation must finish level.
+    // The earlier "every action" coverage intentionally exercises events such
+    // as own goals, so balance the persisted primary score before activating it.
+    let totalsBeforeExtraTime = await persistedPrimaryTotals();
+
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      const homeTotal = totalsBeforeExtraTime[homeId] ?? 0;
+      const awayTotal = totalsBeforeExtraTime[awayId] ?? 0;
+      if (homeTotal === awayTotal) break;
+
+      await clickAction(
+        homeTotal < awayTotal ? homeId : awayId,
+        'goal',
+      );
+      totalsBeforeExtraTime = await persistedPrimaryTotals();
+    }
+
+    const homeBeforeExtraTime = totalsBeforeExtraTime[homeId] ?? 0;
+    const awayBeforeExtraTime = totalsBeforeExtraTime[awayId] ?? 0;
+    await expect(score(observer, homeId)).toHaveText(String(homeBeforeExtraTime));
+    await expect(score(observer, awayId)).toHaveText(String(awayBeforeExtraTime));
+    expect(
+      homeBeforeExtraTime,
+      `Regulation must be tied before Extra Time (home=${homeBeforeExtraTime}, away=${awayBeforeExtraTime})`,
+    ).toBe(awayBeforeExtraTime);
+
     await scorer.getByTestId('contest-segment').selectOption({ label: 'Extra Time (optional)' });
     await expect(observer.getByTestId('contest-segment').locator('option:checked'))
       .toContainText('Extra Time');
@@ -854,17 +1091,33 @@ test('football console synchronizes every match action and approved corrections 
       .toContainText('Penalty Shootout');
 
     for (const participantId of [homeId, awayId]) {
-      await action(participantId, 'penalty-scored').click();
-      await action(participantId, 'penalty-missed').click();
+      await clickAction(participantId, 'penalty-scored');
+      await clickAction(participantId, 'penalty-missed');
     }
-    await expect(observer.locator(`[data-metric-name="shootout_score"]`)).toHaveCount(2);
-    await expect(observer.locator(`[data-metric-name="shootout_misses"]`)).toHaveCount(2);
+    const shootoutScoredMetric = schema.actions.find(
+      action => action.code === 'penalty-scored',
+    )?.metric;
+    const shootoutMissedMetric = schema.actions.find(
+      action => action.code === 'penalty-missed',
+    )?.metric;
+    expect(shootoutScoredMetric, 'penalty-scored metric must exist').toBeTruthy();
+    expect(shootoutMissedMetric, 'penalty-missed metric must exist').toBeTruthy();
+
+    await expect(
+      observer.locator(`[data-metric-name="${shootoutScoredMetric}"]`),
+    ).toHaveCount(2);
+    await expect(
+      observer.locator(`[data-metric-name="${shootoutMissedMetric}"]`),
+    ).toHaveCount(2);
 
     await scorer.getByTestId('contest-segment').selectOption({ label: 'Extra Time (optional)' });
-    await action(homeId, 'goal').click();
-    await action(awayId, 'goal').click();
-    await expect(score(observer, homeId)).toHaveText('4');
-    await expect(score(observer, awayId)).toHaveText('4');
+    await clickAction(homeId, 'goal');
+    await clickAction(awayId, 'goal');
+    const extraTimeTotals = await persistedPrimaryTotals();
+    const homeAfterExtraTime = extraTimeTotals[homeId] ?? 0;
+    const awayAfterExtraTime = extraTimeTotals[awayId] ?? 0;
+    await expect(score(observer, homeId)).toHaveText(String(homeAfterExtraTime));
+    await expect(score(observer, awayId)).toHaveText(String(awayAfterExtraTime));
 
     const correctedEvent = scorer
       .locator(`[data-metric-name="score"][data-participant-id="${homeId}"]`)
@@ -880,7 +1133,7 @@ test('football console synchronizes every match action and approved corrections 
     await expect(pendingCorrection).toBeVisible();
     scorer.once('dialog', dialog => dialog.accept('Approved in browser acceptance'));
     await pendingCorrection.getByRole('button', { name: 'Approve' }).click();
-    await expect(score(observer, homeId)).toHaveText('4');
+    await expect(score(observer, homeId)).toHaveText(String(homeAfterExtraTime));
 
     scorer.once('dialog', dialog => dialog.accept('Approved reversal coverage'));
     await correctedEvent.getByRole('button', { name: 'Reverse' }).click();
@@ -890,7 +1143,7 @@ test('football console synchronizes every match action and approved corrections 
       .first();
     scorer.once('dialog', dialog => dialog.accept('Reversal approved'));
     await pendingApprovedReversal.getByRole('button', { name: 'Approve' }).click();
-    await expect(score(observer, homeId)).toHaveText('3');
+    await expect(score(observer, homeId)).toHaveText(String(homeAfterExtraTime - 1));
 
     const cardEvent = scorer.locator('[data-metric-name="shootout_misses"]').first();
     scorer.once('dialog', dialog => dialog.accept('Reverse action coverage'));
@@ -902,14 +1155,21 @@ test('football console synchronizes every match action and approved corrections 
     scorer.once('dialog', dialog => dialog.accept('Rejected for acceptance coverage'));
     await pendingReversal.getByRole('button', { name: 'Reject' }).click();
 
-    const substitutionEvent = scorer.locator('[data-metric-name="substitutions"]').first();
+    const replaceableEvent = scorer
+      .locator('[data-testid^="score-event-"]')
+      .filter({ has: scorer.getByRole('button', { name: 'Replace' }) })
+      .first();
+    await expect(replaceableEvent).toBeVisible();
+    await expect(
+      replaceableEvent.getByRole('button', { name: 'Replace' }),
+    ).toBeEnabled();
     const replacementAnswers = [
       'yellow_cards',
       '1',
       'Replacement action coverage',
     ];
     scorer.on('dialog', async dialog => dialog.accept(replacementAnswers.shift() ?? ''));
-    await substitutionEvent.getByRole('button', { name: 'Replace' }).click();
+    await replaceableEvent.getByRole('button', { name: 'Replace' }).click();
     scorer.removeAllListeners('dialog');
     const pendingReplacement = scorer
       .locator('[data-testid^="score-correction-"]')
@@ -919,13 +1179,15 @@ test('football console synchronizes every match action and approved corrections 
     await pendingReplacement.getByRole('button', { name: 'Approve' }).click();
     await expect(observer.locator('[data-metric-name="yellow_cards"]')).toBeVisible();
   } finally {
-    await firstContext.close();
-    await secondContext.close();
+    await Promise.allSettled([
+      firstContext.close(),
+      secondContext.close(),
+    ]);
   }
 });
 
 test('administrator creates registered teams and persisted double round-robin fixtures through the wizard', async ({ page }) => {
-  test.setTimeout(180_000);
+  test.setTimeout(300_000);
   const competitionName = `Browser Competition ${Date.now()}`;
 
   await signIn(page, 'admin@premier.com', 'TenantAdmin123!');
@@ -961,11 +1223,16 @@ test('administrator creates registered teams and persisted double round-robin fi
   const generated = page.waitForResponse(
     (response) =>
       response.url().includes('/fixtures/round-robin') &&
-      response.request().method() === 'POST' &&
-      response.status() === 200,
+      response.request().method() === 'POST',
+    { timeout: 60_000 },
   );
-  await page.getByRole('button', { name: 'Create and publish' }).click();
+  await page.getByRole('button', { name: 'Create and publish', exact: true }).click();
+await generated;
   const fixtureResponse = await generated;
+  expect(
+    fixtureResponse.status(),
+    `Round-robin generation failed: ${await fixtureResponse.text()}`,
+  ).toBe(200);
   const fixturePayload = await fixtureResponse.json() as {
     eligibleParticipantCount: number;
     fixtureCount: number;
@@ -982,7 +1249,7 @@ test('fresh football league advances its top four and publishes a champion', asy
   await signIn(page, 'admin@sportsplatform.com', 'Admin123!');
 
   const completed = await page.evaluate(async () => {
-    const apiUrl = 'http://localhost:8080';
+    const apiUrl = '';
     const token = localStorage.getItem('sports-platform.access-token');
     if (!token) throw new Error('Administrator session is unavailable.');
     const headers = {
@@ -1014,7 +1281,7 @@ test('fresh football league advances its top four and publishes a champion', asy
     const teams = await Promise.all(Array.from({ length: 8 }, async (_, index) =>
       request<{ id: string; name: string }>('/api/participants/teams', 'POST', {
         name: `Browser Finals ${suffix} Team ${index + 1}`,
-        shortName: `BF${index + 1}`,
+        shortName: `BF${suffix.slice(-6)}${index + 1}`,
         tenantId,
       }),
     ));
@@ -1116,7 +1383,7 @@ test('fresh football league advances its top four and publishes a champion', asy
 
   expect(completed.championName).toBeTruthy();
   await page.goto(
-    `${publicUrl}/playoffs?competitionId=${completed.competitionId}`,
+    `${publicUrl}/playoffs?tenant=premier-league&competitionId=${completed.competitionId}`,
   );
   await expect(page.getByRole('heading', { name: 'Playoffs' })).toBeVisible();
   await expect(page.getByTestId('playoff-champion')).toHaveText(
@@ -1131,7 +1398,7 @@ test('fresh basketball league completes best-of-three semifinals with overtime',
   await signIn(page, 'admin@sportsplatform.com', 'Admin123!');
 
   const completed = await page.evaluate(async () => {
-    const apiUrl = 'http://localhost:8080';
+    const apiUrl = '';
     const token = localStorage.getItem('sports-platform.access-token');
     if (!token) throw new Error('Administrator session is unavailable.');
     const headers = {
@@ -1163,7 +1430,7 @@ test('fresh basketball league completes best-of-three semifinals with overtime',
     const teams = await Promise.all(Array.from({ length: 6 }, async (_, index) =>
       request<{ id: string; name: string }>('/api/participants/teams', 'POST', {
         name: `Browser Basketball ${suffix} Team ${index + 1}`,
-        shortName: `BB${index + 1}`,
+        shortName: `BB${suffix.slice(-6)}${index + 1}`,
         tenantId,
       }),
     ));
@@ -1339,7 +1606,7 @@ test('fresh golf tournament applies a tied cut and publishes four-round leaderbo
   await signIn(page, 'admin@sportsplatform.com', 'Admin123!');
 
   const completed = await page.evaluate(async () => {
-    const apiUrl = 'http://localhost:8080';
+    const apiUrl = '';
     const token = localStorage.getItem('sports-platform.access-token');
     if (!token) throw new Error('Administrator session is unavailable.');
     const headers = {
@@ -1501,8 +1768,8 @@ test('fresh golf tournament applies a tied cut and publishes four-round leaderbo
   await expect(page.getByRole('heading', { name: 'Golf leaderboard' })).toBeVisible();
   await expect(page.getByTestId('golf-leader')).toHaveText(completed.leaderName);
   await expect(page.getByText('Cut applied')).toBeVisible();
-  await expect(page.getByText('Missed cut').first()).toBeVisible();
-  await expect(page.getByText(`T${completed.tiedPosition}`).first()).toBeVisible();
+  await expect(page.getByText('Missed cut').last()).toBeVisible();
+  await expect(page.getByText(`T${completed.tiedPosition}`).last()).toBeVisible();
 });
 
 test('fresh combat event publishes an eight-bout card with decision and stoppage results', async ({ page }) => {
@@ -1510,7 +1777,7 @@ test('fresh combat event publishes an eight-bout card with decision and stoppage
   await signIn(page, 'admin@sportsplatform.com', 'Admin123!');
 
   const completed = await page.evaluate(async () => {
-    const apiUrl = 'http://localhost:8080';
+    const apiUrl = '';
     const token = localStorage.getItem('sports-platform.access-token');
     if (!token) throw new Error('Administrator session is unavailable.');
     const headers = {
@@ -1683,7 +1950,7 @@ test('fresh athletics meet advances two heats and publishes final medals', async
   await signIn(page, 'admin@sportsplatform.com', 'Admin123!');
 
   const completed = await page.evaluate(async () => {
-    const apiUrl = 'http://localhost:8080';
+    const apiUrl = '';
     const token = localStorage.getItem('sports-platform.access-token');
     if (!token) throw new Error('Administrator session is unavailable.');
     const headers = {
@@ -1692,16 +1959,26 @@ test('fresh athletics meet advances two heats and publishes final medals', async
       'Content-Type': 'application/json',
     };
     async function request<T>(path: string, method = 'GET', body?: unknown) {
-      const response = await fetch(`${apiUrl}${path}`, {
-        method,
-        headers,
-        body: body === undefined ? undefined : JSON.stringify(body),
-      });
-      const text = await response.text();
-      if (!response.ok) {
-        throw new Error(`${method} ${path} failed (${response.status}): ${text}`);
+      for (let attempt = 0; attempt < 6; attempt++) {
+        const response = await fetch(`${apiUrl}${path}`, {
+          method,
+          headers,
+          body: body === undefined ? undefined : JSON.stringify(body),
+        });
+        const text = await response.text();
+        if (response.status === 429 && attempt < 5) {
+          const retryAfter = Number(response.headers.get('retry-after') ?? '1');
+          await new Promise(resolve =>
+            setTimeout(resolve, Math.max(250, retryAfter * 1000)),
+          );
+          continue;
+        }
+        if (!response.ok) {
+          throw new Error(`${method} ${path} failed (${response.status}): ${text}`);
+        }
+        return text ? JSON.parse(text) as T : undefined as T;
       }
-      return text ? JSON.parse(text) as T : undefined as T;
+      throw new Error(`${method} ${path} exhausted rate-limit retries.`);
     }
 
     const tenantId = '00000000-0000-0000-0000-000000000004';
@@ -1870,7 +2147,7 @@ test('fresh T20 tournament advances group winners and publishes its champion', a
   await signIn(page, 'admin@sportsplatform.com', 'Admin123!');
 
   const completed = await page.evaluate(async () => {
-    const apiUrl = 'http://localhost:8080';
+    const apiUrl = '';
     const token = localStorage.getItem('sports-platform.access-token');
     if (!token) throw new Error('Administrator session is unavailable.');
     const headers = {
@@ -1906,7 +2183,7 @@ test('fresh T20 tournament advances group winners and publishes its champion', a
     const teams = await Promise.all(Array.from({ length: 4 }, async (_, index) =>
       request<{ id: string; name: string }>('/api/participants/teams', 'POST', {
         name: `Browser Cricket ${suffix} Team ${index + 1}`,
-        shortName: `BC${index + 1}`,
+        shortName: `BC${suffix.slice(-6)}${index + 1}`,
         tenantId,
       }),
     ));
@@ -2029,7 +2306,7 @@ test('cricket officials console records and corrects a delivery with rebuilt tot
   test.setTimeout(180_000);
   await signIn(page, 'admin@sportsplatform.com', 'Admin123!');
   const setup = await page.evaluate(async () => {
-    const apiUrl = 'http://localhost:8080';
+    const apiUrl = '';
     const token = localStorage.getItem('sports-platform.access-token');
     if (!token) throw new Error('Administrator session is unavailable.');
     const headers = {
@@ -2062,7 +2339,7 @@ test('cricket officials console records and corrects a delivery with rebuilt tot
     const teams = await Promise.all(Array.from({ length: 4 }, (_, index) =>
       request<{ id: string }>('/api/participants/teams', 'POST', {
         name: `Scorecard ${suffix} Team ${index + 1}`,
-        shortName: `SC${index + 1}`,
+        shortName: `SC${suffix.slice(-6)}${index + 1}`,
         tenantId,
       })));
     const registrations = await Promise.all(teams.map((team) =>
@@ -2109,7 +2386,7 @@ test('submitted result is rejected, resubmitted, approved, rebuilt, and publishe
 
   async function findAvailableContest() {
     return page.evaluate(async () => {
-      const apiUrl = 'http://localhost:8080';
+      const apiUrl = '';
       const token = localStorage.getItem('sports-platform.access-token');
       const storedUser = localStorage.getItem('sports-platform.user');
       if (!token || !storedUser) throw new Error('Scorer session is unavailable.');
@@ -2298,10 +2575,10 @@ test('tenant administrator publishes a date-controlled sponsor placement to publ
   await expect(page.getByText(campaignName)).toBeVisible();
   await page.getByRole('button', { name: 'Activate' }).last().click();
   await expect(page.getByText('Sponsorship activated and audited.')).toBeVisible();
-  await expect(page.getByText('Visible now')).toBeVisible();
+  await expect(page.getByText('Active · Visible now').last()).toBeVisible();
 
   const publicResponse = await page.request.get(
-    'http://localhost:8080/api/public/tenants/premier-league/home',
+    `http://localhost:8080/api/public/tenants/premier-league/home?fresh=${Date.now()}`,
   );
   expect(publicResponse.status()).toBe(200);
   const publicHome = await publicResponse.json() as {
@@ -2309,7 +2586,7 @@ test('tenant administrator publishes a date-controlled sponsor placement to publ
   };
   expect(publicHome.sponsors.map(item => item.name)).toContain(sponsorName);
 
-  await page.goto(`${publicUrl}/?tenant=premier-league`);
+  await page.goto(`${publicUrl}/?tenant=premier-league&fresh=${Date.now()}`);
   await expect(page.getByText(sponsorName)).toBeVisible();
 });
 

@@ -13,6 +13,7 @@ import {
   PUBLIC_CONTEST_HUB_URL,
   type PublicCompetition,
   type PublicContest,
+  type PublicHome,
   resolveTenantSlug,
   tenantPath,
 } from '@/lib/public-api';
@@ -29,6 +30,7 @@ export function MatchCentrePage({ initialFilter = 'all', initialSportSlug }: { i
   const [sportId, setSportId] = useState<string | null>(() => browserQuery('sport'));
   const [contests, setContests] = useState<PublicContest[]>([]);
   const [competitions, setCompetitions] = useState<PublicCompetition[]>([]);
+  const [sponsors, setSponsors] = useState<PublicHome['sponsors']>([]);
   const [favourites, setFavourites] = useState<Set<string>>(loadFavourites);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -46,6 +48,12 @@ export function MatchCentrePage({ initialFilter = 'all', initialSportSlug }: { i
       })
       .catch(() => undefined);
   }, [initialSportSlug, tenantSlug]);
+
+  useEffect(() => {
+    publicApi<PublicHome>('/home', undefined, tenantSlug)
+      .then(home => setSponsors(home.sponsors ?? []))
+      .catch(() => setSponsors([]));
+  }, [tenantSlug]);
 
   const load = useCallback(async (force = false) => {
     const request = ++requestVersion.current;
@@ -208,6 +216,41 @@ export function MatchCentrePage({ initialFilter = 'all', initialSportSlug }: { i
           </div>
         </aside>
       </div>
+
+      {sponsors.length > 0 && (
+        <section
+          className="surface mt-8 rounded-2xl p-5"
+          aria-labelledby="partners-sponsors-heading"
+          data-testid="public-sponsors"
+        >
+          <p
+            id="partners-sponsors-heading"
+            className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--brand-primary)]"
+          >
+            Partners & sponsors
+          </p>
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            {sponsors.map(sponsor => sponsor.website ? (
+              <a
+                key={sponsor.id}
+                href={sponsor.website}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-xl border border-[var(--color-border)] px-4 py-3 text-sm font-semibold hover:bg-[var(--color-surface-muted)]"
+              >
+                {sponsor.name}
+              </a>
+            ) : (
+              <span
+                key={sponsor.id}
+                className="rounded-xl border border-[var(--color-border)] px-4 py-3 text-sm font-semibold"
+              >
+                {sponsor.name}
+              </span>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

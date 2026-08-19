@@ -124,7 +124,7 @@ function Field({ label, value, onChange, disabled = false, type = 'text' }: { la
 }
 
 function ColorField({ label, value, onChange, disabled }: { label: string; value: string; onChange: (value: string) => void; disabled: boolean }) {
-  return <div><Label>{label}</Label><div className="mt-1 flex gap-2"><input aria-label={`${label} color`} disabled={disabled} type="color" value={value} onChange={event => onChange(event.target.value.toUpperCase())} className="h-10 w-12 rounded border disabled:opacity-50" /><Input disabled={disabled} value={value} pattern="#[0-9A-Fa-f]{6}" onChange={event => onChange(event.target.value)} /></div></div>;
+  return <div><Label>{label}</Label><div className="mt-1 flex gap-2"><input aria-label={`${label} color`} disabled={disabled} type="color" value={value} onChange={event => onChange(event.target.value.toUpperCase())} className="h-10 w-12 rounded border disabled:opacity-50" /><Input aria-label={`${label} color hex`} disabled={disabled} value={value} pattern="#[0-9A-Fa-f]{6}" onChange={event => onChange(event.target.value)} /></div></div>;
 }
 
 function isWebUrl(value?: string | null) { return Boolean(value && /^https?:\/\//i.test(value)); }

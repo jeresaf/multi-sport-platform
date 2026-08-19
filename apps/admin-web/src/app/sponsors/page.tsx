@@ -93,7 +93,9 @@ export default function SponsorsPage() {
       const created = await adminApi<Sponsor>('/api/sponsors', { method: 'POST', body: JSON.stringify({
         tenantId, ...profile, tier: tierValue(profile.tier),
       }) });
-      setSelectedId(created.id); setMessage('Sponsor profile created and audited.'); await load(tenantId);
+      await load(tenantId);
+      setSelectedId(created.id);
+      setMessage('Sponsor profile created and audited.');
     });
   }
 

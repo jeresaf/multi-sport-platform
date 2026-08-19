@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pause, Play, RefreshCw, Square } from 'lucide-react';
 import { HubConnectionBuilder } from '@microsoft/signalr';
 import {
@@ -254,6 +254,7 @@ export function ConnectedSportScoring({ config }: { config: SportScoringConfig }
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const refreshRequestId = useRef(0);
   const [liveStatus, setLiveStatus] = useState<
     'connecting' | 'live' | 'reconnecting' | 'offline'
   >('offline');
@@ -335,6 +336,7 @@ export function ConnectedSportScoring({ config }: { config: SportScoringConfig }
   }, [config.sportId, tenantId]);
 
   const refresh = useCallback(async () => {
+    const requestId = ++refreshRequestId.current;
     if (!contestId) {
       setScores([]);
       setCorrections([]);
@@ -356,6 +358,7 @@ export function ConnectedSportScoring({ config }: { config: SportScoringConfig }
           `/api/livescoring/contests/${contestId}/golf-scorecards`,
         ),
       ]);
+      if (requestId !== refreshRequestId.current) return;
       setScores(scoreData);
       setSchema(schemaData);
       setRosters(rosterData);
