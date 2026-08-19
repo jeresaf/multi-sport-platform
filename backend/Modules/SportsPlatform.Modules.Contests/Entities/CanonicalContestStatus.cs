@@ -45,7 +45,8 @@ public static class CanonicalContestStatusExtensions
         // They must not change the sporting lifecycle: once play has completed,
         // approval, correction and publication remain an ENDED contest.
         ContestStatus.PendingApproval or ContestStatus.Approved or ContestStatus.Corrected
-            or ContestStatus.Published => CanonicalContestStatus.Ended,
+            => CanonicalContestStatus.Ended,
+        ContestStatus.Published => CanonicalContestStatus.Closed,
 
         ContestStatus.Cancelled => CanonicalContestStatus.Cancelled,
         ContestStatus.Abandoned => CanonicalContestStatus.Abandoned,
@@ -95,8 +96,9 @@ public static class CanonicalContestStatusExtensions
             "POSTPONED" => CanonicalContestStatus.Postponed,
             "ENDED" or "COMPLETED" => CanonicalContestStatus.Ended,
             "CLOSED" => CanonicalContestStatus.Closed,
-            "PENDING_APPROVAL" or "APPROVED" or "CORRECTED" or "PUBLISHED"
+            "PENDING_APPROVAL" or "APPROVED" or "CORRECTED"
                 => CanonicalContestStatus.Ended,
+            "PUBLISHED" => CanonicalContestStatus.Closed,
             "CANCELLED" or "CANCELED" => CanonicalContestStatus.Cancelled,
             "ABANDONED" => CanonicalContestStatus.Abandoned,
             _ => CanonicalContestStatus.NotStarted

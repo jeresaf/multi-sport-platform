@@ -209,7 +209,7 @@ public class LiveScoringService : ILiveScoringService
         await _context.SaveChangesAsync(cancellationToken);
 
         return new(true, "Correction submitted for approval.",
-            ToView(request, proposal, "Pending", null), score);
+            ToView(request, score.EventId, proposal, "Pending", null), score);
     }
 
     public async Task<LiveScoreCorrectionResult> ReviewCorrectionAsync(
@@ -276,7 +276,13 @@ public class LiveScoringService : ILiveScoringService
         await _context.SaveChangesAsync(cancellationToken);
 
         return new(true, approve ? "Correction approved." : "Correction rejected.",
-            ToView(request, proposal, approve ? "Approved" : "Rejected", resolution), score);
+            ToView(
+                request,
+                score.EventId,
+                proposal,
+                approve ? "Approved" : "Rejected",
+                resolution),
+            score);
     }
 
     public async Task<IReadOnlyList<LiveScoreCorrectionView>> GetCorrectionsAsync(
@@ -287,6 +293,9 @@ public class LiveScoringService : ILiveScoringService
             .Where(item => item.ContestId == contestId)
             .Select(item => item.Id)
             .ToArrayAsync(cancellationToken);
+        var scoreEventIds = await _context.LiveScores
+            .Where(item => item.ContestId == contestId)
+            .ToDictionaryAsync(item => item.Id, item => item.EventId, cancellationToken);
         var updates = await _context.LiveScoreUpdates
             .Where(item => scoreIds.Contains(item.LiveScoreId) &&
                 (item.UpdateType == CorrectionRequested ||
@@ -307,7 +316,12 @@ public class LiveScoringService : ILiveScoringService
                 resolutions.TryGetValue(request.Id.ToString(), out var review);
                 var status = review?.UpdateType == CorrectionApproved ? "Approved"
                     : review?.UpdateType == CorrectionRejected ? "Rejected" : "Pending";
-                return ToView(request, proposal, status, review);
+                var publicEventId = scoreEventIds.TryGetValue(
+                    request.LiveScoreId,
+                    out var eventId)
+                    ? eventId
+                    : request.LiveScoreId;
+                return ToView(request, publicEventId, proposal, status, review);
             })
             .ToArray();
     }
@@ -331,11 +345,12 @@ public class LiveScoringService : ILiveScoringService
 
     private static LiveScoreCorrectionView ToView(
         LiveScoreUpdate request,
+        Guid publicEventId,
         LiveScoreCorrectionProposal proposal,
         string status,
         LiveScoreUpdate? review) => new(
             request.Id,
-            request.LiveScoreId,
+            publicEventId,
             proposal.Kind,
             proposal.Reason,
             status,

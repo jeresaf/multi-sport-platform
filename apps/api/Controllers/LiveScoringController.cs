@@ -193,7 +193,8 @@ public class LiveScoringController : ControllerBase
             {
                 SegmentId = request.SegmentId ?? session?.ActiveSegmentId ?? defaultSegmentId,
                 ClockSeconds = request.ClockSeconds ??
-                    (schema?.SupportsClock == true ? session?.CurrentClockSeconds : null)
+                    (schema?.SupportsClock == true ? session?.CurrentClockSeconds : null),
+                DeviceTimestamp = request.DeviceTimestamp ?? DateTime.UtcNow
             };
             var eventType = string.IsNullOrWhiteSpace(request.EventType)
                 ? request.MetricName
@@ -530,7 +531,7 @@ public class LiveScoringController : ControllerBase
                 null,
                 new LiveScoreUpdateDto(
                     contestId,
-                    result.Event.Id,
+                    result.Event.EventId,
                     result.Event.ParticipantId,
                     result.Event.MetricName,
                     result.Event.Value,
@@ -553,7 +554,36 @@ public class LiveScoringController : ControllerBase
         try
         {
             var scores = await _liveScoringService.GetContestScoresAsync(contestId);
-            return Ok(scores);
+            return Ok(scores.Select(score => new
+            {
+                Id = score.EventId,
+                InternalEventId = score.Id,
+                score.TenantId,
+                score.ContestId,
+                score.EventId,
+                score.EventType,
+                score.ParticipantId,
+                score.SecondaryParticipantId,
+                score.PrimaryPlayerId,
+                score.SecondaryPlayerId,
+                score.SegmentId,
+                score.ClockSeconds,
+                score.MetricName,
+                score.Value,
+                score.DisplayValue,
+                score.Sequence,
+                score.TimelineSequence,
+                score.ScorerId,
+                score.AssistId,
+                score.Metadata,
+                score.DeviceId,
+                score.IdempotencyKey,
+                score.RulesetVersionId,
+                score.DeviceTimestamp,
+                score.ServerTimestamp,
+                score.ScoredAt,
+                score.CreatedAt
+            }));
         }
         catch (Exception ex)
         {
@@ -1331,6 +1361,37 @@ public class LiveScoringController : ControllerBase
             return "The selected segment does not belong to this contest.";
         if (request.ClockSeconds is < 0)
             return "Clock seconds cannot be negative.";
+
+        if (definition.Validation.MinimumValue is null
+            && definition.Validation.MaximumValue is null)
+        {
+            var schemaAction = SchemaFor(contest)?.Actions.FirstOrDefault(action =>
+                !string.IsNullOrWhiteSpace(action.EventType)
+                && action.EventType.Equals(
+                    definition.Code,
+                    StringComparison.OrdinalIgnoreCase)
+                && action.Metric.Equals(
+                    request.MetricName,
+                    StringComparison.OrdinalIgnoreCase));
+
+            if (schemaAction is not null)
+            {
+                if (schemaAction.InputType == "number")
+                {
+                    if (schemaAction.Minimum is not null
+                        && request.Value < schemaAction.Minimum)
+                        return $"{schemaAction.Label} must be at least {schemaAction.Minimum}.";
+                    if (schemaAction.Maximum is not null
+                        && request.Value > schemaAction.Maximum)
+                        return $"{schemaAction.Label} must not exceed {schemaAction.Maximum}.";
+                }
+                else if (request.Value != schemaAction.DefaultValue)
+                {
+                    return $"Value {request.Value} is not allowed for event '{definition.Code}'.";
+                }
+            }
+        }
+
         try
         {
             EventFramework.ValidatePayload(definition, new EventPayload(

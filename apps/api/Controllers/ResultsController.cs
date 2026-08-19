@@ -1020,6 +1020,10 @@ public class ResultsController : ControllerBase
                 .ToListAsync();
             var gameIds = seriesGames.Select(game => game.Id).ToArray();
             var approvedSeriesGameIds = await GetApprovedContestIdsAsync(gameIds);
+            approvedSeriesGameIds.UnionWith(seriesGames
+                .Where(game => game.Status is ContestStatus.Approved
+                    or ContestStatus.Published)
+                .Select(game => game.Id));
             if (bracketMatch.IsAggregateTie)
             {
                 if (seriesGames.Count != 2 || approvedSeriesGameIds.Count != 2)
@@ -1084,6 +1088,7 @@ public class ResultsController : ControllerBase
                              game.WinnerId is null
                              && game.Status is ContestStatus.Draft
                                  or ContestStatus.Scheduled
+                                 or ContestStatus.CheckInOpen
                                  or ContestStatus.Ready))
                 {
                     unneededGame.Cancel();

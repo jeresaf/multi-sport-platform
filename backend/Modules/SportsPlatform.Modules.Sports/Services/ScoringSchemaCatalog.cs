@@ -73,7 +73,7 @@ public static class ScoringSchemaCatalog
                 Fixed("yellow-card", "Yellow card", "yellow_cards", tone: "secondary"),
                 Fixed("second-yellow", "Second yellow", "red_cards", tone: "danger"),
                 Fixed("red-card", "Red card", "red_cards", tone: "danger"),
-                Fixed("substitution", "Substitution", "substitutions",
+                Fixed("substitution-in", "Substitution", "substitutions",
                     tone: "secondary", requiresPlayer: true, eventType: "SUBSTITUTION"));
         }
 
