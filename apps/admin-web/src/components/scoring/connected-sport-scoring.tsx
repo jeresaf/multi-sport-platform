@@ -936,7 +936,16 @@ export function ConnectedSportScoring({ config }: { config: SportScoringConfig }
         },
       );
       setNotice(approve ? 'Scorecard approved and leaderboard updated.' : 'Scorecard rejected.');
-      await refresh();
+      const [scoreData, scorecardData] = await Promise.all([
+        adminApi<LiveScore[]>(
+          `/api/livescoring/contests/${activeContest.id}/scores`,
+        ),
+        adminApi<GolfScorecardReview[]>(
+          `/api/livescoring/contests/${activeContest.id}/golf-scorecards`,
+        ),
+      ]);
+      setScores(scoreData);
+      setGolfScorecards(scorecardData);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Scorecard review failed.');
     } finally {

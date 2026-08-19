@@ -1654,7 +1654,9 @@ public sealed class PublicController : ControllerBase
                     contest.ContestShape,
                     contest.Participants.Count),
                 Status = contest.Status.ToString(),
-                ContestStatus = contest.CanonicalStatus.ToCode(),
+                ContestStatus = contest.Status == ContestStatus.Published
+                    ? CanonicalContestStatus.Closed.ToCode()
+                    : contest.CanonicalStatus.ToCode(),
                 contest.StartTime,
                 contest.EndTime,
                 contest.Venue,
