@@ -374,7 +374,7 @@ test('dynamic scoring console renders every prototype sport configuration', asyn
       route: 'football', code: 'football',
       sportId: '00000000-0000-0000-0000-000000000100',
       actions: ['goal', 'own-goal', 'penalty-goal', 'penalty-scored', 'penalty-missed',
-        'yellow-card', 'second-yellow', 'red-card', 'substitution'],
+        'yellow-card', 'second-yellow', 'red-card', 'substitution-in'],
     },
     {
       route: 'basketball', code: 'basketball',
@@ -1037,7 +1037,7 @@ test('football console synchronizes every match action and approved corrections 
       'yellow-card',
       'second-yellow',
       'red-card',
-      'substitution',
+      'substitution-in',
     ];
     const awayCodes = ['goal', 'own-goal', 'penalty-goal'];
 
