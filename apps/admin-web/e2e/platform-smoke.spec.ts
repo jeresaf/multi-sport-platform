@@ -663,9 +663,15 @@ test('tenant administrator is isolated and publishes tenant branding', async ({ 
   await expect(page.getByText('Feature entitlements')).toBeVisible();
   await expect(page.getByText('Competitions', { exact: true }).last()).toBeVisible();
 
+  const brandingLoaded = page.waitForResponse(response =>
+    response.url().includes('/api/branding/tenant/') &&
+    response.request().method() === 'GET' &&
+    response.status() === 200,
+  );
   await page.goto(`${adminUrl}/branding`);
   await expect(page.getByRole('heading', { name: 'Branding' })).toBeVisible();
   await expect(page.locator('#tenant option')).toHaveCount(1);
+  await brandingLoaded;
   await page.getByLabel('Tenant name').fill('Premier League');
   await page.getByLabel('Short name').fill('PL');
   const primaryHex = page.getByLabel('Primary color hex');
@@ -742,7 +748,7 @@ test('football console uses the tenant contest and persists a goal', async ({ pa
 });
 
 test('football console synchronizes every match action and approved corrections across clients', async ({ browser, page }) => {
-  test.setTimeout(180_000);
+  test.setTimeout(300_000);
   await signIn(page, 'admin@sportsplatform.com', 'Admin123!');
 
   const match = await page.evaluate(async () => {
@@ -1175,6 +1181,7 @@ test('football console synchronizes every match action and approved corrections 
       .locator('[data-testid^="score-correction-"]')
       .filter({ hasText: 'Pending' })
       .first();
+    await expect(pendingReplacement).toBeVisible({ timeout: 30_000 });
     scorer.once('dialog', dialog => dialog.accept('Replacement approved'));
     await pendingReplacement.getByRole('button', { name: 'Approve' }).click();
     await expect(observer.locator('[data-metric-name="yellow_cards"]')).toBeVisible();

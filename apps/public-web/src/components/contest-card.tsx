@@ -22,7 +22,7 @@ export const ContestCard = memo(function ContestCard({ contest, tenantSlug, favo
   const participants = contest.participants ?? [];
   const start = contest.startTime ? new Date(contest.startTime) : null;
   return (
-    <article className="surface relative overflow-hidden rounded-2xl shadow-[var(--shadow-card)] transition hover:-translate-y-0.5 hover:shadow-lg">
+    <article className="surface group relative overflow-hidden rounded-2xl border border-[var(--color-border)] shadow-[var(--shadow-card)] transition duration-200 hover:-translate-y-0.5 hover:shadow-lg">
       <Link href={tenantPath(`/contest/${contest.id}`, tenantSlug)} className="block p-4 sm:p-5">
         <div className="mb-4 flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -41,7 +41,7 @@ export const ContestCard = memo(function ContestCard({ contest, tenantSlug, favo
         <div className="space-y-2.5">
           <ContestRenderer renderer={inferredRenderer(contest)} contest={contest} participants={participants} />
         </div>
-        <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-[var(--color-border)] pt-3 text-xs muted">
+        <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-[var(--color-border)] pt-3 pr-16 text-xs muted">
           <span className="flex items-center gap-1.5"><Clock3 className="h-3.5 w-3.5" />{start ? start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Time TBC'}</span>
           {contest.venue && <span className="flex min-w-0 items-center gap-1.5"><MapPin className="h-3.5 w-3.5 shrink-0" /><span className="truncate">{contest.venue}</span></span>}
         </div>

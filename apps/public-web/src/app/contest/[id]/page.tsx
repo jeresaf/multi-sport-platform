@@ -2,7 +2,7 @@
 
 import * as signalR from '@microsoft/signalr';
 import Link from 'next/link';
-import { ArrowLeft, Calendar, MapPin, Radio } from 'lucide-react';
+import { Activity, ArrowLeft, Calendar, Clock3, MapPin, Radio, Trophy } from 'lucide-react';
 import { use, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   PUBLIC_CONTEST_HUB_URL,
@@ -253,34 +253,41 @@ export default function ContestPage({ params }: { params: Promise<{ id: string }
   if (!contest) return <State message="Loading contest…" />;
 
   return (
-    <div className="container mx-auto max-w-5xl px-4 py-10">
-      <Link href={tenantPath('/', tenantSlug)} className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline">
-        <ArrowLeft className="h-4 w-4" /> Back to live coverage
+    <div className="container mx-auto max-w-6xl px-4 py-6 sm:py-10">
+      <Link href={tenantPath('/', tenantSlug)} className="mb-5 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50">
+        <ArrowLeft className="h-4 w-4" /> Back to match centre
       </Link>
-      <header className="rounded-2xl bg-gray-950 p-7 text-white">
+      <header className="overflow-hidden rounded-[28px] border border-gray-200 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 p-6 text-white shadow-sm sm:p-8">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <span className="rounded-full bg-white/10 px-3 py-1 text-sm">{contest.contestShape}</span>
           <div className="flex gap-2">
-            <span data-testid="contest-live-state" className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-sm">
+            <span data-testid="contest-live-state" className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-sm font-semibold">
               <Radio className="h-3.5 w-3.5" /> {liveState}
             </span>
-            <span className="rounded-full bg-red-500/20 px-3 py-1 text-sm font-semibold text-red-200">{contest.status}</span>
+            <span className="rounded-full border border-white/10 bg-rose-400/15 px-3 py-1 text-sm font-semibold text-rose-200">{contest.status}</span>
           </div>
         </div>
-        <h1 className="text-3xl font-bold">{contest.name || 'Published contest'}</h1>
-        <div className="mt-4 flex flex-wrap gap-5 text-sm text-gray-300">
+        <h1 className="text-3xl font-black tracking-tight sm:text-5xl">{contest.name || 'Published contest'}</h1>
+        <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm text-white/70">
           <span className="flex items-center gap-2"><Calendar className="h-4 w-4" />{contest.startTime ? new Date(contest.startTime).toLocaleString() : 'Time to be confirmed'}</span>
           {contest.venue && <span className="flex items-center gap-2"><MapPin className="h-4 w-4" /> {contest.venue}</span>}
         </div>
       </header>
 
-      <nav className="mt-6 flex max-w-full gap-1 overflow-x-auto border-b border-gray-200" aria-label="Contest sections">
+      <section data-testid="contest-summary-strip" className="mt-4 grid gap-px overflow-hidden rounded-2xl border border-gray-200 bg-gray-200 sm:grid-cols-2 lg:grid-cols-4">
+        <ContestMetric icon={<Trophy className="h-4 w-4" />} label="Participants" value={contest.participants.length} />
+        <ContestMetric icon={<Activity className="h-4 w-4" />} label="Timeline events" value={timeline?.events.length ?? 0} />
+        <ContestMetric icon={<Clock3 className="h-4 w-4" />} label="Segments" value={contest.segments.length} />
+        <ContestMetric icon={<Radio className="h-4 w-4" />} label="Connection" value={liveState} />
+      </section>
+
+      <nav className="mt-6 flex max-w-full gap-1 overflow-x-auto rounded-2xl border border-gray-200 bg-white p-1 shadow-sm" aria-label="Contest sections">
         {(['overview', 'timeline', 'statistics', 'details'] as const).map(tab => <button
           key={tab}
           type="button"
           onClick={() => setActiveTab(tab)}
           aria-current={activeTab === tab ? 'page' : undefined}
-          className={`shrink-0 border-b-2 px-4 py-3 text-sm font-semibold capitalize ${activeTab === tab ? 'border-primary text-primary' : 'border-transparent text-gray-500'}`}
+          className={`shrink-0 rounded-xl px-4 py-2.5 text-sm font-semibold capitalize transition ${activeTab === tab ? 'bg-primary text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}
         >{tab}</button>)}
       </nav>
       <main data-testid={`contest-panel-${activeTab}`} className="min-w-0 py-8">
@@ -322,7 +329,7 @@ function HeadToHead({ contest, tenantSlug }: { contest: ContestDetails; tenantSl
     {contest.participants.length === 0 && <State message="Participants will appear when the lineup is published." compact />}
     {contest.participants.map((participant, index) => <div key={participant.participantId} className="contents">
       {index === 1 && <div className="text-center text-sm font-bold text-gray-400">VS</div>}
-      <Link href={tenantPath(`/participants/${participant.participantId}`, tenantSlug)} className="rounded-2xl border bg-white p-7 text-center shadow-sm">
+      <Link href={tenantPath(`/participants/${participant.participantId}`, tenantSlug)} className="rounded-2xl border border-gray-200 bg-white p-7 text-center shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
         <p className="text-sm text-gray-500">{participant.participantType} · {participant.status}</p>
         <h2 className="mt-2 text-xl font-bold">{participant.name}</h2>
         <p className="mt-5 text-4xl font-black text-primary">{scoreText(contest, participant.participantId)}</p>
@@ -366,7 +373,7 @@ function Timeline({ events }: { events: TimelineEvent[] }) {
 }
 
 function GenericTimelineEvent({ event }: { event: TimelineEvent }) {
-  return <div className="rounded-lg border p-4"><div className="flex justify-between gap-4"><strong>{label(event.type)}</strong><span className="text-sm text-gray-500">{event.clock ?? new Date(event.occurredAt).toLocaleTimeString()}</span></div><p className="mt-1 text-sm text-gray-600">{event.displayValue ?? (event.metricName && event.value != null ? `${label(event.metricName)}: ${event.value}` : label(event.category))}</p><div className="mt-2 flex gap-2 text-xs font-semibold text-gray-500"><span>{label(event.category)}</span>{event.status !== 'CONFIRMED' && <span>· {label(event.status)}</span>}</div></div>;
+  return <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm"><div className="flex justify-between gap-4"><strong>{label(event.type)}</strong><span className="text-sm text-gray-500">{event.clock ?? new Date(event.occurredAt).toLocaleTimeString()}</span></div><p className="mt-1 text-sm text-gray-600">{event.displayValue ?? (event.metricName && event.value != null ? `${label(event.metricName)}: ${event.value}` : label(event.category))}</p><div className="mt-2 flex gap-2 text-xs font-semibold text-gray-500"><span>{label(event.category)}</span>{event.status !== 'CONFIRMED' && <span>· {label(event.status)}</span>}</div></div>;
 }
 
 function FootballTimelineEvent({ event }: { event: TimelineEvent }) {
@@ -387,7 +394,7 @@ function FootballTimelineEvent({ event }: { event: TimelineEvent }) {
         : event.type.startsWith('VAR_')
           ? 'VAR'
           : '•';
-  return <article className={`rounded-xl border bg-white p-4 ${event.status === 'REVERSED' ? 'opacity-60' : ''}`}>
+  return <article className={`rounded-2xl border border-gray-200 bg-white p-4 shadow-sm transition ${event.status === 'REVERSED' ? 'opacity-60' : 'hover:border-gray-300 hover:shadow-md'}`}>
     <div className="grid grid-cols-[3rem_2.25rem_minmax(0,1fr)_auto] items-start gap-2">
       <time className="font-bold text-gray-500">{minute ?? '—'}</time>
       <span aria-hidden className="text-center font-bold">{symbol}</span>
@@ -413,7 +420,7 @@ function Statistics({ contest }: { contest: ContestDetails }) {
   const participants = contest.participants.slice(0, 2);
   const count = (row: (typeof breakdown)[number], id?: string) =>
     id ? row.participants.find(item => item.participantId === id)?.count ?? 0 : 0;
-  return <section className="surface overflow-hidden rounded-2xl">
+  return <section className="surface overflow-hidden rounded-2xl border border-gray-200 shadow-sm">
     <div className="grid grid-cols-[minmax(0,1fr)_minmax(6rem,2fr)_minmax(0,1fr)] gap-2 bg-gray-950 p-3 text-center text-sm font-semibold text-white">
       <span className="truncate">{participants[0]?.name ?? 'Home'}</span><span>Event</span><span className="truncate">{participants[1]?.name ?? 'Away'}</span>
     </div>
@@ -421,6 +428,26 @@ function Statistics({ contest }: { contest: ContestDetails }) {
       <strong>{count(row, participants[0]?.participantId)}</strong><span className="capitalize text-gray-600">{row.label.replaceAll('_', ' ')}</span><strong>{count(row, participants[1]?.participantId)}</strong>
     </div>)}
   </section>;
+}
+
+function ContestMetric({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: number | string;
+}) {
+  return (
+    <div className="bg-white px-5 py-4">
+      <div className="flex items-center justify-between gap-3">
+        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gray-100 text-primary">{icon}</span>
+        <strong className="truncate text-lg font-black capitalize text-gray-950">{value}</strong>
+      </div>
+      <p className="mt-2 text-xs font-bold uppercase tracking-wider text-gray-400">{label}</p>
+    </div>
+  );
 }
 
 function State({ message, compact = false }: { message: string; compact?: boolean }) {

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import {
-  Activity, CalendarDays, ClipboardCheck, FileBarChart, Flag, Palette,
+  Activity, ArrowRight, CalendarDays, ClipboardCheck, FileBarChart, Flag, Palette,
   RefreshCw, ShieldCheck, Trophy, UserCheck, Users, Handshake,
 } from 'lucide-react';
 import { adminApi } from '@/lib/admin-api';
@@ -36,8 +36,8 @@ type TenantDashboardData = {
 const modulePresentation: Record<string, { href?: string; icon: React.ComponentType<{ className?: string }> }> = {
   branding: { href: '/branding', icon: Palette },
   sports: { href: '/competitions', icon: Trophy },
-  participants: { href: '/competitions', icon: Users },
-  registrations: { href: '/competitions', icon: ClipboardCheck },
+  participants: { href: '/participants', icon: Users },
+  registrations: { href: '/registrations', icon: ClipboardCheck },
   competitions: { href: '/competitions', icon: Trophy },
   fixtures: { href: '/schedule', icon: CalendarDays },
   officials: { href: '/schedule', icon: UserCheck },
@@ -72,18 +72,41 @@ export function TenantDashboard() {
 
   return (
     <div className="space-y-6" data-testid="tenant-administration-dashboard">
-      <section
-        className="flex flex-wrap items-start justify-between gap-4 rounded-2xl p-5 text-white md:p-6"
-        style={{ background: `linear-gradient(135deg, ${dashboard?.branding.primaryColor || '#0EA5E9'}, ${dashboard?.branding.secondaryColor || '#7C3AED'})` }}
-      >
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-wider text-white/80">Tenant operations</p>
-          <h1 className="text-2xl font-bold md:text-3xl">{dashboard?.branding.tenantName || dashboard?.tenant.name || 'Tenant administration'}</h1>
-          <p className="mt-1 text-sm text-white/80">Branding, competition operations, live delivery, and reporting in one place.</p>
+      <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+        <div
+          className="px-6 py-7 text-white lg:px-8"
+          style={{ background: `linear-gradient(135deg, ${dashboard?.branding.primaryColor || '#0EA5E9'}, ${dashboard?.branding.secondaryColor || '#7C3AED'})` }}
+        >
+          <div className="flex flex-wrap items-end justify-between gap-5">
+            <div className="max-w-2xl">
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-white/70">Operations overview</p>
+              <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
+                {dashboard?.branding.tenantName || dashboard?.tenant.name || 'Tenant administration'}
+              </h1>
+              <p className="mt-2 max-w-xl text-sm leading-6 text-white/80">
+                Monitor live activity, fixtures, competitions, participants, registrations, results, and reporting from one command centre.
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              className="border-white/40 bg-white/10 text-white hover:bg-white/20"
+              disabled={loading}
+              onClick={() => void refresh()}
+            >
+              <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </div>
         </div>
-        <Button variant="outline" className="border-white/50 bg-white/10 text-white hover:bg-white/20" disabled={loading} onClick={() => void refresh()}>
-          <RefreshCw className="mr-2 h-4 w-4" /> Refresh
-        </Button>
+
+        {dashboard && (
+          <div className="grid gap-px bg-gray-200 sm:grid-cols-2 xl:grid-cols-4">
+            <DashboardMetric label="Live contests" value={dashboard.summary.liveContests} hint="Active now" />
+            <DashboardMetric label="Pending results" value={dashboard.summary.pendingResults} hint="Need review" />
+            <DashboardMetric label="Upcoming" value={dashboard.upcoming.length} hint="Scheduled fixtures" />
+            <DashboardMetric label="Tenant" value={dashboard.tenant.status} hint={dashboard.tenant.shortName} />
+          </div>
+        )}
       </section>
 
       {error && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">{error}</p>}
@@ -100,9 +123,12 @@ export function TenantDashboard() {
               </CardHeader>
               <CardContent>
                 <p className="text-2xl font-bold">{module.count ?? '—'}</p>
-                <p className="mt-1 text-xs text-gray-500">
-                  {module.accessible ? (presentation.href ? 'Open workspace' : 'Connected operational overview') : 'Not available for your role'}
-                </p>
+                <div className="mt-1 flex items-center justify-between gap-2 text-xs text-gray-500">
+                  <span>
+                    {module.accessible ? (presentation.href ? 'Open workspace' : 'Connected operational overview') : 'Not available for your role'}
+                  </span>
+                  {module.accessible && presentation.href && <ArrowRight className="h-4 w-4 text-gray-300" />}
+                </div>
               </CardContent>
             </Card>;
             return module.accessible && presentation.href
@@ -113,7 +139,17 @@ export function TenantDashboard() {
 
         <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
           <Card>
-            <CardHeader><CardTitle>Upcoming fixtures</CardTitle><CardDescription>Next contests scheduled for this tenant.</CardDescription></CardHeader>
+            <CardHeader>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <CardTitle>Upcoming fixtures</CardTitle>
+                  <CardDescription>Next contests scheduled for this tenant.</CardDescription>
+                </div>
+                <Link href="/schedule" className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary">
+                  Open schedule <ArrowRight className="h-4 w-4" />
+                </Link>
+              </div>
+            </CardHeader>
             <CardContent className="space-y-3">
               {dashboard.upcoming.map((contest) => <div key={contest.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3 text-sm">
                 <div><p className="font-semibold">{contest.name}</p><p className="text-gray-500">{contest.venue || 'Venue not set'}</p></div>
@@ -139,3 +175,24 @@ export function TenantDashboard() {
 function Metric({ label, value }: { label: string; value: string | number }) {
   return <div className="flex items-center justify-between rounded-lg bg-gray-50 p-3"><span className="text-sm text-gray-500">{label}</span><span className="font-semibold">{value}</span></div>;
 }
+
+function DashboardMetric({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: number | string;
+  hint: string;
+}) {
+  return (
+    <div className="bg-white px-5 py-4">
+      <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">{label}</p>
+      <div className="mt-1 flex items-end justify-between gap-3">
+        <strong className="truncate text-2xl font-bold tracking-tight text-gray-950">{value}</strong>
+        <span className="shrink-0 text-xs text-gray-500">{hint}</span>
+      </div>
+    </div>
+  );
+}
+

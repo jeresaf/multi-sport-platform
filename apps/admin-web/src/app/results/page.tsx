@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Check, RefreshCw, Send, X } from 'lucide-react';
+import { Check, CircleAlert, DatabaseZap, RefreshCw, Send, ShieldCheck, Trophy, X } from 'lucide-react';
 import { adminApi, getStoredUser } from '@/lib/admin-api';
 import { Button } from '@/components/ui/button';
 import {
@@ -292,46 +292,84 @@ export default function ResultReviewPage() {
     }
   }
 
+  const statusCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const result of results) {
+      const name = statusName(result.status);
+      counts.set(name, (counts.get(name) ?? 0) + 1);
+    }
+    return counts;
+  }, [results]);
+
+  const submittedCount = (statusCounts.get('Submitted') ?? 0) + (statusCounts.get('Under Review') ?? 0);
+  const publishedCount = (statusCounts.get('Published') ?? 0) + (statusCounts.get('Official') ?? 0);
+  const issueCount =
+    (statusCounts.get('Rejected') ?? 0) +
+    (statusCounts.get('Corrected') ?? 0);
+
+  const resultStatusTone = (status: string) => {
+    if (['Published', 'Official'].includes(status)) return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+    if (status === 'Approved') return 'bg-blue-50 text-blue-700 ring-blue-200';
+    if (['Submitted', 'Under Review'].includes(status)) return 'bg-amber-50 text-amber-700 ring-amber-200';
+    if (status === 'Rejected') return 'bg-rose-50 text-rose-700 ring-rose-200';
+    if (status === 'Corrected') return 'bg-violet-50 text-violet-700 ring-violet-200';
+    return 'bg-gray-100 text-gray-600 ring-gray-200';
+  };
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-wider text-primary">
-            Controlled workflow
-          </p>
-          <h1 className="text-3xl font-bold text-gray-950">Result Review</h1>
-          <p className="mt-1 text-gray-500">
-            Approve submitted scores, rebuild standings, and publish official output.
-          </p>
+      <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+        <div className="border-b border-gray-100 bg-gradient-to-br from-gray-950 via-gray-900 to-gray-800 px-6 py-7 text-white lg:px-8">
+          <div className="flex flex-wrap items-end justify-between gap-5">
+            <div className="max-w-2xl">
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-white/60">Results operations</p>
+              <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">Results control centre</h1>
+              <p className="mt-2 max-w-xl text-sm leading-6 text-white/70">
+                Review submitted outcomes, resolve corrections, rebuild derived data, and publish official results.
+              </p>
+            </div>
+
+            {canChooseTenant && (
+              <label className="min-w-[240px] text-sm font-semibold text-white/80">
+                Tenant
+                <select
+                  aria-label="Tenant"
+                  value={tenantId}
+                  onChange={(event) => setTenantId(event.target.value)}
+                  className="mt-1 h-11 w-full rounded-xl border border-white/15 bg-white/10 px-3 font-normal text-white outline-none"
+                >
+                  {tenants.map((tenant) => (
+                    <option key={tenant.id} value={tenant.id} className="text-gray-900">{tenant.name}</option>
+                  ))}
+                </select>
+              </label>
+            )}
+          </div>
         </div>
-        {canChooseTenant && (
-          <label className="text-sm font-medium text-gray-700">
-            Tenant
-            <select
-              aria-label="Tenant"
-              value={tenantId}
-              onChange={(event) => setTenantId(event.target.value)}
-              className="ml-2 rounded-lg border border-gray-200 bg-white px-3 py-2"
-            >
-              {tenants.map((tenant) => (
-                <option key={tenant.id} value={tenant.id}>{tenant.name}</option>
-              ))}
-            </select>
-          </label>
-        )}
-      </div>
+
+        <div className="grid gap-px bg-gray-200 sm:grid-cols-2 xl:grid-cols-4">
+          <ResultMetric label="Results" value={results.length} hint="Selected contest" />
+          <ResultMetric label="In review" value={submittedCount} hint="Need action" />
+          <ResultMetric label="Published" value={publishedCount} hint="Public / official" />
+          <ResultMetric label="Issues" value={issueCount} hint="Rejected / corrected" />
+        </div>
+      </section>
 
       {error && <State tone="error">{error}</State>}
       {notice && <State tone="success">{notice}</State>}
 
       <Card>
-        <CardHeader>
+        <CardHeader className="border-b border-gray-100 bg-gray-50/70">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <CardTitle>Contest results</CardTitle>
+              <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Selected contest</p>
+              <CardTitle className="mt-1 flex items-center gap-2">
+                <Trophy className="h-5 w-5 text-primary" />
+                Contest results
+              </CardTitle>
               <CardDescription>Only tenant-authorized results are available.</CardDescription>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <select
                 aria-label="Contest"
                 value={contestId}
@@ -361,25 +399,38 @@ export default function ResultReviewPage() {
         </CardHeader>
         <CardContent>
           {snapshot && (
-            <div className="mb-4 rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-950">
-              <p className="font-semibold">
-                Derived snapshot v{snapshot.version} · {snapshot.sourceHash.slice(0, 12)}
-              </p>
-              <p className="mt-1 text-blue-700">
-                {snapshot.state.currentScores.length} totals ·{' '}
-                {snapshot.state.segmentScores.length} segment totals ·{' '}
-                {snapshot.state.standings.length} standings ·{' '}
-                {snapshot.state.brackets.length} bracket links ·{' '}
-                {snapshot.state.leaderboards.length} leaderboards
-              </p>
-              <p className="mt-1 text-xs text-blue-600">
-                {new Date(snapshot.rebuiltAt).toLocaleString()} · {snapshot.reason}
-              </p>
+            <div className="mb-5 overflow-hidden rounded-2xl border border-blue-100 bg-blue-50">
+              <div className="flex flex-wrap items-start justify-between gap-3 border-b border-blue-100 px-4 py-3">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-blue-700">
+                    <DatabaseZap className="h-4 w-4" />
+                  </span>
+                  <div>
+                    <p className="font-semibold text-blue-950">
+                      Derived snapshot v{snapshot.version}
+                    </p>
+                    <p className="text-xs text-blue-600">{snapshot.sourceHash.slice(0, 12)}</p>
+                  </div>
+                </div>
+                <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-blue-700">
+                  {new Date(snapshot.rebuiltAt).toLocaleString()}
+                </span>
+              </div>
+
+              <div className="grid gap-px bg-blue-100 sm:grid-cols-2 xl:grid-cols-5">
+                <SnapshotMetric label="Totals" value={snapshot.state.currentScores.length} />
+                <SnapshotMetric label="Segments" value={snapshot.state.segmentScores.length} />
+                <SnapshotMetric label="Standings" value={snapshot.state.standings.length} />
+                <SnapshotMetric label="Brackets" value={snapshot.state.brackets.length} />
+                <SnapshotMetric label="Leaderboards" value={snapshot.state.leaderboards.length} />
+              </div>
+
+              <p className="px-4 py-3 text-xs text-blue-700">{snapshot.reason}</p>
             </div>
           )}
-          {!contestId && <p className="text-sm text-gray-500">No contests are available.</p>}
+          {!contestId && <p className="rounded-xl bg-gray-50 p-4 text-sm text-gray-500">No contests are available.</p>}
           {contestId && results.length === 0 && (
-            <p className="text-sm text-gray-500">No submitted results for this contest.</p>
+            <p className="rounded-xl bg-gray-50 p-4 text-sm text-gray-500">No submitted results for this contest.</p>
           )}
           <div className="space-y-3">
             {results.map((result) => {
@@ -387,7 +438,7 @@ export default function ResultReviewPage() {
               return (
                 <article
                   key={result.id}
-                  className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-gray-200 p-4"
+                  className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-gray-200 bg-white p-4 transition hover:border-gray-300 hover:shadow-sm"
                 >
                   <div>
                     <p className="font-semibold text-gray-900">
@@ -401,7 +452,7 @@ export default function ResultReviewPage() {
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold">
+                    <span className={`rounded-full px-3 py-1 text-xs font-semibold ring-1 ${resultStatusTone(status)}`}>
                       {status}
                     </span>
                     {status === 'Submitted' && canApprove && (
@@ -500,3 +551,33 @@ function State({
     </div>
   );
 }
+
+function ResultMetric({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: number | string;
+  hint: string;
+}) {
+  return (
+    <div className="bg-white px-5 py-4">
+      <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">{label}</p>
+      <div className="mt-1 flex items-end justify-between gap-3">
+        <strong className="truncate text-2xl font-bold tracking-tight text-gray-950">{value}</strong>
+        <span className="shrink-0 text-xs text-gray-500">{hint}</span>
+      </div>
+    </div>
+  );
+}
+
+function SnapshotMetric({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="bg-blue-50 px-4 py-3">
+      <p className="text-xs font-semibold uppercase tracking-wider text-blue-500">{label}</p>
+      <p className="mt-1 text-lg font-bold text-blue-950">{value}</p>
+    </div>
+  );
+}
+

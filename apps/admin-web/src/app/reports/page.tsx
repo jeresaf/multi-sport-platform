@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Archive, Download, FileBarChart, LoaderCircle, RefreshCw } from 'lucide-react';
+import { Archive, Database, Download, FileBarChart, FileText, LoaderCircle, RefreshCw } from 'lucide-react';
 import { adminApi, adminDownload, getStoredUser } from '@/lib/admin-api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -207,18 +207,65 @@ export default function ReportsPage() {
     }
   }
 
+  const allJobs = [...reports, ...contestSheets, ...tenantExports];
+  const completedJobs = allJobs.filter((item) => item.status === 'Completed').length;
+  const activeJobs = allJobs.filter(
+    (item) => item.status === 'Pending' || item.status === 'Processing',
+  ).length;
+  const failedJobs = allJobs.filter((item) => item.status === 'Failed').length;
+
+  const jobTone = (status: string) => {
+    if (status === 'Completed') return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+    if (status === 'Failed') return 'bg-rose-50 text-rose-700 ring-rose-200';
+    return 'bg-blue-50 text-blue-700 ring-blue-200';
+  };
+
   if (!tenantId) return <Card><CardHeader><CardTitle>Reports</CardTitle><CardDescription>Select a tenant-scoped account to generate reports.</CardDescription></CardHeader></Card>;
 
   return <div className="space-y-6" data-testid="reports-workspace">
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <div><h1 className="text-2xl font-bold">Reports</h1><p className="text-sm text-gray-500">Generate tenant-isolated operational downloads.</p></div>
-      <Button variant="outline" onClick={() => void load()}><RefreshCw className="mr-2 h-4 w-4" />Refresh</Button>
-    </div>
+    <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+      <div className="border-b border-gray-100 bg-gradient-to-br from-gray-950 via-gray-900 to-gray-800 px-6 py-7 text-white lg:px-8">
+        <div className="flex flex-wrap items-end justify-between gap-5">
+          <div className="max-w-2xl">
+            <p className="text-xs font-bold uppercase tracking-[0.22em] text-white/60">Reporting operations</p>
+            <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">Reporting & exports hub</h1>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-white/70">
+              Generate operational reports, archive printable contest sheets, and create audited tenant data exports.
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            className="border-white/20 bg-white/10 text-white hover:bg-white/15"
+            onClick={() => void load()}
+          >
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Refresh jobs
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid gap-px bg-gray-200 sm:grid-cols-2 xl:grid-cols-4">
+        <ReportMetric label="Reports" value={reports.length} hint="Generated / queued" />
+        <ReportMetric label="Completed" value={completedJobs} hint="Ready to download" />
+        <ReportMetric label="Processing" value={activeJobs} hint="Background jobs" />
+        <ReportMetric label="Failed" value={failedJobs} hint="Need attention" />
+      </div>
+    </section>
     {error && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-red-700">{error}</p>}
     {message && <p role="status" className="rounded-lg border border-green-200 bg-green-50 p-3 text-green-700">{message}</p>}
 
     <Card>
-      <CardHeader><CardTitle>Generate report</CardTitle><CardDescription>All eleven report families support genuine PDF, CSV, Excel, and print-ready HTML through background generation.</CardDescription></CardHeader>
+      <CardHeader className="border-b border-gray-100 bg-gray-50/70">
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <FileBarChart className="h-5 w-5" />
+          </span>
+          <div>
+            <CardTitle>Generate operational report</CardTitle>
+            <CardDescription>Eleven report families with PDF, CSV, Excel, and print-ready HTML output.</CardDescription>
+          </div>
+        </div>
+      </CardHeader>
       <CardContent>
         <form className="grid gap-4 md:grid-cols-2 xl:grid-cols-3" onSubmit={generate}>
           <Field label="Report name" htmlFor="report-name"><Input id="report-name" required maxLength={200} value={name} onChange={(event) => setName(event.target.value)} /></Field>
@@ -233,9 +280,16 @@ export default function ReportsPage() {
     </Card>
 
     <Card data-testid="contest-sheet-workspace">
-      <CardHeader>
-        <CardTitle>Printable contest sheets</CardTitle>
-        <CardDescription>Create an immutable PDF snapshot using the contest&apos;s sport template, tenant branding, active sponsors, participants, officials, scoring structure, and results.</CardDescription>
+      <CardHeader className="border-b border-gray-100 bg-gray-50/70">
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <FileText className="h-5 w-5" />
+          </span>
+          <div>
+            <CardTitle>Printable contest sheets</CardTitle>
+            <CardDescription>Create immutable sport-aware PDF snapshots with branding, sponsors, participants, officials, scoring structure, and results.</CardDescription>
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="space-y-5">
         <form className="grid gap-4 md:grid-cols-2 xl:grid-cols-3" onSubmit={archiveContestSheet}>
@@ -244,9 +298,9 @@ export default function ReportsPage() {
           <div className="flex items-end"><Button disabled={busy || !sheetContestId}>{busy ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Archive className="mr-2 h-4 w-4" />}Generate and archive</Button></div>
         </form>
         <div className="space-y-3">
-          {contestSheets.map((sheet) => <div key={sheet.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3">
+          {contestSheets.map((sheet) => <div key={sheet.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white p-4 transition hover:border-gray-300 hover:shadow-sm">
             <div><p className="font-semibold">{sheet.name}</p><p className="text-xs text-gray-500">{sheet.contestName} · {sheet.sportName} · {sheet.template} · {new Date(sheet.createdAt).toLocaleString()}</p>{sheet.errorMessage && <p className="mt-1 text-xs text-red-600">{sheet.errorMessage}</p>}</div>
-            <div className="flex items-center gap-2"><span className={`rounded-full px-2 py-1 text-xs font-semibold ${sheet.status === 'Completed' ? 'bg-green-100 text-green-700' : sheet.status === 'Failed' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>{sheet.status}</span><Button size="sm" variant="outline" disabled={sheet.status !== 'Completed'} onClick={() => void downloadContestSheet(sheet)}><Download className="mr-2 h-4 w-4" />PDF</Button></div>
+            <div className="flex items-center gap-2"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${jobTone(sheet.status)}`}>{sheet.status}</span><Button size="sm" variant="outline" disabled={sheet.status !== 'Completed'} onClick={() => void downloadContestSheet(sheet)}><Download className="mr-2 h-4 w-4" />PDF</Button></div>
           </div>)}
           {contestSheets.length === 0 && <p className="text-sm text-gray-500">No printable contest sheets have been archived for this tenant.</p>}
         </div>
@@ -254,9 +308,16 @@ export default function ReportsPage() {
     </Card>
 
     <Card data-testid="tenant-export-workspace">
-      <CardHeader>
-        <CardTitle>Tenant data exports</CardTitle>
-        <CardDescription>Generate a tenant-isolated ZIP of JSON datasets. Credentials and session secrets are excluded; requests, completion, retries, and downloads are audited.</CardDescription>
+      <CardHeader className="border-b border-gray-100 bg-gray-50/70">
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <Database className="h-5 w-5" />
+          </span>
+          <div>
+            <CardTitle>Tenant data exports</CardTitle>
+            <CardDescription>Generate tenant-isolated ZIP/JSON datasets with audited request, completion, retry, and download events.</CardDescription>
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="space-y-5">
         <form className="grid gap-4 md:grid-cols-2 xl:grid-cols-3" onSubmit={generateTenantExport}>
@@ -264,9 +325,9 @@ export default function ReportsPage() {
           <div className="flex items-end"><Button disabled={busy}><Archive className="mr-2 h-4 w-4" />Generate tenant export</Button></div>
         </form>
         <div className="space-y-3">
-          {tenantExports.map((item) => <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3">
+          {tenantExports.map((item) => <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white p-4 transition hover:border-gray-300 hover:shadow-sm">
             <div><p className="font-semibold">{item.name}</p><p className="text-xs text-gray-500">ZIP/JSON · tenant-isolated · {new Date(item.createdAt).toLocaleString()}</p>{item.errorMessage && <p className="mt-1 text-xs text-red-600">{item.errorMessage}</p>}</div>
-            <div className="flex items-center gap-2"><span className={`rounded-full px-2 py-1 text-xs font-semibold ${item.status === 'Completed' ? 'bg-green-100 text-green-700' : item.status === 'Failed' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>{item.status}</span><Button size="sm" variant="outline" disabled={item.status !== 'Completed'} onClick={() => void downloadTenantExport(item)}><Download className="mr-2 h-4 w-4" />ZIP</Button></div>
+            <div className="flex items-center gap-2"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${jobTone(item.status)}`}>{item.status}</span><Button size="sm" variant="outline" disabled={item.status !== 'Completed'} onClick={() => void downloadTenantExport(item)}><Download className="mr-2 h-4 w-4" />ZIP</Button></div>
           </div>)}
           {tenantExports.length === 0 && <p className="text-sm text-gray-500">No tenant data exports have been generated.</p>}
         </div>
@@ -276,7 +337,7 @@ export default function ReportsPage() {
     <Card>
       <CardHeader><CardTitle>Generated reports</CardTitle><CardDescription>{reports.length} of the latest {Math.max(reports.length, 20)} report records.</CardDescription></CardHeader>
       <CardContent className="space-y-3">
-        {reports.map((report) => <div key={report.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3">
+        {reports.map((report) => <div key={report.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white p-4 transition hover:border-gray-300 hover:shadow-sm">
           <div><p className="font-semibold">{report.name}</p><p className="text-xs text-gray-500">{report.type} · {report.format} · {new Date(report.createdAt).toLocaleString()}</p>{report.errorMessage && <p className="mt-1 text-xs text-red-600">{report.errorMessage}</p>}</div>
           <div className="flex items-center gap-2"><span className={`rounded-full px-2 py-1 text-xs font-semibold ${report.status === 'Completed' ? 'bg-green-100 text-green-700' : report.status === 'Failed' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>{report.status}</span><Button size="sm" variant="outline" disabled={report.status !== 'Completed'} onClick={() => void download(report)}><Download className="mr-2 h-4 w-4" />Download</Button></div>
         </div>)}
@@ -289,3 +350,24 @@ export default function ReportsPage() {
 function Field({ label, htmlFor, children }: { label: string; htmlFor: string; children: React.ReactNode }) {
   return <div className="space-y-2"><Label htmlFor={htmlFor}>{label}</Label>{children}</div>;
 }
+
+function ReportMetric({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: number | string;
+  hint: string;
+}) {
+  return (
+    <div className="bg-white px-5 py-4">
+      <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">{label}</p>
+      <div className="mt-1 flex items-end justify-between gap-3">
+        <strong className="truncate text-2xl font-bold tracking-tight text-gray-950">{value}</strong>
+        <span className="shrink-0 text-xs text-gray-500">{hint}</span>
+      </div>
+    </div>
+  );
+}
+

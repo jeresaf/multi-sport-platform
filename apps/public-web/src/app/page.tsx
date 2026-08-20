@@ -2,7 +2,7 @@
 
 import * as signalR from '@microsoft/signalr';
 import Link from 'next/link';
-import { CalendarX2, RefreshCw, Trophy } from 'lucide-react';
+import { Activity, CalendarDays, CalendarX2, Radio, RefreshCw, Star, Trophy } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ContestCard } from '@/components/contest-card';
 import { ContestFilterBar } from '@/components/contest-filter-bar';
@@ -148,18 +148,62 @@ export function MatchCentrePage({ initialFilter = 'all', initialSportSlug }: { i
     return filter === 'all' || contestPhase(contest.contestStatus ?? contest.status) === filter;
   }), [contests, favourites, filter, sportId]);
   const groups = useMemo(() => groupByCompetition(visible), [visible]);
+  const liveCount = contests.filter(
+    contest => contestPhase(contest.contestStatus ?? contest.status) === 'live',
+  ).length;
+  const upcomingCount = contests.filter(
+    contest => contestPhase(contest.contestStatus ?? contest.status) === 'upcoming',
+  ).length;
+  const finishedCount = contests.filter(
+    contest => contestPhase(contest.contestStatus ?? contest.status) === 'finished',
+  ).length;
+  const favouriteCount = contests.filter(contest =>
+    favourites.has(`contest:${contest.id}`)
+    || (!!contest.competitionId && favourites.has(`competition:${contest.competitionId}`))
+    || contest.participants?.some(
+      item => favourites.has(`participant:${item.participantId}`),
+    ) === true
+  ).length;
 
   return (
     <div className="app-container py-5 sm:py-7">
-      <header className="mb-6" data-testid="match-centre-header">
-        <p className="text-sm font-bold uppercase tracking-[0.18em] text-[var(--brand-primary)]">Match centre</p>
-        <h1 className="mt-1 text-3xl font-extrabold tracking-tight sm:text-4xl">Scores & schedule</h1>
-        <p className="mt-2 muted">Live, upcoming and official results across every published sport.</p>
+      <header
+        className="mb-6 overflow-hidden rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-card)]"
+        data-testid="match-centre-header"
+      >
+        <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 px-5 py-7 text-white sm:px-7 sm:py-8">
+          <div className="flex flex-wrap items-end justify-between gap-5">
+            <div className="max-w-2xl">
+              <span className="inline-flex h-8 items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 text-xs font-bold uppercase tracking-[0.18em] text-white/80">
+                <Radio className="h-3.5 w-3.5" />
+                Match centre
+              </span>
+              <h1 className="mt-4 text-3xl font-black tracking-tight sm:text-5xl">Scores, fixtures & results</h1>
+              <p className="mt-3 max-w-xl text-sm leading-6 text-white/70 sm:text-base">
+                Follow live contests, upcoming fixtures and official results across every published sport.
+              </p>
+            </div>
+            <button
+              onClick={() => void load(true)}
+              disabled={loading}
+              className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/15 disabled:opacity-50"
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              Refresh scores
+            </button>
+          </div>
+        </div>
+        <div className="grid gap-px bg-[var(--color-border)] sm:grid-cols-2 xl:grid-cols-4">
+          <FeedMetric icon={<Activity className="h-4 w-4" />} label="Live now" value={liveCount} />
+          <FeedMetric icon={<CalendarDays className="h-4 w-4" />} label="Upcoming" value={upcomingCount} />
+          <FeedMetric icon={<Trophy className="h-4 w-4" />} label="Finished" value={finishedCount} />
+          <FeedMetric icon={<Star className="h-4 w-4" />} label="Favourites" value={favouriteCount} />
+        </div>
       </header>
 
       <div className="grid gap-6 xl:grid-cols-[220px_minmax(0,1fr)_260px]">
         <aside className="hidden xl:block" aria-label="Sports">
-          <div className="surface sticky top-24 overflow-hidden rounded-2xl p-2">
+          <div className="surface sticky top-24 overflow-hidden rounded-2xl border border-[var(--color-border)] p-2 shadow-[var(--shadow-card)]">
             <button onClick={() => setSportId(null)} className={`w-full rounded-xl px-3 py-2.5 text-left text-sm font-semibold ${!sportId ? 'bg-[var(--color-surface-muted)] text-[var(--brand-primary)]' : ''}`}>All sports</button>
             {sports.map(([id, name]) => (
               <button key={id} onClick={() => setSportId(id)} className={`w-full rounded-xl px-3 py-2.5 text-left text-sm font-semibold ${sportId === id ? 'bg-[var(--color-surface-muted)] text-[var(--brand-primary)]' : ''}`}>{name}</button>
@@ -185,12 +229,24 @@ export function MatchCentrePage({ initialFilter = 'all', initialSportSlug }: { i
             <div className="mt-6 space-y-7">
               {groups.map(group => (
                 <section key={group.id} aria-labelledby={`competition-${group.id}`}>
-                  <div className="mb-3 flex items-end justify-between gap-4">
+                  <div className="mb-3 flex items-end justify-between gap-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3">
                     <div className="min-w-0">
-                      <p className="text-xs font-bold uppercase tracking-wider text-[var(--brand-primary)]">{formatSport(group.sportId)}</p>
-                      <h2 id={`competition-${group.id}`} className="truncate text-xl font-bold">{group.name}</h2>
+                      <div className="flex items-center gap-2">
+                        <span className="rounded-full bg-[var(--color-surface-muted)] px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-[var(--brand-primary)]">
+                          {formatSport(group.sportId)}
+                        </span>
+                        <span className="text-xs muted">{group.contests.length} contests</span>
+                      </div>
+                      <h2 id={`competition-${group.id}`} className="mt-2 truncate text-xl font-bold">{group.name}</h2>
                     </div>
-                    {group.id !== group.sportId && <Link className="shrink-0 text-sm font-semibold text-[var(--brand-primary)]" href={tenantPath(`/competition/${group.id}`, tenantSlug)}>Competition</Link>}
+                    {group.id !== group.sportId && (
+                      <Link
+                        className="shrink-0 rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm font-semibold text-[var(--brand-primary)] hover:bg-[var(--color-surface-muted)]"
+                        href={tenantPath(`/competition/${group.id}`, tenantSlug)}
+                      >
+                        Competition
+                      </Link>
+                    )}
                   </div>
                   <div className="contest-grid">
                     {group.contests.map(contest => <ContestCard key={contest.id} contest={contest} tenantSlug={tenantSlug} favourite={favourites.has(`contest:${contest.id}`)} onToggleFavourite={toggleFavourite} />)}
@@ -202,7 +258,7 @@ export function MatchCentrePage({ initialFilter = 'all', initialSportSlug }: { i
         </main>
 
         <aside className="hidden xl:block" aria-label="Featured competitions">
-          <div className="surface sticky top-24 rounded-2xl p-4">
+          <div className="surface sticky top-24 rounded-2xl border border-[var(--color-border)] p-4 shadow-[var(--shadow-card)]">
             <div className="mb-3 flex items-center gap-2"><Trophy className="h-5 w-5 text-[var(--brand-accent)]" /><h2 className="font-bold">Competitions</h2></div>
             <div className="space-y-1">
               {competitions.slice(0, 8).map(competition => (
@@ -257,6 +313,29 @@ export function MatchCentrePage({ initialFilter = 'all', initialSportSlug }: { i
 
 export default function PublicHomePage() {
   return <MatchCentrePage />;
+}
+
+
+function FeedMetric({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: number;
+}) {
+  return (
+    <div className="bg-[var(--color-surface)] px-4 py-4 sm:px-5">
+      <div className="flex items-center justify-between gap-3">
+        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--color-surface-muted)] text-[var(--brand-primary)]">
+          {icon}
+        </span>
+        <strong className="text-2xl font-black tracking-tight">{value}</strong>
+      </div>
+      <p className="mt-2 text-xs font-bold uppercase tracking-wider muted">{label}</p>
+    </div>
+  );
 }
 
 function ContestSkeleton() {

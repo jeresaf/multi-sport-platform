@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Plus, Search, Trophy } from 'lucide-react';
+import { CheckCircle2, Layers3, Plus, Search, Settings2, Trophy } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { adminApi } from '@/lib/admin-api';
 import { HierarchyWorkspace } from '@/components/competitions/hierarchy-workspace';
@@ -56,6 +56,7 @@ type BracketOverride = {
 export default function CompetitionsPage() {
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [tenantId, setTenantId] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -211,56 +212,167 @@ export default function CompetitionsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tenantId]);
 
+  const statusOptions = useMemo(
+    () => Array.from(new Set(competitions.map((competition) => String(competition.status)))).sort(),
+    [competitions]
+  );
+
   const filtered = useMemo(
     () =>
-      competitions.filter((competition) =>
-        competition.name.toLowerCase().includes(search.toLowerCase())
-      ),
-    [competitions, search]
+      competitions.filter((competition) => {
+        const matchesSearch = competition.name.toLowerCase().includes(search.toLowerCase());
+        const matchesStatus =
+          statusFilter === 'all' || String(competition.status) === statusFilter;
+        return matchesSearch && matchesStatus;
+      }),
+    [competitions, search, statusFilter]
+  );
+
+  const representedSports = useMemo(
+    () => new Set(competitions.map((competition) => competition.sportId)).size,
+    [competitions]
+  );
+
+  const publishedCount = useMemo(
+    () => competitions.filter((competition) => Boolean(competition.publishedAt)).length,
+    [competitions]
   );
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-wider text-primary">Tenant workspace</p>
-          <h1 className="text-3xl font-bold text-gray-950">Competitions</h1>
-          <p className="mt-1 text-gray-500">Tenant-scoped competition records from the API.</p>
+      <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+        <div className="border-b border-gray-100 bg-gradient-to-br from-gray-950 via-gray-900 to-gray-800 px-6 py-7 text-white lg:px-8">
+          <div className="flex flex-wrap items-end justify-between gap-5">
+            <div className="max-w-2xl">
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-white/60">Tenant workspace</p>
+              <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">Competitions</h1>
+              <p className="mt-2 max-w-xl text-sm leading-6 text-white/70">
+                Operate competitions, tournament structures, presentation settings, and playoff formats from one workspace.
+              </p>
+            </div>
+            <Link
+              href="/competitions/new"
+              className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-90"
+            >
+              <Plus className="h-4 w-4" />
+              Create competition
+            </Link>
+          </div>
         </div>
-        <Link href="/competitions/new" className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 font-medium text-white">
-          <Plus className="h-4 w-4" /> Create competition
-        </Link>
-      </div>
-      <div className="grid gap-3 rounded-xl border border-gray-200 bg-white p-4 md:grid-cols-[1fr_320px_auto]">
-        <label className="relative">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search competitions" className="w-full rounded-lg border border-gray-200 py-2 pl-10 pr-3" />
-        </label>
-        <input value={tenantId} onChange={(event) => setTenantId(event.target.value)} placeholder="Tenant ID" className="rounded-lg border border-gray-200 px-3 py-2" />
-        <button onClick={() => void load()} className="rounded-lg border border-gray-200 px-4 py-2 font-medium">Refresh</button>
-      </div>
+
+        <div className="grid gap-px bg-gray-200 sm:grid-cols-2 xl:grid-cols-4">
+          <MetricCard label="Competitions" value={competitions.length} hint="Tenant total" />
+          <MetricCard label="Published" value={publishedCount} hint="Visible publicly" />
+          <MetricCard label="Sports" value={representedSports} hint="Represented here" />
+          <MetricCard label="In view" value={filtered.length} hint="After filters" />
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px_320px_auto]">
+          <label className="relative">
+            <span className="sr-only">Search competitions</span>
+            <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search competitions"
+              className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 pl-10 pr-3 text-sm outline-none transition focus:border-primary focus:bg-white"
+            />
+          </label>
+
+          <select
+            aria-label="Competition status"
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value)}
+            className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm outline-none focus:border-primary focus:bg-white"
+          >
+            <option value="all">All statuses</option>
+            {statusOptions.map((status) => (
+              <option key={status} value={status}>{status}</option>
+            ))}
+          </select>
+
+          <input
+            value={tenantId}
+            onChange={(event) => setTenantId(event.target.value)}
+            placeholder="Tenant ID"
+            className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm outline-none transition focus:border-primary focus:bg-white"
+          />
+
+          <button
+            onClick={() => void load()}
+            className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+          >
+            Refresh
+          </button>
+        </div>
+      </section>
+
       {loading && <State>Loading competitions…</State>}
       {error && <State tone="error">{error} <Link href="/login" className="font-semibold underline">Sign in</Link></State>}
       {!loading && !error && tenantId && filtered.length === 0 && <State>No competitions found for this tenant.</State>}
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+
+      <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
         {filtered.map((competition) => (
-          <article key={competition.id} className="rounded-xl border border-gray-200 bg-white p-5">
-            <div className="flex items-center justify-between">
-              <Trophy className="h-7 w-7 text-primary" />
-              <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold">{String(competition.status)}</span>
+          <article
+            key={competition.id}
+            className="group overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+          >
+            <div className="p-5">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <Trophy className="h-5 w-5" />
+                </div>
+                <div className="flex flex-wrap justify-end gap-2">
+                  {competition.publishedAt && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      Published
+                    </span>
+                  )}
+                  <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-600">
+                    {String(competition.status)}
+                  </span>
+                </div>
+              </div>
+
+              <div className="mt-5">
+                <h2 className="text-xl font-bold tracking-tight text-gray-950">{competition.name}</h2>
+                <p className="mt-1 text-xs font-medium uppercase tracking-wider text-gray-400">
+                  Sport {competition.sportId.slice(0, 8)}
+                </p>
+                {competition.description ? (
+                  <p className="mt-3 line-clamp-2 text-sm leading-6 text-gray-600">{competition.description}</p>
+                ) : (
+                  <p className="mt-3 text-sm leading-6 text-gray-400">No competition description has been added yet.</p>
+                )}
+              </div>
             </div>
-            <h2 className="mt-5 text-xl font-bold text-gray-900">{competition.name}</h2>
-            <p className="mt-1 text-sm text-gray-500">Sport {competition.sportId.slice(0, 8)}</p>
-            {competition.description && <p className="mt-4 text-sm text-gray-600">{competition.description}</p>}
-            <button onClick={() => void loadPlayoffs(competition)} className="mt-4 rounded-lg border px-3 py-2 text-sm font-semibold text-primary">
-              View playoff bracket
-            </button>
-            <button onClick={() => setHierarchyCompetition(competition)} className="ml-2 mt-4 rounded-lg border px-3 py-2 text-sm font-semibold text-primary">
-              Manage hierarchy
-            </button>
-            <button onClick={() => setPresentationCompetition(competition)} className="mt-2 rounded-lg border px-3 py-2 text-sm font-semibold text-primary sm:ml-2">
-              Presentation
-            </button>
+
+            <div className="grid grid-cols-3 border-t border-gray-100 bg-gray-50/70">
+              <button
+                onClick={() => setHierarchyCompetition(competition)}
+                className="flex items-center justify-center gap-1.5 border-r border-gray-100 px-3 py-3 text-xs font-semibold text-gray-700 transition hover:bg-white hover:text-primary"
+              >
+                <Layers3 className="h-3.5 w-3.5" />
+                Structure
+              </button>
+              <button
+                onClick={() => setPresentationCompetition(competition)}
+                className="flex items-center justify-center gap-1.5 border-r border-gray-100 px-3 py-3 text-xs font-semibold text-gray-700 transition hover:bg-white hover:text-primary"
+              >
+                <Settings2 className="h-3.5 w-3.5" />
+                Presentation
+              </button>
+              <button
+                onClick={() => void loadPlayoffs(competition)}
+                className="flex items-center justify-center gap-1.5 px-3 py-3 text-xs font-semibold text-gray-700 transition hover:bg-white hover:text-primary"
+              >
+                <Trophy className="h-3.5 w-3.5" />
+                Playoffs
+              </button>
+            </div>
           </article>
         ))}
       </div>
@@ -395,6 +507,26 @@ export default function CompetitionsPage() {
           )}
         </section>
       )}
+    </div>
+  );
+}
+
+function MetricCard({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: number;
+  hint: string;
+}) {
+  return (
+    <div className="bg-white px-5 py-4">
+      <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">{label}</p>
+      <div className="mt-1 flex items-end justify-between gap-3">
+        <strong className="text-2xl font-bold tracking-tight text-gray-950">{value}</strong>
+        <span className="text-xs text-gray-500">{hint}</span>
+      </div>
     </div>
   );
 }

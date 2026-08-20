@@ -1,7 +1,8 @@
 'use client';
 
+import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
-import { AlertTriangle, CalendarClock, CheckCircle2, RefreshCw } from 'lucide-react';
+import { AlertTriangle, CalendarClock, CheckCircle2, PlayCircle, RefreshCw, ShieldCheck, Trophy } from 'lucide-react';
 import { adminApi, getStoredUser } from '@/lib/admin-api';
 
 type Competition = { id: string; name: string; status: string | number };
@@ -34,6 +35,24 @@ type Validation = {
     blackoutDatesJson: string;
   };
 };
+type Sport = {
+  id: string;
+  code: string;
+  name: string;
+  isActive: boolean;
+};
+
+type ContestModel = {
+  id: string;
+  sportId: string;
+  name: string;
+  status: string | number;
+  venue?: string | null;
+  startTime?: string | null;
+  endTime?: string | null;
+  participants?: Array<unknown>;
+};
+
 type FixtureAdjustment = {
   id: string;
   contestId: string;
@@ -55,6 +74,8 @@ export default function SchedulePage() {
   const [adjustmentReason, setAdjustmentReason] = useState('');
   const [reviewNotes, setReviewNotes] = useState('');
   const [adjustments, setAdjustments] = useState<FixtureAdjustment[]>([]);
+  const [contestModels, setContestModels] = useState<Record<string, ContestModel>>({});
+  const [sports, setSports] = useState<Sport[]>([]);
   const [blackoutDates, setBlackoutDates] = useState('');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -63,12 +84,16 @@ export default function SchedulePage() {
   useEffect(() => setTenantId(getStoredUser()?.tenantId ?? ''), []);
   useEffect(() => {
     if (!tenantId) return;
-    adminApi<Competition[]>(`/api/competitions?tenantId=${tenantId}`)
-      .then((items) => {
+    Promise.all([
+      adminApi<Competition[]>(`/api/competitions?tenantId=${tenantId}`),
+      adminApi<Sport[]>('/api/sports'),
+    ])
+      .then(([items, sportItems]) => {
         setCompetitions(items);
+        setSports(sportItems.filter((item) => item.isActive));
         setCompetitionId((current) => current || items[0]?.id || '');
       })
-      .catch((reason) => setError(reason instanceof Error ? reason.message : 'Could not load competitions.'));
+      .catch((reason) => setError(reason instanceof Error ? reason.message : 'Could not load schedule data.'));
   }, [tenantId]);
   const loadValidation = useCallback(async () => {
     if (!competitionId) return;
@@ -79,8 +104,14 @@ export default function SchedulePage() {
         adminApi<Validation>(`/api/competitions/${competitionId}/schedule/validation`),
         adminApi<FixtureAdjustment[]>(`/api/competitions/${competitionId}/schedule/adjustments`),
       ]);
+      const models = await Promise.all(
+        result.contests.map((contest) =>
+          adminApi<ContestModel>(`/api/contests/${contest.id}/model`)
+        )
+      );
       setValidation(result);
       setAdjustments(history);
+      setContestModels(Object.fromEntries(models.map((model) => [model.id, model])));
       setBlackoutDates((JSON.parse(result.policy.blackoutDatesJson) as string[]).join(', '));
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Could not validate the schedule.');
@@ -190,25 +221,110 @@ export default function SchedulePage() {
     }
   }
 
+  const unresolvedConflicts = validation?.conflicts.filter((item) => !item.isOverridden).length ?? 0;
+  const pendingAdjustments = adjustments.filter((item) => item.status === 0 || item.status === 'Pending').length;
+  const selectedCompetition = competitions.find((item) => item.id === competitionId) ?? null;
+
+  const scoringHref = (contestId: string) => {
+    const model = contestModels[contestId];
+    const sport = sports.find((item) => item.id === model?.sportId);
+    return sport ? `/scoring/${sport.code.toLowerCase()}` : null;
+  };
+
+  const lifecycleTone = (status: string | number | undefined) => {
+    const normalized = String(status ?? '').toLowerCase();
+
+    if (normalized.includes('progress') || normalized.includes('live')) {
+      return 'bg-rose-50 text-rose-700 ring-rose-200';
+    }
+    if (
+      normalized.includes('complete') ||
+      normalized.includes('ended') ||
+      normalized.includes('closed')
+    ) {
+      return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+    }
+    if (normalized.includes('cancel') || normalized.includes('postpon')) {
+      return 'bg-gray-100 text-gray-600 ring-gray-200';
+    }
+    if (normalized.includes('check')) {
+      return 'bg-amber-50 text-amber-700 ring-amber-200';
+    }
+
+    return 'bg-blue-50 text-blue-700 ring-blue-200';
+  };
+
   const numberInput = 'rounded-lg border border-gray-200 px-3 py-2';
   return (
     <main className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div><h1 className="text-3xl font-bold text-gray-900">Schedule control</h1><p className="mt-1 text-gray-500">Validate fixtures before publication and keep overrides auditable.</p></div>
-        <button onClick={() => void loadValidation()} disabled={busy || !competitionId} className="flex items-center gap-2 rounded-lg border px-4 py-2 font-semibold"><RefreshCw className="h-4 w-4" /> Refresh</button>
-      </div>
+      <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+        <div className="border-b border-gray-100 bg-gradient-to-br from-gray-950 via-gray-900 to-gray-800 px-6 py-7 text-white lg:px-8">
+          <div className="flex flex-wrap items-end justify-between gap-5">
+            <div className="max-w-2xl">
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-white/60">Match operations</p>
+              <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">Schedule & fixtures</h1>
+              <p className="mt-2 max-w-xl text-sm leading-6 text-white/70">
+                Validate scheduling policy, resolve fixture conflicts, review adjustments, and control publication from one workspace.
+              </p>
+            </div>
+            <button
+              onClick={() => void loadValidation()}
+              disabled={busy || !competitionId}
+              className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/15 disabled:opacity-40"
+            >
+              <RefreshCw className={`h-4 w-4 ${busy ? 'animate-spin' : ''}`} />
+              Refresh schedule
+            </button>
+          </div>
+        </div>
+        <div className="grid gap-px bg-gray-200 sm:grid-cols-2 xl:grid-cols-4">
+          <ScheduleMetric label="Fixtures" value={validation?.contests.length ?? 0} hint="Current schedule" />
+          <ScheduleMetric label="Conflicts" value={unresolvedConflicts} hint="Unresolved" />
+          <ScheduleMetric label="Adjustments" value={pendingAdjustments} hint="Awaiting review" />
+          <ScheduleMetric
+            label="Publication"
+            value={validation?.canPublish ? 'Ready' : validation ? 'Blocked' : '—'}
+            hint={validation?.canPublish ? 'Validation passed' : 'Needs attention'}
+          />
+        </div>
+      </section>
       {error && <p className="rounded-lg bg-red-50 p-3 text-red-700">{error}</p>}
       {message && <p className="rounded-lg bg-emerald-50 p-3 text-emerald-700">{message}</p>}
       {!tenantId && <p className="rounded-xl border bg-white p-6">Sign in with a tenant administrator account to manage schedules.</p>}
-      <section className="rounded-xl border bg-white p-5">
-        <label className="text-sm font-semibold">Competition</label>
-        <select value={competitionId} onChange={(event) => setCompetitionId(event.target.value)} className="mt-2 w-full rounded-lg border px-3 py-2">
-          {competitions.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-        </select>
+      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <label className="min-w-0 flex-1 text-sm font-semibold text-gray-700">
+            Competition
+            <select
+              value={competitionId}
+              onChange={(event) => setCompetitionId(event.target.value)}
+              className="mt-1 h-11 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 font-normal outline-none focus:border-primary focus:bg-white"
+            >
+              {competitions.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+            </select>
+          </label>
+          {selectedCompetition && (
+            <div className="flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Trophy className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Selected competition</p>
+                <p className="text-sm font-bold text-gray-900">{selectedCompetition.name}</p>
+              </div>
+            </div>
+          )}
+        </div>
       </section>
       {validation && <>
         <section className="rounded-xl border bg-white p-5">
-          <div className="flex items-center justify-between"><h2 className="flex items-center gap-2 text-xl font-bold"><CalendarClock className="h-5 w-5" /> Constraints</h2><span className={`rounded-full px-3 py-1 text-sm font-semibold ${validation.canPublish ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-800'}`}>{validation.canPublish ? 'Ready to publish' : `${validation.conflicts.filter((item) => !item.isOverridden).length} unresolved`}</span></div>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Scheduling policy</p>
+              <h2 className="mt-1 flex items-center gap-2 text-xl font-bold"><CalendarClock className="h-5 w-5 text-primary" /> Constraints</h2>
+            </div>
+            <span className={`rounded-full px-3 py-1 text-sm font-semibold ${validation.canPublish ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-800'}`}>{validation.canPublish ? 'Ready to publish' : `${unresolvedConflicts} unresolved`}</span>
+          </div>
           <form action={(data) => void saveConstraints(data)} className="mt-4 grid gap-3 md:grid-cols-3">
             <label className="text-sm">Default duration (minutes)<input name="duration" type="number" defaultValue={validation.policy.defaultDurationMinutes} className={`mt-1 w-full ${numberInput}`} /></label>
             <label className="text-sm">Minimum rest (minutes)<input name="rest" type="number" defaultValue={validation.policy.minimumRestMinutes} className={`mt-1 w-full ${numberInput}`} /></label>
@@ -225,9 +341,123 @@ export default function SchedulePage() {
           <div className="mt-4 space-y-3">{validation.conflicts.length === 0 && <p className="flex items-center gap-2 text-emerald-700"><CheckCircle2 className="h-5 w-5" /> No scheduling conflicts.</p>}{validation.conflicts.map((item) => <article key={item.key} className="flex items-center justify-between gap-4 rounded-lg border p-3"><div><p className="flex items-center gap-2 font-semibold"><AlertTriangle className="h-4 w-4 text-amber-600" /> {item.type}</p><p className="text-sm text-gray-600">{item.message}</p>{item.overrideReason && <p className="mt-1 text-xs text-emerald-700">Override: {item.overrideReason}</p>}</div>{!item.isOverridden && <button onClick={() => void overrideConflict(item.key)} disabled={busy} className="rounded-lg border px-3 py-2 text-sm font-semibold">Override</button>}</article>)}</div>
           <button onClick={() => void publish()} disabled={busy || !validation.canPublish} className="mt-4 rounded-lg bg-primary px-4 py-2 font-semibold text-white disabled:opacity-40">Publish competition</button>
         </section>
-        <section className="rounded-xl border bg-white p-5"><h2 className="text-xl font-bold">Fixtures</h2><p className="mt-1 text-sm text-gray-500">Changes are applied only after approval by a different administrator.</p><input value={adjustmentReason} onChange={(event) => setAdjustmentReason(event.target.value)} placeholder="Required adjustment reason" className="mt-3 w-full rounded-lg border px-3 py-2" /><div className="mt-4 space-y-3">{validation.contests.map((contest) => <form key={contest.id} action={(data) => void reschedule(contest, data)} className="grid items-end gap-3 rounded-lg border p-3 md:grid-cols-4"><div><p className="font-semibold">{contest.name}</p><p className="text-xs text-gray-500">{contest.id}</p></div><label className="text-sm">Venue<input name="venue" defaultValue={contest.venue ?? ''} required className={`mt-1 w-full ${numberInput}`} /></label><label className="text-sm">Start<input name="startTime" type="datetime-local" defaultValue={contest.startTime?.slice(0, 16) ?? ''} required className={`mt-1 w-full ${numberInput}`} /></label><div className="flex gap-2"><input aria-label="Duration minutes" name="duration" type="number" defaultValue={contest.durationMinutes} className={`w-24 ${numberInput}`} /><button disabled={busy} className="rounded-lg border px-3 py-2 font-semibold">Request</button></div></form>)}</div></section>
+        <section className="rounded-xl border bg-white p-5"><h2 className="text-xl font-bold">Fixtures</h2><p className="mt-1 text-sm text-gray-500">Changes are applied only after approval by a different administrator.</p><input value={adjustmentReason} onChange={(event) => setAdjustmentReason(event.target.value)} placeholder="Required adjustment reason" className="mt-3 w-full rounded-lg border px-3 py-2" /><div className="mt-4 space-y-3">{validation.contests.map((contest) => {
+            const model = contestModels[contest.id];
+            const sport = sports.find((item) => item.id === model?.sportId);
+            const scoringUrl = scoringHref(contest.id);
+
+            return (
+              <form
+                key={contest.id}
+                action={(data) => void reschedule(contest, data)}
+                className="overflow-hidden rounded-2xl border border-gray-200 bg-white"
+              >
+                <div className="border-b border-gray-100 bg-gray-50 px-4 py-3">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-bold text-gray-950">{contest.name}</p>
+                      <p className="mt-0.5 truncate text-xs text-gray-400">{contest.id}</p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span
+                        className={`rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${lifecycleTone(model?.status)}`}
+                      >
+                        {String(model?.status ?? 'Scheduled')}
+                      </span>
+                      {scoringUrl && (
+                        <Link
+                          href={`${scoringUrl}?contestId=${contest.id}`}
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-2.5 py-1.5 text-xs font-semibold text-white"
+                        >
+                          <PlayCircle className="h-3.5 w-3.5" />
+                          Open scoring
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4 p-4">
+                  <div className="grid grid-cols-2 gap-2 rounded-xl bg-gray-50 p-3 text-xs sm:grid-cols-3">
+                    <div>
+                      <span className="block text-gray-400">Sport</span>
+                      <strong className="mt-0.5 block text-gray-700">{sport?.name ?? 'Unknown'}</strong>
+                    </div>
+                    <div>
+                      <span className="block text-gray-400">Participants</span>
+                      <strong className="mt-0.5 block text-gray-700">{model?.participants?.length ?? 0}</strong>
+                    </div>
+                    <div>
+                      <span className="block text-gray-400">Lifecycle</span>
+                      <strong className="mt-0.5 block text-gray-700">{String(model?.status ?? 'Scheduled')}</strong>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-3 md:grid-cols-[1fr_1.15fr_auto]">
+                    <label className="text-sm">
+                      Venue
+                      <input
+                        name="venue"
+                        defaultValue={contest.venue ?? ''}
+                        required
+                        className={`mt-1 w-full ${numberInput}`}
+                      />
+                    </label>
+
+                    <label className="text-sm">
+                      Start
+                      <input
+                        name="startTime"
+                        type="datetime-local"
+                        defaultValue={contest.startTime?.slice(0, 16) ?? ''}
+                        required
+                        className={`mt-1 w-full ${numberInput}`}
+                      />
+                    </label>
+
+                    <div className="flex items-end gap-2">
+                      <input
+                        aria-label="Duration minutes"
+                        name="duration"
+                        type="number"
+                        defaultValue={contest.durationMinutes}
+                        className={`w-24 ${numberInput}`}
+                      />
+                      <button
+                        disabled={busy}
+                        className="rounded-lg border px-3 py-2 font-semibold"
+                      >
+                        Request
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </form>
+            );
+          })}</div></section>
         <section className="rounded-xl border bg-white p-5"><h2 className="text-xl font-bold">Adjustment review</h2><input value={reviewNotes} onChange={(event) => setReviewNotes(event.target.value)} placeholder="Optional reviewer notes" className="mt-3 w-full rounded-lg border px-3 py-2" /><div className="mt-4 space-y-3">{adjustments.length === 0 && <p className="text-sm text-gray-500">No fixture adjustment requests.</p>}{adjustments.map((item) => { const pending = item.status === 0 || item.status === 'Pending'; return <article key={item.id} className="rounded-lg border p-3"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="font-semibold">{item.venue} · {new Date(item.startTime).toLocaleString()}</p><p className="text-sm text-gray-600">{item.reason} · {item.durationMinutes} minutes</p><p className="text-xs text-gray-500">Status: {String(item.status)} · requested {new Date(item.requestedAt).toLocaleString()}</p>{item.reviewNotes && <p className="text-xs text-gray-500">Review: {item.reviewNotes}</p>}</div>{pending && <div className="flex gap-2"><button type="button" disabled={busy} onClick={() => void reviewAdjustment(item.id, 'approve')} className="rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-white">Approve</button><button type="button" disabled={busy} onClick={() => void reviewAdjustment(item.id, 'reject')} className="rounded-lg border px-3 py-2 text-sm font-semibold">Reject</button></div>}</div></article>; })}</div></section>
       </>}
     </main>
   );
 }
+
+function ScheduleMetric({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: number | string;
+  hint: string;
+}) {
+  return (
+    <div className="bg-white px-5 py-4">
+      <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">{label}</p>
+      <div className="mt-1 flex items-end justify-between gap-3">
+        <strong className="truncate text-2xl font-bold tracking-tight text-gray-950">{value}</strong>
+        <span className="shrink-0 text-xs text-gray-500">{hint}</span>
+      </div>
+    </div>
+  );
+}
+
