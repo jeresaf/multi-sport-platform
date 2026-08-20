@@ -80,46 +80,86 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
           return Scaffold(
             body: Row(children: [
               SafeArea(
-                child: NavigationRail(
-                  selectedIndex: selected,
-                  labelType: NavigationRailLabelType.all,
-                  onDestinationSelected: (index) => _select(items[index]),
-                  destinations: items
-                      .map((item) => NavigationRailDestination(
-                            icon: Icon(item.icon),
-                            selectedIcon: Icon(item.selectedIcon),
-                            label: Text(item.label),
-                          ))
-                      .toList(),
+                right: false,
+                child: Container(
+                  width: 104,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface,
+                    border: Border(
+                      right: BorderSide(
+                        color: Theme.of(context).colorScheme.outlineVariant,
+                      ),
+                    ),
+                  ),
+                  child: NavigationRail(
+                    backgroundColor: Colors.transparent,
+                    selectedIndex: selected,
+                    groupAlignment: -0.75,
+                    labelType: NavigationRailLabelType.all,
+                    useIndicator: true,
+                    indicatorColor:
+                        Theme.of(context).colorScheme.primaryContainer,
+                    onDestinationSelected: (index) => _select(items[index]),
+                    destinations: items
+                        .map((item) => NavigationRailDestination(
+                              icon: Icon(item.icon),
+                              selectedIcon: Icon(item.selectedIcon),
+                              label: Text(item.label),
+                            ))
+                        .toList(),
+                  ),
                 ),
               ),
-              const VerticalDivider(width: 1),
               Expanded(child: widget.navigationShell),
             ]),
           );
         }
         return Scaffold(
           body: widget.navigationShell,
-          bottomNavigationBar: NavigationBar(
-            selectedIndex: selected,
-            onDestinationSelected: (index) => _select(items[index]),
-            destinations: items
-                .map((item) => NavigationDestination(
-                      icon: Tooltip(
-                        message: item.path == '/competitions'
-                            ? 'Competitions'
-                            : item.label,
-                        child: Icon(item.icon),
-                      ),
-                      selectedIcon: Tooltip(
-                        message: item.path == '/competitions'
-                            ? 'Competitions'
-                            : item.label,
-                        child: Icon(item.selectedIcon),
-                      ),
-                      label: item.label,
-                    ))
-                .toList(),
+          bottomNavigationBar: SafeArea(
+            top: false,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                border: Border(
+                  top: BorderSide(
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                  ),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 16,
+                    offset: const Offset(0, -4),
+                  ),
+                ],
+              ),
+              child: NavigationBar(
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                height: 72,
+                selectedIndex: selected,
+                indicatorColor: Theme.of(context).colorScheme.primaryContainer,
+                onDestinationSelected: (index) => _select(items[index]),
+                destinations: items
+                    .map((item) => NavigationDestination(
+                          icon: Tooltip(
+                            message: item.path == '/competitions'
+                                ? 'Competitions'
+                                : item.label,
+                            child: Icon(item.icon),
+                          ),
+                          selectedIcon: Tooltip(
+                            message: item.path == '/competitions'
+                                ? 'Competitions'
+                                : item.label,
+                            child: Icon(item.selectedIcon),
+                          ),
+                          label: item.label,
+                        ))
+                    .toList(),
+              ),
+            ),
           ),
         );
       }),

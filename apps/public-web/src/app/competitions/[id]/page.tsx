@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useParams, usePathname } from 'next/navigation';
-import { BarChart3, CalendarDays, Trophy, Users } from 'lucide-react';
+import { ArrowLeft, BarChart3, CalendarDays, Radio, Trophy, Users } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { CompetitionHero } from '@/components/competition/competition-hero';
 import { CompetitionNavigation } from '@/components/competition/competition-navigation';
@@ -80,8 +80,14 @@ export default function CompetitionDetailPage() {
   if (error) return <PageMessage>Competition unavailable: {error}</PageMessage>;
   if (!competition) return <PageMessage>Loading competition…</PageMessage>;
 
-  return <div className="app-container py-8 sm:py-10">
-    <Link href={tenantPath('/competitions', tenantSlug)} className="text-sm font-medium muted hover:underline">← All competitions</Link>
+  return <div className="app-container py-6 sm:py-10">
+    <Link
+      href={tenantPath('/competitions', tenantSlug)}
+      className="mb-5 inline-flex items-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm font-semibold shadow-sm hover:bg-[var(--color-surface-muted)]"
+    >
+      <ArrowLeft className="h-4 w-4" />
+      All competitions
+    </Link>
     <CompetitionHero competition={competition} followed={followed} alerts={alerts} onFollow={toggleFollow} onAlerts={() => followed && setAlertDialog(true)} />
     <AlertPreferencesDialog open={alertDialog} type="competition" id={competition.id} title={competition.name} sportCode={competition.sport?.code} onClose={() => setAlertDialog(false)} onChange={setAlerts} />
     <CompetitionNavigation id={competition.id} views={competition.availableTabs} active={activeTab} labels={competition.labels} tenantSlug={tenantSlug} onChange={changeTab} />
@@ -107,11 +113,13 @@ function Overview({ competition, playoffs, tenantSlug, onView }: { competition: 
   const latest = competition.results.slice(0, 6);
   return <div className="space-y-6">
     {['combat', 'mma'].includes(competition.sport?.code?.toLowerCase() ?? '') && <Link href={tenantPath(`/fight-card?competitionId=${competition.id}`, tenantSlug)} className="surface flex items-center justify-between rounded-2xl p-5 font-bold hover:shadow-md"><span>Open the full fight card</span><span aria-hidden>→</span></Link>}
-    <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      <Metric label="Contests" value={competition.statistics.contestCount} icon={CalendarDays} />
-      <Metric label="Live now" value={competition.statistics.liveContests} icon={BarChart3} />
-      <Metric label="Participants" value={competition.statistics.participantCount} icon={Users} />
-      <Metric label="Completed" value={competition.statistics.completedContests} icon={Trophy} />
+    <section className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm">
+      <div className="grid gap-px bg-[var(--color-border)] sm:grid-cols-2 xl:grid-cols-4">
+        <CompetitionMetric label="Contests" value={competition.statistics.contestCount} icon={CalendarDays} />
+        <CompetitionMetric label="Live now" value={competition.statistics.liveContests} icon={Radio} />
+        <CompetitionMetric label="Participants" value={competition.statistics.participantCount} icon={Users} />
+        <CompetitionMetric label="Completed" value={competition.statistics.completedContests} icon={Trophy} />
+      </div>
     </section>
     {live.length > 0 && <OverviewModule title="Live now" action={() => onView('fixtures')}><Fixtures fixtures={live} tenantSlug={tenantSlug} label="fixtures" compact /></OverviewModule>}
     {upcoming.length > 0 && <OverviewModule title="Next fixtures" action={() => onView('fixtures')}><Fixtures fixtures={upcoming} tenantSlug={tenantSlug} label="fixtures" compact /></OverviewModule>}
@@ -119,17 +127,32 @@ function Overview({ competition, playoffs, tenantSlug, onView }: { competition: 
     {competition.standings.length > 0 && <OverviewModule title="Standings preview" action={() => onView(competition.availableTabs.includes('groups') ? 'groups' : 'standings')}><CompetitionOutputRenderer kind={competition.availableTabs.includes('groups') ? 'GROUPS' : 'STANDINGS'} competition={competition} playoffs={playoffs} tenantSlug={tenantSlug} compact /></OverviewModule>}
     {playoffs && <OverviewModule title="Bracket preview" action={() => onView('bracket')}><CompetitionOutputRenderer kind="BRACKET" competition={competition} playoffs={{ ...playoffs, rounds: playoffs.rounds.slice(-2) }} tenantSlug={tenantSlug} compact /></OverviewModule>}
     <section className="grid gap-5 lg:grid-cols-[2fr_1fr]">
-      <div className="surface rounded-2xl p-6"><h2 className="text-xl font-bold">Competition structure</h2><div className="mt-4 space-y-3">{competition.editions.map(edition => <article key={edition.id} className="rounded-xl bg-[var(--color-surface-muted)] p-4"><div className="flex justify-between gap-2"><h3 className="font-bold">{edition.name}</h3><span className="text-sm muted">{edition.status}</span></div><div className="mt-3 flex flex-wrap gap-2">{edition.stages.map(stage => <span key={stage.id} className="surface rounded-full px-3 py-1 text-xs">{stage.name}</span>)}</div></article>)}</div></div>
-      <aside className="surface rounded-2xl p-6"><Trophy className="h-7 w-7 text-amber-500" /><h2 className="mt-3 font-bold">Official configuration</h2><p className="mt-2 text-sm muted">{competition.ruleset ? `${competition.ruleset.name} · version ${competition.ruleset.versionNumber}` : 'Published sport defaults'}</p>{competition.sponsors.length > 0 && <div className="mt-5 border-t border-[var(--color-border)] pt-4"><p className="text-xs font-bold uppercase muted">Partners</p><p className="mt-2 font-semibold">{competition.sponsors.map(item => item.name).join(' · ')}</p></div>}</aside>
+      <div className="surface rounded-2xl border border-[var(--color-border)] p-6 shadow-sm"><h2 className="text-xl font-bold">Competition structure</h2><div className="mt-4 space-y-3">{competition.editions.map(edition => <article key={edition.id} className="rounded-xl bg-[var(--color-surface-muted)] p-4"><div className="flex justify-between gap-2"><h3 className="font-bold">{edition.name}</h3><span className="text-sm muted">{edition.status}</span></div><div className="mt-3 flex flex-wrap gap-2">{edition.stages.map(stage => <span key={stage.id} className="surface rounded-full px-3 py-1 text-xs">{stage.name}</span>)}</div></article>)}</div></div>
+      <aside className="surface rounded-2xl border border-[var(--color-border)] p-6 shadow-sm"><Trophy className="h-7 w-7 text-amber-500" /><h2 className="mt-3 font-bold">Official configuration</h2><p className="mt-2 text-sm muted">{competition.ruleset ? `${competition.ruleset.name} · version ${competition.ruleset.versionNumber}` : 'Published sport defaults'}</p>{competition.sponsors.length > 0 && <div className="mt-5 border-t border-[var(--color-border)] pt-4"><p className="text-xs font-bold uppercase muted">Partners</p><p className="mt-2 font-semibold">{competition.sponsors.map(item => item.name).join(' · ')}</p></div>}</aside>
     </section>
   </div>;
 }
 
-function OverviewModule({ title, action, children }: { title: string; action: () => void; children: React.ReactNode }) { return <section><div className="mb-3 flex items-center justify-between"><h2 className="text-xl font-bold">{title}</h2><button onClick={action} className="text-sm font-semibold text-[var(--brand-primary)]">View all →</button></div>{children}</section>; }
+function OverviewModule({ title, action, children }: { title: string; action: () => void; children: React.ReactNode }) {
+  return (
+    <section>
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <h2 className="text-xl font-bold">{title}</h2>
+        <button
+          onClick={action}
+          className="rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm font-semibold text-[var(--brand-primary)] hover:bg-[var(--color-surface-muted)]"
+        >
+          View all →
+        </button>
+      </div>
+      {children}
+    </section>
+  );
+}
 
 function Fixtures({ fixtures, tenantSlug, label, compact = false }: { fixtures: CompetitionFixture[]; tenantSlug: string; label: string; compact?: boolean }) {
   if (fixtures.length === 0) return <Empty message={`No ${label.toLowerCase()} are published.`} />;
-  return <div className={`grid gap-3 ${compact ? 'md:grid-cols-2' : 'md:grid-cols-2 xl:grid-cols-3'}`}>{fixtures.map(fixture => <Link key={fixture.id} href={tenantPath(`/contest/${fixture.id}`, tenantSlug)} className="surface rounded-xl p-4 transition hover:-translate-y-0.5 hover:shadow-md"><div className="flex items-center justify-between gap-3"><ContestStatus status={fixture.contestStatus ?? fixture.status} /><span className="text-xs font-bold uppercase muted">{formatDate(fixture.startTime)}</span></div><h3 className="mt-3 font-bold">{fixture.name || fixture.participants.map(item => item.name).join(' vs ') || fixture.contestShape}</h3>{fixture.venue && <p className="mt-2 text-sm muted">{fixture.venue}</p>}</Link>)}</div>;
+  return <div className={`grid gap-3 ${compact ? 'md:grid-cols-2' : 'md:grid-cols-2 xl:grid-cols-3'}`}>{fixtures.map(fixture => <Link key={fixture.id} href={tenantPath(`/contest/${fixture.id}`, tenantSlug)} className="surface rounded-2xl border border-[var(--color-border)] p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"><div className="flex items-center justify-between gap-3"><ContestStatus status={fixture.contestStatus ?? fixture.status} /><span className="text-xs font-bold uppercase muted">{formatDate(fixture.startTime)}</span></div><h3 className="mt-3 font-bold">{fixture.name || fixture.participants.map(item => item.name).join(' vs ') || fixture.contestShape}</h3>{fixture.venue && <p className="mt-2 text-sm muted">{fixture.venue}</p>}</Link>)}</div>;
 }
 
 function Results({ results, tenantSlug, compact = false }: { results: CompetitionResult[]; tenantSlug: string; compact?: boolean }) {
@@ -139,6 +162,29 @@ function Results({ results, tenantSlug, compact = false }: { results: Competitio
 
 function Participants({ competition, tenantSlug }: { competition: CompetitionDetail; tenantSlug: string }) { const label = competition.labels.participants ?? 'Participants'; if (!competition.participants.length) return <Empty message={`No ${label.toLowerCase()} are published.`} />; return <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{competition.participants.map(participant => <Link key={participant.id} href={tenantPath(`/participants/${participant.id}`, tenantSlug)} className="surface flex items-center gap-3 rounded-xl p-4 hover:shadow-md"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--color-surface-muted)] font-bold">{participant.name.slice(0, 2).toUpperCase()}</span><span className="font-semibold">{participant.name}</span></Link>)}</div>; }
 function Statistics({ statistics }: { statistics: CompetitionDetail['statistics'] }) { const cards = [['Contests', statistics.contestCount, CalendarDays], ['Completed', statistics.completedContests, Trophy], ['Live', statistics.liveContests, BarChart3], ['Upcoming', statistics.upcomingContests, CalendarDays], ['Participants', statistics.participantCount, Users], ['Official results', statistics.publishedResultCount, Trophy], ['Scoring events', statistics.scoringEventCount, BarChart3]] as const; return <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">{cards.map(([label, value, Icon]) => <Metric key={label} label={label} value={value} icon={Icon} />)}</div>; }
+
+function CompetitionMetric({
+  label,
+  value,
+  icon: Icon,
+}: {
+  label: string;
+  value: number;
+  icon: typeof Trophy;
+}) {
+  return (
+    <div className="bg-[var(--color-surface)] px-5 py-4">
+      <div className="flex items-center justify-between gap-3">
+        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--color-surface-muted)] text-[var(--brand-primary)]">
+          <Icon className="h-5 w-5" />
+        </span>
+        <strong className="text-2xl font-black">{value}</strong>
+      </div>
+      <p className="mt-2 text-xs font-bold uppercase tracking-wider muted">{label}</p>
+    </div>
+  );
+}
+
 function Metric({ label, value, icon: Icon }: { label: string; value: number; icon: typeof Trophy }) { return <div className="surface rounded-xl p-5"><Icon className="h-5 w-5 muted" /><p className="mt-3 text-3xl font-bold">{value}</p><p className="text-sm muted">{label}</p></div>; }
 function PageMessage({ children }: { children: React.ReactNode }) { return <div className="app-container py-16"><div role="status" className="rounded-xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface-muted)] p-8 text-center muted">{children}</div></div>; }
 function loadFavouriteKeys() {

@@ -42,14 +42,22 @@ class SupporterScreen extends ConsumerWidget {
         ],
         bottom: liveOnly
             ? null
-            : const TabBar(
-                isScrollable: true,
-                tabs: [
-                  Tab(text: 'Schedule'),
-                  Tab(text: 'Results'),
-                  Tab(text: 'Standings'),
-                  Tab(text: 'Favourites'),
-                ],
+            : const PreferredSize(
+                preferredSize: Size.fromHeight(52),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 12),
+                  child: TabBar(
+                    isScrollable: true,
+                    dividerColor: Colors.transparent,
+                    indicatorSize: TabBarIndicatorSize.tab,
+                    tabs: [
+                      Tab(text: 'Schedule'),
+                      Tab(text: 'Results'),
+                      Tab(text: 'Standings'),
+                      Tab(text: 'Favourites'),
+                    ],
+                  ),
+                ),
               ),
       ),
       body: feed.when(
@@ -223,12 +231,30 @@ class _FavouritesList extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     if (favourites.isEmpty) {
       return ListView(
-        children: const [
-          SizedBox(height: 120),
-          Icon(Icons.favorite_border, size: 56, color: Colors.grey),
-          SizedBox(height: 12),
-          Center(
-              child: Text('Save fixtures and competitions to find them here')),
+        padding: const EdgeInsets.all(24),
+        children: [
+          const SizedBox(height: 72),
+          Icon(
+            Icons.favorite_border,
+            size: 56,
+            color: Theme.of(context).colorScheme.outline,
+          ),
+          const SizedBox(height: 14),
+          Text(
+            'Your favourites live here',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Follow fixtures, competitions, teams or athletes to reach them quickly and manage alerts.',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.outline,
+                ),
+          ),
         ],
       );
     }
@@ -239,7 +265,18 @@ class _FavouritesList extends ConsumerWidget {
       itemBuilder: (context, index) {
         final item = favourites[index];
         return Card(
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(
+              color: Theme.of(context).colorScheme.outlineVariant,
+            ),
+          ),
           child: ListTile(
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 6,
+            ),
             onTap: () => context.push(item.route),
             leading: Icon(
               item.type == 'competition' ? Icons.emoji_events : Icons.sports,
@@ -281,7 +318,18 @@ class _ResultTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Card(
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
+        ),
         child: ListTile(
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: 6,
+          ),
           onTap: () => context.push('/contest/${result.contestId}'),
           leading: CircleAvatar(child: Text(result.rank?.toString() ?? '–')),
           title: Text(result.participantName),
@@ -304,7 +352,18 @@ class _StandingTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Card(
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
+        ),
         child: ListTile(
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: 6,
+          ),
           onTap: () => context.push('/competitions/${standing.competitionId}'),
           leading: CircleAvatar(child: Text('${standing.position}')),
           title: Text(standing.participantName),

@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { adminApi, getStoredUser, hasAnyPermission, isPlatformOperator } from '@/lib/admin-api';
 
 type Tenant = { id: string; name: string };
@@ -34,6 +34,18 @@ export default function OrganizationsPage() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const metrics = useMemo(() => {
+    const teams = organizations.filter(item => String(item.type).toLowerCase() === 'team').length;
+    const clubs = organizations.filter(item => String(item.type).toLowerCase() === 'club').length;
+    const activeRosters = profile?.rosters.filter(item => item.isActive).length ?? 0;
+    return {
+      organizations: organizations.length,
+      teams,
+      clubs,
+      activeRosters,
+    };
+  }, [organizations, profile]);
 
   async function load(scope = tenantId) {
     if (!scope) { setOrganizations([]); setAthletes([]); return; }
@@ -107,18 +119,53 @@ export default function OrganizationsPage() {
   const input = (key: keyof typeof roster, label: string, type = 'text') => <label className="text-xs font-semibold">{label}<input type={type} value={roster[key]} onChange={event => setRoster(current => ({ ...current, [key]: event.target.value }))} className="mt-1 h-9 w-full rounded-md border px-2 font-normal" /></label>;
 
   return <div className="space-y-6">
-    <div><h1 className="text-3xl font-bold text-gray-950">Team and club profiles</h1><p className="mt-1 text-sm text-gray-600">Tenant organizations, seasonal rosters, athlete movement history, and historical competition registrations.</p></div>
+    <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 p-6 text-white shadow-sm">
+      <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+        <div className="max-w-3xl">
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Organization operations</p>
+          <h1 className="mt-2 text-3xl font-black tracking-tight">Teams & clubs workspace</h1>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">
+            Manage organization profiles, seasonal rosters, athlete movement history, and historical competition registrations from one protected workspace.
+          </p>
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <OrganizationMetric label="Profiles" value={metrics.organizations} />
+          <OrganizationMetric label="Teams" value={metrics.teams} />
+          <OrganizationMetric label="Clubs" value={metrics.clubs} />
+          <OrganizationMetric label="Active rosters" value={metrics.activeRosters} />
+        </div>
+      </div>
+    </section>
     {error && <p role="alert" className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</p>}{message && <p className="rounded-md bg-green-50 p-3 text-sm text-green-800">{message}</p>}
-    {platform && <label className="block max-w-md text-sm font-semibold">Tenant<select value={tenantId} onChange={event => setTenantId(event.target.value)} className="mt-1 h-10 w-full rounded-md border bg-white px-3 font-normal"><option value="">Select tenant</option>{tenants.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>}
+    {platform && <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><label className="block max-w-md text-sm font-bold text-slate-800">Tenant<select value={tenantId} onChange={event => setTenantId(event.target.value)} className="mt-1 h-10 w-full rounded-lg border border-slate-300 bg-white px-3 font-normal"><option value="">Select tenant</option>{tenants.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label></section>}
     <div className="grid gap-6 lg:grid-cols-[18rem_1fr]">
-      <aside className="space-y-3 rounded-xl border bg-white p-4"><h2 className="font-bold">Teams and clubs</h2><select value={selectedId} onChange={event => void selectOrganization(event.target.value)} className="h-10 w-full rounded-md border bg-white px-3"><option value="">Create new</option>{organizations.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select><p className="text-xs text-gray-500">{organizations.length} profiles</p>{!canReadSensitive && <p className="rounded bg-amber-50 p-2 text-xs text-amber-800">Contact, roster, registration, and history data require protected profile access.</p>}</aside>
+      <aside className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:sticky lg:top-20 lg:self-start">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Directory</p>
+          <h2 className="mt-1 text-lg font-extrabold text-slate-950">Teams and clubs</h2>
+          <p className="mt-1 text-xs text-slate-500">{organizations.length} organization profiles</p>
+        </div>
+        <select value={selectedId} onChange={event => void selectOrganization(event.target.value)} className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3">
+          <option value="">Create new organization</option>
+          {organizations.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
+        </select>
+        {!canReadSensitive && <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-800">Protected profile access is required for contact details, rosters, registrations, and audit history.</p>}
+      </aside>
       <div className="space-y-5">
-        <form onSubmit={submitProfile} className="space-y-4 rounded-xl border bg-white p-5"><h2 className="font-bold">{selectedId ? `${profile?.kind ?? 'Organization'} profile` : 'Create organization'}</h2>{!selectedId && <label className="text-sm font-semibold">Kind<select value={kind} onChange={event => setKind(event.target.value)} className="mt-1 h-10 w-full rounded-md border bg-white px-3 font-normal"><option>Team</option><option>Club</option></select></label>}<div className="grid gap-4 md:grid-cols-2">{field('name', 'Name')}{field('shortName', 'Short name')}{field('logoUrl', 'Logo URL', 'url')}{field('homeVenue', 'Home venue')}{field('coach', 'Coach')}{field('manager', 'Manager')}{field('contactEmail', 'Contact email', 'email')}{field('contactPhone', 'Contact phone', 'tel')}</div>{selectedId && canManage && field('reason', 'Audit reason')}<button disabled={busy || (!selectedId && !canCreate) || (Boolean(selectedId) && !canManage)} className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{selectedId ? 'Save profile' : `Create ${kind.toLowerCase()}`}</button></form>
-        {profile?.kind === 'Team' && canManage && <section className="space-y-3 rounded-xl border bg-white p-5"><h2 className="font-bold">Create seasonal roster</h2><div className="grid gap-3 md:grid-cols-3">{input('name', 'Roster name')}{input('season', 'Season')}{input('startsAt', 'Starts', 'date')}{input('endsAt', 'Ends', 'date')}{input('competitionId', 'Competition ID')}{input('reason', 'Audit reason')}</div><button type="button" onClick={() => void createRoster()} disabled={busy || !roster.name || !roster.season} className="rounded-md border px-4 py-2 text-sm font-semibold disabled:opacity-50">Create roster</button></section>}
-        {profile?.kind === 'Team' && canManage && profile.rosters.length > 0 && <section className="space-y-3 rounded-xl border bg-white p-5"><h2 className="font-bold">Move athlete to roster</h2><div className="grid gap-3 md:grid-cols-3"><select value={movement.rosterId} onChange={event => setMovement(current => ({ ...current, rosterId: event.target.value }))} className="h-10 rounded-md border bg-white px-3"><option value="">Target roster</option>{profile.rosters.filter(item => item.isActive).map(item => <option key={item.id} value={item.id}>{item.name} · {item.season}</option>)}</select><select value={movement.athleteId} onChange={event => setMovement(current => ({ ...current, athleteId: event.target.value }))} className="h-10 rounded-md border bg-white px-3"><option value="">Athlete</option>{athletes.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select>{(['jerseyNumber', 'position', 'reason'] as const).map(key => <input key={key} aria-label={key} placeholder={key.replace(/([A-Z])/g, ' $1')} value={movement[key]} onChange={event => setMovement(current => ({ ...current, [key]: event.target.value }))} className="h-10 rounded-md border px-3" />)}</div><button type="button" onClick={() => void transferAthlete()} disabled={busy || !movement.rosterId || !movement.athleteId || !movement.reason} className="rounded-md border px-4 py-2 text-sm font-semibold disabled:opacity-50">Record movement</button></section>}
-        {profile && canReadSensitive && <section className="rounded-xl border bg-white p-5"><h2 className="mb-3 font-bold">Seasonal roster history</h2>{profile.rosters.length === 0 ? <p className="text-sm text-gray-500">No rosters recorded.</p> : profile.rosters.map(item => <div key={item.id} className="mb-4 rounded-lg bg-gray-50 p-3"><strong>{item.name} · {item.season}</strong><p className="text-xs text-gray-500">{item.startsAt?.slice(0, 10) ?? 'No start'} – {item.endsAt?.slice(0, 10) ?? 'Open ended'}</p><ul className="mt-2 space-y-1 text-xs">{item.entries.map(entry => <li key={entry.id}>{athletes.find(athlete => athlete.id === entry.athleteId)?.name ?? entry.athleteId} · {entry.isActive ? 'Active' : `Left ${entry.leftAt?.slice(0, 10) ?? ''}`} {entry.movementReason && `· ${entry.movementReason}`}</li>)}</ul></div>)}</section>}
-        {profile && canReadSensitive && <section className="grid gap-5 rounded-xl border bg-white p-5 md:grid-cols-2"><div><h2 className="mb-2 font-bold">Historical registrations</h2>{profile.registrations.length ? <ul className="space-y-2 text-xs">{profile.registrations.map(item => <li key={item.id} className="rounded bg-gray-50 p-2"><strong>{item.status}</strong> · {item.type} · {item.competitionId ?? item.contestId}</li>)}</ul> : <p className="text-sm text-gray-500">No registrations recorded.</p>}</div><div><h2 className="mb-2 font-bold">Audit history</h2>{history.length ? <ul className="space-y-2 text-xs">{history.map(item => <li key={item.id} className="rounded bg-gray-50 p-2"><strong>{item.action}</strong> · {item.reason}</li>)}</ul> : <p className="text-sm text-gray-500">No changes recorded.</p>}</div></section>}
+        <form onSubmit={submitProfile} className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><div><p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Profile</p><h2 className="mt-1 text-lg font-extrabold text-slate-950">{selectedId ? `${profile?.kind ?? 'Organization'} profile` : 'Create organization'}</h2></div>{!selectedId && <label className="text-sm font-semibold">Kind<select value={kind} onChange={event => setKind(event.target.value)} className="mt-1 h-10 w-full rounded-md border bg-white px-3 font-normal"><option>Team</option><option>Club</option></select></label>}<div className="grid gap-4 md:grid-cols-2">{field('name', 'Name')}{field('shortName', 'Short name')}{field('logoUrl', 'Logo URL', 'url')}{field('homeVenue', 'Home venue')}{field('coach', 'Coach')}{field('manager', 'Manager')}{field('contactEmail', 'Contact email', 'email')}{field('contactPhone', 'Contact phone', 'tel')}</div>{selectedId && canManage && field('reason', 'Audit reason')}<button disabled={busy || (!selectedId && !canCreate) || (Boolean(selectedId) && !canManage)} className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{selectedId ? 'Save profile' : `Create ${kind.toLowerCase()}`}</button></form>
+        {profile?.kind === 'Team' && canManage && <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><h2 className="font-bold">Create seasonal roster</h2><div className="grid gap-3 md:grid-cols-3">{input('name', 'Roster name')}{input('season', 'Season')}{input('startsAt', 'Starts', 'date')}{input('endsAt', 'Ends', 'date')}{input('competitionId', 'Competition ID')}{input('reason', 'Audit reason')}</div><button type="button" onClick={() => void createRoster()} disabled={busy || !roster.name || !roster.season} className="rounded-md border px-4 py-2 text-sm font-semibold disabled:opacity-50">Create roster</button></section>}
+        {profile?.kind === 'Team' && canManage && profile.rosters.length > 0 && <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><h2 className="font-bold">Move athlete to roster</h2><div className="grid gap-3 md:grid-cols-3"><select value={movement.rosterId} onChange={event => setMovement(current => ({ ...current, rosterId: event.target.value }))} className="h-10 rounded-md border bg-white px-3"><option value="">Target roster</option>{profile.rosters.filter(item => item.isActive).map(item => <option key={item.id} value={item.id}>{item.name} · {item.season}</option>)}</select><select value={movement.athleteId} onChange={event => setMovement(current => ({ ...current, athleteId: event.target.value }))} className="h-10 rounded-md border bg-white px-3"><option value="">Athlete</option>{athletes.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select>{(['jerseyNumber', 'position', 'reason'] as const).map(key => <input key={key} aria-label={key} placeholder={key.replace(/([A-Z])/g, ' $1')} value={movement[key]} onChange={event => setMovement(current => ({ ...current, [key]: event.target.value }))} className="h-10 rounded-md border px-3" />)}</div><button type="button" onClick={() => void transferAthlete()} disabled={busy || !movement.rosterId || !movement.athleteId || !movement.reason} className="rounded-md border px-4 py-2 text-sm font-semibold disabled:opacity-50">Record movement</button></section>}
+        {profile && canReadSensitive && <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><h2 className="mb-3 font-bold">Seasonal roster history</h2>{profile.rosters.length === 0 ? <p className="text-sm text-gray-500">No rosters recorded.</p> : profile.rosters.map(item => <div key={item.id} className="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-3"><strong>{item.name} · {item.season}</strong><p className="text-xs text-gray-500">{item.startsAt?.slice(0, 10) ?? 'No start'} – {item.endsAt?.slice(0, 10) ?? 'Open ended'}</p><ul className="mt-2 space-y-1 text-xs">{item.entries.map(entry => <li key={entry.id}>{athletes.find(athlete => athlete.id === entry.athleteId)?.name ?? entry.athleteId} · {entry.isActive ? 'Active' : `Left ${entry.leftAt?.slice(0, 10) ?? ''}`} {entry.movementReason && `· ${entry.movementReason}`}</li>)}</ul></div>)}</section>}
+        {profile && canReadSensitive && <section className="grid gap-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:grid-cols-2"><div><h2 className="mb-2 font-bold">Historical registrations</h2>{profile.registrations.length ? <ul className="space-y-2 text-xs">{profile.registrations.map(item => <li key={item.id} className="rounded-lg border border-slate-200 bg-slate-50 p-2"><strong>{item.status}</strong> · {item.type} · {item.competitionId ?? item.contestId}</li>)}</ul> : <p className="text-sm text-gray-500">No registrations recorded.</p>}</div><div><h2 className="mb-2 font-bold">Audit history</h2>{history.length ? <ul className="space-y-2 text-xs">{history.map(item => <li key={item.id} className="rounded-lg border border-slate-200 bg-slate-50 p-2"><strong>{item.action}</strong> · {item.reason}</li>)}</ul> : <p className="text-sm text-gray-500">No changes recorded.</p>}</div></section>}
       </div>
     </div>
   </div>;
 }
+
+function OrganizationMetric({ label, value }: { label: string; value: number }) {
+  return <div className="min-w-24 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur">
+    <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">{label}</div>
+    <div className="mt-1 text-2xl font-black text-white">{value}</div>
+  </div>;
+}
+

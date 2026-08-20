@@ -24,7 +24,7 @@ class ContestDetailScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(contestState.contest?.name ?? 'Contest'),
+        title: const Text('Match centre'),
         actions: [
           IconButton(
             icon: const Icon(Icons.share),
@@ -131,12 +131,28 @@ class _ContestDetailContent extends StatelessWidget {
       length: 3,
       child: Column(
         children: [
-          const TabBar(
-            tabs: [
-              Tab(text: 'Overview'),
-              Tab(text: 'Timeline'),
-              Tab(text: 'Statistics'),
-            ],
+          Container(
+            margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: Theme.of(context).colorScheme.outlineVariant,
+              ),
+            ),
+            child: TabBar(
+              dividerColor: Colors.transparent,
+              indicatorSize: TabBarIndicatorSize.tab,
+              indicator: BoxDecoration(
+                color: Theme.of(context).colorScheme.primaryContainer,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              tabs: const [
+                Tab(text: 'Overview'),
+                Tab(text: 'Timeline'),
+                Tab(text: 'Statistics'),
+              ],
+            ),
           ),
           Expanded(
             child: TabBarView(
@@ -187,9 +203,20 @@ class _ContestHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Theme.of(context).colorScheme.primary,
+            Theme.of(context).colorScheme.primaryContainer,
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -201,18 +228,18 @@ class _ContestHeader extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
+                    color: Colors.white.withValues(alpha: 0.14),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.sports, size: 14, color: Colors.grey.shade600),
+                      const Icon(Icons.sports, size: 14, color: Colors.white70),
                       const SizedBox(width: 4),
                       Text(
                         contest.sportCode.toUpperCase(),
-                        style: TextStyle(
-                          color: Colors.grey.shade600,
+                        style: const TextStyle(
+                          color: Colors.white70,
                           fontSize: 12,
                         ),
                       ),
@@ -224,19 +251,20 @@ class _ContestHeader extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               contest.name,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
                   ),
             ),
             if (contest.scheduledAt != null) ...[
               const SizedBox(height: 8),
               Row(
                 children: [
-                  Icon(Icons.schedule, size: 16, color: Colors.grey.shade600),
+                  const Icon(Icons.schedule, size: 16, color: Colors.white70),
                   const SizedBox(width: 4),
                   Text(
                     _formatDateTime(contest.scheduledAt!),
-                    style: TextStyle(color: Colors.grey.shade600),
+                    style: const TextStyle(color: Colors.white70),
                   ),
                 ],
               ),
@@ -245,11 +273,11 @@ class _ContestHeader extends StatelessWidget {
               const SizedBox(height: 4),
               Row(
                 children: [
-                  Icon(Icons.timer, size: 16, color: Colors.grey.shade600),
+                  const Icon(Icons.timer, size: 16, color: Colors.white70),
                   const SizedBox(width: 4),
                   Text(
                     contest.currentSegment!,
-                    style: TextStyle(color: Colors.grey.shade600),
+                    style: const TextStyle(color: Colors.white70),
                   ),
                 ],
               ),
@@ -273,6 +301,13 @@ class _ScoreDisplay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(22),
+        side: BorderSide(
+          color: Theme.of(context).colorScheme.outlineVariant,
+        ),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Row(
@@ -309,9 +344,10 @@ class _ScoreDisplay extends StatelessWidget {
                     contest.homeScoreDisplay ??
                         contest.homeScore?.toString() ??
                         '-',
-                    style: const TextStyle(
-                      fontSize: 36,
-                      fontWeight: FontWeight.bold,
+                    style: TextStyle(
+                      fontSize: 42,
+                      fontWeight: FontWeight.w900,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                   ),
                 ],
@@ -362,9 +398,10 @@ class _ScoreDisplay extends StatelessWidget {
                     contest.awayScoreDisplay ??
                         contest.awayScore?.toString() ??
                         '-',
-                    style: const TextStyle(
-                      fontSize: 36,
-                      fontWeight: FontWeight.bold,
+                    style: TextStyle(
+                      fontSize: 42,
+                      fontWeight: FontWeight.w900,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                   ),
                 ],
@@ -403,6 +440,13 @@ class _EventTimeline extends StatelessWidget {
     }
 
     return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: BorderSide(
+          color: Theme.of(context).colorScheme.outlineVariant,
+        ),
+      ),
       child: ListView.separated(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
@@ -412,6 +456,10 @@ class _EventTimeline extends StatelessWidget {
           final event = events[index];
           final isHome = event.participantId == homeParticipantId;
           return ListTile(
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 6,
+            ),
             leading: CircleAvatar(
               backgroundColor:
                   _getEventColor(event.eventType).withValues(alpha: 0.1),
@@ -452,11 +500,11 @@ class _EventTimeline extends StatelessWidget {
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   )
                 : event.participantId != null
-                ? Text(
-                    isHome ? 'Home' : 'Away',
-                    style: TextStyle(color: Colors.grey.shade600),
-                  )
-                : null,
+                    ? Text(
+                        isHome ? 'Home' : 'Away',
+                        style: TextStyle(color: Colors.grey.shade600),
+                      )
+                    : null,
           );
         },
       ),
@@ -551,6 +599,13 @@ class _MatchStats extends StatelessWidget {
     }
 
     return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: BorderSide(
+          color: Theme.of(context).colorScheme.outlineVariant,
+        ),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

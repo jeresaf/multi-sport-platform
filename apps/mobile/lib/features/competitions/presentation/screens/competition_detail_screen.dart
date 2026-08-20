@@ -43,7 +43,7 @@ class CompetitionDetailScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Competition'),
+        title: const Text('Competition centre'),
         actions: [
           if (favourite != null)
             IconButton(
@@ -147,16 +147,38 @@ class _CompetitionContent extends ConsumerWidget {
         competition.availableTabs.any(
           const {'standings', 'groups', 'conference'}.contains,
         );
+    final completedCount = fixtures
+        .where((item) =>
+            contestStatusTone(item.status) == ContestStatusTone.finished)
+        .length;
+    final liveCount =
+        fixtures.where((item) => contestStatusIsLive(item.status)).length;
     return DefaultTabController(
       length: 1 + (hasGames ? 1 : 0) + (hasTable ? 1 : 0),
       child: Column(
         children: [
-          TabBar(
-            tabs: [
-              const Tab(text: 'Overview'),
-              if (hasGames) const Tab(text: 'Games'),
-              if (hasTable) const Tab(text: 'Table'),
-            ],
+          Container(
+            margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: Theme.of(context).colorScheme.outlineVariant,
+              ),
+            ),
+            child: TabBar(
+              dividerColor: Colors.transparent,
+              indicatorSize: TabBarIndicatorSize.tab,
+              indicator: BoxDecoration(
+                color: Theme.of(context).colorScheme.primaryContainer,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              tabs: [
+                const Tab(text: 'Overview'),
+                if (hasGames) const Tab(text: 'Games'),
+                if (hasTable) const Tab(text: 'Table'),
+              ],
+            ),
           ),
           Expanded(
             child: TabBarView(
@@ -167,9 +189,20 @@ class _CompetitionContent extends ConsumerWidget {
                     padding: const EdgeInsets.all(16),
                     children: [
                       // Competition header
-                      Card(
+                      Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Theme.of(context).colorScheme.primary,
+                              Theme.of(context).colorScheme.primaryContainer,
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(24),
+                        ),
                         child: Padding(
-                          padding: const EdgeInsets.all(16),
+                          padding: const EdgeInsets.all(20),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -179,15 +212,14 @@ class _CompetitionContent extends ConsumerWidget {
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 8, vertical: 4),
                                     decoration: BoxDecoration(
-                                      color: _getStatusColor(competition.status)
-                                          .withValues(alpha: 0.1),
+                                      color:
+                                          Colors.white.withValues(alpha: 0.14),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Text(
                                       competition.status,
-                                      style: TextStyle(
-                                        color:
-                                            _getStatusColor(competition.status),
+                                      style: const TextStyle(
+                                        color: Colors.white,
                                         fontSize: 12,
                                         fontWeight: FontWeight.w500,
                                       ),
@@ -198,20 +230,20 @@ class _CompetitionContent extends ConsumerWidget {
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 8, vertical: 4),
                                     decoration: BoxDecoration(
-                                      color: Colors.grey.shade100,
+                                      color:
+                                          Colors.white.withValues(alpha: 0.14),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        Icon(Icons.sports,
-                                            size: 14,
-                                            color: Colors.grey.shade600),
+                                        const Icon(Icons.sports,
+                                            size: 14, color: Colors.white70),
                                         const SizedBox(width: 4),
                                         Text(
                                           competition.sportCode.toUpperCase(),
-                                          style: TextStyle(
-                                            color: Colors.grey.shade600,
+                                          style: const TextStyle(
+                                            color: Colors.white70,
                                             fontSize: 12,
                                           ),
                                         ),
@@ -227,14 +259,15 @@ class _CompetitionContent extends ConsumerWidget {
                                     .textTheme
                                     .headlineSmall
                                     ?.copyWith(
-                                      fontWeight: FontWeight.bold,
+                                      fontWeight: FontWeight.w900,
+                                      color: Colors.white,
                                     ),
                               ),
                               if (competition.description != null) ...[
                                 const SizedBox(height: 8),
                                 Text(
                                   competition.description!,
-                                  style: TextStyle(color: Colors.grey.shade600),
+                                  style: const TextStyle(color: Colors.white70),
                                 ),
                               ],
                               const SizedBox(height: 16),
@@ -255,6 +288,34 @@ class _CompetitionContent extends ConsumerWidget {
                           ),
                         ),
                       ),
+                      const SizedBox(height: 14),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _CompetitionMetric(
+                              label: 'Live',
+                              value: liveCount,
+                              icon: Icons.bolt,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _CompetitionMetric(
+                              label: 'Completed',
+                              value: completedCount,
+                              icon: Icons.check_circle_outline,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _CompetitionMetric(
+                              label: 'Participants',
+                              value: competition.participantCount,
+                              icon: Icons.groups_outlined,
+                            ),
+                          ),
+                        ],
+                      ),
                       const SizedBox(height: 24),
 
                       // Format info
@@ -267,6 +328,13 @@ class _CompetitionContent extends ConsumerWidget {
                       ),
                       const SizedBox(height: 12),
                       Card(
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
+                          side: BorderSide(
+                            color: Theme.of(context).colorScheme.outlineVariant,
+                          ),
+                        ),
                         child: Padding(
                           padding: const EdgeInsets.all(16),
                           child: Column(
@@ -378,6 +446,13 @@ class _CompetitionContent extends ConsumerWidget {
                       ),
                       const SizedBox(height: 12),
                       Card(
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
+                          side: BorderSide(
+                            color: Theme.of(context).colorScheme.outlineVariant,
+                          ),
+                        ),
                         child: fixtures.isEmpty
                             ? const Padding(
                                 padding: EdgeInsets.all(24),
@@ -391,11 +466,20 @@ class _CompetitionContent extends ConsumerWidget {
                                           item.contestId == fixture.id)
                                       .toList();
                                   return ListTile(
-                                    leading: Icon(
-                                      contestStatusTone(fixture.status) ==
-                                              ContestStatusTone.finished
-                                          ? Icons.check_circle_outline
-                                          : Icons.schedule,
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 6,
+                                    ),
+                                    leading: CircleAvatar(
+                                      backgroundColor: Theme.of(context)
+                                          .colorScheme
+                                          .surfaceContainerHighest,
+                                      child: Icon(
+                                        contestStatusTone(fixture.status) ==
+                                                ContestStatusTone.finished
+                                            ? Icons.check_circle_outline
+                                            : Icons.schedule,
+                                      ),
                                     ),
                                     title: Text(fixture.participants.isEmpty
                                         ? fixture.name
@@ -420,19 +504,46 @@ class _CompetitionContent extends ConsumerWidget {
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.all(16),
                   children: [
-                    // Standings
-                    Text(
-                      'Standings',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surface,
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(
+                          color: Theme.of(context).colorScheme.outlineVariant,
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.leaderboard_outlined,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                competition.availableTabs.contains('groups')
+                                    ? 'Groups & standings'
+                                    : 'Standings',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
+                                    ?.copyWith(fontWeight: FontWeight.w800),
+                              ),
+                            ],
                           ),
-                    ),
-                    const SizedBox(height: 12),
-                    CompetitionOutputRenderer(
-                      kind: competition.availableTabs.contains('groups')
-                          ? CompetitionOutputKind.groups
-                          : CompetitionOutputKind.standings,
-                      standings: standings,
+                          const SizedBox(height: 14),
+                          CompetitionOutputRenderer(
+                            kind: competition.availableTabs.contains('groups')
+                                ? CompetitionOutputKind.groups
+                                : CompetitionOutputKind.standings,
+                            standings: standings,
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -444,25 +555,52 @@ class _CompetitionContent extends ConsumerWidget {
     );
   }
 
-  Color _getStatusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'live':
-      case 'inprogress':
-        return Colors.red;
-      case 'scheduled':
-      case 'upcoming':
-        return Colors.blue;
-      case 'completed':
-        return Colors.green;
-      case 'cancelled':
-        return Colors.grey;
-      default:
-        return Colors.orange;
-    }
-  }
-
   String _formatDate(DateTime? date) {
     return formatPublicDate(date);
+  }
+}
+
+class _CompetitionMetric extends StatelessWidget {
+  final String label;
+  final int value;
+  final IconData icon;
+
+  const _CompetitionMetric({
+    required this.label,
+    required this.value,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outlineVariant,
+        ),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
+          const SizedBox(height: 6),
+          Text(
+            '$value',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w900,
+                ),
+          ),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: Theme.of(context).colorScheme.outline,
+                ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

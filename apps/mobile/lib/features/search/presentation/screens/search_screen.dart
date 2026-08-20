@@ -51,30 +51,51 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final results =
         _query.isEmpty ? null : ref.watch(publicSearchProvider(searchKey));
     return Scaffold(
-      appBar: AppBar(title: const Text('Search')),
+      appBar: AppBar(title: const Text('Discover')),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: SearchBar(
-              controller: _controller,
-              autoFocus: true,
-              hintText: 'Sports, competitions, teams, athletes…',
-              leading: const Icon(Icons.search),
-              trailing: _typedQuery.isEmpty
-                  ? null
-                  : [
-                      IconButton(
-                        tooltip: 'Clear search',
-                        onPressed: () => setState(() {
-                          _controller.clear();
-                          _typedQuery = '';
-                          _query = '';
-                        }),
-                        icon: const Icon(Icons.close),
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: Theme.of(context).colorScheme.outlineVariant,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Find sports, teams & competitions',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
                       ),
-                    ],
-              onChanged: _onQueryChanged,
+                ),
+                const SizedBox(height: 10),
+                SearchBar(
+                  controller: _controller,
+                  autoFocus: true,
+                  hintText: 'Sports, competitions, teams, athletes…',
+                  leading: const Icon(Icons.search),
+                  trailing: _typedQuery.isEmpty
+                      ? null
+                      : [
+                          IconButton(
+                            tooltip: 'Clear search',
+                            onPressed: () => setState(() {
+                              _controller.clear();
+                              _typedQuery = '';
+                              _query = '';
+                            }),
+                            icon: const Icon(Icons.close),
+                          ),
+                        ],
+                  onChanged: _onQueryChanged,
+                ),
+              ],
             ),
           ),
           SizedBox(
@@ -147,8 +168,27 @@ class _SearchResults extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
       children: [
-        Text('${response.total} public results',
-            style: Theme.of(context).textTheme.labelLarge),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.manage_search,
+                  size: 18, color: Theme.of(context).colorScheme.primary),
+              const SizedBox(width: 8),
+              Text(
+                '${response.total} public results',
+                style: Theme.of(context)
+                    .textTheme
+                    .labelLarge
+                    ?.copyWith(fontWeight: FontWeight.w700),
+              ),
+            ],
+          ),
+        ),
         for (final group in groups.entries) ...[
           Padding(
             padding: const EdgeInsets.only(top: 20, bottom: 6),
@@ -156,7 +196,18 @@ class _SearchResults extends StatelessWidget {
                 Text(group.key, style: Theme.of(context).textTheme.titleMedium),
           ),
           ...group.value.map((item) => Card(
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                  ),
+                ),
                 child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 6,
+                  ),
                   leading: Icon(_iconFor(item.type)),
                   title: Text(item.title),
                   subtitle: item.subtitle == null ? null : Text(item.subtitle!),

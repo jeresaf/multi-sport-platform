@@ -226,6 +226,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       grouped.putIfAbsent(fixture.competitionName, () => []).add(fixture);
     }
 
+    final liveCount = data.fixtures
+        .where((fixture) => contestStatusIsLive(fixture.status))
+        .length;
+    final upcomingCount = data.fixtures.where((fixture) {
+      final status = normalizeContestStatus(fixture.status);
+      return ['notstarted', 'startingsoon', 'scheduled', 'ready', 'checkinopen']
+          .contains(status);
+    }).length;
+    final finishedCount = data.fixtures
+        .where((fixture) =>
+            contestStatusTone(fixture.status) == ContestStatusTone.finished)
+        .length;
+    final favouriteCount = data.fixtures
+        .where((fixture) =>
+            favourites.contains('contest:${fixture.id}') ||
+            favourites.contains('competition:${fixture.competitionId}') ||
+            fixture.participantDetails
+                .any((item) => favourites.contains('participant:${item.id}')))
+        .length;
+
     return RefreshIndicator(
       onRefresh: () => ref.read(supporterFeedProvider.notifier).refresh(),
       child: CustomScrollView(
@@ -236,16 +256,80 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Match centre',
-                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                            color: Theme.of(context).colorScheme.primary,
-                            fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 4),
-                    Text('Scores & schedule',
-                        style: Theme.of(context)
-                            .textTheme
-                            .headlineMedium
-                            ?.copyWith(fontWeight: FontWeight.w800)),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            Theme.of(context).colorScheme.primary,
+                            Theme.of(context).colorScheme.primaryContainer,
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Row(children: [
+                            Icon(Icons.radio_button_checked,
+                                size: 16, color: Colors.white),
+                            SizedBox(width: 6),
+                            Text('MATCH CENTRE',
+                                style: TextStyle(
+                                    color: Colors.white70,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 1.4)),
+                          ]),
+                          const SizedBox(height: 10),
+                          Text('Scores, fixtures & results',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .headlineMedium
+                                  ?.copyWith(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w900)),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Follow live contests, upcoming fixtures and official results.',
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.copyWith(color: Colors.white70),
+                          ),
+                          const SizedBox(height: 16),
+                          Row(children: [
+                            Expanded(
+                                child: _FeedMetric(
+                                    label: 'Live',
+                                    value: liveCount,
+                                    icon: Icons.bolt)),
+                            const SizedBox(width: 8),
+                            Expanded(
+                                child: _FeedMetric(
+                                    label: 'Upcoming',
+                                    value: upcomingCount,
+                                    icon: Icons.calendar_today_outlined)),
+                          ]),
+                          const SizedBox(height: 8),
+                          Row(children: [
+                            Expanded(
+                                child: _FeedMetric(
+                                    label: 'Finished',
+                                    value: finishedCount,
+                                    icon: Icons.emoji_events_outlined)),
+                            const SizedBox(width: 8),
+                            Expanded(
+                                child: _FeedMetric(
+                                    label: 'Favourites',
+                                    value: favouriteCount,
+                                    icon: Icons.favorite_outline)),
+                          ]),
+                        ],
+                      ),
+                    ),
                     const SizedBox(height: 16),
                     _DateNavigator(
                       date: selectedDate,
@@ -342,7 +426,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             crossAxisCount: columns,
                             mainAxisSpacing: 10,
                             crossAxisSpacing: 10,
-                            mainAxisExtent: 196),
+                            mainAxisExtent: 208),
                         delegate: SliverChildBuilderDelegate(
                             (context, index) =>
                                 _ContestCard(fixtureId: group.value[index].id),
@@ -354,6 +438,46 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           const SliverToBoxAdapter(child: SizedBox(height: 24)),
         ],
       ),
+    );
+  }
+}
+
+class _FeedMetric extends StatelessWidget {
+  final String label;
+  final int value;
+  final IconData icon;
+
+  const _FeedMetric({
+    required this.label,
+    required this.value,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+      ),
+      child: Row(children: [
+        Icon(icon, size: 18, color: Colors.white),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(label,
+              style: Theme.of(context)
+                  .textTheme
+                  .labelMedium
+                  ?.copyWith(color: Colors.white70)),
+        ),
+        Text('$value',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                )),
+      ]),
     );
   }
 }
@@ -474,6 +598,11 @@ class _ContestCard extends ConsumerWidget {
         .select((value) => value.isFavourite('contest', fixture.id)));
     return Card(
       clipBehavior: Clip.antiAlias,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+      ),
       child: InkWell(
         onTap: () => context.push('/contest/${fixture.id}'),
         child: Padding(
