@@ -350,15 +350,21 @@ export function ConnectedSportScoring({ config }: { config: SportScoringConfig }
     }
 
     try {
-      const [scoreData, schemaData, rosterData, scorecardData] = await Promise.all([
+      const [scoreData, schemaData, rosterData] = await Promise.all([
         adminApi<LiveScore[]>(`/api/livescoring/contests/${contestId}/scores`),
         adminApi<ScoringSchema>(`/api/livescoring/contests/${contestId}/schema`),
         adminApi<ContestRoster[]>(`/api/livescoring/contests/${contestId}/rosters`),
-        adminApi<GolfScorecardReview[]>(
-          `/api/livescoring/contests/${contestId}/golf-scorecards`,
-        ),
       ]);
       if (requestId !== refreshRequestId.current) return;
+
+      let scorecardData: GolfScorecardReview[] = [];
+      if (schemaData.sportCode === 'golf') {
+        scorecardData = await adminApi<GolfScorecardReview[]>(
+          `/api/livescoring/contests/${contestId}/golf-scorecards`,
+        );
+        if (requestId !== refreshRequestId.current) return;
+      }
+
       setScores(scoreData);
       setSchema(schemaData);
       setRosters(rosterData);
@@ -374,17 +380,38 @@ export function ConnectedSportScoring({ config }: { config: SportScoringConfig }
           ? current
           : defaultSegment?.id ?? '',
       );
-      try {
-        const activeSession = await adminApi<ScoringSession>(
+      let activeSession: ScoringSession | null = null;
+      let sessionFailure: unknown = null;
+      for (let attempt = 0; attempt < 4; attempt += 1) {
+        try {
+          activeSession = await adminApi<ScoringSession>(
             `/api/livescoring/contests/${contestId}/session`,
           );
+          break;
+        } catch (reason) {
+          sessionFailure = reason;
+          if (attempt < 3) {
+            await new Promise((resolve) =>
+              window.setTimeout(resolve, 500 * (2 ** attempt)));
+          }
+        }
+      }
+
+      if (requestId !== refreshRequestId.current) return;
+      if (activeSession) {
         setSession(activeSession);
         if (activeSession.activeSegmentId) {
           setSegmentId(activeSession.activeSegmentId);
         }
         setClockSeconds(activeSession.currentClockSeconds ?? 0);
-      } catch {
-        setSession(null);
+      } else {
+        // A transient session refresh failure must not erase a session that the
+        // scorer already knows is active. Doing so disables every scoring action
+        // until a later refresh happens to succeed.
+        setSession((current) => current);
+        setError(sessionFailure instanceof Error
+          ? `Unable to refresh scoring session: ${sessionFailure.message}`
+          : 'Unable to refresh scoring session.');
       }
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Unable to load scoring data.');

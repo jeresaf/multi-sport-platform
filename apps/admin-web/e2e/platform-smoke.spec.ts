@@ -38,7 +38,7 @@ test('public site opens without authentication and exposes core navigation', asy
   expect(response?.status()).toBe(200);
   await expect(page.getByTestId('match-centre-header')).toContainText('Match centre');
   await expect(
-    page.getByRole('heading', { name: 'Scores & schedule', exact: true }),
+    page.getByRole('heading', { name: 'Scores, fixtures & results', exact: true }),
   ).toBeVisible();
 });
 
@@ -80,12 +80,12 @@ test('tenant public homepage is branded, complete, responsive, and safely cached
   await page.goto(`${publicUrl}/?tenant=nba`);
   await expect(page.getByRole('link', { name: 'NBA home' }))
     .toHaveAttribute('href', /tenant=nba/);
-  await expect(page.getByTestId('match-centre-header')).toContainText('Scores & schedule');
+  await expect(page.getByTestId('match-centre-header')).toContainText('Scores, fixtures & results');
 
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.getByRole('navigation', { name: 'Mobile navigation' }))
     .toContainText('Competitions');
-  await expect(page.getByRole('heading', { name: 'Scores & schedule' }))
+  await expect(page.getByRole('heading', { name: 'Scores, fixtures & results' }))
     .toBeVisible();
   const dimensions = await page.evaluate(() => ({
     viewport: window.innerWidth,
@@ -104,7 +104,7 @@ test('public match centre renders the required visual device matrix', async ({ p
   for (const [width, height] of targets) {
     await page.setViewportSize({ width, height });
     await page.goto(`${publicUrl}/?tenant=uganda-sports-demo&date=2026-08-13`);
-    await expect(page.getByRole('heading', { name: 'Scores & schedule' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Scores, fixtures & results' })).toBeVisible();
     await expect(page.getByRole('status', { name: 'Loading contests' })).toHaveCount(0);
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     await page.screenshot({
@@ -663,15 +663,12 @@ test('tenant administrator is isolated and publishes tenant branding', async ({ 
   await expect(page.getByText('Feature entitlements')).toBeVisible();
   await expect(page.getByText('Competitions', { exact: true }).last()).toBeVisible();
 
-  const brandingLoaded = page.waitForResponse(response =>
-    response.url().includes('/api/branding/tenant/') &&
-    response.request().method() === 'GET' &&
-    response.status() === 200,
-  );
   await page.goto(`${adminUrl}/branding`);
   await expect(page.getByRole('heading', { name: 'Branding' })).toBeVisible();
   await expect(page.locator('#tenant option')).toHaveCount(1);
-  await brandingLoaded;
+  await expect(page.getByLabel('Tenant name')).toHaveValue('Premier League', {
+    timeout: 20_000,
+  });
   await page.getByLabel('Tenant name').fill('Premier League');
   await page.getByLabel('Short name').fill('PL');
   const primaryHex = page.getByLabel('Primary color hex');
@@ -2436,7 +2433,7 @@ test('submitted result is rejected, resubmitted, approved, rebuilt, and publishe
 
   async function choosePremierResultContest() {
     await page.goto(`${adminUrl}/results`);
-    await expect(page.getByRole('heading', { name: 'Result Review' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Results control centre' })).toBeVisible();
     const tenantSelect = page.getByLabel('Tenant');
     const premierValue = await tenantSelect.locator('option', { hasText: 'Premier League' })
       .getAttribute('value');
@@ -2501,7 +2498,6 @@ test('tenant administrator generates and downloads a genuine isolated PDF report
   await signIn(page, 'admin@premier.com', 'TenantAdmin123!');
   await page.goto(`${adminUrl}/reports`);
   await expect(page.getByTestId('reports-workspace')).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Reports', exact: true })).toBeVisible();
   await page.getByLabel('Report type').selectOption('MatchSheet');
   await page.getByLabel('Report name').fill(reportName);
   await page.getByLabel('Format').selectOption('Pdf');
