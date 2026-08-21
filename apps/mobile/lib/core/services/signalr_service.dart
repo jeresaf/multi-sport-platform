@@ -543,7 +543,8 @@ class ContestEvent {
   factory ContestEvent.fromJson(Map<String, dynamic> json) => ContestEvent(
         eventId: json['id']?.toString() ?? json['eventId']?.toString() ?? '',
         contestId: json['contestId']?.toString() ?? '',
-        eventType: json['type']?.toString() ?? json['eventType']?.toString() ?? '',
+        eventType:
+            json['type']?.toString() ?? json['eventType']?.toString() ?? '',
         participantId: json['primaryParticipantId']?.toString() ??
             json['participantId']?.toString(),
         secondaryParticipantId: json['secondaryParticipantId']?.toString(),
@@ -573,7 +574,8 @@ class ContestEvent {
           if (json.containsKey('shootoutAwayScoreAfter'))
             'shootoutAwayScoreAfter': json['shootoutAwayScoreAfter'],
         },
-        timestamp: _dateTime(json['occurredAt'] ?? json['timestamp'] ?? json['scoredAt']),
+        timestamp: _dateTime(
+            json['occurredAt'] ?? json['timestamp'] ?? json['scoredAt']),
         clientId: json['clientId']?.toString(),
       );
 }
