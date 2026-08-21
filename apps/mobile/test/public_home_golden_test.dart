@@ -47,7 +47,7 @@ void main() {
 
       await expectLater(
         find.byKey(_goldenBoundaryKey),
-        matchesGoldenFile('goldens/public_home_${target.name}.png'),
+        matchesGoldenFile(_goldenPath('public_home_${target.name}.png')),
       );
     });
   }
@@ -61,7 +61,7 @@ void main() {
 
     await expectLater(
       find.byKey(_goldenBoundaryKey),
-      matchesGoldenFile('goldens/public_home_empty.png'),
+      matchesGoldenFile(_goldenPath('public_home_empty.png')),
     );
   });
 
@@ -74,12 +74,23 @@ void main() {
 
     await expectLater(
       find.byKey(_goldenBoundaryKey),
-      matchesGoldenFile('goldens/public_home_error.png'),
+      matchesGoldenFile(_goldenPath('public_home_error.png')),
     );
   });
 }
 
 const _goldenBoundaryKey = Key('public-home-golden-boundary');
+
+String _goldenPath(String fileName) {
+  final platform = Platform.isLinux
+      ? 'linux'
+      : Platform.isWindows
+          ? 'windows'
+          : Platform.isMacOS
+              ? 'macos'
+              : 'other';
+  return 'goldens/$platform/$fileName';
+}
 
 Future<void> _pumpPublicHome(
   WidgetTester tester, {
