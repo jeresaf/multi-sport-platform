@@ -23,6 +23,7 @@ import {
   Medal,
   Upload,
   Bell,
+  X,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { cn } from '@/components/ui/card';
@@ -102,7 +103,7 @@ const navigation: NavigationItem[] = [
   { name: 'Privacy', href: '/privacy', icon: ShieldCheck, permissions: ['privacy.read', 'privacy.manage'] },
 ];
 
-export function Sidebar() {
+export function Sidebar({ mobile = false, onNavigate }: { mobile?: boolean; onNavigate?: () => void }) {
   const pathname = usePathname();
   const router = useRouter();
   const [expandedItems, setExpandedItems] = useState<string[]>(['Tenants', 'Competitions', 'Live Scoring']);
@@ -134,7 +135,11 @@ export function Sidebar() {
     }));
 
   return (
-    <aside className="hidden w-64 shrink-0 flex-col bg-gray-900 text-white md:flex">
+    <aside
+      id={mobile ? 'admin-mobile-navigation' : undefined}
+      aria-label="Administration navigation"
+      className={`${mobile ? 'flex h-full w-72' : 'hidden w-64 md:flex'} shrink-0 flex-col bg-gray-900 text-white`}
+    >
       <div className="p-4 border-b border-gray-800">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
@@ -144,6 +149,7 @@ export function Sidebar() {
             <h1 className="truncate font-bold text-lg">{branding?.shortName || branding?.tenantName || 'Sports Platform'}</h1>
             <p className="text-xs text-gray-400">Admin Console</p>
           </div>
+          {mobile && <button type="button" onClick={onNavigate} className="ml-auto rounded-md p-2 hover:bg-gray-800" aria-label="Close administration navigation"><X className="h-5 w-5" /></button>}
         </div>
       </div>
 
@@ -175,6 +181,7 @@ export function Sidebar() {
                       <Link
                         key={child.name}
                         href={child.href}
+                        onClick={onNavigate}
                         className={cn(
                           'block px-4 py-2 text-sm hover:bg-gray-800 rounded-md transition-colors',
                           pathname === child.href && 'text-primary bg-gray-800'
@@ -189,6 +196,7 @@ export function Sidebar() {
             ) : (
               <Link
                 href={item.href}
+                onClick={onNavigate}
                 className={cn(
                   'flex items-center gap-3 px-4 py-2 text-sm hover:bg-gray-800 transition-colors',
                   pathname === item.href && 'bg-gray-800 text-primary'
@@ -217,6 +225,7 @@ export function Sidebar() {
             title={signedIn ? 'Sign out' : 'Sign in'}
             onClick={() => {
               if (signedIn) logout();
+              onNavigate?.();
               router.push('/login');
             }}
             className="rounded-md p-2 hover:bg-gray-800"

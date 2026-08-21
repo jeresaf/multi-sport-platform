@@ -1218,6 +1218,17 @@ public sealed class PublicController : ControllerBase
                 ContestStatus.Corrected => ResultStatus.Corrected,
                 _ => ResultStatus.None
             };
+        var sportCode = competitionContext?.SportCode ?? await _db.Sports
+            .AsNoTracking()
+            .Where(sport => sport.Id == contest.SportId)
+            .Select(sport => sport.Code)
+            .FirstOrDefaultAsync(cancellationToken);
+        var availableTabs = ContestAvailableTabs(
+            sportCode,
+            contest.Events.Count > 0 || liveScores.Count > 0,
+            eventStatistics.Length > 0 || liveScores.Count > 0,
+            contest.Segments.Count > 0 || !string.IsNullOrWhiteSpace(contest.Venue)
+                || contest.StartTime.HasValue);
 
         return Ok(new
         {
@@ -1226,7 +1237,9 @@ public sealed class PublicController : ControllerBase
             contest.SportId,
             CompetitionId = competitionContext?.CompetitionId,
             CompetitionName = competitionContext?.CompetitionName,
-            SportCode = competitionContext?.SportCode,
+            SportCode = sportCode,
+            AvailableTabs = availableTabs,
+            TabLabels = ContestTabLabels(sportCode),
             contest.ContestShape,
             Renderer = PublicContestRenderer(
                 contest.SportId,
@@ -1324,6 +1337,43 @@ public sealed class PublicController : ControllerBase
             LiveScores = liveScores
         });
     }
+
+    private static string[] ContestAvailableTabs(
+        string? sportCode,
+        bool hasTimeline,
+        bool hasStatistics,
+        bool hasDetails)
+    {
+        var tabs = new List<string> { "overview" };
+        var flagshipTimeline = NormalizePublicCode(sportCode) is
+            "FOOTBALL" or "BASKETBALL" or "RUGBY" or "RUGBY_7S" or "RUGBY_15S" or "CRICKET";
+        if (flagshipTimeline || hasTimeline) tabs.Add("timeline");
+        if (hasStatistics) tabs.Add("statistics");
+        if (hasDetails) tabs.Add("details");
+        return tabs.ToArray();
+    }
+
+    private static IReadOnlyDictionary<string, string> ContestTabLabels(string? sportCode)
+    {
+        var code = NormalizePublicCode(sportCode);
+        return new Dictionary<string, string>
+        {
+            ["overview"] = code == "CRICKET" ? "Scorecard" : "Overview",
+            ["timeline"] = code switch
+            {
+                "BASKETBALL" => "Plays",
+                "CRICKET" => "Commentary",
+                _ => "Timeline"
+            },
+            ["statistics"] = code == "BASKETBALL" ? "Team stats" : "Statistics",
+            ["details"] = "Match details"
+        };
+    }
+
+    private static string NormalizePublicCode(string? value) => string.IsNullOrWhiteSpace(value)
+        ? string.Empty
+        : string.Join('_', value.Trim().ToUpperInvariant()
+            .Split([' ', '-', '_'], StringSplitOptions.RemoveEmptyEntries));
 
     [HttpGet("participants/{id:guid}")]
     public async Task<IActionResult> GetParticipant(string slug, Guid id, CancellationToken cancellationToken)

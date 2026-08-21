@@ -547,6 +547,16 @@ public class Contest : TenantAggregateRoot<Guid>
 
     public void Suspend() => TransitionTo(ContestStatus.Suspended);
 
+    public void Postpone(string reason)
+    {
+        if (Status is not (ContestStatus.Scheduled or ContestStatus.CheckInOpen or ContestStatus.Ready))
+            throw new InvalidOperationException("Only an unstarted contest can be postponed.");
+        CanonicalStatus = CanonicalContestStatus.Postponed;
+        StatusReason = string.IsNullOrWhiteSpace(reason) ? "Postponed" : reason.Trim();
+        CanonicalStatusChangedAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
     public void Complete()
     {
         if (Status == ContestStatus.Completed) return;

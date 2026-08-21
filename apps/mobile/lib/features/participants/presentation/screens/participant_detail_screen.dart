@@ -27,25 +27,31 @@ class ParticipantDetailScreen extends ConsumerWidget {
             .watch(supporterPreferencesProvider)
             .isFavourite('participant', participantId);
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile'), actions: [
-        if (favourite != null)
-          IconButton(
-            tooltip: saved ? 'Remove from favourites' : 'Add to favourites',
-            onPressed: () => ref
-                .read(supporterPreferencesProvider.notifier)
-                .toggleFavourite(favourite),
-            icon: Icon(saved ? Icons.favorite : Icons.favorite_border),
-          ),
-        IconButton(
-            icon: const Icon(Icons.share),
-            tooltip: 'Share participant',
-            onPressed: participant == null
-                ? null
-                : () => supporterShareService.share(
-                    title: participant.name,
-                    description: participant.type,
-                    path: '/participant/${participant.id}')),
-      ]),
+      appBar: AppBar(
+          title: Text(participant == null
+              ? 'Participant'
+              : participant.type == 'team'
+                  ? 'Team profile'
+                  : 'Athlete profile'),
+          actions: [
+            if (favourite != null)
+              IconButton(
+                tooltip: saved ? 'Remove from favourites' : 'Add to favourites',
+                onPressed: () => ref
+                    .read(supporterPreferencesProvider.notifier)
+                    .toggleFavourite(favourite),
+                icon: Icon(saved ? Icons.favorite : Icons.favorite_border),
+              ),
+            IconButton(
+                icon: const Icon(Icons.share),
+                tooltip: 'Share participant',
+                onPressed: participant == null
+                    ? null
+                    : () => supporterShareService.share(
+                        title: participant.name,
+                        description: participant.type,
+                        path: '/participant/${participant.id}')),
+          ]),
       body: state.isLoading
           ? const Center(child: CircularProgressIndicator())
           : state.error != null
@@ -53,7 +59,10 @@ class ParticipantDetailScreen extends ConsumerWidget {
                   child: Padding(
                       padding: const EdgeInsets.all(24),
                       child: Column(mainAxisSize: MainAxisSize.min, children: [
-                        Text(state.error!),
+                        Text(
+                          state.error!.replaceFirst('Bad state: ', ''),
+                          textAlign: TextAlign.center,
+                        ),
                         const SizedBox(height: 12),
                         FilledButton(
                             onPressed: () => ref

@@ -1,6 +1,35 @@
 # UI cleanup implementation status
 
-Source of truth: `../docs/sports-platform-ui-codex-task-list.md`.
+Current source of truth: `../../docs/full-sports-platform-ui-codex-spec.md`.
+
+The earlier `../../docs/sports-platform-ui-codex-task-list.md` remains historical evidence
+for the first cleanup programme; completion against that smaller checklist does not
+mean the full UI specification is complete.
+
+## Full specification gap closure — 2026-08-21
+
+- Public web now has a real `/login` handoff instead of a 404. It keeps public browsing
+  available and derives the admin origin from the current LAN hostname on port 3000
+  unless `NEXT_PUBLIC_ADMIN_URL` is configured.
+- Admin mobile now has a permission-filtered navigation drawer with backdrop, close,
+  route navigation, and Escape handling.
+- Header competition search now applies its query on the competition list; notification
+  and help controls navigate or expose useful actions instead of being inert.
+- Focused Docker Playwright coverage verifies the public sign-in handoff and the admin
+  mobile drawer/search/notification/help journey.
+- Contest detail responses now publish backend-driven capability tabs and sport-aware
+  labels; public web and mobile consume them with a legacy-contract fallback.
+- Basketball now has a canonical play-by-play catalogue with legacy scorer aliases.
+  Timeline scoring applies the canonical 1/2/3-point effects, exposes metadata
+  `playId`/`play_id`, and the web/mobile renderers group related scoring and assist
+  events with period, clock, actor, score-after, and correction state.
+- Rugby 7s/15s now shares a canonical event catalogue with legacy scorer aliases. The
+  public timeline derives the variant from the contest's assigned ruleset, applies
+  correct 5/7/2/3-point score effects, and publishes `RUGBY_7` or `RUGBY_15`.
+- Web and mobile now render rugby scoring, scorer/team, score-after, variant, period,
+  cards and sin bins, substitutions, corrections, and TMO review state.
+- Next full-spec slice: complete Cricket timeline/commentary presentation and add
+  large-timeline incremental loading.
 
 ## Implemented in the first UI cleanup slice
 

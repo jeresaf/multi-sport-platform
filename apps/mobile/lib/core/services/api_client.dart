@@ -4,11 +4,12 @@ import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:uuid/uuid.dart';
 import '../config/app_config.dart';
+import 'recovering_secure_storage.dart';
 
 /// API client for making HTTP requests
 class ApiClient {
   late final Dio _dio;
-  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
+  final FlutterSecureStorage _secureStorage = appSecureStorage;
 
   static const String _accessTokenKey = 'access_token';
   static const String _refreshTokenKey = 'refresh_token';
@@ -38,7 +39,9 @@ class ApiClient {
         }
 
         // Add tenant header if available
-        final tenantId = await _secureStorage.read(key: 'selected_tenant_id');
+        final tenantId = await _secureStorage.readRecovering(
+          key: 'selected_tenant_id',
+        );
         if (tenantId != null) {
           options.headers['X-Tenant-Id'] = tenantId;
         }
@@ -184,28 +187,28 @@ class ApiClient {
 
   /// Get access token
   Future<String?> getAccessToken() async {
-    return _secureStorage.read(key: _accessTokenKey);
+    return _secureStorage.readRecovering(key: _accessTokenKey);
   }
 
   /// Set access token
   Future<void> setAccessToken(String token) async {
-    await _secureStorage.write(key: _accessTokenKey, value: token);
+    await _secureStorage.writeRecovering(key: _accessTokenKey, value: token);
   }
 
   /// Get refresh token
   Future<String?> getRefreshToken() async {
-    return _secureStorage.read(key: _refreshTokenKey);
+    return _secureStorage.readRecovering(key: _refreshTokenKey);
   }
 
   /// Set refresh token
   Future<void> setRefreshToken(String token) async {
-    await _secureStorage.write(key: _refreshTokenKey, value: token);
+    await _secureStorage.writeRecovering(key: _refreshTokenKey, value: token);
   }
 
   /// Clear tokens
   Future<void> clearTokens() async {
-    await _secureStorage.delete(key: _accessTokenKey);
-    await _secureStorage.delete(key: _refreshTokenKey);
+    await _secureStorage.deleteRecovering(key: _accessTokenKey);
+    await _secureStorage.deleteRecovering(key: _refreshTokenKey);
   }
 
   /// Refresh access token
@@ -237,10 +240,10 @@ class ApiClient {
   }
 
   Future<String> _getOrCreateDeviceId() async {
-    final existing = await _secureStorage.read(key: _deviceIdKey);
+    final existing = await _secureStorage.readRecovering(key: _deviceIdKey);
     if (existing != null && existing.isNotEmpty) return existing;
     final created = const Uuid().v4();
-    await _secureStorage.write(key: _deviceIdKey, value: created);
+    await _secureStorage.writeRecovering(key: _deviceIdKey, value: created);
     return created;
   }
 

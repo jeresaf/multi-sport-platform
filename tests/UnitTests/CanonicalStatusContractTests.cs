@@ -89,4 +89,35 @@ public sealed class CanonicalStatusContractTests
             },
             options => options.ExcludingMissingMembers());
     }
+
+    [Fact]
+    public void ScheduledContest_CanBePostponedWithoutPretendingItWasCancelled()
+    {
+        var contest = new Contest(
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            "HeadToHead");
+        contest.Schedule("Test Arena", DateTime.UtcNow.AddDays(2), 90);
+
+        contest.Postpone("Venue unavailable");
+
+        contest.Status.Should().Be(ContestStatus.Scheduled);
+        contest.CanonicalStatus.Should().Be(CanonicalContestStatus.Postponed);
+        contest.StatusReason.Should().Be("Venue unavailable");
+    }
+
+    [Fact]
+    public void DraftContest_CannotBePostponed()
+    {
+        var contest = new Contest(
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            "HeadToHead");
+
+        var action = () => contest.Postpone("Venue unavailable");
+
+        action.Should().Throw<InvalidOperationException>();
+    }
 }

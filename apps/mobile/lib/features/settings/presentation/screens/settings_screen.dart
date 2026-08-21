@@ -37,7 +37,9 @@ class SettingsScreen extends ConsumerWidget {
             title: const Text('Profile'),
             subtitle: Text(auth.email ?? 'Not signed in'),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () => context.go(Routes.profile),
+            onTap: () => context.go(
+              auth.isAuthenticated ? Routes.profile : Routes.login,
+            ),
           ),
           const Divider(),
 
@@ -176,7 +178,7 @@ class SettingsScreen extends ConsumerWidget {
           ListTile(
             leading: const Icon(Icons.info_outline),
             title: const Text('About'),
-            subtitle: const Text('Version 1.0.0'),
+            subtitle: const Text('Version 1.0.1'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
               _showAboutDialog(context);

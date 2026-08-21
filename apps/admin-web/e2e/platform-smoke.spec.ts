@@ -40,6 +40,35 @@ test('public site opens without authentication and exposes core navigation', asy
   await expect(
     page.getByRole('heading', { name: 'Scores, fixtures & results', exact: true }),
   ).toBeVisible();
+
+  await page.getByRole('link', { name: 'Log in' }).click();
+  await expect(page.getByRole('heading', { name: 'Sign in to manage or score' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Continue to sign in' }))
+    .toHaveAttribute('href', `${new URL(adminUrl).origin}/login`);
+});
+
+test('admin mobile drawer and header actions are operational', async ({ page }) => {
+  await signIn(page, 'admin@sportsplatform.com', 'Admin123!');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(adminUrl);
+
+  await page.getByRole('button', { name: 'Open administration navigation' }).click();
+  const navigation = page.getByRole('complementary', { name: 'Administration navigation' });
+  await expect(navigation).toBeVisible();
+  await navigation.getByRole('link', { name: 'All Competitions' }).click();
+  await expect(page).toHaveURL(`${adminUrl}/competitions`);
+  await expect(navigation).toHaveCount(0);
+
+  const globalSearch = page.locator('header').getByLabel('Search competitions');
+  await globalSearch.fill('Premier');
+  await globalSearch.press('Enter');
+  await expect(page).toHaveURL(`${adminUrl}/competitions?search=Premier`);
+  await expect(page.locator('main').getByPlaceholder('Search competitions')).toHaveValue('Premier');
+
+  await page.getByRole('link', { name: 'Open notifications' }).click();
+  await expect(page).toHaveURL(`${adminUrl}/notifications`);
+  await page.getByRole('button', { name: 'Open help' }).click();
+  await expect(page.getByText('Need help?')).toBeVisible();
 });
 
 test('rugby flagship page presents distinct Sevens rules and completed tournament', async ({ page }) => {

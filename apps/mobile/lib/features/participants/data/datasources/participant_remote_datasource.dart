@@ -43,13 +43,21 @@ class ParticipantRemoteDataSource {
 
   /// Get participant by ID
   Future<Map<String, dynamic>?> getParticipant(String id) async {
+    final publicPath =
+        '/api/public/tenants/${Environment.tenantSlug}/participants/$id';
     try {
-      final path = await _apiClient.isAuthenticated()
-          ? '/api/participants/$id'
-          : '/api/public/tenants/${Environment.tenantSlug}/participants/$id';
-      final response = await _apiClient.get(path);
+      // A participant opened from a public contest remains a public resource,
+      // even when an administrator happens to be signed in. This also avoids
+      // applying an unrelated account tenant to a supporter link.
+      final response = await _apiClient.get(publicPath);
       return response.data as Map<String, dynamic>?;
-    } catch (e) {
+    } catch (_) {
+      if (!await _apiClient.isAuthenticated()) return null;
+    }
+    try {
+      final response = await _apiClient.get('/api/participants/$id');
+      return response.data as Map<String, dynamic>?;
+    } catch (_) {
       return null;
     }
   }

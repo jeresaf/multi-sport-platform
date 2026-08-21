@@ -1,10 +1,17 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sports_platform_mobile/core/formatters/public_date_time.dart';
+import 'package:sports_platform_mobile/core/services/recovering_secure_storage.dart';
 import 'package:sports_platform_mobile/core/widgets/contest_status_label.dart';
 import 'package:sports_platform_mobile/features/competitions/data/repositories/competition_repository_impl.dart';
 import 'package:sports_platform_mobile/features/contests/data/repositories/contest_repository_impl.dart';
 
 void main() {
+  test('secure storage reset response is never accepted as a credential', () {
+    expect(normalizeSecureStorageValue('Data has been reset'), isNull);
+    expect(normalizeSecureStorageValue('valid-token'), 'valid-token');
+    expect(normalizeSecureStorageValue(null), isNull);
+  });
+
   test('competition summary parses authoritative count and format fields', () {
     final competition = Competition.fromJson({
       'id': 'competition-1',
@@ -47,6 +54,8 @@ void main() {
       'sportId': '00000000-0000-0000-0000-000000000106',
       'sportCode': 'RUGBY',
       'competitionId': 'competition-1',
+      'availableTabs': ['overview', 'timeline', 'statistics'],
+      'tabLabels': {'timeline': 'Play-by-play'},
       'status': 'Completed',
       'startTime': '2026-08-12T14:30:00Z',
       'participants': [
@@ -78,7 +87,48 @@ void main() {
     expect(contest.homeScoreDisplay, '24');
     expect(contest.awayScoreDisplay, '19');
     expect(contest.scheduledAt, isNotNull);
+    expect(contest.availableTabs, ['overview', 'timeline', 'statistics']);
+    expect(contest.tabLabels['timeline'], 'Play-by-play');
     expect(contest.metadata?['stats'], isA<Map<String, dynamic>>());
+  });
+
+  test('timeline event preserves basketball play grouping fields', () {
+    final event = ContestEvent.fromJson({
+      'id': 'event-1',
+      'contestId': 'contest-1',
+      'type': 'THREE_POINT_MADE',
+      'sportCode': 'BASKETBALL',
+      'period': 'Q3',
+      'clock': '04:12',
+      'playId': 'play-42',
+      'homeScoreAfter': 67,
+      'awayScoreAfter': 62,
+      'occurredAt': '2026-08-12T14:30:00Z',
+    });
+
+    expect(event.data?['playId'], 'play-42');
+    expect(event.data?['period'], 'Q3');
+    expect(event.data?['clock'], '04:12');
+    expect(event.data?['homeScoreAfter'], 67);
+  });
+
+  test('timeline event preserves the authoritative rugby variant', () {
+    final event = ContestEvent.fromJson({
+      'id': 'event-rugby-1',
+      'contestId': 'contest-rugby-1',
+      'type': 'TRY',
+      'sportCode': 'RUGBY',
+      'sportVariant': 'RUGBY_7',
+      'period': 'Second Half',
+      'clock': '11:22',
+      'homeScoreAfter': 24,
+      'awayScoreAfter': 19,
+      'occurredAt': '2026-08-12T14:30:00Z',
+    });
+
+    expect(event.data?['sportVariant'], 'RUGBY_7');
+    expect(event.data?['period'], 'Second Half');
+    expect(event.data?['homeScoreAfter'], 24);
   });
 
   test('canonical and legacy contest statuses share stable presentation', () {

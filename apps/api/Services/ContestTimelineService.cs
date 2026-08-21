@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using SportsPlatform.Infrastructure.Persistence;
 using SportsPlatform.Modules.Contests.Entities;
@@ -31,6 +32,17 @@ public sealed class ContestTimelineService(SportsPlatformDbContext database)
             .Where(item => item.Id == contest.SportId)
             .Select(item => item.Code)
             .SingleOrDefaultAsync(cancellationToken) ?? "UNKNOWN";
+        var rugbyVariant = RugbyVariantForCode(sportCode);
+        if (IsRugby(sportCode) && contest.RulesetVersionId.HasValue)
+        {
+            var validation = await database.Sports.AsNoTracking()
+                .SelectMany(item => item.Versions)
+                .Where(item => item.Id == contest.RulesetVersionId.Value)
+                .Select(item => item.ValidationConfiguration)
+                .SingleOrDefaultAsync(cancellationToken);
+            rugbyVariant = RugbyVariants.FromValidationConfiguration(validation)
+                ?? rugbyVariant;
+        }
         var liveScores = await database.LiveScores.AsNoTracking()
             .Where(item => item.ContestId == contestId)
             .ToArrayAsync(cancellationToken);
@@ -76,6 +88,7 @@ public sealed class ContestTimelineService(SportsPlatformDbContext database)
                 score.SegmentId.HasValue
                     ? segmentNames.GetValueOrDefault(score.SegmentId.Value)
                     : null,
+                PlayId(score.Metadata),
                 score.ClockSeconds,
                 score.Value,
                 score.DisplayValue,
@@ -104,6 +117,7 @@ public sealed class ContestTimelineService(SportsPlatformDbContext database)
                 item.SegmentId.HasValue
                     ? segmentNames.GetValueOrDefault(item.SegmentId.Value)
                     : null,
+                null,
                 null,
                 Decimal(item.MetricValue),
                 item.MetricValue,
@@ -139,7 +153,13 @@ public sealed class ContestTimelineService(SportsPlatformDbContext database)
                 var football = Normalize(sportCode) == "FOOTBALL"
                     ? FootballTimelinePackage.Find(item.EventType)
                     : null;
-                var effect = football?.ScoreEffect
+                var basketball = Normalize(sportCode) == "BASKETBALL"
+                    ? BasketballTimelinePackage.Find(item.EventType)
+                    : null;
+                var rugby = IsRugby(sportCode)
+                    ? RugbyTimelinePackage.Find(item.EventType, rugbyVariant)
+                    : null;
+                var effect = football?.ScoreEffect ?? basketball?.ScoreEffect ?? rugby?.ScoreEffect
                     ?? (item.MetricName?.Equals("score", StringComparison.OrdinalIgnoreCase) == true
                         ? "REGULATION"
                         : item.MetricName?.Equals("shootout_score", StringComparison.OrdinalIgnoreCase) == true
@@ -189,8 +209,9 @@ public sealed class ContestTimelineService(SportsPlatformDbContext database)
             item.Category,
             Normalize(item.EventType),
             sportCode.ToUpperInvariant(),
-            SportVariant(sportCode, contest.ContestShape),
+            SportVariant(sportCode, rugbyVariant),
             item.Period,
+            item.PlayId,
             item.ClockSeconds.HasValue ? Clock(item.ClockSeconds.Value) : null,
             item.PrimaryParticipantId == Guid.Empty ? null : item.PrimaryParticipantId,
             item.PrimaryParticipantId == Guid.Empty
@@ -257,6 +278,12 @@ public sealed class ContestTimelineService(SportsPlatformDbContext database)
         if (Normalize(sportCode) == "FOOTBALL"
             && FootballTimelinePackage.Find(eventType) is { } football)
             return football.Category;
+        if (Normalize(sportCode) == "BASKETBALL"
+            && BasketballTimelinePackage.Find(eventType) is { } basketball)
+            return basketball.Category;
+        if (IsRugby(sportCode)
+            && RugbyTimelinePackage.Find(eventType, RugbyVariantForCode(sportCode)) is { } rugby)
+            return rugby.Category;
         var value = Normalize($"{eventType}_{metricName}");
         if (Has(value, "PERIOD", "HALF", "QUARTER", "INNINGS", "OVER_START", "OVER_END")) return "PERIOD";
         if (Has(value, "CARD", "FOUL", "SIN_BIN", "EJECTION", "DISCIPLINE")) return "DISCIPLINE";
@@ -274,12 +301,22 @@ public sealed class ContestTimelineService(SportsPlatformDbContext database)
         if (Normalize(sportCode) == "FOOTBALL"
             && FootballTimelinePackage.Find(eventType) is { } football)
             return football.Importance;
+        if (Normalize(sportCode) == "BASKETBALL"
+            && BasketballTimelinePackage.Find(eventType) is { } basketball)
+            return basketball.Importance;
+        if (IsRugby(sportCode)
+            && RugbyTimelinePackage.Find(eventType, RugbyVariantForCode(sportCode)) is { } rugby)
+            return rugby.Importance;
         var category = CategoryFor(sportCode, eventType, metricName);
         return category is "SCORING" or "DISCIPLINE" or "REVIEW" or "STOPPAGE" ? "KEY" : "STANDARD";
     }
 
     private static string CanonicalType(string sportCode, string eventType)
     {
+        if (Normalize(sportCode) == "BASKETBALL")
+            return BasketballTimelinePackage.CanonicalType(eventType);
+        if (IsRugby(sportCode))
+            return RugbyTimelinePackage.CanonicalType(eventType);
         if (Normalize(sportCode) != "FOOTBALL") return eventType;
         return Normalize(eventType) switch
         {
@@ -300,6 +337,28 @@ public sealed class ContestTimelineService(SportsPlatformDbContext database)
             ? parsed
             : null;
 
+    private static string? PlayId(string? metadata)
+    {
+        if (string.IsNullOrWhiteSpace(metadata)) return null;
+        try
+        {
+            using var document = JsonDocument.Parse(metadata);
+            var root = document.RootElement;
+            foreach (var name in new[] { "playId", "play_id" })
+            {
+                if (root.TryGetProperty(name, out var property)
+                    && property.ValueKind == JsonValueKind.String
+                    && !string.IsNullOrWhiteSpace(property.GetString()))
+                    return property.GetString();
+            }
+        }
+        catch (JsonException)
+        {
+            // Metadata predates structured play grouping.
+        }
+        return null;
+    }
+
     private static string Normalize(string? value) => string.IsNullOrWhiteSpace(value)
         ? string.Empty
         : string.Join('_', value.Trim().ToUpperInvariant()
@@ -311,13 +370,19 @@ public sealed class ContestTimelineService(SportsPlatformDbContext database)
         return $"{total / 60:00}:{total % 60:00}";
     }
 
-    private static string? SportVariant(string sportCode, string contestShape)
+    private static bool IsRugby(string sportCode) =>
+        Normalize(sportCode) is "RUGBY" or "RUGBY_7" or "RUGBY_7S" or "RUGBY_15" or "RUGBY_15S";
+
+    private static string RugbyVariantForCode(string sportCode) => Normalize(sportCode) switch
     {
-        var value = Normalize($"{sportCode}_{contestShape}");
-        if (!value.Contains("RUGBY", StringComparison.Ordinal)) return null;
-        return value.Contains("SEVEN", StringComparison.Ordinal) || value.Contains("7", StringComparison.Ordinal)
-            ? "RUGBY_7S"
-            : "RUGBY_15S";
+        "RUGBY_7" or "RUGBY_7S" => RugbyVariants.Sevens,
+        _ => RugbyVariants.Fifteens
+    };
+
+    private static string? SportVariant(string sportCode, string rugbyVariant)
+    {
+        if (!IsRugby(sportCode)) return null;
+        return rugbyVariant == RugbyVariants.Sevens ? "RUGBY_7" : "RUGBY_15";
     }
 
     private static TimelineCoverage CoverageFor(string sportCode) => new(
@@ -340,6 +405,7 @@ public sealed class ContestTimelineService(SportsPlatformDbContext database)
         Guid? SecondaryPlayerId,
         Guid? SegmentId,
         string? Period,
+        string? PlayId,
         decimal? ClockSeconds,
         decimal? Value,
         string? DisplayValue,
@@ -382,6 +448,7 @@ public sealed record ContestTimelineEvent(
     string SportCode,
     string? SportVariant,
     string? Period,
+    string? PlayId,
     string? Clock,
     Guid? PrimaryParticipantId,
     string? PrimaryParticipantName,

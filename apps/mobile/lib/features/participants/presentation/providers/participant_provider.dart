@@ -136,7 +136,11 @@ class ParticipantNotifier extends StateNotifier<ParticipantState> {
 
     try {
       final data = await _remote.getParticipant(participantId);
-      if (data == null) throw StateError('Participant is unavailable');
+      if (data == null) {
+        throw StateError(
+          'This participant is not available in the selected organisation.',
+        );
+      }
       final participant = Participant.fromJson(data);
 
       state = ParticipantState(

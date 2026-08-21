@@ -1,6 +1,7 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:convert';
 import 'package:uuid/uuid.dart';
+import '../../../../core/services/recovering_secure_storage.dart';
 
 /// User model for authentication
 class User {
@@ -58,49 +59,50 @@ class AuthLocalDataSource {
   static const String _deviceIdKey = 'identity_device_id';
 
   AuthLocalDataSource({FlutterSecureStorage? secureStorage})
-      : _secureStorage = secureStorage ?? const FlutterSecureStorage();
+      : _secureStorage = secureStorage ?? appSecureStorage;
 
   /// Save user data
   Future<void> saveUser(User user) async {
-    await _secureStorage.write(key: _userKey, value: jsonEncode(user.toJson()));
+    await _secureStorage.writeRecovering(
+        key: _userKey, value: jsonEncode(user.toJson()));
   }
 
   /// Get user data
   Future<User?> getUser() async {
-    final data = await _secureStorage.read(key: _userKey);
+    final data = await _secureStorage.readRecovering(key: _userKey);
     if (data == null) return null;
     return User.fromJson(jsonDecode(data));
   }
 
   /// Save access token
   Future<void> saveAccessToken(String token) async {
-    await _secureStorage.write(key: _tokenKey, value: token);
+    await _secureStorage.writeRecovering(key: _tokenKey, value: token);
     // Set expiry to 1 hour from now
     final expiry =
         DateTime.now().add(const Duration(hours: 1)).toIso8601String();
-    await _secureStorage.write(key: _tokenExpiryKey, value: expiry);
+    await _secureStorage.writeRecovering(key: _tokenExpiryKey, value: expiry);
   }
 
   /// Get access token
   Future<String?> getAccessToken() async {
-    return _secureStorage.read(key: _tokenKey);
+    return _secureStorage.readRecovering(key: _tokenKey);
   }
 
   /// Save refresh token
   Future<void> saveRefreshToken(String token) async {
-    await _secureStorage.write(key: _refreshTokenKey, value: token);
+    await _secureStorage.writeRecovering(key: _refreshTokenKey, value: token);
   }
 
   /// Get refresh token
   Future<String?> getRefreshToken() async {
-    return _secureStorage.read(key: _refreshTokenKey);
+    return _secureStorage.readRecovering(key: _refreshTokenKey);
   }
 
   Future<String> getOrCreateDeviceId() async {
-    final existing = await _secureStorage.read(key: _deviceIdKey);
+    final existing = await _secureStorage.readRecovering(key: _deviceIdKey);
     if (existing != null && existing.isNotEmpty) return existing;
     final created = const Uuid().v4();
-    await _secureStorage.write(key: _deviceIdKey, value: created);
+    await _secureStorage.writeRecovering(key: _deviceIdKey, value: created);
     return created;
   }
 
@@ -109,7 +111,7 @@ class AuthLocalDataSource {
     final token = await getAccessToken();
     if (token == null || token.isEmpty) return false;
 
-    final expiryStr = await _secureStorage.read(key: _tokenExpiryKey);
+    final expiryStr = await _secureStorage.readRecovering(key: _tokenExpiryKey);
     if (expiryStr == null) return true; // No expiry set, assume valid
 
     final expiry = DateTime.tryParse(expiryStr);
@@ -120,10 +122,10 @@ class AuthLocalDataSource {
 
   /// Clear all auth data
   Future<void> clearAll() async {
-    await _secureStorage.delete(key: _userKey);
-    await _secureStorage.delete(key: _tokenKey);
-    await _secureStorage.delete(key: _refreshTokenKey);
-    await _secureStorage.delete(key: _tokenExpiryKey);
+    await _secureStorage.deleteRecovering(key: _userKey);
+    await _secureStorage.deleteRecovering(key: _tokenKey);
+    await _secureStorage.deleteRecovering(key: _refreshTokenKey);
+    await _secureStorage.deleteRecovering(key: _tokenExpiryKey);
     // Keep the device identity stable across sign-in sessions.
   }
 

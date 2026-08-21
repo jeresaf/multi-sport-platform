@@ -139,48 +139,7 @@ public class RugbyRulesetService : IRugbyRulesetService
     }
 
     public static string GetEventDefinitions(string variant = RugbyVariants.Fifteens)
-    {
-        variant = RugbyVariants.Normalize(variant);
-        var maxMinute = variant == RugbyVariants.Sevens ? 30 : 100;
-        var sinBinMinutes = variant == RugbyVariants.Sevens ? 2 : 10;
-        var maxSubstitutions = variant == RugbyVariants.Sevens ? 5 : 8;
-        var events = new object[]
-        {
-            // Scoring events
-            new { id = "TRY", name = "Try", category = "Scoring", points = 5, isPrimary = true, requiresMinute = true, requiresParticipant = true, requiresAssist = true, validation = new { minMinute = 0, maxMinute, allowInExtraTime = true } },
-            new { id = "PENALTY_TRY", name = "Penalty Try", category = "Scoring", points = 7, isPrimary = true, requiresMinute = true, requiresParticipant = true, requiresAssist = false, validation = new { minMinute = 0, maxMinute, allowInExtraTime = true } },
-            new { id = "CONVERSION", name = "Conversion", category = "Scoring", points = 2, isPrimary = false, requiresMinute = true, requiresParticipant = true, requiresAssist = false, validation = new { minMinute = 0, maxMinute, afterTry = true } },
-            new { id = "PENALTY_KICK", name = "Penalty Kick", category = "Scoring", points = 3, isPrimary = false, requiresMinute = true, requiresParticipant = true, requiresAssist = false, validation = new { minMinute = 0, maxMinute, allowInExtraTime = true } },
-            new { id = "DROP_GOAL", name = "Drop Goal", category = "Scoring", points = 3, isPrimary = false, requiresMinute = true, requiresParticipant = true, requiresAssist = false, validation = new { minMinute = 0, maxMinute, allowInExtraTime = true } },
-            
-            // Discipline events
-            new { id = "YELLOW_CARD", name = "Yellow Card", category = "Discipline", points = 0, isPrimary = false, requiresMinute = true, requiresParticipant = true, requiresAssist = false, validation = new { minMinute = 0, maxMinute } },
-            new { id = "RED_CARD", name = "Red Card", category = "Discipline", points = 0, isPrimary = false, requiresMinute = true, requiresParticipant = true, requiresAssist = false, validation = new { minMinute = 0, maxMinute } },
-            new { id = "SIN_BIN", name = "Sin Bin", category = "Discipline", points = 0, isPrimary = false, requiresMinute = true, requiresParticipant = true, requiresAssist = false, validation = new { minMinute = 0, maxMinute, sinBinMinutes } },
-            
-            // Personnel events
-            new { id = "SUBSTITUTION_IN", name = "Substitution In", category = "Personnel", points = 0, isPrimary = false, requiresMinute = true, requiresParticipant = true, requiresAssist = false, validation = new { minMinute = 0, maxMinute, maxSubstitutions } },
-            new { id = "SUBSTITUTION_OUT", name = "Substitution Out", category = "Personnel", points = 0, isPrimary = false, requiresMinute = true, requiresParticipant = true, requiresAssist = false, validation = new { minMinute = 0, maxMinute, maxSubstitutions } },
-            
-            // Match events
-            new { id = "SCRUM", name = "Scrum", category = "SetPiece", points = 0, isPrimary = false, requiresMinute = true, requiresParticipant = false, requiresAssist = false, validation = new { minMinute = 0, maxMinute } },
-            new { id = "LINE_OUT", name = "Line Out", category = "SetPiece", points = 0, isPrimary = false, requiresMinute = true, requiresParticipant = false, requiresAssist = false, validation = new { minMinute = 0, maxMinute } },
-            new { id = "MAUL", name = "Maul", category = "PhasePlay", points = 0, isPrimary = false, requiresMinute = true, requiresParticipant = false, requiresAssist = false, validation = new { minMinute = 0, maxMinute } },
-            new { id = "RUCK", name = "Ruck", category = "PhasePlay", points = 0, isPrimary = false, requiresMinute = true, requiresParticipant = false, requiresAssist = false, validation = new { minMinute = 0, maxMinute } },
-            new { id = "KNOCK_ON", name = "Knock On", category = "Infringement", points = 0, isPrimary = false, requiresMinute = true, requiresParticipant = true, requiresAssist = false, validation = new { minMinute = 0, maxMinute } },
-            new { id = "FORWARD_PASS", name = "Forward Pass", category = "Infringement", points = 0, isPrimary = false, requiresMinute = true, requiresParticipant = true, requiresAssist = false, validation = new { minMinute = 0, maxMinute } },
-            new { id = "HIGH_TACKLE", name = "High Tackle", category = "Infringement", points = 0, isPrimary = false, requiresMinute = true, requiresParticipant = true, requiresAssist = false, validation = new { minMinute = 0, maxMinute } },
-            new { id = "OFFSIDE", name = "Offside", category = "Infringement", points = 0, isPrimary = false, requiresMinute = true, requiresParticipant = true, requiresAssist = false, validation = new { minMinute = 0, maxMinute } },
-            new { id = "PENALTY_CONCEDED", name = "Penalty Conceded", category = "Infringement", points = 0, isPrimary = false, requiresMinute = true, requiresParticipant = true, requiresAssist = false, validation = new { minMinute = 0, maxMinute } },
-            new { id = "FREE_KICK", name = "Free Kick", category = "Infringement", points = 0, isPrimary = false, requiresMinute = true, requiresParticipant = true, requiresAssist = false, validation = new { minMinute = 0, maxMinute } },
-            
-            // TMO events
-            new { id = "TMO_REVIEW", name = "TMO Review", category = "Official", points = 0, isPrimary = false, requiresMinute = true, requiresParticipant = false, requiresAssist = false, validation = new { minMinute = 0, maxMinute } },
-            new { id = "REFEREE_DECISION", name = "Referee Decision", category = "Official", points = 0, isPrimary = false, requiresMinute = true, requiresParticipant = false, requiresAssist = false, validation = new { minMinute = 0, maxMinute } }
-        };
-
-        return JsonSerializer.Serialize(events);
-    }
+        => RugbyTimelinePackage.GetDefinitionsJson(variant);
 
     public static string GetMetricDefinitions()
     {

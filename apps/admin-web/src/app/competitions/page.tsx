@@ -82,6 +82,17 @@ export default function CompetitionsPage() {
   const [finalHomeSequence, setFinalHomeSequence] = useState('H,H,A,A,H');
   const [creatingSeriesPlayoffs, setCreatingSeriesPlayoffs] = useState(false);
 
+  useEffect(() => {
+    const requestedSearch = new URLSearchParams(window.location.search).get('search');
+    if (requestedSearch?.trim()) queueMicrotask(() => setSearch(requestedSearch.trim()));
+    const updateSearch = (event: Event) => {
+      const query = (event as CustomEvent<string>).detail;
+      if (query?.trim()) setSearch(query.trim());
+    };
+    window.addEventListener('admin:competition-search', updateSearch);
+    return () => window.removeEventListener('admin:competition-search', updateSearch);
+  }, []);
+
   async function load() {
     if (!tenantId) return;
     setLoading(true);

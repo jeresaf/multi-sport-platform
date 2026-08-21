@@ -46,6 +46,8 @@ public static class PublicCsvSeedData
         CancellationToken cancellationToken = default)
     {
         ValidatePack(packPath);
+        ValidatePackCoverage(packPath);
+        var anchorOffset = ResolveAnchorOffset(packPath);
         var tenantRows = Read(packPath, "01_tenants.csv");
         var primaryTenantId = StableId(tenantRows[0]["tenant_id"]);
         if (await context.Tenants.AnyAsync(item => item.Id == primaryTenantId, cancellationToken))
@@ -72,9 +74,9 @@ public static class PublicCsvSeedData
         await SeedTenantSportsAsync(context, participantRows, competitionRows, tenants, sports, cancellationToken);
         var participants = await SeedParticipantsAsync(context, packPath, participantRows, tenants, sports, cancellationToken);
         var competitions = await SeedCompetitionsAsync(
-            context, packPath, competitionRows, tenants, sports, cancellationToken);
+            context, packPath, competitionRows, tenants, sports, anchorOffset, cancellationToken);
         var contests = await SeedContestsAsync(
-            context, packPath, competitions, participants, sports, cancellationToken);
+            context, packPath, competitions, participants, sports, anchorOffset, cancellationToken);
         await SeedStandingsAsync(context, packPath, competitions, participants, cancellationToken);
         await SeedLeaderboardsAsync(context, packPath, competitions, contests, participants, cancellationToken);
         await SeedBracketsAsync(context, packPath, competitions, contests, participants, cancellationToken);
@@ -244,6 +246,7 @@ public static class PublicCsvSeedData
     private static async Task<Dictionary<string, CompetitionMap>> SeedCompetitionsAsync(
         SportsPlatformDbContext context, string path, IReadOnlyList<Row> rows,
         IReadOnlyDictionary<string, Guid> tenants, IReadOnlyDictionary<string, Sport> sports,
+        TimeSpan anchorOffset,
         CancellationToken cancellationToken)
     {
         var stageRows = Read(path, "08_stages.csv");
@@ -271,7 +274,7 @@ public static class PublicCsvSeedData
             competition.Publish();
             if (row["status"] == "COMPLETED") competition.Close();
             var dates = contestRows.Where(item => item["competition_id"] == row["competition_id"])
-                .Select(item => ParseDate(item["start_at"])).ToArray();
+                .Select(item => ParseDate(item["start_at"], anchorOffset)).ToArray();
             var edition = competition.AddEdition(row["season_label"], dates.Min().AddDays(-7), dates.Max().AddDays(7));
             if (row["status"] == "COMPLETED") edition.Close(); else edition.Open();
             var stages = new Dictionary<string, Stage>(StringComparer.OrdinalIgnoreCase);
@@ -298,6 +301,7 @@ public static class PublicCsvSeedData
     private static async Task<Dictionary<string, Contest>> SeedContestsAsync(
         SportsPlatformDbContext context, string path, IReadOnlyDictionary<string, CompetitionMap> competitions,
         IReadOnlyDictionary<string, Participant> participants, IReadOnlyDictionary<string, Sport> sports,
+        TimeSpan anchorOffset,
         CancellationToken cancellationToken)
     {
         var rows = Read(path, "10_contests.csv");
@@ -330,29 +334,67 @@ public static class PublicCsvSeedData
                 var gameNumber = result.Values.Count(item => item.SeriesId == StableId(series["series_id"])) + 1;
                 contest.AssignToSeries(StableId(series["series_id"]), gameNumber, Int(series["best_of"]));
             }
-            contest.Schedule(venues.GetValueOrDefault(row["venue_id"], "Public demo venue"), ParseDate(row["start_at"]), 120);
+            contest.Schedule(venues.GetValueOrDefault(row["venue_id"], "Public demo venue"), ParseDate(row["start_at"], anchorOffset), 120);
             RecordPresentationMetric(contest, "periodLabel", row["period_label"]);
             RecordPresentationMetric(contest, "clock", row["clock"]);
             RecordPresentationMetric(contest, "summary", row["summary"]);
             RecordPresentationMetric(contest, "stageLabel", row["round_label"]);
             ApplyStatus(contest, row["status"]);
-            foreach (var eventRow in eventRows.Where(item => item["contest_id"] == row["contest_id"]))
+            var contestEventRows = eventRows.Where(item => item["contest_id"] == row["contest_id"])
+                .OrderBy(item => Long(item["sequence"]))
+                .ToArray();
+            var segments = contestEventRows
+                .Select(item => item["segment"])
+                .Where(item => !string.IsNullOrWhiteSpace(item))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Select((code, index) => new
+                {
+                    Code = code,
+                    Segment = contest.AddSegment(SegmentName(code), SegmentType(code), index + 1)
+                })
+                .ToDictionary(item => item.Code, item => item.Segment, StringComparer.OrdinalIgnoreCase);
+            foreach (var eventRow in contestEventRows)
             {
                 var eventParticipant = participants[eventRow["participant_id"]].Id;
-                var contestEvent = contest.AddEvent(eventRow["event_type"], eventParticipant, null,
-                    EmptyToNull(eventRow["value"]), null, "csv-seed", Long(eventRow["sequence"]), eventRow["event_id"]);
+                var segmentId = segments.GetValueOrDefault(eventRow["segment"])?.Id;
+                var definition = TimelineDefinition(map.SportFamily, eventRow["event_type"]);
+                var eventValue = string.IsNullOrWhiteSpace(eventRow["value"])
+                    ? definition.Value.ToString(CultureInfo.InvariantCulture)
+                    : eventRow["value"];
+                var contestEvent = contest.AddEvent(eventRow["event_type"], eventParticipant, segmentId,
+                    eventValue, null, "csv-seed", Long(eventRow["sequence"]), eventRow["event_id"]);
                 contestEvent.Approve();
+                var liveEvent = new LiveScore(
+                    StableId($"timeline:{eventRow["event_id"]}"), contest.Id, contestEvent.Id,
+                    eventParticipant, definition.Metric, Decimal(eventValue), segmentId,
+                    ParseClock(eventRow["clock"]), contest.TenantId, eventRow["event_type"],
+                    deviceId: "csv-timeline", idempotencyKey: eventRow["event_id"],
+                    rulesetVersionId: contest.RulesetVersionId);
+                liveEvent.SetSequence(checked((int)Long(eventRow["sequence"])));
+                liveEvent.SetPlayers(
+                    ParticipantId(participants, eventRow["player_id"]),
+                    ParticipantId(participants, eventRow["secondary_player_id"]));
+                if (!string.IsNullOrWhiteSpace(eventRow["play_id"])
+                    || !string.IsNullOrWhiteSpace(eventRow["description"]))
+                    liveEvent.SetMetadata(JsonSerializer.Serialize(new
+                    {
+                        playId = EmptyToNull(eventRow["play_id"]),
+                        description = EmptyToNull(eventRow["description"])
+                    }));
+                context.LiveScores.Add(liveEvent);
             }
             context.Contests.Add(contest);
             result[row["contest_id"]] = contest;
-            AddScores(context, contest, contestParticipants, participants, row["status"]);
+            AddScores(context, contest, contestParticipants, participants, row["status"],
+                contestEventRows.Length > 0);
         }
         await context.SaveChangesAsync(cancellationToken);
         return result;
     }
 
     private static void AddScores(SportsPlatformDbContext context, Contest contest,
-        IReadOnlyList<Row> rows, IReadOnlyDictionary<string, Participant> participants, string status)
+        IReadOnlyList<Row> rows, IReadOnlyDictionary<string, Participant> participants, string status,
+        bool hasTimelineEvents)
     {
         var scored = rows.Where(row => !string.IsNullOrWhiteSpace(row["score"])).ToArray();
         for (var index = 0; index < scored.Length; index++)
@@ -370,7 +412,7 @@ public static class PublicCsvSeedData
                 result.Submit(); result.BeginReview(); result.Approve(SystemAdministratorId); result.Publish();
                 context.ContestResults.Add(result);
             }
-            if (status is "IN_PROGRESS" or "SUSPENDED")
+            if (!hasTimelineEvents && status is ("IN_PROGRESS" or "SUSPENDED" or "PAUSED"))
             {
                 var live = new LiveScore(StableId($"live:{contest.Id}:{participantId}"), contest.Id,
                     StableId($"live-event:{contest.Id}:{participantId}"), participantId, "score", Decimal(row["score"]),
@@ -489,13 +531,16 @@ public static class PublicCsvSeedData
         switch (status)
         {
             case "STARTING_SOON": contest.OpenCheckIn(); contest.MarkReady(); break;
+            case "READY": contest.OpenCheckIn(); contest.MarkReady(); break;
             case "IN_PROGRESS": contest.Start(); break;
+            case "PAUSED": contest.Start(); contest.Pause(); break;
             case "SUSPENDED": contest.Start(); contest.Suspend(); break;
+            case "PENDING_APPROVAL": contest.Start(); contest.Complete(); contest.SubmitForApproval(); break;
             case "APPROVED": contest.Start(); contest.Complete(); contest.SubmitForApproval(); contest.Approve(); contest.TransitionTo(ContestStatus.Published); break;
             case "CORRECTED": contest.Start(); contest.Complete(); contest.SubmitForApproval(); contest.Approve(); contest.MarkCorrected(); break;
             case "ABANDONED": contest.Start(); contest.Abandon(); break;
+            case "POSTPONED": contest.Postpone("Postponed in the public staging scenario matrix."); break;
             case "CANCELLED": contest.Cancel(); break;
-            // POSTPONED has no ContestStatus equivalent; Scheduled is the nearest valid state.
         }
     }
 
@@ -509,6 +554,26 @@ public static class PublicCsvSeedData
             throw new InvalidOperationException($"CSV staging seed validation failed: competitions={competitionCount}, participants={participantCount}, contests={contestCount}.");
         if (!await context.Contests.AnyAsync(item => item.TenantId == primaryTenantId && item.Status == ContestStatus.InProgress, cancellationToken))
             throw new InvalidOperationException("CSV staging seed validation failed: no live contest was imported.");
+        var sportCount = await context.TenantSports
+            .Where(item => item.TenantId == primaryTenantId)
+            .Select(item => item.SportId)
+            .Distinct()
+            .CountAsync(cancellationToken);
+        var timelineSportCount = await context.LiveScores
+            .Where(item => item.TenantId == primaryTenantId && item.DeviceId == "csv-timeline")
+            .Join(context.Contests, score => score.ContestId, contest => contest.Id,
+                (score, contest) => contest.SportId)
+            .Distinct()
+            .CountAsync(cancellationToken);
+        if (sportCount < 12 || timelineSportCount < 12)
+            throw new InvalidOperationException(
+                $"CSV staging seed coverage failed: sports={sportCount}, timelineSports={timelineSportCount}.");
+        if (!await context.Contests.AnyAsync(item => item.TenantId == primaryTenantId
+                && item.CanonicalStatus == CanonicalContestStatus.Postponed, cancellationToken)
+            || !await context.Contests.AnyAsync(item => item.TenantId == primaryTenantId
+                && item.Status == ContestStatus.Corrected, cancellationToken))
+            throw new InvalidOperationException(
+                "CSV staging seed coverage failed: postponed and corrected scenarios are required.");
     }
 
     private static void ValidatePack(string path)
@@ -518,6 +583,47 @@ public static class PublicCsvSeedData
         for (var index = 1; index <= 19; index++)
             if (!Directory.EnumerateFiles(path, $"{index:D2}_*.csv").Any())
                 throw new InvalidOperationException($"Public seed CSV pack is missing file {index:D2}.");
+    }
+
+    private static void ValidatePackCoverage(string path)
+    {
+        var competitions = Read(path, "07_competitions.csv");
+        var contests = Read(path, "10_contests.csv");
+        var events = Read(path, "12_contest_events.csv");
+        var requiredSports = SportCodes.Keys.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var seededSports = competitions.Select(item => item["sport_id"])
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var missingSports = requiredSports.Except(seededSports, StringComparer.OrdinalIgnoreCase).ToArray();
+        if (missingSports.Length > 0)
+            throw new InvalidOperationException(
+                $"Public seed CSV pack has no competitions for: {string.Join(", ", missingSports)}.");
+        if (competitions.Select(item => item["tenant_id"])
+            .Distinct(StringComparer.OrdinalIgnoreCase).Count() < 2)
+            throw new InvalidOperationException(
+                "Public seed CSV pack needs an independent competition in the isolation tenant.");
+        var requiredFormats = new[]
+        {
+            "DOUBLE_ROUND_ROBIN", "SINGLE_ELIMINATION", "GROUP_PLUS_KNOCKOUT",
+            "BEST_OF_3", "MULTI_ROUND_LEADERBOARD", "HEAT_TO_FINAL", "FIGHT_CARD",
+            "POOL_PLUS_KNOCKOUT"
+        };
+        var formats = competitions.Select(item => item["format_code"])
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        if (requiredFormats.Any(format => !formats.Contains(format)))
+            throw new InvalidOperationException("Public seed CSV pack is missing a required competition format.");
+        var eventCompetitionIds = events.Select(item => item["contest_id"])
+            .Join(contests, id => id, contest => contest["contest_id"],
+                (_, contest) => contest["competition_id"])
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var eventSports = competitions.Where(item => eventCompetitionIds.Contains(item["competition_id"]))
+            .Select(item => item["sport_id"])
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var missingTimelineSports = requiredSports
+            .Except(eventSports, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        if (missingTimelineSports.Length > 0)
+            throw new InvalidOperationException(
+                $"Public seed CSV pack has no timeline for: {string.Join(", ", missingTimelineSports)}.");
     }
 
     private static List<Row> Read(string path, string file)
@@ -622,8 +728,63 @@ public static class PublicCsvSeedData
             """, cancellationToken);
     }
 
-    private static DateTime ParseDate(string value) => DateTime.SpecifyKind(
-        DateTime.Parse(value, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces), DateTimeKind.Utc);
+    private static DateTime ParseDate(string value, TimeSpan anchorOffset) => DateTime.SpecifyKind(
+        DateTime.Parse(value, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces)
+            .Add(anchorOffset), DateTimeKind.Utc);
+    private static TimeSpan ResolveAnchorOffset(string path)
+    {
+        using var document = JsonDocument.Parse(File.ReadAllText(Path.Combine(path, "manifest.json")));
+        var anchor = DateTime.Parse(document.RootElement.GetProperty("anchor_date").GetString()!,
+            CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal).Date;
+        var timezone = TimeZoneInfo.FindSystemTimeZoneById(
+            document.RootElement.GetProperty("timezone").GetString()!);
+        var tenantToday = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, timezone).Date;
+        return tenantToday - anchor;
+    }
+    private static (string Metric, decimal Value) TimelineDefinition(string sport, string eventType)
+    {
+        if (sport == "football" && FootballTimelinePackage.Find(eventType) is { } football)
+            return (football.RequiredMetric ?? "event", football.DefaultValue);
+        if (sport == "basketball" && BasketballTimelinePackage.Find(eventType) is { } basketball)
+            return (basketball.RequiredMetric ?? "event", basketball.DefaultValue);
+        if (sport is "rugby7" or "rugby15"
+            && RugbyTimelinePackage.Find(eventType,
+                sport == "rugby7" ? RugbyVariants.Sevens : RugbyVariants.Fifteens) is { } rugby)
+            return (rugby.RequiredMetric ?? "event", rugby.DefaultValue);
+        var normalized = eventType.ToUpperInvariant();
+        var scoring = normalized.Contains("SCORE", StringComparison.Ordinal)
+            || normalized is "GOAL" or "RUN" or "FOUR" or "SIX" or "SET_WIN";
+        return (scoring ? "score" : normalized.ToLowerInvariant(), 1);
+    }
+    private static Guid? ParticipantId(IReadOnlyDictionary<string, Participant> participants, string key) =>
+        string.IsNullOrWhiteSpace(key) ? null : participants.GetValueOrDefault(key)?.Id;
+    private static decimal? ParseClock(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        var trimmed = value.Trim().TrimEnd('\'');
+        if (TimeSpan.TryParseExact(trimmed, @"mm\:ss", CultureInfo.InvariantCulture, out var time))
+            return (decimal)time.TotalSeconds;
+        return decimal.TryParse(trimmed, NumberStyles.Number, CultureInfo.InvariantCulture, out var minute)
+            ? minute * 60
+            : null;
+    }
+    private static string SegmentName(string code) => code.ToUpperInvariant() switch
+    {
+        "1H" => "First Half", "2H" => "Second Half",
+        "Q1" => "First Quarter", "Q2" => "Second Quarter",
+        "Q3" => "Third Quarter", "Q4" => "Fourth Quarter",
+        "R1" => "Round 1", "R2" => "Round 2", "R3" => "Round 3",
+        _ => code.Replace('_', ' ')
+    };
+    private static string SegmentType(string code) => code.ToUpperInvariant() switch
+    {
+        "1H" or "2H" => "Half",
+        "Q1" or "Q2" or "Q3" or "Q4" => "Quarter",
+        var value when value.StartsWith("SET", StringComparison.Ordinal) => "Set",
+        var value when value.StartsWith("R", StringComparison.Ordinal) => "Round",
+        var value when value.Contains("INNINGS", StringComparison.Ordinal) => "Innings",
+        _ => "Period"
+    };
     private static Guid StableId(string value) => new(SHA256.HashData(Encoding.UTF8.GetBytes($"public-csv-seed:{value}"))[..16]);
     private static int Int(string value) => int.TryParse(value, CultureInfo.InvariantCulture, out var result) ? result : 0;
     private static long Long(string value) => long.TryParse(value, CultureInfo.InvariantCulture, out var result) ? result : 0;

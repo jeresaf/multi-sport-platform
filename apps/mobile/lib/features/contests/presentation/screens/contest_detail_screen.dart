@@ -126,9 +126,12 @@ class _ContestDetailContent extends StatelessWidget {
     if (contest == null) {
       return const Center(child: Text('Contest not found'));
     }
+    final tabs = contest!.availableTabs.isEmpty
+        ? const ['overview']
+        : contest!.availableTabs;
 
     return DefaultTabController(
-      length: 3,
+      length: tabs.length,
       child: Column(
         children: [
           Container(
@@ -147,53 +150,72 @@ class _ContestDetailContent extends StatelessWidget {
                 color: Theme.of(context).colorScheme.primaryContainer,
                 borderRadius: BorderRadius.circular(12),
               ),
-              tabs: const [
-                Tab(text: 'Overview'),
-                Tab(text: 'Timeline'),
-                Tab(text: 'Statistics'),
-              ],
+              tabs: tabs
+                  .map((tab) => Tab(
+                        text: contest!.tabLabels[tab] ?? _tabLabel(tab),
+                      ))
+                  .toList(),
             ),
           ),
           Expanded(
             child: TabBarView(
-              children: [
-                ListView(
+              children: tabs.map((tab) {
+                if (tab == 'overview') {
+                  return ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(16),
+                    children: [
+                      _ContestHeader(contest: contest!),
+                      const SizedBox(height: 16),
+                      _ScoreDisplay(contest: contest!),
+                    ],
+                  );
+                }
+                if (tab == 'timeline') {
+                  return ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(16),
+                    children: [
+                      _EventTimeline(
+                        events: events,
+                        homeParticipantId: contest!.homeParticipantId,
+                        sportCode: contest!.sportCode,
+                      ),
+                    ],
+                  );
+                }
+                if (tab == 'statistics') {
+                  return ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(16),
+                    children: [
+                      _MatchStats(
+                        metadata: contest!.metadata ?? const {},
+                        homeParticipantId: contest!.homeParticipantId,
+                        awayParticipantId: contest!.awayParticipantId,
+                      ),
+                    ],
+                  );
+                }
+                return ListView(
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.all(16),
-                  children: [
-                    _ContestHeader(contest: contest!),
-                    const SizedBox(height: 16),
-                    _ScoreDisplay(contest: contest!),
-                  ],
-                ),
-                ListView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.all(16),
-                  children: [
-                    _EventTimeline(
-                      events: events,
-                      homeParticipantId: contest!.homeParticipantId,
-                    ),
-                  ],
-                ),
-                ListView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.all(16),
-                  children: [
-                    _MatchStats(
-                      metadata: contest!.metadata ?? const {},
-                      homeParticipantId: contest!.homeParticipantId,
-                      awayParticipantId: contest!.awayParticipantId,
-                    ),
-                  ],
-                ),
-              ],
+                  children: [_ContestDetails(contest: contest!)],
+                );
+              }).toList(),
             ),
           ),
         ],
       ),
     );
   }
+
+  static String _tabLabel(String tab) => tab
+      .replaceAll('_', ' ')
+      .split(' ')
+      .map((word) =>
+          word.isEmpty ? word : '${word[0].toUpperCase()}${word.substring(1)}')
+      .join(' ');
 }
 
 class _ContestHeader extends StatelessWidget {
@@ -417,10 +439,12 @@ class _ScoreDisplay extends StatelessWidget {
 class _EventTimeline extends StatelessWidget {
   final List<ContestEvent> events;
   final String? homeParticipantId;
+  final String sportCode;
 
   const _EventTimeline({
     required this.events,
     this.homeParticipantId,
+    required this.sportCode,
   });
 
   @override
@@ -439,6 +463,7 @@ class _EventTimeline extends StatelessWidget {
       );
     }
 
+    final groups = _eventGroups();
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
@@ -450,10 +475,16 @@ class _EventTimeline extends StatelessWidget {
       child: ListView.separated(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
-        itemCount: events.length,
+        itemCount: groups.length,
         separatorBuilder: (_, __) => const Divider(height: 1),
         itemBuilder: (context, index) {
-          final event = events[index];
+          final play = groups[index];
+          final event = play.firstWhere(
+            (item) => item.data?['category'] == 'SCORING',
+            orElse: () => play.first,
+          );
+          final assist =
+              play.where((item) => item.eventType == 'ASSIST').firstOrNull;
           final isHome = event.participantId == homeParticipantId;
           return ListTile(
             contentPadding: const EdgeInsets.symmetric(
@@ -482,6 +513,14 @@ class _EventTimeline extends StatelessWidget {
                 event.data!['primaryParticipantName'],
             ].join(' · ')),
             subtitle: Text([
+              if (sportCode == 'basketball' && event.data?['period'] != null)
+                event.data!['period'],
+              if (sportCode == 'rugby' && event.data?['sportVariant'] != null)
+                event.data!['sportVariant'] == 'RUGBY_7'
+                    ? 'Rugby 7s'
+                    : 'Rugby 15s',
+              if (assist != null)
+                'Assist: ${assist.data?['primaryPlayerName'] ?? 'Recorded'}',
               if (event.eventType == 'SUBSTITUTION' &&
                   event.data?['secondaryPlayerName'] != null)
                 '${event.data!['secondaryPlayerName']} on',
@@ -493,7 +532,9 @@ class _EventTimeline extends StatelessWidget {
                 _formatEventType(event.data!['status'].toString()),
               _formatTime(event.timestamp),
             ].join(' · ')),
-            trailing: event.data?['sportCode'] == 'FOOTBALL' &&
+            trailing: (event.data?['sportCode'] == 'FOOTBALL' ||
+                        sportCode == 'basketball' ||
+                        sportCode == 'rugby') &&
                     event.data?['category'] == 'SCORING'
                 ? Text(
                     '${event.data?['homeScoreAfter'] ?? 0}–${event.data?['awayScoreAfter'] ?? 0}',
@@ -511,10 +552,28 @@ class _EventTimeline extends StatelessWidget {
     );
   }
 
+  List<List<ContestEvent>> _eventGroups() {
+    if (sportCode != 'basketball') {
+      return events.map((event) => [event]).toList();
+    }
+    final groups = <String, List<ContestEvent>>{};
+    for (final event in events) {
+      final playId = event.data?['playId']?.toString();
+      final key = playId == null || playId.isEmpty ? event.id : playId;
+      groups.putIfAbsent(key, () => []).add(event);
+    }
+    return groups.values.toList();
+  }
+
   Color _getEventColor(String eventType) {
     switch (eventType.toLowerCase()) {
       case 'goal':
       case 'score':
+      case 'try':
+      case 'penalty_try':
+      case 'conversion_made':
+      case 'penalty_goal':
+      case 'drop_goal':
         return Colors.green;
       case 'foul':
         return Colors.orange;
@@ -533,6 +592,12 @@ class _EventTimeline extends StatelessWidget {
       case 'goal':
       case 'score':
         return Icons.sports_soccer;
+      case 'try':
+      case 'penalty_try':
+      case 'conversion_made':
+      case 'penalty_goal':
+      case 'drop_goal':
+        return Icons.sports_rugby;
       case 'foul':
         return Icons.warning;
       case 'card':
@@ -559,6 +624,47 @@ class _EventTimeline extends StatelessWidget {
   String _formatTime(DateTime timestamp) {
     return '${timestamp.hour}:${timestamp.minute.toString().padLeft(2, '0')}';
   }
+}
+
+class _ContestDetails extends StatelessWidget {
+  final Contest contest;
+
+  const _ContestDetails({required this.contest});
+
+  @override
+  Widget build(BuildContext context) => Card(
+        elevation: 0,
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Match details',
+                  style: Theme.of(context).textTheme.titleLarge),
+              const SizedBox(height: 16),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.sports),
+                title: const Text('Sport'),
+                subtitle: Text(contest.sportCode.toUpperCase()),
+              ),
+              if (contest.scheduledAt != null)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.schedule),
+                  title: const Text('Scheduled'),
+                  subtitle: Text(formatPublicDateTime(contest.scheduledAt!)),
+                ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.flag_outlined),
+                title: const Text('Status'),
+                subtitle: Text(contest.status),
+              ),
+            ],
+          ),
+        ),
+      );
 }
 
 class _MatchStats extends StatelessWidget {

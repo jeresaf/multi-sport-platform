@@ -11,6 +11,7 @@ import 'package:uuid/uuid.dart';
 
 import '../config/app_config.dart';
 import 'api_client.dart';
+import 'recovering_secure_storage.dart';
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -41,7 +42,7 @@ class NotificationService {
 
   final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
-  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
+  final FlutterSecureStorage _secureStorage = appSecureStorage;
   final StreamController<NotificationData> _notificationController =
       StreamController<NotificationData>.broadcast();
   final StreamController<NotificationData> _interactionController =
@@ -330,10 +331,10 @@ class NotificationService {
   }
 
   Future<String> _deviceId() async {
-    final existing = await _secureStorage.read(key: _deviceIdKey);
+    final existing = await _secureStorage.readRecovering(key: _deviceIdKey);
     if (existing != null && existing.isNotEmpty) return existing;
     final generated = const Uuid().v4();
-    await _secureStorage.write(key: _deviceIdKey, value: generated);
+    await _secureStorage.writeRecovering(key: _deviceIdKey, value: generated);
     return generated;
   }
 

@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using SportsPlatform.Infrastructure.Persistence;
 using SportsPlatform.Modules.Contests.Entities;
 using SportsPlatform.Modules.LiveScoring.Entities;
+using SportsPlatform.Modules.Sports.Services;
 using Xunit;
 
 namespace SportsPlatform.IntegrationTests;
@@ -138,5 +139,75 @@ public sealed class ContestTimelineApiTests : IClassFixture<ApiWebApplicationFac
             database.Contests.RemoveRange(database.Contests.Where(item => item.Id == contestId));
             await database.SaveChangesAsync();
         }
+    }
+
+    [Fact]
+    public async Task Rugby_sevens_timeline_uses_assigned_variant_and_canonical_score_effects()
+    {
+        using var client = _factory.CreateClient();
+        var tenantId = Guid.Parse("00000000-0000-0000-0000-000000000002");
+        var rugbySportId = Guid.Parse("00000000-0000-0000-0000-000000000106");
+        var contestId = Guid.NewGuid();
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var database = scope.ServiceProvider.GetRequiredService<SportsPlatformDbContext>();
+            var participants = await database.Participants
+                .Where(item => item.TenantId == tenantId)
+                .Select(item => item.Id)
+                .Take(2)
+                .ToArrayAsync();
+            var rugbyRulesets = await database.Sports.AsNoTracking()
+                .Where(item => item.Id == rugbySportId)
+                .SelectMany(item => item.Versions)
+                .Where(item => item.IsPublished)
+                .ToArrayAsync();
+            var sevensRulesetId = rugbyRulesets
+                .Where(item => RugbyVariants.FromValidationConfiguration(
+                    item.ValidationConfiguration) == RugbyVariants.Sevens)
+                .Select(item => item.Id)
+                .First();
+
+            var contest = new Contest(contestId, tenantId, rugbySportId, "TeamVsTeam");
+            contest.SetName("Rugby sevens timeline test");
+            contest.AssignRulesetVersion(sevensRulesetId);
+            contest.AddParticipant(participants[0], "Team");
+            contest.AddParticipant(participants[1], "Team");
+            contest.Schedule("Sevens Stadium", DateTime.UtcNow.AddHours(1), 20);
+            database.Contests.Add(contest);
+
+            var tryScore = new LiveScore(
+                Guid.NewGuid(), contestId, Guid.NewGuid(), participants[0], "score", 5,
+                tenantId: tenantId, eventType: "TRY", deviceId: "rugby-scorer",
+                idempotencyKey: $"score-{contestId:N}-try");
+            tryScore.SetSequence(1);
+            var conversion = new LiveScore(
+                Guid.NewGuid(), contestId, Guid.NewGuid(), participants[0], "score", 2,
+                tenantId: tenantId, eventType: "CONVERSION", deviceId: "rugby-scorer",
+                idempotencyKey: $"score-{contestId:N}-conversion");
+            conversion.SetSequence(2);
+            database.LiveScores.AddRange(tryScore, conversion);
+            await database.SaveChangesAsync();
+        }
+
+        var route = $"/api/public/tenants/premier-league/contests/{contestId}/timeline";
+        using (var response = await client.GetAsync(route))
+        using (var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+        {
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
+            var events = body.RootElement.GetProperty("events").EnumerateArray().ToArray();
+            events.Should().HaveCount(2);
+            events.Should().OnlyContain(item =>
+                item.GetProperty("sportVariant").GetString() == "RUGBY_7");
+            events.Select(item => item.GetProperty("type").GetString())
+                .Should().Equal("TRY", "CONVERSION_MADE");
+            events[0].GetProperty("homeScoreAfter").GetDecimal().Should().Be(5);
+            events[1].GetProperty("homeScoreAfter").GetDecimal().Should().Be(7);
+        }
+
+        using var cleanupScope = _factory.Services.CreateScope();
+        var cleanup = cleanupScope.ServiceProvider.GetRequiredService<SportsPlatformDbContext>();
+        cleanup.Contests.RemoveRange(cleanup.Contests.Where(item => item.Id == contestId));
+        await cleanup.SaveChangesAsync();
     }
 }

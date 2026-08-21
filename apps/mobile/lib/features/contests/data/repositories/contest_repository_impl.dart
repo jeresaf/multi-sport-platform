@@ -18,6 +18,8 @@ class Contest {
   final String status;
   final String sportId;
   final String sportCode;
+  final List<String> availableTabs;
+  final Map<String, String> tabLabels;
   final DateTime? scheduledAt;
   final String? homeParticipantId;
   final String? homeParticipantName;
@@ -38,6 +40,13 @@ class Contest {
     required this.status,
     this.sportId = '',
     required this.sportCode,
+    this.availableTabs = const [
+      'overview',
+      'timeline',
+      'statistics',
+      'details'
+    ],
+    this.tabLabels = const {},
     this.scheduledAt,
     this.homeParticipantId,
     this.homeParticipantName,
@@ -71,6 +80,19 @@ class Contest {
       sportCode: json['sportCode']?.toString().toLowerCase() ??
           _sportCodes[sportId] ??
           'scoring',
+      availableTabs: json['availableTabs'] is List
+          ? (json['availableTabs'] as List)
+              .map((item) => item.toString().toLowerCase())
+              .where(const {'overview', 'timeline', 'statistics', 'details'}
+                  .contains)
+              .toList()
+          : const ['overview', 'timeline', 'statistics', 'details'],
+      tabLabels: json['tabLabels'] is Map
+          ? Map<String, String>.fromEntries((json['tabLabels'] as Map)
+              .entries
+              .map((entry) =>
+                  MapEntry(entry.key.toString(), entry.value.toString())))
+          : const {},
       scheduledAt: DateTime.tryParse(
         json['scheduledAt']?.toString() ??
             json['scheduledStart']?.toString() ??
@@ -204,12 +226,16 @@ class ContestEvent {
           if (json.containsKey('clockSeconds'))
             'clockSeconds': json['clockSeconds'],
           if (json.containsKey('clock')) 'clock': json['clock'],
+          if (json.containsKey('playId')) 'playId': json['playId'],
+          if (json.containsKey('period')) 'period': json['period'],
           if (json.containsKey('category')) 'category': json['category'],
           if (json.containsKey('status')) 'status': json['status'],
           if (json.containsKey('importance')) 'importance': json['importance'],
           if (json.containsKey('displayValue'))
             'displayValue': json['displayValue'],
           if (json.containsKey('sportCode')) 'sportCode': json['sportCode'],
+          if (json.containsKey('sportVariant'))
+            'sportVariant': json['sportVariant'],
           if (json.containsKey('primaryParticipantName'))
             'primaryParticipantName': json['primaryParticipantName'],
           if (json.containsKey('secondaryParticipantName'))

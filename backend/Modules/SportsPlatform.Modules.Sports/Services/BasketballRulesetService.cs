@@ -90,46 +90,7 @@ public class BasketballRulesetService : IBasketballRulesetService
     }
 
     public static string GetEventDefinitions()
-    {
-        var events = new object[]
-        {
-            // Scoring events
-            new { id = "FIELD_GOAL_MADE", name = "Field Goal Made", category = "Scoring", points = 2, isPrimary = true, requiresMinute = true, requiresParticipant = true, requiresPlayer = true, requiresAssist = true, teamMetric = "POINTS", playerMetric = "POINTS", validation = new { minMinute = 0, maxMinute = 48, allowInOvertime = true } },
-            new { id = "FIELD_GOAL_MISSED", name = "Field Goal Missed", category = "Scoring", points = 0, isPrimary = false, requiresMinute = true, requiresParticipant = true, requiresAssist = false, validation = new { minMinute = 0, maxMinute = 48, allowInOvertime = true } },
-            new { id = "THREE_POINTER_MADE", name = "Three Pointer Made", category = "Scoring", points = 3, isPrimary = true, requiresMinute = true, requiresParticipant = true, requiresPlayer = true, requiresAssist = true, teamMetric = "POINTS", playerMetric = "POINTS", validation = new { minMinute = 0, maxMinute = 48, allowInOvertime = true } },
-            new { id = "THREE_POINTER_MISSED", name = "Three Pointer Missed", category = "Scoring", points = 0, isPrimary = false, requiresMinute = true, requiresParticipant = true, requiresAssist = false, validation = new { minMinute = 0, maxMinute = 48, allowInOvertime = true } },
-            new { id = "FREE_THROW_MADE", name = "Free Throw Made", category = "Scoring", points = 1, isPrimary = true, requiresMinute = true, requiresParticipant = true, requiresPlayer = true, requiresAssist = false, teamMetric = "POINTS", playerMetric = "POINTS", validation = new { minMinute = 0, maxMinute = 48, allowInOvertime = true } },
-            new { id = "FREE_THROW_MISSED", name = "Free Throw Missed", category = "Scoring", points = 0, isPrimary = false, requiresMinute = true, requiresParticipant = true, requiresAssist = false, validation = new { minMinute = 0, maxMinute = 48, allowInOvertime = true } },
-            
-            // Foul events
-            new { id = "TEAM_FOUL", name = "Team Foul", category = "Foul", points = 0, isPrimary = false, requiresMinute = true, requiresParticipant = true, requiresPlayer = false, requiresAssist = false, teamMetric = "TEAM_FOULS", resetsEachPeriod = true, validation = new { minMinute = 0, maxMinute = 48, allowInOvertime = true } },
-            new { id = "PERSONAL_FOUL", name = "Personal Foul", category = "Foul", points = 0, isPrimary = false, requiresMinute = true, requiresParticipant = true, requiresPlayer = true, requiresAssist = false, teamMetric = "TEAM_FOULS", playerMetric = "PERSONAL_FOULS", validation = new { minMinute = 0, maxMinute = 48, allowInOvertime = true } },
-            new { id = "SHOOTING_FOUL", name = "Shooting Foul", category = "Foul", points = 0, isPrimary = false, requiresMinute = true, requiresParticipant = true, requiresAssist = false, validation = new { minMinute = 0, maxMinute = 48, allowInOvertime = true } },
-            new { id = "TECHNICAL_FOUL", name = "Technical Foul", category = "Foul", points = 0, isPrimary = false, requiresMinute = true, requiresParticipant = true, requiresAssist = false, validation = new { minMinute = 0, maxMinute = 48, allowInOvertime = true } },
-            new { id = "FLAGRANT_FOUL_1", name = "Flagrant Foul 1", category = "Foul", points = 0, isPrimary = false, requiresMinute = true, requiresParticipant = true, requiresAssist = false, validation = new { minMinute = 0, maxMinute = 48, allowInOvertime = true } },
-            new { id = "FLAGRANT_FOUL_2", name = "Flagrant Foul 2", category = "Foul", points = 0, isPrimary = false, requiresMinute = true, requiresParticipant = true, requiresAssist = false, validation = new { minMinute = 0, maxMinute = 48, allowInOvertime = true } },
-            
-            // Turnovers
-            new { id = "TURNOVER", name = "Turnover", category = "Turnover", points = 0, isPrimary = false, requiresMinute = true, requiresParticipant = true, requiresAssist = false, validation = new { minMinute = 0, maxMinute = 48, allowInOvertime = true } },
-            new { id = "STEAL", name = "Steal", category = "Turnover", points = 0, isPrimary = false, requiresMinute = true, requiresParticipant = true, requiresAssist = false, validation = new { minMinute = 0, maxMinute = 48, allowInOvertime = true } },
-            
-            // Rebounds
-            new { id = "OFFENSIVE_REBOUND", name = "Offensive Rebound", category = "Rebound", points = 0, isPrimary = false, requiresMinute = true, requiresParticipant = true, requiresAssist = false, validation = new { minMinute = 0, maxMinute = 48, allowInOvertime = true } },
-            new { id = "DEFENSIVE_REBOUND", name = "Defensive Rebound", category = "Rebound", points = 0, isPrimary = false, requiresMinute = true, requiresParticipant = true, requiresAssist = false, validation = new { minMinute = 0, maxMinute = 48, allowInOvertime = true } },
-            
-            // Substitutions
-            new { id = "SUBSTITUTION_IN", name = "Substitution In", category = "Personnel", points = 0, isPrimary = false, requiresMinute = true, requiresParticipant = true, requiresAssist = false, validation = new { minMinute = 0, maxMinute = 48, allowInOvertime = true } },
-            new { id = "SUBSTITUTION_OUT", name = "Substitution Out", category = "Personnel", points = 0, isPrimary = false, requiresMinute = true, requiresParticipant = true, requiresAssist = false, validation = new { minMinute = 0, maxMinute = 48, allowInOvertime = true } },
-            
-            // Timeouts
-            new { id = "TIMEOUT", name = "Timeout", category = "Time", points = 0, isPrimary = false, requiresMinute = true, requiresParticipant = true, requiresPlayer = false, requiresAssist = false, teamMetric = "TIMEOUTS", validation = new { minMinute = 0, maxMinute = 48, allowInOvertime = true } },
-            
-            // Period end
-            new { id = "PERIOD_END", name = "Period End", category = "Timing", points = 0, isPrimary = false, requiresMinute = false, requiresParticipant = false, requiresAssist = false, validation = new { } }
-        };
-
-        return JsonSerializer.Serialize(events);
-    }
+        => BasketballTimelinePackage.GetDefinitionsJson();
 
     public static string GetMetricDefinitions()
     {

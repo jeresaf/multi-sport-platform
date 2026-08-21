@@ -98,7 +98,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         state = const AuthState();
       }
     } catch (e) {
-      state = AuthState(errorMessage: e.toString());
+      state = AuthState(errorMessage: _friendlyAuthError(e));
     }
   }
 
@@ -128,7 +128,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
-        errorMessage: e.toString(),
+        errorMessage: _friendlyAuthError(e),
       );
       return false;
     }
@@ -159,7 +159,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     } catch (error) {
       state = state.copyWith(
         isLoading: false,
-        errorMessage: error.toString(),
+        errorMessage: _friendlyAuthError(error, action: 'Registration'),
       );
       return false;
     }
@@ -196,10 +196,32 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = state.copyWith(isLoading: false, errorMessage: null);
       return true;
     } catch (error) {
-      state = state.copyWith(isLoading: false, errorMessage: error.toString());
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: _friendlyAuthError(error, action: 'Password reset'),
+      );
       return false;
     }
   }
+}
+
+String _friendlyAuthError(Object error, {String action = 'Sign in'}) {
+  final message = error.toString().toLowerCase();
+  if (message.contains('badpadding') ||
+      message.contains('bad_decrypt') ||
+      message.contains('cipher')) {
+    return 'Saved sign-in data could not be read and has been cleared. Please try again.';
+  }
+  if (message.contains('401') || message.contains('unauthorized')) {
+    return 'The email or password is incorrect.';
+  }
+  if (message.contains('socket') ||
+      message.contains('connection') ||
+      message.contains('timed out') ||
+      message.contains('timeout')) {
+    return 'Could not reach the sports platform. Check Wi-Fi and try again.';
+  }
+  return '$action failed. Please try again.';
 }
 
 /// Provider for API client (shared)

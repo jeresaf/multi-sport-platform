@@ -39,6 +39,7 @@ type TimelineEvent = {
   sportCode: string;
   sportVariant?: string | null;
   period?: string | null;
+  playId?: string | null;
   clock?: string | null;
   primaryParticipantId?: string | null;
   primaryParticipantName?: string | null;
@@ -75,6 +76,9 @@ type ContestDetails = {
   id: string;
   name?: string | null;
   sportId: string;
+  sportCode?: string | null;
+  availableTabs?: ContestTab[];
+  tabLabels?: Partial<Record<ContestTab, string>>;
   contestShape: string;
   renderer: 'head-to-head' | 'multi-participant-leaderboard' | 'race-heat' | 'fight-card-bout' | 'cricket-scorecard';
   status: string;
@@ -125,6 +129,7 @@ type ContestDetails = {
     }>;
   };
 };
+type ContestTab = 'overview' | 'timeline' | 'statistics' | 'details';
 type Snapshot = {
   contestId: string;
   status: string;
@@ -140,7 +145,7 @@ export default function ContestPage({ params }: { params: Promise<{ id: string }
   const [tenantSlug, setTenantSlug] = useState('premier-league');
   const [error, setError] = useState<string | null>(null);
   const [liveState, setLiveState] = useState<'connecting' | 'live' | 'reconnecting' | 'offline'>('connecting');
-  const [activeTab, setActiveTab] = useState<'overview' | 'timeline' | 'statistics' | 'details'>('overview');
+  const [activeTab, setActiveTab] = useState<ContestTab>('overview');
 
   const loadContest = useCallback(async (slug: string) => {
     const [detail, eventTimeline] = await Promise.all([
@@ -251,6 +256,9 @@ export default function ContestPage({ params }: { params: Promise<{ id: string }
 
   if (error) return <State message={`Contest unavailable: ${error}`} />;
   if (!contest) return <State message="Loading contest…" />;
+  const availableTabs = contest.availableTabs?.filter(isContestTab) ??
+    (['overview', 'timeline', 'statistics', 'details'] as ContestTab[]);
+  const selectedTab = availableTabs.includes(activeTab) ? activeTab : availableTabs[0] ?? 'overview';
 
   return (
     <div className="container mx-auto max-w-6xl px-4 py-6 sm:py-10">
@@ -282,19 +290,19 @@ export default function ContestPage({ params }: { params: Promise<{ id: string }
       </section>
 
       <nav className="mt-6 flex max-w-full gap-1 overflow-x-auto rounded-2xl border border-gray-200 bg-white p-1 shadow-sm" aria-label="Contest sections">
-        {(['overview', 'timeline', 'statistics', 'details'] as const).map(tab => <button
+        {availableTabs.map(tab => <button
           key={tab}
           type="button"
           onClick={() => setActiveTab(tab)}
-          aria-current={activeTab === tab ? 'page' : undefined}
-          className={`shrink-0 rounded-xl px-4 py-2.5 text-sm font-semibold capitalize transition ${activeTab === tab ? 'bg-primary text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}
-        >{tab}</button>)}
+          aria-current={selectedTab === tab ? 'page' : undefined}
+          className={`shrink-0 rounded-xl px-4 py-2.5 text-sm font-semibold transition ${selectedTab === tab ? 'bg-primary text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}
+        >{contest.tabLabels?.[tab] ?? label(tab)}</button>)}
       </nav>
-      <main data-testid={`contest-panel-${activeTab}`} className="min-w-0 py-8">
-        {activeTab === 'overview' && <div data-testid={`contest-renderer-${contest.renderer}`}><ContestRenderer contest={contest} tenantSlug={tenantSlug} /></div>}
-        {activeTab === 'timeline' && <Timeline events={timeline?.events ?? []} />}
-        {activeTab === 'statistics' && <Statistics contest={contest} />}
-        {activeTab === 'details' && <Segments contest={contest} />}
+      <main data-testid={`contest-panel-${selectedTab}`} className="min-w-0 py-8">
+        {selectedTab === 'overview' && <div data-testid={`contest-renderer-${contest.renderer}`}><ContestRenderer contest={contest} tenantSlug={tenantSlug} /></div>}
+        {selectedTab === 'timeline' && <Timeline events={timeline?.events ?? []} />}
+        {selectedTab === 'statistics' && <Statistics contest={contest} />}
+        {selectedTab === 'details' && <Segments contest={contest} />}
       </main>
     </div>
   );
@@ -369,7 +377,45 @@ function CricketScorecard({ contest }: { contest: ContestDetails }) {
 
 function Timeline({ events }: { events: TimelineEvent[] }) {
   const rows = [...events].reverse();
-  return <div><h2 className="mb-4 text-2xl font-bold">Event timeline</h2>{rows.length === 0 ? <State message="No public events have been recorded." compact /> : <div className="space-y-3">{rows.map(event => event.sportCode === 'FOOTBALL' ? <FootballTimelineEvent key={event.id} event={event} /> : <GenericTimelineEvent key={event.id} event={event} />)}</div>}</div>;
+  const basketball = rows.some(event => event.sportCode === 'BASKETBALL');
+  const rugby = rows.some(event => event.sportCode.startsWith('RUGBY'));
+  return <div><h2 className="mb-4 text-2xl font-bold">{basketball ? 'Play-by-play' : rugby ? 'Rugby match timeline' : 'Event timeline'}</h2>{rows.length === 0 ? <State message="No public events have been recorded." compact /> : basketball ? <BasketballTimeline events={rows} /> : <div className="space-y-3">{rows.map(event => event.sportCode === 'FOOTBALL' ? <FootballTimelineEvent key={event.id} event={event} /> : event.sportCode.startsWith('RUGBY') ? <RugbyTimelineEvent key={event.id} event={event} /> : <GenericTimelineEvent key={event.id} event={event} />)}</div>}</div>;
+}
+
+function BasketballTimeline({ events }: { events: TimelineEvent[] }) {
+  const groups = new Map<string, TimelineEvent[]>();
+  for (const event of events) {
+    const key = event.playId ? `${event.period ?? 'Game'}:${event.playId}` : event.id;
+    groups.set(key, [...(groups.get(key) ?? []), event]);
+  }
+  let previousPeriod: string | null = null;
+  return <div className="space-y-3">{[...groups.entries()].map(([key, play]) => {
+    const primary = play.find(event => event.category === 'SCORING') ?? play[0];
+    const period = primary.period ?? 'Game';
+    const showPeriod = period !== previousPeriod;
+    previousPeriod = period;
+    const assist = play.find(event => event.type === 'ASSIST');
+    const actor = primary.primaryPlayerName ?? primary.primaryParticipantName;
+    const score = primary.category === 'SCORING'
+      ? `${primary.homeScoreAfter}–${primary.awayScoreAfter}`
+      : null;
+    return <div key={key}>
+      {showPeriod && <h3 className="pb-2 pt-3 text-sm font-black uppercase tracking-widest text-gray-400">{period}</h3>}
+      <article className={`rounded-2xl border border-gray-200 bg-white p-4 shadow-sm ${play.some(event => event.status === 'REVERSED') ? 'opacity-60' : ''}`}>
+        <div className="grid grid-cols-[3.5rem_minmax(0,1fr)_auto] gap-3">
+          <time className="font-bold text-gray-500">{primary.clock ?? '—'}</time>
+          <div className="min-w-0">
+            <strong>{label(primary.type)}</strong>
+            {actor && <p className="truncate text-sm text-gray-600">{actor}</p>}
+            {assist && <p className="truncate text-xs text-gray-500">Assist: {assist.primaryPlayerName ?? assist.primaryParticipantName ?? 'Recorded'}</p>}
+            {play.length > 1 && !assist && <p className="text-xs text-gray-500">{play.slice(1).map(event => label(event.type)).join(' · ')}</p>}
+          </div>
+          {score && <strong className="whitespace-nowrap text-primary">{score}</strong>}
+        </div>
+        {play.some(event => event.status !== 'CONFIRMED') && <p className="mt-2 pl-[4.25rem] text-xs font-semibold text-gray-500">{[...new Set(play.map(event => label(event.status)))].join(' · ')}</p>}
+      </article>
+    </div>;
+  })}</div>;
 }
 
 function GenericTimelineEvent({ event }: { event: TimelineEvent }) {
@@ -407,6 +453,42 @@ function FootballTimelineEvent({ event }: { event: TimelineEvent }) {
 
 function label(value: string) {
   return value.replaceAll('_', ' ').toLowerCase().replace(/\b\w/g, letter => letter.toUpperCase());
+}
+
+function RugbyTimelineEvent({ event }: { event: TimelineEvent }) {
+  const minute = event.clock ? `${Number(event.clock.split(':')[0])}'` : null;
+  const actor = event.primaryPlayerName ?? event.primaryParticipantName;
+  const missed = event.type.endsWith('_MISSED');
+  const score = event.category === 'SCORING' && !missed
+    ? `${event.homeScoreAfter}–${event.awayScoreAfter}`
+    : null;
+  const symbol = event.type.includes('TRY')
+    ? '🏉'
+    : event.type.includes('CARD') || event.type.startsWith('SIN_BIN_')
+      ? event.type === 'YELLOW_CARD' || event.type === 'SIN_BIN_START' ? '🟨' : '🟥'
+      : event.type.startsWith('TMO_')
+        ? 'TMO'
+        : event.type.includes('SUBSTITUTION') || event.type.includes('REPLACEMENT')
+          ? '↔'
+          : '•';
+  return <article className={`rounded-2xl border border-gray-200 bg-white p-4 shadow-sm ${event.status === 'REVERSED' ? 'opacity-60' : ''}`}>
+    <div className="grid grid-cols-[3rem_2.5rem_minmax(0,1fr)_auto] items-start gap-2">
+      <time className="font-bold text-gray-500">{minute ?? event.clock ?? '—'}</time>
+      <span aria-hidden className="text-center font-bold">{symbol}</span>
+      <div className="min-w-0">
+        <strong>{label(event.type)}</strong>
+        {actor && <p className="truncate text-sm text-gray-600">{actor}</p>}
+        <p className="text-xs text-gray-400">{event.sportVariant === 'RUGBY_7' ? 'Rugby 7s' : 'Rugby 15s'}{event.period ? ` · ${event.period}` : ''}</p>
+        {event.type === 'SUBSTITUTION' && event.secondaryPlayerName && <p className="text-xs text-gray-500">{event.secondaryPlayerName} on</p>}
+      </div>
+      {score && <strong className="whitespace-nowrap text-primary">{score}</strong>}
+    </div>
+    {(event.status !== 'CONFIRMED' || event.type.startsWith('TMO_')) && <div className="mt-2 flex gap-2 pl-[5.5rem] text-xs font-semibold"><span className="rounded-full bg-gray-100 px-2 py-1">{label(event.status)}</span>{event.type.startsWith('TMO_') && <span className="rounded-full bg-blue-50 px-2 py-1 text-blue-700">TMO</span>}</div>}
+  </article>;
+}
+
+function isContestTab(value: string): value is ContestTab {
+  return value === 'overview' || value === 'timeline' || value === 'statistics' || value === 'details';
 }
 
 function Segments({ contest }: { contest: ContestDetails }) {
