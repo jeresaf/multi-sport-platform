@@ -163,8 +163,8 @@ Future<void> _loadDeterministicRoboto() async {
 
   for (final root in candidates) {
     final directory = [root.path, ...fontDirectory].join(separator);
-    final roboto = File('$directory${separator}roboto-regular.ttf');
-    final icons = File('$directory${separator}materialicons-regular.otf');
+    final roboto = File('$directory${separator}Roboto-Regular.ttf');
+    final icons = File('$directory${separator}MaterialIcons-Regular.otf');
     if (!roboto.existsSync() || !icons.existsSync()) continue;
     final bytes = await roboto.readAsBytes();
     await (FontLoader('GoldenRoboto')
