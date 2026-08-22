@@ -21,18 +21,16 @@ type Leader = {
 
 export default function StatisticsPage() {
   const [home, setHome] = useState<PublicHome | null>(null);
-  const [tenantSlug, setTenantSlug] = useState('premier-league');
+  const [tenantSlug] = useState(resolveTenantSlug);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const slug = resolveTenantSlug();
-    setTenantSlug(slug);
-    publicApi<PublicHome>('/home', undefined, slug)
+    publicApi<PublicHome>('/home', undefined, tenantSlug)
       .then(setHome)
       .catch((reason: Error) => setError(reason.message))
       .finally(() => setLoading(false));
-  }, []);
+  }, [tenantSlug]);
 
   const leaders = useMemo(() => {
     const grouped = new Map<string, Leader>();
