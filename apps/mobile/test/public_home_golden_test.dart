@@ -17,6 +17,8 @@ import 'package:sports_platform_mobile/features/supporter/data/supporter_prefere
 import 'package:sports_platform_mobile/features/supporter/domain/supporter_models.dart';
 import 'package:sports_platform_mobile/features/supporter/presentation/providers/supporter_provider.dart';
 
+final _goldenToday = DateTime(2026, 8, 21);
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(_loadDeterministicRoboto);
@@ -144,9 +146,12 @@ Future<void> _pumpPublicHome(
                 ?.copyWith(fontFamily: 'GoldenRoboto'),
           ),
         ),
-        home: const RepaintBoundary(
+        home: RepaintBoundary(
           key: _goldenBoundaryKey,
-          child: HomeScreen(),
+          child: HomeScreen(
+            initialDate: _goldenToday,
+            today: _goldenToday,
+          ),
         ),
       ),
     ),
@@ -191,7 +196,7 @@ Future<void> _loadDeterministicRoboto() async {
 }
 
 SupporterFeed _populatedFeed() {
-  final day = DateTime.now();
+  final day = _goldenToday;
   DateTime at(int hour, [int minute = 0]) =>
       DateTime(day.year, day.month, day.day, hour, minute);
 
@@ -352,4 +357,8 @@ class _GuestAuthRepository implements AuthRepository {
 
   @override
   Future<void> sendPasswordReset(String email) async {}
+
+  @override
+  Future<User> updateProfile(String firstName, String lastName) async =>
+      throw UnimplementedError();
 }

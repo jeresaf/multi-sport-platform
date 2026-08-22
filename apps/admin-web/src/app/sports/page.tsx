@@ -1,7 +1,7 @@
 'use client';
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { adminApi, getStoredUser, hasAnyPermission, isPlatformOperator } from '@/lib/admin-api';
+import { adminApi, getEffectiveTenantId, getStoredUser, hasAnyPermission, isPlatformOperator } from '@/lib/admin-api';
 
 type Tenant = { id: string; name: string };
 type SportVersion = {
@@ -56,7 +56,7 @@ export default function SportsPage() {
   const canManage = hasAnyPermission(user, ['sports.create', 'sports.manage']);
   const [sports, setSports] = useState<Sport[]>([]);
   const [tenants, setTenants] = useState<Tenant[]>([]);
-  const [tenantId, setTenantId] = useState(user?.tenantId ?? '');
+  const [tenantId, setTenantId] = useState(getEffectiveTenantId() ?? '');
   const [tenantSports, setTenantSports] = useState<TenantSport[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<SportForm>(emptyForm);

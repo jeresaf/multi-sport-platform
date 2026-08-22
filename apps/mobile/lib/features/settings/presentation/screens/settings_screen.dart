@@ -41,6 +41,17 @@ class SettingsScreen extends ConsumerWidget {
               auth.isAuthenticated ? Routes.profile : Routes.login,
             ),
           ),
+          ListTile(
+            leading: const Icon(Icons.assignment_outlined),
+            title: const Text('My registrations'),
+            subtitle: Text(auth.isAuthenticated
+                ? 'Drafts, submissions, and official decisions'
+                : 'Sign in to register athletes or teams'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push(
+              auth.isAuthenticated ? Routes.myRegistrations : Routes.login,
+            ),
+          ),
           const Divider(),
 
           const _SectionHeader(title: 'Organisation'),
@@ -178,7 +189,7 @@ class SettingsScreen extends ConsumerWidget {
           ListTile(
             leading: const Icon(Icons.info_outline),
             title: const Text('About'),
-            subtitle: const Text('Version 1.0.1'),
+            subtitle: const Text('Version 1.0.2'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
               _showAboutDialog(context);

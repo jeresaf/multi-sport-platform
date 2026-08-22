@@ -489,6 +489,61 @@ public class AuthService : IAuthService
         return result;
     }
 
+    public async Task<UserResponse> CreateTenantUserAsync(
+        Guid actorId,
+        Guid tenantId,
+        CreateTenantUserRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (await _userRepository.EmailExistsAsync(request.Email, cancellationToken))
+            throw new InvalidOperationException("Email is already registered.");
+
+        var tenantRoles = await _roleRepository.GetByTenantAsync(tenantId, cancellationToken);
+        var selectedRoles = tenantRoles
+            .Where(role => request.RoleIds.Contains(role.Id))
+            .ToArray();
+        if (selectedRoles.Length != request.RoleIds.Distinct().Count())
+            throw new InvalidOperationException(
+                "Every selected role must belong to the active tenant.");
+        if (selectedRoles.Length == 0)
+            throw new InvalidOperationException("Assign at least one tenant role.");
+
+        var user = new User(
+            Guid.NewGuid(),
+            request.Email,
+            request.FirstName.Trim(),
+            request.LastName.Trim(),
+            request.Password,
+            tenantId);
+        foreach (var role in selectedRoles)
+            user.AddRole(role.Id);
+
+        await _userRepository.AddAsync(user, cancellationToken);
+        await _userRepository.UnitOfWork.SaveEntitiesAsync(cancellationToken);
+        await _auditService.RecordAsync(
+            "TenantUserCreated",
+            "User",
+            user.Id.ToString(),
+            tenantId,
+            actorId,
+            null,
+            $"Email: {user.Email}, Roles: {string.Join(", ", selectedRoles.Select(role => role.Name))}",
+            "Tenant administrator created a user account.",
+            cancellationToken);
+
+        return new UserResponse(
+            user.Id,
+            user.Email,
+            user.FirstName,
+            user.LastName,
+            user.EmailVerified,
+            user.IsActive,
+            user.IsSuspended,
+            user.LastLoginAt,
+            selectedRoles.Select(role => role.Name).OrderBy(name => name).ToArray(),
+            user.TenantId);
+    }
+
     private async Task<IReadOnlyList<string>> GetUserRolesAsync(User user, CancellationToken cancellationToken)
     {
         var roleIds = user.Roles.Select(r => r.RoleId).ToList();

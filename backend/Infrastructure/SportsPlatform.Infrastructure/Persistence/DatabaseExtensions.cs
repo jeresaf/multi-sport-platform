@@ -63,7 +63,16 @@ public static class DatabaseExtensions
             await EnsureAuditAppendOnlyAsync(context);
 
             var enableDemoData = app.Configuration.GetValue<bool>("SeedData:EnableDemoData");
-            if (enableDemoData)
+            var seedMode = app.Configuration["SeedData:Mode"]?.Trim();
+            var seedAdminOnly = string.Equals(
+                seedMode, "AdminOnly", StringComparison.OrdinalIgnoreCase);
+            var seedDemoData = enableDemoData && !seedAdminOnly;
+            if (seedAdminOnly)
+            {
+                logger.LogInformation("Initializing the empty walkthrough database with platform reference data and the administrator account only.");
+                await SeedData.WalkthroughSeedData.EnsureAsync(context);
+            }
+            else if (seedDemoData)
             {
                 await SeedData.SeedData.InitializeAsync(context);
                 var publicCsvPackPath = app.Configuration["SeedData:PublicCsvPackPath"];
@@ -72,11 +81,12 @@ public static class DatabaseExtensions
                     logger.LogInformation("Importing public staging CSV seed pack from {Path}.", publicCsvPackPath);
                     await SeedData.PublicCsvSeedData.EnsureAsync(context, publicCsvPackPath);
                 }
+                await SeedData.HistoricalTimelineSeedData.EnsureAsync(context);
             }
             else
                 logger.LogInformation("Demo data seeding is disabled for this environment.");
             await EnsureResultWorkflowPermissionsAsync(context);
-            if (enableDemoData)
+            if (seedDemoData)
             {
                 await EnsureSeededTenantSubscriptionsAsync(context);
                 await EnsurePremierTenantAdministratorAsync(context);
@@ -91,7 +101,7 @@ public static class DatabaseExtensions
             await EnsureSystemRoleCatalogueAsync(context);
             await BackfillTenantSportsAsync(context);
             await BackfillSportSegmentHierarchiesAsync(context);
-            if (enableDemoData)
+            if (seedDemoData)
                 await PublishSeededRugbyFixturesAsync(context);
             logger.LogInformation("Database initialization completed.");
         }

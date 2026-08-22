@@ -240,6 +240,23 @@ public class AuthController : ControllerBase
         return Ok(user);
     }
 
+    [HttpPut("me")]
+    [Authorize]
+    public async Task<ActionResult<UserInfo>> UpdateCurrentUser(
+        [FromBody] UpdateOwnProfileRequest request,
+        CancellationToken cancellationToken)
+    {
+        var userId = GetUserId();
+        var user = await _database.Users.FindAsync(new object[] { userId }, cancellationToken);
+        if (user is null) return NotFound();
+        user.CorrectProfile(request.FirstName, request.LastName, request.PhoneNumber);
+        await _database.SaveChangesAsync(cancellationToken);
+        await RecordAuthAsync(
+            "AuthenticationProfileUpdated", userId, user.TenantId,
+            "Profile updated by authenticated user", cancellationToken);
+        return Ok(await _authService.GetCurrentUserAsync(userId, cancellationToken));
+    }
+
     [HttpGet("sessions")]
     [Authorize]
     public async Task<ActionResult<IReadOnlyList<DeviceSessionResponse>>> GetDeviceSessions(
@@ -318,12 +335,34 @@ public class AuthController : ControllerBase
         [FromQuery] int pageSize = 50,
         CancellationToken cancellationToken = default)
     {
-        var tenantId = GetTenantId();
+        var tenantId = GetManagedTenantId();
         if (!tenantId.HasValue)
             return BadRequest(new { error = "Tenant context required." });
 
         var users = await _authService.GetUsersByTenantAsync(tenantId.Value, page, pageSize, cancellationToken);
         return Ok(users);
+    }
+
+    [HttpPost("users")]
+    [Authorize]
+    [RequirePermission("users.manage")]
+    public async Task<ActionResult<UserResponse>> CreateTenantUser(
+        [FromBody] CreateTenantUserRequest request,
+        CancellationToken cancellationToken)
+    {
+        var tenantId = GetManagedTenantId();
+        if (!tenantId.HasValue)
+            return BadRequest(new { error = "Select a tenant workspace first." });
+        try
+        {
+            var user = await _authService.CreateTenantUserAsync(
+                GetUserId(), tenantId.Value, request, cancellationToken);
+            return Created($"/api/auth/users/{user.Id}", user);
+        }
+        catch (InvalidOperationException exception)
+        {
+            return BadRequest(new { error = exception.Message });
+        }
     }
 
     [HttpPost("users/{userId:guid}/suspend")]
@@ -334,7 +373,7 @@ public class AuthController : ControllerBase
         [FromBody] AccountSuspensionRequest request,
         CancellationToken cancellationToken)
     {
-        var tenantId = GetTenantId();
+        var tenantId = GetManagedTenantId();
         if (!tenantId.HasValue)
             return BadRequest(new { error = "Tenant context required." });
         await _authService.SuspendUserAsync(
@@ -350,7 +389,7 @@ public class AuthController : ControllerBase
         [FromBody] AccountSuspensionRequest request,
         CancellationToken cancellationToken)
     {
-        var tenantId = GetTenantId();
+        var tenantId = GetManagedTenantId();
         if (!tenantId.HasValue)
             return BadRequest(new { error = "Tenant context required." });
         await _authService.UnsuspendUserAsync(
@@ -368,6 +407,16 @@ public class AuthController : ControllerBase
     {
         var claim = User.FindFirst("tenant_id");
         return claim != null ? Guid.Parse(claim.Value) : null;
+    }
+
+    private Guid? GetManagedTenantId()
+    {
+        if (!User.IsPlatformOperator())
+            return GetTenantId();
+        return HttpContext.Items.TryGetValue("PlatformTenantScope", out var selected)
+            && selected is Guid selectedTenantId
+                ? selectedTenantId
+                : null;
     }
 
     private Task RecordAuthAsync(

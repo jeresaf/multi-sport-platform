@@ -34,10 +34,12 @@ public class ParticipantConfiguration : IEntityTypeConfiguration<Participant>
             .HasConversion<string>();
 
         builder.Property(p => p.TenantId).IsRequired();
+        builder.Property(p => p.ApplicantUserId);
         builder.Property(p => p.CreatedAt).IsRequired();
         builder.Property(p => p.UpdatedAt);
 
         builder.HasIndex(p => new { p.TenantId, p.Type });
+        builder.HasIndex(p => new { p.TenantId, p.ApplicantUserId });
 
         // TPH inheritance for Athlete and Team
         builder.HasDiscriminator<ParticipantType>("Type")

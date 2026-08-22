@@ -22,6 +22,19 @@ public record RegisterRequest(
     string? DeviceType = null
 );
 
+public record CreateTenantUserRequest(
+    [param: Required, EmailAddress, StringLength(254)]
+    string Email,
+    [param: Required, StringLength(128, MinimumLength = 8)]
+    string Password,
+    [param: Required, StringLength(100)]
+    string FirstName,
+    [param: Required, StringLength(100)]
+    string LastName,
+    [param: MinLength(1)]
+    IReadOnlyList<Guid> RoleIds
+);
+
 public record LoginRequest(
     [param: Required, EmailAddress, StringLength(254)]
     string Email,
@@ -54,6 +67,15 @@ public record ChangePasswordRequest(
     string CurrentPassword,
     [param: Required, StringLength(128, MinimumLength = 8)]
     string NewPassword
+);
+
+public record UpdateOwnProfileRequest(
+    [param: Required, StringLength(100)]
+    string FirstName,
+    [param: Required, StringLength(100)]
+    string LastName,
+    [param: Phone, StringLength(30)]
+    string? PhoneNumber = null
 );
 
 public record ForgotPasswordRequest(
@@ -104,7 +126,8 @@ public record RoleResponse(
     string? Description,
     bool IsSystemRole,
     IReadOnlyList<string> Permissions,
-    Guid? TenantId
+    Guid? TenantId,
+    string? TenantName = null
 );
 
 public record CreateRoleRequest(

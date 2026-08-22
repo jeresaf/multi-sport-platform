@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { adminApi, adminDownload, getStoredUser, isPlatformOperator } from '@/lib/admin-api';
+import { adminApi, adminDownload, getEffectiveTenantId, getStoredUser, isPlatformOperator } from '@/lib/admin-api';
 
 type Tenant = { id: string; name: string };
 type PreviewRow = { row: number; name: string; status: string; message?: string | null };
@@ -13,7 +13,7 @@ export default function ImportsPage() {
   const user = getStoredUser();
   const platform = isPlatformOperator(user);
   const [tenants, setTenants] = useState<Tenant[]>([]);
-  const [tenantId, setTenantId] = useState(user?.tenantId ?? '');
+  const [tenantId, setTenantId] = useState(getEffectiveTenantId() ?? '');
   const [kind, setKind] = useState('athletes');
   const [rosterId, setRosterId] = useState('');
   const [duplicateHandling, setDuplicateHandling] = useState('Skip');

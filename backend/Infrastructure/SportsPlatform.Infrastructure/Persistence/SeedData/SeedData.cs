@@ -534,7 +534,7 @@ public static class SeedData
         await DemoSeedData.EnsureAsync(context);
     }
 
-    private static async Task EnsurePublishedRulesetsAsync(SportsPlatformDbContext context)
+    internal static async Task EnsurePublishedRulesetsAsync(SportsPlatformDbContext context)
     {
         var sports = await context.Sports.Include(sport => sport.Versions).ToArrayAsync();
         foreach (var sport in sports)

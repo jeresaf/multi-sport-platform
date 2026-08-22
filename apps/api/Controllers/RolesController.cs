@@ -37,16 +37,38 @@ public class RolesController : ControllerBase
     [RequirePermission("roles.read")]
     public async Task<ActionResult<IReadOnlyList<RoleResponse>>> GetRoles(CancellationToken cancellationToken)
     {
-        var tenantId = User.IsPlatformOperator() ? null : GetTenantId();
-        var roles = await _roleService.GetRolesByTenantAsync(tenantId, cancellationToken);
-        return Ok(roles);
+        var scopedTenantId = GetScopedTenantId();
+        if (!User.IsPlatformOperator() || scopedTenantId.HasValue)
+        {
+            var roles = await _roleService.GetRolesByTenantAsync(scopedTenantId, cancellationToken);
+            return Ok(roles);
+        }
+
+        var tenantNames = await _database.Tenants.AsNoTracking()
+            .ToDictionaryAsync(item => item.Id, item => item.Name, cancellationToken);
+        var allRoles = await _database.Roles.AsNoTracking()
+            .Include(item => item.Permissions)
+            .ToListAsync(cancellationToken);
+
+        return Ok(allRoles.Select(role => new RoleResponse(
+            role.Id,
+            role.Name,
+            role.Description,
+            role.IsSystemRole,
+            role.Permissions.Select(permission => permission.Permission).OrderBy(value => value).ToArray(),
+            role.TenantId,
+            role.TenantId.HasValue && tenantNames.TryGetValue(role.TenantId.Value, out var tenantName)
+                ? tenantName
+                : "Platform"))
+            .OrderBy(role => role.TenantName)
+            .ThenBy(role => role.Name));
     }
 
     [HttpGet("permissions")]
     [RequirePermission("roles.read")]
     public ActionResult<IReadOnlyList<string>> GetPermissionCatalogue()
     {
-        var permissions = User.IsPlatformOperator()
+        var permissions = User.IsPlatformOperator() && !GetScopedTenantId().HasValue
             ? SystemPermissions.All
             : SystemPermissions.TenantAssignable;
         return Ok(permissions);
@@ -78,7 +100,7 @@ public class RolesController : ControllerBase
     {
         try
         {
-            var tenantId = User.IsPlatformOperator() ? null : GetTenantId();
+            var tenantId = GetScopedTenantId();
             var role = await _roleService.CreateRoleAsync(request, tenantId, cancellationToken);
             await AuditAsync("PermissionRoleCreated", tenantId, role.Id, request,
                 "Role and permissions created", cancellationToken);
@@ -211,6 +233,16 @@ public class RolesController : ControllerBase
     {
         var claim = User.FindFirst("tenant_id");
         return claim != null ? Guid.Parse(claim.Value) : null;
+    }
+
+    private Guid? GetScopedTenantId()
+    {
+        if (User.IsPlatformOperator() &&
+            HttpContext.Items.TryGetValue("PlatformTenantScope", out var selected) &&
+            selected is Guid selectedTenantId)
+            return selectedTenantId;
+
+        return User.IsPlatformOperator() ? null : GetTenantId();
     }
 
     private Task AuditAsync(

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Bell, Megaphone, RefreshCw, Send } from 'lucide-react';
-import { adminApi, getStoredUser } from '@/lib/admin-api';
+import { adminApi, getEffectiveTenantId } from '@/lib/admin-api';
 
 type Competition = { id: string; name: string };
 type Contest = { id: string; name: string; startTime?: string | null; venue?: string | null };
@@ -51,7 +51,7 @@ export default function NotificationsPage() {
   }, []);
 
   useEffect(() => {
-    const scope = getStoredUser()?.tenantId ?? '';
+    const scope = getEffectiveTenantId() ?? '';
     setTenantId(scope);
     if (!scope) return;
     Promise.all([

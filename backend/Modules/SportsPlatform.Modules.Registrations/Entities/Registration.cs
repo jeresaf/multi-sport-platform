@@ -7,6 +7,8 @@ public class Registration : AggregateRoot<Guid>
     public Guid? ContestId { get; private set; }
     public Guid? CompetitionId { get; private set; }
     public Guid ParticipantId { get; private set; }
+    public Guid? ApplicantUserId { get; private set; }
+    public Guid? FormSubmissionId { get; private set; }
     public RegistrationType Type { get; private set; }
     public RegistrationStatus Status { get; private set; } = RegistrationStatus.Draft;
     public DateTime? RegisteredAt { get; private set; }
@@ -195,6 +197,22 @@ public class Registration : AggregateRoot<Guid>
     {
         EntryFee = fee;
         IsEntryFeePaid = isPaid;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void AssignApplicant(Guid applicantUserId)
+    {
+        if (applicantUserId == Guid.Empty)
+            throw new ArgumentException("An applicant user is required.", nameof(applicantUserId));
+        ApplicantUserId = applicantUserId;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void LinkFormSubmission(Guid formSubmissionId)
+    {
+        if (formSubmissionId == Guid.Empty)
+            throw new ArgumentException("A form submission is required.", nameof(formSubmissionId));
+        FormSubmissionId = formSubmissionId;
         UpdatedAt = DateTime.UtcNow;
     }
 

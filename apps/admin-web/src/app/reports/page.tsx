@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Archive, Database, Download, FileBarChart, FileText, LoaderCircle, RefreshCw } from 'lucide-react';
-import { adminApi, adminDownload, getStoredUser } from '@/lib/admin-api';
+import { adminApi, adminDownload, getEffectiveTenantId } from '@/lib/admin-api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -71,7 +71,7 @@ export default function ReportsPage() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
-  useEffect(() => setTenantId(getStoredUser()?.tenantId ?? ''), []);
+  useEffect(() => setTenantId(getEffectiveTenantId() ?? ''), []);
 
   const load = useCallback(async () => {
     if (!tenantId) return;

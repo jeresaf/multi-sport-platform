@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useParams, usePathname } from 'next/navigation';
-import { ArrowLeft, BarChart3, CalendarDays, Radio, Trophy, Users } from 'lucide-react';
+import { ArrowLeft, BarChart3, CalendarDays, ClipboardPenLine, Radio, Trophy, Users } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { CompetitionHero } from '@/components/competition/competition-hero';
 import { CompetitionNavigation } from '@/components/competition/competition-navigation';
@@ -14,6 +14,7 @@ import { AlertPreferencesDialog } from '@/components/alert-preferences-dialog';
 import { loadAlerts } from '@/lib/alert-preferences';
 import { ContestStatus } from '@/components/contest-status';
 import { normalizeStatus } from '@/lib/presentation';
+import { platformApi } from '@/lib/applicant-api';
 
 export default function CompetitionDetailPage() {
   const params = useParams<{ id: string }>();
@@ -27,6 +28,7 @@ export default function CompetitionDetailPage() {
   const [alerts, setAlerts] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [alertDialog, setAlertDialog] = useState(false);
+  const [registrationOpen, setRegistrationOpen] = useState(false);
 
   useEffect(() => {
     const resolvedTenant = resolveTenantSlug();
@@ -56,6 +58,11 @@ export default function CompetitionDetailPage() {
       })
       .catch((reason: Error) => setError(reason.message));
   }, [params.id, pathname]);
+
+  useEffect(() => {
+    platformApi<Array<{ id: string }>>(`/api/registrationforms/public/competition/${params.id}`)
+      .then(items => setRegistrationOpen(items.length > 0)).catch(() => setRegistrationOpen(false));
+  }, [params.id]);
 
   useEffect(() => {
     if (!competition) return;
@@ -89,6 +96,7 @@ export default function CompetitionDetailPage() {
       All competitions
     </Link>
     <CompetitionHero competition={competition} followed={followed} alerts={alerts} onFollow={toggleFollow} onAlerts={() => followed && setAlertDialog(true)} />
+    {registrationOpen && <section className="mt-5 flex flex-col items-start justify-between gap-4 rounded-2xl border border-[var(--brand-primary)]/20 bg-[var(--color-surface)] p-5 shadow-sm sm:flex-row sm:items-center"><div className="flex items-start gap-3"><span className="rounded-xl bg-[var(--brand-primary)] p-2 text-white"><ClipboardPenLine className="h-5 w-5" /></span><div><h2 className="font-black">Registration is open</h2><p className="mt-1 text-sm muted">Create or select an athlete or team, complete the official form, and track its review status.</p></div></div><Link href={tenantPath(`/apply/${competition.id}`, tenantSlug)} className="w-full rounded-xl bg-[var(--brand-primary)] px-5 py-3 text-center font-bold text-white sm:w-auto">Register now</Link></section>}
     <AlertPreferencesDialog open={alertDialog} type="competition" id={competition.id} title={competition.name} sportCode={competition.sport?.code} onClose={() => setAlertDialog(false)} onChange={setAlerts} />
     <CompetitionNavigation id={competition.id} views={competition.availableTabs} active={activeTab} labels={competition.labels} tenantSlug={tenantSlug} onChange={changeTab} />
     <main className="py-7" data-testid={`competition-panel-${activeTab}`}>

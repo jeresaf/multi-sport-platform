@@ -333,6 +333,55 @@ public class RegistrationFormsController : ControllerBase
         return Ok(submissions);
     }
 
+    [HttpGet("competition/{competitionId:guid}/submission-review-queue")]
+    [RequirePermission("participants.read")]
+    public async Task<IActionResult> GetCompetitionSubmissionReviewQueue(
+        Guid competitionId,
+        CancellationToken cancellationToken)
+    {
+        if (!await User.CanAccessCompetitionAsync(_database, competitionId, cancellationToken))
+            return Forbid();
+        var registrations = await _database.Registrations.AsNoTracking()
+            .Where(item => item.CompetitionId == competitionId && item.FormSubmissionId.HasValue)
+            .OrderByDescending(item => item.UpdatedAt ?? item.CreatedAt)
+            .ToArrayAsync(cancellationToken);
+        var submissionIds = registrations.Select(item => item.FormSubmissionId!.Value).ToArray();
+        var submissions = await _database.RegistrationFormSubmissions.AsNoTracking()
+            .Where(item => submissionIds.Contains(item.Id))
+            .ToDictionaryAsync(item => item.Id, cancellationToken);
+        var participantIds = registrations.Select(item => item.ParticipantId).Distinct().ToArray();
+        var participants = await _database.Participants.AsNoTracking()
+            .Where(item => participantIds.Contains(item.Id))
+            .ToDictionaryAsync(item => item.Id, cancellationToken);
+        var formIds = submissions.Values.Select(item => item.FormId).Distinct().ToArray();
+        var forms = await _database.RegistrationForms.AsNoTracking()
+            .Where(item => formIds.Contains(item.Id))
+            .ToDictionaryAsync(item => item.Id, cancellationToken);
+        return Ok(registrations.Select(registration =>
+        {
+            var submission = submissions[registration.FormSubmissionId!.Value];
+            return new
+            {
+                submission.Id,
+                submission.RegistrationId,
+                submission.FormId,
+                formName = forms.GetValueOrDefault(submission.FormId)?.Name,
+                submission.ParticipantId,
+                participantName = participants.GetValueOrDefault(submission.ParticipantId)?.Name,
+                participantType = participants.GetValueOrDefault(submission.ParticipantId)?.Type.ToString(),
+                status = submission.Status.ToString(),
+                registrationStatus = registration.Status.ToString(),
+                submission.FormVersion,
+                submission.Revision,
+                submission.FormData,
+                submission.FormSchemaSnapshot,
+                submission.SubmittedAt,
+                submission.UpdatedAt,
+                submission.ReviewNotes
+            };
+        }));
+    }
+
     /// <summary>
     /// Get all submissions for a participant
     /// </summary>
@@ -411,6 +460,13 @@ public class RegistrationFormsController : ControllerBase
         {
             var submission = await _formService.StartReviewAsync(
                 id, User.UserId() ?? Guid.Empty, cancellationToken);
+            var registration = await _database.Registrations.SingleOrDefaultAsync(
+                item => item.FormSubmissionId == id, cancellationToken);
+            if (registration?.Status == RegistrationStatus.Submitted)
+            {
+                registration.StartReview();
+                await _database.SaveChangesAsync(cancellationToken);
+            }
             return Ok(submission);
         }
         catch (InvalidOperationException ex)

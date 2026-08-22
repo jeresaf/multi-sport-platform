@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/router/app_router.dart';
+import '../../../supporter/data/supporter_preferences.dart';
+import '../../../supporter/presentation/widgets/alert_preferences_sheet.dart';
 import '../providers/contest_provider.dart';
 
 /// Live scoring screen - real-time score updates
@@ -16,11 +19,24 @@ class LiveScoringScreen extends ConsumerStatefulWidget {
 }
 
 class _LiveScoringScreenState extends ConsumerState<LiveScoringScreen> {
-  bool _isFollowing = true;
-
   @override
   Widget build(BuildContext context) {
     final contestState = ref.watch(contestDetailProvider(widget.contestId));
+    final contest = contestState.contest;
+    final favourite = contest == null
+        ? null
+        : SupporterFavourite(
+            type: 'contest',
+            id: contest.id,
+            title: contest.name,
+            subtitle: contest.sportCode.toUpperCase(),
+            route: Routes.contestDetail(contest.id),
+          );
+    final preferences = ref.watch(supporterPreferencesProvider);
+    final isFollowing = favourite != null &&
+        preferences.isFavourite(favourite.type, favourite.id);
+    final hasAlerts = favourite != null &&
+        preferences.alertsFor(favourite.type, favourite.id).isNotEmpty;
 
     return Scaffold(
       appBar: AppBar(
@@ -28,17 +44,25 @@ class _LiveScoringScreenState extends ConsumerState<LiveScoringScreen> {
         actions: [
           IconButton(
             icon: Icon(
-              _isFollowing
+              hasAlerts
                   ? Icons.notifications_active
                   : Icons.notifications_off,
             ),
-            onPressed: () {
-              setState(() {
-                _isFollowing = !_isFollowing;
-              });
-              // TODO: Toggle notifications
-            },
-            tooltip: _isFollowing ? 'Following' : 'Not following',
+            onPressed: favourite == null
+                ? null
+                : () async {
+                    if (!isFollowing) {
+                      await ref
+                          .read(supporterPreferencesProvider.notifier)
+                          .toggleFavourite(favourite);
+                    }
+                    if (context.mounted) {
+                      await showSupporterAlertPreferences(context, ref,
+                          favourite: favourite,
+                          sportCode: contest!.sportCode);
+                    }
+                  },
+            tooltip: hasAlerts ? 'Change alerts' : 'Follow and choose alerts',
           ),
           IconButton(
             icon: const Icon(Icons.refresh),

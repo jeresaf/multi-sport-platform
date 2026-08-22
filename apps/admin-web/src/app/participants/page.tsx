@@ -1,8 +1,11 @@
 'use client';
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { Activity, Plus, Search, ShieldCheck, UserRound, UsersRound } from 'lucide-react';
-import { adminApi, getStoredUser, hasAnyPermission, isPlatformOperator } from '@/lib/admin-api';
+import { Activity, Eye, Pencil, Plus, Search, ShieldCheck, UserRound, UsersRound } from 'lucide-react';
+import { adminApi, getEffectiveTenantId, getStoredUser, hasAnyPermission, isPlatformOperator } from '@/lib/admin-api';
+import { DataTable, type DataTableColumn } from '@/components/admin/data-table';
+import { ResourceDialog } from '@/components/admin/resource-dialog';
+import { Button } from '@/components/ui/button';
 
 type Tenant = { id: string; name: string };
 type Sport = { id: string; name: string; code: string; isActive: boolean };
@@ -42,7 +45,7 @@ export default function ParticipantsPage() {
   const canReadSensitive = hasAnyPermission(user, ['participants.read-sensitive']);
   const canManageSensitive = hasAnyPermission(user, ['participants.manage-sensitive']);
   const [tenants, setTenants] = useState<Tenant[]>([]);
-  const [tenantId, setTenantId] = useState(user?.tenantId ?? '');
+  const [tenantId, setTenantId] = useState(getEffectiveTenantId() ?? '');
   const [athletes, setAthletes] = useState<AthleteSummary[]>([]);
   const [sports, setSports] = useState<Sport[]>([]);
   const [selectedId, setSelectedId] = useState('');
@@ -51,6 +54,7 @@ export default function ParticipantsPage() {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [sportId, setSportId] = useState('');
   const [search, setSearch] = useState('');
+  const [editorMode, setEditorMode] = useState<'view' | 'edit' | 'create' | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -110,6 +114,7 @@ export default function ParticipantsPage() {
     try {
       const created = await adminApi<AthleteSummary>('/api/participants/athletes', { method: 'POST', body: JSON.stringify({ tenantId, name: form.name, shortName: form.shortName }) });
       await loadAthletes(); setMessage('Athlete created. Complete the protected profile fields.');
+      setEditorMode(canManageSensitive ? 'edit' : 'view');
       await selectAthlete(created.id);
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Unable to create athlete.'); }
     finally { setBusy(false); }
@@ -161,7 +166,15 @@ export default function ParticipantsPage() {
 
   const registeredSportCount = profile?.sportIds.length ?? 0;
 
-  const field = (key: keyof FormState, label: string, type = 'text') => <label className="text-sm font-semibold">{label}<input type={type} value={String(form[key])} disabled={!canManageSensitive && Boolean(selectedId)} onChange={event => setForm(current => ({ ...current, [key]: event.target.value }))} className="mt-1 h-10 w-full rounded-md border px-3 font-normal disabled:bg-gray-100" /></label>;
+  const field = (key: keyof FormState, label: string, type = 'text') => <label className="text-sm font-semibold">{label}<input type={type} value={String(form[key])} disabled={editorMode === 'view' || (!canManageSensitive && Boolean(selectedId))} onChange={event => setForm(current => ({ ...current, [key]: event.target.value }))} className="mt-1 h-10 w-full rounded-md border px-3 font-normal disabled:bg-gray-100" /></label>;
+  const openAthlete = async (item: AthleteSummary, mode: 'view' | 'edit') => { setEditorMode(mode); await selectAthlete(item.id); };
+  const openCreate = async () => { setEditorMode('create'); await selectAthlete(''); };
+  const columns: DataTableColumn<AthleteSummary>[] = [
+    { key: 'name', header: 'Athlete', render: item => <div><p className="font-semibold text-gray-950">{item.name}</p><p className="text-xs text-gray-500">{item.shortName}</p></div> },
+    { key: 'nationality', header: 'Nationality', render: item => item.athlete?.nationality || '—' },
+    { key: 'profile', header: 'Profile', render: item => item.athlete ? <span className="text-emerald-700">Available</span> : <span className="text-gray-500">Basic</span> },
+    { key: 'actions', header: <span className="sr-only">Actions</span>, className: 'text-right', render: item => <div className="flex justify-end gap-1" onClick={event => event.stopPropagation()}><Button size="sm" variant="ghost" onClick={() => void openAthlete(item, 'view')}><Eye className="mr-1 h-4 w-4" />View</Button>{canManageSensitive && <Button size="sm" variant="ghost" onClick={() => void openAthlete(item, 'edit')}><Pencil className="mr-1 h-4 w-4" />Edit</Button>}</div> },
+  ];
 
   return <div className="space-y-6">
     <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
@@ -177,7 +190,7 @@ export default function ParticipantsPage() {
           {canCreate && (
             <button
               type="button"
-              onClick={() => void selectAthlete('')}
+              onClick={() => void openCreate()}
               className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-90"
             >
               <Plus className="h-4 w-4" />
@@ -218,86 +231,11 @@ export default function ParticipantsPage() {
       </section>
     )}
 
-    <div className="grid gap-6 xl:grid-cols-[22rem_minmax(0,1fr)]">
-      <aside className="self-start overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm xl:sticky xl:top-6">
-        <div className="border-b border-gray-100 p-4">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Roster directory</p>
-              <h2 className="mt-1 font-bold text-gray-950">Tenant athletes</h2>
-            </div>
-            <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-600">{athletes.length}</span>
-          </div>
+    <label className="relative block max-w-lg"><span className="sr-only">Search athletes</span><Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" /><input value={search} onChange={event => setSearch(event.target.value)} placeholder="Search name or nationality" className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-10 pr-3 text-sm outline-none focus:border-primary" /></label>
+    {!canReadSensitive && <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">Sensitive fields require the dedicated profile permission.</p>}
+    <DataTable caption="Tenant athletes" columns={columns} rows={filteredAthletes} rowKey={item => item.id} onRowClick={item => void openAthlete(item, 'view')} emptyMessage="No athletes match this search." />
 
-          <label className="relative mt-4 block">
-            <span className="sr-only">Search athletes</span>
-            <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-            <input
-              value={search}
-              onChange={event => setSearch(event.target.value)}
-              placeholder="Search name or nationality"
-              className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 pl-10 pr-3 text-sm outline-none focus:border-primary focus:bg-white"
-            />
-          </label>
-        </div>
-
-        <div className="max-h-[680px] space-y-1 overflow-y-auto p-2">
-          {canCreate && (
-            <button
-              type="button"
-              onClick={() => void selectAthlete('')}
-              className={`flex w-full items-center gap-3 rounded-xl p-3 text-left transition ${
-                !selectedId ? 'bg-primary/10 text-primary' : 'text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white shadow-sm">
-                <Plus className="h-4 w-4" />
-              </span>
-              <span>
-                <strong className="block text-sm">Create a new athlete</strong>
-                <span className="text-xs opacity-70">Start a reusable profile</span>
-              </span>
-            </button>
-          )}
-
-          {filteredAthletes.map(item => {
-            const active = item.id === selectedId;
-            return (
-              <button
-                type="button"
-                key={item.id}
-                onClick={() => void selectAthlete(item.id)}
-                className={`flex w-full items-center gap-3 rounded-xl p-3 text-left transition ${
-                  active ? 'bg-primary/10 text-primary' : 'text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
-                  active ? 'bg-white' : 'bg-gray-100'
-                }`}>
-                  <UserRound className="h-4 w-4" />
-                </span>
-                <span className="min-w-0">
-                  <strong className="block truncate text-sm">{item.name}</strong>
-                  <span className="block truncate text-xs opacity-70">
-                    {[item.shortName, item.athlete?.nationality].filter(Boolean).join(' · ') || 'Athlete profile'}
-                  </span>
-                </span>
-              </button>
-            );
-          })}
-
-          {filteredAthletes.length === 0 && (
-            <p className="px-3 py-8 text-center text-sm text-gray-500">No athletes match this search.</p>
-          )}
-        </div>
-
-        {!canReadSensitive && (
-          <div className="border-t border-gray-100 bg-amber-50 p-3 text-xs text-amber-800">
-            Sensitive fields require the dedicated profile permission.
-          </div>
-        )}
-      </aside>
-
+    {editorMode && <ResourceDialog title={editorMode === 'create' ? 'Create athlete' : selectedSummary?.name ?? 'Athlete profile'} description={editorMode === 'view' ? 'View athlete profile' : editorMode === 'edit' ? 'Edit protected athlete profile' : 'Create a reusable athlete profile'} onClose={() => setEditorMode(null)} width="max-w-6xl">
       <form onSubmit={selectedId ? saveProfile : createAthlete} className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
         <div className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-4 border-b border-gray-100 bg-white/95 px-5 py-4 backdrop-blur">
           <div className="flex min-w-0 items-center gap-3">
@@ -372,7 +310,7 @@ export default function ParticipantsPage() {
                   Status
                   <select
                     value={form.medicalClearanceStatus}
-                    disabled={!canManageSensitive}
+                    disabled={editorMode === 'view' || !canManageSensitive}
                     onChange={event => setForm(current => ({ ...current, medicalClearanceStatus: event.target.value }))}
                     className="mt-1 h-10 w-full rounded-md border bg-white px-3 font-normal disabled:bg-gray-100"
                   >
@@ -389,7 +327,7 @@ export default function ParticipantsPage() {
                   <h3 className="font-bold text-gray-950">Identification documents</h3>
                   <p className="mt-1 text-sm text-gray-500">{form.documents.length} document record{form.documents.length === 1 ? '' : 's'}.</p>
                 </div>
-                {canManageSensitive && (
+                {canManageSensitive && editorMode === 'edit' && (
                   <button
                     type="button"
                     onClick={() => setForm(current => ({ ...current, documents: [...current.documents, { type: '', number: '', issuingCountry: '', expiresAt: '', fileUrl: '' }] }))}
@@ -407,7 +345,7 @@ export default function ParticipantsPage() {
                       <input
                         type={key === 'expiresAt' ? 'date' : key === 'fileUrl' ? 'url' : 'text'}
                         value={document[key]}
-                        disabled={!canManageSensitive}
+                        disabled={editorMode === 'view' || !canManageSensitive}
                         onChange={event => setForm(current => ({
                           ...current,
                           documents: current.documents.map((item, position) =>
@@ -434,7 +372,7 @@ export default function ParticipantsPage() {
                   </span>
                 ))}
               </div>
-              {canManageSensitive && (
+              {canManageSensitive && editorMode === 'edit' && (
                 <div className="mt-3 flex gap-2">
                   <select value={sportId} onChange={event => setSportId(event.target.value)} className="h-10 flex-1 rounded-md border bg-white px-3">
                     <option value="">Select sport</option>
@@ -445,7 +383,7 @@ export default function ParticipantsPage() {
               )}
             </section>
 
-            {canManageSensitive && (
+            {canManageSensitive && editorMode === 'edit' && (
               <section className="border-t border-gray-100 pt-6">
                 {field('reason', 'Audit reason')}
               </section>
@@ -467,7 +405,7 @@ export default function ParticipantsPage() {
             </section>
           </>}
 
-          <div className="border-t border-gray-100 pt-5">
+          {editorMode !== 'view' && <div className="border-t border-gray-100 pt-5">
             <button
               type="submit"
               disabled={busy || (!selectedId && !canCreate) || (Boolean(selectedId) && !canManageSensitive)}
@@ -475,10 +413,10 @@ export default function ParticipantsPage() {
             >
               {selectedId ? 'Save protected profile' : 'Create athlete'}
             </button>
-          </div>
+          </div>}
         </div>
       </form>
-    </div>
+    </ResourceDialog>}
 
   </div>;
 }

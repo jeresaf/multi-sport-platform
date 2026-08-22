@@ -21,7 +21,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { AdminUser, adminApi, getStoredUser } from '@/lib/admin-api';
+import { AdminUser, adminApi, getSelectedTenant, getStoredUser } from '@/lib/admin-api';
 import { TenantDashboard } from '@/components/dashboard/tenant-dashboard';
 
 type UsageWarning = {
@@ -158,6 +158,7 @@ export default function DashboardPage() {
   const [dashboard, setDashboard] = useState<Dashboard | null>(null);
   const [user, setUser] = useState<AdminUser | null>(null);
   const [identityLoaded, setIdentityLoaded] = useState(false);
+  const [tenantWorkspace, setTenantWorkspace] = useState(false);
   const [reasons, setReasons] = useState<Record<string, string>>({});
   const [notificationReasons, setNotificationReasons] = useState<Record<string, string>>({});
   const [jobReasons, setJobReasons] = useState<Record<string, string>>({});
@@ -172,12 +173,13 @@ export default function DashboardPage() {
 
   useEffect(() => {
     setUser(getStoredUser());
+    setTenantWorkspace(Boolean(getSelectedTenant()));
     setIdentityLoaded(true);
   }, []);
 
   const refresh = useCallback(async () => {
     if (!identityLoaded) return;
-    if (!isPlatformOperator) {
+    if (!isPlatformOperator || tenantWorkspace) {
       setLoading(false);
       return;
     }
@@ -193,7 +195,7 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [filters, identityLoaded, isPlatformOperator]);
+  }, [filters, identityLoaded, isPlatformOperator, tenantWorkspace]);
 
   useEffect(() => {
     void refresh();
@@ -289,7 +291,7 @@ export default function DashboardPage() {
     return <p className="rounded-lg border bg-white p-4 text-gray-500">Loading platform access…</p>;
   }
 
-  if (!isPlatformOperator) {
+  if (!isPlatformOperator || tenantWorkspace) {
     return <TenantDashboard />;
   }
 

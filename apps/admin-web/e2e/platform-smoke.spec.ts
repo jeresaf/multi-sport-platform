@@ -394,6 +394,151 @@ test('platform administrator creates a tenant that is immediately available on p
   }
 });
 
+test('platform administrator can enter a tenant workspace and manage categorized roles and users', async ({ page }) => {
+  await signIn(page, 'admin@sportsplatform.com', 'Admin123!');
+
+  await page.goto(`${adminUrl}/roles`);
+  await expect(page.getByText('Roles are grouped by tenant so identical names remain distinct.'))
+    .toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Platform', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Default', exact: true })).toBeVisible();
+
+  await page.getByLabel('Active tenant workspace').selectOption({ label: 'Default' });
+  await expect(page).toHaveURL(`${adminUrl}/`);
+  await expect(page.locator('main').getByText('Operations overview')).toBeVisible();
+
+  await page.goto(`${adminUrl}/users`);
+  await expect(page.getByRole('heading', { name: 'Users' })).toBeVisible();
+  await expect(page.getByRole('table', { name: 'Tenant users' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'New user' })).toBeVisible();
+
+  await page.goto(`${adminUrl}/roles`);
+  await expect(page.getByText('Access roles for Default.')).toBeVisible();
+  await expect(page.getByRole('table', { name: 'Default roles' })).toBeVisible();
+});
+
+test('athlete and organization directories use tables with distinct view and edit workflows', async ({ page }) => {
+  await signIn(page, 'admin@sportsplatform.com', 'Admin123!');
+  await page.getByLabel('Active tenant workspace').selectOption({ label: 'National Sports Demo' });
+  await expect(page).toHaveURL(`${adminUrl}/`);
+
+  await page.goto(`${adminUrl}/participants`);
+  const athleteTable = page.getByRole('table', { name: 'Tenant athletes' });
+  await expect(athleteTable).toBeVisible();
+  await expect(athleteTable.getByRole('row')).toHaveCount(33);
+  await athleteTable.getByRole('button', { name: 'View' }).first().click();
+  const athleteDialog = page.getByRole('dialog');
+  await expect(athleteDialog.getByText('View athlete profile')).toBeVisible();
+  await expect(athleteDialog.getByRole('button', { name: 'Save protected profile' })).toHaveCount(0);
+  await athleteDialog.getByRole('button', { name: 'Close dialog' }).click();
+
+  await page.goto(`${adminUrl}/organizations`);
+  const organizationTable = page.getByRole('table', { name: 'Teams and clubs' });
+  await expect(organizationTable).toBeVisible();
+  await expect(organizationTable.getByRole('row')).toHaveCount(21);
+  await organizationTable.getByRole('button', { name: 'View' }).first().click();
+  const organizationDialog = page.getByRole('dialog');
+  await expect(organizationDialog.getByText('View team or club details')).toBeVisible();
+  await expect(organizationDialog.getByRole('button', { name: 'Save profile' })).toHaveCount(0);
+});
+
+test('registration forms and review queues use the shared table and detail standard', async ({ page }) => {
+  await signIn(page, 'admin@sportsplatform.com', 'Admin123!');
+  await page.getByLabel('Active tenant workspace').selectOption({ label: 'National Sports Demo' });
+  await expect(page).toHaveURL(`${adminUrl}/`);
+
+  await page.goto(`${adminUrl}/registration-forms`);
+  const formsTable = page.getByRole('table', { name: 'Registration forms' });
+  await expect(formsTable).toBeVisible();
+  await expect(formsTable.getByRole('row')).toHaveCount(4);
+  const teamEntryRow = formsTable.getByText('National Championship Team Entry')
+    .locator('xpath=ancestor::tr[1]');
+  await teamEntryRow.getByRole('button', { name: 'View' }).click();
+  const seededFormDialog = page.getByRole('dialog');
+  await expect(seededFormDialog.locator('input[value="managerName"]')).toBeVisible();
+  await expect(seededFormDialog.locator('input[value="declaration"]')).toBeVisible();
+  await seededFormDialog.getByRole('button', { name: 'Close dialog' }).click();
+  await page.getByRole('button', { name: 'New form' }).click();
+  const formDialog = page.getByRole('dialog');
+  await expect(formDialog.getByText('Build a reusable or competition-specific form')).toBeVisible();
+  await expect(formDialog.getByRole('button', { name: 'Save versioned schema' })).toBeVisible();
+  await formDialog.getByRole('button', { name: 'Close dialog' }).click();
+
+  await page.goto(`${adminUrl}/registrations`);
+  await page.getByLabel('Competition', { exact: true })
+    .selectOption({ label: 'National Football Championship Demo' });
+  const reviewTable = page.getByRole('table', { name: 'Registration review queue' });
+  await expect(reviewTable).toBeVisible();
+  expect(await reviewTable.getByRole('row').count()).toBeGreaterThanOrEqual(9);
+  await expect(reviewTable.getByText('Nairobi City')).toBeVisible();
+  await reviewTable.getByRole('button', { name: 'View' }).first().click();
+  await expect(page.getByRole('dialog')).toContainText('registration');
+  await page.getByRole('button', { name: 'Close dialog' }).click();
+  const submissionTable = page.getByRole('table', { name: 'Form submission review queue' });
+  await expect(submissionTable).toBeVisible();
+  expect(await submissionTable.getByRole('row').count()).toBeGreaterThanOrEqual(7);
+});
+
+test('applicant can create, save, submit and expose a linked form to admin review', async ({ page }) => {
+  test.setTimeout(120_000);
+  const competitionId = '10000000-0000-0000-0000-000000000100';
+  const unique = Date.now().toString();
+  const email = `browser-applicant-${unique}@example.test`;
+  const teamName = `Lakeview Rangers ${unique}`;
+  const returnTo = encodeURIComponent(`/apply/${competitionId}`);
+
+  await page.goto(`${publicUrl}/login?tenant=national-sports-demo&returnTo=${returnTo}`);
+  await page.getByRole('button', { name: 'Create account' }).click();
+  await page.getByLabel('First name').fill('Miriam');
+  await page.getByLabel('Last name').fill('Otieno');
+  await page.getByLabel('Email address').fill(email);
+  await page.getByLabel('Password').fill('Applicant123!');
+  await page.getByRole('button', { name: 'Create registration account' }).click();
+  await expect(page).toHaveURL(new RegExp(`/apply/${competitionId}`));
+
+  await page.getByPlaceholder('Athlete or team name').fill(teamName);
+  await page.getByPlaceholder('Short name').fill(`LVR${unique.slice(-3)}`);
+  await page.locator('form').filter({ has: page.getByPlaceholder('Athlete or team name') })
+    .getByRole('combobox').selectOption('Team');
+  await page.getByRole('button', { name: 'Create participant' }).click();
+  await expect(page.getByRole('status')).toContainText('ready to register');
+  await page.getByRole('button', { name: 'Start registration' }).click();
+  await expect(page.getByText('Draft', { exact: true })).toBeVisible();
+
+  await page.getByLabel('Team manager name').fill('Miriam Otieno');
+  await page.getByLabel('Team manager email').fill(email);
+  await page.getByLabel('Squad size').fill('20');
+  await page.getByLabel('Home colours').fill('Navy and gold');
+  await page.getByLabel(/Signed team roster/).setInputFiles({
+    name: 'lakeview-rangers-roster.pdf',
+    mimeType: 'application/pdf',
+    buffer: Buffer.from('%PDF-1.4\n% E2E registration roster\n'),
+  });
+  await expect(page.getByText('lakeview-rangers-roster.pdf', { exact: true })).toBeVisible();
+  await page.getByLabel(/I confirm that the submitted squad/).check();
+  await page.getByRole('button', { name: 'Save draft' }).click();
+  await expect(page.getByRole('status')).toContainText('Draft saved');
+  await page.getByRole('button', { name: 'Submit registration' }).click();
+  await expect(page).toHaveURL(/\/my-registrations/);
+  await expect(page.getByRole('status')).toContainText('submitted for review');
+  await expect(page.getByText(teamName)).toBeVisible();
+  await expect(page.getByText('Submitted', { exact: true }).first()).toBeVisible();
+
+  await page.evaluate(() => localStorage.clear());
+  await signIn(page, 'admin@sportsplatform.com', 'Admin123!');
+  await page.getByLabel('Active tenant workspace').selectOption({ label: 'National Sports Demo' });
+  await page.goto(`${adminUrl}/registrations`);
+  await page.getByLabel('Competition', { exact: true })
+    .selectOption({ label: 'National Football Championship Demo' });
+  const formQueue = page.getByRole('table', { name: 'Form submission review queue' });
+  await expect(formQueue.getByText(teamName)).toBeVisible();
+  const row = formQueue.getByText(teamName).locator('xpath=ancestor::tr[1]');
+  await row.getByRole('button', { name: 'View' }).click();
+  await expect(page.getByRole('dialog')).toContainText('Miriam Otieno');
+  await page.getByRole('button', { name: 'Start review' }).click();
+  await expect(page.getByRole('status')).toContainText('review recorded');
+});
+
 test('dynamic scoring console renders every prototype sport configuration', async ({ page }) => {
   test.setTimeout(180_000);
   await signIn(page, 'admin@sportsplatform.com', 'Admin123!');

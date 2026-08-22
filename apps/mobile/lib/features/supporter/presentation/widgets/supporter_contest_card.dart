@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../../core/formatters/public_date_time.dart';
 import '../../../../core/widgets/contest_status_label.dart';
@@ -179,10 +178,6 @@ class HeadToHeadContestCard extends StatelessWidget {
                 ...fixture.participantDetails.take(2).map(
                       (participant) => _ParticipantScoreRow(
                         participant: participant,
-                        onTap: participant.id.isEmpty
-                            ? null
-                            : () =>
-                                context.push('/participant/${participant.id}'),
                       ),
                     ),
               if (secondarySummary?.trim().isNotEmpty == true) ...[
@@ -260,42 +255,37 @@ class RugbyStageBadge extends StatelessWidget {
 }
 
 class _ParticipantScoreRow extends StatelessWidget {
-  const _ParticipantScoreRow({required this.participant, this.onTap});
+  const _ParticipantScoreRow({required this.participant});
 
   final SupporterFixtureParticipant participant;
-  final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) => InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          child: Row(
-            children: [
-              CircleAvatar(
-                radius: 14,
-                child: Text(participant.name
-                    .split(' ')
-                    .where((part) => part.isNotEmpty)
-                    .take(2)
-                    .map((part) => part[0])
-                    .join()
-                    .toUpperCase()),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(participant.name,
-                    maxLines: 1, overflow: TextOverflow.ellipsis),
-              ),
-              const SizedBox(width: 10),
-              Text(participant.result,
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(fontWeight: FontWeight.bold)),
-            ],
-          ),
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 14,
+              child: Text(participant.name
+                  .split(' ')
+                  .where((part) => part.isNotEmpty)
+                  .take(2)
+                  .map((part) => part[0])
+                  .join()
+                  .toUpperCase()),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(participant.name,
+                  maxLines: 1, overflow: TextOverflow.ellipsis),
+            ),
+            const SizedBox(width: 10),
+            Text(participant.result,
+                style: Theme.of(context)
+                    .textTheme
+                    .titleMedium
+                    ?.copyWith(fontWeight: FontWeight.bold)),
+          ],
         ),
       );
 }

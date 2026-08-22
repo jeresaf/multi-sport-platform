@@ -157,4 +157,8 @@ class _GuestAuthRepository implements AuthRepository {
 
   @override
   Future<void> sendPasswordReset(String email) async {}
+
+  @override
+  Future<User> updateProfile(String firstName, String lastName) async =>
+      throw UnimplementedError();
 }

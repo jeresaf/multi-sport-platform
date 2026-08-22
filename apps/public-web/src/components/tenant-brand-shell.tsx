@@ -6,8 +6,10 @@ import { usePathname } from 'next/navigation';
 import { Heart, Home, Menu, Moon, Radio, Search, Sun, Trophy, UserRound } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { formatSport, publicApi, type PublicCompetition, resolveTenantSlug, sportSlug, TENANT_SLUG, tenantPath } from '@/lib/public-api';
+import { getApplicantSession } from '@/lib/applicant-api';
 
 type TenantIdentity = {
+  id: string;
   name: string;
   shortName: string;
   branding?: { logoUrl?: string | null; primaryColor?: string | null; secondaryColor?: string | null; accentColor?: string | null; contactEmail?: string | null; contactPhone?: string | null; website?: string | null } | null;
@@ -18,6 +20,7 @@ export function TenantBrandShell({ children }: { children: React.ReactNode }) {
   const [competitions, setCompetitions] = useState<PublicCompetition[]>([]);
   const [tenantSlug, setTenantSlug] = useState(TENANT_SLUG);
   const [dark, setDark] = useState(false);
+  const [applicantSignedIn, setApplicantSignedIn] = useState(false);
 
   useEffect(() => {
     const resolvedTenant = resolveTenantSlug();
@@ -27,6 +30,7 @@ export function TenantBrandShell({ children }: { children: React.ReactNode }) {
     ]).then(([identity, publishedCompetitions]) => {
       setTenantSlug(resolvedTenant);
       setTenant(identity);
+      setApplicantSignedIn(getApplicantSession()?.user.tenantId === identity.id);
       setCompetitions(publishedCompetitions);
       document.documentElement.style.setProperty('--brand-primary', validHex(identity.branding?.primaryColor) ?? '#2563EB');
       document.documentElement.style.setProperty('--brand-secondary', validHex(identity.branding?.secondaryColor) ?? '#7C3AED');
@@ -40,6 +44,15 @@ export function TenantBrandShell({ children }: { children: React.ReactNode }) {
     document.documentElement.dataset.theme = shouldUseDark ? 'dark' : 'light';
     return () => window.cancelAnimationFrame(frame);
   }, []);
+
+  useEffect(() => {
+    const syncApplicant = () => setApplicantSignedIn(
+      Boolean(tenant?.id && getApplicantSession()?.user.tenantId === tenant.id),
+    );
+    syncApplicant();
+    window.addEventListener('sports-platform:applicant-session', syncApplicant);
+    return () => window.removeEventListener('sports-platform:applicant-session', syncApplicant);
+  }, [tenant?.id]);
 
   const href = (path: string) => tenantPath(path, tenantSlug);
   const sports = useMemo(() => Array.from(new Map(competitions.map(item => [
@@ -86,8 +99,9 @@ export function TenantBrandShell({ children }: { children: React.ReactNode }) {
           <div className="ml-auto flex items-center gap-1 lg:ml-2">
             <Link href={href('/search')} className="rounded-full p-2 hover:bg-[var(--color-surface-muted)]" aria-label="Search"><Search className="h-5 w-5" /></Link>
             <Link href={href('/favourites')} className="hidden rounded-full p-2 hover:bg-[var(--color-surface-muted)] sm:block" aria-label="Favourites"><Heart className="h-5 w-5" /></Link>
+            {applicantSignedIn && <Link href={href('/my-registrations')} className="hidden rounded-lg px-3 py-2 text-sm font-bold text-[var(--brand-primary)] sm:block">My registrations</Link>}
             <button onClick={toggleTheme} className="rounded-full p-2 hover:bg-[var(--color-surface-muted)]" aria-label={dark ? 'Use light theme' : 'Use dark theme'}>{dark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}</button>
-            <Link href={href('/login')} className="rounded-full p-2 hover:bg-[var(--color-surface-muted)]" aria-label="Log in"><UserRound className="h-5 w-5" /></Link>
+            <Link href={href(applicantSignedIn ? '/my-registrations' : '/login')} className="rounded-full p-2 hover:bg-[var(--color-surface-muted)]" aria-label={applicantSignedIn ? 'My registrations' : 'Log in'}><UserRound className="h-5 w-5" /></Link>
           </div>
         </div>
       </header>

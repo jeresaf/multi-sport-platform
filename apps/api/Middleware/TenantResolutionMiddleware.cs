@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Serilog.Context;
+using SportsPlatform.Api.Authorization;
 using SportsPlatform.Modules.Tenancy;
 
 namespace SportsPlatform.Api.Middleware;
@@ -17,6 +18,42 @@ public class TenantResolutionMiddleware
 
     public async Task InvokeAsync(HttpContext context, ITenantRepository tenantRepository)
     {
+        // A platform operator may explicitly enter a tenant workspace. Validate
+        // the requested tenant and replace only the request-scoped tenant claim;
+        // the signed token and platform role claims remain unchanged.
+        var requestedTenant = context.Request.Headers["X-Tenant-Id"].FirstOrDefault();
+        if (context.User.Identity?.IsAuthenticated == true
+            && context.User.IsPlatformOperator()
+            && !string.IsNullOrWhiteSpace(requestedTenant))
+        {
+            if (!Guid.TryParse(requestedTenant, out var selectedTenantId))
+            {
+                context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                await context.Response.WriteAsJsonAsync(new { error = "The selected tenant ID is invalid." });
+                return;
+            }
+            var selectedTenant = await tenantRepository.GetByIdAsync(
+                selectedTenantId,
+                context.RequestAborted);
+            if (selectedTenant is null)
+            {
+                context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                await context.Response.WriteAsJsonAsync(new
+                {
+                    error = "The selected tenant does not exist."
+                });
+                return;
+            }
+
+            if (context.User.Identity is ClaimsIdentity identity)
+            {
+                foreach (var claim in identity.FindAll("tenant_id").ToArray())
+                    identity.RemoveClaim(claim);
+                identity.AddClaim(new Claim("tenant_id", selectedTenantId.ToString()));
+            }
+            context.Items["PlatformTenantScope"] = selectedTenantId;
+        }
+
         // Try to resolve tenant from JWT claim first
         Guid? tenantId = null;
         var tenantClaim = context.User.FindFirst("tenant_id")?.Value;

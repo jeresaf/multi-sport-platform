@@ -11,6 +11,7 @@ import '../widgets/competition_output_renderer.dart';
 import '../../../supporter/presentation/widgets/alert_preferences_sheet.dart';
 import '../../../../core/formatters/public_date_time.dart';
 import '../../../../core/widgets/contest_status_label.dart';
+import '../../../registration/data/registration_repository.dart';
 
 /// Competition detail screen
 class CompetitionDetailScreen extends ConsumerWidget {
@@ -111,6 +112,8 @@ class _CompetitionContent extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final supporter = ref.watch(supporterFeedProvider).valueOrNull;
+    final registrationForms =
+        ref.watch(competitionRegistrationFormsProvider(competition.id));
     final fixtures = supporter?.fixtures
             .where((item) => item.competitionId == competition.id)
             .toList() ??
@@ -157,6 +160,33 @@ class _CompetitionContent extends ConsumerWidget {
       length: 1 + (hasGames ? 1 : 0) + (hasTable ? 1 : 0),
       child: Column(
         children: [
+          registrationForms.maybeWhen(
+            data: (forms) => forms.isEmpty
+                ? const SizedBox.shrink()
+                : Container(
+                    margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(children: [
+                      Icon(Icons.assignment_add,
+                          color: Theme.of(context).colorScheme.primary),
+                      const SizedBox(width: 10),
+                      const Expanded(child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [Text('Registration is open', style: TextStyle(fontWeight: FontWeight.w800)), Text('Enter an athlete or team and track the review.')],
+                      )),
+                      FilledButton(
+                        onPressed: () => context.push(
+                            Routes.competitionRegistration(competition.id)),
+                        child: const Text('Register'),
+                      ),
+                    ]),
+                  ),
+            orElse: () => const SizedBox.shrink(),
+          ),
           Container(
             margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
             decoration: BoxDecoration(
@@ -208,23 +238,24 @@ class _CompetitionContent extends ConsumerWidget {
                             children: [
                               Row(
                                 children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 8, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color:
-                                          Colors.white.withValues(alpha: 0.14),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text(
-                                      competition.status,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w500,
+                                  if (competition.status != 'Published')
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white
+                                            .withValues(alpha: 0.14),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Text(
+                                        competition.status,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
+                                        ),
                                       ),
                                     ),
-                                  ),
                                   const Spacer(),
                                   Container(
                                     padding: const EdgeInsets.symmetric(

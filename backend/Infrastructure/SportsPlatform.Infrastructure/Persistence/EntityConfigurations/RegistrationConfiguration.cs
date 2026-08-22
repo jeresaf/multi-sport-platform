@@ -21,6 +21,8 @@ public class RegistrationConfiguration : IEntityTypeConfiguration<Registration>
         builder.Property(registration => registration.EligibilityOverrideReason).HasMaxLength(1000);
         builder.HasIndex(registration => registration.ContestId);
         builder.HasIndex(registration => registration.CompetitionId);
+        builder.HasIndex(registration => registration.ApplicantUserId);
+        builder.HasIndex(registration => registration.FormSubmissionId).IsUnique();
         builder.HasIndex(registration => new
         {
             registration.CompetitionId,

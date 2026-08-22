@@ -477,6 +477,9 @@ class _StaticAuthRepository implements AuthRepository {
 
   @override
   Future<void> sendPasswordReset(String email) async {}
+
+  @override
+  Future<User> updateProfile(String firstName, String lastName) async => user;
 }
 
 class _SilentSignalRService extends SignalRService {

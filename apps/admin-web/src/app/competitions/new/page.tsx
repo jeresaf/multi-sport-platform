@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Check, ChevronLeft, ChevronRight, Save, Trash2 } from 'lucide-react';
-import { adminApi, getStoredUser } from '@/lib/admin-api';
+import { adminApi, getEffectiveTenantId } from '@/lib/admin-api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -62,7 +62,7 @@ const initialData: WizardData = {
   officials: [], publication: 'draft',
 };
 
-function draftKey() { return `sports-platform.competition-draft.${getStoredUser()?.tenantId ?? 'unknown'}`; }
+function draftKey() { return `sports-platform.competition-draft.${getEffectiveTenantId() ?? 'unknown'}`; }
 
 function rugbyVariant(ruleset: Ruleset): 'sevens' | 'fifteens' | null {
   if (!ruleset.validationConfiguration) {
@@ -143,8 +143,8 @@ export default function CreateCompetitionPage() {
 
   async function finish() {
     for (let index = 0; index < 9; index++) if (!validate(index)) { setStep(index); return; }
-    const tenantId = getStoredUser()?.tenantId;
-    if (!tenantId) { setError('A tenant account is required.'); return; }
+    const tenantId = getEffectiveTenantId();
+    if (!tenantId) { setError('Select a tenant workspace before creating a competition.'); return; }
     setSubmitting(true); setError(null);
     try {
       const competition = await adminApi<Created>('/api/competitions', {

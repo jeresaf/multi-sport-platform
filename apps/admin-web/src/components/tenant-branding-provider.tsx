@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { adminApi, getStoredUser, isPlatformOperator } from '@/lib/admin-api';
+import { adminApi, getSelectedTenant, getStoredUser, isPlatformOperator } from '@/lib/admin-api';
 
 export type AppliedBranding = {
   tenantName: string;
@@ -36,7 +36,8 @@ export function TenantBrandingProvider({ children }: { children: React.ReactNode
       setBranding(value);
     };
 
-    if (!user?.tenantId || isPlatformOperator(user)) {
+    const selectedTenant = isPlatformOperator(user) ? getSelectedTenant() : null;
+    if ((!user?.tenantId && !selectedTenant) || (isPlatformOperator(user) && !selectedTenant)) {
       apply(null);
       return;
     }

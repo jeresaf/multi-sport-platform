@@ -155,6 +155,12 @@ public class SportsPlatformDbContext : DbContext
             entity.HasIndex(item => new { item.UserId, item.IsEnabled });
         });
 
+        modelBuilder.Entity<RegistrationFormSubmission>(entity =>
+        {
+            entity.HasIndex(item => item.ApplicantUserId);
+            entity.HasIndex(item => item.RegistrationId).IsUnique();
+        });
+
         // Global query filter for soft-delete if needed
         // modelBuilder.Entity<Entity>().HasQueryFilter(e => !e.IsDeleted);
     }
@@ -309,6 +315,26 @@ public class SportsPlatformDbContext : DbContext
             .GroupBy(item => item.ContestId)
             .ToDictionary(group => group.Key, group => (long)group.Count());
         if (increments.Count == 0) return;
+        var explicitOrderHints = ChangeTracker.Entries<LiveScore>()
+            .Where(entry => entry.State == EntityState.Added)
+            .Select(entry => (
+                entry.Entity.ContestId,
+                EventId: entry.Entity.EventId == Guid.Empty
+                    ? entry.Entity.Id
+                    : entry.Entity.EventId,
+                Order: entry.Entity.Sequence > 0
+                    ? (long)entry.Entity.Sequence
+                    : long.MaxValue))
+            .Concat(ChangeTracker.Entries<ContestEvent>()
+                .Where(entry => entry.State == EntityState.Added)
+                .Select(entry => (
+                    entry.Entity.ContestId,
+                    EventId: entry.Entity.Id,
+                    Order: entry.Entity.SequenceNumber > 0
+                        ? entry.Entity.SequenceNumber
+                        : long.MaxValue)))
+            .GroupBy(item => (item.ContestId, item.EventId))
+            .ToDictionary(group => group.Key, group => group.Min(item => item.Order));
 
         var tracked = ChangeTracker.Entries<Contest>()
             .Where(entry => entry.State != EntityState.Deleted && increments.ContainsKey(entry.Entity.Id))
@@ -346,6 +372,9 @@ public class SportsPlatformDbContext : DbContext
                     .Where(item => item.ContestId == contestId)
                     .Select(item => item.EventId)
                     .Distinct()
+                    .OrderBy(eventId => explicitOrderHints.GetValueOrDefault(
+                        (contestId, eventId), long.MaxValue))
+                    .ThenBy(eventId => eventId)
                     .Select((eventId, index) => new
                     {
                         EventId = eventId,

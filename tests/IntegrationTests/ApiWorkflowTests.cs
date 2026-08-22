@@ -15,6 +15,7 @@ using SportsPlatform.Api.Hubs;
 using SportsPlatform.Api.Services;
 using SportsPlatform.Infrastructure.BackgroundJobs;
 using SportsPlatform.Infrastructure.Persistence;
+using SportsPlatform.Infrastructure.Persistence.SeedData;
 using SportsPlatform.Modules.Audit.Entities;
 using SportsPlatform.Modules.Competitions.Entities;
 using SportsPlatform.Modules.Contests.Entities;
@@ -41,6 +42,123 @@ public sealed class ApiWorkflowTests : IClassFixture<ApiWebApplicationFactory>
     public ApiWorkflowTests(ApiWebApplicationFactory factory)
     {
         _factory = factory;
+    }
+
+    [Fact]
+    public async Task Applicant_registration_flow_owns_draft_submits_form_and_tracks_status()
+    {
+        using var client = _factory.CreateClient();
+        var email = $"applicant-{Guid.NewGuid():N}@example.test";
+        var account = await client.PostAsJsonAsync("/api/auth/register", new
+        {
+            email,
+            password = "Applicant123!",
+            firstName = "Amina",
+            lastName = "Kamau",
+            tenantId = DemoSeedData.NationalSportsTenantId,
+            deviceId = $"applicant-test-{Guid.NewGuid():N}",
+            deviceName = "Applicant integration test",
+            deviceType = "test"
+        });
+        account.StatusCode.Should().Be(HttpStatusCode.OK,
+            await account.Content.ReadAsStringAsync());
+        var accountPayload = await account.Content.ReadFromJsonAsync<JsonElement>();
+        var applicantUserId = accountPayload.GetProperty("user").GetProperty("id").GetGuid();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+            "Bearer", accountPayload.GetProperty("accessToken").GetString());
+
+        var participantResponse = await client.PostAsJsonAsync("/api/applicant/participants", new
+        {
+            name = "Amina Kamau Athletics Club",
+            shortName = "AKAC",
+            type = "Team"
+        });
+        participantResponse.StatusCode.Should().Be(HttpStatusCode.Created,
+            await participantResponse.Content.ReadAsStringAsync());
+        var participant = await participantResponse.Content.ReadFromJsonAsync<JsonElement>();
+        var participantId = participant.GetProperty("id").GetGuid();
+
+        var draftResponse = await client.PostAsJsonAsync("/api/applicant/registrations", new
+        {
+            competitionId = DemoSeedData.FootballCompetitionId,
+            participantId,
+            formId = RegistrationDemoSeedData.TeamEntryFormId
+        });
+        draftResponse.StatusCode.Should().Be(HttpStatusCode.Created,
+            await draftResponse.Content.ReadAsStringAsync());
+        var draft = await draftResponse.Content.ReadFromJsonAsync<JsonElement>();
+        var registrationId = draft.GetProperty("id").GetGuid();
+
+        var save = await client.PutAsJsonAsync(
+            $"/api/applicant/registrations/{registrationId}/draft", new
+            {
+                formData = new
+                {
+                    managerName = "Amina Kamau",
+                    managerEmail = email,
+                    squadSize = 18,
+                    homeColours = "Emerald and white",
+                    rosterDocument = new
+                    {
+                        url = "https://files.example.test/akac-roster.pdf",
+                        size = 240000,
+                        contentType = "application/pdf"
+                    },
+                    declaration = true
+                }
+            });
+        save.StatusCode.Should().Be(HttpStatusCode.OK,
+            await save.Content.ReadAsStringAsync());
+        var submit = await client.PostAsync(
+            $"/api/applicant/registrations/{registrationId}/submit", null);
+        submit.StatusCode.Should().Be(HttpStatusCode.OK,
+            await submit.Content.ReadAsStringAsync());
+
+        var mine = await client.GetFromJsonAsync<JsonElement>("/api/applicant/registrations");
+        mine.EnumerateArray().Should().Contain(item =>
+            item.GetProperty("id").GetGuid() == registrationId
+            && item.GetProperty("status").GetString() == "Submitted"
+            && item.GetProperty("formStatus").GetString() == "Submitted");
+
+        using var scope = _factory.Services.CreateScope();
+        var database = scope.ServiceProvider.GetRequiredService<SportsPlatformDbContext>();
+        var registration = await database.Registrations.AsNoTracking()
+            .SingleAsync(item => item.Id == registrationId);
+        registration.ApplicantUserId.Should().Be(applicantUserId);
+        registration.FormSubmissionId.Should().NotBeNull();
+        var submission = await database.RegistrationFormSubmissions.AsNoTracking()
+            .SingleAsync(item => item.Id == registration.FormSubmissionId);
+        submission.ApplicantUserId.Should().Be(applicantUserId);
+        submission.RegistrationId.Should().Be(registrationId);
+        (await database.Participants.AsNoTracking().SingleAsync(item => item.Id == participantId))
+            .ApplicantUserId.Should().Be(applicantUserId);
+
+        var profileUpdate = await client.PutAsJsonAsync("/api/auth/me", new
+        {
+            firstName = "Amina",
+            lastName = "Kamau-Wanjiku"
+        });
+        profileUpdate.StatusCode.Should().Be(HttpStatusCode.OK,
+            await profileUpdate.Content.ReadAsStringAsync());
+        (await profileUpdate.Content.ReadFromJsonAsync<JsonElement>())
+            .GetProperty("lastName").GetString().Should().Be("Kamau-Wanjiku");
+
+        var otherAccount = await client.PostAsJsonAsync("/api/auth/register", new
+        {
+            email = $"other-applicant-{Guid.NewGuid():N}@example.test",
+            password = "Applicant123!",
+            firstName = "Other",
+            lastName = "Applicant",
+            tenantId = DemoSeedData.NationalSportsTenantId,
+            deviceId = $"other-applicant-test-{Guid.NewGuid():N}"
+        });
+        var otherPayload = await otherAccount.Content.ReadFromJsonAsync<JsonElement>();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+            "Bearer", otherPayload.GetProperty("accessToken").GetString());
+        var forbiddenDocument = await client.GetAsync(
+            $"/api/applicant/files/{DemoSeedData.NationalSportsTenantId:D}/"
+            + $"applicant-registration-{registrationId:N}-rosterDocument-00000000000000000000000000000000.pdf");
+        forbiddenDocument.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
     [Fact]
@@ -760,6 +878,78 @@ public sealed class ApiWorkflowTests : IClassFixture<ApiWebApplicationFactory>
 
         tenants.StatusCode.Should().Be(HttpStatusCode.OK);
         competitions.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task PlatformAdministrator_UsesExplicitTenantScopeForRolesAndUserManagement()
+    {
+        using var client = _factory.CreateClient();
+        var token = await LoginAsync(
+            client,
+            "admin@sportsplatform.com",
+            "Admin123!",
+            $"tenant-scope-{Guid.NewGuid():N}");
+        client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", token.AccessToken);
+
+        var allRolesResponse = await client.GetAsync("/api/roles");
+        allRolesResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var allRoles = await allRolesResponse.Content.ReadFromJsonAsync<JsonElement>();
+        var tenantCategories = allRoles.EnumerateArray()
+            .Select(item => item.GetProperty("tenantName").GetString())
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Distinct()
+            .ToArray();
+        tenantCategories.Should().HaveCountGreaterThan(1);
+
+        (await client.GetAsync("/api/auth/users"))
+            .StatusCode.Should().Be(HttpStatusCode.BadRequest);
+
+        Guid tenantId;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var database = scope.ServiceProvider
+                .GetRequiredService<SportsPlatformDbContext>();
+            tenantId = await database.Tenants
+                .Where(item => item.Id != token.TenantId)
+                .OrderBy(item => item.Name)
+                .Select(item => item.Id)
+                .FirstAsync();
+        }
+
+        client.DefaultRequestHeaders.Add("X-Tenant-Id", tenantId.ToString());
+        var scopedRoles = await client.GetFromJsonAsync<JsonElement>("/api/roles");
+        var roleId = scopedRoles.EnumerateArray().First().GetProperty("id").GetGuid();
+        scopedRoles.EnumerateArray().Should().OnlyContain(item =>
+            item.GetProperty("tenantId").GetGuid() == tenantId);
+
+        var email = $"scope-test-{Guid.NewGuid():N}@example.test";
+        var createResponse = await client.PostAsJsonAsync("/api/auth/users", new
+        {
+            email,
+            password = "Temporary123!",
+            firstName = "Tenant",
+            lastName = "Tester",
+            roleIds = new[] { roleId }
+        });
+        createResponse.StatusCode.Should().Be(HttpStatusCode.Created,
+            await createResponse.Content.ReadAsStringAsync());
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var database = scope.ServiceProvider
+                .GetRequiredService<SportsPlatformDbContext>();
+            var created = await database.Users
+                .SingleAsync(item => item.Email == email);
+            created.TenantId.Should().Be(tenantId);
+            database.Users.Remove(created);
+            await database.SaveChangesAsync();
+        }
+
+        client.DefaultRequestHeaders.Remove("X-Tenant-Id");
+        client.DefaultRequestHeaders.Add("X-Tenant-Id", "not-a-guid");
+        (await client.GetAsync("/api/roles"))
+            .StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     [Fact]

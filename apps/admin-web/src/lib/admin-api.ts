@@ -18,6 +18,13 @@ export type AuthResponse = {
   user: AdminUser;
 };
 
+export type SelectedTenant = {
+  id: string;
+  name: string;
+  shortName: string;
+  slug: string;
+};
+
 const PLATFORM_ROLES = new Set(['Admin', 'Platform Owner', 'Platform Support']);
 const UNRESTRICTED_ROLES = new Set(['Admin', 'Platform Owner']);
 
@@ -37,6 +44,8 @@ export function hasAnyPermission(
 const ACCESS_TOKEN_KEY = 'sports-platform.access-token';
 const REFRESH_TOKEN_KEY = 'sports-platform.refresh-token';
 const USER_KEY = 'sports-platform.user';
+const SELECTED_TENANT_KEY = 'sports-platform.selected-tenant';
+export const TENANT_SCOPE_CHANGED_EVENT = 'admin:tenant-scope-changed';
 
 export async function login(email: string, password: string, mfaCode?: string) {
   const response = await fetch(`${ADMIN_API_URL}/api/auth/login`, {
@@ -66,6 +75,7 @@ export function logout() {
   localStorage.removeItem(ACCESS_TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
+  localStorage.removeItem(SELECTED_TENANT_KEY);
   if (accessToken && refreshToken) {
     void fetch(`${ADMIN_API_URL}/api/auth/logout`, {
       method: 'POST',
@@ -76,6 +86,32 @@ export function logout() {
       body: JSON.stringify({ refreshToken, deviceId: 'admin-web' }),
     });
   }
+}
+
+export function getSelectedTenant(): SelectedTenant | null {
+  if (typeof window === 'undefined') return null;
+  const value = localStorage.getItem(SELECTED_TENANT_KEY);
+  if (!value) return null;
+  try {
+    return JSON.parse(value) as SelectedTenant;
+  } catch {
+    localStorage.removeItem(SELECTED_TENANT_KEY);
+    return null;
+  }
+}
+
+export function setSelectedTenant(tenant: SelectedTenant | null) {
+  if (typeof window === 'undefined') return;
+  if (tenant) localStorage.setItem(SELECTED_TENANT_KEY, JSON.stringify(tenant));
+  else localStorage.removeItem(SELECTED_TENANT_KEY);
+  window.dispatchEvent(new CustomEvent(TENANT_SCOPE_CHANGED_EVENT, { detail: tenant }));
+}
+
+export function getEffectiveTenantId() {
+  const user = getStoredUser();
+  return isPlatformOperator(user)
+    ? getSelectedTenant()?.id ?? null
+    : user?.tenantId ?? null;
 }
 
 export function getStoredUser(): AdminUser | null {
@@ -160,12 +196,16 @@ async function authenticatedFetch(path: string, options?: RequestInit, retried =
   const token = localStorage.getItem(ACCESS_TOKEN_KEY);
   if (!token) throw new Error('Sign in is required.');
   const isFormData = typeof FormData !== 'undefined' && options?.body instanceof FormData;
+  const selectedTenant = isPlatformOperator(getStoredUser())
+    ? getSelectedTenant()
+    : null;
   const response = await fetch(`${ADMIN_API_URL}${path}`, {
     ...options,
     headers: {
       Accept: 'application/json',
       ...(!isFormData ? { 'Content-Type': 'application/json' } : {}),
       Authorization: `Bearer ${token}`,
+      ...(selectedTenant ? { 'X-Tenant-Id': selectedTenant.id } : {}),
       ...options?.headers,
     },
   });

@@ -376,7 +376,7 @@ function CricketScorecard({ contest }: { contest: ContestDetails }) {
 }
 
 function Timeline({ events }: { events: TimelineEvent[] }) {
-  const rows = [...events].reverse();
+  const rows = [...events];
   const basketball = rows.some(event => event.sportCode === 'BASKETBALL');
   const rugby = rows.some(event => event.sportCode.startsWith('RUGBY'));
   return <div><h2 className="mb-4 text-2xl font-bold">{basketball ? 'Play-by-play' : rugby ? 'Rugby match timeline' : 'Event timeline'}</h2>{rows.length === 0 ? <State message="No public events have been recorded." compact /> : basketball ? <BasketballTimeline events={rows} /> : <div className="space-y-3">{rows.map(event => event.sportCode === 'FOOTBALL' ? <FootballTimelineEvent key={event.id} event={event} /> : event.sportCode.startsWith('RUGBY') ? <RugbyTimelineEvent key={event.id} event={event} /> : <GenericTimelineEvent key={event.id} event={event} />)}</div>}</div>;

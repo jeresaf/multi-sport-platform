@@ -5,16 +5,44 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { FormEvent, useEffect, useState } from 'react';
 import { useTenantBranding } from '@/components/tenant-branding-provider';
-import { AdminUser, getStoredUser, isPlatformOperator } from '@/lib/admin-api';
+import {
+  AdminUser,
+  SelectedTenant,
+  adminApi,
+  getSelectedTenant,
+  getStoredUser,
+  isPlatformOperator,
+  setSelectedTenant,
+} from '@/lib/admin-api';
+
+type TenantOption = SelectedTenant;
 
 export function Header({ onOpenNavigation }: { onOpenNavigation: () => void }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [helpOpen, setHelpOpen] = useState(false);
   const [user, setUser] = useState<AdminUser | null>(null);
+  const [tenants, setTenants] = useState<TenantOption[]>([]);
+  const [selectedTenantId, setSelectedTenantId] = useState('');
   const branding = useTenantBranding();
   const router = useRouter();
 
-  useEffect(() => setUser(getStoredUser()), []);
+  useEffect(() => {
+    const storedUser = getStoredUser();
+    setUser(storedUser);
+    setSelectedTenantId(getSelectedTenant()?.id ?? '');
+    if (isPlatformOperator(storedUser)) {
+      adminApi<TenantOption[]>('/api/tenants')
+        .then(setTenants)
+        .catch(() => setTenants([]));
+    }
+  }, []);
+
+  function switchTenant(tenantId: string) {
+    const tenant = tenants.find((item) => item.id === tenantId) ?? null;
+    setSelectedTenant(tenant);
+    setSelectedTenantId(tenantId);
+    window.location.assign('/');
+  }
 
   function search(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -72,9 +100,26 @@ export function Header({ onOpenNavigation }: { onOpenNavigation: () => void }) {
 
           <div className="h-8 w-px bg-gray-200 mx-2"></div>
 
-          <span className="hidden max-w-48 truncate text-sm font-medium text-gray-600 sm:block">
-            {isPlatformOperator(user) ? 'All tenants' : branding?.tenantName || 'Tenant administration'}
-          </span>
+          {isPlatformOperator(user) ? (
+            <label className="hidden sm:block">
+              <span className="sr-only">Active tenant workspace</span>
+              <select
+                aria-label="Active tenant workspace"
+                value={selectedTenantId}
+                onChange={(event) => switchTenant(event.target.value)}
+                className="h-10 max-w-64 rounded-lg border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-700"
+              >
+                <option value="">All tenants (platform)</option>
+                {tenants.map((tenant) => (
+                  <option key={tenant.id} value={tenant.id}>{tenant.name}</option>
+                ))}
+              </select>
+            </label>
+          ) : (
+            <span className="hidden max-w-48 truncate text-sm font-medium text-gray-600 sm:block">
+              {branding?.tenantName || 'Tenant administration'}
+            </span>
+          )}
         </div>
       </div>
       {helpOpen && (

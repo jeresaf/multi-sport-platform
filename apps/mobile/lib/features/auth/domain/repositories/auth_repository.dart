@@ -14,6 +14,10 @@ abstract class AuthRepository {
   /// Get current user
   Future<User?> getCurrentUser();
 
+  /// Update the signed-in user's profile.
+  Future<User> updateProfile(String firstName, String lastName) =>
+      throw UnimplementedError('Profile updates are not available.');
+
   /// Refresh token
   Future<void> refreshToken();
 

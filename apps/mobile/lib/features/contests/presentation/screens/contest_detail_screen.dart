@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/services/signalr_service.dart'
     show SignalRConnectionStatus;
 import '../../../../core/formatters/public_date_time.dart';
 import '../../../../core/widgets/contest_status_label.dart';
+import '../../../../core/router/app_router.dart';
+import '../../../supporter/data/supporter_share_service.dart';
 import '../providers/contest_provider.dart';
 
 /// Contest detail screen - shows contest info, timeline, and live updates
@@ -27,10 +30,15 @@ class ContestDetailScreen extends ConsumerWidget {
         title: const Text('Match centre'),
         actions: [
           IconButton(
+            tooltip: 'Share contest',
             icon: const Icon(Icons.share),
-            onPressed: () {
-              // TODO: Share contest
-            },
+            onPressed: contestState.contest == null
+                ? null
+                : () => supporterShareService.share(
+                      title: contestState.contest!.name,
+                      description: _contestParticipants(contestState.contest!),
+                      path: Routes.contestDetail(contestId),
+                    ),
           ),
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -72,6 +80,13 @@ class ContestDetailScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+String _contestParticipants(Contest contest) {
+  final home = contest.homeParticipantName;
+  final away = contest.awayParticipantName;
+  if (home != null && away != null) return '$home vs $away';
+  return '${contest.sportCode.toUpperCase()} contest';
 }
 
 class _LiveConnectionBanner extends StatelessWidget {
@@ -337,42 +352,50 @@ class _ScoreDisplay extends StatelessWidget {
           children: [
             // Home/Away 1
             Expanded(
-              child: Column(
-                children: [
-                  CircleAvatar(
-                    radius: 32,
-                    backgroundColor: Colors.grey.shade200,
-                    child: Text(
-                      contest.homeParticipantName
-                              ?.substring(0, 1)
-                              .toUpperCase() ??
-                          '?',
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: contest.homeParticipantId == null
+                    ? null
+                    : () => context.push(
+                          '/participant/${contest.homeParticipantId}',
+                        ),
+                child: Column(
+                  children: [
+                    CircleAvatar(
+                      radius: 32,
+                      backgroundColor: Colors.grey.shade200,
+                      child: Text(
+                        contest.homeParticipantName
+                                ?.substring(0, 1)
+                                .toUpperCase() ??
+                            '?',
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    contest.homeParticipantName ?? 'TBD',
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    contest.homeScoreDisplay ??
-                        contest.homeScore?.toString() ??
-                        '-',
-                    style: TextStyle(
-                      fontSize: 42,
-                      fontWeight: FontWeight.w900,
-                      color: Theme.of(context).colorScheme.primary,
+                    const SizedBox(height: 8),
+                    Text(
+                      contest.homeParticipantName ?? 'TBD',
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 4),
+                    Text(
+                      contest.homeScoreDisplay ??
+                          contest.homeScore?.toString() ??
+                          '-',
+                      style: TextStyle(
+                        fontSize: 42,
+                        fontWeight: FontWeight.w900,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
 
@@ -391,42 +414,50 @@ class _ScoreDisplay extends StatelessWidget {
 
             // Home/Away 2
             Expanded(
-              child: Column(
-                children: [
-                  CircleAvatar(
-                    radius: 32,
-                    backgroundColor: Colors.grey.shade200,
-                    child: Text(
-                      contest.awayParticipantName
-                              ?.substring(0, 1)
-                              .toUpperCase() ??
-                          '?',
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: contest.awayParticipantId == null
+                    ? null
+                    : () => context.push(
+                          '/participant/${contest.awayParticipantId}',
+                        ),
+                child: Column(
+                  children: [
+                    CircleAvatar(
+                      radius: 32,
+                      backgroundColor: Colors.grey.shade200,
+                      child: Text(
+                        contest.awayParticipantName
+                                ?.substring(0, 1)
+                                .toUpperCase() ??
+                            '?',
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    contest.awayParticipantName ?? 'TBD',
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    contest.awayScoreDisplay ??
-                        contest.awayScore?.toString() ??
-                        '-',
-                    style: TextStyle(
-                      fontSize: 42,
-                      fontWeight: FontWeight.w900,
-                      color: Theme.of(context).colorScheme.primary,
+                    const SizedBox(height: 8),
+                    Text(
+                      contest.awayParticipantName ?? 'TBD',
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 4),
+                    Text(
+                      contest.awayScoreDisplay ??
+                          contest.awayScore?.toString() ??
+                          '-',
+                      style: TextStyle(
+                        fontSize: 42,
+                        fontWeight: FontWeight.w900,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -485,71 +516,130 @@ class _EventTimeline extends StatelessWidget {
           );
           final assist =
               play.where((item) => item.eventType == 'ASSIST').firstOrNull;
-          final isHome = event.participantId == homeParticipantId;
-          return ListTile(
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 6,
-            ),
-            leading: CircleAvatar(
-              backgroundColor:
-                  _getEventColor(event.eventType).withValues(alpha: 0.1),
-              child: Icon(
-                _getEventIcon(event.eventType),
-                color: _getEventColor(event.eventType),
-                size: 20,
-              ),
-            ),
-            title: Text([
-              _formatEventType(event.eventType),
-              if (event.data?['primaryPlayerName'] != null)
-                event.data!['primaryPlayerName'],
-              if (event.data?['primaryPlayerName'] == null &&
-                  event.data?['secondaryParticipantName'] != null)
-                event.data!['secondaryParticipantName'],
-              if (event.data?['primaryPlayerName'] == null &&
-                  event.data?['secondaryParticipantName'] == null &&
-                  event.data?['primaryParticipantName'] != null)
-                event.data!['primaryParticipantName'],
-            ].join(' · ')),
-            subtitle: Text([
-              if (sportCode == 'basketball' && event.data?['period'] != null)
-                event.data!['period'],
-              if (sportCode == 'rugby' && event.data?['sportVariant'] != null)
-                event.data!['sportVariant'] == 'RUGBY_7'
-                    ? 'Rugby 7s'
-                    : 'Rugby 15s',
-              if (assist != null)
-                'Assist: ${assist.data?['primaryPlayerName'] ?? 'Recorded'}',
-              if (event.eventType == 'SUBSTITUTION' &&
-                  event.data?['secondaryPlayerName'] != null)
-                '${event.data!['secondaryPlayerName']} on',
-              if (event.data?['clock'] != null) event.data!['clock'],
-              if (event.data?['category'] != null)
-                _formatEventType(event.data!['category'].toString()),
-              if (event.data?['status'] != null &&
-                  event.data!['status'] != 'CONFIRMED')
-                _formatEventType(event.data!['status'].toString()),
-              _formatTime(event.timestamp),
-            ].join(' · ')),
-            trailing: (event.data?['sportCode'] == 'FOOTBALL' ||
-                        sportCode == 'basketball' ||
-                        sportCode == 'rugby') &&
-                    event.data?['category'] == 'SCORING'
-                ? Text(
-                    '${event.data?['homeScoreAfter'] ?? 0}–${event.data?['awayScoreAfter'] ?? 0}',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  )
-                : event.participantId != null
-                    ? Text(
-                        isHome ? 'Home' : 'Away',
-                        style: TextStyle(color: Colors.grey.shade600),
-                      )
-                    : null,
-          );
+          return _buildTimelineEvent(context, event, assist);
         },
       ),
     );
+  }
+
+  Widget _buildTimelineEvent(
+    BuildContext context,
+    ContestEvent event,
+    ContestEvent? assist,
+  ) {
+    final playerName = event.data?['primaryPlayerName']?.toString().trim();
+    final hasPlayer = playerName?.isNotEmpty == true;
+    final eventLabel = _formatEventType(event.eventType);
+    final clock = _eventClock(event);
+
+    // Lifecycle events (kick-off, interval, full time, and similar events) do
+    // not have an actor. Keep those deliberately compact and neutral rather
+    // than attributing them to whichever participant carried the event.
+    if (!hasPlayer) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(clock, style: Theme.of(context).textTheme.labelMedium),
+            const SizedBox(width: 10),
+            Icon(
+              _getEventIcon(event.eventType),
+              size: 18,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                eventLabel,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final isHome = event.participantId == homeParticipantId;
+    final colors = Theme.of(context).colorScheme;
+    final sideColor = isHome ? colors.primary : colors.tertiary;
+    final details = <String>[
+      eventLabel,
+      if (assist?.data?['primaryPlayerName']?.toString().trim().isNotEmpty ==
+          true)
+        'Assist: ${assist!.data!['primaryPlayerName']}',
+      if (event.eventType.toUpperCase() == 'SUBSTITUTION' &&
+          event.data?['secondaryPlayerName']?.toString().trim().isNotEmpty ==
+              true)
+        '${event.data!['secondaryPlayerName']} on',
+      if (event.data?['status'] != null &&
+          event.data!['status'].toString().toUpperCase() != 'CONFIRMED')
+        _formatEventType(event.data!['status'].toString()),
+    ];
+    final score = event.data?['category'] == 'SCORING'
+        ? '${event.data?['homeScoreAfter'] ?? 0}–${event.data?['awayScoreAfter'] ?? 0}'
+        : null;
+    final actor = Expanded(
+      child: Column(
+        crossAxisAlignment:
+            isHome ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+        children: [
+          Text(
+            playerName!,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: isHome ? TextAlign.left : TextAlign.right,
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+          Text(
+            details.join(' · '),
+            textAlign: isHome ? TextAlign.left : TextAlign.right,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
+      ),
+    );
+    final icon = CircleAvatar(
+      radius: 18,
+      backgroundColor: sideColor.withValues(alpha: 0.12),
+      child: Icon(_getEventIcon(event.eventType), color: sideColor, size: 18),
+    );
+    final time = SizedBox(
+      width: 46,
+      child: Text(
+        clock,
+        textAlign: isHome ? TextAlign.left : TextAlign.right,
+        style: Theme.of(context).textTheme.labelMedium,
+      ),
+    );
+    final scoreLabel = score == null
+        ? const SizedBox(width: 36)
+        : SizedBox(
+            width: 48,
+            child: Text(
+              score,
+              textAlign: isHome ? TextAlign.right : TextAlign.left,
+              style: TextStyle(color: sideColor, fontWeight: FontWeight.w800),
+            ),
+          );
+
+    return ColoredBox(
+      color: sideColor.withValues(alpha: 0.045),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Row(
+          children: isHome
+              ? [time, icon, const SizedBox(width: 10), actor, scoreLabel]
+              : [scoreLabel, actor, const SizedBox(width: 10), icon, time],
+        ),
+      ),
+    );
+  }
+
+  String _eventClock(ContestEvent event) {
+    final clock = event.data?['clock']?.toString().trim();
+    return clock?.isNotEmpty == true ? clock! : _formatTime(event.timestamp);
   }
 
   List<List<ContestEvent>> _eventGroups() {
@@ -563,28 +653,6 @@ class _EventTimeline extends StatelessWidget {
       groups.putIfAbsent(key, () => []).add(event);
     }
     return groups.values.toList();
-  }
-
-  Color _getEventColor(String eventType) {
-    switch (eventType.toLowerCase()) {
-      case 'goal':
-      case 'score':
-      case 'try':
-      case 'penalty_try':
-      case 'conversion_made':
-      case 'penalty_goal':
-      case 'drop_goal':
-        return Colors.green;
-      case 'foul':
-        return Colors.orange;
-      case 'card':
-      case 'yellow_card':
-      case 'second_yellow_card':
-      case 'red_card':
-        return Colors.red;
-      default:
-        return Colors.blue;
-    }
   }
 
   IconData _getEventIcon(String eventType) {

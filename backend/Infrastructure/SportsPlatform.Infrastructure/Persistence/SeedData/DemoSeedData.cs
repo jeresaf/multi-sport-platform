@@ -50,6 +50,7 @@ public static class DemoSeedData
         await CricketDemoSeedData.EnsureAsync(context, cancellationToken);
         await RugbyDemoSeedData.EnsureAsync(context, cancellationToken);
         await PublicE2eShowcaseSeedData.EnsureAsync(context, cancellationToken);
+        await RegistrationDemoSeedData.EnsureAsync(context, cancellationToken);
     }
 
     private static async Task EnsureDemoTenantsAsync(

@@ -93,6 +93,13 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<User> updateProfile(String firstName, String lastName) async {
+    final user = await _remoteDataSource.updateProfile(firstName, lastName);
+    await _localDataSource.saveUser(user);
+    return user;
+  }
+
+  @override
   Future<void> refreshToken() async {
     final refreshToken = await _localDataSource.getRefreshToken();
     if (refreshToken == null) {

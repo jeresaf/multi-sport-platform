@@ -1,5 +1,6 @@
 import '../../../../core/services/api_client.dart';
 import 'auth_local_datasource.dart';
+import '../../../../core/services/recovering_secure_storage.dart';
 
 /// Remote data source for authentication API calls
 class AuthRemoteDataSource {
@@ -47,6 +48,7 @@ class AuthRemoteDataSource {
         'password': password,
         'firstName': names.first,
         'lastName': names.length > 1 ? names.skip(1).join(' ') : 'User',
+        'tenantId': await appSecureStorage.readRecovering(key: 'selected_tenant_id'),
         'deviceId': deviceId,
         'deviceName': 'Sports Platform mobile',
         'deviceType': 'mobile',
@@ -102,6 +104,17 @@ class AuthRemoteDataSource {
     }
 
     throw Exception('Failed to get user: ${response.statusCode}');
+  }
+
+  Future<User> updateProfile(String firstName, String lastName) async {
+    final response = await _apiClient.put(
+      '/api/auth/me',
+      data: {'firstName': firstName, 'lastName': lastName},
+    );
+    if (response.statusCode == 200) {
+      return User.fromJson(response.data as Map<String, dynamic>);
+    }
+    throw Exception('Failed to update profile: ${response.statusCode}');
   }
 
   /// Send password reset email

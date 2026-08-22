@@ -21,6 +21,8 @@ import '../../features/supporter/presentation/screens/bracket_screen.dart';
 import '../../features/supporter/presentation/screens/golf_leaderboard_screen.dart';
 import '../../features/supporter/presentation/screens/fight_card_screen.dart';
 import '../../features/search/presentation/screens/search_screen.dart';
+import '../../features/registration/presentation/screens/competition_registration_screen.dart';
+import '../../features/registration/presentation/screens/my_registrations_screen.dart';
 import '../../features/auth/presentation/providers/auth_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../widgets/main_scaffold.dart';
@@ -247,6 +249,19 @@ class AppRouter {
           name: 'notifications',
           builder: (context, state) => const NotificationsScreen(),
         ),
+        GoRoute(
+          path: '/registration/:competitionId',
+          name: 'competition-registration',
+          builder: (context, state) => CompetitionRegistrationScreen(
+            competitionId: state.pathParameters['competitionId']!,
+            registrationId: state.uri.queryParameters['registrationId'],
+          ),
+        ),
+        GoRoute(
+          path: '/my-registrations',
+          name: 'my-registrations',
+          builder: (context, state) => const MyRegistrationsScreen(),
+        ),
       ],
       redirect: (context, state) {
         // Add authentication redirect logic here
@@ -309,9 +324,12 @@ class Routes {
   static const String support = '/support';
   static const String settings = '/settings';
   static const String profile = '/settings/profile';
+  static const String myRegistrations = '/my-registrations';
 
   static String competitionDetail(String competitionId) =>
       '/competition/$competitionId';
+  static String competitionRegistration(String competitionId) =>
+      '/registration/$competitionId';
   static String contestDetail(String contestId) => '/contest/$contestId';
   static String liveScoring(String contestId) => '/live/$contestId';
   static String participantDetail(String participantId) =>

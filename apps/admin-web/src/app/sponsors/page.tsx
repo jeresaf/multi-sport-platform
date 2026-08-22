@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Handshake, Plus, RefreshCw } from 'lucide-react';
-import { adminApi, getStoredUser } from '@/lib/admin-api';
+import { adminApi, getEffectiveTenantId } from '@/lib/admin-api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -73,7 +73,7 @@ export default function SponsorsPage() {
   useEffect(() => {
     adminApi<Tenant[]>('/api/tenants').then(items => {
       setTenants(items);
-      const own = getStoredUser()?.tenantId;
+      const own = getEffectiveTenantId();
       setTenantId(items.find(item => item.id === own)?.id ?? items[0]?.id ?? '');
     }).catch((reason: Error) => setError(reason.message));
   }, []);

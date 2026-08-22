@@ -67,39 +67,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               padding: const EdgeInsets.all(24),
               child: Column(
                 children: [
-                  Stack(
-                    children: [
-                      CircleAvatar(
-                        radius: 48,
-                        backgroundColor: Theme.of(context).colorScheme.primary,
-                        child: Text(
-                          (authState.displayName ?? authState.email ?? 'U')
-                              .substring(0, 1)
-                              .toUpperCase(),
-                          style: const TextStyle(
-                            fontSize: 36,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
+                  CircleAvatar(
+                    radius: 48,
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    child: Text(
+                      (authState.displayName ?? authState.email ?? 'U')
+                          .substring(0, 1)
+                          .toUpperCase(),
+                      style: const TextStyle(
+                        fontSize: 36,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
                       ),
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: CircleAvatar(
-                          radius: 16,
-                          backgroundColor:
-                              Theme.of(context).colorScheme.secondary,
-                          child: IconButton(
-                            icon: const Icon(Icons.camera_alt, size: 16),
-                            color: Colors.white,
-                            onPressed: () {
-                              // TODO: Change profile photo
-                            },
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                   const SizedBox(height: 16),
                   Text(
@@ -151,7 +131,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _emailController,
-                      enabled: _isEditing,
+                      enabled: false,
                       decoration: const InputDecoration(
                         labelText: 'Email',
                         prefixIcon: Icon(Icons.email_outlined),
@@ -212,41 +192,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
           const SizedBox(height: 24),
 
-          // Connected accounts
-          Text(
-            'Connected Accounts',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-          ),
-          const SizedBox(height: 12),
-          Card(
-            child: Column(
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.link),
-                  title: const Text('Link Google Account'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => _showAccountInformation(
-                    'Google Account',
-                    'Google account linking is not enabled for this deployment.',
-                  ),
-                ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: const Icon(Icons.link),
-                  title: const Text('Link Apple Account'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => _showAccountInformation(
-                    'Apple Account',
-                    'Apple account linking is not enabled for this deployment.',
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-
           // Danger zone
           Text(
             'Danger Zone',
@@ -274,17 +219,20 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  void _saveProfile() {
+  Future<void> _saveProfile() async {
     if (_formKey.currentState!.validate()) {
-      final auth = ref.read(authStateProvider);
-      _nameController.text = auth.displayName ?? '';
-      _emailController.text = auth.email ?? '';
+      final saved = await ref
+          .read(authStateProvider.notifier)
+          .updateProfile(_nameController.text);
+      if (!mounted) return;
       setState(() {
         _isEditing = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Profile editing is not enabled for this deployment'),
+        SnackBar(
+          content: Text(saved
+              ? 'Profile updated successfully'
+              : 'Profile update failed. Please try again.'),
         ),
       );
     }
@@ -390,12 +338,32 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _showAccountInformation(
-                'Delete Account',
-                'Self-service account deletion is not enabled. Contact your organisation administrator for an audited removal request.',
-              );
+            onPressed: () async {
+              final navigator = Navigator.of(context);
+              final messenger = ScaffoldMessenger.of(this.context);
+              try {
+                await ServiceLocator.get<ApiClient>().post<void>(
+                  '/api/privacy/requests',
+                  data: {
+                    'kind': 2,
+                    'details':
+                        'Account deletion requested from the mobile profile.',
+                  },
+                );
+                if (!mounted) return;
+                navigator.pop();
+                messenger.showSnackBar(const SnackBar(
+                  content: Text(
+                    'Deletion request submitted for administrator review.',
+                  ),
+                ));
+              } catch (_) {
+                if (!mounted) return;
+                navigator.pop();
+                messenger.showSnackBar(const SnackBar(
+                  content: Text('Could not submit the deletion request.'),
+                ));
+              }
             },
             child: Text(
               'Delete',

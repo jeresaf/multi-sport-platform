@@ -6,7 +6,7 @@ import { ImageUp, Palette } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { adminApi, getStoredUser, hasAnyPermission } from '@/lib/admin-api';
+import { adminApi, getEffectiveTenantId, getStoredUser, hasAnyPermission } from '@/lib/admin-api';
 
 type Tenant = { id: string; name: string; shortName: string; slug: string };
 type Branding = {
@@ -40,7 +40,7 @@ export default function BrandingPage() {
   useEffect(() => {
     adminApi<Tenant[]>('/api/tenants').then(items => {
       setTenants(items);
-      const ownTenant = getStoredUser()?.tenantId;
+      const ownTenant = getEffectiveTenantId();
       setTenantId(items.find(item => item.id === ownTenant)?.id ?? items[0]?.id ?? '');
     }).catch((reason: Error) => setError(reason.message));
   }, []);

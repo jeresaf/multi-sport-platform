@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Download, Play, RefreshCw, ShieldCheck, Trash2 } from 'lucide-react';
-import { adminApi, adminDownload, getStoredUser, hasAnyPermission } from '@/lib/admin-api';
+import { adminApi, adminDownload, getEffectiveTenantId, getStoredUser, hasAnyPermission } from '@/lib/admin-api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -28,7 +28,7 @@ export default function PrivacyPage() {
   const canManage = hasAnyPermission(storedUser, ['privacy.manage']);
   const [summary, setSummary] = useState<PrivacySummary | null>(null);
   const [tenants, setTenants] = useState<Tenant[]>([]);
-  const [tenantId, setTenantId] = useState(storedUser?.tenantId ?? '');
+  const [tenantId, setTenantId] = useState(getEffectiveTenantId() ?? '');
   const [adminRequests, setAdminRequests] = useState<AdminRequest[]>([]);
   const [policies, setPolicies] = useState<RetentionPolicy[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
@@ -50,7 +50,7 @@ export default function PrivacyPage() {
     void loadSelf().catch((reason: Error) => setError(reason.message));
     if (canReadAdmin) adminApi<Tenant[]>('/api/tenants').then(items => {
       setTenants(items);
-      const selected = items.find(item => item.id === storedUser?.tenantId)?.id ?? items[0]?.id ?? '';
+      const selected = items.find(item => item.id === getEffectiveTenantId())?.id ?? items[0]?.id ?? '';
       setTenantId(selected);
     }).catch((reason: Error) => setError(reason.message));
   }, [canReadAdmin, loadSelf, storedUser?.tenantId]);

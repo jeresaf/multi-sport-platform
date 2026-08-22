@@ -210,4 +210,65 @@ public sealed class ContestTimelineApiTests : IClassFixture<ApiWebApplicationFac
         cleanup.Contests.RemoveRange(cleanup.Contests.Where(item => item.Id == contestId));
         await cleanup.SaveChangesAsync();
     }
+
+    [Fact]
+    public async Task Public_match_statistics_exclude_lifecycle_and_adjustment_events()
+    {
+        using var client = _factory.CreateClient();
+        var tenantId = Guid.Parse("00000000-0000-0000-0000-000000000002");
+        var sportId = Guid.Parse("00000000-0000-0000-0000-000000000100");
+        var contestId = Guid.NewGuid();
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var database = scope.ServiceProvider.GetRequiredService<SportsPlatformDbContext>();
+            var participants = await database.Participants
+                .Where(item => item.TenantId == tenantId)
+                .Select(item => item.Id)
+                .Take(2)
+                .ToArrayAsync();
+            var contest = new Contest(contestId, tenantId, sportId, "TeamVsTeam");
+            contest.SetName("Public statistics filtering test");
+            contest.AddParticipant(participants[0], "Team");
+            contest.AddParticipant(participants[1], "Team");
+            contest.Schedule("Statistics Stadium", DateTime.UtcNow.AddHours(1), 90);
+            foreach (var (type, participant, sequence) in new[]
+            {
+                ("MATCH_START", participants[0], 1L),
+                ("PERIOD_END", participants[0], 2L),
+                ("SCORE_ADJUSTMENT", participants[0], 3L),
+                ("GOAL", participants[0], 4L),
+                ("YELLOW_CARD", participants[1], 5L),
+                ("FULL_TIME", participants[0], 6L)
+            })
+            {
+                var item = contest.AddEvent(
+                    type, participant, null, "1", null, "test", sequence,
+                    $"statistics-{contestId:N}-{sequence}");
+                item.Approve();
+            }
+            database.Contests.Add(contest);
+            await database.SaveChangesAsync();
+        }
+
+        using (var response = await client.GetAsync(
+                   $"/api/public/tenants/premier-league/contests/{contestId}"))
+        using (var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+        {
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
+            var statistics = body.RootElement.GetProperty("statistics");
+            statistics.GetProperty("totalEvents").GetInt32().Should().Be(2);
+            statistics.GetProperty("eventBreakdown").EnumerateArray()
+                .Select(item => item.GetProperty("label").GetString())
+                .Should().BeEquivalentTo("GOAL", "YELLOW_CARD");
+            body.RootElement.GetProperty("availableTabs").EnumerateArray()
+                .Select(item => item.GetString())
+                .Should().Contain("statistics");
+        }
+
+        using var cleanupScope = _factory.Services.CreateScope();
+        var cleanup = cleanupScope.ServiceProvider.GetRequiredService<SportsPlatformDbContext>();
+        cleanup.Contests.RemoveRange(cleanup.Contests.Where(item => item.Id == contestId));
+        await cleanup.SaveChangesAsync();
+    }
 }

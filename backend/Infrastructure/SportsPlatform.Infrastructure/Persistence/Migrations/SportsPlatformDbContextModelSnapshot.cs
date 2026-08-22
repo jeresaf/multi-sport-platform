@@ -2060,6 +2060,9 @@ namespace SportsPlatform.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("ApplicantUserId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -2094,6 +2097,8 @@ namespace SportsPlatform.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "ApplicantUserId");
 
                     b.HasIndex("TenantId", "Type");
 
@@ -2304,6 +2309,9 @@ namespace SportsPlatform.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("ApplicantUserId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("CancellationReason")
                         .HasColumnType("text");
 
@@ -2347,6 +2355,9 @@ namespace SportsPlatform.Infrastructure.Persistence.Migrations
                     b.Property<decimal?>("EntryFee")
                         .HasColumnType("numeric");
 
+                    b.Property<Guid?>("FormSubmissionId")
+                        .HasColumnType("uuid");
+
                     b.Property<bool>("IsEntryFeePaid")
                         .HasColumnType("boolean");
 
@@ -2382,9 +2393,14 @@ namespace SportsPlatform.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ApplicantUserId");
+
                     b.HasIndex("CompetitionId");
 
                     b.HasIndex("ContestId");
+
+                    b.HasIndex("FormSubmissionId")
+                        .IsUnique();
 
                     b.HasIndex("CompetitionId", "ParticipantId")
                         .IsUnique();
@@ -2442,6 +2458,9 @@ namespace SportsPlatform.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("ApplicantUserId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid?>("ContestId")
                         .HasColumnType("uuid");
 
@@ -2463,6 +2482,9 @@ namespace SportsPlatform.Infrastructure.Persistence.Migrations
                         .HasColumnType("integer");
 
                     b.Property<Guid>("ParticipantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("RegistrationId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("ReviewNotes")
@@ -2487,6 +2509,11 @@ namespace SportsPlatform.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ApplicantUserId");
+
+                    b.HasIndex("RegistrationId")
+                        .IsUnique();
 
                     b.ToTable("RegistrationFormSubmissions");
                 });

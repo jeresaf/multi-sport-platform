@@ -3,9 +3,12 @@
 import Link from 'next/link';
 import { CheckCircle2, Layers3, Plus, Search, Settings2, Trophy } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { adminApi } from '@/lib/admin-api';
+import { adminApi, getEffectiveTenantId } from '@/lib/admin-api';
 import { HierarchyWorkspace } from '@/components/competitions/hierarchy-workspace';
 import { PresentationSettingsPanel } from '@/components/competitions/presentation-settings';
+import { DataTable, type DataTableColumn } from '@/components/admin/data-table';
+import { ResourceDialog } from '@/components/admin/resource-dialog';
+import { Button } from '@/components/ui/button';
 
 type Competition = {
   id: string;
@@ -61,6 +64,7 @@ export default function CompetitionsPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [selectedCompetition, setSelectedCompetition] = useState<Competition | null>(null);
+  const [viewingCompetition, setViewingCompetition] = useState<Competition | null>(null);
   const [hierarchyCompetition, setHierarchyCompetition] = useState<Competition | null>(null);
   const [presentationCompetition, setPresentationCompetition] = useState<Competition | null>(null);
   const [bracket, setBracket] = useState<Bracket | null>(null);
@@ -204,17 +208,9 @@ export default function CompetitionsPage() {
   }
 
   useEffect(() => {
-    const stored = localStorage.getItem('sports-platform.user');
-    if (!stored) {
-      setError('Sign in is required.');
-      return;
-    }
-    try {
-      const user = JSON.parse(stored) as { tenantId?: string };
-      if (user.tenantId) setTenantId(user.tenantId);
-    } catch {
-      setError('The stored session is invalid. Sign in again.');
-    }
+    const effectiveTenantId = getEffectiveTenantId();
+    if (effectiveTenantId) setTenantId(effectiveTenantId);
+    else setError('Select a tenant workspace before managing competitions.');
   }, []);
 
   useEffect(() => {
@@ -243,6 +239,13 @@ export default function CompetitionsPage() {
     () => new Set(competitions.map((competition) => competition.sportId)).size,
     [competitions]
   );
+  const columns: DataTableColumn<Competition>[] = [
+    { key: 'name', header: 'Competition', render: item => <div><p className="font-semibold text-gray-950">{item.name}</p><p className="max-w-md text-xs text-gray-500">{item.description ?? 'No description'}</p></div> },
+    { key: 'sport', header: 'Sport', render: item => <span className="font-mono text-xs">{item.sportId.slice(0, 8)}</span> },
+    { key: 'status', header: 'Status', render: item => <span className="rounded-full bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-700">{String(item.status)}</span> },
+    { key: 'publication', header: 'Publication', render: item => item.publishedAt ? <span className="inline-flex items-center gap-1 text-emerald-700"><CheckCircle2 className="h-4 w-4" />Published</span> : <span className="text-gray-500">Draft</span> },
+    { key: 'actions', header: <span className="sr-only">Actions</span>, className: 'text-right', render: item => <div className="flex justify-end gap-1" onClick={event => event.stopPropagation()}><Button size="sm" variant="ghost" onClick={() => setHierarchyCompetition(item)}><Layers3 className="mr-1 h-4 w-4" />Structure</Button><Button size="sm" variant="ghost" onClick={() => setPresentationCompetition(item)}><Settings2 className="mr-1 h-4 w-4" />Presentation</Button><Button size="sm" variant="ghost" onClick={() => void loadPlayoffs(item)}><Trophy className="mr-1 h-4 w-4" />Playoffs</Button></div> },
+  ];
 
   const publishedCount = useMemo(
     () => competitions.filter((competition) => Boolean(competition.publishedAt)).length,
@@ -322,71 +325,9 @@ export default function CompetitionsPage() {
 
       {loading && <State>Loading competitions…</State>}
       {error && <State tone="error">{error} <Link href="/login" className="font-semibold underline">Sign in</Link></State>}
-      {!loading && !error && tenantId && filtered.length === 0 && <State>No competitions found for this tenant.</State>}
+      {!loading && !error && tenantId && <DataTable caption="Competitions" columns={columns} rows={filtered} rowKey={item => item.id} onRowClick={setViewingCompetition} emptyMessage="No competitions found for this tenant." />}
 
-      <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
-        {filtered.map((competition) => (
-          <article
-            key={competition.id}
-            className="group overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-          >
-            <div className="p-5">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  <Trophy className="h-5 w-5" />
-                </div>
-                <div className="flex flex-wrap justify-end gap-2">
-                  {competition.publishedAt && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
-                      <CheckCircle2 className="h-3.5 w-3.5" />
-                      Published
-                    </span>
-                  )}
-                  <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-600">
-                    {String(competition.status)}
-                  </span>
-                </div>
-              </div>
-
-              <div className="mt-5">
-                <h2 className="text-xl font-bold tracking-tight text-gray-950">{competition.name}</h2>
-                <p className="mt-1 text-xs font-medium uppercase tracking-wider text-gray-400">
-                  Sport {competition.sportId.slice(0, 8)}
-                </p>
-                {competition.description ? (
-                  <p className="mt-3 line-clamp-2 text-sm leading-6 text-gray-600">{competition.description}</p>
-                ) : (
-                  <p className="mt-3 text-sm leading-6 text-gray-400">No competition description has been added yet.</p>
-                )}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 border-t border-gray-100 bg-gray-50/70">
-              <button
-                onClick={() => setHierarchyCompetition(competition)}
-                className="flex items-center justify-center gap-1.5 border-r border-gray-100 px-3 py-3 text-xs font-semibold text-gray-700 transition hover:bg-white hover:text-primary"
-              >
-                <Layers3 className="h-3.5 w-3.5" />
-                Structure
-              </button>
-              <button
-                onClick={() => setPresentationCompetition(competition)}
-                className="flex items-center justify-center gap-1.5 border-r border-gray-100 px-3 py-3 text-xs font-semibold text-gray-700 transition hover:bg-white hover:text-primary"
-              >
-                <Settings2 className="h-3.5 w-3.5" />
-                Presentation
-              </button>
-              <button
-                onClick={() => void loadPlayoffs(competition)}
-                className="flex items-center justify-center gap-1.5 px-3 py-3 text-xs font-semibold text-gray-700 transition hover:bg-white hover:text-primary"
-              >
-                <Trophy className="h-3.5 w-3.5" />
-                Playoffs
-              </button>
-            </div>
-          </article>
-        ))}
-      </div>
+      {viewingCompetition && <ResourceDialog title={viewingCompetition.name} description={`Competition ${viewingCompetition.id}`} onClose={() => setViewingCompetition(null)}><div className="grid gap-4 sm:grid-cols-3"><div><p className="text-xs font-semibold uppercase text-gray-500">Status</p><p className="mt-1 font-semibold">{String(viewingCompetition.status)}</p></div><div><p className="text-xs font-semibold uppercase text-gray-500">Publication</p><p className="mt-1">{viewingCompetition.publishedAt ? 'Published' : 'Draft'}</p></div><div><p className="text-xs font-semibold uppercase text-gray-500">Sport ID</p><p className="mt-1 font-mono text-xs">{viewingCompetition.sportId}</p></div></div><p className="mt-5 text-sm text-gray-600">{viewingCompetition.description ?? 'No description has been added.'}</p><div className="mt-6 flex flex-wrap justify-end gap-2"><Button variant="outline" onClick={() => { setViewingCompetition(null); setHierarchyCompetition(viewingCompetition); }}><Layers3 className="mr-2 h-4 w-4" />Structure</Button><Button variant="outline" onClick={() => { setViewingCompetition(null); setPresentationCompetition(viewingCompetition); }}><Settings2 className="mr-2 h-4 w-4" />Presentation</Button><Button onClick={() => { setViewingCompetition(null); void loadPlayoffs(viewingCompetition); }}><Trophy className="mr-2 h-4 w-4" />Playoffs</Button></div></ResourceDialog>}
       {hierarchyCompetition && (
         <HierarchyWorkspace
           competitionId={hierarchyCompetition.id}

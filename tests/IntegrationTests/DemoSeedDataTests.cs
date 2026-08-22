@@ -8,6 +8,7 @@ using SportsPlatform.Modules.Competitions.Entities;
 using SportsPlatform.Modules.Contests.Entities;
 using SportsPlatform.Modules.Participants.Entities;
 using SportsPlatform.Modules.Results.Entities;
+using SportsPlatform.Modules.Registrations.Entities;
 using SportsPlatform.Modules.Sports.Entities;
 using Xunit;
 
@@ -15,6 +16,121 @@ namespace SportsPlatform.IntegrationTests;
 
 public sealed class DemoSeedDataTests
 {
+    [Fact]
+    public async Task Registration_demo_seed_covers_forms_policies_and_every_workflow_state()
+    {
+        var options = new DbContextOptionsBuilder<SportsPlatformDbContext>()
+            .UseInMemoryDatabase($"registration-demo-seed-{Guid.NewGuid()}")
+            .Options;
+        await using var context = new SportsPlatformDbContext(options);
+
+        await SeedData.InitializeAsync(context);
+        await RegistrationDemoSeedData.EnsureAsync(context);
+        context.ChangeTracker.Clear();
+
+        var forms = await context.RegistrationForms
+            .Where(item => item.TenantId == DemoSeedData.NationalSportsTenantId)
+            .ToArrayAsync();
+        forms.Should().Contain(item => item.Id == RegistrationDemoSeedData.TeamEntryFormId
+            && item.CompetitionId == DemoSeedData.FootballCompetitionId
+            && item.IsActive
+            && item.Version == 2);
+        forms.Should().Contain(item => item.Id == RegistrationDemoSeedData.AthleteProfileFormId
+            && item.CompetitionId == null
+            && item.IsActive);
+        forms.Should().Contain(item => item.Id == RegistrationDemoSeedData.ArchivedFormId
+            && !item.IsActive);
+
+        var policy = await context.CompetitionEligibilityPolicies.SingleAsync(
+            item => item.Id == RegistrationDemoSeedData.FootballPolicyId);
+        policy.MinimumSquadSize.Should().Be(15);
+        policy.MaximumSquadSize.Should().Be(30);
+        policy.RequiredDocumentTypes.Should().Contain("Medical clearance");
+        policy.RequireUniqueSquadNumbers.Should().BeTrue();
+
+        var registrations = await context.Registrations
+            .Where(item => item.Id.ToString().StartsWith("80000000-0000-0000-0000-0000000003"))
+            .ToArrayAsync();
+        registrations.Should().HaveCount(10);
+        registrations.Select(item => item.Status).Should().BeEquivalentTo(
+            Enum.GetValues<RegistrationStatus>());
+        registrations.Should().Contain(item => item.EligibilityOverriddenBy ==
+            Guid.Parse("00000000-0000-0000-0000-000000000020"));
+        registrations.Should().Contain(item => item.EntryFee == 2500m && item.IsEntryFeePaid);
+        registrations.Should().Contain(item => item.EntryFee == 2500m && !item.IsEntryFeePaid);
+
+        var submissions = await context.RegistrationFormSubmissions
+            .Where(item => item.FormId == RegistrationDemoSeedData.TeamEntryFormId)
+            .ToArrayAsync();
+        submissions.Should().HaveCount(6);
+        submissions.Select(item => item.Status).Should().BeEquivalentTo(
+            Enum.GetValues<RegistrationFormSubmissionStatus>());
+        submissions.Should().OnlyContain(item => item.FormVersion == 2 && item.Revision == 2);
+        submissions.Should().OnlyContain(item => item.RegistrationId.HasValue);
+        registrations.Count(item => item.FormSubmissionId.HasValue).Should().Be(6);
+    }
+
+    [Fact]
+    public async Task Walkthrough_seed_contains_only_bootstrap_data_and_one_user()
+    {
+        var options = new DbContextOptionsBuilder<SportsPlatformDbContext>()
+            .UseInMemoryDatabase($"walkthrough-seed-{Guid.NewGuid()}")
+            .Options;
+        await using var context = new SportsPlatformDbContext(options);
+
+        await WalkthroughSeedData.EnsureAsync(context);
+        context.ChangeTracker.Clear();
+
+        (await context.Tenants.CountAsync()).Should().Be(1);
+        (await context.Users.CountAsync()).Should().Be(1);
+        (await context.Users.SingleAsync()).Email.Should()
+            .Be("admin@sportsplatform.com");
+        (await context.Competitions.CountAsync()).Should().Be(0);
+        (await context.Participants.CountAsync()).Should().Be(0);
+        (await context.Contests.CountAsync()).Should().Be(0);
+        (await context.Sports.CountAsync()).Should().Be(12);
+        (await context.Sports.Include(item => item.Versions).ToArrayAsync())
+            .Should().OnlyContain(item => item.Versions.Any(version => version.IsPublished));
+    }
+
+    [Fact]
+    public async Task Historical_timeline_backfill_covers_every_seeded_public_result()
+    {
+        var options = new DbContextOptionsBuilder<SportsPlatformDbContext>()
+            .UseInMemoryDatabase($"historical-timeline-seed-{Guid.NewGuid()}")
+            .Options;
+        await using var context = new SportsPlatformDbContext(options);
+
+        await SeedData.InitializeAsync(context);
+        await HistoricalTimelineSeedData.EnsureAsync(context);
+        context.ChangeTracker.Clear();
+
+        var resultContestIds = await context.ContestResults
+            .Where(item => item.Status == ContestResultStatus.Published
+                || item.Status == ContestResultStatus.Official)
+            .Select(item => item.ContestId)
+            .Distinct()
+            .ToArrayAsync();
+        var timelineContestIds = await context.LiveScores
+            .Where(item => resultContestIds.Contains(item.ContestId))
+            .Select(item => item.ContestId)
+            .Distinct()
+            .ToArrayAsync();
+
+        timelineContestIds.Should().BeEquivalentTo(resultContestIds);
+        var backfilledContestId = await context.LiveScores
+            .Where(item => item.DeviceId == "historical-timeline-backfill")
+            .Select(item => item.ContestId)
+            .FirstAsync();
+        var orderedTypes = await context.LiveScores
+            .Where(item => item.ContestId == backfilledContestId)
+            .OrderBy(item => item.TimelineSequence)
+            .Select(item => item.EventType)
+            .ToArrayAsync();
+        orderedTypes.First().Should().Be("MATCH_START");
+        orderedTypes.Last().Should().Be("MATCH_END");
+    }
+
     [Fact]
     public async Task InitializeAsync_schedules_canonical_team_sport_fixtures_for_public_views()
     {

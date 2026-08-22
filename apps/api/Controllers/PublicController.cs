@@ -1179,6 +1179,7 @@ public sealed class PublicController : ControllerBase
                         ? group.Single().DisplayValue
                         : null));
         var eventStatistics = contest.Events
+            .Where(item => IsPublicStatisticEvent(item.EventType))
             .GroupBy(item => item.EventType, StringComparer.OrdinalIgnoreCase)
             .OrderBy(group => group.Key)
             .Select(group => new
@@ -1226,7 +1227,7 @@ public sealed class PublicController : ControllerBase
         var availableTabs = ContestAvailableTabs(
             sportCode,
             contest.Events.Count > 0 || liveScores.Count > 0,
-            eventStatistics.Length > 0 || liveScores.Count > 0,
+            eventStatistics.Length > 0,
             contest.Segments.Count > 0 || !string.IsNullOrWhiteSpace(contest.Venue)
                 || contest.StartTime.HasValue);
 
@@ -1329,7 +1330,7 @@ public sealed class PublicController : ControllerBase
             }),
             Statistics = new
             {
-                TotalEvents = contest.Events.Count,
+                TotalEvents = eventStatistics.Sum(item => item.Total),
                 LiveUpdates = liveScores.Count,
                 EventBreakdown = eventStatistics
             },
@@ -1374,6 +1375,18 @@ public sealed class PublicController : ControllerBase
         ? string.Empty
         : string.Join('_', value.Trim().ToUpperInvariant()
             .Split([' ', '-', '_'], StringSplitOptions.RemoveEmptyEntries));
+
+    private static bool IsPublicStatisticEvent(string? eventType)
+    {
+        var code = NormalizePublicCode(eventType);
+        return code.Length > 0 && code is not (
+            "MATCH_START" or "MATCH_END" or "GAME_START" or "GAME_END" or
+            "HALF_TIME" or "FULL_TIME" or "PERIOD_START" or "PERIOD_END" or
+            "QUARTER_START" or "QUARTER_END" or "INNINGS_START" or
+            "INNINGS_END" or "ROUND_START" or "ROUND_END" or
+            "INTERVAL_START" or "INTERVAL_END" or "CLOCK_START" or
+            "CLOCK_STOP" or "SCORE_ADJUSTMENT");
+    }
 
     [HttpGet("participants/{id:guid}")]
     public async Task<IActionResult> GetParticipant(string slug, Guid id, CancellationToken cancellationToken)

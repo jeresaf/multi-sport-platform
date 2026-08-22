@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { adminApi, getStoredUser } from '@/lib/admin-api';
+import { adminApi, getEffectiveTenantId } from '@/lib/admin-api';
 
 type Tenant = { id: string; name: string };
 type Subscription = {
@@ -49,7 +49,7 @@ export default function SubscriptionPage() {
   useEffect(() => {
     adminApi<Tenant[]>('/api/tenants').then(items => {
       setTenants(items);
-      const ownTenant = getStoredUser()?.tenantId;
+      const ownTenant = getEffectiveTenantId();
       setTenantId(items.find(item => item.id === ownTenant)?.id ?? items[0]?.id ?? '');
     }).catch((reason: Error) => setError(reason.message));
   }, []);

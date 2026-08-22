@@ -19,4 +19,9 @@ public interface IAuthService
     Task UnsuspendUserAsync(Guid actorId, Guid tenantId, Guid userId, string reason, CancellationToken cancellationToken = default);
     Task<UserInfo> GetCurrentUserAsync(Guid userId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<UserResponse>> GetUsersByTenantAsync(Guid tenantId, int page = 1, int pageSize = 50, CancellationToken cancellationToken = default);
+    Task<UserResponse> CreateTenantUserAsync(
+        Guid actorId,
+        Guid tenantId,
+        CreateTenantUserRequest request,
+        CancellationToken cancellationToken = default);
 }

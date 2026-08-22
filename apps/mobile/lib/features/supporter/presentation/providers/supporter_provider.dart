@@ -30,22 +30,55 @@ final supporterFeedProvider =
 class SupporterFeedNotifier extends AsyncNotifier<SupporterFeed> {
   StreamSubscription? _patchSubscription;
   final Map<String, int> _versions = {};
+  bool _disposed = false;
+  int _loadGeneration = 0;
 
   @override
   Future<SupporterFeed> build() async {
     final lowData = ref.watch(
       supporterPreferencesProvider.select((state) => state.lowDataMode),
     );
-    ref.onDispose(() => _patchSubscription?.cancel());
-    final feed = await ref
-        .watch(supporterRepositoryProvider)
-        .getFeed(preferCache: lowData);
+    ref.onDispose(() {
+      _disposed = true;
+      _patchSubscription?.cancel();
+    });
+    final repository = ref.watch(supporterRepositoryProvider);
+    final generation = ++_loadGeneration;
+    final feed = await repository.getFixtureFeed(preferCache: lowData);
+    unawaited(Future<void>.delayed(
+      Duration.zero,
+      () => _completeIncrementally(
+        repository,
+        feed,
+        lowData,
+        generation,
+      ),
+    ));
     final live = ref.read(signalRServiceProvider);
     _patchSubscription ??= live.livePatches.listen(_applyPatch);
     for (final fixture in feed.fixtures) {
       unawaited(live.subscribeToContest(fixture.id));
     }
     return feed;
+  }
+
+  Future<void> _completeIncrementally(
+    SupporterRepository repository,
+    SupporterFeed fixtureFeed,
+    bool preferCache,
+    int generation,
+  ) async {
+    try {
+      final complete = await repository.completeFeed(
+        fixtureFeed,
+        preferCache: preferCache,
+      );
+      if (!_disposed && generation == _loadGeneration) {
+        state = AsyncData(complete);
+      }
+    } catch (_) {
+      // Fixtures remain usable when supplementary standings/results fail.
+    }
   }
 
   Future<void> refresh() async {

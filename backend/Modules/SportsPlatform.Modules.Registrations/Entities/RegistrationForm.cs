@@ -106,6 +106,8 @@ public class RegistrationFormSubmission : AggregateRoot<Guid>
     public Guid FormId { get; private set; }
     public Guid ParticipantId { get; private set; }
     public Guid? ContestId { get; private set; }
+    public Guid? ApplicantUserId { get; private set; }
+    public Guid? RegistrationId { get; private set; }
     public string FormData { get; private set; } = "{}";
     public RegistrationFormSubmissionStatus Status { get; private set; } = RegistrationFormSubmissionStatus.Draft;
     public string? ReviewNotes { get; private set; }
@@ -164,8 +166,9 @@ public class RegistrationFormSubmission : AggregateRoot<Guid>
 
     public void Submit()
     {
-        if (Status != RegistrationFormSubmissionStatus.Draft)
-            throw new InvalidOperationException("Only draft submissions can be submitted.");
+        if (Status is not (RegistrationFormSubmissionStatus.Draft
+            or RegistrationFormSubmissionStatus.ChangesRequested))
+            throw new InvalidOperationException("Only draft or changes-requested submissions can be submitted.");
 
         Status = RegistrationFormSubmissionStatus.Submitted;
         SubmittedAt = DateTime.UtcNow;
@@ -214,6 +217,22 @@ public class RegistrationFormSubmission : AggregateRoot<Guid>
     {
         ReviewedBy = reviewerId;
         ReviewedAt = DateTime.UtcNow;
+    }
+
+    public void AssignApplicant(Guid applicantUserId)
+    {
+        if (applicantUserId == Guid.Empty)
+            throw new ArgumentException("An applicant user is required.", nameof(applicantUserId));
+        ApplicantUserId = applicantUserId;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void LinkRegistration(Guid registrationId)
+    {
+        if (registrationId == Guid.Empty)
+            throw new ArgumentException("A registration is required.", nameof(registrationId));
+        RegistrationId = registrationId;
+        UpdatedAt = DateTime.UtcNow;
     }
 }
 

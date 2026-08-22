@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { AlertTriangle, CalendarClock, CheckCircle2, PlayCircle, RefreshCw, ShieldCheck, Trophy } from 'lucide-react';
-import { adminApi, getStoredUser } from '@/lib/admin-api';
+import { adminApi, getEffectiveTenantId } from '@/lib/admin-api';
 
 type Competition = { id: string; name: string; status: string | number };
 type Conflict = {
@@ -81,7 +81,7 @@ export default function SchedulePage() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => setTenantId(getStoredUser()?.tenantId ?? ''), []);
+  useEffect(() => setTenantId(getEffectiveTenantId() ?? ''), []);
   useEffect(() => {
     if (!tenantId) return;
     Promise.all([

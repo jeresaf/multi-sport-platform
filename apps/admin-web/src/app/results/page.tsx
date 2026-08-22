@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Check, CircleAlert, DatabaseZap, RefreshCw, Send, ShieldCheck, Trophy, X } from 'lucide-react';
-import { adminApi, getStoredUser } from '@/lib/admin-api';
+import { adminApi, getEffectiveTenantId, getStoredUser } from '@/lib/admin-api';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -94,11 +94,11 @@ export default function ResultReviewPage() {
       adminApi<Tenant[]>('/api/tenants')
         .then((items) => {
           setTenants(items);
-          setTenantId(user.tenantId ?? items[0]?.id ?? '');
+          setTenantId(getEffectiveTenantId() ?? items[0]?.id ?? '');
         })
         .catch((reason: Error) => setError(reason.message));
     } else {
-      setTenantId(user.tenantId ?? '');
+      setTenantId(getEffectiveTenantId() ?? '');
     }
     // The stored user is stable for this mounted route.
     // eslint-disable-next-line react-hooks/exhaustive-deps

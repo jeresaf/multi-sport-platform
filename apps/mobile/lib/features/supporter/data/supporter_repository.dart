@@ -11,13 +11,31 @@ class SupporterRepository {
 
   SupporterRepository(this._remote, this._database);
 
-  Future<SupporterFeed> getFeed({
+  /// Loads the match-centre payload first so the home screen can render while
+  /// standings and result history continue loading in the background.
+  Future<SupporterFeed> getFixtureFeed({
+    bool forceRefresh = false,
+    bool preferCache = false,
+  }) async {
+    final snapshot = await _load(
+      'fixtures',
+      _remote.getFixtures,
+      forceRefresh: forceRefresh,
+      preferCache: preferCache,
+    );
+    return SupporterFeed(
+      fixtures: snapshot.rows.map(SupporterFixture.fromJson).toList(),
+      isFromCache: snapshot.fromCache,
+      cachedAt: snapshot.fromCache ? snapshot.cachedAt : null,
+    );
+  }
+
+  Future<SupporterFeed> completeFeed(
+    SupporterFeed fixtureFeed, {
     bool forceRefresh = false,
     bool preferCache = false,
   }) async {
     final snapshots = await Future.wait([
-      _load('fixtures', _remote.getFixtures,
-          forceRefresh: forceRefresh, preferCache: preferCache),
       _load('results', _remote.getResults,
           forceRefresh: forceRefresh, preferCache: preferCache),
       _load('standings', _remote.getStandings,
@@ -25,15 +43,31 @@ class SupporterRepository {
     ]);
     final cached = snapshots.where((item) => item.fromCache).toList();
     return SupporterFeed(
-      fixtures: snapshots[0].rows.map(SupporterFixture.fromJson).toList(),
-      results: snapshots[1].rows.map(SupporterResult.fromJson).toList(),
-      standings: snapshots[2].rows.map(SupporterStanding.fromJson).toList(),
-      isFromCache: cached.isNotEmpty,
-      cachedAt: cached.isEmpty
-          ? null
-          : cached
-              .map((item) => item.cachedAt)
-              .reduce((a, b) => a.isBefore(b) ? a : b),
+      fixtures: fixtureFeed.fixtures,
+      results: snapshots[0].rows.map(SupporterResult.fromJson).toList(),
+      standings: snapshots[1].rows.map(SupporterStanding.fromJson).toList(),
+      isFromCache: fixtureFeed.isFromCache || cached.isNotEmpty,
+      cachedAt: fixtureFeed.cachedAt ??
+          (cached.isEmpty
+              ? null
+              : cached
+                  .map((item) => item.cachedAt)
+                  .reduce((a, b) => a.isBefore(b) ? a : b)),
+    );
+  }
+
+  Future<SupporterFeed> getFeed({
+    bool forceRefresh = false,
+    bool preferCache = false,
+  }) async {
+    final fixtures = await getFixtureFeed(
+      forceRefresh: forceRefresh,
+      preferCache: preferCache,
+    );
+    return completeFeed(
+      fixtures,
+      forceRefresh: forceRefresh,
+      preferCache: preferCache,
     );
   }
 

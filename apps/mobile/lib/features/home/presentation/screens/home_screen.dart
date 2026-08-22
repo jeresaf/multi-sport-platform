@@ -37,10 +37,16 @@ import '../../../supporter/presentation/widgets/alert_preferences_sheet.dart';
 }
 
 class HomeScreen extends ConsumerStatefulWidget {
-  const HomeScreen({super.key, this.initialDate, this.initialSportSlug});
+  const HomeScreen({
+    super.key,
+    this.initialDate,
+    this.initialSportSlug,
+    this.today,
+  });
 
   final DateTime? initialDate;
   final String? initialSportSlug;
+  final DateTime? today;
 
   @override
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
@@ -54,7 +60,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    selectedDate = DateUtils.dateOnly(widget.initialDate ?? DateTime.now());
+    selectedDate = DateUtils.dateOnly(
+      widget.initialDate ?? widget.today ?? DateTime.now(),
+    );
     sport = widget.initialSportSlug;
   }
 
@@ -333,6 +341,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     const SizedBox(height: 16),
                     _DateNavigator(
                       date: selectedDate,
+                      today: widget.today,
                       onChanged: _changeDate,
                     ),
                     const SizedBox(height: 12),
@@ -429,7 +438,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             mainAxisExtent: 208),
                         delegate: SliverChildBuilderDelegate(
                             (context, index) =>
-                                _ContestCard(fixtureId: group.value[index].id),
+                                _ContestCard(
+                                  fixtureId: group.value[index].id,
+                                  today: widget.today,
+                                ),
                             childCount: group.value.length),
                       );
                     }),
@@ -484,8 +496,9 @@ class _FeedMetric extends StatelessWidget {
 
 class _DateNavigator extends StatelessWidget {
   final DateTime date;
+  final DateTime? today;
   final ValueChanged<DateTime> onChanged;
-  const _DateNavigator({required this.date, required this.onChanged});
+  const _DateNavigator({required this.date, this.today, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -522,7 +535,7 @@ class _DateNavigator extends StatelessWidget {
                     if (selected != null) onChanged(selected);
                   },
                   icon: const Icon(Icons.calendar_today_outlined, size: 18),
-                  label: Text(DateUtils.isSameDay(date, DateTime.now())
+                  label: Text(DateUtils.isSameDay(date, today ?? DateTime.now())
                       ? 'Today'
                       : DateFormat.MMMEd().format(date)),
                 ),
@@ -580,7 +593,8 @@ String _sportSlug(String value) => value
 
 class _ContestCard extends ConsumerWidget {
   final String fixtureId;
-  const _ContestCard({required this.fixtureId});
+  final DateTime? today;
+  const _ContestCard({required this.fixtureId, this.today});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -633,33 +647,25 @@ class _ContestCard extends ConsumerWidget {
                 ...fixture.participantDetails.take(2).map((participant) =>
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 4),
-                      child: InkWell(
-                        onTap: participant.id.isEmpty
-                            ? null
-                            : () =>
-                                context.push('/participant/${participant.id}'),
-                        borderRadius: BorderRadius.circular(8),
-                        child: Row(children: [
-                          CircleAvatar(
-                              radius: 13,
-                              child: Text(
-                                  participant.name
-                                      .substring(0,
-                                          participant.name.length.clamp(1, 2))
-                                      .toUpperCase(),
-                                  style: const TextStyle(fontSize: 9))),
-                          const SizedBox(width: 8),
-                          Expanded(
-                              child: Text(participant.name,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.w600))),
-                          Text(participant.result,
-                              style:
-                                  const TextStyle(fontWeight: FontWeight.bold))
-                        ]),
-                      ),
+                      child: Row(children: [
+                        CircleAvatar(
+                            radius: 13,
+                            child: Text(
+                                participant.name
+                                    .substring(
+                                        0, participant.name.length.clamp(1, 2))
+                                    .toUpperCase(),
+                                style: const TextStyle(fontSize: 9))),
+                        const SizedBox(width: 8),
+                        Expanded(
+                            child: Text(participant.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w600))),
+                        Text(participant.result,
+                            style: const TextStyle(fontWeight: FontWeight.bold))
+                      ]),
                     )),
                 if (fixture.participantDetails.length > 2)
                   Align(
@@ -676,7 +682,7 @@ class _ContestCard extends ConsumerWidget {
             Row(children: [
               const Icon(Icons.schedule, size: 15),
               const SizedBox(width: 4),
-              Text(formatPublicDateTime(fixture.startTime),
+              Text(formatPublicDateTime(fixture.startTime, now: today),
                   style: Theme.of(context).textTheme.bodySmall),
               const Spacer(),
               IconButton(

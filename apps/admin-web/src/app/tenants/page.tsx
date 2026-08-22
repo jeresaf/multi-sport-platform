@@ -1,11 +1,13 @@
 'use client';
 
-import { Building2, Plus, RefreshCw, Search, Trash2 } from 'lucide-react';
+import { Building2, Eye, Plus, RefreshCw, Search, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { adminApi, getStoredUser, hasAnyPermission, isPlatformOperator } from '@/lib/admin-api';
+import { adminApi, getEffectiveTenantId, getStoredUser, hasAnyPermission, isPlatformOperator } from '@/lib/admin-api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { DataTable, type DataTableColumn } from '@/components/admin/data-table';
+import { ResourceDialog } from '@/components/admin/resource-dialog';
 
 type Tenant = {
   id: string; name: string; shortName: string; slug: string; description?: string | null;
@@ -55,7 +57,7 @@ export default function TenantsPage() {
     const items = await adminApi<Tenant[]>('/api/tenants');
     setTenants(items);
     setSelectedId(current => {
-      const wanted = preferredId ?? current ?? user?.tenantId ?? '';
+      const wanted = preferredId ?? current ?? getEffectiveTenantId() ?? user?.tenantId ?? '';
       return items.some(item => item.id === wanted) ? wanted : items[0]?.id ?? '';
     });
   }, [user?.tenantId]);
@@ -80,6 +82,14 @@ export default function TenantsPage() {
 
   const filtered = useMemo(() => tenants.filter(item =>
     `${item.name} ${item.slug}`.toLowerCase().includes(search.toLowerCase())), [search, tenants]);
+  const columns: DataTableColumn<Tenant>[] = [
+    { key: 'name', header: 'Tenant', render: item => <div><p className="font-semibold text-gray-950">{item.name}</p><p className="text-xs text-gray-500">{item.shortName}</p></div> },
+    { key: 'slug', header: 'Public slug', render: item => `/${item.slug}` },
+    { key: 'status', header: 'Status', render: item => <Status status={statusName(item.status)} /> },
+    { key: 'country', header: 'Country', render: item => item.country || '—' },
+    { key: 'timezone', header: 'Timezone', render: item => item.timezone || '—' },
+    { key: 'actions', header: <span className="sr-only">Actions</span>, className: 'text-right', render: item => <Button size="sm" variant="ghost" onClick={event => { event.stopPropagation(); setSelectedId(item.id); }}><Eye className="mr-1 h-4 w-4" />View</Button> },
+  ];
 
   const run = async (action: () => Promise<void>, success: string) => {
     setBusy(true); setError(null); setNotice(null);
@@ -151,9 +161,9 @@ export default function TenantsPage() {
       <div className="flex gap-2"><Button variant="outline" disabled={busy} onClick={() => void run(refresh, 'Tenant data refreshed.')}><RefreshCw className="mr-2 h-4 w-4" />Refresh</Button>{canManage && <Button onClick={() => setShowCreate(value => !value)}><Plus className="mr-2 h-4 w-4" />New tenant</Button>}</div>
     </div>
     {error && <State tone="error">{error}</State>}{notice && <State tone="success">{notice}</State>}
-    {showCreate && <form onSubmit={createTenant} className="grid gap-3 rounded-xl border bg-white p-5 md:grid-cols-4"><Field label="Tenant name"><Input aria-label="Tenant name" required maxLength={200} value={create.name} onChange={e => setCreate(v => ({ ...v, name: e.target.value }))} /></Field><Field label="Short name"><Input aria-label="Short name" required maxLength={100} value={create.shortName} onChange={e => setCreate(v => ({ ...v, shortName: e.target.value }))} /></Field><Field label="Public slug"><Input aria-label="Public slug" required maxLength={100} pattern="[a-z0-9]+(?:-[a-z0-9]+)*" placeholder="regional-league" value={create.slug} onChange={e => setCreate(v => ({ ...v, slug: e.target.value.toLowerCase() }))} /></Field><div className="flex items-end"><Button disabled={busy}>Create tenant</Button></div></form>}
-    <div className="grid gap-6 xl:grid-cols-[20rem_1fr]">
-      <aside className="space-y-3"><label className="relative block"><Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" /><Input className="pl-10" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name or slug" /></label>{loading && <State>Loading tenants…</State>}{filtered.map(item => <button key={item.id} onClick={() => setSelectedId(item.id)} className={`w-full rounded-xl border p-4 text-left ${item.id === selectedId ? 'border-primary bg-primary-50' : 'bg-white hover:border-gray-300'}`}><div className="flex items-center justify-between gap-2"><span className="font-semibold text-gray-950">{item.name}</span><Status status={statusName(item.status)} /></div><p className="mt-1 text-xs text-gray-500">/{item.slug}</p></button>)}{!loading && !filtered.length && <State>No tenants found.</State>}</aside>
+    <label className="relative block max-w-lg"><Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" /><Input className="pl-10" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name or slug" /></label>
+    {loading ? <State>Loading tenants…</State> : <DataTable caption="Platform tenants" columns={columns} rows={filtered} rowKey={item => item.id} onRowClick={item => setSelectedId(item.id)} emptyMessage="No tenants match this search." />}
+    <div>
       {selected ? <main className="space-y-5">
         <section className="rounded-xl border bg-white p-5"><div className="flex flex-wrap items-start justify-between gap-4"><div className="flex gap-3"><span className="rounded-lg bg-primary-50 p-3"><Building2 className="h-6 w-6 text-primary" /></span><div><h2 className="text-xl font-bold">{selected.name}</h2><p className="text-sm text-gray-500">/{selected.slug} · {selected.id}</p></div></div><div className="flex flex-wrap gap-2"><Status status={statusName(selected.status)} />{canManage && statusName(selected.status) === 'Active' && <Button size="sm" variant="outline" onClick={() => changeLifecycle('suspend')} disabled={busy}>Suspend</Button>}{canManage && statusName(selected.status) === 'Suspended' && <Button size="sm" onClick={() => changeLifecycle('activate')} disabled={busy}>Activate</Button>}{canManage && statusName(selected.status) !== 'Archived' && <Button size="sm" variant="destructive" onClick={() => changeLifecycle('archive')} disabled={busy}>Archive</Button>}</div></div></section>
         <div className="grid gap-5 lg:grid-cols-2">
@@ -161,8 +171,9 @@ export default function TenantsPage() {
           <form onSubmit={saveLocale} className="space-y-4 rounded-xl border bg-white p-5"><FormHeading title="Localization" description="Defaults used for schedules, prices, and communication." /><Field label="Country"><Input maxLength={100} disabled={!canUpdate} placeholder="Kenya" value={locale.country} onChange={e => setLocale(v => ({ ...v, country: e.target.value }))} /></Field><div className="grid gap-4 sm:grid-cols-2"><Field label="Timezone"><Input maxLength={100} disabled={!canUpdate} placeholder="Africa/Nairobi" value={locale.timezone} onChange={e => setLocale(v => ({ ...v, timezone: e.target.value }))} /></Field><Field label="Currency"><Input maxLength={3} disabled={!canUpdate} placeholder="KES" value={locale.currency} onChange={e => setLocale(v => ({ ...v, currency: e.target.value.toUpperCase() }))} /></Field></div><Field label="Default language"><Input maxLength={10} disabled={!canUpdate} placeholder="en-KE" value={locale.defaultLanguage} onChange={e => setLocale(v => ({ ...v, defaultLanguage: e.target.value }))} /></Field>{canUpdate && <Button disabled={busy}>Save localization</Button>}</form>
         </div>
         <section className="space-y-4 rounded-xl border bg-white p-5"><FormHeading title="Contacts" description="Operational tenant contacts; only one contact is marked primary." />{contacts.map(item => <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3"><div><p className="font-semibold">{item.name} {item.isPrimary && <span className="ml-1 rounded bg-primary-50 px-2 py-0.5 text-xs text-primary">Primary</span>}</p><p className="text-sm text-gray-600">{item.email}{item.phone ? ` · ${item.phone}` : ''}{item.role ? ` · ${item.role}` : ''}</p></div>{canUpdate && <div className="flex gap-2"><Button type="button" size="sm" variant="outline" onClick={() => { setEditingContactId(item.id); setContact({ name: item.name, email: item.email, phone: item.phone ?? '', role: item.role ?? '', isPrimary: item.isPrimary }); }}>Edit</Button><Button type="button" size="icon" variant="destructive" aria-label={`Delete ${item.name}`} onClick={() => removeContact(item)}><Trash2 className="h-4 w-4" /></Button></div>}</div>)}{!contacts.length && <p className="text-sm text-gray-500">No tenant contacts have been added.</p>}{canUpdate && <form onSubmit={saveContact} className="grid gap-3 border-t pt-4 md:grid-cols-2 xl:grid-cols-5"><Field label="Name"><Input required maxLength={200} value={contact.name} onChange={e => setContact(v => ({ ...v, name: e.target.value }))} /></Field><Field label="Email"><Input required type="email" maxLength={200} value={contact.email} onChange={e => setContact(v => ({ ...v, email: e.target.value }))} /></Field><Field label="Phone"><Input maxLength={50} value={contact.phone} onChange={e => setContact(v => ({ ...v, phone: e.target.value }))} /></Field><Field label="Role"><Input maxLength={100} value={contact.role} onChange={e => setContact(v => ({ ...v, role: e.target.value }))} /></Field><div className="flex items-end gap-2"><label className="flex h-10 items-center gap-2 text-sm"><input type="checkbox" checked={contact.isPrimary} onChange={e => setContact(v => ({ ...v, isPrimary: e.target.checked }))} />Primary</label><Button disabled={busy}>{editingContactId ? 'Update' : 'Add'}</Button>{editingContactId && <Button type="button" variant="ghost" onClick={() => { setEditingContactId(null); setContact(emptyContact); }}>Cancel</Button>}</div></form>}</section>
-      </main> : <State>Select a tenant to manage.</State>}
+      </main> : <State>Select a tenant row to view and manage it.</State>}
     </div>
+    {showCreate && <ResourceDialog title="Create tenant" description="The tenant will receive the standard role catalogue and can then be opened as a workspace." onClose={() => setShowCreate(false)}><form onSubmit={createTenant} className="space-y-4"><Field label="Tenant name"><Input aria-label="Tenant name" required maxLength={200} value={create.name} onChange={e => setCreate(v => ({ ...v, name: e.target.value }))} /></Field><Field label="Short name"><Input aria-label="Short name" required maxLength={100} value={create.shortName} onChange={e => setCreate(v => ({ ...v, shortName: e.target.value }))} /></Field><Field label="Public slug"><Input aria-label="Public slug" required maxLength={100} pattern="[a-z0-9]+(?:-[a-z0-9]+)*" placeholder="regional-league" value={create.slug} onChange={e => setCreate(v => ({ ...v, slug: e.target.value.toLowerCase() }))} /></Field><div className="flex justify-end gap-3"><Button type="button" variant="outline" onClick={() => setShowCreate(false)}>Cancel</Button><Button disabled={busy}>Create tenant</Button></div></form></ResourceDialog>}
   </div>;
 }
 

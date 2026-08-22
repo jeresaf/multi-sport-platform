@@ -5,6 +5,7 @@ namespace SportsPlatform.Modules.Participants.Entities;
 
 public abstract class Participant : TenantAggregateRoot<Guid>
 {
+    public Guid? ApplicantUserId { get; protected set; }
     public string Name { get; protected set; } = string.Empty;
     public string ShortName { get; protected set; } = string.Empty;
     public string? Logo { get; protected set; }
@@ -29,6 +30,14 @@ public abstract class Participant : TenantAggregateRoot<Guid>
         ShortName = shortName.Trim();
         Type = type;
         CreatedAt = DateTime.UtcNow;
+    }
+
+    public void AssignApplicant(Guid applicantUserId)
+    {
+        if (applicantUserId == Guid.Empty)
+            throw new ArgumentException("An applicant user is required.", nameof(applicantUserId));
+        ApplicantUserId = applicantUserId;
+        UpdatedAt = DateTime.UtcNow;
     }
 
     public ParticipantSportProfile SetSportAttributes(Guid sportId, string attributesJson)

@@ -334,7 +334,8 @@ public static class PublicCsvSeedData
                 var gameNumber = result.Values.Count(item => item.SeriesId == StableId(series["series_id"])) + 1;
                 contest.AssignToSeries(StableId(series["series_id"]), gameNumber, Int(series["best_of"]));
             }
-            contest.Schedule(venues.GetValueOrDefault(row["venue_id"], "Public demo venue"), ParseDate(row["start_at"], anchorOffset), 120);
+            var scheduledAt = ParseDate(row["start_at"], anchorOffset);
+            contest.Schedule(venues.GetValueOrDefault(row["venue_id"], "Public demo venue"), scheduledAt, 120);
             RecordPresentationMetric(contest, "periodLabel", row["period_label"]);
             RecordPresentationMetric(contest, "clock", row["clock"]);
             RecordPresentationMetric(contest, "summary", row["summary"]);
@@ -385,11 +386,91 @@ public static class PublicCsvSeedData
             }
             context.Contests.Add(contest);
             result[row["contest_id"]] = contest;
-            AddScores(context, contest, contestParticipants, participants, row["status"],
+            var hasHistoricalTimeline = AddHistoricalTimeline(
+                context,
+                contest,
+                contestParticipants,
+                participants,
+                row["status"],
+                scheduledAt,
                 contestEventRows.Length > 0);
+            AddScores(context, contest, contestParticipants, participants, row["status"],
+                contestEventRows.Length > 0 || hasHistoricalTimeline);
         }
         await context.SaveChangesAsync(cancellationToken);
         return result;
+    }
+
+    private static bool AddHistoricalTimeline(
+        SportsPlatformDbContext context,
+        Contest contest,
+        IReadOnlyList<Row> rows,
+        IReadOnlyDictionary<string, Participant> participants,
+        string status,
+        DateTime scheduledAt,
+        bool hasTimelineEvents)
+    {
+        if (hasTimelineEvents || status is not ("APPROVED" or "CORRECTED"))
+            return false;
+
+        var scored = rows.Where(row => !string.IsNullOrWhiteSpace(row["score"])).ToArray();
+        if (scored.Length == 0)
+            return false;
+
+        var sequence = 1;
+        var carrierId = participants[scored[0]["participant_id"]].Id;
+        AddHistoricalEvent("MATCH_START", carrierId, "event", 0, "Start", scheduledAt, 0);
+
+        foreach (var row in scored)
+        {
+            var participantId = participants[row["participant_id"]].Id;
+            var score = Decimal(row["score"]);
+            AddHistoricalEvent(
+                "SCORE_ADJUSTMENT",
+                participantId,
+                "score",
+                score,
+                row["score"],
+                scheduledAt.AddMinutes(119),
+                7140);
+        }
+
+        AddHistoricalEvent("MATCH_END", carrierId, "event", 0, "Full time",
+            scheduledAt.AddMinutes(120), 7200);
+        return true;
+
+        void AddHistoricalEvent(
+            string eventType,
+            Guid participantId,
+            string metric,
+            decimal value,
+            string display,
+            DateTime occurredAt,
+            decimal clockSeconds)
+        {
+            var key = $"historical:{contest.Id}:{sequence}:{eventType}:{participantId}";
+            var live = new LiveScore(
+                StableId(key),
+                contest.Id,
+                StableId($"event:{key}"),
+                participantId,
+                metric,
+                value,
+                clockSeconds: clockSeconds,
+                tenantId: contest.TenantId,
+                eventType: eventType,
+                deviceTimestamp: occurredAt,
+                deviceId: "csv-historical-timeline",
+                idempotencyKey: key,
+                rulesetVersionId: contest.RulesetVersionId);
+            live.SetDisplayValue(display);
+            live.SetSequence(sequence++);
+            live.SetMetadata(JsonSerializer.Serialize(new
+            {
+                description = "Historical aggregate result"
+            }));
+            context.LiveScores.Add(live);
+        }
     }
 
     private static void AddScores(SportsPlatformDbContext context, Contest contest,
