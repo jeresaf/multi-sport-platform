@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Heart, Home, Menu, Moon, Radio, Search, Sun, Trophy, UserRound } from 'lucide-react';
+import { BarChart3, CalendarDays, Heart, Home, Menu, Moon, Radio, Search, Sun, Trophy, UserRound } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { formatSport, publicApi, type PublicCompetition, resolveTenantSlug, sportSlug, TENANT_SLUG, tenantPath } from '@/lib/public-api';
 import { getApplicantSession } from '@/lib/applicant-api';
@@ -93,7 +93,27 @@ export function TenantBrandShell({ children }: { children: React.ReactNode }) {
             <NavLink href={href('/')}>Home</NavLink>
             <NavLink href={href('/live')}><Radio className="h-4 w-4 text-[var(--status-live)]" />Live</NavLink>
             {flagships.map(item => <NavLink key={item.id} href={href(`/sport/${sportSlug(item.id, item.label)}`)}>{item.label.startsWith('Rugby') ? 'Rugby' : item.label}</NavLink>)}
-            {moreSports.length > 0 && <details className="relative"><summary className="flex cursor-pointer list-none items-center gap-1 rounded-lg px-3 py-2 text-sm font-semibold hover:bg-[var(--color-surface-muted)]">More <Menu className="h-4 w-4" /></summary><div className="surface absolute right-0 top-11 z-50 grid min-w-48 gap-1 rounded-xl p-2 shadow-xl">{moreSports.map(item => <NavLink key={item.id} href={href(`/sport/${sportSlug(item.id, item.label)}`)}>{item.label}</NavLink>)}</div></details>}
+            <details className="relative">
+              <summary className="flex cursor-pointer list-none items-center gap-1 rounded-lg px-3 py-2 text-sm font-semibold hover:bg-[var(--color-surface-muted)]">
+                More <Menu className="h-4 w-4" />
+              </summary>
+              <div className="surface absolute right-0 top-11 z-50 grid min-w-56 gap-1 rounded-xl p-2 shadow-xl">
+                <NavLink href={href('/competitions')}><Trophy className="h-4 w-4" />Competitions</NavLink>
+                <NavLink href={href('/fixtures')}><CalendarDays className="h-4 w-4" />Fixtures</NavLink>
+                <NavLink href={href('/results')}><Trophy className="h-4 w-4" />Results</NavLink>
+                <NavLink href={href('/statistics')}><BarChart3 className="h-4 w-4" />Statistics</NavLink>
+                {moreSports.length > 0 && (
+                  <>
+                    <span className="mx-2 my-1 border-t border-[var(--color-border)]" />
+                    {moreSports.map(item => (
+                      <NavLink key={item.id} href={href(`/sport/${sportSlug(item.id, item.label)}`)}>
+                        {item.label}
+                      </NavLink>
+                    ))}
+                  </>
+                )}
+              </div>
+            </details>
           </nav>
 
           <div className="ml-auto flex items-center gap-1 lg:ml-2">
