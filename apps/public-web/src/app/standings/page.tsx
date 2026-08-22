@@ -24,14 +24,31 @@ type Standing = {
   metadata?: string | null;
 };
 
-function headToHeadPoints(row: Standing) {
-  if (!row.metadata) return null;
+type StandingMetadata = {
+  headToHeadPoints?: number;
+  bonusPoints?: number;
+  form?: string[] | string;
+  qualificationCode?: string;
+  pointsDeduction?: number;
+};
+
+function standingMetadata(row: Standing): StandingMetadata {
+  if (!row.metadata) return {};
   try {
-    const detail = JSON.parse(row.metadata) as { headToHeadPoints?: number };
-    return detail.headToHeadPoints ?? null;
+    return JSON.parse(row.metadata) as StandingMetadata;
   } catch {
-    return null;
+    return {};
   }
+}
+
+function headToHeadPoints(row: Standing) {
+  return standingMetadata(row).headToHeadPoints ?? null;
+}
+
+function recentForm(row: Standing) {
+  const form = standingMetadata(row).form;
+  if (Array.isArray(form)) return form.map(value => String(value)).slice(-5);
+  return typeof form === 'string' ? form.split('').filter(Boolean).slice(-5) : [];
 }
 
 export default function StandingsPage() {
@@ -62,6 +79,7 @@ export default function StandingsPage() {
     .sort((left, right) => left.position - right.position);
   const leader = activeRows[0];
   const showsHeadToHead = activeRows.some(row => headToHeadPoints(row) !== null);
+  const showsForm = activeRows.some(row => recentForm(row).length > 0);
   const participantCount = new Set(rows.map(row => row.participantId)).size;
 
   if (loading) return <PageState message="Loading published standings…" />;
@@ -137,6 +155,7 @@ export default function StandingsPage() {
                     <th className="p-3 text-center">W</th>
                     <th className="p-3 text-center">D</th>
                     <th className="p-3 text-center">L</th>
+                    {showsForm && <th className="p-3 text-center">Form</th>}
                     <th className="p-3 text-center">F</th>
                     <th className="p-3 text-center">A</th>
                     <th className="p-3 text-center">+/-</th>
@@ -166,11 +185,36 @@ export default function StandingsPage() {
                         >
                           {row.participantName}
                         </Link>
+                        {standingMetadata(row).qualificationCode && (
+                          <span className="ml-2 rounded-full bg-[var(--color-surface-muted)] px-2 py-0.5 text-[10px] font-black uppercase text-[var(--brand-primary)]">
+                            {standingMetadata(row).qualificationCode}
+                          </span>
+                        )}
                       </td>
                       <td className="p-3 text-center">{row.played}</td>
                       <td className="p-3 text-center">{row.won}</td>
                       <td className="p-3 text-center">{row.drawn}</td>
                       <td className="p-3 text-center">{row.lost}</td>
+                      {showsForm && (
+                        <td className="p-3">
+                          <div className="flex justify-center gap-1" aria-label={`Recent form for ${row.participantName}`}>
+                            {recentForm(row).map((value, index) => (
+                              <span
+                                key={`${row.id}-form-${index}`}
+                                className={`flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-black text-white ${
+                                  value.toUpperCase() === 'W'
+                                    ? 'bg-emerald-600'
+                                    : value.toUpperCase() === 'D'
+                                      ? 'bg-amber-500'
+                                      : 'bg-rose-600'
+                                }`}
+                              >
+                                {value.slice(0, 1).toUpperCase()}
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+                      )}
                       <td className="p-3 text-center">{row.pointsFor}</td>
                       <td className="p-3 text-center">{row.pointsAgainst}</td>
                       <td className="p-3 text-center font-semibold">
@@ -181,15 +225,29 @@ export default function StandingsPage() {
                       )}
                       <td className="p-3 text-center text-base font-black text-[var(--brand-primary)]">
                         {row.points}
+                        {(standingMetadata(row).pointsDeduction ?? 0) > 0 && (
+                          <small className="block text-[10px] font-semibold text-rose-600">
+                            -{standingMetadata(row).pointsDeduction} deduction
+                          </small>
+                        )}
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-            <p className="border-t border-[var(--color-border)] px-5 py-3 text-xs muted">
-              P: played · W: won · D: drawn · L: lost · F/A: points or goals for and against.
-            </p>
+            <div className="border-t border-[var(--color-border)] px-5 py-3 text-xs muted">
+              <p>P: played · W: won · D: drawn · L: lost · F/A: points or goals for and against.</p>
+              <details className="mt-2">
+                <summary className="cursor-pointer font-bold text-[var(--brand-primary)]">
+                  Table order and qualification guide
+                </summary>
+                <p className="mt-2 max-w-3xl leading-5">
+                  Positions follow the published competition rules. Head-to-head values, recent form,
+                  qualification codes, bonus points and deductions appear only when supplied by that competition.
+                </p>
+              </details>
+            </div>
           </section>
         </>
       )}
