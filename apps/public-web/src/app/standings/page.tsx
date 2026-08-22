@@ -48,7 +48,9 @@ function headToHeadPoints(row: Standing) {
 function recentForm(row: Standing) {
   const form = standingMetadata(row).form;
   if (Array.isArray(form)) return form.map(value => String(value)).slice(-5);
-  return typeof form === 'string' ? form.split('').filter(Boolean).slice(-5) : [];
+  if (typeof form !== 'string') return [];
+  const values = /[\\s,|]/.test(form) ? form.split(/[\\s,|]+/) : form.split('');
+  return values.filter(Boolean).slice(-5);
 }
 
 export default function StandingsPage() {
@@ -225,6 +227,11 @@ export default function StandingsPage() {
                       )}
                       <td className="p-3 text-center text-base font-black text-[var(--brand-primary)]">
                         {row.points}
+                        {(standingMetadata(row).bonusPoints ?? 0) > 0 && (
+                          <small className="block text-[10px] font-semibold text-emerald-600">
+                            +{standingMetadata(row).bonusPoints} bonus
+                          </small>
+                        )}
                         {(standingMetadata(row).pointsDeduction ?? 0) > 0 && (
                           <small className="block text-[10px] font-semibold text-rose-600">
                             -{standingMetadata(row).pointsDeduction} deduction
