@@ -86,14 +86,14 @@ export default function ParticipantPage({ params }: { params: Promise<{ id: stri
     <div className="app-container py-5 sm:py-7">
       <Link
         href={tenantPath('/', tenantSlug)}
-        className="mb-5 inline-flex items-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm font-semibold  shadow-sm hover:bg-[var(--color-surface-muted)]"
+        className="mb-5 inline-flex items-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm font-semibold shadow-sm hover:bg-[var(--color-surface-muted)]"
       >
         <ArrowLeft className="h-4 w-4" /> Back to match centre
       </Link>
       <section className="overflow-hidden rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm">
         <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 p-6 text-white sm:p-8">
           <div className="flex flex-col items-start gap-6 sm:flex-row sm:items-center">
-          <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-[var(--color-surface)]/10">
+          <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-white/10">
             {image ? (
               // Public branding can use tenant-managed or third-party asset hosts.
               // eslint-disable-next-line @next/next/no-img-element
@@ -113,7 +113,7 @@ export default function ParticipantPage({ params }: { params: Promise<{ id: stri
             const values = favouriteKeys(); const key = `participant:${participant.id}`;
             if (values.has(key)) values.delete(key); else values.add(key);
             try { localStorage.setItem('sports-platform:favourite-contests', JSON.stringify([...values])); setFavourite(values.has(key)); } catch { /* retain prior state */ }
-          }} aria-pressed={favourite} className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-[var(--color-surface)]/10 px-4 py-2.5 font-semibold text-white hover:bg-[var(--color-surface)]/15"><Star className="h-4 w-4" fill={favourite ? 'currentColor' : 'none'} />{favourite ? 'Following' : 'Follow'}</button>
+          }} aria-pressed={favourite} className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-4 py-2.5 font-semibold text-white hover:bg-white/15"><Star className="h-4 w-4" fill={favourite ? 'currentColor' : 'none'} />{favourite ? 'Following' : 'Follow'}</button>
           </div>
         </div>
         <div className="p-6 sm:p-8">
@@ -125,7 +125,7 @@ export default function ParticipantPage({ params }: { params: Promise<{ id: stri
         aria-label="Participant statistics"
         className="mt-8 overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm"
       >
-        <div className="grid grid-cols-2 gap-px bg-gray-200 md:grid-cols-4">
+        <div className="grid grid-cols-2 gap-px bg-[var(--color-border)] md:grid-cols-4">
           <Stat label="Results" value={participant.statistics.resultCount} />
           <Stat label="Wins" value={participant.statistics.wins} />
           <Stat label="Podiums" value={participant.statistics.podiums} />
@@ -135,7 +135,7 @@ export default function ParticipantPage({ params }: { params: Promise<{ id: stri
 
       <section className="mt-10">
         <div className="mb-4 flex items-center gap-2"><Calendar className="h-5 w-5 text-[var(--brand-primary)]" /><h2 className="text-2xl font-bold">Upcoming contests</h2></div>
-        {participant.upcomingContests.length === 0 ? <Empty message="No upcoming public contests are scheduled." /> : <div className="grid gap-4 md:grid-cols-2">{participant.upcomingContests.map(contest => <Link key={contest.id} href={tenantPath(`/contest/${contest.id}`, tenantSlug)} className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"><div className="flex items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-wide text-[var(--brand-primary)]">{formatSport(contest.sportId)} · {contest.contestShape}</p><h3 className="mt-1 text-lg font-bold">{contest.name ?? 'Published contest'}</h3></div><span className="rounded-full bg-gray-100 px-2 py-1 text-xs">{contest.status}</span></div><p className="mt-3 text-sm muted">{contest.opponents.length ? `vs ${contest.opponents.map(item => item.name).join(', ')}` : 'Field to be confirmed'}</p><div className="mt-3 flex flex-wrap gap-4 text-xs muted">{contest.startTime && <span>{new Date(contest.startTime).toLocaleString()}</span>}{contest.venue && <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" />{contest.venue}</span>}</div></Link>)}</div>}
+        {participant.upcomingContests.length === 0 ? <Empty message="No upcoming public contests are scheduled." /> : <div className="grid gap-4 md:grid-cols-2">{participant.upcomingContests.map(contest => <Link key={contest.id} href={tenantPath(`/contest/${contest.id}`, tenantSlug)} className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"><div className="flex items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-wide text-[var(--brand-primary)]">{formatSport(contest.sportId)} · {contest.contestShape}</p><h3 className="mt-1 text-lg font-bold">{contest.name ?? 'Published contest'}</h3></div><span className="rounded-full bg-[var(--color-surface-muted)] px-2 py-1 text-xs">{contest.status}</span></div><p className="mt-3 text-sm muted">{contest.opponents.length ? `vs ${contest.opponents.map(item => item.name).join(', ')}` : 'Field to be confirmed'}</p><div className="mt-3 flex flex-wrap gap-4 text-xs muted">{contest.startTime && <span>{new Date(contest.startTime).toLocaleString()}</span>}{contest.venue && <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" />{contest.venue}</span>}</div></Link>)}</div>}
       </section>
 
       <section className="mt-10">
@@ -154,7 +154,7 @@ function ProfileDetails({ participant, tenantSlug }: { participant: Participant;
   return null;
 }
 
-function Detail({ label, value }: { label: string; value?: string | null }) { return <div><p className="text-xs font-semibold uppercase tracking-wide muted">{label}</p><p className="mt-1 font-medium ">{value || 'Not published'}</p></div>; }
+function Detail({ label, value }: { label: string; value?: string | null }) { return <div><p className="text-xs font-semibold uppercase tracking-wide muted">{label}</p><p className="mt-1 font-medium">{value || 'Not published'}</p></div>; }
 function Stat({ label, value }: { label: string; value: number }) {
   return (
     <div className="bg-[var(--color-surface)] p-5 text-center">
