@@ -37,18 +37,16 @@ function headToHeadPoints(row: Standing) {
 export default function StandingsPage() {
   const [rows, setRows] = useState<Standing[]>([]);
   const [selectedTable, setSelectedTable] = useState('');
-  const [tenantSlug, setTenantSlug] = useState('premier-league');
+  const [tenantSlug] = useState(resolveTenantSlug);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const slug = resolveTenantSlug();
-    setTenantSlug(slug);
-    publicApi<Standing[]>('/standings', undefined, slug)
+    publicApi<Standing[]>('/standings', undefined, tenantSlug)
       .then(setRows)
       .catch((reason: Error) => setError(reason.message))
       .finally(() => setLoading(false));
-  }, []);
+  }, [tenantSlug]);
 
   const tables = useMemo(() => rows.reduce((grouped, row) => {
     const key = `${row.competitionId}:${row.groupId}`;
