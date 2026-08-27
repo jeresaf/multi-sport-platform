@@ -12,9 +12,11 @@ export type ContestLiveUpdate = {
 export function applyContestLiveUpdate(contest: PublicContest, update: ContestLiveUpdate): PublicContest {
   if (contest.id !== update.contestId) return contest;
   const scores = new Map((update.participants ?? []).map(item => [item.participantId, item]));
+  const nextStatus = update.status || update.contestStatus || contest.contestStatus || contest.status;
   return {
     ...contest,
-    status: update.contestStatus || update.status || contest.status,
+    status: nextStatus,
+    contestStatus: nextStatus,
     participants: contest.participants?.map(participant => {
       const score = scores.get(participant.participantId);
       if (!score) return participant;
