@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SportsPlatform.Api.Authorization;
 using SportsPlatform.Infrastructure.Persistence;
-using SportsPlatform.Modules.Contests.Services;
+using SportsPlatform.Infrastructure.Services;
 using SportsPlatform.Modules.Participants.Entities;
 
 namespace SportsPlatform.Api.Controllers;
