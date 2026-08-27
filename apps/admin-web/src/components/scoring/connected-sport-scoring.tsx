@@ -236,6 +236,10 @@ export function ConnectedSportScoring({ config }: { config: SportScoringConfig }
   const [rosters, setRosters] = useState<ContestRoster[]>([]);
   const [selectedPlayers, setSelectedPlayers] = useState<Record<string, string>>({});
   const [selectedIncomingPlayers, setSelectedIncomingPlayers] = useState<Record<string, string>>({});
+  const [showAddPlayer, setShowAddPlayer] = useState<Record<string, boolean>>({});
+  const [newPlayerNames, setNewPlayerNames] = useState<Record<string, string>>({});
+  const [newPlayerNumbers, setNewPlayerNumbers] = useState<Record<string, string>>({});
+  const [newPlayerPositions, setNewPlayerPositions] = useState<Record<string, string>>({});
   const [golfScorecards, setGolfScorecards] = useState<GolfScorecardReview[]>([]);
   const [golfScorecardParticipantId, setGolfScorecardParticipantId] = useState('');
   const [golfScorecardRoundId, setGolfScorecardRoundId] = useState('');
@@ -272,6 +276,13 @@ export function ConnectedSportScoring({ config }: { config: SportScoringConfig }
   const participantNames = useMemo(
     () => new Map(participants.map((participant) => [participant.id, participant.name])),
     [participants],
+  );
+  const rosterPlayerNames = useMemo(
+    () => new Map(
+      rosters.flatMap((roster) =>
+        roster.players.map((player) => [player.athleteId, player.name] as const)),
+    ),
+    [rosters],
   );
   const golfRounds = useMemo(
     () => schema?.sportCode === 'golf'
@@ -405,9 +416,6 @@ export function ConnectedSportScoring({ config }: { config: SportScoringConfig }
         }
         setClockSeconds(activeSession.currentClockSeconds ?? 0);
       } else {
-        // A transient session refresh failure must not erase a session that the
-        // scorer already knows is active. Doing so disables every scoring action
-        // until a later refresh happens to succeed.
         setSession((current) => current);
         setError(sessionFailure instanceof Error
           ? `Unable to refresh scoring session: ${sessionFailure.message}`
@@ -619,6 +627,46 @@ export function ConnectedSportScoring({ config }: { config: SportScoringConfig }
     }
     return totals;
   }, [scores]);
+
+  async function addRosterPlayer(teamId: string) {
+    if (!activeContest) return;
+    const name = newPlayerNames[teamId]?.trim();
+    if (!name) {
+      setError('Enter the player name before adding the player.');
+      return;
+    }
+
+    setBusy(true);
+    setError(null);
+    try {
+      const player = await adminApi<RosterPlayer>(
+        `/api/livescoring/contests/${activeContest.id}/teams/${teamId}/players`,
+        {
+          method: 'POST',
+          headers: { 'X-Tenant-Id': activeContest.tenantId },
+          body: JSON.stringify({
+            name,
+            jerseyNumber: newPlayerNumbers[teamId]?.trim() || null,
+            position: newPlayerPositions[teamId]?.trim() || null,
+          }),
+        },
+      );
+      await refresh();
+      setSelectedPlayers((current) => ({
+        ...current,
+        [teamId]: player.athleteId,
+      }));
+      setNewPlayerNames((current) => ({ ...current, [teamId]: '' }));
+      setNewPlayerNumbers((current) => ({ ...current, [teamId]: '' }));
+      setNewPlayerPositions((current) => ({ ...current, [teamId]: '' }));
+      setShowAddPlayer((current) => ({ ...current, [teamId]: false }));
+      setNotice(`${player.name} was added to the roster and selected for player attribution.`);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Unable to add the player to the scoring roster.');
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function submit(participantId: string, action: ScoreAction) {
     if (!activeContest) return;
@@ -1570,6 +1618,12 @@ export function ConnectedSportScoring({ config }: { config: SportScoringConfig }
                     const primaryTotal = schema
                       ? totals.get(schema.primaryMetric) ?? 0
                       : 0;
+                    const hasPlayerActions = schema?.actions.some(
+                      (action) => action.requiresPlayer,
+                    ) ?? false;
+                    const hasSubstitution = schema?.actions.some(
+                      (action) => action.eventType?.toUpperCase() === 'SUBSTITUTION',
+                    ) ?? false;
                     return (
                       <div
                         key={participant.id}
@@ -1590,60 +1644,148 @@ export function ConnectedSportScoring({ config }: { config: SportScoringConfig }
                           {schema?.scoreLabel ?? 'score'}
                           {schema?.lowerIsBetter ? ' · lower is better' : ''}
                         </p>
-                        {schema?.actions.some((action) => action.requiresPlayer) && (
-                          <label className="mt-4 block text-sm font-medium text-gray-700">
-                            Player attribution
-                            <select
-                              data-testid={`player-select-${participant.participantId}`}
-                              value={selectedPlayers[participant.participantId] ?? ''}
-                              onChange={(event) => setSelectedPlayers((current) => ({
-                                ...current,
-                                [participant.participantId]: event.target.value,
-                              }))}
-                              className="mt-1 block w-full rounded-md border border-gray-200 bg-white px-2 py-1.5"
-                            >
-                              <option value="">Team only / unassigned</option>
-                              {rosterPlayers.map((player) => (
-                                <option key={player.athleteId} value={player.athleteId}>
-                                  {player.jerseyNumber ? `#${player.jerseyNumber} · ` : ''}
-                                  {player.name}
-                                  {player.position ? ` · ${player.position}` : ''}
-                                </option>
-                              ))}
-                            </select>
-                            {rosterPlayers.length === 0 && (
-                              <span className="mt-1 block text-xs font-normal text-amber-700">
-                                No active roster players are available; events will be team-only.
+                        {hasPlayerActions && (
+                          <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50/70 p-3">
+                            <div className="flex items-center justify-between gap-3">
+                              <p className="text-sm font-semibold text-gray-800">Player attribution</p>
+                              <span className="text-xs text-gray-500">
+                                {rosterPlayers.length} roster player{rosterPlayers.length === 1 ? '' : 's'}
                               </span>
+                            </div>
+                            <label className="mt-2 block text-sm font-medium text-gray-700">
+                              Player involved / player off
+                              <select
+                                data-testid={`player-select-${participant.participantId}`}
+                                value={selectedPlayers[participant.participantId] ?? ''}
+                                onChange={(event) => setSelectedPlayers((current) => ({
+                                  ...current,
+                                  [participant.participantId]: event.target.value,
+                                }))}
+                                className="mt-1 block w-full rounded-md border border-gray-200 bg-white px-2 py-2"
+                              >
+                                <option value="">Select player</option>
+                                {rosterPlayers.map((player) => (
+                                  <option key={player.athleteId} value={player.athleteId}>
+                                    {player.jerseyNumber ? `#${player.jerseyNumber} · ` : ''}
+                                    {player.name}
+                                    {player.position ? ` · ${player.position}` : ''}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+
+                            <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                              <span className={`text-xs ${rosterPlayers.length === 0 ? 'text-amber-700' : 'text-gray-500'}`}>
+                                {rosterPlayers.length === 0
+                                  ? 'No roster players yet. Add one below to attribute events.'
+                                  : 'Select a player before recording their try, goal, card or other event.'}
+                              </span>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                disabled={busy}
+                                onClick={() => setShowAddPlayer((current) => ({
+                                  ...current,
+                                  [participant.participantId]: !current[participant.participantId],
+                                }))}
+                              >
+                                {showAddPlayer[participant.participantId] ? 'Cancel' : '+ Add player'}
+                              </Button>
+                            </div>
+
+                            {showAddPlayer[participant.participantId] && (
+                              <div
+                                className="mt-3 grid gap-2 rounded-lg border border-gray-200 bg-white p-3 sm:grid-cols-2"
+                                data-testid={`add-player-form-${participant.participantId}`}
+                              >
+                                <label className="text-xs font-medium text-gray-600 sm:col-span-2">
+                                  Player name
+                                  <input
+                                    type="text"
+                                    value={newPlayerNames[participant.participantId] ?? ''}
+                                    onChange={(event) => setNewPlayerNames((current) => ({
+                                      ...current,
+                                      [participant.participantId]: event.target.value,
+                                    }))}
+                                    placeholder="e.g. Dan Sheehan"
+                                    className="mt-1 block w-full rounded-md border border-gray-200 px-2 py-2 text-sm"
+                                  />
+                                </label>
+                                <label className="text-xs font-medium text-gray-600">
+                                  Jersey number
+                                  <input
+                                    type="text"
+                                    value={newPlayerNumbers[participant.participantId] ?? ''}
+                                    onChange={(event) => setNewPlayerNumbers((current) => ({
+                                      ...current,
+                                      [participant.participantId]: event.target.value,
+                                    }))}
+                                    placeholder="#"
+                                    className="mt-1 block w-full rounded-md border border-gray-200 px-2 py-2 text-sm"
+                                  />
+                                </label>
+                                <label className="text-xs font-medium text-gray-600">
+                                  Position
+                                  <input
+                                    type="text"
+                                    value={newPlayerPositions[participant.participantId] ?? ''}
+                                    onChange={(event) => setNewPlayerPositions((current) => ({
+                                      ...current,
+                                      [participant.participantId]: event.target.value,
+                                    }))}
+                                    placeholder="e.g. Fly-half"
+                                    className="mt-1 block w-full rounded-md border border-gray-200 px-2 py-2 text-sm"
+                                  />
+                                </label>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  className="sm:col-span-2"
+                                  disabled={busy || !newPlayerNames[participant.participantId]?.trim()}
+                                  onClick={() => void addRosterPlayer(participant.participantId)}
+                                >
+                                  Add & select player
+                                </Button>
+                              </div>
                             )}
-                          </label>
-                        )}
-                        {schema?.sportCode === 'football' &&
-                          schema.actions.some((action) => action.eventType === 'SUBSTITUTION') && (
-                          <label className="mt-3 block text-sm font-medium text-gray-700">
-                            Substitution player entering
-                            <select
-                              data-testid={`incoming-player-select-${participant.participantId}`}
-                              value={selectedIncomingPlayers[participant.participantId] ?? ''}
-                              onChange={(event) => setSelectedIncomingPlayers((current) => ({
-                                ...current,
-                                [participant.participantId]: event.target.value,
-                              }))}
-                              className="mt-1 block w-full rounded-md border border-gray-200 bg-white px-2 py-1.5"
-                            >
-                              <option value="">Select player entering</option>
-                              {rosterPlayers.map((player) => (
-                                <option key={player.athleteId} value={player.athleteId}>
-                                  {player.jerseyNumber ? `#${player.jerseyNumber} · ` : ''}
-                                  {player.name}
-                                </option>
-                              ))}
-                            </select>
-                          </label>
+
+                            {hasSubstitution && (
+                              <label className="mt-3 block text-sm font-medium text-gray-700">
+                                Substitution player on
+                                <select
+                                  data-testid={`incoming-player-select-${participant.participantId}`}
+                                  value={selectedIncomingPlayers[participant.participantId] ?? ''}
+                                  onChange={(event) => setSelectedIncomingPlayers((current) => ({
+                                    ...current,
+                                    [participant.participantId]: event.target.value,
+                                  }))}
+                                  className="mt-1 block w-full rounded-md border border-gray-200 bg-white px-2 py-2"
+                                >
+                                  <option value="">Select player entering</option>
+                                  {rosterPlayers.map((player) => (
+                                    <option
+                                      key={player.athleteId}
+                                      value={player.athleteId}
+                                      disabled={player.athleteId === selectedPlayers[participant.participantId]}
+                                    >
+                                      {player.jerseyNumber ? `#${player.jerseyNumber} · ` : ''}
+                                      {player.name}
+                                      {player.position ? ` · ${player.position}` : ''}
+                                    </option>
+                                  ))}
+                                </select>
+                                <span className="mt-1 block text-xs font-normal text-gray-500">
+                                  For a substitution, choose the player going off above and the player coming on here.
+                                </span>
+                              </label>
+                            )}
+                          </div>
                         )}
                         <div className="mt-4 flex flex-wrap gap-2">
                           {schema?.actions.map((action) => {
                             const valueKey = `${participant.participantId}:${action.code}`;
+                            const isSubstitution = action.eventType?.toUpperCase() === 'SUBSTITUTION';
                             return (
                               <div key={action.code} className="flex items-center gap-1">
                                 {action.inputType === 'number' && (
@@ -1682,8 +1824,9 @@ export function ConnectedSportScoring({ config }: { config: SportScoringConfig }
                                   onClick={() => submit(participant.participantId, action)}
                                   disabled={busy || session?.status !== 1 ||
                                     (action.requiresPlayer && !selectedPlayers[participant.participantId]) ||
-                                    (action.eventType === 'SUBSTITUTION' &&
-                                      !selectedIncomingPlayers[participant.participantId])}
+                                    (isSubstitution && !selectedIncomingPlayers[participant.participantId]) ||
+                                    (isSubstitution && selectedIncomingPlayers[participant.participantId] ===
+                                      selectedPlayers[participant.participantId])}
                                 >
                                   {action.label}
                                   {action.unit ? ` (${action.unit})` : ''}
@@ -1763,7 +1906,9 @@ export function ConnectedSportScoring({ config }: { config: SportScoringConfig }
                       <span>
                         {participantNames.get(score.participantId) ?? score.participantId.slice(0, 8)}
                         {score.secondaryParticipantId && (
-                          <> · {participantNames.get(score.secondaryParticipantId) ?? 'Roster player'}</>
+                          <> · {participantNames.get(score.secondaryParticipantId)
+                            ?? rosterPlayerNames.get(score.secondaryParticipantId)
+                            ?? 'Roster player'}</>
                         )}
                         {' · '}{score.metricName}
                         {score.segmentId && (
