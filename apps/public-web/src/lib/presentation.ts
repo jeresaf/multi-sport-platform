@@ -5,8 +5,10 @@ export type ContestFilter = 'all' | ContestPhase | 'favourites';
 
 export function contestPhase(status: string): ContestPhase {
   switch (normalizeStatus(status)) {
+    case 'active':
     case 'inprogress':
     case 'live':
+    case 'paused':
       return 'live';
     case 'completed':
     case 'ended':
@@ -33,7 +35,7 @@ export function statusLabel(status: string) {
   const labels: Record<string, string> = {
     notstarted: 'Not started', scheduled: 'Not started', draft: 'Not started',
     startingsoon: 'Starting soon', ready: 'Starting soon', checkinopen: 'Check-in open',
-    live: 'Live', inprogress: 'Live', delayed: 'Delayed', interrupted: 'Interrupted',
+    active: 'Live', live: 'Live', inprogress: 'Live', delayed: 'Delayed', interrupted: 'Interrupted',
     paused: 'Interrupted', suspended: 'Suspended', postponed: 'Postponed',
     ended: 'Ended', completed: 'Ended', closed: 'Final', approved: 'Final',
     published: 'Final', corrected: 'Corrected', cancelled: 'Cancelled',
