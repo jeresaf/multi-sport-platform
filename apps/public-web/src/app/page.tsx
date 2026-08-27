@@ -22,6 +22,18 @@ import { invalidateDailyFeed, loadDailyFeed, readDailyFeed, updateDailyFeed } fr
 import { contestPhase, groupByCompetition, localDateKey, type ContestFilter } from '@/lib/presentation';
 
 const FAVOURITES_KEY = 'sports-platform:favourite-contests';
+const SCORING_LIFECYCLE_STATUSES = new Set([
+  'active',
+  'live',
+  'inprogress',
+  'paused',
+  'suspended',
+  'completed',
+  'ended',
+  'abandoned',
+  'cancelled',
+  'canceled',
+]);
 
 export function MatchCentrePage({ initialFilter = 'all', initialSportSlug }: { initialFilter?: ContestFilter; initialSportSlug?: string }) {
   const [tenantSlug] = useState(resolveTenantSlug);
@@ -35,6 +47,7 @@ export function MatchCentrePage({ initialFilter = 'all', initialSportSlug }: { i
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const liveVersions = useRef(new Map<string, number>());
+  const scoringLifecycle = useRef(new Map<string, string>());
   const requestVersion = useRef(0);
 
   useEffect(() => {
@@ -102,6 +115,24 @@ export function MatchCentrePage({ initialFilter = 'all', initialSportSlug }: { i
     const patch = (update: ContestLiveUpdate) => {
       if (!update.contestId || (liveVersions.current.get(update.contestId) ?? -1) > update.version) return;
       liveVersions.current.set(update.contestId, update.version);
+      const scoringStatus = scoringLifecycle.current.get(update.contestId);
+      const effectiveUpdate = scoringStatus
+        ? { ...update, status: scoringStatus, contestStatus: scoringStatus }
+        : update;
+      setContests(current => {
+        const next = current.map(item => applyContestLiveUpdate(item, effectiveUpdate));
+        updateDailyFeed(tenantSlug, date, cached => cached.map(item => applyContestLiveUpdate(item, effectiveUpdate)));
+        return next;
+      });
+    };
+    const applyScoringLifecycle = (contestId: string, status: string) => {
+      scoringLifecycle.current.set(contestId, status);
+      const update: ContestLiveUpdate = {
+        contestId,
+        version: liveVersions.current.get(contestId) ?? 0,
+        status,
+        contestStatus: status,
+      };
       setContests(current => {
         const next = current.map(item => applyContestLiveUpdate(item, update));
         updateDailyFeed(tenantSlug, date, cached => cached.map(item => applyContestLiveUpdate(item, update)));
@@ -116,6 +147,14 @@ export function MatchCentrePage({ initialFilter = 'all', initialSportSlug }: { i
       contestStatus: snapshot.contestStatus,
       participants: snapshot.participantScores,
     }));
+    connection.on('ContestStatusChanged', (change: { contestId?: string; status?: string }) => {
+      const contestId = change.contestId;
+      const status = change.status?.trim();
+      if (!contestId || !status) return;
+      const normalized = status.replaceAll('_', '').replaceAll('-', '').replaceAll(' ', '').toLowerCase();
+      if (!SCORING_LIFECYCLE_STATUSES.has(normalized)) return;
+      applyScoringLifecycle(contestId, status);
+    });
     const joinAll = () => Promise.all(ids.map(id => connection.invoke('JoinPublicContestGroup', tenantSlug, id)));
     connection.onreconnected(() => { if (!disposed) void joinAll(); });
     connection.start().then(joinAll).catch(() => undefined);
