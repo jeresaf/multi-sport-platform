@@ -6,5 +6,5 @@ namespace SportsPlatform.Modules.Platform;
 public static class PlatformErrors
 {
     public static readonly Error ConcurrencyConflict = new(
-        "PLATFORM_CONCURRENCY_CONFLICT", "The record was changed by someone else. Reload the page and try again.", ErrorKind.Conflict);
+        "PLATFORM_CONCURRENCY_CONFLICT", "The record was changed by someone else. Reload and try again.", ErrorKind.Conflict);
 }
