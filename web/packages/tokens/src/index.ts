@@ -25,8 +25,19 @@ export const colors = {
   },
 } as const;
 
-/** 4 px base spacing scale, in px. */
-export const spacing = [4, 8, 12, 16, 20, 24, 32, 40, 48, 64] as const;
+/** 4 px base spacing scale; keys are the step in 4 px units (space[4] is 16 px). */
+export const space = {
+  1: cssVar("space-1"),
+  2: cssVar("space-2"),
+  3: cssVar("space-3"),
+  4: cssVar("space-4"),
+  5: cssVar("space-5"),
+  6: cssVar("space-6"),
+  8: cssVar("space-8"),
+  10: cssVar("space-10"),
+  12: cssVar("space-12"),
+  16: cssVar("space-16"),
+} as const;
 
 /** Type scale, in px. */
 export const fontSizes = [12, 14, 16, 18, 20, 24, 30, 36] as const;

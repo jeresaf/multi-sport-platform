@@ -30,6 +30,19 @@
   /* Typography: system stack; scale 12/14/16/18/20/24/30/36 */
   --msp-font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 
+  /* Spacing: 4 px base scale (4, 8, 12, 16, 20, 24, 32, 40, 48, 64). Tailwind's 4 px step covers these values;
+     use only these steps (e.g. p-1, p-2, p-3, p-4, p-5, p-6, p-8, p-10, p-12, p-16). */
+  --msp-space-1: 4px;
+  --msp-space-2: 8px;
+  --msp-space-3: 12px;
+  --msp-space-4: 16px;
+  --msp-space-5: 20px;
+  --msp-space-6: 24px;
+  --msp-space-8: 32px;
+  --msp-space-10: 40px;
+  --msp-space-12: 48px;
+  --msp-space-16: 64px;
+
   /* Radius: 4, 8, 12, full */
   --msp-radius-sm: 4px;
   --msp-radius-md: 8px;
@@ -43,6 +56,7 @@
   color-scheme: light;
 }
 
+/* The dark palette appears twice (OS preference and explicit data-theme="dark"); keep the two blocks in sync. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --msp-color-background: #0b1220;

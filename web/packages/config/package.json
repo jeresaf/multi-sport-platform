@@ -8,7 +8,8 @@
     "./theme.css": "./theme.css",
     "./tsconfig/base.json": "./tsconfig/base.json",
     "./tsconfig/nextjs.json": "./tsconfig/nextjs.json",
-    "./tsconfig/library.json": "./tsconfig/library.json"
+    "./tsconfig/library.json": "./tsconfig/library.json",
+    "./check-css-colours": "./check-css-colours.mjs"
   },
   "dependencies": {
     "typescript-eslint": "8.71.2"

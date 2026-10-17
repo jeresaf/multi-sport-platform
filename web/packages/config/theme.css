@@ -1,7 +1,8 @@
 /*
  * Shared Tailwind 4 theme: maps Tailwind utilities onto the design tokens from @msp/tokens.
  * Import after "tailwindcss" and "@msp/tokens/tokens.css". Tailwind's default palette is removed so only tokens
- * can be used for colour.
+ * can be used for colour, and only the design-system breakpoints exist (tablet:, desktop:).
+ * Spacing keeps Tailwind's 4 px step (--spacing), which matches --msp-space-*; use only the design-system steps.
  */
 @theme inline {
   --color-*: initial;
@@ -34,6 +35,7 @@
 
   --font-sans: var(--msp-font-sans);
 
+  --breakpoint-*: initial;
   --breakpoint-tablet: 768px;
   --breakpoint-desktop: 1200px;
 }
