@@ -6,6 +6,9 @@ fixtures → live scoring → approved results → standings → public sites.
 - New here? Start with [README-FIRST.md](README-FIRST.md).
 - Documentation: [docs/](docs/) — architecture, domain, decisions (ADRs) and the build plan.
 - Instructions for Claude Code: [CLAUDE.md](CLAUDE.md).
+- CI: [.github/workflows/ci.yml](.github/workflows/ci.yml) runs on every pull request and on pushes to `main`:
+  backend build/test/format, web lint/typecheck/test/build, Playwright smoke tests, and the local-infrastructure
+  role checks.
 
 ## Repository layout
 
