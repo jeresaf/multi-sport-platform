@@ -10,7 +10,19 @@ countries/currencies/time zones; `docs/generated/actions.md`, `errors.md`, `even
 outbox delivers exactly-once-in-effect.
 
 Read first: docs/architecture/overview.md, rules.md, events-and-jobs.md, api-conventions.md,
-data-conventions.md, authorization.md (catalogue section).
+data-conventions.md, authorization.md (catalogue section), multi-tenancy.md (Layer 2 roles), and the S00
+Implementation notes (test command, database roles, CI job names).
+
+## Carried over from S00 (slice review 2026-10-17)
+
+These are part of S01's scope; each is assigned to a task below.
+
+- Replace the placeholder `BuildingBlocksAssemblyTests` (and the placeholder architecture test) with real tests (T1).
+- Mark `GET /health/live` and `GET /health/ready` with `.AllowPublic()` (T4).
+- Narrow the default DML grants from `infrastructure/local/postgres/init/01-roles.sh` (T2 helpers, applied in T2,
+  T5, T6, T7).
+- The Testcontainers fixture runs the same `01-roles.sh` as docker compose (T2).
+- The test command is `dotnet test --solution backend` everywhere (S00 deviation).
 
 ## Out of scope
 
@@ -29,7 +41,10 @@ Deliver:
 - `Modules/Platform/SportsPlatform.Modules.Platform` + `.Contracts`.
 - Architecture tests (NetArchTest or equivalent): modules reference only BuildingBlocks and other modules'
   Contracts; Contracts never reference implementations; `*.Domain` namespaces don't reference EF Core or
-  ASP.NET Core; BuildingBlocks references no module.
+  ASP.NET Core; BuildingBlocks references no module; cloud-provider SDKs (`Azure.*`) are referenced only by
+  infrastructure adapters (AR-33). These replace the S00 placeholder tests.
+- `ICurrentActor` has a **system actor** for work with no user (CLI, seeds, outbox processor) so audit columns
+  are never empty.
 
 Acceptance:
 - [ ] Architecture tests pass; the PR shows (pasted output) that a temporary forbidden reference makes them fail.
@@ -39,18 +54,51 @@ Deliver:
 - `ModuleDbContext` base: default schema per module, snake_case naming (EFCore.NamingConventions), UUIDv7 keys
   generated in the app, audit columns interceptor (`created_at/by`, `updated_at/by` via `ICurrentActor` +
   `TimeProvider`), `xmin` concurrency convention for aggregates, migrations history table per schema.
-- Migration workflow documented in `.claude/rules/database.md` (exact `dotnet ef` commands).
-- CLI `migrate` applies all module migrations in dependency order using the migrator connection; Host
-  auto-migrates only when `Database:MigrateOnStartup=true` (default true in Development only).
-- Test harness: Testcontainers PostgreSQL fixture (same roles as compose), Respawn reset between tests,
-  `WebApplicationFactory` with test configuration, fake `TimeProvider`.
+- `dotnet-ef` pinned in a local tool manifest (`.config/dotnet-tools.json`); migration workflow documented in
+  `.claude/rules/database.md` with the exact commands (`dotnet tool restore` first).
+- Three named connection strings: `App` (`sp_app`), `Migrator` (`sp_migrator`), `Platform` (`sp_platform`).
+  Development values match `.env.example` (they are public, development-only); production values come from Key
+  Vault (ADR-0016). Document them in the README.
+- CLI `migrate` applies all module migrations in dependency order using the `Migrator` connection; Host
+  auto-migrates only when `Database:MigrateOnStartup=true` (default true in Development only), also as
+  `sp_migrator`. The API itself always runs as `sp_app`.
+- **Grant narrowing.** `01-roles.sh` gives `sp_app` and `sp_platform` DML on every table `sp_migrator` creates.
+  Provide migration helpers and use them from the first table on:
+  - `ReadOnlyForRuntimeRoles(schema, table)` — `REVOKE INSERT, UPDATE, DELETE` from `sp_app` (reference and
+    global tables; seeds for them run as `sp_migrator`);
+  - `AppendOnly(schema, table)` — `REVOKE UPDATE, DELETE` from `sp_app` and `sp_platform`, plus the trigger
+    required by AR-19 (used in T6, later for timelines). Decide whether the trigger also blocks `TRUNCATE` by the
+    owner; the test reset (below) must still work;
+  - after `migrate`, revoke all DML on each schema's migrations-history table from `sp_app` and `sp_platform`
+    (EF creates that table outside the migrations, so a migration can't do it).
+  A grants test reads `has_table_privilege(...)` for every table and compares it with the declared policy, so a
+  new table without a decision fails.
+- Test harness:
+  - Testcontainers PostgreSQL with the **same image tag as docker-compose.yml** and
+    `infrastructure/local/postgres/init/01-roles.sh` copied into `/docker-entrypoint-initdb.d/` (same env vars
+    as compose). The fixture waits until it can connect as `sp_migrator` over TCP — not just until the server
+    answers — because the init script runs before the real server starts.
+  - Migrations run as `sp_migrator`; the app under test runs as `sp_app`. **No application code under test
+    connects as the container's superuser** (a superuser bypasses RLS, which would make S02's isolation tests
+    meaningless). A test asserts `current_user = 'sp_app'` on the app's connection.
+  - Respawn reset between tests runs on a separate **test-only superuser connection** (from S02, `sp_app` sees
+    one tenant only and `FORCE ROW LEVEL SECURITY` also hides rows from `sp_migrator`). It skips the migrations
+    history tables and REFERENCE tables (or reseeds them), and it must work alongside T6's append-only trigger —
+    choose and document how (e.g. TRUNCATE as superuser), with a test.
+  - `WebApplicationFactory` with test configuration; fake `TimeProvider`.
 - A test-only entity proves conventions (snake_case, UUIDv7 ordering, audit columns, concurrency conflict).
 
 Acceptance:
-- [ ] Integration tests run against real PostgreSQL in CI.
+- [ ] Integration tests run against real PostgreSQL in CI, using the roles from `01-roles.sh`.
+- [ ] The app's connection is `sp_app` (test); migrations are owned by `sp_migrator` (test).
+- [ ] The grants test passes and fails when a table has no declared policy (show it in the PR).
 - [ ] Concurrency conflict returns the expected error.
 
 ### T3 — API conventions, errors, OpenAPI and generated client
+
+May be delivered as two PRs (T3a: Problem Details, error catalogue, correlation, logging, OpenTelemetry, health;
+T3b: OpenAPI, Scalar, `export-openapi`, TypeScript client, `Contracts` CI job) to keep reviews small.
+
 Deliver:
 - Problem Details per docs/architecture/api-conventions.md; `Result` failures mapped to status + stable `code`;
   unhandled exceptions → 500 with correlation ID and no internals.
@@ -59,7 +107,12 @@ Deliver:
   enrichment, OpenTelemetry (ASP.NET Core, HttpClient, Npgsql), `/health/live` and `/health/ready` (database).
 - Built-in OpenAPI generation; Scalar UI in Development; CLI `export-openapi` writes `contracts/openapi.json`.
 - `web/packages/api-client`: generation script (openapi-typescript + openapi-fetch) from `contracts/openapi.json`.
-- CI step: regenerate OpenAPI, errors and client, then `git diff --exit-code`.
+- CI: a new job named **`Contracts`** (needs both .NET and Node) regenerates OpenAPI, errors and the client,
+  then runs `git diff --exit-code`. Add the job name to the S00 Implementation notes' list of check names.
+  Generated files under `contracts/` and `docs/generated/` are written by the CLI only (Claude Code's settings
+  deny hand edits there).
+- `/health/ready` checks the database with the `App` connection and returns only a status (no versions, host
+  names or error text).
 
 Acceptance:
 - [ ] A sample failing request returns Problem Details with `code` and `correlationId`.
@@ -69,7 +122,10 @@ Acceptance:
 Deliver:
 - `ActionDefinition` (fields in docs/architecture/authorization.md); each module declares its actions in one
   place; endpoint extensions `.RequireAction(...)` and `.AllowPublic()`.
-- Startup/integration test: every endpoint under `/api/admin` and `/api/platform` has exactly one action.
+- Startup/integration test: **every** endpoint declares exactly one of `.RequireAction(...)` or `.AllowPublic()`
+  (fail closed). Under `/api/admin` and `/api/platform`, `.AllowPublic()` is not allowed. `GET /health/live`,
+  `GET /health/ready`, `/api/public/v1/**` and the Development-only OpenAPI/Scalar endpoints are marked
+  `.AllowPublic()`.
 - Exporter writes `docs/generated/actions.md` and `contracts/actions.json`; CI staleness check.
 - Authorization endpoint filter calling `IAuthorizationEvaluator`; default registration **denies**; tests use a
   configurable test evaluator. Denials return `403 AUTH_FORBIDDEN` and are written to audit in T6.
@@ -77,7 +133,7 @@ Deliver:
   `platform.outbox.redrive`.
 
 Acceptance:
-- [ ] A test endpoint without an action fails the startup test.
+- [ ] A test endpoint without an action fails the startup test; so does an endpoint with both markers.
 - [ ] Generated actions catalogue lists the Platform actions with module, scope, audit and entitlement fields.
 
 ### T5 — Domain events, outbox and inbox
@@ -97,7 +153,8 @@ Acceptance:
 ### T6 — Audit
 Deliver:
 - `audit.audit_entries` (fields in pack spec 40 + `action_code`, `outcome`, `reason`, redacted `metadata`),
-  append-only enforced by a database trigger that rejects UPDATE/DELETE.
+  append-only: `AppendOnly(...)` from T2 (grants) plus a database trigger that rejects UPDATE/DELETE even for the
+  owner.
 - The command pipeline records audit automatically for actions marked `REQUIRED`/`REQUIRED_WITH_REASON`, by
   writing an `AuditRecorded` message to the module's outbox in the same transaction (Platform consumes it and
   appends the entry). Authorization denials and failures with no module transaction are written directly.
@@ -105,14 +162,15 @@ Deliver:
 - Query endpoint for platform staff (filters: tenant, actor, action, entity, date range, correlation ID).
 
 Acceptance:
-- [ ] Trigger test: UPDATE/DELETE on audit entries fails.
+- [ ] Trigger test: UPDATE/DELETE on audit entries fails, both for `sp_app` (privilege) and `sp_migrator` (trigger).
 - [ ] Test: an audited action produces exactly one entry with correlation ID and reason.
 - [ ] Redaction test passes.
 
 ### T7 — Seed framework and reference data
 Deliver:
 - `ISeeder` (category `REFERENCE | CONFIGURATION | DEMO | TEST`, order, idempotent run), deterministic IDs for
-  seeded records (UUIDv5 from a stable key), `platform.seed_runs` bookkeeping with checksums.
+  seeded records (UUIDv5 from a stable key), `platform.seed_runs` bookkeeping with checksums. Reference tables
+  are `ReadOnlyForRuntimeRoles`; the REFERENCE seeder therefore runs with the `Migrator` connection.
 - Environment guards: `DEMO`/`TEST` only in Development/Staging; `--reset` only in Development.
 - CLI `seed --category <c> [--reset]`.
 - Reference data in Platform: countries (ISO 3166-1), currencies (ISO 4217), IANA time zones, languages
@@ -129,3 +187,4 @@ Acceptance:
 - [ ] Generated catalogues (actions, errors, events), OpenAPI and TS client are current and checked in CI.
 - [ ] Architecture, integration and unit tests green in CI.
 - [ ] `.claude/rules/database.md` and CLAUDE.md commands updated with real commands.
+- [ ] The S00 carry-overs above are done and removed from PROGRESS.md "Tech debt / follow-ups".
