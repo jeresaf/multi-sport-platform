@@ -7,12 +7,13 @@ at the start of every review.
 
 - **Current slice:** S01 — Backend platform (docs/build/slices/S01-backend-platform.md). S00 is on `main`; its
   "new contributor in under 30 minutes" check is still with the owner
-- **Current task:** none. S01-T1 (module system and architecture tests) is in review as #13
+- **Current task:** S01-T2 — Persistence conventions and test harness, delivered as two stacked PRs: T2a
+  (conventions + test harness) on `s01/t2-persistence-harness`, then T2b (grant narrowing). Plan approved 2026-10-17
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S01-T2 — Persistence conventions and test harness
+1. S01-T3 — API conventions, errors, OpenAPI and generated client
 
 ## Log
 
