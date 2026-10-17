@@ -1,5 +1,8 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
+using SportsPlatform.BuildingBlocks.Tenancy;
 
 namespace SportsPlatform.IntegrationTests.Infrastructure;
 
@@ -10,7 +13,19 @@ namespace SportsPlatform.IntegrationTests.Infrastructure;
 /// </summary>
 public sealed class HostOnlyApp : WebApplicationFactory<Program>
 {
-    protected override void ConfigureWebHost(IWebHostBuilder builder) => builder.UseEnvironment(TestEnvironment.Name);
+    public TelemetryCapture Telemetry { get; } = new();
+
+    public TestTenantContext Tenant { get; } = new();
+
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    {
+        builder.UseEnvironment(TestEnvironment.Name);
+        builder.ConfigureTestServices(services =>
+        {
+            Telemetry.AddTo(services);
+            services.AddSingleton<ITenantContext>(Tenant);
+        });
+    }
 }
 
 public static class TestEnvironment

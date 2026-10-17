@@ -6,6 +6,15 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Npgsql.OpenTelemetry" />
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Http" />
+    <PackageReference Include="Serilog.AspNetCore" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\SportsPlatform.BuildingBlocks\SportsPlatform.BuildingBlocks.csproj" />
     <ProjectReference Include="..\SportsPlatform.BuildingBlocks.Persistence\SportsPlatform.BuildingBlocks.Persistence.csproj" />
     <ProjectReference Include="..\Modules\Platform\SportsPlatform.Modules.Platform\SportsPlatform.Modules.Platform.csproj" />
