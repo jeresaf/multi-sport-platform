@@ -5,15 +5,14 @@ at the start of every review.
 
 ## Now
 
-- **Current slice:** S00 — Repo foundation: all four tasks on `main`, CI green on `main` (run 39021057377). Open:
-  the owner's "new contributor in under 30 minutes" check (slice acceptance); then roadmap S00 → ☑
-- **Current task:** none
-- **Blocked on:** nothing. The S00 slice review (2026-10-17) reconciled the stand-in reviews on #7–#10 and amended
-  the S01 spec.
+- **Current slice:** S01 — Backend platform (docs/build/slices/S01-backend-platform.md). S00 is on `main`; its
+  "new contributor in under 30 minutes" check is still with the owner
+- **Current task:** none. S01-T1 (module system and architecture tests) is in review as #13
+- **Blocked on:** nothing
 
 ## Next up
 
-1. S01 Backend platform (docs/build/slices/S01-backend-platform.md, amended by the S00 slice review) — S01-T1
+1. S01-T2 — Persistence conventions and test harness
 
 ## Log
 
@@ -25,6 +24,7 @@ at the start of every review.
 | 2026-10-17 | S00-T2 | #8 (reached `main` via #10) | `web/` pnpm 12 + Turborepo workspace; Next.js 16.4 `apps/public` (3000) and `apps/admin` (3001) with Tailwind 4; `packages/config` (tsconfig, ESLint flat config with a colour-literal rule, shared Tailwind theme), `packages/tokens` (CSS variables light/dark + TS export), `packages/ui` (`Button` + Vitest), `packages/api-client` placeholder; Playwright smoke tests in `web/e2e` | Tailwind 4 shared `theme.css` instead of a preset; placeholder token colours (both agreed). ESLint 9 (eslint-config-next plugins don't support 10); TypeScript 6.0 (typescript-eslint needs < 6.1) |
 | 2026-10-17 | S00-T3 | #9 (reached `main` via #10) | `docker-compose.yml`: `postgres:17` (named volume, TCP healthcheck, init script creating `sportsplatform` and roles `sp_migrator`/`sp_app`/`sp_platform` with default privileges for future schemas), Mailpit v1.31.6, optional `observability` profile (Aspire dashboard 13.6); `.env.example`; `infrastructure/local/postgres/check-roles.sh`; README Local setup | Roles get privileges via `ALTER DEFAULT PRIVILEGES FOR ROLE sp_migrator`, so S01+ migrations need no grant boilerplate |
 | 2026-10-17 | S00-T4 | #10 (also landed T2 and T3 on `main`) | `.github/workflows/ci.yml`: backend (restore, build `-warnaserror`, test, format), web (frozen install, lint, typecheck, test, build), e2e (Playwright Chromium, smoke tests against production builds, report artifact on failure), infra (compose up `--wait`, role checks); NuGet and pnpm caches; superseded PR runs cancelled, every push to `main` keeps its own run | Added an `infra` job (not in the spec) so T3's role guarantees are regression-tested |
+| 2026-10-17 | S01-T1 | #13 | BuildingBlocks primitives (`IModule`, `ApiEndpointGroups`, `Result`/`Error` with `AREA_CONDITION` check, `Entity`/`AggregateRoot` + domain events, `ITenantOwned`, `ICurrentActor` + `SystemActor`, `ITenantContext`, `ActionCode` + endpoint action metadata); Platform module + Contracts; Host module registry and `/api/{public,admin,platform}/v1` groups; NetArchTest architecture tests (AR-02, AR-26, AR-33, Domain layering) replace the S00 placeholders | BuildingBlocks references ASP.NET Core for `IModule` only (agreed, see Deviations). NetArchTest.Rules 1.3.2 (MIT) |
 
 ## Deviations from spec (agreed)
 
@@ -36,18 +36,29 @@ at the start of every review.
   groups but not the values) until the owner or the Branding work sets them. Owner approved 2026-10-17.
 - **S00-T4:** an extra `infra` CI job (compose up + `check-roles.sh`) beyond the spec's backend/web/e2e jobs, so
   T3's role guarantees are regression-tested. Owner approved the plan 2026-10-17.
+- **S01-T1:** BuildingBlocks has a `FrameworkReference` to `Microsoft.AspNetCore.App` because `IModule.MapEndpoints`
+  needs `IEndpointRouteBuilder`. Only the `SportsPlatform.BuildingBlocks.Modules` namespace may use ASP.NET Core;
+  no BuildingBlocks namespace may use EF Core (`LayeringTests`). This replaces S00's "BuildingBlocks references no
+  ASP.NET Core" placeholder test. Owner approved the plan 2026-10-17.
 
 ## Tech debt / follow-ups
 
 Consolidated by the S00 slice review (2026-10-17). Each item names where it gets done.
 
 **Assigned to S01** (see the spec's "Carried over from S00")
-- Replace the placeholder `BuildingBlocksAssemblyTests` and architecture test with real tests (T1; PR #7 R3).
 - Mark `GET /health/live` and `/health/ready` with `.AllowPublic()`; the startup test covers every endpoint (T4).
 - Narrow `sp_app`/`sp_platform` default DML grants: read-only reference/global tables, append-only tables
   (audit now, timeline later), migrations-history tables; grants test (T2, T5–T7).
 - Testcontainers fixture runs `infrastructure/local/postgres/init/01-roles.sh`; app connects as `sp_app`,
   migrations as `sp_migrator`, Respawn on a test-only superuser connection (T2).
+- `ModuleDbContext` goes in a separate `SportsPlatform.BuildingBlocks.Persistence` project (EF Core allowed there,
+  used only by module `Infrastructure/`); architecture tests allow it for modules and check it references no
+  module; core BuildingBlocks stays free of EF Core (reviewer guidance on #13) (T2).
+- `Entity()` generates a UUIDv7 that EF Core discards on load: give EF a constructor path without generation
+  (#13 R3) (T2).
+- `ITenantOwned.TenantId` stays get-only: S02's interceptor sets it with `entry.Property(...).CurrentValue`, never
+  a public setter. Moving `BuildingBlocks/Modules` to a `BuildingBlocks.Web` project is optional, not planned
+  (reviewer guidance on #13).
 - `check-roles.sh`: add checks that `sp_platform` cannot create tables or schemas (T2, small).
 
 **Owner decisions / housekeeping**
@@ -56,9 +67,9 @@ Consolidated by the S00 slice review (2026-10-17). Each item names where it gets
   `Contracts`), or accept the risk (Claude Code's settings already deny pushes to `main`).
 - Merge style: README-FIRST says squash-and-merge; S00 used merge commits. Pick one. For stacked PRs, retarget
   the next PR to `main` before merging it.
-- Delete merged branches `s00/t1-repo-skeleton`, `s00/t2-web-workspace`, `s00/t3-local-infra`, `s00/t4-ci`,
-  `restart/kit`. The prototype's old branches (`agent/*`, `codex/*`, `feature/*`, `ci/*`) are not all covered by
-  tag `prototype-v0`; keep them or tag them before deleting.
+- The prototype's old branches (`agent/*`, `codex/*`, `feature/*`, `ci/*`) are not all covered by tag
+  `prototype-v0`; keep them or tag them before deleting. (The merged S00 branches and `restart/kit` were deleted
+  on 2026-10-17.)
 - Owner's "new contributor in under 30 minutes" check (S00 slice acceptance); then roadmap S00 → ☑.
 
 **Later**
@@ -69,5 +80,7 @@ Consolidated by the S00 slice review (2026-10-17). Each item names where it gets
 - shadcn/ui is not initialised yet (ADR-0011); do it with the first real admin UI (S03). `Button` is hand-written.
 - Colour-literal checks have known gaps and false positives (S00 Implementation notes, T2).
 - pnpm 12's minimum-release-age policy is on: new package versions are installable about a day after release.
+- The AR-33 test exempts the whole Host. When the first infrastructure adapter project lands (file storage, from
+  S06), replace the exemption with an explicit allow-list of adapter assemblies (S01-T1 pre-review).
 - Dependency updates are manual (exact pins everywhere): add Dependabot or Renovate for NuGet, npm and GitHub
   Actions, and pin actions by commit SHA (Phase 9 hardening at the latest).
