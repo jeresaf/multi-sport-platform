@@ -105,6 +105,16 @@ public sealed class DevelopmentApiDocumentationTests(DevelopmentHostApp factory)
         document.AsObject().ContainsKey("servers").ShouldBeFalse();
     }
 
+    // CI exports in Development (the CLI's launch profile): the documentation endpoints must not document themselves.
+    [Fact]
+    public async Task Development_document_does_not_list_the_documentation_endpoints()
+    {
+        var document = JsonNode.Parse(await ApiDocumentation.ExportAsync(factory.Services, TestContext.Current.CancellationToken))!;
+
+        document["paths"]!.AsObject().Select(path => path.Key)
+            .ShouldNotContain(path => path.StartsWith("/openapi", StringComparison.Ordinal) || path.StartsWith("/scalar", StringComparison.Ordinal));
+    }
+
     [Fact]
     public async Task Development_serves_Scalar()
     {

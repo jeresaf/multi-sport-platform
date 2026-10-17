@@ -33,6 +33,28 @@ public abstract class PipelineProblemDetailsTests(PipelineTestApp app)
     }
 
     [Fact]
+    public async Task Number_sent_as_a_string_returns_400()
+    {
+        using var client = app.CreateClient();
+        using var content = new StringContent("{\"number\": \"5\"}", Encoding.UTF8, "application/json");
+
+        using var response = await client.PostAsync(new Uri("/rounds", UriKind.Relative), content, TestContext.Current.CancellationToken);
+
+        await response.ShouldBeProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_MALFORMED_REQUEST");
+    }
+
+    [Fact]
+    public async Task Number_sent_as_a_number_is_accepted()
+    {
+        using var client = app.CreateClient();
+        using var content = new StringContent("{\"number\": 5}", Encoding.UTF8, "application/json");
+
+        using var response = await client.PostAsync(new Uri("/rounds", UriKind.Relative), content, TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
+
+    [Fact]
     public async Task Malformed_json_returns_400()
     {
         using var client = app.CreateClient();

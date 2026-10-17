@@ -44,6 +44,41 @@ public sealed class ProducesErrorsTests
     }
 
     [Fact]
+    public async Task Declarations_on_a_group_and_its_endpoint_are_combined()
+    {
+        var builder = WebApplication.CreateBuilder(new WebApplicationOptions { EnvironmentName = "Testing" });
+        builder.Services.AddApiDocumentation();
+        await using var app = builder.Build();
+        app.UseRouting();
+        app.MapGroup("/fixtures").ProducesErrors(PlatformErrors.ConcurrencyConflict)
+            .MapGet("/{id}", (Guid id) => TypedResults.Ok(id)).ProducesErrors(CommonErrors.MalformedRequest);
+        app.UseEndpoints(static _ => { });
+
+        var document = JsonNode.Parse(await ApiDocumentation.ExportAsync(app.Services, TestContext.Current.CancellationToken))!;
+
+        var responses = document["paths"]!["/fixtures/{id}"]!["get"]!["responses"]!;
+        responses["409"]!["x-error-codes"]!.AsArray().Select(code => code!.GetValue<string>()).ShouldBe([PlatformErrors.ConcurrencyConflict.Code]);
+        responses["400"]!["x-error-codes"]!.AsArray().Select(code => code!.GetValue<string>()).ShouldBe([CommonErrors.MalformedRequest.Code]);
+    }
+
+    // The runtime adds code and correlationId to validation problems too.
+    [Fact]
+    public async Task Validation_problem_schema_requires_code_and_correlation_id()
+    {
+        var builder = WebApplication.CreateBuilder(new WebApplicationOptions { EnvironmentName = "Testing" });
+        builder.Services.AddApiDocumentation();
+        await using var app = builder.Build();
+        app.UseRouting();
+        app.MapGet("/fixtures", () => TypedResults.Ok()).ProducesValidationProblem();
+        app.UseEndpoints(static _ => { });
+
+        var document = JsonNode.Parse(await ApiDocumentation.ExportAsync(app.Services, TestContext.Current.CancellationToken))!;
+
+        var schema = document["components"]!["schemas"]!["HttpValidationProblemDetails"]!;
+        schema["required"]!.AsArray().Select(name => name!.GetValue<string>()).ShouldBe(["code", "correlationId"], ignoreOrder: true);
+    }
+
+    [Fact]
     public void At_least_one_error_is_required()
     {
         var builder = WebApplication.CreateBuilder();

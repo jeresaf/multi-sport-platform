@@ -78,11 +78,12 @@ public static class ApiDocumentation
         }
     }
 
-    // `code` and `correlationId` are on every error response (ApiConventions); the framework type doesn't know them.
+    // `code` and `correlationId` are on every error response (ApiConventions); the framework types (ProblemDetails and
+    // its validation subtypes) don't know them.
     private static Task DescribeProblemDetails(
         OpenApiSchema schema, OpenApiSchemaTransformerContext context, CancellationToken cancellationToken)
     {
-        if (context.JsonTypeInfo.Type != typeof(ProblemDetails))
+        if (!typeof(ProblemDetails).IsAssignableFrom(context.JsonTypeInfo.Type))
         {
             return Task.CompletedTask;
         }
@@ -108,13 +109,16 @@ public static class ApiDocumentation
     private static Task ListErrorCodes(
         OpenApiOperation operation, OpenApiOperationTransformerContext context, CancellationToken cancellationToken)
     {
-        var declared = context.Description.ActionDescriptor.EndpointMetadata.OfType<DeclaredErrorsMetadata>().LastOrDefault();
-        if (declared is null || operation.Responses is null)
+        // Every declaration counts: ProducesErrors may be called on a route group and again on the endpoint.
+        var declared = context.Description.ActionDescriptor.EndpointMetadata.OfType<DeclaredErrorsMetadata>()
+            .SelectMany(metadata => metadata.Errors)
+            .ToList();
+        if (declared.Count == 0 || operation.Responses is null)
         {
             return Task.CompletedTask;
         }
 
-        foreach (var group in declared.Errors.GroupBy(error => error.Kind.ToStatusCode()))
+        foreach (var group in declared.GroupBy(error => error.Kind.ToStatusCode()))
         {
             var status = group.Key.ToString(CultureInfo.InvariantCulture);
             if (operation.Responses.TryGetValue(status, out var response) && response is OpenApiResponse openApiResponse)
