@@ -41,7 +41,8 @@ infrastructure/local/postgres/check-roles.sh      # proves the database roles (s
   if you changed `POSTGRES_PORT`, override them with `ConnectionStrings__App=...` etc.). Production values come
   from Azure Key Vault (ADR-0016), never from files.
 - Migrations: `dotnet run --project backend/tools/SportsPlatform.Cli -- migrate` (as `sp_migrator`). In
-  Development the API also migrates on startup (`Database:MigrateOnStartup`, off everywhere else).
+  Development the API also migrates on startup (`Database:MigrateOnStartup`); in any other environment
+  that setting stops the API at startup, so only the CLI ever holds the `sp_migrator` credentials.
 - Mailpit: SMTP `localhost:1025`, inbox at http://localhost:8025.
 - Optional OpenTelemetry dashboard: `docker compose --profile observability up -d`, then http://localhost:18888
   (OTLP gRPC on `localhost:4317`).

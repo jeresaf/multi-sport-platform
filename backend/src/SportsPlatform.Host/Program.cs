@@ -1,4 +1,3 @@
-using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.Host;
 using SportsPlatform.Host.Modules;
 
@@ -8,11 +7,7 @@ builder.Services.AddSportsPlatform(builder.Configuration);
 
 var app = builder.Build();
 
-// Development convenience only; production applies migrations with the CLI `migrate` command.
-if (app.Configuration.GetValue<bool>("Database:MigrateOnStartup"))
-{
-    await app.Services.GetRequiredService<MigrationRunner>().RunAsync();
-}
+await StartupMigration.RunIfEnabledAsync(app);
 
 app.MapGet("/health/live", () => TypedResults.Ok(new { status = "ok" }))
     .WithName("HealthLive");
