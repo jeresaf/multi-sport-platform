@@ -21,7 +21,7 @@ at the start of every review.
 |---|---|---|---|---|
 | 2026-10-17 | — | — | Kit added: CLAUDE.md, .claude/, docs/ | Handoff from reviewer |
 | 2026-10-17 | — | — | Kit v2: owner answers Q1, Q2, Q4, Q5; ADR-0016 (hosting); plans and pricing; fictional pilot customer; roadmap Phase 5 reordered (rugby, basketball, cricket); prototype review and selected prototype docs | Restart in the existing repo; prototype at tag `prototype-v0` |
-| 2026-10-17 | S00-T1 | (this PR) | Root conventions (editorconfig, gitattributes, gitignore, global.json, README); `backend/SportsPlatform.slnx` with Host (`GET /health/live`), BuildingBlocks, Unit/Integration/Architecture tests, CLI; central package management; CLAUDE.md commands | xUnit v3 on Microsoft.Testing.Platform → test command is `dotnet test --solution backend` (agreed) |
+| 2026-10-17 | S00-T1 | #7 | Root conventions (editorconfig, gitattributes, gitignore, global.json, README); `backend/SportsPlatform.slnx` with Host (`GET /health/live`), BuildingBlocks, Unit/Integration/Architecture tests, CLI; central package management; CLAUDE.md commands | xUnit v3 on Microsoft.Testing.Platform → test command is `dotnet test --solution backend` (agreed) |
 
 ## Deviations from spec (agreed)
 
@@ -31,4 +31,5 @@ at the start of every review.
 
 ## Tech debt / follow-ups
 
-_None yet._
+- S01: replace the placeholder `BuildingBlocksAssemblyTests` once real unit tests exist; mark `GET /health/live`
+  with `.AllowPublic()` when the action catalogue lands (PR #7 review R3 and question).
