@@ -51,8 +51,11 @@ Consolidated by the S00 slice review (2026-10-17). Each item names where it gets
   (audit now, timeline later), migrations-history tables; grants test (T2, T5–T7).
 - Testcontainers fixture runs `infrastructure/local/postgres/init/01-roles.sh`; app connects as `sp_app`,
   migrations as `sp_migrator`, Respawn on a test-only superuser connection (T2).
-- `ModuleDbContext` needs EF Core, which `LayeringTests` bans from BuildingBlocks: the T2 plan proposes where it
-  lives (an allowed persistence namespace or a separate project) (T2).
+- `ModuleDbContext` goes in a separate `SportsPlatform.BuildingBlocks.Persistence` project (EF Core allowed there,
+  used only by module `Infrastructure/`); architecture tests allow it for modules and check it references no
+  module; core BuildingBlocks stays free of EF Core (reviewer guidance on #13) (T2).
+- `Entity()` generates a UUIDv7 that EF Core discards on load: give EF a constructor path without generation
+  (#13 R3) (T2).
 - `check-roles.sh`: add checks that `sp_platform` cannot create tables or schemas (T2, small).
 
 **Owner decisions / housekeeping**
