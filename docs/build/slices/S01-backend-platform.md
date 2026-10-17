@@ -115,8 +115,8 @@ Deliver:
   names or error text).
 
 Acceptance:
-- [ ] A sample failing request returns Problem Details with `code` and `correlationId`.
-- [ ] CI fails if generated files are stale (demonstrated in PR description).
+- [x] A sample failing request returns Problem Details with `code` and `correlationId`.
+- [x] CI fails if generated files are stale (demonstrated in PR description).
 
 ### T4 — Action catalogue and authorization skeleton
 Deliver:
