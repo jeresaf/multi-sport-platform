@@ -7,13 +7,13 @@ at the start of every review.
 
 - **Current slice:** S01 — Backend platform (docs/build/slices/S01-backend-platform.md). S00 is on `main`; its
   "new contributor in under 30 minutes" check is still with the owner
-- **Current task:** none. S01-T4 (action catalogue and authorization skeleton) is in review as #19
-- **Next:** S01-T5 (domain events, outbox and inbox)
+- **Current task:** S01-T5a — domain events, outbox, processor and inbox (T5 split into T5a/T5b, owner)
+- **Next:** S01-T5b (event catalogue, outbox diagnostics and re-drive)
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S01-T5 — Domain events, outbox and inbox
+1. S01-T5b — Event catalogue, outbox diagnostics and re-drive
 2. S01-T6 — Audit
 3. S01-T7 — Seed framework and reference data
 
