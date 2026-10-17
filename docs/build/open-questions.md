@@ -16,6 +16,7 @@ the date and where the decision is recorded.
 | Q12 | Build in the existing GitHub repository or a new one? | History, reviewer access, CI | The existing `jeresaf/multi-sport-platform`: preserve the prototype at tag `prototype-v0` and branch `prototype/v0`, then replace `main` with the kit (README-FIRST.md). Keep the repository private; CI on pull requests | S00 |
 | Q13 | Which legal entity signs customer contracts and registers with Uganda's PDPO? | Required before real personal data (ADR-0016 pilot gate) | Owner's company registers with the PDPO; a lawyer reviews the processing agreement template, privacy notice and transfer register | Before pilot |
 | Q14 | Do the indicative prices survive conversations with about five prospects? | Revenue, plan limits | Use the prices in docs/product/pricing-and-plans.md; revisit after the first three paying customers | Before the first invoice |
+| Q15 | When RLS arrives (S02), should outbox/inbox tables get RLS, and should the outbox processor (and T5b's diagnostics) run as `sp_platform`? | The processor reads every tenant's messages; with RLS on those tables `sp_app` would see none | No RLS on `outbox_messages`/`inbox_messages` (nullable `tenant_id` envelope column, payloads carry IDs and display names only); processor on the `App` connection. Consumers still run under the event's tenant (owner, S01-T5a) | S02 |
 
 ## Answered
 

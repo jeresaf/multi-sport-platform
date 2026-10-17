@@ -285,3 +285,16 @@ Acceptance:
   Owner: `platform.outbox.read` is audit `REQUIRED`, `platform.outbox.redrive` `REQUIRED_WITH_REASON`; no
   `reference.read` (T7's reference endpoints are public). Allowed/denied tests for the two outbox actions come with
   their endpoints in T5.
+- **T5 (split in two, owner 2026-10-17):** T5a = domain event dispatch, outbox and inbox in every module schema,
+  `OutboxProcessor` and its hosted service; T5b = event catalogue + `events.md`/`events.json` + CI check, outbox
+  diagnostics and re-drive (with the allowed/denied tests and "re-drive succeeds after fix"). Outbox statuses
+  `PENDING`/`PROCESSED`/`FAILED` added to docs/domain/state-machines.md (owner). Outbox and inbox are read-write,
+  with a nullable `tenant_id` and no RLS (owner; Q15 for S02). Names: `IDomainEventSubscriber<T>` and
+  `IIntegrationEventConsumer<T>` (the analyzers reserve the `EventHandler` suffix, CA1711); `ModuleDbContext.Publish`;
+  `AddDomainEventSubscriber`/`AddIntegrationEventConsumer`. `MessagingInterceptor` (dispatch, then envelope) runs
+  before `AuditColumnsInterceptor`. `TenantContext` and `CorrelationContext` are scoped and settable (registered by
+  `AddModuleDbContext`); the correlation middleware fills `CorrelationContext`, the processor fills both from the
+  envelope. `Outbox:Enabled` is false in `appsettings.Testing.json`; tests call `ProcessOnceAsync` and use
+  `Outbox:MaxAttempts = 3`. A message with no consumers is `PROCESSED` (an unknown event version can't be told apart
+  from an unsubscribed one). Test module `messaging_test` (`MessagingTestDbContext`, table `probes`) publishes and
+  consumes.

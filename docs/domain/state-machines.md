@@ -225,6 +225,22 @@ Result methods: `REGULATION`, `EXTRA_TIME`, `OVERTIME`, `SUDDEN_DEATH`, `SHOOTOU
 
 ---
 
+## Platform
+
+### Outbox message (stored, in each module's `outbox_messages`)
+
+```text
+PENDING ──every consumer handled it (or it has none)──► PROCESSED
+PENDING ──attempt failed, attempts < max──► PENDING   (next_attempt_at = now + backoff)
+PENDING ──attempt failed, attempts = max──► FAILED
+FAILED  ──re-drive (platform.outbox.redrive, reason)──► PENDING   (attempts reset)
+```
+
+Delivery state, not a business lifecycle: no status history table. The outbox processor makes the automatic
+transitions; the re-drive is a platform action and is audited (docs/architecture/events-and-jobs.md).
+
+---
+
 ## Match-day flow (how the machines meet)
 
 ```text

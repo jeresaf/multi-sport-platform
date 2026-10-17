@@ -38,6 +38,42 @@ OutboxProcessor (hosted service, polls ~500 ms, batches, FOR UPDATE SKIP LOCKED)
 - Ordering: per aggregate, events are delivered in `occurred_at`/sequence order; consumers must still tolerate
   duplicates and gaps (use versions, e.g. standings ignore a `ResultApproved` older than what they've applied).
 
+### How it is built (S01-T5a)
+
+- **Publishing.** A use-case handler or a domain event subscriber calls
+  `context.Publish(new ResultApproved.V1(...), aggregateType, aggregateId)` on its module's DbContext; the message
+  is saved by the same `SaveChangesAsync` as the change. Event types are records named `V<n>` nested in a static
+  class named after the event (`IntegrationEventName`): `event_name` is the class name, `event_version` the number.
+  Payloads are JSON (camelCase).
+- **Domain events.** `IDomainEventSubscriber<TEvent>`, registered with `services.AddDomainEventSubscriber<…>()`.
+  `MessagingInterceptor` dispatches them during `SaveChangesAsync`, before the audit-column interceptor, in rounds
+  (events raised by subscribers go to the next round; more than 10 rounds throws). Synchronous `SaveChanges` throws
+  while domain events are pending.
+- **Envelope.** Stamped when the message is saved: `occurred_at` (injected `TimeProvider`), `tenant_id`
+  (`ITenantContext`), `correlation_id` and `causation_id` (`CorrelationContext`: a request's `X-Correlation-Id`;
+  while consuming, the consumed event's correlation ID and its ID as causation), `actor_id` (`ICurrentActor`).
+- **Tables.** Every module schema has `outbox_messages` (envelope, `payload jsonb`, `status`, `attempts`,
+  `next_attempt_at`, `last_error`, `processed_at`) and `inbox_messages` (primary key `message_id, consumer`), mapped
+  by `ModuleDbContext`. Both are read-write for the runtime roles. `tenant_id` is a nullable envelope column; the
+  tables are not tenant-owned and have no RLS (owner, S01-T5a; revisit in S02, open question Q15).
+- **Consumers.** `IIntegrationEventConsumer<TEvent>`, registered with
+  `services.AddIntegrationEventConsumer<TEvent, TConsumer, TContext>("<module>.<purpose>")`. The consumer name is
+  stored in the inbox: never rename it. Each delivery gets its own scope (tenant and correlation set from the
+  envelope) and a transaction on `TContext`: skip if the inbox has the message, else handle, add the inbox row, save,
+  commit. The consumer changes data through `TContext` and does not commit itself.
+- **Processor.** `OutboxProcessor.ProcessOnceAsync` takes each module in turn: in one transaction it claims up to
+  `BatchSize` due `PENDING` messages (`next_attempt_at <= now`, oldest first, `FOR UPDATE SKIP LOCKED`), delivers
+  each to its consumers, records the outcome and commits. A message is `PROCESSED` when every consumer succeeded
+  (or there is none). Any failure (exception, unreadable payload) is a failed attempt: retried after 2, 4, 8 … s
+  (capped at 5 min), `FAILED` after `MaxAttempts` (state machine in docs/domain/state-machines.md). Consumers that
+  already succeeded are skipped on retry by their inbox. `last_error` keeps consumer, exception type and message
+  (2,000 characters), so exception messages must not contain personal data.
+- **Hosting.** The Platform module's hosted service calls the processor every `PollInterval`. Settings (section
+  `Outbox`): `Enabled` (true; false in `Testing`, where tests call the processor), `PollInterval` (500 ms),
+  `BatchSize` (50), `MaxAttempts` (10). A failed poll is logged and retried on the next tick.
+- **Ordering.** Within a batch, messages are delivered oldest first; a retried message can be overtaken by a later
+  one for the same aggregate, so consumers must tolerate order changes as well as duplicates.
+
 ## Projections
 
 - Owned by the consuming module (Insights read models, Progression standings, Engagement deliveries).
