@@ -5,9 +5,10 @@ on:
   push:
     branches: [main]
 
-# Superseded pull-request runs are cancelled; every push to main keeps its own result.
+# Pull requests: one group per branch, superseded runs are cancelled. Pushes to main: one group per commit, so
+# every merge gets its own result (GitHub keeps only one pending run per group).
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
@@ -22,7 +23,7 @@ env:
 jobs:
   backend:
     name: Backend
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
@@ -45,7 +46,7 @@ jobs:
 
   web:
     name: Web
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     defaults:
       run:
@@ -69,7 +70,7 @@ jobs:
   e2e:
     name: E2E (Playwright)
     needs: web
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     defaults:
       run:
@@ -99,7 +100,7 @@ jobs:
 
   infra:
     name: Local infrastructure
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7

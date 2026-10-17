@@ -112,4 +112,5 @@ Acceptance:
 - **T4 — CI.** `.github/workflows/ci.yml` runs on every pull request (no branch filter, so stacked PRs get CI)
   and on pushes to `main`. Jobs (check names to require in branch protection): `Backend`, `Web`,
   `E2E (Playwright)`, `Local infrastructure` (extra, owner-approved: compose up + `check-roles.sh`). Superseded
-  pull-request runs are cancelled; runs on `main` never are. First green run: PR #10, run 39020260112.
+  pull-request runs are cancelled; each push to `main` has its own concurrency group (keyed by commit), so every
+  merge gets a result. Runners are pinned to `ubuntu-24.04` (move to a newer image deliberately). First green run: PR #10, run 39020260112.
