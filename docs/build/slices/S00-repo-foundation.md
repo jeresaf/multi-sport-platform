@@ -47,9 +47,9 @@ Deliver:
 - Update CLAUDE.md commands for web.
 
 Acceptance:
-- [ ] `pnpm install --frozen-lockfile`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build` pass from `web/`.
-- [ ] `pnpm e2e` runs both smoke tests against production builds.
-- [ ] No colour literals in components — tokens only.
+- [x] `pnpm install --frozen-lockfile`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build` pass from `web/`.
+- [x] `pnpm e2e` runs both smoke tests against production builds.
+- [x] No colour literals in components — tokens only.
 
 ### T3 — Local infrastructure
 Deliver:
@@ -61,9 +61,9 @@ Deliver:
 - README "Local setup" section (Windows/macOS/Linux notes).
 
 Acceptance:
-- [ ] `docker compose up -d` → services healthy; `psql` connects as `sp_app` and cannot create tables in
+- [x] `docker compose up -d` → services healthy; `psql` connects as `sp_app` and cannot create tables in
       application schemas.
-- [ ] README steps work from a fresh clone.
+- [x] README steps work from a fresh clone.
 
 ### T4 — Continuous integration
 Deliver `.github/workflows/ci.yml` running on pull requests and pushes to `main`:
@@ -75,8 +75,8 @@ Deliver `.github/workflows/ci.yml` running on pull requests and pushes to `main`
 - README-FIRST already tells the owner to protect `main` (require PR + passing CI).
 
 Acceptance:
-- [ ] CI passes on this PR (link the run in the PR).
-- [ ] Workflow uses pinned major versions of actions.
+- [x] CI passes on this PR (link the run in the PR).
+- [x] Workflow uses pinned major versions of actions.
 
 ## Slice acceptance
 
@@ -90,3 +90,27 @@ Acceptance:
   the .NET 10 SDK, so `global.json` selects that runner and the test command is `dotnet test --solution backend`
   (the form `dotnet test backend` is rejected by the SDK). Use this form wherever the spec says `dotnet test`,
   including the T4 CI workflow.
+- **T2 — Tailwind 4 (owner-approved).** Tailwind 4 is configured in CSS and has no JS presets, so the shared
+  "Tailwind preset" is `web/packages/config/theme.css` (`@theme inline` mapping utilities to the token variables,
+  default palette removed). Token colour values are placeholders until the owner or the Branding work sets them.
+- **T2 — colour literals** fail `pnpm lint`. Rules: `web/packages/config/colour-rules.js`, covered by Vitest in
+  `@msp/config`. In JS/TS, ESLint (`no-restricted-syntax`) rejects hex, colour functions and Tailwind arbitrary
+  colours (`bg-[#fff]`, `text-[red]`, `[color:red]`). In app CSS, `msp-check-css-colours` rejects hex, colour
+  functions, arbitrary colours in `@apply`, and colour properties whose value isn't `var(…)` or a keyword (comments
+  are ignored). Known gaps: named colours in inline `style` objects; colour inside shorthand values other than
+  `background` (e.g. `border: 1px solid red`). Known false positives: hex-like strings (`"#add"`, `"Fixture #101"`).
+  Colour values live only in `web/packages/tokens/tokens.css`.
+- **T3 — database roles.** `infrastructure/local/postgres/init/01-roles.sh` creates the roles once per volume.
+  `sp_migrator` owns the database (and so the schemas migrations create); `sp_app` and `sp_platform` get
+  `USAGE`/DML on future schemas, tables, sequences and functions through `ALTER DEFAULT PRIVILEGES FOR ROLE
+  sp_migrator`, never `CREATE`. `infrastructure/local/postgres/check-roles.sh` proves this (9 checks) and is meant
+  for reuse in CI. The S01 Testcontainers fixture should run the same init script so tests use the same roles.
+  The defaults grant DML on **every** table `sp_migrator` creates. From S01, migrations must narrow this where a
+  table needs it: `REVOKE INSERT, UPDATE, DELETE … FROM sp_app` for global/reference tables (read-only to the app),
+  append-only tables (timeline, audit; plus the trigger from AR-19) and each schema's migrations history table.
+  Local ports are bound to `127.0.0.1` because the development passwords are public.
+- **T4 — CI.** `.github/workflows/ci.yml` runs on every pull request (no branch filter, so stacked PRs get CI)
+  and on pushes to `main`. Jobs (check names to require in branch protection): `Backend`, `Web`,
+  `E2E (Playwright)`, `Local infrastructure` (extra, owner-approved: compose up + `check-roles.sh`). Superseded
+  pull-request runs are cancelled; each push to `main` has its own concurrency group (keyed by commit), so every
+  merge gets a result. Runners are pinned to `ubuntu-24.04` (move to a newer image deliberately). First green run: PR #10, run 39020260112.

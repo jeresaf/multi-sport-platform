@@ -11,7 +11,7 @@ Status legend: ☐ not started · ◐ in progress · ☑ done. Claude Code updat
 
 | Slice | Goal | Spec | Status |
 |---|---|---|---|
-| S00 | Repo, tooling, CI: an empty-but-real monorepo that builds and tests | [S00](slices/S00-repo-foundation.md) | ☐ |
+| S00 | Repo, tooling, CI: an empty-but-real monorepo that builds and tests | [S00](slices/S00-repo-foundation.md) | ◐ |
 | S01 | Backend platform: modules, persistence, errors, actions, audit, outbox, test harness | [S01](slices/S01-backend-platform.md) | ☐ |
 | S02 | Tenancy core & isolation: tenants, domains, tenant context, EF filters + RLS, isolation harness, public shell | [S02](slices/S02-tenancy-core.md) | ☐ |
 | S03 | Identity & access: users, login, memberships, scoped roles, admin shell, platform console basics | [S03](slices/S03-identity-access.md) | ☐ |

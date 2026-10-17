@@ -1,0 +1,12 @@
+@import "tailwindcss";
+@import "@msp/tokens/tokens.css";
+@import "@msp/config/theme.css";
+
+/* Shared components ship as source; let Tailwind see their class names. */
+@source "../../../packages/ui/src";
+
+@layer base {
+  body {
+    @apply bg-background font-sans text-text antialiased;
+  }
+}

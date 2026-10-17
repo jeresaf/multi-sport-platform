@@ -1,0 +1,55 @@
+/*
+ * Shared Tailwind 4 theme: maps Tailwind utilities onto the design tokens from @msp/tokens.
+ * Import after "tailwindcss" and "@msp/tokens/tokens.css". Tailwind's default palette is removed so only tokens
+ * can be used for colour, and only the design-system breakpoints (tablet:, desktop:), radii and type sizes exist.
+ * Spacing keeps Tailwind's 4 px step (--spacing), which matches --msp-space-*; use only the design-system steps.
+ */
+@theme inline {
+  --color-*: initial;
+
+  --color-background: var(--msp-color-background);
+  --color-surface: var(--msp-color-surface);
+  --color-surface-raised: var(--msp-color-surface-raised);
+  --color-border: var(--msp-color-border);
+  --color-text: var(--msp-color-text);
+  --color-text-muted: var(--msp-color-text-muted);
+  --color-focus: var(--msp-color-focus);
+
+  --color-primary: var(--msp-color-brand-primary);
+  --color-primary-hover: var(--msp-color-brand-primary-hover);
+  --color-primary-contrast: var(--msp-color-brand-primary-contrast);
+  --color-secondary: var(--msp-color-brand-secondary);
+
+  --color-live: var(--msp-color-live);
+  --color-success: var(--msp-color-success);
+  --color-warning: var(--msp-color-warning);
+  --color-danger: var(--msp-color-danger);
+  --color-info: var(--msp-color-info);
+  --color-transparent: transparent;
+  --color-current: currentColor;
+
+  --radius-*: initial;
+  --radius-sm: var(--msp-radius-sm);
+  --radius-md: var(--msp-radius-md);
+  --radius-lg: var(--msp-radius-lg);
+  --radius-full: var(--msp-radius-full);
+
+  --font-sans: var(--msp-font-sans);
+
+  /* Type scale 12–36 px: Tailwind's text-xs … text-4xl already match it; remove the larger sizes. */
+  --text-5xl: initial;
+  --text-6xl: initial;
+  --text-7xl: initial;
+  --text-8xl: initial;
+  --text-9xl: initial;
+
+  /* Elevation tokens (0–3) arrive with the first component that needs them; no ad-hoc shadows until then. */
+  --shadow-*: initial;
+  --inset-shadow-*: initial;
+  --drop-shadow-*: initial;
+  --text-shadow-*: initial;
+
+  --breakpoint-*: initial;
+  --breakpoint-tablet: 768px;
+  --breakpoint-desktop: 1200px;
+}

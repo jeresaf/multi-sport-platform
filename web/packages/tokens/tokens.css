@@ -1,0 +1,107 @@
+/*
+ * MSP design tokens (docs/product/ux/design-system.md). The only place colour values are defined.
+ * Colour values are placeholders chosen for WCAG AA contrast until the owner or the Branding work (S22) sets them.
+ * brand.* tokens are tenant-overridable later; semantic tokens (live, success, warning, danger, info) are not.
+ * Dark theme: follows the OS unless data-theme="light" | "dark" is set on <html>.
+ */
+:root {
+  /* Neutral and surfaces */
+  --msp-color-background: #f8fafc;
+  --msp-color-surface: #ffffff;
+  --msp-color-surface-raised: #ffffff;
+  --msp-color-border: #cbd5e1;
+  --msp-color-text: #0f172a;
+  --msp-color-text-muted: #475569;
+  --msp-color-focus: #2563eb;
+
+  /* Brand (tenant-overridable) */
+  --msp-color-brand-primary: #1d4ed8;
+  --msp-color-brand-primary-hover: #1e40af;
+  --msp-color-brand-primary-contrast: #ffffff;
+  --msp-color-brand-secondary: #0f766e;
+
+  /* Semantic (not tenant-overridable) */
+  --msp-color-live: #dc2626;
+  --msp-color-success: #15803d;
+  --msp-color-warning: #b45309;
+  --msp-color-danger: #b91c1c;
+  --msp-color-info: #0369a1;
+
+  /* Typography: system stack; scale 12/14/16/18/20/24/30/36 */
+  --msp-font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  /* Spacing: 4 px base scale (4, 8, 12, 16, 20, 24, 32, 40, 48, 64). Tailwind's 4 px step covers these values;
+     use only these steps (e.g. p-1, p-2, p-3, p-4, p-5, p-6, p-8, p-10, p-12, p-16). */
+  --msp-space-1: 4px;
+  --msp-space-2: 8px;
+  --msp-space-3: 12px;
+  --msp-space-4: 16px;
+  --msp-space-5: 20px;
+  --msp-space-6: 24px;
+  --msp-space-8: 32px;
+  --msp-space-10: 40px;
+  --msp-space-12: 48px;
+  --msp-space-16: 64px;
+
+  /* Radius: 4, 8, 12, full */
+  --msp-radius-sm: 4px;
+  --msp-radius-md: 8px;
+  --msp-radius-lg: 12px;
+  --msp-radius-full: 9999px;
+
+  /* Motion */
+  --msp-duration-fast: 150ms;
+  --msp-duration-standard: 250ms;
+
+  color-scheme: light;
+}
+
+/* The dark palette appears twice (OS preference and explicit data-theme="dark"); keep the two blocks in sync. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --msp-color-background: #0b1220;
+    --msp-color-surface: #111827;
+    --msp-color-surface-raised: #1f2937;
+    --msp-color-border: #374151;
+    --msp-color-text: #f1f5f9;
+    --msp-color-text-muted: #94a3b8;
+    --msp-color-focus: #93c5fd;
+    --msp-color-brand-primary: #60a5fa;
+    --msp-color-brand-primary-hover: #93c5fd;
+    --msp-color-brand-primary-contrast: #0b1220;
+    --msp-color-brand-secondary: #2dd4bf;
+    --msp-color-live: #f87171;
+    --msp-color-success: #4ade80;
+    --msp-color-warning: #fbbf24;
+    --msp-color-danger: #f87171;
+    --msp-color-info: #38bdf8;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --msp-color-background: #0b1220;
+  --msp-color-surface: #111827;
+  --msp-color-surface-raised: #1f2937;
+  --msp-color-border: #374151;
+  --msp-color-text: #f1f5f9;
+  --msp-color-text-muted: #94a3b8;
+  --msp-color-focus: #93c5fd;
+  --msp-color-brand-primary: #60a5fa;
+  --msp-color-brand-primary-hover: #93c5fd;
+  --msp-color-brand-primary-contrast: #0b1220;
+  --msp-color-brand-secondary: #2dd4bf;
+  --msp-color-live: #f87171;
+  --msp-color-success: #4ade80;
+  --msp-color-warning: #fbbf24;
+  --msp-color-danger: #f87171;
+  --msp-color-info: #38bdf8;
+  color-scheme: dark;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --msp-duration-fast: 0ms;
+    --msp-duration-standard: 0ms;
+  }
+}
