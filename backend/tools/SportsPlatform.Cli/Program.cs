@@ -1,11 +1,11 @@
-// Developer and operations CLI. Commands are listed here as they are planned; each is implemented by the slice
-// that needs it (docs/architecture/overview.md).
+// Developer and operations CLI. Lists the commands named in the slice specs; each is implemented by the slice
+// that needs it.
 (string Name, string Description)[] commands =
 [
-    ("migrate", "Apply database migrations for every module (S01)"),
-    ("seed", "Run seeders for an environment (S01)"),
-    ("create-platform-admin", "Create the first platform administrator (S03)"),
-    ("export-catalogues", "Export actions, errors and events to docs/generated and contracts (S01)"),
+    ("migrate", "Apply database migrations for every module"),
+    ("seed", "Run seeders for a category"),
+    ("export-openapi", "Write contracts/openapi.json"),
+    ("create-platform-admin", "Create the first platform administrator"),
 ];
 
 if (args.Length == 0 || args[0] is "help" or "--help" or "-h")
