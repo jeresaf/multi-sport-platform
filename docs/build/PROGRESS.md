@@ -6,7 +6,7 @@ at the start of every review.
 ## Now
 
 - **Current slice:** S00 — Repo foundation
-- **Current task:** S00-T1 — not started
+- **Current task:** S00-T1 — Repository skeleton & conventions (in progress, branch `s00/t1-repo-skeleton`)
 - **Blocked on:** nothing
 
 ## Next up
