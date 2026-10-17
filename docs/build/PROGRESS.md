@@ -6,8 +6,8 @@ at the start of every review.
 ## Now
 
 - **Current slice:** S00 — Repo foundation
-- **Current task:** S00-T1 — Repository skeleton & conventions (PR open, awaiting review)
-- **Blocked on:** review of the S00-T1 PR; T2 starts after it merges
+- **Current task:** S00-T2 — Web workspace (in progress, branch `s00/t2-web-workspace`, stacked on PR #7)
+- **Blocked on:** nothing (PR #7 awaiting merge)
 
 ## Next up
 
