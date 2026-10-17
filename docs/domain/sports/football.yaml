@@ -1,0 +1,329 @@
+# Reference sport definition — Football (association football / soccer)
+# Defaults follow the IFAB Laws of the Game as commonly applied. Competition policy lives in rulesets.
+schema_version: 1
+variant: FOOTBALL_ASSOCIATION
+sport: FOOTBALL
+version: 1
+name: Football
+scoring_family: ADDITIVE
+shape: HEAD_TO_HEAD
+participant_types: [TEAM]
+sides: [HOME, AWAY]
+coverage_levels: [RESULT_ONLY, BASIC, STANDARD, DETAILED]
+terminology:
+  contest: Match
+  contest_plural: Matches
+  period: Half
+  participant: Team
+  athlete: Player
+  score_unit: Goal
+
+supports:
+  tie_resolutions: [DRAW, EXTRA_PERIODS_THEN_SHOOTOUT, SHOOTOUT]
+
+periods:
+  - { code: FIRST_HALF, label: 1st half, short: 1H, kind: PLAY, clock: COUNT_UP, default_seconds: 2700, clock_starts_at_seconds: 0, allows_added_time: true }
+  - { code: HALF_TIME, label: Half-time, short: HT, kind: BREAK, clock: NONE, default_seconds: 900 }
+  - { code: SECOND_HALF, label: 2nd half, short: 2H, kind: PLAY, clock: COUNT_UP, default_seconds: 2700, clock_starts_at_seconds: 2700, allows_added_time: true }
+  - { code: AWAITING_EXTRA_TIME, label: Before extra time, short: BET, kind: BREAK, clock: NONE, default_seconds: 300 }
+  - { code: EXTRA_TIME_FIRST_HALF, label: Extra time 1st half, short: ET1, kind: PLAY, clock: COUNT_UP, default_seconds: 900, clock_starts_at_seconds: 5400, allows_added_time: true, overtime: true }
+  - { code: EXTRA_TIME_HALF_TIME, label: Extra time break, short: ETB, kind: BREAK, clock: NONE, default_seconds: 60, overtime: true }
+  - { code: EXTRA_TIME_SECOND_HALF, label: Extra time 2nd half, short: ET2, kind: PLAY, clock: COUNT_UP, default_seconds: 900, clock_starts_at_seconds: 6300, allows_added_time: true, overtime: true }
+  - { code: AWAITING_SHOOTOUT, label: Before penalties, short: BP, kind: BREAK, clock: NONE, default_seconds: 120, overtime: true }
+  - { code: PENALTY_SHOOTOUT, label: Penalty shoot-out, short: PEN, kind: SHOOTOUT, clock: NONE, overtime: true }
+
+actor_roles:
+  SCORER:     { who: ON_FIELD, side: OWN }
+  ASSIST:     { who: ON_FIELD, side: OWN }
+  PLAYER:     { who: ON_FIELD, side: OWN }
+  TAKER:      { who: ON_FIELD, side: OWN }
+  OFFENDER:   { who: SQUAD_OR_STAFF, side: OWN }      # cards can be shown to bench players and staff
+  PLAYER_OFF: { who: ON_FIELD, side: OWN }
+  PLAYER_ON:  { who: BENCH, side: OWN }
+  FOULED:     { who: ON_FIELD, side: OPPONENT }
+  GOALKEEPER: { who: ON_FIELD, side: OWN }
+
+event_types:
+  # --- scoring -------------------------------------------------------------------------------
+  - code: GOAL
+    category: SCORING
+    importance: KEY
+    coverage: BASIC
+    label: Goal
+    points: 1
+    side: OWN
+    component: main
+    phases: [PLAY]
+    actors:
+      - { role: SCORER, required_from: STANDARD }
+      - { role: ASSIST, optional: true, distinct_from: SCORER }
+    metadata:
+      body_part: { type: enum, values: [RIGHT_FOOT, LEFT_FOOT, HEAD, OTHER], optional: true }
+      situation: { type: enum, values: [OPEN_PLAY, SET_PIECE, COUNTER_ATTACK], optional: true }
+    reversible_by: [VAR_DECISION]
+
+  - code: PENALTY_GOAL
+    category: SCORING
+    importance: KEY
+    coverage: BASIC
+    label: Penalty goal
+    points: 1
+    side: OWN
+    component: main
+    phases: [PLAY]
+    actors:
+      - { role: TAKER, required_from: STANDARD }
+    reversible_by: [VAR_DECISION]
+
+  - code: OWN_GOAL
+    category: SCORING
+    importance: KEY
+    coverage: BASIC
+    label: Own goal
+    points: 1
+    side: OPPONENT            # recorded against the team whose player scored it; points go to the opponent
+    component: main
+    phases: [PLAY]
+    actors:
+      - { role: PLAYER, required_from: STANDARD }
+    reversible_by: [VAR_DECISION]
+
+  - code: PENALTY_MISSED
+    category: SCORING
+    importance: KEY
+    coverage: STANDARD
+    label: Penalty missed
+    points: 0
+    side: OWN
+    phases: [PLAY]
+    actors:
+      - { role: TAKER, required_from: STANDARD }
+    metadata:
+      outcome: { type: enum, values: [SAVED, MISSED, HIT_WOODWORK], optional: true }
+
+  # --- shoot-out (separate score component) ----------------------------------------------------
+  - code: SHOOTOUT_GOAL
+    category: SCORING
+    importance: KEY
+    coverage: BASIC
+    label: Shoot-out penalty scored
+    points: 1
+    side: OWN
+    component: shootout
+    phases: [SHOOTOUT]
+    actors:
+      - { role: TAKER, required_from: STANDARD }
+
+  - code: SHOOTOUT_MISS
+    category: SCORING
+    importance: KEY
+    coverage: BASIC
+    label: Shoot-out penalty missed
+    points: 0
+    side: OWN
+    component: shootout
+    phases: [SHOOTOUT]
+    actors:
+      - { role: TAKER, required_from: STANDARD }
+    metadata:
+      outcome: { type: enum, values: [SAVED, MISSED, HIT_WOODWORK], optional: true }
+
+  # --- discipline -------------------------------------------------------------------------------
+  - code: YELLOW_CARD
+    category: DISCIPLINE
+    importance: KEY
+    coverage: STANDARD
+    label: Yellow card
+    phases: [PLAY, BREAK, SHOOTOUT]
+    actors:
+      - { role: OFFENDER, required_from: STANDARD }
+    metadata:
+      reason: { type: enum, values: [UNSPORTING_BEHAVIOUR, DISSENT, PERSISTENT_OFFENCES, DELAYING_RESTART, OTHER], optional: true }
+    reversible_by: [VAR_DECISION]
+
+  - code: SECOND_YELLOW_CARD
+    category: DISCIPLINE
+    importance: KEY
+    coverage: STANDARD
+    label: Second yellow card (sent off)
+    phases: [PLAY, BREAK, SHOOTOUT]
+    actors:
+      - { role: OFFENDER, required_from: STANDARD }
+    effects: [SEND_OFF]
+
+  - code: RED_CARD
+    category: DISCIPLINE
+    importance: KEY
+    coverage: STANDARD
+    label: Red card
+    phases: [PLAY, BREAK, SHOOTOUT]
+    actors:
+      - { role: OFFENDER, required_from: STANDARD }
+    metadata:
+      reason: { type: enum, values: [SERIOUS_FOUL_PLAY, VIOLENT_CONDUCT, DENYING_OBVIOUS_GOAL_OPPORTUNITY, OFFENSIVE_LANGUAGE, OTHER], optional: true }
+    effects: [SEND_OFF]
+    reversible_by: [VAR_DECISION]
+
+  # --- personnel --------------------------------------------------------------------------------
+  - code: SUBSTITUTION
+    category: PERSONNEL
+    importance: STANDARD
+    coverage: STANDARD
+    label: Substitution
+    phases: [PLAY, BREAK]
+    actors:
+      - { role: PLAYER_OFF, required_from: STANDARD }
+      - { role: PLAYER_ON, required_from: STANDARD }
+    metadata:
+      concussion_substitution: { type: bool, optional: true }
+    effects: [SUBSTITUTE]
+    limits:
+      - { rule: substitutions.max }          # counted per side; extra_in_extra_time adds to the limit
+      - { rule: substitutions.windows }      # half-time and before extra time don't count as windows
+
+  # --- review & stoppages -----------------------------------------------------------------------
+  - code: VAR_REVIEW
+    category: REVIEW
+    importance: STANDARD
+    coverage: STANDARD
+    label: VAR check
+    phases: [PLAY]
+    metadata:
+      subject: { type: enum, values: [GOAL, PENALTY, RED_CARD, MISTAKEN_IDENTITY] }
+
+  - code: VAR_DECISION
+    category: REVIEW
+    importance: KEY
+    coverage: STANDARD
+    label: VAR decision
+    phases: [PLAY]
+    metadata:
+      outcome: { type: enum, values: [DECISION_STANDS, DECISION_OVERTURNED] }
+    # When the outcome is DECISION_OVERTURNED the event must carry reverses_event_id.
+
+  - code: INJURY_STOPPAGE
+    category: STOPPAGE
+    importance: STANDARD
+    coverage: STANDARD
+    label: Injury stoppage
+    phases: [PLAY]
+    actors:
+      - { role: PLAYER, optional: true }
+    # Never record medical details (ADR-0015).
+
+  # --- detailed coverage ------------------------------------------------------------------------
+  - code: SHOT
+    category: PLAY
+    importance: DETAILED
+    coverage: DETAILED
+    label: Shot
+    phases: [PLAY]
+    actors:
+      - { role: PLAYER, optional: true }
+    metadata:
+      on_target: { type: bool }
+      blocked: { type: bool, optional: true }
+
+  - code: SAVE
+    category: PLAY
+    importance: DETAILED
+    coverage: DETAILED
+    label: Save
+    phases: [PLAY]
+    actors:
+      - { role: GOALKEEPER, optional: true }
+
+  - code: CORNER
+    category: PLAY
+    importance: DETAILED
+    coverage: DETAILED
+    label: Corner kick
+    phases: [PLAY]
+
+  - code: OFFSIDE
+    category: PLAY
+    importance: DETAILED
+    coverage: DETAILED
+    label: Offside
+    phases: [PLAY]
+    actors:
+      - { role: PLAYER, optional: true }
+
+  - code: FOUL
+    category: DISCIPLINE
+    importance: DETAILED
+    coverage: DETAILED
+    label: Foul
+    phases: [PLAY]
+    actors:
+      - { role: OFFENDER, optional: true }
+      - { role: FOULED, optional: true }
+
+positions:
+  - { code: GK, label: Goalkeeper, group: GOALKEEPER }
+  - { code: CB, label: Centre-back, group: DEFENDER }
+  - { code: LB, label: Left-back, group: DEFENDER }
+  - { code: RB, label: Right-back, group: DEFENDER }
+  - { code: DM, label: Defensive midfielder, group: MIDFIELDER }
+  - { code: CM, label: Central midfielder, group: MIDFIELDER }
+  - { code: AM, label: Attacking midfielder, group: MIDFIELDER }
+  - { code: LM, label: Left midfielder, group: MIDFIELDER }
+  - { code: RM, label: Right midfielder, group: MIDFIELDER }
+  - { code: LW, label: Left winger, group: FORWARD }
+  - { code: RW, label: Right winger, group: FORWARD }
+  - { code: ST, label: Striker, group: FORWARD }
+
+staff_roles:
+  - { code: HEAD_COACH, label: Head coach }
+  - { code: ASSISTANT_COACH, label: Assistant coach }
+  - { code: GOALKEEPER_COACH, label: Goalkeeper coach }
+  - { code: FITNESS_COACH, label: Fitness coach }
+  - { code: TEAM_MANAGER, label: Team manager }
+  - { code: TEAM_DOCTOR, label: Team doctor }
+  - { code: PHYSIOTHERAPIST, label: Physiotherapist }
+  - { code: KIT_MANAGER, label: Kit manager }
+  - { code: ANALYST, label: Performance analyst }
+
+official_roles:
+  - { code: REFEREE, label: Referee, default_minimum: 1 }
+  - { code: ASSISTANT_REFEREE, label: Assistant referee, default_minimum: 0, max: 2 }
+  - { code: FOURTH_OFFICIAL, label: Fourth official, default_minimum: 0 }
+  - { code: VIDEO_ASSISTANT_REFEREE, label: VAR, default_minimum: 0 }
+  - { code: ASSISTANT_VAR, label: Assistant VAR, default_minimum: 0 }
+  - { code: MATCH_COMMISSIONER, label: Match commissioner, default_minimum: 0 }
+
+lineup:
+  starters: 11
+  bench_max: 9
+  position_constraints:
+    - { group: GOALKEEPER, min: 1, max: 1 }
+  special_roles: [CAPTAIN]
+  minimum_players_to_continue: 7
+
+statistics:
+  - { code: GOALS, label: Goals, scopes: [PLAYER, TEAM], aggregation: SUM, higher_is_better: true, coverage: BASIC, derive: { count_events: [GOAL, PENALTY_GOAL], actor_roles: [SCORER, TAKER] } }
+  - { code: ASSISTS, label: Assists, scopes: [PLAYER, TEAM], aggregation: SUM, higher_is_better: true, coverage: STANDARD, derive: { count_events: [GOAL], actor_roles: [ASSIST] } }
+  - { code: PENALTIES_SCORED, label: Penalties scored, scopes: [PLAYER, TEAM], aggregation: SUM, higher_is_better: true, coverage: STANDARD, derive: { count_events: [PENALTY_GOAL], actor_roles: [TAKER] } }
+  - { code: PENALTIES_MISSED, label: Penalties missed, scopes: [PLAYER, TEAM], aggregation: SUM, higher_is_better: false, coverage: STANDARD, derive: { count_events: [PENALTY_MISSED], actor_roles: [TAKER] } }
+  - { code: OWN_GOALS, label: Own goals, scopes: [PLAYER, TEAM], aggregation: SUM, higher_is_better: false, coverage: STANDARD, derive: { count_events: [OWN_GOAL], actor_roles: [PLAYER] } }
+  - { code: YELLOW_CARDS, label: Yellow cards, scopes: [PLAYER, TEAM], aggregation: SUM, higher_is_better: false, coverage: STANDARD, derive: { count_events: [YELLOW_CARD, SECOND_YELLOW_CARD], actor_roles: [OFFENDER] } }
+  - { code: RED_CARDS, label: Red cards, scopes: [PLAYER, TEAM], aggregation: SUM, higher_is_better: false, coverage: STANDARD, derive: { count_events: [RED_CARD, SECOND_YELLOW_CARD], actor_roles: [OFFENDER] } }
+  - { code: APPEARANCES, label: Appearances, scopes: [PLAYER], aggregation: SUM, higher_is_better: true, coverage: STANDARD, derive: { builtin: APPEARANCES } }
+  - { code: STARTS, label: Starts, scopes: [PLAYER], aggregation: SUM, higher_is_better: true, coverage: STANDARD, derive: { builtin: STARTS } }
+  - { code: MINUTES_PLAYED, label: Minutes played, scopes: [PLAYER], aggregation: SUM, higher_is_better: true, coverage: STANDARD, derive: { builtin: MINUTES_PLAYED } }
+  - { code: CLEAN_SHEETS, label: Clean sheets, scopes: [PLAYER, TEAM], aggregation: SUM, higher_is_better: true, coverage: STANDARD, derive: { builtin: CLEAN_SHEETS } }   # team conceded 0; goalkeeper on the field for the whole match
+  - { code: SHOTS, label: Shots, scopes: [PLAYER, TEAM], aggregation: SUM, higher_is_better: true, coverage: DETAILED, derive: { count_events: [SHOT], actor_roles: [PLAYER] } }
+  - { code: SHOTS_ON_TARGET, label: Shots on target, scopes: [PLAYER, TEAM], aggregation: SUM, higher_is_better: true, coverage: DETAILED, derive: { count_events: [SHOT], actor_roles: [PLAYER], where: { on_target: true } } }
+  - { code: SAVES, label: Saves, scopes: [PLAYER, TEAM], aggregation: SUM, higher_is_better: true, coverage: DETAILED, derive: { count_events: [SAVE], actor_roles: [GOALKEEPER] } }
+  - { code: CORNERS, label: Corners, scopes: [TEAM], aggregation: SUM, higher_is_better: true, coverage: DETAILED, derive: { count_events: [CORNER] } }
+  - { code: FOULS_COMMITTED, label: Fouls committed, scopes: [PLAYER, TEAM], aggregation: SUM, higher_is_better: false, coverage: DETAILED, derive: { count_events: [FOUL], actor_roles: [OFFENDER] } }
+  - { code: POSSESSION_PERCENT, label: Possession %, scopes: [TEAM], aggregation: BUILTIN, higher_is_better: true, coverage: DETAILED, derive: { manual: true } }
+
+scorer_pad:
+  kind: BUTTONS
+  groups:
+    - { label: Score, buttons: [GOAL, PENALTY_GOAL, OWN_GOAL, PENALTY_MISSED] }
+    - { label: Cards, buttons: [YELLOW_CARD, SECOND_YELLOW_CARD, RED_CARD] }
+    - { label: Match, buttons: [SUBSTITUTION, VAR_REVIEW, VAR_DECISION, INJURY_STOPPAGE] }
+    - { label: Shoot-out, buttons: [SHOOTOUT_GOAL, SHOOTOUT_MISS], phases: [SHOOTOUT] }
+    - { label: Detail, buttons: [SHOT, SAVE, CORNER, OFFSIDE, FOUL], coverage: DETAILED }

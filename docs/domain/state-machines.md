@@ -1,0 +1,238 @@
+# Canonical state machines
+
+Decision: ADR-0007. These are the **only** lifecycle states in the system (AR-15). Each machine has one owning
+module. Transitions are commands (action codes); "reason" means the request must include a reason that is
+stored in status history and audit. Derived states are computed, never stored.
+
+---
+
+## Tenancy & Commercial
+
+### Tenant (stored)
+
+```text
+PROVISIONING ──activate──► ACTIVE ◄──restore── SUSPENDED
+                             │  └──suspend (reason)──►┘
+                             └──archive (reason)──► ARCHIVED ◄──archive (reason)── SUSPENDED
+ARCHIVED ──unarchive (platform, reason)──► SUSPENDED
+```
+
+### Subscription period (derived from stored dates)
+
+Stored: `plan_code, kind (PAID | TRIAL | COMPLIMENTARY), starts_on, ends_on, grace_days, expiring_window_days,
+cancelled_at, cancel_reason`. `kind` is for reporting only and never affects the derived status or access.
+
+```text
+cancelled_at <= now                       → CANCELLED
+now < starts_on                           → SCHEDULED
+now <= ends_on - expiring_window_days     → ACTIVE
+now <= ends_on                            → EXPIRING
+now <= ends_on + grace_days               → GRACE
+otherwise                                 → EXPIRED
+```
+
+Renewal = a new period row. History is never overwritten.
+
+### Access mode (derived)
+
+| Tenant status | Current subscription | Access mode |
+|---|---|---|
+| PROVISIONING | any | `FULL` for tenant owners/admins (setup); public site hidden |
+| ACTIVE | ACTIVE, EXPIRING, GRACE | `FULL` (banner when EXPIRING/GRACE) |
+| ACTIVE | EXPIRED, CANCELLED, none | `READ_ONLY` (live contests may finish; results may be submitted for 24 h) |
+| SUSPENDED, ARCHIVED | any | `BLOCKED` |
+
+---
+
+## Sports Configuration (file metadata in v1, ADR-0006)
+
+```text
+Definition / format / ruleset-template version: PUBLISHED → DEPRECATED → ARCHIVED
+```
+Drafts exist only on branches. Published content is immutable (hash-checked). `DEPRECATED` = not selectable for
+new editions; existing editions keep working. `ARCHIVED` = hidden from pickers, still readable.
+
+---
+
+## Registry
+
+| Entity | States |
+|---|---|
+| Person | `ACTIVE`, `INACTIVE`, `DECEASED`, `MERGED` (+ `merged_into_id`), `ARCHIVED` |
+| Athlete / Staff / Official profile | `ACTIVE`, `INACTIVE`, `SUSPENDED`, `RETIRED`, `ARCHIVED` |
+| Organisation | `ACTIVE`, `INACTIVE`, `SUSPENDED`, `DISSOLVED`, `ARCHIVED` |
+| Team | `ACTIVE`, `INACTIVE`, `SUSPENDED`, `DISBANDED`, `ARCHIVED` |
+| Venue | `ACTIVE`, `TEMPORARILY_UNAVAILABLE`, `CLOSED`, `ARCHIVED` |
+
+Merged persons accept no new relationships. Archive never deletes history.
+
+---
+
+## Team Operations
+
+### Player membership / staff assignment
+
+```text
+PENDING ──activate──► ACTIVE ◄──reinstate── SUSPENDED
+                        │  └──suspend (reason)──►┘
+                        └──end (end_reason)──► ENDED
+end_reason ∈ RELEASED | TRANSFERRED_OUT | CONTRACT_EXPIRED | RETIRED | LOAN_RETURNED | OTHER
+```
+Concurrent ACTIVE memberships in different teams are allowed or forbidden by tenant/sport policy (default:
+one active membership per sport variant, plus loans).
+
+### Transfer (Phase 7)
+
+```text
+DRAFT ──submit──► SUBMITTED ──approve──► APPROVED ──complete──► COMPLETED
+                      └──reject (reason)──► REJECTED
+DRAFT | SUBMITTED | APPROVED ──cancel (reason)──► CANCELLED
+```
+Completion ends the source membership and starts the destination membership in one transaction.
+
+---
+
+## Competitions
+
+### Competition
+
+`DRAFT → ACTIVE ⇄ INACTIVE`, `ACTIVE | INACTIVE → ARCHIVED`.
+
+### Edition
+
+```text
+DRAFT ──open_registration──► REGISTRATION_OPEN ──close_registration──► REGISTRATION_CLOSED
+  │                                                                          │
+  └───────────────start (direct entry)──────────────┐                        │
+                                                    ▼                        ▼
+                                              IN_PROGRESS ◄──────────── start
+                                                    │
+                       (auto: all contests CLOSED/CANCELLED, or complete)
+                                                    ▼
+                                               COMPLETED ──close──► CLOSED ──archive──► ARCHIVED
+                                                    ▲                   │
+                                                    └──reopen (reason)──┘
+DRAFT | REGISTRATION_OPEN | REGISTRATION_CLOSED | IN_PROGRESS ──cancel (reason)──► CANCELLED
+```
+The effective-rules snapshot is frozen when the edition first leaves `DRAFT` or when fixtures are first
+generated, whichever comes first (ADR-0006). `IN_PROGRESS` is entered explicitly or automatically when the first
+contest goes `LIVE`.
+
+### Registration (competition entry)
+
+```text
+DRAFT ──submit──► SUBMITTED ──approve──► APPROVED ──withdraw──► WITHDRAWN
+                      │                     └──disqualify (reason)──► DISQUALIFIED
+                      ├──reject (reason)──► REJECTED
+                      └──waitlist──► WAITLISTED ──approve──► APPROVED / ──withdraw──► WITHDRAWN
+(direct entry by a competition manager creates the registration as APPROVED)
+```
+
+### Roster (belongs to an approved registration, ADR-0008)
+
+```text
+DRAFT ──submit──► SUBMITTED ──approve──► APPROVED ──lock (manual / deadline / first contest)──► LOCKED
+                      └──return (notes)──► DRAFT
+LOCKED ──reopen (reason)──► REOPENED ──submit──► SUBMITTED
+```
+Roster entry: `ACTIVE`, `REMOVED` (date + reason), `TRANSFERRED_OUT`. If rules say approval isn't required,
+`submit` goes straight to `APPROVED`.
+
+### Eligibility evaluation
+
+Result: `ELIGIBLE`, `INELIGIBLE`, `CONDITIONAL`. Override → `OVERRIDDEN` (reason, by, optional expiry).
+Evaluations are recomputed when inputs change; the latest is current, older ones are history.
+
+### Stage structure
+
+`DRAFT → PUBLISHED`; `PUBLISHED → DRAFT` (reopen, reason) only while no contest in that stage has started.
+
+---
+
+## Match Operations
+
+### Fixture publication (per contest)
+
+`DRAFT → PUBLISHED`. After publication, time/venue changes only via `fixture.reschedule` (reason), which adds a
+schedule version and notifies followers. "Rescheduled" = schedule version > 1 (derived).
+
+### Contest status (stored) — sport phase is separate
+
+```text
+NOT_STARTED ──start (readiness passed or overridden)──► LIVE
+NOT_STARTED ──delay (reason)──► DELAYED ──start──► LIVE
+NOT_STARTED | DELAYED ──postpone (reason)──► POSTPONED ──reschedule──► NOT_STARTED
+NOT_STARTED | DELAYED | POSTPONED ──cancel (reason)──► CANCELLED
+
+LIVE ──interrupt (reason)──► INTERRUPTED ──resume──► LIVE
+INTERRUPTED ──suspend (reason)──► SUSPENDED ──resume──► LIVE
+LIVE | INTERRUPTED | SUSPENDED ──abandon (reason)──► ABANDONED
+
+LIVE ──end──► ENDED ──(result approved)──► CLOSED
+ENDED ──reopen (reason, e.g. ended by mistake)──► LIVE
+CLOSED ──(result reopened for correction)──► ENDED
+```
+
+Derived display states (not stored): **Starting soon** = `NOT_STARTED` and scheduled start within the tenant's
+window (default 30 min); **Late** = `NOT_STARTED` past start + tolerance. Walkover/forfeit are result methods:
+the contest goes to `ENDED → CLOSED` with no timeline. An abandoned contest's outcome (awarded, void + replay) is
+set by the result workflow; a replay is a new contest linked by `replay_of_contest_id`.
+
+### Sport phase (derived from PERIOD events, stored for convenience)
+
+`current_period_code` + `period_occurrence` + `phase_kind` ∈ `PLAY | BREAK | SHOOTOUT`. Phase codes come from
+the sport definition (e.g. football `FIRST_HALF`, `HALF_TIME`, `SECOND_HALF`; basketball `Q1`…`Q4`, `OVERTIME`;
+cricket `FIRST_INNINGS`, `INNINGS_BREAK`, `SECOND_INNINGS`, `SUPER_OVER`). Between regulation and extra periods
+the phase is a `BREAK` such as `AWAITING_EXTRA_TIME`. Never combine status and phase (`LIVE_SECOND_HALF` is
+forbidden).
+
+### Lineup
+
+```text
+DRAFT ──submit──► SUBMITTED ──approve──► APPROVED ──lock (at start)──► LOCKED
+                      └──return──► DRAFT
+LOCKED: late changes before start via lineup.late_change (reason) — history kept
+```
+If rules say lineup approval isn't required, `submit` goes straight to `APPROVED`.
+
+### Timeline event (derived effective status — ADR-0002)
+
+`ACTIVE` · `SUPERSEDED` (a later event has `supersedes_event_id` = this) · `REVERSED` (a later event has
+`reverses_event_id` = this). Offline clients additionally show `PENDING`, `SYNCING`, `REJECTED` locally.
+
+### Result version
+
+```text
+DRAFT ──submit──► SUBMITTED ──approve──► APPROVED ──(newer version approved)──► SUPERSEDED
+                      └──reject (reason)──► REJECTED   (a new DRAFT is created to fix and resubmit)
+APPROVED ──reopen (reason)──► new DRAFT version (the APPROVED one stays official until the new one is approved)
+```
+Contest result holds `official_version_id`, `pending_version_id`, `dispute_open` (disputes: later slice).
+Result methods: `REGULATION`, `EXTRA_TIME`, `OVERTIME`, `SUDDEN_DEATH`, `SHOOTOUT`, `SUPER_OVER`, `WALKOVER`,
+`FORFEIT`, `AWARDED`, `NO_RESULT`, `ABANDONED_VOID`.
+
+---
+
+## Data Exchange, Insights, Engagement, Branding
+
+| Machine | States |
+|---|---|
+| Import job | `CREATED → UPLOADED → MAPPED → VALIDATED → DRY_RUN_COMPLETE → EXECUTING → COMPLETED | COMPLETED_WITH_ERRORS | FAILED`; `CANCELLED` before executing |
+| Report run | `QUEUED → RUNNING → COMPLETED | FAILED`; `COMPLETED → EXPIRED` |
+| Notification delivery | `PENDING → SENT | FAILED | SUPPRESSED` |
+| Brand version | `DRAFT → PUBLISHED → SUPERSEDED` |
+| Sponsor campaign | `DRAFT → ACTIVE ⇄ PAUSED → ENDED` (active window also bounded by dates) |
+
+---
+
+## Match-day flow (how the machines meet)
+
+```text
+Fixture PUBLISHED ─► officials assigned ─► lineups APPROVED ─► readiness passes
+   ─► contest LIVE (lineups LOCKED) ─► PERIOD events … scoring events … ─► contest ENDED
+   ─► result DRAFT (proposed from score fold) ─► SUBMITTED ─► APPROVED ─► contest CLOSED
+   ─► ResultApproved ─► standings recalculated ─► public pages updated ─► notifications
+```
+
+Readiness checks are configured by rules (defaults per sport): lineups approved, minimum officials assigned,
+venue set, both participants confirmed. A competition manager can override a failed check with a reason.

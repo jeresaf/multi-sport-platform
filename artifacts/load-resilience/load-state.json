@@ -1,9 +1,0 @@
-{
-  "runId": "load-20260809070353-e9e6f4bc535246018235f89a593fcb95",
-  "tenantSlug": "premier-league",
-  "publicContestId": "f8cca532-58e1-4c88-96b0-419913d1f23f",
-  "contestId": "08e5b81a-9dc2-4c6f-a345-badf5d63e5fa",
-  "expectedScoreRows": 41,
-  "notificationTitlePrefix": "load-20260809070353-e9e6f4bc535246018235f89a593fcb95",
-  "expectedNotifications": 250
-}

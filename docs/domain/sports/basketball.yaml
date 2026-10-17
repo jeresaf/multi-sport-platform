@@ -1,0 +1,138 @@
+# Reference sport definition — Basketball (FIBA-style four quarters)
+# Competitions played in halves need a separate variant (e.g. BASKETBALL_HALVES) — add when a customer needs it.
+schema_version: 1
+variant: BASKETBALL_STANDARD
+sport: BASKETBALL
+version: 1
+name: Basketball
+scoring_family: ADDITIVE
+shape: HEAD_TO_HEAD
+participant_types: [TEAM]
+sides: [HOME, AWAY]
+coverage_levels: [RESULT_ONLY, BASIC, STANDARD, DETAILED]
+terminology:
+  contest: Game
+  contest_plural: Games
+  period: Quarter
+  participant: Team
+  athlete: Player
+  score_unit: Point
+
+supports:
+  tie_resolutions: [REPEAT_EXTRA_PERIOD]
+
+periods:
+  - { code: Q1, label: 1st quarter, short: Q1, kind: PLAY, clock: COUNT_DOWN, default_seconds: 600 }
+  - { code: QUARTER_BREAK_1, label: Break, short: BRK, kind: BREAK, clock: NONE, default_seconds: 120 }
+  - { code: Q2, label: 2nd quarter, short: Q2, kind: PLAY, clock: COUNT_DOWN, default_seconds: 600 }
+  - { code: HALF_TIME, label: Half-time, short: HT, kind: BREAK, clock: NONE, default_seconds: 900 }
+  - { code: Q3, label: 3rd quarter, short: Q3, kind: PLAY, clock: COUNT_DOWN, default_seconds: 600 }
+  - { code: QUARTER_BREAK_3, label: Break, short: BRK, kind: BREAK, clock: NONE, default_seconds: 120 }
+  - { code: Q4, label: 4th quarter, short: Q4, kind: PLAY, clock: COUNT_DOWN, default_seconds: 600 }
+  - { code: AWAITING_OVERTIME, label: Before overtime, short: BOT, kind: BREAK, clock: NONE, default_seconds: 120, repeatable: true, overtime: true }
+  - { code: OVERTIME, label: Overtime, short: OT, kind: PLAY, clock: COUNT_DOWN, default_seconds: 300, repeatable: true, overtime: true }
+
+actor_roles:
+  SHOOTER:    { who: ON_FIELD, side: OWN }
+  ASSIST:     { who: ON_FIELD, side: OWN }
+  PLAYER:     { who: ON_FIELD, side: OWN }
+  OFFENDER:   { who: SQUAD_OR_STAFF, side: OWN }      # technical fouls can be charged to bench/coach
+  PLAYER_OFF: { who: ON_FIELD, side: OWN }
+  PLAYER_ON:  { who: BENCH, side: OWN }
+  BLOCKER:    { who: ON_FIELD, side: OWN }
+
+event_types:
+  # --- scoring ---------------------------------------------------------------------------------
+  - { code: FREE_THROW_MADE, category: SCORING, importance: STANDARD, coverage: BASIC, label: Free throw made, points: 1, side: OWN, component: main, phases: [PLAY], actors: [ { role: SHOOTER, required_from: STANDARD } ] }
+  - { code: FREE_THROW_MISSED, category: SCORING, importance: DETAILED, coverage: STANDARD, label: Free throw missed, points: 0, side: OWN, phases: [PLAY], actors: [ { role: SHOOTER, required_from: STANDARD } ] }
+  - { code: TWO_POINT_MADE, category: SCORING, importance: STANDARD, coverage: BASIC, label: 2-point field goal, points: 2, side: OWN, component: main, phases: [PLAY], actors: [ { role: SHOOTER, required_from: STANDARD }, { role: ASSIST, optional: true, distinct_from: SHOOTER } ] }
+  - { code: TWO_POINT_MISSED, category: SCORING, importance: DETAILED, coverage: STANDARD, label: 2-point miss, points: 0, side: OWN, phases: [PLAY], actors: [ { role: SHOOTER, required_from: STANDARD } ] }
+  - { code: THREE_POINT_MADE, category: SCORING, importance: KEY, coverage: BASIC, label: 3-point field goal, points: 3, side: OWN, component: main, phases: [PLAY], actors: [ { role: SHOOTER, required_from: STANDARD }, { role: ASSIST, optional: true, distinct_from: SHOOTER } ] }
+  - { code: THREE_POINT_MISSED, category: SCORING, importance: DETAILED, coverage: STANDARD, label: 3-point miss, points: 0, side: OWN, phases: [PLAY], actors: [ { role: SHOOTER, required_from: STANDARD } ] }
+
+  # --- fouls & discipline -----------------------------------------------------------------------
+  - code: FOUL_PERSONAL
+    category: DISCIPLINE
+    importance: STANDARD
+    coverage: STANDARD
+    label: Personal foul
+    phases: [PLAY]
+    actors: [ { role: OFFENDER, required_from: STANDARD } ]
+    metadata:
+      shooting: { type: bool, optional: true }
+      free_throws_awarded: { type: int, min: 0, max: 3, optional: true }
+    effects: [FOUL_COUNT]          # player disqualified at rules discipline.player_foul_limit (default 5)
+
+  - { code: FOUL_TECHNICAL, category: DISCIPLINE, importance: STANDARD, coverage: STANDARD, label: Technical foul, phases: [PLAY, BREAK], actors: [ { role: OFFENDER, required_from: STANDARD } ], effects: [FOUL_COUNT] }
+  - { code: FOUL_UNSPORTSMANLIKE, category: DISCIPLINE, importance: KEY, coverage: STANDARD, label: Unsportsmanlike foul, phases: [PLAY], actors: [ { role: OFFENDER, required_from: STANDARD } ], effects: [FOUL_COUNT] }
+  - { code: FOUL_DISQUALIFYING, category: DISCIPLINE, importance: KEY, coverage: STANDARD, label: Disqualifying foul, phases: [PLAY, BREAK], actors: [ { role: OFFENDER, required_from: STANDARD } ], effects: [DISQUALIFY] }
+
+  # --- personnel & stoppages ---------------------------------------------------------------------
+  - { code: SUBSTITUTION, category: PERSONNEL, importance: TECHNICAL, coverage: STANDARD, label: Substitution, phases: [PLAY, BREAK], actors: [ { role: PLAYER_OFF, required_from: STANDARD }, { role: PLAYER_ON, required_from: STANDARD } ], effects: [SUBSTITUTE] }
+  - { code: TIMEOUT, category: STOPPAGE, importance: STANDARD, coverage: STANDARD, label: Timeout, phases: [PLAY], limits: [ { rule: timeouts.per_period_group } ] }
+
+  # --- detailed coverage ------------------------------------------------------------------------
+  - { code: REBOUND, category: PLAY, importance: DETAILED, coverage: DETAILED, label: Rebound, phases: [PLAY], actors: [ { role: PLAYER, optional: true } ], metadata: { kind: { type: enum, values: [OFFENSIVE, DEFENSIVE] } } }
+  - { code: STEAL, category: PLAY, importance: DETAILED, coverage: DETAILED, label: Steal, phases: [PLAY], actors: [ { role: PLAYER, optional: true } ] }
+  - { code: BLOCK, category: PLAY, importance: DETAILED, coverage: DETAILED, label: Block, phases: [PLAY], actors: [ { role: BLOCKER, optional: true } ] }
+  - { code: TURNOVER, category: PLAY, importance: DETAILED, coverage: DETAILED, label: Turnover, phases: [PLAY], actors: [ { role: PLAYER, optional: true } ] }
+  - { code: JUMP_BALL, category: PLAY, importance: TECHNICAL, coverage: DETAILED, label: Jump ball, phases: [PLAY] }
+
+positions:
+  - { code: PG, label: Point guard, group: GUARD }
+  - { code: SG, label: Shooting guard, group: GUARD }
+  - { code: SF, label: Small forward, group: FORWARD }
+  - { code: PF, label: Power forward, group: FORWARD }
+  - { code: C, label: Centre, group: CENTRE }
+
+staff_roles:
+  - { code: HEAD_COACH, label: Head coach }
+  - { code: ASSISTANT_COACH, label: Assistant coach }
+  - { code: TEAM_MANAGER, label: Team manager }
+  - { code: TEAM_DOCTOR, label: Team doctor }
+  - { code: PHYSIOTHERAPIST, label: Physiotherapist }
+  - { code: STATISTICIAN, label: Statistician }
+
+official_roles:
+  - { code: CREW_CHIEF, label: Crew chief, default_minimum: 1 }
+  - { code: UMPIRE, label: Umpire, default_minimum: 1, max: 2 }
+  - { code: SCORER, label: Scorer, default_minimum: 0 }
+  - { code: ASSISTANT_SCORER, label: Assistant scorer, default_minimum: 0 }
+  - { code: TIMEKEEPER, label: Timekeeper, default_minimum: 0 }
+  - { code: SHOT_CLOCK_OPERATOR, label: Shot clock operator, default_minimum: 0 }
+  - { code: COMMISSIONER, label: Commissioner, default_minimum: 0 }
+
+lineup:
+  starters: 5
+  bench_max: 7
+  position_constraints: []
+  special_roles: [CAPTAIN]
+
+statistics:
+  - { code: POINTS, label: Points, scopes: [PLAYER, TEAM], aggregation: SUM, higher_is_better: true, coverage: STANDARD, derive: { sum_points: [FREE_THROW_MADE, TWO_POINT_MADE, THREE_POINT_MADE], actor_roles: [SHOOTER] } }
+  - { code: FIELD_GOALS_MADE, label: FGM, scopes: [PLAYER, TEAM], aggregation: SUM, higher_is_better: true, coverage: STANDARD, derive: { count_events: [TWO_POINT_MADE, THREE_POINT_MADE], actor_roles: [SHOOTER] } }
+  - { code: FIELD_GOALS_ATTEMPTED, label: FGA, scopes: [PLAYER, TEAM], aggregation: SUM, higher_is_better: true, coverage: STANDARD, derive: { count_events: [TWO_POINT_MADE, THREE_POINT_MADE, TWO_POINT_MISSED, THREE_POINT_MISSED], actor_roles: [SHOOTER] } }
+  - { code: FIELD_GOAL_PERCENT, label: FG%, scopes: [PLAYER, TEAM], aggregation: RATIO, higher_is_better: true, coverage: STANDARD, derive: { builtin: RATIO, numerator: FIELD_GOALS_MADE, denominator: FIELD_GOALS_ATTEMPTED } }
+  - { code: THREE_POINTS_MADE, label: 3PM, scopes: [PLAYER, TEAM], aggregation: SUM, higher_is_better: true, coverage: STANDARD, derive: { count_events: [THREE_POINT_MADE], actor_roles: [SHOOTER] } }
+  - { code: THREE_POINTS_ATTEMPTED, label: 3PA, scopes: [PLAYER, TEAM], aggregation: SUM, higher_is_better: true, coverage: STANDARD, derive: { count_events: [THREE_POINT_MADE, THREE_POINT_MISSED], actor_roles: [SHOOTER] } }
+  - { code: FREE_THROWS_MADE, label: FTM, scopes: [PLAYER, TEAM], aggregation: SUM, higher_is_better: true, coverage: STANDARD, derive: { count_events: [FREE_THROW_MADE], actor_roles: [SHOOTER] } }
+  - { code: FREE_THROWS_ATTEMPTED, label: FTA, scopes: [PLAYER, TEAM], aggregation: SUM, higher_is_better: true, coverage: STANDARD, derive: { count_events: [FREE_THROW_MADE, FREE_THROW_MISSED], actor_roles: [SHOOTER] } }
+  - { code: ASSISTS, label: Assists, scopes: [PLAYER, TEAM], aggregation: SUM, higher_is_better: true, coverage: STANDARD, derive: { count_events: [TWO_POINT_MADE, THREE_POINT_MADE], actor_roles: [ASSIST] } }
+  - { code: PERSONAL_FOULS, label: Fouls, scopes: [PLAYER, TEAM], aggregation: SUM, higher_is_better: false, coverage: STANDARD, derive: { count_events: [FOUL_PERSONAL, FOUL_TECHNICAL, FOUL_UNSPORTSMANLIKE, FOUL_DISQUALIFYING], actor_roles: [OFFENDER] } }
+  - { code: REBOUNDS_OFFENSIVE, label: OREB, scopes: [PLAYER, TEAM], aggregation: SUM, higher_is_better: true, coverage: DETAILED, derive: { count_events: [REBOUND], actor_roles: [PLAYER], where: { kind: OFFENSIVE } } }
+  - { code: REBOUNDS_DEFENSIVE, label: DREB, scopes: [PLAYER, TEAM], aggregation: SUM, higher_is_better: true, coverage: DETAILED, derive: { count_events: [REBOUND], actor_roles: [PLAYER], where: { kind: DEFENSIVE } } }
+  - { code: STEALS, label: Steals, scopes: [PLAYER, TEAM], aggregation: SUM, higher_is_better: true, coverage: DETAILED, derive: { count_events: [STEAL], actor_roles: [PLAYER] } }
+  - { code: BLOCKS, label: Blocks, scopes: [PLAYER, TEAM], aggregation: SUM, higher_is_better: true, coverage: DETAILED, derive: { count_events: [BLOCK], actor_roles: [BLOCKER] } }
+  - { code: TURNOVERS, label: Turnovers, scopes: [PLAYER, TEAM], aggregation: SUM, higher_is_better: false, coverage: DETAILED, derive: { count_events: [TURNOVER], actor_roles: [PLAYER] } }
+  - { code: MINUTES_PLAYED, label: Minutes, scopes: [PLAYER], aggregation: SUM, higher_is_better: true, coverage: STANDARD, derive: { builtin: MINUTES_PLAYED } }
+  - { code: APPEARANCES, label: Games played, scopes: [PLAYER], aggregation: SUM, higher_is_better: true, coverage: STANDARD, derive: { builtin: APPEARANCES } }
+  - { code: STARTS, label: Starts, scopes: [PLAYER], aggregation: SUM, higher_is_better: true, coverage: STANDARD, derive: { builtin: STARTS } }
+
+scorer_pad:
+  kind: BUTTONS
+  groups:
+    - { label: Score, buttons: [FREE_THROW_MADE, TWO_POINT_MADE, THREE_POINT_MADE] }
+    - { label: Misses, buttons: [FREE_THROW_MISSED, TWO_POINT_MISSED, THREE_POINT_MISSED], coverage: STANDARD }
+    - { label: Fouls, buttons: [FOUL_PERSONAL, FOUL_TECHNICAL, FOUL_UNSPORTSMANLIKE, FOUL_DISQUALIFYING] }
+    - { label: Game, buttons: [SUBSTITUTION, TIMEOUT] }
+    - { label: Detail, buttons: [REBOUND, STEAL, BLOCK, TURNOVER, JUMP_BALL], coverage: DETAILED }

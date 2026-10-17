@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(dotnet build *)",
+      "Bash(dotnet test *)",
+      "Bash(dotnet format *)",
+      "Bash(dotnet restore *)",
+      "Bash(dotnet run *)",
+      "Bash(dotnet ef *)",
+      "Bash(dotnet new *)",
+      "Bash(dotnet add *)",
+      "Bash(dotnet sln *)",
+      "Bash(dotnet tool *)",
+      "Bash(dotnet list *)",
+      "Bash(pnpm install *)",
+      "Bash(pnpm lint *)",
+      "Bash(pnpm typecheck *)",
+      "Bash(pnpm test *)",
+      "Bash(pnpm build *)",
+      "Bash(pnpm e2e *)",
+      "Bash(pnpm --filter *)",
+      "Bash(pnpm exec *)",
+      "Bash(docker compose *)",
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git switch *)",
+      "Bash(git branch *)",
+      "Bash(git fetch *)",
+      "Bash(git pull *)",
+      "Bash(git stash *)",
+      "Bash(git push -u origin *)",
+      "Bash(gh pr create *)",
+      "Bash(gh pr view *)",
+      "Bash(gh pr diff *)",
+      "Bash(gh pr checks *)",
+      "Bash(gh pr list *)",
+      "Bash(gh pr comment *)",
+      "Bash(gh run view *)",
+      "Bash(gh run list *)"
+    ],
+    "ask": [
+      "Bash(git checkout *)",
+      "Bash(git rebase *)",
+      "Bash(git reset *)",
+      "Bash(gh api *)",
+      "Bash(docker system *)",
+      "Bash(docker volume *)"
+    ],
+    "deny": [
+      "Bash(git push --force *)",
+      "Bash(git push -f *)",
+      "Bash(git push origin main)",
+      "Bash(git push origin main *)",
+      "Bash(git push -u origin main)",
+      "Bash(git push -u origin main *)",
+      "Bash(git push origin HEAD:main)",
+      "Bash(git push origin HEAD:main *)",
+      "Bash(git reset --hard *)",
+      "Bash(git clean -fdx *)",
+      "Bash(gh pr merge *)",
+      "Bash(gh repo delete *)",
+      "Read(.env)",
+      "Read(.env.*)",
+      "Read(!.env.example)",
+      "Edit(/docs/reference/**)",
+      "Edit(/docs/generated/**)",
+      "Edit(/contracts/**)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PROJECT_DIR}/.claude/hooks/guard-paths.mjs"],
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}

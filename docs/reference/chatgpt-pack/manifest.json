@@ -1,0 +1,11 @@
+{
+  "name": "Sports Platform Greenfield Implementation Pack",
+  "source_specification_count": 43,
+  "control_documents": 10,
+  "implementation_documents": 5,
+  "templates": 2,
+  "starting_mode": "empty_repository",
+  "architecture": "ASP.NET Core modular monolith",
+  "database": "PostgreSQL single database with logical schemas",
+  "first_vertical_slice": "Football league"
+}
