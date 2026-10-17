@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\SportsPlatform.BuildingBlocks\SportsPlatform.BuildingBlocks.csproj" />
+  </ItemGroup>
+
+</Project>
