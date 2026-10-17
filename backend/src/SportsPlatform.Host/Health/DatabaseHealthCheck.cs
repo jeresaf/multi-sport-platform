@@ -23,6 +23,12 @@ public sealed partial class DatabaseHealthCheck(IConfiguration configuration, IL
             await command.ExecuteScalarAsync(cancellationToken);
             return HealthCheckResult.Healthy();
         }
+        catch (OperationCanceledException exception)
+        {
+            // The check's timeout, or the probe went away: not evidence that the database is down.
+            LogCheckCancelled(logger, exception);
+            return HealthCheckResult.Unhealthy();
+        }
 #pragma warning disable CA1031 // Any failure means "not ready"; the details go to the log, never the response.
         catch (Exception exception)
 #pragma warning restore CA1031
@@ -31,6 +37,9 @@ public sealed partial class DatabaseHealthCheck(IConfiguration configuration, IL
             return HealthCheckResult.Unhealthy();
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Readiness check timed out or was cancelled")]
+    private static partial void LogCheckCancelled(ILogger logger, Exception exception);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Readiness check failed: the database is unavailable")]
     private static partial void LogDatabaseUnavailable(ILogger logger, Exception exception);

@@ -3,8 +3,10 @@ using System.Net;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Npgsql;
 using Serilog.Events;
 using SportsPlatform.BuildingBlocks.Persistence;
+using SportsPlatform.Host.Health;
 using SportsPlatform.IntegrationTests.Infrastructure;
 using SportsPlatform.IntegrationTests.Persistence;
 
@@ -44,9 +46,12 @@ public sealed class HealthReadyTests(PostgresFixture fixture) : DatabaseTest(fix
             body.ShouldNotContain(secret, Case.Insensitive);
         }
 
-        var warning = await unreachable.Telemetry.WaitForEventAsync(e => e.Exception is not null);
+        // The reason is logged (the exception names the server), but the connection string's password is not.
+        var warning = await unreachable.Telemetry.WaitForEventAsync(e => e.Exception is NpgsqlException
+            && e.Properties["SourceContext"].ToString() == $"\"{typeof(DatabaseHealthCheck).FullName}\"");
         warning.Level.ShouldBe(LogEventLevel.Warning);
-        warning.RenderMessage(null).ShouldNotContain(password);
+        warning.Exception!.ToString().ShouldContain("127.0.0.1:1");
+        warning.Exception.ToString().ShouldNotContain(password);
     }
 
     [Fact]

@@ -21,10 +21,10 @@ public static class HealthEndpoints
 
     public static IEndpointRouteBuilder MapHealthEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        endpoints.MapGet("/health/live", () => TypedResults.Ok(new HealthResponse("ok")))
+        endpoints.MapGet(LivePath, () => TypedResults.Ok(new HealthResponse("ok")))
             .WithName("HealthLive");
 
-        endpoints.MapHealthChecks("/health/ready", new HealthCheckOptions
+        endpoints.MapHealthChecks(ReadyPath, new HealthCheckOptions
         {
             Predicate = registration => registration.Tags.Contains(ReadyTag),
             ResultStatusCodes =
@@ -40,10 +40,16 @@ public static class HealthEndpoints
         return endpoints;
     }
 
+    public const string LivePath = "/health/live";
+
+    public const string ReadyPath = "/health/ready";
+
+    /// <summary>The two probe paths exactly; anything else under <c>/health</c> is an ordinary (traced) request.</summary>
     public static bool IsHealthRequest(HttpContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
-        return context.Request.Path.StartsWithSegments("/health", StringComparison.OrdinalIgnoreCase);
+        var path = context.Request.Path;
+        return path.Equals(LivePath, StringComparison.OrdinalIgnoreCase) || path.Equals(ReadyPath, StringComparison.OrdinalIgnoreCase);
     }
 
     private sealed record HealthResponse(string Status);

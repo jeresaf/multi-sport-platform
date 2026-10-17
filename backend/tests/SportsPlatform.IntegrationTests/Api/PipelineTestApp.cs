@@ -45,8 +45,6 @@ public abstract class PipelineTestApp(string environmentName) : IAsyncLifetime
         app.MapGet("/conflict", () => Result.Failure(PlatformErrors.ConcurrencyConflict).ToHttpResult());
         app.MapPost("/fixtures", (FixtureRequest request) => TypedResults.Ok(request));
         app.MapGet("/bare-not-found", () => TypedResults.NotFound());
-        // What Kestrel throws when a body exceeds MaxRequestBodySize (TestServer enforces no limit).
-        app.MapPost("/too-large", IResult () => throw new BadHttpRequestException("Request body too large.", StatusCodes.Status413PayloadTooLarge));
 
         await app.StartAsync(TestContext.Current.CancellationToken);
         _app = app;

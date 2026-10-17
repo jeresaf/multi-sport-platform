@@ -11,11 +11,15 @@ namespace SportsPlatform.Host.Observability;
 /// (S02, S03) appears from that point on. <c>TenantId</c> is left out when the request has no tenant.
 /// </summary>
 /// <remarks>
-/// <see cref="ITenantContext"/> and <see cref="ICurrentActor"/> implementations must not log while they are being
-/// resolved: the enricher resolves them for every event.
+/// An <see cref="ITenantContext"/> or <see cref="ICurrentActor"/> that logs while it is being built would make the
+/// enricher resolve it again, endlessly; events logged during that resolution get only the correlation ID.
 /// </remarks>
 public sealed class RequestContextEnricher(IHttpContextAccessor httpContextAccessor) : ILogEventEnricher
 {
+    // Service resolution is synchronous, so a per-thread flag is enough to catch re-entry.
+    [ThreadStatic]
+    private static bool _resolving;
+
     public const string CorrelationId = "CorrelationId";
     public const string TenantId = "TenantId";
     public const string ActorKind = "ActorKind";
@@ -33,10 +37,15 @@ public sealed class RequestContextEnricher(IHttpContextAccessor httpContextAcces
 
         logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty(CorrelationId, context.TraceIdentifier));
 
-        IServiceProvider services;
+        // Null once the request's scope is gone (events logged as the request finishes).
+        if (_resolving || context.RequestServices is not IServiceProvider services)
+        {
+            return;
+        }
+
+        _resolving = true;
         try
         {
-            services = context.RequestServices;
             if (services.GetService<ITenantContext>() is { TenantId: { } tenantId })
             {
                 logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty(TenantId, tenantId));
@@ -50,7 +59,11 @@ public sealed class RequestContextEnricher(IHttpContextAccessor httpContextAcces
         }
         catch (ObjectDisposedException)
         {
-            // Logged after the request's service scope ended: only the correlation ID is still known.
+            // Logged while the request's scope is being disposed: only the correlation ID is still known.
+        }
+        finally
+        {
+            _resolving = false;
         }
     }
 }

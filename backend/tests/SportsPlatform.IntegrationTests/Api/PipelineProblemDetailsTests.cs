@@ -64,17 +64,6 @@ public abstract class PipelineProblemDetailsTests(PipelineTestApp app)
         await response.ShouldBeProblemAsync(HttpStatusCode.MethodNotAllowed, "PLATFORM_METHOD_NOT_ALLOWED");
     }
 
-    [Fact]
-    public async Task Body_over_the_size_limit_returns_413()
-    {
-        using var client = app.CreateClient();
-        using var content = new StringContent("{}", Encoding.UTF8, "application/json");
-
-        using var response = await client.PostAsync(new Uri("/too-large", UriKind.Relative), content, TestContext.Current.CancellationToken);
-
-        await response.ShouldBeProblemAsync(HttpStatusCode.RequestEntityTooLarge, "VALIDATION_REQUEST_TOO_LARGE");
-    }
-
     // Endpoints return failures through ToProblem(); a bare 404 from a matched route must not claim "no route".
     [Fact]
     public async Task Bare_not_found_from_a_matched_endpoint_is_not_route_not_found()

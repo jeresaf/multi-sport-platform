@@ -59,6 +59,7 @@ public sealed class RequestLoggingTests(HostOnlyApp app) : IClassFixture<HostOnl
     [Theory]
     [InlineData("/health/live", false)]
     [InlineData("/health/ready", false)]
+    [InlineData("/health/other", true)]
     [InlineData("/api/public/v1/fixtures", true)]
     public void Only_non_health_requests_are_traced(string path, bool traced)
     {
