@@ -58,15 +58,18 @@ prototype-v0:<path>`). What was kept: `docs/reference/first-attempt/README.md`. 
 
 ## Commands
 
-> S00 replaces this block with the real, tested commands. Keep it accurate.
+> Run from the repository root. Keep this block accurate. Lines marked "(S00-T2)" / "(S00-T3)" don't work until
+> that task is merged.
 
 ```bash
-docker compose up -d                      # local PostgreSQL + Mailpit
-dotnet build backend -warnaserror
-dotnet test backend
-dotnet format backend --verify-no-changes
-cd web && pnpm install && pnpm lint && pnpm typecheck && pnpm test && pnpm build
-cd web && pnpm e2e
+dotnet build backend -warnaserror               # backend/SportsPlatform.slnx
+dotnet test --solution backend                  # xUnit v3 on Microsoft.Testing.Platform (set in global.json)
+dotnet format backend --verify-no-changes       # drop --verify-no-changes to fix formatting
+dotnet run --project backend/src/SportsPlatform.Host     # API on http://localhost:5080 (GET /health/live)
+dotnet run --project backend/tools/SportsPlatform.Cli   # lists CLI commands
+docker compose up -d                            # (S00-T3) local PostgreSQL + Mailpit
+cd web && pnpm install && pnpm lint && pnpm typecheck && pnpm test && pnpm build   # (S00-T2)
+cd web && pnpm e2e                              # (S00-T2)
 ```
 
 ## Non-negotiables (full list and rationale in docs/architecture/rules.md)
