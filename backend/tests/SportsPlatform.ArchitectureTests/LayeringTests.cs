@@ -18,11 +18,12 @@ public sealed class LayeringTests
         result.FailingTypeNames.ShouldBeNull();
     }
 
+    // Modules: IModule and endpoint groups. Api: Result → Problem Details for module endpoints (S01-T3a).
     [Fact]
-    public void BuildingBlocks_uses_ASP_NET_Core_only_in_its_Modules_namespace()
+    public void BuildingBlocks_uses_ASP_NET_Core_only_in_its_Modules_and_Api_namespaces()
     {
         var result = Types.InAssembly(SolutionAssemblies.BuildingBlocks)
-            .That().DoNotResideInNamespaceMatching(@"^SportsPlatform\.BuildingBlocks\.Modules(\..+)?$")
+            .That().DoNotResideInNamespaceMatching(@"^SportsPlatform\.BuildingBlocks\.(Modules|Api)(\..+)?$")
             .ShouldNot().HaveDependencyOn("Microsoft.AspNetCore")
             .GetResult();
 

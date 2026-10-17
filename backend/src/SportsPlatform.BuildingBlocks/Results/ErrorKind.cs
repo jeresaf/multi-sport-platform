@@ -7,8 +7,11 @@ public enum ErrorKind
     Unauthorized,
     Forbidden,
     NotFound,
+    MethodNotAllowed,
     Conflict,
+    UnsupportedMediaType,
     Unprocessable,
     TooManyRequests,
+    Unexpected,
     Unavailable,
 }

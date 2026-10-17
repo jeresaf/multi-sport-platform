@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- ASP.NET Core is used only by SportsPlatform.BuildingBlocks.Modules (IModule); architecture tests enforce it. -->
+  <!-- ASP.NET Core is used only by the .Modules (IModule) and .Api (Result → HTTP) namespaces; architecture tests enforce it. -->
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
