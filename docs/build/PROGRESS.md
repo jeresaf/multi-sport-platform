@@ -86,6 +86,8 @@ Consolidated by the S00 slice review (2026-10-17). Each item names where it gets
 - `ICurrentActor` is still the singleton `SystemActor`, so every HTTP request (anonymous ones included) is logged as
   `ActorKind=System`. Add a per-request actor with an anonymous kind for unauthenticated requests and update
   `RequestLoggingTests.Request_is_logged_with_correlation_ID_and_actor` (S03, or T4 if it needs one; #17 R1).
+- Human-readable console logs in Development (owner, #17 re-review): a readable console formatter behind a
+  setting, used by the Development launch profile; JSON stays everywhere else. Can ride the next PR.
 - `/health/ready` is anonymous and runs `SELECT 1` on every hit: expose `/health/*` only to the load balancer and
   probes, or rate-limit them at the edge (infrastructure task after M1, ADR-0016; #17 R3).
 - `ProblemDetails:TypeBaseUri` is the placeholder `https://errors.sportsplatform.invalid/` until Q10 (domain).

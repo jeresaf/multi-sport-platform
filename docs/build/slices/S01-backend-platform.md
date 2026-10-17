@@ -227,7 +227,8 @@ Acceptance:
   `ErrorKind` gained `MethodNotAllowed`, `UnsupportedMediaType` and `Unexpected`. `PLATFORM_ROUTE_NOT_FOUND` only
   when no endpoint matched; a bare 404 from a matched endpoint gets no code (endpoints must use `ToProblem()`). The
   framework's `traceId` member is removed (one request ID per body). Other framework statuses still have no code:
-  401/403 (T4/S03) and Kestrel's 408/413/431 (413 coded in T3b; 408 and 431 have no body). Pipeline tests run in Testing and Development. Errors are discovered by reflection: public static readonly `Error`
+  401/403 (T4/S03) and Kestrel's 408/413/431 (413 coded in T3b; 408 and 431 have no body). Pipeline tests run in
+  Testing and Development. Errors are discovered by reflection: public static readonly `Error`
   fields of static `*Errors` classes in BuildingBlocks and each module assembly (a test fails for any other static
   `Error`). The correlation ID is `HttpContext.TraceIdentifier`. `ProblemDetails:TypeBaseUri` placeholder
   `https://errors.sportsplatform.invalid/` until Q10 (domain) is decided. Stale-file checking arrives with T3c's
