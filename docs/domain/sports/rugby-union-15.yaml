@@ -1,0 +1,175 @@
+# Reference sport definition — Rugby union (15-a-side)
+# Defaults follow World Rugby Laws as commonly applied. Competition policy (bonus points, replacements,
+# extra-time format, red-card trials) lives in rulesets.
+schema_version: 1
+variant: RUGBY_UNION_15
+sport: RUGBY_UNION
+version: 1
+name: Rugby union 15s
+scoring_family: ADDITIVE
+shape: HEAD_TO_HEAD
+participant_types: [TEAM]
+sides: [HOME, AWAY]
+coverage_levels: [RESULT_ONLY, BASIC, STANDARD, DETAILED]
+terminology:
+  contest: Match
+  contest_plural: Matches
+  period: Half
+  participant: Team
+  athlete: Player
+  score_unit: Point
+
+supports:
+  tie_resolutions: [DRAW, EXTRA_PERIODS_THEN_SHOOTOUT, EXTRA_PERIODS_SUDDEN_DEATH]
+
+periods:
+  - { code: FIRST_HALF, label: 1st half, short: 1H, kind: PLAY, clock: COUNT_UP, default_seconds: 2400, clock_starts_at_seconds: 0 }
+  - { code: HALF_TIME, label: Half-time, short: HT, kind: BREAK, clock: NONE, default_seconds: 900 }
+  - { code: SECOND_HALF, label: 2nd half, short: 2H, kind: PLAY, clock: COUNT_UP, default_seconds: 2400, clock_starts_at_seconds: 2400 }
+  - { code: AWAITING_EXTRA_TIME, label: Before extra time, short: BET, kind: BREAK, clock: NONE, default_seconds: 300 }
+  - { code: EXTRA_TIME_FIRST_HALF, label: Extra time 1st half, short: ET1, kind: PLAY, clock: COUNT_UP, default_seconds: 600, clock_starts_at_seconds: 4800, overtime: true }
+  - { code: EXTRA_TIME_HALF_TIME, label: Extra time break, short: ETB, kind: BREAK, clock: NONE, default_seconds: 60, overtime: true }
+  - { code: EXTRA_TIME_SECOND_HALF, label: Extra time 2nd half, short: ET2, kind: PLAY, clock: COUNT_UP, default_seconds: 600, clock_starts_at_seconds: 5400, overtime: true }
+  - { code: SUDDEN_DEATH, label: Sudden death, short: SD, kind: PLAY, clock: COUNT_UP, default_seconds: 600, clock_starts_at_seconds: 6000, overtime: true, sudden_death: true }
+  - { code: KICKING_COMPETITION, label: Kicking competition, short: KC, kind: SHOOTOUT, clock: NONE, overtime: true }
+# Rules choose which extra periods apply via contest.extra_period_sequence, e.g.
+# [AWAITING_EXTRA_TIME, EXTRA_TIME_FIRST_HALF, EXTRA_TIME_HALF_TIME, EXTRA_TIME_SECOND_HALF, SUDDEN_DEATH].
+
+actor_roles:
+  SCORER:     { who: ON_FIELD, side: OWN }
+  KICKER:     { who: ON_FIELD, side: OWN }
+  PLAYER:     { who: ON_FIELD, side: OWN }
+  OFFENDER:   { who: SQUAD_OR_STAFF, side: OWN }
+  PLAYER_OFF: { who: ON_FIELD, side: OWN }
+  PLAYER_ON:  { who: BENCH, side: OWN }
+
+event_types:
+  # --- scoring -------------------------------------------------------------------------------
+  - { code: TRY, category: SCORING, importance: KEY, coverage: BASIC, label: Try, points: 5, side: OWN, component: main, phases: [PLAY], actors: [ { role: SCORER, required_from: STANDARD } ], reversible_by: [TMO_DECISION] }
+  - { code: PENALTY_TRY, category: SCORING, importance: KEY, coverage: BASIC, label: Penalty try, points: 7, side: OWN, component: main, phases: [PLAY], reversible_by: [TMO_DECISION] }   # no conversion attempted
+  - code: CONVERSION_MADE
+    category: SCORING
+    importance: STANDARD
+    coverage: BASIC
+    label: Conversion
+    points: 2
+    side: OWN
+    component: main
+    phases: [PLAY]
+    actors: [ { role: KICKER, required_from: STANDARD } ]
+    follow_up: { requires_preceding: [TRY], same_side: true, same_period: true, unconsumed: true, consumes: true }
+  - code: CONVERSION_MISSED
+    category: SCORING
+    importance: DETAILED
+    coverage: STANDARD
+    label: Conversion missed
+    points: 0
+    side: OWN
+    phases: [PLAY]
+    actors: [ { role: KICKER, required_from: STANDARD } ]
+    follow_up: { requires_preceding: [TRY], same_side: true, same_period: true, unconsumed: true, consumes: true }
+  - { code: PENALTY_GOAL, category: SCORING, importance: STANDARD, coverage: BASIC, label: Penalty goal, points: 3, side: OWN, component: main, phases: [PLAY], actors: [ { role: KICKER, required_from: STANDARD } ], reversible_by: [TMO_DECISION] }
+  - { code: PENALTY_GOAL_MISSED, category: SCORING, importance: DETAILED, coverage: STANDARD, label: Penalty goal missed, points: 0, side: OWN, phases: [PLAY], actors: [ { role: KICKER, required_from: STANDARD } ] }
+  - { code: DROP_GOAL, category: SCORING, importance: KEY, coverage: BASIC, label: Drop goal, points: 3, side: OWN, component: main, phases: [PLAY], actors: [ { role: KICKER, required_from: STANDARD } ], reversible_by: [TMO_DECISION] }
+  - { code: DROP_GOAL_MISSED, category: SCORING, importance: DETAILED, coverage: DETAILED, label: Drop goal missed, points: 0, side: OWN, phases: [PLAY], actors: [ { role: KICKER, optional: true } ] }
+  - { code: KICKING_COMPETITION_GOAL, category: SCORING, importance: KEY, coverage: BASIC, label: Kick scored, points: 1, side: OWN, component: shootout, phases: [SHOOTOUT], actors: [ { role: KICKER, required_from: STANDARD } ] }
+  - { code: KICKING_COMPETITION_MISS, category: SCORING, importance: KEY, coverage: BASIC, label: Kick missed, points: 0, side: OWN, component: shootout, phases: [SHOOTOUT], actors: [ { role: KICKER, required_from: STANDARD } ] }
+
+  # --- discipline -------------------------------------------------------------------------------
+  - code: YELLOW_CARD
+    category: DISCIPLINE
+    importance: KEY
+    coverage: STANDARD
+    label: Yellow card (sin bin)
+    phases: [PLAY, BREAK]
+    actors: [ { role: OFFENDER, required_from: STANDARD } ]
+    effects: [TEMPORARY_SUSPENSION]      # duration from rules discipline.sin_bin_seconds (default 600)
+    reversible_by: [TMO_DECISION]
+  - { code: SIN_BIN_RETURN, category: PERSONNEL, importance: STANDARD, coverage: STANDARD, label: Returns from sin bin, phases: [PLAY, BREAK], actors: [ { role: OFFENDER, required_from: STANDARD } ], effects: [RETURN] }
+  - code: RED_CARD
+    category: DISCIPLINE
+    importance: KEY
+    coverage: STANDARD
+    label: Red card
+    phases: [PLAY, BREAK]
+    actors: [ { role: OFFENDER, required_from: STANDARD } ]
+    effects: [SEND_OFF]                  # rules discipline.red_card_replacement_after_seconds supports 20-minute red card trials
+    reversible_by: [TMO_DECISION]
+  - { code: PENALTY_CONCEDED, category: DISCIPLINE, importance: DETAILED, coverage: DETAILED, label: Penalty conceded, phases: [PLAY], actors: [ { role: OFFENDER, optional: true } ] }
+
+  # --- personnel ------------------------------------------------------------------------------
+  - { code: REPLACEMENT, category: PERSONNEL, importance: STANDARD, coverage: STANDARD, label: Replacement, phases: [PLAY, BREAK], actors: [ { role: PLAYER_OFF, required_from: STANDARD }, { role: PLAYER_ON, required_from: STANDARD } ], effects: [SUBSTITUTE], limits: [ { rule: substitutions.max } ] }
+  - { code: TEMPORARY_REPLACEMENT, category: PERSONNEL, importance: TECHNICAL, coverage: STANDARD, label: Temporary replacement (blood/HIA), phases: [PLAY, BREAK], actors: [ { role: PLAYER_OFF, required_from: STANDARD }, { role: PLAYER_ON, required_from: STANDARD } ], effects: [TEMPORARY_SUBSTITUTE] }
+  - { code: TEMPORARY_REPLACEMENT_END, category: PERSONNEL, importance: TECHNICAL, coverage: STANDARD, label: Player returns, phases: [PLAY, BREAK], actors: [ { role: PLAYER_ON, required_from: STANDARD } ], effects: [RETURN] }
+
+  # --- review & stoppages ---------------------------------------------------------------------
+  - { code: TMO_REVIEW, category: REVIEW, importance: STANDARD, coverage: STANDARD, label: TMO review, phases: [PLAY], metadata: { subject: { type: enum, values: [TRY, FOUL_PLAY, OTHER] } } }
+  - { code: TMO_DECISION, category: REVIEW, importance: KEY, coverage: STANDARD, label: TMO decision, phases: [PLAY], metadata: { outcome: { type: enum, values: [DECISION_STANDS, DECISION_OVERTURNED] } } }
+  - { code: INJURY_STOPPAGE, category: STOPPAGE, importance: STANDARD, coverage: STANDARD, label: Injury stoppage, phases: [PLAY], actors: [ { role: PLAYER, optional: true } ] }
+
+  # --- detailed coverage -----------------------------------------------------------------------
+  - { code: SCRUM, category: PLAY, importance: DETAILED, coverage: DETAILED, label: Scrum, phases: [PLAY], metadata: { won: { type: bool, optional: true } } }
+  - { code: LINEOUT, category: PLAY, importance: DETAILED, coverage: DETAILED, label: Lineout, phases: [PLAY], metadata: { won: { type: bool, optional: true } } }
+  - { code: TURNOVER_WON, category: PLAY, importance: DETAILED, coverage: DETAILED, label: Turnover won, phases: [PLAY], actors: [ { role: PLAYER, optional: true } ] }
+
+positions:
+  - { code: LOOSEHEAD_PROP, label: Loosehead prop (1), group: FORWARD }
+  - { code: HOOKER, label: Hooker (2), group: FORWARD }
+  - { code: TIGHTHEAD_PROP, label: Tighthead prop (3), group: FORWARD }
+  - { code: LOCK, label: Lock (4/5), group: FORWARD }
+  - { code: BLINDSIDE_FLANKER, label: Blindside flanker (6), group: FORWARD }
+  - { code: OPENSIDE_FLANKER, label: Openside flanker (7), group: FORWARD }
+  - { code: NUMBER_EIGHT, label: Number eight (8), group: FORWARD }
+  - { code: SCRUM_HALF, label: Scrum-half (9), group: BACK }
+  - { code: FLY_HALF, label: Fly-half (10), group: BACK }
+  - { code: LEFT_WING, label: Left wing (11), group: BACK }
+  - { code: INSIDE_CENTRE, label: Inside centre (12), group: BACK }
+  - { code: OUTSIDE_CENTRE, label: Outside centre (13), group: BACK }
+  - { code: RIGHT_WING, label: Right wing (14), group: BACK }
+  - { code: FULLBACK, label: Fullback (15), group: BACK }
+
+staff_roles:
+  - { code: HEAD_COACH, label: Head coach }
+  - { code: ASSISTANT_COACH, label: Assistant coach }
+  - { code: FORWARDS_COACH, label: Forwards coach }
+  - { code: BACKS_COACH, label: Backs coach }
+  - { code: STRENGTH_CONDITIONING_COACH, label: Strength & conditioning coach }
+  - { code: TEAM_MANAGER, label: Team manager }
+  - { code: TEAM_DOCTOR, label: Team doctor }
+  - { code: PHYSIOTHERAPIST, label: Physiotherapist }
+
+official_roles:
+  - { code: REFEREE, label: Referee, default_minimum: 1 }
+  - { code: ASSISTANT_REFEREE, label: Assistant referee, default_minimum: 0, max: 2 }
+  - { code: TELEVISION_MATCH_OFFICIAL, label: TMO, default_minimum: 0 }
+  - { code: FOURTH_OFFICIAL, label: Fourth official, default_minimum: 0 }
+  - { code: MATCH_COMMISSIONER, label: Match commissioner, default_minimum: 0 }
+
+lineup:
+  starters: 15
+  bench_max: 8
+  position_constraints: []     # front-row replacement requirements are a later validation rule
+  special_roles: [CAPTAIN]
+  shirt_numbers_follow_positions: true
+
+statistics:
+  - { code: POINTS, label: Points, scopes: [PLAYER, TEAM], aggregation: SUM, higher_is_better: true, coverage: STANDARD, derive: { sum_points: [TRY, CONVERSION_MADE, PENALTY_GOAL, DROP_GOAL], actor_roles: [SCORER, KICKER] } }
+  - { code: TRIES, label: Tries, scopes: [PLAYER, TEAM], aggregation: SUM, higher_is_better: true, coverage: BASIC, derive: { count_events: [TRY, PENALTY_TRY], actor_roles: [SCORER] } }
+  - { code: CONVERSIONS, label: Conversions, scopes: [PLAYER, TEAM], aggregation: SUM, higher_is_better: true, coverage: STANDARD, derive: { count_events: [CONVERSION_MADE], actor_roles: [KICKER] } }
+  - { code: CONVERSION_ATTEMPTS, label: Conversion attempts, scopes: [PLAYER, TEAM], aggregation: SUM, higher_is_better: true, coverage: STANDARD, derive: { count_events: [CONVERSION_MADE, CONVERSION_MISSED], actor_roles: [KICKER] } }
+  - { code: PENALTY_GOALS, label: Penalty goals, scopes: [PLAYER, TEAM], aggregation: SUM, higher_is_better: true, coverage: STANDARD, derive: { count_events: [PENALTY_GOAL], actor_roles: [KICKER] } }
+  - { code: DROP_GOALS, label: Drop goals, scopes: [PLAYER, TEAM], aggregation: SUM, higher_is_better: true, coverage: STANDARD, derive: { count_events: [DROP_GOAL], actor_roles: [KICKER] } }
+  - { code: YELLOW_CARDS, label: Yellow cards, scopes: [PLAYER, TEAM], aggregation: SUM, higher_is_better: false, coverage: STANDARD, derive: { count_events: [YELLOW_CARD], actor_roles: [OFFENDER] } }
+  - { code: RED_CARDS, label: Red cards, scopes: [PLAYER, TEAM], aggregation: SUM, higher_is_better: false, coverage: STANDARD, derive: { count_events: [RED_CARD], actor_roles: [OFFENDER] } }
+  - { code: APPEARANCES, label: Appearances, scopes: [PLAYER], aggregation: SUM, higher_is_better: true, coverage: STANDARD, derive: { builtin: APPEARANCES } }
+  - { code: STARTS, label: Starts, scopes: [PLAYER], aggregation: SUM, higher_is_better: true, coverage: STANDARD, derive: { builtin: STARTS } }
+  - { code: MINUTES_PLAYED, label: Minutes played, scopes: [PLAYER], aggregation: SUM, higher_is_better: true, coverage: STANDARD, derive: { builtin: MINUTES_PLAYED } }
+
+scorer_pad:
+  kind: BUTTONS
+  groups:
+    - { label: Score, buttons: [TRY, PENALTY_TRY, CONVERSION_MADE, CONVERSION_MISSED, PENALTY_GOAL, DROP_GOAL] }
+    - { label: Cards, buttons: [YELLOW_CARD, SIN_BIN_RETURN, RED_CARD] }
+    - { label: Match, buttons: [REPLACEMENT, TEMPORARY_REPLACEMENT, TEMPORARY_REPLACEMENT_END, TMO_REVIEW, TMO_DECISION, INJURY_STOPPAGE] }
+    - { label: Kicking competition, buttons: [KICKING_COMPETITION_GOAL, KICKING_COMPETITION_MISS], phases: [SHOOTOUT] }
+    - { label: Detail, buttons: [PENALTY_GOAL_MISSED, DROP_GOAL_MISSED, PENALTY_CONCEDED, SCRUM, LINEOUT, TURNOVER_WON], coverage: DETAILED }

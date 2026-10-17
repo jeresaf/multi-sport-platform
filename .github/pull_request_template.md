@@ -1,0 +1,43 @@
+## [SNN-TN] Title
+
+**Spec:** docs/build/slices/SNN-….md — Task TN
+**Modules:** …
+
+### Summary
+What this PR does, in 2–5 sentences.
+
+### Acceptance criteria (with evidence)
+- [ ] Criterion 1 — evidence: test `…` / command output / screenshot
+- [ ] Criterion 2 — evidence: …
+
+### Contract changes
+- Action codes added/changed: …
+- Error codes added/changed: …
+- Integration events added/changed (with versions): …
+- Endpoints added/changed: …
+- Generated files regenerated: catalogues ☐ OpenAPI ☐ web client ☐
+
+### Data
+- Migrations: … (RLS policy for new tenant tables ☐)
+- Seeds: …
+
+### Tests
+- Unit / engine scenarios: …
+- Integration (real PostgreSQL): …
+- Isolation + authorization (allowed/denied): …
+- Playwright: …
+
+### UI (if applicable)
+Screenshots at phone (375), tablet (820), desktop (1280); light/dark.
+
+### Dependencies
+New packages and licences: … (none ☐)
+
+### Deviations from spec (agreed with owner)
+None ☐ / …
+
+### Follow-ups / known limitations
+…
+
+### Self-review
+`pr-prereviewer` verdict: … (any disagreements explained)

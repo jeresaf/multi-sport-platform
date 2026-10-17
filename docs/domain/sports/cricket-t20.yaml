@@ -1,0 +1,200 @@
+# Reference sport definition — Cricket, Twenty20
+# Defaults follow the MCC Laws of Cricket and common T20 playing conditions. Scoring logic lives in the
+# INNINGS engine (docs/architecture/sport-engine.md §6); this file declares events, payloads and metadata.
+schema_version: 1
+variant: CRICKET_T20
+sport: CRICKET
+version: 1
+name: Cricket T20
+scoring_family: INNINGS
+shape: HEAD_TO_HEAD
+participant_types: [TEAM]
+sides: [HOME, AWAY]
+coverage_levels: [RESULT_ONLY, BASIC, DETAILED]
+# BASIC = innings totals entered per over or at innings end; DETAILED = ball-by-ball deliveries.
+terminology:
+  contest: Match
+  contest_plural: Matches
+  period: Innings
+  participant: Team
+  athlete: Player
+  score_unit: Run
+
+supports:
+  tie_resolutions: [TIE, SUPER_OVER]     # TIE = the result stands as a tie; SUPER_OVER = play super over(s)
+  rule_parameters:                         # defaults; rulesets may change within bounds
+    overs_per_innings: { type: int, min: 1, max: 50, default: 20 }
+    balls_per_over: { type: int, min: 4, max: 8, default: 6 }
+    players_per_side: { type: int, min: 2, max: 11, default: 11 }
+    max_overs_per_bowler: { type: int, min: 1, max: 20, default: 4 }
+    free_hit_enabled: { type: bool, default: true }
+    wide_runs: { type: int, min: 1, max: 2, default: 1 }
+    no_ball_runs: { type: int, min: 1, max: 2, default: 1 }
+    super_over_repeat: { type: bool, default: true }     # with tie_resolution SUPER_OVER: repeat while tied
+    powerplay_overs: { type: int, min: 0, max: 20, default: 6 }   # informational in v1
+
+periods:
+  - { code: FIRST_INNINGS, label: 1st innings, short: INN1, kind: PLAY, clock: NONE }
+  - { code: INNINGS_BREAK, label: Innings break, short: BRK, kind: BREAK, clock: NONE, default_seconds: 600 }
+  - { code: SECOND_INNINGS, label: 2nd innings, short: INN2, kind: PLAY, clock: NONE }
+  - { code: AWAITING_SUPER_OVER, label: Before super over, short: BSO, kind: BREAK, clock: NONE, default_seconds: 300, overtime: true, repeatable: true }
+  - { code: SUPER_OVER, label: Super over, short: SO, kind: PLAY, clock: NONE, overtime: true, repeatable: true }   # contains one innings per side
+
+actor_roles:
+  BATTER:   { who: ON_FIELD, side: OWN }        # batting side
+  BOWLER:   { who: ON_FIELD, side: OPPONENT }   # fielding side
+  FIELDER:  { who: ON_FIELD, side: OPPONENT }
+  CAPTAIN:  { who: SQUAD, side: OWN }
+
+event_types:
+  - code: TOSS
+    category: SYSTEM
+    importance: STANDARD
+    coverage: BASIC
+    label: Toss
+    phases: [BREAK]
+    metadata:
+      winner_participant_id: { type: participant }
+      decision: { type: enum, values: [BAT, BOWL] }
+
+  - code: INNINGS_START
+    category: PERIOD
+    importance: STANDARD
+    coverage: BASIC
+    label: Innings start
+    phases: [PLAY]
+    metadata:
+      batting_participant_id: { type: participant }
+      striker_id: { type: athlete, optional: true }        # required at DETAILED coverage
+      non_striker_id: { type: athlete, optional: true }
+      opening_bowler_id: { type: athlete, optional: true }
+
+  - code: DELIVERY
+    category: SCORING
+    importance: DYNAMIC        # INNINGS engine: wicket → KEY, boundary → STANDARD, otherwise DETAILED
+    coverage: DETAILED
+    label: Delivery
+    phases: [PLAY]
+    metadata:
+      bowler_id: { type: athlete }
+      striker_id: { type: athlete }
+      non_striker_id: { type: athlete }
+      runs_off_bat: { type: int, min: 0, max: 8 }
+      boundary: { type: enum, values: [FOUR, SIX], optional: true }
+      extras:
+        kind: { type: enum, values: [NONE, WIDE, NO_BALL, BYE, LEG_BYE] }
+        runs: { type: int, min: 0, max: 8 }      # includes the automatic run for a wide / no-ball
+      penalty_runs: { type: object, optional: true, fields: { to: { type: enum, values: [BATTING, FIELDING] }, runs: { type: int, min: 5, max: 5 } } }
+      wicket:
+        type: object
+        optional: true
+        fields:
+          kind: { type: enum, values: [BOWLED, CAUGHT, LBW, RUN_OUT, STUMPED, HIT_WICKET, HIT_BALL_TWICE, OBSTRUCTING_THE_FIELD] }
+          player_out_id: { type: athlete }
+          fielder_id: { type: athlete, optional: true }
+
+  - code: OVER_SUMMARY
+    category: SCORING
+    importance: STANDARD
+    coverage: BASIC
+    label: Over summary (basic coverage)
+    phases: [PLAY]
+    metadata:
+      over_number: { type: int, min: 1 }
+      runs: { type: int, min: 0 }
+      wickets: { type: int, min: 0, max: 10 }
+      extras: { type: int, min: 0, optional: true }
+      bowler_id: { type: athlete, optional: true }
+    # BASIC coverage alternative to ball-by-ball; never mixed with DELIVERY in the same innings.
+
+  - { code: BATTER_RETIRED, category: PERSONNEL, importance: STANDARD, coverage: DETAILED, label: Batter retired, phases: [PLAY], actors: [ { role: BATTER, required_from: DETAILED } ], metadata: { kind: { type: enum, values: [RETIRED_HURT, RETIRED_OUT] } } }
+  - { code: BATTER_TIMED_OUT, category: SCORING, importance: KEY, coverage: DETAILED, label: Timed out, phases: [PLAY], actors: [ { role: BATTER, required_from: DETAILED } ] }
+
+  - code: INNINGS_END
+    category: PERIOD
+    importance: STANDARD
+    coverage: BASIC
+    label: Innings end
+    phases: [PLAY]
+    metadata:
+      reason: { type: enum, values: [ALL_OUT, OVERS_COMPLETE, TARGET_REACHED, DECLARED, INTERRUPTED, OTHER] }
+      final_runs: { type: int, optional: true }       # BASIC coverage may record totals here
+      final_wickets: { type: int, optional: true }
+      final_balls: { type: int, optional: true }
+
+  - code: REVISED_TARGET
+    category: SYSTEM
+    importance: KEY
+    coverage: BASIC
+    label: Revised target
+    phases: [PLAY, BREAK]
+    metadata:
+      target_runs: { type: int, min: 1 }
+      max_overs: { type: decimal, min: 1 }
+      method: { type: enum, values: [DLS, OTHER] }
+    # Manual entry from officials; the platform does not calculate DLS targets in v1.
+
+  - { code: DRS_REVIEW, category: REVIEW, importance: STANDARD, coverage: DETAILED, label: DRS review, phases: [PLAY], metadata: { reviewing_participant_id: { type: participant }, outcome: { type: enum, values: [UPHELD, OVERTURNED, UMPIRES_CALL] } } }
+  - { code: DRINKS_BREAK, category: STOPPAGE, importance: TECHNICAL, coverage: DETAILED, label: Drinks, phases: [PLAY] }
+
+positions:   # roles rather than fixed positions; batting/bowling styles belong to the athlete profile
+  - { code: BATTER, label: Batter, group: BATTING }
+  - { code: BOWLER, label: Bowler, group: BOWLING }
+  - { code: ALL_ROUNDER, label: All-rounder, group: ALL_ROUNDER }
+  - { code: WICKET_KEEPER, label: Wicket-keeper, group: WICKET_KEEPING }
+
+staff_roles:
+  - { code: HEAD_COACH, label: Head coach }
+  - { code: ASSISTANT_COACH, label: Assistant coach }
+  - { code: BATTING_COACH, label: Batting coach }
+  - { code: BOWLING_COACH, label: Bowling coach }
+  - { code: FIELDING_COACH, label: Fielding coach }
+  - { code: TEAM_MANAGER, label: Team manager }
+  - { code: PHYSIOTHERAPIST, label: Physiotherapist }
+  - { code: ANALYST, label: Analyst }
+
+official_roles:
+  - { code: ON_FIELD_UMPIRE, label: On-field umpire, default_minimum: 2, max: 2 }
+  - { code: THIRD_UMPIRE, label: Third umpire, default_minimum: 0 }
+  - { code: FOURTH_UMPIRE, label: Fourth umpire, default_minimum: 0 }
+  - { code: MATCH_REFEREE, label: Match referee, default_minimum: 0 }
+  - { code: SCORER, label: Official scorer, default_minimum: 0 }
+
+lineup:
+  starters: 11            # playing XI; follows players_per_side
+  bench_max: 4            # substitute fielders
+  position_constraints:
+    - { position: WICKET_KEEPER, min: 1, max: 1 }
+  special_roles: [CAPTAIN, WICKET_KEEPER]
+  batting_order: optional
+
+statistics:
+  # Batting
+  - { code: RUNS, label: Runs, scopes: [PLAYER, TEAM], aggregation: SUM, higher_is_better: true, coverage: DETAILED, derive: { builtin: BATTING_RUNS } }
+  - { code: BALLS_FACED, label: Balls faced, scopes: [PLAYER], aggregation: SUM, higher_is_better: true, coverage: DETAILED, derive: { builtin: BALLS_FACED } }
+  - { code: FOURS, label: Fours, scopes: [PLAYER, TEAM], aggregation: SUM, higher_is_better: true, coverage: DETAILED, derive: { builtin: FOURS } }
+  - { code: SIXES, label: Sixes, scopes: [PLAYER, TEAM], aggregation: SUM, higher_is_better: true, coverage: DETAILED, derive: { builtin: SIXES } }
+  - { code: BATTING_STRIKE_RATE, label: Strike rate, scopes: [PLAYER], aggregation: RATIO, higher_is_better: true, coverage: DETAILED, derive: { builtin: BATTING_STRIKE_RATE } }   # runs per 100 balls
+  - { code: HIGHEST_SCORE, label: Highest score, scopes: [PLAYER], aggregation: MAX, higher_is_better: true, coverage: DETAILED, derive: { builtin: HIGHEST_SCORE } }
+  - { code: BATTING_AVERAGE, label: Batting average, scopes: [PLAYER], aggregation: RATIO, higher_is_better: true, coverage: DETAILED, derive: { builtin: BATTING_AVERAGE } }   # runs ÷ dismissals
+  # Bowling
+  - { code: WICKETS, label: Wickets, scopes: [PLAYER, TEAM], aggregation: SUM, higher_is_better: true, coverage: DETAILED, derive: { builtin: BOWLER_WICKETS } }   # bowled, caught, LBW, stumped, hit wicket
+  - { code: OVERS_BOWLED, label: Overs, scopes: [PLAYER], aggregation: SUM, higher_is_better: true, coverage: DETAILED, derive: { builtin: OVERS_BOWLED } }
+  - { code: RUNS_CONCEDED, label: Runs conceded, scopes: [PLAYER], aggregation: SUM, higher_is_better: false, coverage: DETAILED, derive: { builtin: RUNS_CONCEDED } }   # off the bat + wides + no-balls; not byes/leg-byes
+  - { code: ECONOMY_RATE, label: Economy, scopes: [PLAYER], aggregation: RATIO, higher_is_better: false, coverage: DETAILED, derive: { builtin: ECONOMY_RATE } }   # runs conceded per over
+  - { code: MAIDENS, label: Maidens, scopes: [PLAYER], aggregation: SUM, higher_is_better: true, coverage: DETAILED, derive: { builtin: MAIDENS } }
+  - { code: BEST_BOWLING, label: Best bowling, scopes: [PLAYER], aggregation: BUILTIN, higher_is_better: true, coverage: DETAILED, derive: { builtin: BEST_BOWLING } }
+  # Fielding
+  - { code: CATCHES, label: Catches, scopes: [PLAYER], aggregation: SUM, higher_is_better: true, coverage: DETAILED, derive: { builtin: CATCHES } }
+  - { code: STUMPINGS, label: Stumpings, scopes: [PLAYER], aggregation: SUM, higher_is_better: true, coverage: DETAILED, derive: { builtin: STUMPINGS } }
+  - { code: RUN_OUTS, label: Run outs, scopes: [PLAYER], aggregation: SUM, higher_is_better: true, coverage: DETAILED, derive: { builtin: RUN_OUTS } }
+  # Team
+  - { code: EXTRAS, label: Extras, scopes: [TEAM], aggregation: SUM, higher_is_better: false, coverage: DETAILED, derive: { builtin: EXTRAS } }
+  - { code: APPEARANCES, label: Matches, scopes: [PLAYER], aggregation: SUM, higher_is_better: true, coverage: BASIC, derive: { builtin: APPEARANCES } }
+
+scorer_pad:
+  kind: DELIVERY_PAD          # family component: runs 0–6, boundary toggles, extras (wd/nb/b/lb), wicket, next ball
+  pre_match: [TOSS]
+  innings: [INNINGS_START, INNINGS_END, REVISED_TARGET]
+  other: [BATTER_RETIRED, BATTER_TIMED_OUT, DRS_REVIEW, DRINKS_BREAK]
+  basic_mode: [OVER_SUMMARY]  # offered instead of DELIVERY when coverage is BASIC
