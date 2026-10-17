@@ -69,11 +69,13 @@ dotnet run --project backend/src/SportsPlatform.Host     # API on http://localho
 dotnet run --project backend/tools/SportsPlatform.Cli   # lists CLI commands
 dotnet run --project backend/tools/SportsPlatform.Cli -- migrate   # all module migrations, as sp_migrator
 dotnet run --project backend/tools/SportsPlatform.Cli -- export-catalogues   # docs/generated/errors.md, contracts/errors.json
+dotnet run --project backend/tools/SportsPlatform.Cli -- export-openapi      # contracts/openapi.json (Scalar: http://localhost:5080/scalar)
 dotnet tool restore                             # once: dotnet-ef (pinned in .config/dotnet-tools.json)
 docker compose up -d                            # local PostgreSQL 17 + Mailpit (UI http://localhost:8025)
 infrastructure/local/postgres/check-roles.sh    # verifies sp_migrator / sp_app / sp_platform permissions
 docker compose down -v                          # stop and delete local data
 cd web && pnpm install --frozen-lockfile && pnpm lint && pnpm typecheck && pnpm test && pnpm build
+cd web && pnpm --filter @msp/api-client generate   # TS client from contracts/openapi.json (after export-openapi)
 cd web && pnpm --filter @msp/e2e exec playwright install chromium   # once per machine
 cd web && pnpm e2e                              # builds both apps, smoke tests on ports 3000/3001
 cd web && pnpm --filter @msp/public dev         # or @msp/admin (port 3001)

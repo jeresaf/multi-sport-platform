@@ -45,6 +45,7 @@ public abstract class PipelineTestApp(string environmentName) : IAsyncLifetime
         app.MapGet("/conflict", () => Result.Failure(PlatformErrors.ConcurrencyConflict).ToHttpResult());
         app.MapPost("/fixtures", (FixtureRequest request) => TypedResults.Ok(request));
         app.MapGet("/bare-not-found", () => TypedResults.NotFound());
+        app.MapPost("/rounds", (RoundRequest request) => TypedResults.Ok(request));
 
         await app.StartAsync(TestContext.Current.CancellationToken);
         _app = app;
@@ -61,6 +62,8 @@ public abstract class PipelineTestApp(string environmentName) : IAsyncLifetime
     }
 
     public sealed record FixtureRequest(string HomeTeam, DateTimeOffset KickOff);
+
+    public sealed record RoundRequest(int Number);
 }
 
 public sealed class TestingPipelineApp() : PipelineTestApp("Testing");

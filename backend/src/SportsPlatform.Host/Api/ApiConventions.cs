@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using SportsPlatform.BuildingBlocks.Api;
 using SportsPlatform.BuildingBlocks.Results;
@@ -17,6 +18,10 @@ public static class ApiConventions
         ArgumentNullException.ThrowIfNull(configuration);
 
         services.TryAddSingleton(TimeProvider.System);
+
+        // Numbers are JSON numbers: the web default also accepts "5", which types every number in the OpenAPI
+        // document (and the generated client) as `integer | string`.
+        services.ConfigureHttpJsonOptions(options => options.SerializerOptions.NumberHandling = JsonNumberHandling.Strict);
 
         var typeBaseUri = configuration[TypeBaseUriSetting];
         services.AddProblemDetails(options => options.CustomizeProblemDetails = context => Customize(context, typeBaseUri));

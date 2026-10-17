@@ -7,15 +7,16 @@ at the start of every review.
 
 - **Current slice:** S01 — Backend platform (docs/build/slices/S01-backend-platform.md). S00 is on `main`; its
   "new contributor in under 30 minutes" check is still with the owner
-- **Current task:** none. S01-T3b (logging, OpenTelemetry, `/health/ready`) is in review as #17
-- **Next:** S01-T3c (OpenAPI, Scalar, TS client, `Contracts` CI job), then S01-T4
+- **Current task:** none. S01-T3c (OpenAPI, Scalar, `export-openapi`, TS client, `Contracts` CI job) is in review
+  as #18
+- **Next:** S01-T4 (action catalogue and authorization skeleton)
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S01-T3c — OpenAPI, Scalar, `export-openapi`, TS client, `Contracts` CI job
-2. S01-T4 — Action catalogue and authorization skeleton
-3. S01-T5 — Domain events, outbox and inbox
+1. S01-T4 — Action catalogue and authorization skeleton
+2. S01-T5 — Domain events, outbox and inbox
+3. S01-T6 — Audit
 
 ## Log
 
@@ -31,6 +32,7 @@ at the start of every review.
 | 2026-10-17 | S01-T2a | #14 | `SportsPlatform.BuildingBlocks.Persistence`: `ModuleDbContext` (schema, snake_case, app UUIDv7 keys, shadow audit columns via `AuditColumnsInterceptor`, `xmin` row version on aggregates, `SaveChangesResultAsync` → `<MODULE>_CONCURRENCY_CONFLICT`), `App`/`Migrator`/`Platform` connection strings, `MigrationRunner`; `PlatformDbContext` + initial migration; CLI `migrate`; Development auto-migrate; `dotnet-ef` tool manifest; Testcontainers harness (compose image + `01-roles.sh`, app as `sp_app`, Respawn on a fixture-only superuser connection, `FakeTimeProvider`, `TestActor`); `Entity()` no longer generates IDs (#13 R3) | T2 split into T2a/T2b (agreed). EF migration names keep `yyyyMMddHHmmss_`. Pre-review caught `WebApplicationFactory` defaulting to Development (would migrate localhost) → `HostOnlyApp` + guard test |
 | 2026-10-17 | S01-T2b | #15 | Migration helpers `ReadOnlyForRuntimeRoles` and `AppendOnly` (grants + per-schema `reject_append_only_change()` triggers rejecting UPDATE, DELETE and TRUNCATE for every role); `migrate` revokes runtime access to each `__ef_migrations_history`; `TableAccessPolicies` + `TableGrantsTests` (every table, view, matview and foreign table; column grants included); reset as unpooled superuser with `session_replication_role = replica`; `check-roles.sh` `sp_platform` DDL and TRUNCATE checks; test-only `reference_probes`/`append_only_probes` | Read-only also covers `sp_platform`; trigger also blocks TRUNCATE (both owner-agreed) |
 | 2026-10-17 | S01-T3a | #16 | `SportsPlatform.BuildingBlocks.Api` (`ErrorKind` → status, `Error.ToProblem()`, `Result.ToHttpResult()`); `CommonErrors` for pipeline failures; Host `AddApiConventions`/`UseApiConventions` (Problem Details with `code`, `type`, `correlationId`; exception handler → 500 `PLATFORM_UNEXPECTED_ERROR` without internals; routing/binding failures coded); `X-Correlation-Id` middleware; `ErrorCatalogue` + CLI `export-catalogues` → `docs/generated/errors.md`, `contracts/errors.json` | T3 split in three (owner). Added `VALIDATION_UNSUPPORTED_MEDIA_TYPE` (415) and `ErrorKind.MethodNotAllowed`/`UnsupportedMediaType`/`Unexpected`. Stale-file CI check comes with T3c |
+| 2026-10-17 | S01-T3c | #18 | One OpenAPI 3.1 document `v1` (no `servers`; `ProblemDetails` with required `code`/`correlationId`), served with Scalar in Development only; `.ProducesErrors(...)` documents error codes per status (`x-error-codes`); `SportsPlatformApp` shared by API and CLI; CLI `export-openapi` → `contracts/openapi.json`; `@msp/api-client` (openapi-typescript + openapi-fetch, `isProblemDetails`); CI job `Contracts` fails on stale generated files | Explicit `UseRouting`/`UseEndpoints` (an unstarted app otherwise documents no endpoints); strict JSON numbers; openapi-typescript's TS ^5 peer allowed for 6. Health probes left out of the document (owner) |
 | 2026-10-17 | S01-T3b | #17 | Serilog JSON console logs with `CorrelationId`, `ActorKind`, `ActorId`, `TenantId` (`RequestContextEnricher`) and one completion event per request; OpenTelemetry traces and metrics (ASP.NET Core, HttpClient, Npgsql; OTLP only when configured; probes not traced); `GET /health/ready` (database on `App`, status-only body); `VALIDATION_REQUEST_TOO_LARGE` (413); relaxed escaping in `contracts/errors.json` (#16 R1) | JSON in every environment, no OTLP logs, 413 code with 408/431 documented as body-less (owner). Pre-review: real-Kestrel 413 test, enricher re-entry guard. Review: ASP.NET Core `RequestId` dropped from logs (R2) |
 
 ## Deviations from spec (agreed)
@@ -61,7 +63,11 @@ at the start of every review.
   BuildingBlocks namespace allowed to use ASP.NET Core (`LayeringTests`). T3a adds `VALIDATION_UNSUPPORTED_MEDIA_TYPE`
   (415) beyond the four approved pipeline codes. Owner approved the plan 2026-10-17. T3b adds
   `VALIDATION_REQUEST_TOO_LARGE` (413) and `ErrorKind.PayloadTooLarge`; JSON logs in every environment; traces and
-  metrics (not logs) over OTLP. Owner approved the plan 2026-10-17.
+  metrics (not logs) over OTLP. Owner approved the plan 2026-10-17. T3c (plan approved 2026-10-17): health probes
+  are not in the OpenAPI document; `ProducesErrors` added now (not with T7). Found while implementing, for the
+  reviewer and owner to confirm on #18: the Host calls `UseRouting`/`UseEndpoints` explicitly (routing now runs
+  after the correlation, exception and status-code middleware), and JSON numbers are strict (`"5"` → 400
+  `VALIDATION_MALFORMED_REQUEST`).
 
 ## Tech debt / follow-ups
 
@@ -90,6 +96,9 @@ Consolidated by the S00 slice review (2026-10-17). Each item names where it gets
   setting, used by the Development launch profile; JSON stays everywhere else. Can ride the next PR.
 - `/health/ready` is anonymous and runs `SELECT 1` on every hit: expose `/health/*` only to the load balancer and
   probes, or rate-limit them at the edge (infrastructure task after M1, ADR-0016; #17 R3).
+- `docs/generated/README.md` doesn't mention `contracts/openapi.json`, the generated TS client or the `Contracts`
+  job. It is hand-written, but Claude Code's settings deny edits under `docs/generated/`: owner to edit it, or
+  exempt the README from the deny rule (S01-T3c).
 - `ProblemDetails:TypeBaseUri` is the placeholder `https://errors.sportsplatform.invalid/` until Q10 (domain).
 
 **Owner decisions / housekeeping**

@@ -6,3 +6,9 @@ packages:
 # unrs-resolver ships prebuilt binaries; its install script is not needed.
 allowBuilds:
   unrs-resolver: false
+
+# openapi-typescript 7.13 declares typescript ^5 but only uses the compiler's printer, which 6.0 keeps; the
+# generated client is checked in CI (Contracts job), so a break would show up there.
+peerDependencyRules:
+  allowedVersions:
+    openapi-typescript>typescript: "6"
