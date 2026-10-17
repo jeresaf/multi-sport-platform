@@ -5,15 +5,14 @@ at the start of every review.
 
 ## Now
 
-- **Current slice:** S00 — Repo foundation: all four tasks on `main`, CI green on `main` (run 39021057377). Open:
-  the owner's "new contributor in under 30 minutes" check (slice acceptance); then roadmap S00 → ☑
-- **Current task:** none
-- **Blocked on:** nothing. The S00 slice review (2026-10-17) reconciled the stand-in reviews on #7–#10 and amended
-  the S01 spec.
+- **Current slice:** S01 — Backend platform (docs/build/slices/S01-backend-platform.md). S00 is on `main`; its
+  "new contributor in under 30 minutes" check is still with the owner
+- **Current task:** S01-T1 — Module system and architecture tests (branch `s01/t1-module-system`)
+- **Blocked on:** nothing
 
 ## Next up
 
-1. S01 Backend platform (docs/build/slices/S01-backend-platform.md, amended by the S00 slice review) — S01-T1
+1. S01-T2 — Persistence conventions and test harness
 
 ## Log
 
