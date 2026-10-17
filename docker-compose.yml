@@ -2,6 +2,7 @@
 #   docker compose up -d                                  PostgreSQL + Mailpit
 #   docker compose --profile observability up -d          + Aspire dashboard for OpenTelemetry
 #   docker compose down -v                                stop and delete local data
+# Ports are bound to 127.0.0.1 only: the dev passwords are public, so nothing is exposed to the network.
 name: sportsplatform
 
 services:
@@ -16,7 +17,7 @@ services:
       SP_APP_PASSWORD: ${SP_APP_PASSWORD:?copy .env.example to .env}
       SP_PLATFORM_PASSWORD: ${SP_PLATFORM_PASSWORD:?copy .env.example to .env}
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./infrastructure/local/postgres/init:/docker-entrypoint-initdb.d:ro
@@ -32,8 +33,8 @@ services:
   mailpit:
     image: axllent/mailpit:v1.31.6
     ports:
-      - "${MAILPIT_SMTP_PORT:-1025}:1025"
-      - "${MAILPIT_UI_PORT:-8025}:8025"
+      - "127.0.0.1:${MAILPIT_SMTP_PORT:-1025}:1025"
+      - "127.0.0.1:${MAILPIT_UI_PORT:-8025}:8025"
     healthcheck:
       test: ["CMD", "/mailpit", "readyz"]
       interval: 5s
@@ -47,8 +48,8 @@ services:
     environment:
       ASPIRE_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS: "true"
     ports:
-      - "${ASPIRE_UI_PORT:-18888}:18888"
-      - "${OTLP_GRPC_PORT:-4317}:18889"
+      - "127.0.0.1:${ASPIRE_UI_PORT:-18888}:18888"
+      - "127.0.0.1:${OTLP_GRPC_PORT:-4317}:18889"
     restart: unless-stopped
 
 volumes:
