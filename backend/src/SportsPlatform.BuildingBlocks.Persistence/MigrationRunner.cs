@@ -24,8 +24,18 @@ public sealed partial class MigrationRunner(
 
             var pending = (await context.Database.GetPendingMigrationsAsync(cancellationToken)).ToList();
             await context.Database.MigrateAsync(cancellationToken);
+            await RevokeHistoryTableAccessAsync(context, cancellationToken);
             LogMigrated(database.Schema, pending.Count);
         }
+    }
+
+    // EF creates the history table outside the migrations, so the default grants from 01-roles.sh give the runtime
+    // roles DML on it; no migration can take that back. Repeating the revoke on every run is harmless.
+    private static async Task RevokeHistoryTableAccessAsync(ModuleDbContext context, CancellationToken cancellationToken)
+    {
+        var table = TableAccessMigrationExtensions.QualifiedName(context.Schema, ModuleDbContextOptions.MigrationsHistoryTable);
+        var sql = $"REVOKE ALL ON {table} FROM {DatabaseRoles.RuntimeRoles}"; // Identifiers validated; roles are constants.
+        await context.Database.ExecuteSqlRawAsync(sql, cancellationToken);
     }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Schema {Schema}: applied {Count} migration(s)")]

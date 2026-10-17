@@ -25,6 +25,7 @@ public static class AuditColumns
         return builder;
     }
 
-    internal static bool IsAppendOnly(this IReadOnlyEntityType entityType) =>
+    /// <summary>Whether the entity was marked <see cref="IsAppendOnly{TEntity}"/> (the grants test checks its table).</summary>
+    public static bool IsAppendOnly(this IReadOnlyEntityType entityType) =>
         entityType.FindAnnotation(_appendOnlyAnnotation)?.Value is true;
 }
