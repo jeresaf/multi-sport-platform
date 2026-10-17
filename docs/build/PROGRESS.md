@@ -7,15 +7,17 @@ at the start of every review.
 
 - **Current slice:** S01 — Backend platform (docs/build/slices/S01-backend-platform.md). S00 is on `main`; its
   "new contributor in under 30 minutes" check is still with the owner
-- **Current task:** none. S01-T2b (grant narrowing) is in review as #15
-- **Next:** S01-T3 (API conventions, errors, OpenAPI and generated client)
+- **Current task:** S01-T3a — Problem Details, error mapping, correlation ID, error catalogue (branch
+  `s01/t3a-problem-details-errors`)
+- **Next:** S01-T3b (logging, OpenTelemetry, `/health/ready`), then S01-T3c (OpenAPI, Scalar, TS client,
+  `Contracts` CI job)
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S01-T3 — API conventions, errors, OpenAPI and generated client (may be two PRs: T3a Problem Details, errors,
-   correlation, logging, OpenTelemetry, health; T3b OpenAPI, Scalar, `export-openapi`, TS client, `Contracts` job)
-2. S01-T4 — Action catalogue and authorization skeleton
+1. S01-T3b — Serilog JSON logging (correlation, tenant, actor), OpenTelemetry, `/health/ready`
+2. S01-T3c — OpenAPI, Scalar, `export-openapi`, TS client, `Contracts` CI job
+3. S01-T4 — Action catalogue and authorization skeleton
 
 ## Log
 

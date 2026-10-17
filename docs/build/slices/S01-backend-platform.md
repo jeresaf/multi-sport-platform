@@ -217,3 +217,10 @@ Acceptance:
   with `session_replication_role = replica`. Test-only tables `conventions_test.reference_probes` and
   `append_only_probes` exercise the helpers until T5–T7 add real ones. The reset still truncates read-only
   (reference) tables; keeping or reseeding them is T7's.
+- **T3 (split in three, owner 2026-10-17):** T3a = Problem Details, `Result` → HTTP mapping, exception handler,
+  correlation ID, error catalogue + `export-catalogues`; T3b = Serilog, OpenTelemetry, `/health/ready`; T3c =
+  OpenAPI, Scalar, `export-openapi`, TS client, `Contracts` CI job (which also checks the error catalogue).
+  `Result` → HTTP helpers live in `SportsPlatform.BuildingBlocks.Api`, the second BuildingBlocks namespace
+  allowed to use ASP.NET Core. Pipeline error codes: `PLATFORM_UNEXPECTED_ERROR` (500),
+  `PLATFORM_ROUTE_NOT_FOUND` (404), `PLATFORM_METHOD_NOT_ALLOWED` (405), `VALIDATION_MALFORMED_REQUEST` (400).
+  `ProblemDetails:TypeBaseUri` placeholder `https://errors.sportsplatform.invalid/` until Q10 (domain) is decided.
