@@ -1,0 +1,39 @@
+/*
+ * Shared Tailwind 4 theme: maps Tailwind utilities onto the design tokens from @msp/tokens.
+ * Import after "tailwindcss" and "@msp/tokens/tokens.css". Tailwind's default palette is removed so only tokens
+ * can be used for colour.
+ */
+@theme inline {
+  --color-*: initial;
+
+  --color-background: var(--msp-color-background);
+  --color-surface: var(--msp-color-surface);
+  --color-surface-raised: var(--msp-color-surface-raised);
+  --color-border: var(--msp-color-border);
+  --color-text: var(--msp-color-text);
+  --color-text-muted: var(--msp-color-text-muted);
+  --color-focus: var(--msp-color-focus);
+
+  --color-primary: var(--msp-color-brand-primary);
+  --color-primary-hover: var(--msp-color-brand-primary-hover);
+  --color-primary-contrast: var(--msp-color-brand-primary-contrast);
+  --color-secondary: var(--msp-color-brand-secondary);
+
+  --color-live: var(--msp-color-live);
+  --color-success: var(--msp-color-success);
+  --color-warning: var(--msp-color-warning);
+  --color-danger: var(--msp-color-danger);
+  --color-info: var(--msp-color-info);
+  --color-transparent: transparent;
+  --color-current: currentColor;
+
+  --radius-sm: var(--msp-radius-sm);
+  --radius-md: var(--msp-radius-md);
+  --radius-lg: var(--msp-radius-lg);
+  --radius-full: var(--msp-radius-full);
+
+  --font-sans: var(--msp-font-sans);
+
+  --breakpoint-tablet: 768px;
+  --breakpoint-desktop: 1200px;
+}
