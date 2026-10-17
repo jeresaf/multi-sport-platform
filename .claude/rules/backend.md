@@ -17,6 +17,7 @@ paths:
    endpoint mapping and response DTO.
 2. Endpoint declares exactly one action: `.RequireAction(<Module>Actions.X)` (or `.AllowPublic()` for public reads).
 3. Handler loads the aggregate, calls a domain method, saves. Expected failures → `Result.Failure(<Module>Errors.X)`.
+   The endpoint returns `result.ToHttpResult(...)` (Problem Details with the error's `code`).
 4. Integration events for other modules go to the outbox in the same transaction.
 5. Map entities → DTOs with explicit code (no AutoMapper). Never return entities.
 

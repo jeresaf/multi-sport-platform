@@ -222,5 +222,11 @@ Acceptance:
   OpenAPI, Scalar, `export-openapi`, TS client, `Contracts` CI job (which also checks the error catalogue).
   `Result` → HTTP helpers live in `SportsPlatform.BuildingBlocks.Api`, the second BuildingBlocks namespace
   allowed to use ASP.NET Core. Pipeline error codes: `PLATFORM_UNEXPECTED_ERROR` (500),
-  `PLATFORM_ROUTE_NOT_FOUND` (404), `PLATFORM_METHOD_NOT_ALLOWED` (405), `VALIDATION_MALFORMED_REQUEST` (400).
-  `ProblemDetails:TypeBaseUri` placeholder `https://errors.sportsplatform.invalid/` until Q10 (domain) is decided.
+  `PLATFORM_ROUTE_NOT_FOUND` (404), `PLATFORM_METHOD_NOT_ALLOWED` (405), `VALIDATION_MALFORMED_REQUEST` (400),
+  plus `VALIDATION_UNSUPPORTED_MEDIA_TYPE` (415, found while testing: minimal APIs answer 415 for non-JSON bodies).
+  `ErrorKind` gained `MethodNotAllowed`, `UnsupportedMediaType` and `Unexpected`. Other framework statuses without a
+  code (401, 403) get theirs from T4/S03. Errors are discovered by reflection: public static readonly `Error`
+  fields of static `*Errors` classes in BuildingBlocks and each module assembly (a test fails for any other static
+  `Error`). The correlation ID is `HttpContext.TraceIdentifier`. `ProblemDetails:TypeBaseUri` placeholder
+  `https://errors.sportsplatform.invalid/` until Q10 (domain) is decided. Stale-file checking arrives with T3c's
+  `Contracts` job.

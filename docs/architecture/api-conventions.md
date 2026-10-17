@@ -48,11 +48,25 @@ Modules call each other in-process through Contracts, never over HTTP.
   MEMBERSHIP_ STAFF_ TRANSFER_ COMPETITION_ EDITION_ REGISTRATION_ ROSTER_ ELIGIBILITY_ STAGE_ FIXTURE_
   CONTEST_ LINEUP_ OFFICIAL_ TIMELINE_ RESULT_ STANDINGS_ STATS_ SEARCH_ REPORT_ IMPORT_ PROVIDER_
   NOTIFICATION_ BRAND_ SPONSOR_ MEDIA_ AUDIT_ INTEGRITY_ VALIDATION_`.
-- Each module declares its error codes in code; exported to `docs/generated/errors.md` (CI check).
-- HTTP mapping: 400 malformed/validation · 401 unauthenticated · 403 permission/entitlement/access mode ·
-  404 not found (also for other tenants' IDs) · 409 state or concurrency conflict · 422 semantically invalid
-  domain request · 429 rate/quota · 500 unexpected · 503 dependency unavailable.
+- Each module declares its error codes in code (`public static readonly Error` fields of a static `<Module>Errors`
+  class); `export-catalogues` writes `docs/generated/errors.md` and `contracts/errors.json` (CI check).
+- HTTP mapping (`ErrorKind` → status): 400 malformed/validation · 401 unauthenticated · 403
+  permission/entitlement/access mode · 404 not found (also for other tenants' IDs) · 405 method not allowed ·
+  409 state or concurrency conflict · 415 body is not JSON · 422 semantically invalid domain request · 429
+  rate/quota · 500 unexpected · 503 dependency unavailable.
+- Endpoints turn failures into Problem Details with `result.ToHttpResult(...)` / `error.ToProblem()`
+  (`SportsPlatform.BuildingBlocks.Api`); the Host adds `type` and `correlationId`. `title` is the error's
+  default message.
+- Failures raised by the HTTP pipeline itself (`CommonErrors`): `VALIDATION_MALFORMED_REQUEST` (400, body or
+  parameters unreadable), `VALIDATION_UNSUPPORTED_MEDIA_TYPE` (415), `PLATFORM_ROUTE_NOT_FOUND` (404),
+  `PLATFORM_METHOD_NOT_ALLOWED` (405), `PLATFORM_UNEXPECTED_ERROR` (500, any unhandled exception).
 - Never leak stack traces or internal details; they go to logs with the correlation ID.
+
+## Correlation ID
+
+- Every response carries `X-Correlation-Id`. An incoming value is kept if it is 1–64 characters of
+  `[A-Za-z0-9._-]`; otherwise the API generates a UUIDv7. The same value is the Problem Details
+  `correlationId` and is in the logging scope (`CorrelationId`).
 
 ## Pagination, filtering, sorting
 

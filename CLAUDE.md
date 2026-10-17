@@ -68,6 +68,7 @@ dotnet format backend --verify-no-changes       # drop --verify-no-changes to fi
 dotnet run --project backend/src/SportsPlatform.Host     # API on http://localhost:5080 (GET /health/live)
 dotnet run --project backend/tools/SportsPlatform.Cli   # lists CLI commands
 dotnet run --project backend/tools/SportsPlatform.Cli -- migrate   # all module migrations, as sp_migrator
+dotnet run --project backend/tools/SportsPlatform.Cli -- export-catalogues   # docs/generated/errors.md, contracts/errors.json
 dotnet tool restore                             # once: dotnet-ef (pinned in .config/dotnet-tools.json)
 docker compose up -d                            # local PostgreSQL 17 + Mailpit (UI http://localhost:8025)
 infrastructure/local/postgres/check-roles.sh    # verifies sp_migrator / sp_app / sp_platform permissions
