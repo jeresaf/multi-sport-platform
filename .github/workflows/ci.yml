@@ -5,9 +5,10 @@ on:
   push:
     branches: [main]
 
+# Superseded pull-request runs are cancelled; every push to main keeps its own result.
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -31,7 +32,7 @@ jobs:
       - uses: actions/cache@v6
         with:
           path: ~/.nuget/packages
-          key: nuget-${{ runner.os }}-${{ hashFiles('backend/Directory.Packages.props', 'backend/**/*.csproj', 'backend/**/Directory.Build.props') }}
+          key: nuget-${{ runner.os }}-${{ hashFiles('global.json', 'backend/Directory.Packages.props', 'backend/**/*.csproj', 'backend/**/Directory.Build.props') }}
           restore-keys: nuget-${{ runner.os }}-
       - name: Restore
         run: dotnet restore backend

@@ -32,6 +32,8 @@ at the start of every review.
 - **S00-T2:** Tailwind 4 has no JS presets, so `web/packages/config` ships a shared `theme.css` (`@theme` mapped to
   the tokens) instead of a "Tailwind preset". Token colour values are placeholders (design-system.md names the
   groups but not the values) until the owner or the Branding work sets them. Owner approved 2026-10-17.
+- **S00-T4:** an extra `infra` CI job (compose up + `check-roles.sh`) beyond the spec's backend/web/e2e jobs, so
+  T3's role guarantees are regression-tested. Owner approved the plan 2026-10-17.
 
 ## Tech debt / follow-ups
 
