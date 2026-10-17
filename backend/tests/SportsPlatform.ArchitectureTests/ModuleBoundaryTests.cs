@@ -1,15 +1,30 @@
+using System.Xml.Linq;
+
 namespace SportsPlatform.ArchitectureTests;
 
 // AR-02 and AR-26: modules talk only through Contracts; BuildingBlocks knows no module.
-// Reference checks read assembly metadata, which lists only references whose types are used; an unused
-// forbidden ProjectReference is caught as soon as code starts using it.
+// Assembly metadata lists only references whose types are used, so the project files are checked as well.
 public sealed class ModuleBoundaryTests
 {
     [Fact]
+    public void Module_and_Contracts_project_files_reference_only_BuildingBlocks_and_Contracts()
+    {
+        var violations = ModuleProjectFiles()
+            .SelectMany(project => XDocument.Load(project)
+                .Descendants("ProjectReference")
+                .Select(reference => Path.GetFileNameWithoutExtension(
+                    reference.Attribute("Include")!.Value.Replace('\\', Path.DirectorySeparatorChar)))
+                .Where(name => name != SolutionAssemblies.BuildingBlocksName && !SolutionAssemblies.IsContracts(name))
+                .Select(name => $"{Path.GetFileNameWithoutExtension(project)} -> {name}"))
+            .ToList();
+
+        violations.ShouldBeEmpty();
+    }
+
+    [Fact]
     public void Scan_covers_every_module_project_in_the_source_tree()
     {
-        var projects = Directory
-            .GetFiles(Path.Combine(SolutionAssemblies.BackendDirectory, "src", "Modules"), "*.csproj", SearchOption.AllDirectories)
+        var projects = ModuleProjectFiles()
             .Select(path => Path.GetFileNameWithoutExtension(path))
             .Order(StringComparer.Ordinal)
             .ToList();
@@ -78,4 +93,7 @@ public sealed class ModuleBoundaryTests
     {
         SolutionAssemblies.SolutionReferences(SolutionAssemblies.BuildingBlocks).ShouldBeEmpty();
     }
+
+    private static string[] ModuleProjectFiles() => Directory.GetFiles(
+        Path.Combine(SolutionAssemblies.BackendDirectory, "src", "Modules"), "*.csproj", SearchOption.AllDirectories);
 }
