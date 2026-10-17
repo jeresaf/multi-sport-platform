@@ -1,7 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\SportsPlatform.BuildingBlocks\SportsPlatform.BuildingBlocks.csproj" />
+    <PackageReference Include="NetArchTest.Rules" />
+  </ItemGroup>
+
+  <!-- The Host references every module, so all SportsPlatform assemblies land in the output folder. -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\SportsPlatform.Host\SportsPlatform.Host.csproj" />
   </ItemGroup>
 
 </Project>
