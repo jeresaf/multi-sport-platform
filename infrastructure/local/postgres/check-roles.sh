@@ -1,25 +1,39 @@
 #!/usr/bin/env bash
-# Checks the local database roles (S00-T3). Run from the repository root after `docker compose up -d`:
+# Checks the local database roles (S00-T3). Run after `docker compose up -d` (from any directory):
 #   infrastructure/local/postgres/check-roles.sh
 # Exits non-zero if a check fails.
 set -uo pipefail
+cd "$(dirname "$0")/../../.." || exit 1
 
 db=sportsplatform
 failures=0
 pass() { echo "ok   - $1"; }
 fail() { echo "FAIL - $1"; failures=$((failures + 1)); }
 
-# Runs SQL as a role over TCP (password auth), inside the postgres container.
+# Runs SQL as a role inside the postgres container. Connects to the service name, not localhost: the image trusts
+# 127.0.0.1 without a password, while other addresses require scram-sha-256, so passwords are really checked.
 as_role() {
   local role=$1 password=$2 sql=$3
   docker compose exec -T -e PGPASSWORD="$password" postgres \
-    psql -h localhost -U "$role" -d "$db" -v ON_ERROR_STOP=1 -qAt -c "$sql" 2>&1
+    psql -h postgres -U "$role" -d "$db" -v ON_ERROR_STOP=1 -qAt -c "$sql" 2>&1
 }
 
+if [[ ! -f .env ]]; then
+  echo "No .env file: run 'cp .env.example .env' first."
+  exit 1
+fi
 set -a
 # shellcheck disable=SC1091
 source .env
 set +a
+
+# Preflight: one clear error instead of eight misleading ones.
+if ! preflight=$(as_role sp_migrator "$SP_MIGRATOR_PASSWORD" "SELECT 1"); then
+  echo "Cannot connect to PostgreSQL as sp_migrator. Is 'docker compose up -d' healthy, and does .env match the"
+  echo "passwords the volume was created with ('docker compose down -v' recreates it)?"
+  echo "$preflight"
+  exit 1
+fi
 
 # A denied check must fail with a permission error, not for some unrelated reason.
 denied() { [[ "$1" == *"permission denied"* ]]; }
@@ -33,7 +47,10 @@ as_role sp_migrator "$SP_MIGRATOR_PASSWORD" "CREATE SCHEMA s00_check" >/dev/null
   || fail "sp_migrator cannot create an application schema"
 
 [[ "$(as_role sp_app "$SP_APP_PASSWORD" "SELECT current_user")" == "sp_app" ]] \
-  && pass "sp_app can connect" || fail "sp_app cannot connect"
+  && pass "sp_app can connect with its password" || fail "sp_app cannot connect"
+
+[[ "$(as_role sp_app "not-the-password" "SELECT 1")" == *"password authentication failed"* ]] \
+  && pass "sp_app is refused with a wrong password" || fail "sp_app connected without the right password"
 
 denied "$(as_role sp_app "$SP_APP_PASSWORD" "CREATE TABLE s00_check.t (id int)")" \
   && pass "sp_app cannot create tables in an application schema" \

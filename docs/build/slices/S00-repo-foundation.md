@@ -103,7 +103,7 @@ Acceptance:
 - **T3 — database roles.** `infrastructure/local/postgres/init/01-roles.sh` creates the roles once per volume.
   `sp_migrator` owns the database (and so the schemas migrations create); `sp_app` and `sp_platform` get
   `USAGE`/DML on future schemas, tables, sequences and functions through `ALTER DEFAULT PRIVILEGES FOR ROLE
-  sp_migrator`, never `CREATE`. `infrastructure/local/postgres/check-roles.sh` proves this (8 checks) and is meant
+  sp_migrator`, never `CREATE`. `infrastructure/local/postgres/check-roles.sh` proves this (9 checks) and is meant
   for reuse in CI. The S01 Testcontainers fixture should run the same init script so tests use the same roles.
   The defaults grant DML on **every** table `sp_migrator` creates. From S01, migrations must narrow this where a
   table needs it: `REVOKE INSERT, UPDATE, DELETE … FROM sp_app` for global/reference tables (read-only to the app),
