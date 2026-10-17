@@ -54,6 +54,7 @@ class SupporterScreen extends ConsumerWidget {
                       Tab(text: 'Schedule'),
                       Tab(text: 'Results'),
                       Tab(text: 'Standings'),
+                      Tab(text: 'Statistics'),
                       Tab(text: 'Favourites'),
                     ],
                   ),
@@ -130,6 +131,7 @@ class SupporterScreen extends ConsumerWidget {
                             itemBuilder: (context, index) =>
                                 _StandingTile(standing: data.standings[index]),
                           ),
+                          _StatisticsView(data: data),
                           _FavouritesList(
                             favourites: preferences.favourites.values.toList(),
                           ),
@@ -143,7 +145,7 @@ class SupporterScreen extends ConsumerWidget {
     );
     if (liveOnly) return scaffold;
     return DefaultTabController(
-      length: 4,
+      length: 5,
       initialIndex: initialTab,
       child: scaffold,
     );
@@ -376,6 +378,189 @@ class _StandingTile extends StatelessWidget {
                 .textTheme
                 .titleMedium
                 ?.copyWith(fontWeight: FontWeight.bold),
+          ),
+        ),
+      );
+}
+
+class _StatisticsView extends ConsumerWidget {
+  final SupporterFeed data;
+
+  const _StatisticsView({required this.data});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final live = data.fixtures.where((fixture) {
+      final status = fixture.status.toLowerCase().replaceAll('_', '');
+      return status == 'live' || status == 'inprogress';
+    }).length;
+    final competitions = <String>{
+      ...data.fixtures.map((item) => item.competitionId),
+      ...data.standings.map((item) => item.competitionId),
+    }..removeWhere((value) => value.isEmpty);
+    final sports = <String>{
+      ...data.fixtures.map((item) => item.sportCode),
+    }..removeWhere((value) => value.isEmpty);
+    final wins = <String, int>{};
+    for (final result in data.results) {
+      if (result.rank == 1) {
+        wins.update(result.participantName, (value) => value + 1,
+            ifAbsent: () => 1);
+      }
+    }
+    final leaders = wins.entries.toList()
+      ..sort((left, right) =>
+          right.value.compareTo(left.value) != 0
+              ? right.value.compareTo(left.value)
+              : left.key.compareTo(right.key));
+
+    return RefreshIndicator(
+      onRefresh: () => ref.read(supporterFeedProvider.notifier).refresh(),
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Theme.of(context).colorScheme.primary,
+                  Theme.of(context).colorScheme.secondary,
+                ],
+              ),
+              borderRadius: BorderRadius.circular(22),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.insights, color: Colors.white),
+                const SizedBox(height: 12),
+                Text(
+                  'Published performance',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                      ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'A current snapshot from public fixtures, results and standings.',
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodyMedium
+                      ?.copyWith(color: Colors.white70),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          GridView.count(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisCount: 2,
+            childAspectRatio: 1.55,
+            mainAxisSpacing: 10,
+            crossAxisSpacing: 10,
+            children: [
+              _MobileMetric(
+                  label: 'Live now', value: live, icon: Icons.sensors),
+              _MobileMetric(
+                  label: 'Fixtures',
+                  value: data.fixtures.length,
+                  icon: Icons.calendar_month_outlined),
+              _MobileMetric(
+                  label: 'Results',
+                  value: data.results.length,
+                  icon: Icons.emoji_events_outlined),
+              _MobileMetric(
+                  label: 'Tables',
+                  value: competitions.length,
+                  icon: Icons.table_chart_outlined),
+              _MobileMetric(
+                  label: 'Sports',
+                  value: sports.length,
+                  icon: Icons.sports_outlined),
+              _MobileMetric(
+                  label: 'Entries',
+                  value: data.standings.length,
+                  icon: Icons.groups_outlined),
+            ],
+          ),
+          const SizedBox(height: 22),
+          Text(
+            'Recent winners',
+            style: Theme.of(context)
+                .textTheme
+                .titleLarge
+                ?.copyWith(fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 10),
+          if (leaders.isEmpty)
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  'Winner statistics will appear after ranked results are published.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.outline,
+                  ),
+                ),
+              ),
+            )
+          else
+            ...leaders.take(8).toList().asMap().entries.map((entry) {
+              final leader = entry.value;
+              return Card(
+                child: ListTile(
+                  leading: CircleAvatar(child: Text('${entry.key + 1}')),
+                  title: Text(leader.key),
+                  subtitle: const Text('Published wins'),
+                  trailing: Text(
+                    '${leader.value}',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleLarge
+                        ?.copyWith(fontWeight: FontWeight.w900),
+                  ),
+                ),
+              );
+            }),
+        ],
+      ),
+    );
+  }
+}
+
+class _MobileMetric extends StatelessWidget {
+  final String label;
+  final int value;
+  final IconData icon;
+
+  const _MobileMetric({
+    required this.label,
+    required this.value,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) => Card(
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icon, color: Theme.of(context).colorScheme.primary),
+              const Spacer(),
+              Text(
+                '$value',
+                style: Theme.of(context)
+                    .textTheme
+                    .headlineSmall
+                    ?.copyWith(fontWeight: FontWeight.w900),
+              ),
+              Text(label, style: Theme.of(context).textTheme.labelMedium),
+            ],
           ),
         ),
       );

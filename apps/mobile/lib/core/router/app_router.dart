@@ -106,7 +106,7 @@ class AppRouter {
                 path: '/favourites',
                 name: 'favourites',
                 builder: (context, state) =>
-                    const SupporterScreen(initialTab: 3),
+                    const SupporterScreen(initialTab: 4),
               ),
             ]),
             StatefulShellBranch(routes: [

@@ -35,7 +35,19 @@ const SCORING_LIFECYCLE_STATUSES = new Set([
   'canceled',
 ]);
 
-export function MatchCentrePage({ initialFilter = 'all', initialSportSlug }: { initialFilter?: ContestFilter; initialSportSlug?: string }) {
+export function MatchCentrePage({
+  initialFilter = 'all',
+  initialSportSlug,
+  eyebrow = 'Match centre',
+  title = 'Scores, fixtures & results',
+  description = 'Follow live contests, upcoming fixtures and official results across every published sport.',
+}: {
+  initialFilter?: ContestFilter;
+  initialSportSlug?: string;
+  eyebrow?: string;
+  title?: string;
+  description?: string;
+}) {
   const [tenantSlug] = useState(resolveTenantSlug);
   const [date, setDate] = useState(initialDate);
   const [filter, setFilter] = useState<ContestFilter>(() => initialContestFilter(initialFilter));
@@ -215,11 +227,11 @@ export function MatchCentrePage({ initialFilter = 'all', initialSportSlug }: { i
             <div className="max-w-2xl">
               <span className="inline-flex h-8 items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 text-xs font-bold uppercase tracking-[0.18em] text-white/80">
                 <Radio className="h-3.5 w-3.5" />
-                Match centre
+                {eyebrow}
               </span>
-              <h1 className="mt-4 text-3xl font-black tracking-tight sm:text-5xl">Scores, fixtures & results</h1>
+              <h1 className="mt-4 text-3xl font-black tracking-tight sm:text-5xl">{title}</h1>
               <p className="mt-3 max-w-xl text-sm leading-6 text-white/70 sm:text-base">
-                Follow live contests, upcoming fixtures and official results across every published sport.
+                {description}
               </p>
             </div>
             <button
