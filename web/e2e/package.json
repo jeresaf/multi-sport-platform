@@ -1,0 +1,20 @@
+{
+  "name": "@msp/e2e",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "e2e": "playwright test",
+    "lint": "eslint . --max-warnings=0",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@msp/admin": "workspace:*",
+    "@msp/config": "workspace:*",
+    "@msp/public": "workspace:*",
+    "@playwright/test": "1.64.1",
+    "@types/node": "24.19.2",
+    "eslint": "9.39.5",
+    "typescript": "6.0.3"
+  }
+}
