@@ -23,6 +23,34 @@ namespace SportsPlatform.IntegrationTests.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("SportsPlatform.IntegrationTests.Persistence.AppendOnlyProbe", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("Note")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("note");
+
+                    b.HasKey("Id")
+                        .HasName("pk_append_only_probes");
+
+                    b.ToTable("append_only_probes", "conventions_test");
+
+                    b.HasAnnotation("SportsPlatform:AppendOnly", true);
+                });
+
             modelBuilder.Entity("SportsPlatform.IntegrationTests.Persistence.ConventionProbe", b =>
                 {
                     b.Property<Guid>("Id")
@@ -61,6 +89,40 @@ namespace SportsPlatform.IntegrationTests.Persistence.Migrations
                         .HasName("pk_convention_probes");
 
                     b.ToTable("convention_probes", "conventions_test");
+                });
+
+            modelBuilder.Entity("SportsPlatform.IntegrationTests.Persistence.ReferenceProbe", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("code");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_reference_probes");
+
+                    b.ToTable("reference_probes", "conventions_test");
                 });
 #pragma warning restore 612, 618
         }

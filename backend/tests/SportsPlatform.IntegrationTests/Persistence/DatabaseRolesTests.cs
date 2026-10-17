@@ -13,6 +13,7 @@ public sealed class DatabaseRolesTests(PostgresFixture fixture) : DatabaseTest(f
     public async Task The_roles_from_01_roles_sh_exist_with_their_attributes()
     {
         var roles = await QueryAsync(
+            DatabaseRoles.Migrator,
             "SELECT rolname, rolsuper, rolbypassrls, rolcreatedb, rolcreaterole FROM pg_roles " +
             "WHERE rolname LIKE 'sp\\_%' ORDER BY rolname",
             reader => $"{reader.GetString(0)} super={reader.GetBoolean(1)} bypassrls={reader.GetBoolean(2)} " +
@@ -31,7 +32,7 @@ public sealed class DatabaseRolesTests(PostgresFixture fixture) : DatabaseTest(f
     {
         var major = PostgresFixture.ImageFromCompose.Split(':')[1].Split('.')[0];
 
-        var version = await QueryAsync("SHOW server_version", reader => reader.GetString(0));
+        var version = await QueryAsync(DatabaseRoles.Migrator, "SHOW server_version", reader => reader.GetString(0));
 
         version.Single().ShouldStartWith(major + ".");
     }
@@ -53,6 +54,7 @@ public sealed class DatabaseRolesTests(PostgresFixture fixture) : DatabaseTest(f
         var schemas = App.Services.GetServices<ModuleDatabase>().Select(d => d.Schema).ToArray();
 
         var owners = await QueryAsync(
+            DatabaseRoles.Migrator,
             "SELECT 'schema ' || nspname || ' ' || pg_get_userbyid(nspowner) FROM pg_namespace WHERE nspname = ANY(@schemas) " +
             "UNION ALL SELECT 'table ' || schemaname || '.' || tablename || ' ' || tableowner FROM pg_tables " +
             "WHERE schemaname = ANY(@schemas)",
@@ -63,22 +65,5 @@ public sealed class DatabaseRolesTests(PostgresFixture fixture) : DatabaseTest(f
         owners.ShouldContain($"table platform.{ModuleDbContextOptions.MigrationsHistoryTable} sp_migrator");
         owners.ShouldContain($"table {ConventionsTestDbContext.SchemaName}.convention_probes sp_migrator");
         owners.ShouldAllBe(owner => owner.EndsWith(" sp_migrator", StringComparison.Ordinal));
-    }
-
-    private async Task<List<T>> QueryAsync<T>(string sql, Func<NpgsqlDataReader, T> read, params NpgsqlParameter[] parameters)
-    {
-        await using var connection = new NpgsqlConnection(Fixture.ConnectionString("sp_migrator"));
-        await connection.OpenAsync(Ct);
-        await using var command = new NpgsqlCommand(sql, connection);
-        command.Parameters.AddRange(parameters);
-        await using var reader = await command.ExecuteReaderAsync(Ct);
-
-        var rows = new List<T>();
-        while (await reader.ReadAsync(Ct))
-        {
-            rows.Add(read(reader));
-        }
-
-        return rows;
     }
 }

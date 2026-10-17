@@ -89,10 +89,10 @@ Deliver:
 - A test-only entity proves conventions (snake_case, UUIDv7 ordering, audit columns, concurrency conflict).
 
 Acceptance:
-- [ ] Integration tests run against real PostgreSQL in CI, using the roles from `01-roles.sh`.
-- [ ] The app's connection is `sp_app` (test); migrations are owned by `sp_migrator` (test).
-- [ ] The grants test passes and fails when a table has no declared policy (show it in the PR).
-- [ ] Concurrency conflict returns the expected error.
+- [x] Integration tests run against real PostgreSQL in CI, using the roles from `01-roles.sh`.
+- [x] The app's connection is `sp_app` (test); migrations are owned by `sp_migrator` (test).
+- [x] The grants test passes and fails when a table has no declared policy (show it in the PR).
+- [x] Concurrency conflict returns the expected error.
 
 ### T3 — API conventions, errors, OpenAPI and generated client
 
@@ -206,3 +206,14 @@ Acceptance:
   The CLI references the Host (module list, services, appsettings); `dotnet run` uses Development via
   launchSettings, a published CLI defaults to Production. Integration tests: one container per run, database
   tests serialised in the `Database` collection.
+- **T2b:** `ReadOnlyForRuntimeRoles` revokes writes from `sp_app` **and** `sp_platform` (owner, 2026-10-17, on
+  the reviewer's advice in #14). `AppendOnly` revokes UPDATE/DELETE and adds two triggers per table
+  (`append_only_rows`, `append_only_truncate`) calling `<schema>.reject_append_only_change()` (one function per
+  schema), which raises SQLSTATE `P0001` for every role, the owner included; TRUNCATE is blocked too (owner). The
+  `migrate` runner revokes all access to each `__ef_migrations_history` after every run. The declared policies
+  live in `TableAccessPolicies` (integration tests); `TableGrantsTests` checks all seven table privileges for both
+  runtime roles (column grants included) on every table, view, materialized view and foreign table outside the
+  system schemas. The test reset uses an unpooled superuser connection
+  with `session_replication_role = replica`. Test-only tables `conventions_test.reference_probes` and
+  `append_only_probes` exercise the helpers until T5–T7 add real ones. The reset still truncates read-only
+  (reference) tables; keeping or reseeding them is T7's.
