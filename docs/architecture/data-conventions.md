@@ -107,11 +107,15 @@ creates (never TRUNCATE). Each table gets one policy, set in the migration that 
 | Migrations history | nothing | revoked by the `migrate` runner after every run |
 
 - Append-only tables also get triggers that reject UPDATE, DELETE and TRUNCATE for every role, the owner
-  included (AR-19). Only a superuser with `session_replication_role = replica` gets past them; that is the test
-  reset, and managed PostgreSQL in production has no superuser.
+  included (AR-19). They can be bypassed only by a superuser with `session_replication_role = replica` (the test
+  reset; managed PostgreSQL in production gives the app no superuser) or by the owner changing the triggers in DDL,
+  which happens only in a reviewed migration.
+- Partitioned tables: grants and the TRUNCATE trigger on the parent don't reach the partitions, so apply the
+  helper to each partition too (the grants test flags undeclared partitions).
 - Read-only covers `sp_platform` too: it bypasses tenant isolation for cross-tenant work; it doesn't write
   reference data. A platform service that must write a global table is a declared exception (below).
-- The grants test (`TableGrantsTests`) reads `has_table_privilege` for every table and compares it with
+- The grants test (`TableGrantsTests`) reads the privileges (table- and column-level) of every table, view,
+  materialized view and foreign table and compares them with
   `TableAccessPolicies` in the integration tests. A new table fails until its policy is declared there;
   exceptions for one role are declared there with a reason.
 

@@ -212,6 +212,8 @@ Acceptance:
   schema), which raises SQLSTATE `P0001` for every role, the owner included; TRUNCATE is blocked too (owner). The
   `migrate` runner revokes all access to each `__ef_migrations_history` after every run. The declared policies
   live in `TableAccessPolicies` (integration tests); `TableGrantsTests` checks all seven table privileges for both
-  runtime roles on every table outside the system schemas. The test reset uses an unpooled superuser connection
+  runtime roles (column grants included) on every table, view, materialized view and foreign table outside the
+  system schemas. The test reset uses an unpooled superuser connection
   with `session_replication_role = replica`. Test-only tables `conventions_test.reference_probes` and
-  `append_only_probes` exercise the helpers until T5–T7 add real ones.
+  `append_only_probes` exercise the helpers until T5–T7 add real ones. The reset still truncates read-only
+  (reference) tables; keeping or reseeding them is T7's.

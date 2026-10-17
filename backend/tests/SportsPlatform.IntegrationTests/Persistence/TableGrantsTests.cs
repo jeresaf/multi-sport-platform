@@ -69,26 +69,40 @@ public sealed class TableGrantsTests(PostgresFixture fixture) : DatabaseTest(fix
             .Order()
             .ToList();
 
+        // The full definitions (timing, events, level, function), not just the names; and enabled ('O').
         var triggers = await QueryAsync(
             DatabaseRoles.Migrator,
-            "SELECT n.nspname || '.' || c.relname || ' ' || string_agg(t.tgname, ',' ORDER BY t.tgname) " +
-            "FROM pg_trigger t JOIN pg_class c ON c.oid = t.tgrelid JOIN pg_namespace n ON n.oid = c.relnamespace " +
-            "WHERE NOT t.tgisinternal AND t.tgenabled = 'O' AND t.tgname LIKE 'append\\_only\\_%' " +
-            "GROUP BY n.nspname, c.relname ORDER BY 1",
+            "SELECT pg_get_triggerdef(t.oid) FROM pg_trigger t " +
+            "WHERE NOT t.tgisinternal AND t.tgenabled = 'O' AND t.tgname LIKE 'append\\_only\\_%' ORDER BY 1",
             reader => reader.GetString(0));
 
         marked.ShouldBe(declared);
-        triggers.ShouldBe(declared.Select(table => $"{table} append_only_rows,append_only_truncate").ToList());
+        triggers.ShouldBe(declared
+            .SelectMany(table =>
+            {
+                var function = $"{table.Split('.')[0]}.reject_append_only_change()";
+                return new[]
+                {
+                    $"CREATE TRIGGER append_only_rows BEFORE DELETE OR UPDATE ON {table} FOR EACH ROW EXECUTE FUNCTION {function}",
+                    $"CREATE TRIGGER append_only_truncate BEFORE TRUNCATE ON {table} FOR EACH STATEMENT EXECUTE FUNCTION {function}",
+                };
+            })
+            .Order(StringComparer.Ordinal)
+            .ToList());
     }
 
     private async Task<Dictionary<(string Table, string Role), List<string>>> ActualPrivilegesAsync()
     {
+        // Every relation the default grants reach: tables, partitioned tables, views, materialized views, foreign
+        // tables. has_any_column_privilege also sees column-level grants (e.g. GRANT UPDATE (col)).
         var rows = await QueryAsync(
             DatabaseRoles.Migrator,
-            "SELECT n.nspname || '.' || c.relname, r.role, p.privilege, has_table_privilege(r.role, c.oid, p.privilege) " +
+            "SELECT n.nspname || '.' || c.relname, r.role, p.privilege, " +
+            "CASE WHEN p.privilege IN ('SELECT', 'INSERT', 'UPDATE', 'REFERENCES') " +
+            "THEN has_any_column_privilege(r.role, c.oid, p.privilege) ELSE has_table_privilege(r.role, c.oid, p.privilege) END " +
             "FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace " +
             "CROSS JOIN unnest(@roles) AS r(role) CROSS JOIN unnest(@privileges) WITH ORDINALITY AS p(privilege, position) " +
-            "WHERE c.relkind IN ('r', 'p') AND n.nspname NOT IN ('pg_catalog', 'information_schema') " +
+            "WHERE c.relkind IN ('r', 'p', 'v', 'm', 'f') AND n.nspname NOT IN ('pg_catalog', 'information_schema') " +
             "AND n.nspname NOT LIKE 'pg\\_toast%' ORDER BY 1, 2, p.position",
             reader => (Table: reader.GetString(0), Role: reader.GetString(1), Privilege: reader.GetString(2), Granted: reader.GetBoolean(3)),
             new NpgsqlParameter("roles", TableAccessPolicies.RuntimeRoles),

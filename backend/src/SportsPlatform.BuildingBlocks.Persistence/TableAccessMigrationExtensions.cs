@@ -26,7 +26,9 @@ public static partial class TableAccessMigrationExtensions
     /// <summary>
     /// Audit and timeline tables (AR-19): the runtime roles may read and insert only, and triggers reject UPDATE,
     /// DELETE and TRUNCATE for everyone, including the owner. Only a superuser with
-    /// <c>session_replication_role = replica</c> (the test reset) gets past them.
+    /// <c>session_replication_role = replica</c> (the test reset) or a reviewed DDL migration by the owner gets past
+    /// them. A <c>Down</c> that drops the table leaves the schema's function in place (harmless; re-created with
+    /// <c>CREATE OR REPLACE</c>). On a partitioned table, apply it to each partition as well.
     /// </summary>
     public static MigrationBuilder AppendOnly(this MigrationBuilder migrationBuilder, string schema, string table)
     {
@@ -63,6 +65,7 @@ public static partial class TableAccessMigrationExtensions
             : throw new ArgumentException($"'{name}' is not a snake_case identifier.", nameof(name));
     }
 
-    [GeneratedRegex("^[a-z_][a-z0-9_]*$")]
+    // \z, not $: $ also matches before a trailing newline. 63 bytes is PostgreSQL's identifier limit.
+    [GeneratedRegex(@"^[a-z_][a-z0-9_]{0,62}\z")]
     private static partial Regex SnakeCaseIdentifier();
 }
