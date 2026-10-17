@@ -10,3 +10,8 @@ Files in this folder are written by the backend CLI (from S01) — never by hand
 | `entitlements.md` | Entitlement definitions (from S04) |
 
 CI regenerates them and fails if the committed versions are stale. Machine-readable copies live in `/contracts`.
+
+- `../../contracts/openapi.json` — OpenAPI 3.1 document, written by `dotnet run --project backend/tools/SportsPlatform.Cli -- export-openapi`.
+- `web/packages/api-client/src/generated/schema.ts` — TypeScript types, written by `pnpm --filter @msp/api-client generate` (in `web/`).
+- `errors.md` / `../../contracts/errors.json` — error catalogue, written by `export-catalogues`.
+- The `Contracts` CI job regenerates all of these and fails if anything differs from what's committed.
