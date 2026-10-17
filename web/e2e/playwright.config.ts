@@ -28,7 +28,8 @@ export default defineConfig({
   webServer: apps.map((app) => ({
     command: `pnpm --filter @msp/${app.name} start`,
     url: `http://localhost:${app.port}`,
-    reuseExistingServer: !isCi,
+    // Never reuse a running dev server: smoke tests must hit the production build.
+    reuseExistingServer: false,
     timeout: 120_000,
   })),
 });
