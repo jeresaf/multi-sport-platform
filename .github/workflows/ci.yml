@@ -98,6 +98,48 @@ jobs:
           path: web/e2e/playwright-report
           retention-days: 7
 
+  # Generated files are committed so their diffs get reviewed; regenerate them all and fail if anything changed.
+  contracts:
+    name: Contracts
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('global.json', 'backend/Directory.Packages.props', 'backend/**/*.csproj', 'backend/**/Directory.Build.props') }}
+          restore-keys: nuget-${{ runner.os }}-
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: web/package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - name: Install web dependencies
+        working-directory: web
+        run: pnpm install --frozen-lockfile
+      - name: Export error catalogue
+        run: dotnet run --project backend/tools/SportsPlatform.Cli -- export-catalogues
+      - name: Export OpenAPI document
+        run: dotnet run --project backend/tools/SportsPlatform.Cli --no-build -- export-openapi
+      - name: Generate TypeScript client
+        working-directory: web
+        run: pnpm --filter @msp/api-client generate
+      - name: Fail if generated files are stale
+        run: |
+          git add --intent-to-add --all
+          if ! git diff --exit-code --stat; then
+            git diff
+            echo "::error::Generated files are stale. Run the export-catalogues and export-openapi CLI commands and 'pnpm --filter @msp/api-client generate', then commit the result."
+            exit 1
+          fi
+
   infra:
     name: Local infrastructure
     runs-on: ubuntu-24.04
