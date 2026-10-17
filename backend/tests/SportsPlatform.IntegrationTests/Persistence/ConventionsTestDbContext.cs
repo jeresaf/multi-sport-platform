@@ -17,10 +17,22 @@ public sealed class ConventionsTestDbContext(DbContextOptions<ConventionsTestDbC
 
     public DbSet<ConventionProbe> ConventionProbes => Set<ConventionProbe>();
 
+    public DbSet<ReferenceProbe> ReferenceProbes => Set<ReferenceProbe>();
+
+    public DbSet<AppendOnlyProbe> AppendOnlyProbes => Set<AppendOnlyProbe>();
+
     protected override Error ConcurrencyConflictError => ConcurrencyConflict;
 
-    protected override void ConfigureModel(ModelBuilder modelBuilder) =>
+    protected override void ConfigureModel(ModelBuilder modelBuilder)
+    {
         modelBuilder.Entity<ConventionProbe>(probe => probe.Property(p => p.VenueName).HasMaxLength(200));
+        modelBuilder.Entity<ReferenceProbe>(probe => probe.Property(p => p.Code).HasMaxLength(10));
+        modelBuilder.Entity<AppendOnlyProbe>(probe =>
+        {
+            probe.IsAppendOnly();
+            probe.Property(p => p.Note).HasMaxLength(200);
+        });
+    }
 }
 
 /// <summary>An aggregate with one business property; everything else comes from the conventions.</summary>
@@ -40,6 +52,32 @@ public sealed class ConventionProbe : AggregateRoot
     public string VenueName { get; private set; } = string.Empty;
 
     public void Rename(string venueName) => VenueName = venueName;
+}
+
+/// <summary>A reference-style table: the runtime roles may only read it (<c>ReadOnlyForRuntimeRoles</c>).</summary>
+public sealed class ReferenceProbe : Entity
+{
+    public ReferenceProbe(string code)
+        : base(NewId()) => Code = code;
+
+    private ReferenceProbe()
+    {
+    }
+
+    public string Code { get; private set; } = string.Empty;
+}
+
+/// <summary>An audit-style table: insert and read only (<c>AppendOnly</c>).</summary>
+public sealed class AppendOnlyProbe : Entity
+{
+    public AppendOnlyProbe(string note)
+        : base(NewId()) => Note = note;
+
+    private AppendOnlyProbe()
+    {
+    }
+
+    public string Note { get; private set; } = string.Empty;
 }
 
 /// <summary>Lets <c>dotnet ef migrations add</c> build the context without starting the Host.</summary>

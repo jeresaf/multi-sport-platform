@@ -111,10 +111,19 @@ public sealed partial class PostgresFixture : IAsyncLifetime
         }
     }
 
-    /// <summary>Empties every module table (not the migrations history) so each test starts clean.</summary>
+    /// <summary>
+    /// Empties every module table (not the migrations history) so each test starts clean. Respawn truncates, which
+    /// the append-only triggers reject; as superuser with <c>session_replication_role = replica</c> ordinary
+    /// triggers don't fire. The setting dies with the connection, which is never pooled.
+    /// </summary>
     public async Task ResetAsync()
     {
         await using var connection = await OpenSuperuserConnectionAsync();
+        await using (var command = new NpgsqlCommand("SET session_replication_role = replica", connection))
+        {
+            await command.ExecuteNonQueryAsync();
+        }
+
         await _respawner!.ResetAsync(connection);
     }
 
@@ -140,7 +149,7 @@ public sealed partial class PostgresFixture : IAsyncLifetime
 
     private async Task<NpgsqlConnection> OpenSuperuserConnectionAsync()
     {
-        var connection = new NpgsqlConnection(BuildConnectionString("postgres"));
+        var connection = new NpgsqlConnection(BuildConnectionString("postgres") + ";Pooling=false");
         await connection.OpenAsync();
         return connection;
     }
