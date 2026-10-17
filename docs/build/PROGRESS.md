@@ -7,15 +7,16 @@ at the start of every review.
 
 - **Current slice:** S01 — Backend platform (docs/build/slices/S01-backend-platform.md). S00 is on `main`; its
   "new contributor in under 30 minutes" check is still with the owner
-- **Current task:** none. S01-T3b (logging, OpenTelemetry, `/health/ready`) is in review as #17
-- **Next:** S01-T3c (OpenAPI, Scalar, TS client, `Contracts` CI job), then S01-T4
+- **Current task:** S01-T3c — OpenAPI, Scalar, `export-openapi`, TS client, `Contracts` CI job (branch
+  `s01/t3c-openapi-client`)
+- **Next:** S01-T4 (action catalogue and authorization skeleton)
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S01-T3c — OpenAPI, Scalar, `export-openapi`, TS client, `Contracts` CI job
-2. S01-T4 — Action catalogue and authorization skeleton
-3. S01-T5 — Domain events, outbox and inbox
+1. S01-T4 — Action catalogue and authorization skeleton
+2. S01-T5 — Domain events, outbox and inbox
+3. S01-T6 — Audit
 
 ## Log
 
