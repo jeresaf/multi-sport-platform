@@ -1,7 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
+  <!-- Design-time services for `dotnet ef`; the Host is the startup project for module migrations. -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\SportsPlatform.BuildingBlocks\SportsPlatform.BuildingBlocks.csproj" />
+    <ProjectReference Include="..\SportsPlatform.BuildingBlocks.Persistence\SportsPlatform.BuildingBlocks.Persistence.csproj" />
     <ProjectReference Include="..\Modules\Platform\SportsPlatform.Modules.Platform\SportsPlatform.Modules.Platform.csproj" />
   </ItemGroup>
 

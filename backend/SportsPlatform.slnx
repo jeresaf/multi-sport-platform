@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/SportsPlatform.BuildingBlocks.Persistence/SportsPlatform.BuildingBlocks.Persistence.csproj" />
     <Project Path="src/SportsPlatform.BuildingBlocks/SportsPlatform.BuildingBlocks.csproj" />
     <Project Path="src/SportsPlatform.Host/SportsPlatform.Host.csproj" />
   </Folder>

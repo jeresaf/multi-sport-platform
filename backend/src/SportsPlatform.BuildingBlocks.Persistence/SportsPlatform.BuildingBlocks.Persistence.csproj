@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- EF Core lives here, not in SportsPlatform.BuildingBlocks; only module Infrastructure and the Host use it. -->
+  <ItemGroup>
+    <PackageReference Include="EFCore.NamingConventions" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SportsPlatform.BuildingBlocks\SportsPlatform.BuildingBlocks.csproj" />
+  </ItemGroup>
+
+</Project>
