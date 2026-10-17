@@ -56,6 +56,9 @@ Consolidated by the S00 slice review (2026-10-17). Each item names where it gets
   module; core BuildingBlocks stays free of EF Core (reviewer guidance on #13) (T2).
 - `Entity()` generates a UUIDv7 that EF Core discards on load: give EF a constructor path without generation
   (#13 R3) (T2).
+- `ITenantOwned.TenantId` stays get-only: S02's interceptor sets it with `entry.Property(...).CurrentValue`, never
+  a public setter. Moving `BuildingBlocks/Modules` to a `BuildingBlocks.Web` project is optional, not planned
+  (reviewer guidance on #13).
 - `check-roles.sh`: add checks that `sp_platform` cannot create tables or schemas (T2, small).
 
 **Owner decisions / housekeeping**
