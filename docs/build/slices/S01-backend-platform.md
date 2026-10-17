@@ -47,7 +47,7 @@ Deliver:
   are never empty.
 
 Acceptance:
-- [ ] Architecture tests pass; the PR shows (pasted output) that a temporary forbidden reference makes them fail.
+- [x] Architecture tests pass; the PR shows (pasted output) that a temporary forbidden reference makes them fail.
 
 ### T2 — Persistence conventions and test harness
 Deliver:
@@ -188,3 +188,12 @@ Acceptance:
 - [ ] Architecture, integration and unit tests green in CI.
 - [ ] `.claude/rules/database.md` and CLAUDE.md commands updated with real commands.
 - [ ] The S00 carry-overs above are done and removed from PROGRESS.md "Tech debt / follow-ups".
+
+## Implementation notes
+
+- **T1:** BuildingBlocks may use ASP.NET Core only in `SportsPlatform.BuildingBlocks.Modules` (`IModule`,
+  `ApiEndpointGroups`) and never EF Core; `LayeringTests` enforces it. Architecture tests find assemblies by
+  scanning the test output folder (the test project references the Host, which references every module), and a
+  test fails if a project under `src/Modules` is missing from the scan. `SystemActor.Id` is
+  `00000000-0000-7000-8000-000000000001`. UUIDv7 IDs order by millisecond only; within one millisecond they are
+  random.
