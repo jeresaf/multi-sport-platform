@@ -7,8 +7,9 @@ at the start of every review.
 
 - **Current slice:** S01 — Backend platform (docs/build/slices/S01-backend-platform.md). S00 is on `main`; its
   "new contributor in under 30 minutes" check is still with the owner
-- **Current task:** none. S01-T2a (persistence conventions + test harness) is in review as #14
-- **Next:** S01-T2b (grant narrowing), stacked on T2a's branch
+- **Current task:** S01-T2b (grant narrowing), branch `s01/t2b-grant-narrowing`. Plan approved 2026-10-17:
+  `ReadOnlyForRuntimeRoles` covers `sp_app` and `sp_platform`; the `AppendOnly` trigger also blocks `TRUNCATE`
+- **Next:** S01-T3 (API conventions, errors, OpenAPI and generated client)
 - **Blocked on:** nothing
 
 ## Next up
