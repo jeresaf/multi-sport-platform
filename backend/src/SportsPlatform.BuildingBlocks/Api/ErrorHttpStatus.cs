@@ -14,6 +14,7 @@ public static class ErrorHttpStatus
         ErrorKind.NotFound => StatusCodes.Status404NotFound,
         ErrorKind.MethodNotAllowed => StatusCodes.Status405MethodNotAllowed,
         ErrorKind.Conflict => StatusCodes.Status409Conflict,
+        ErrorKind.PayloadTooLarge => StatusCodes.Status413PayloadTooLarge,
         ErrorKind.UnsupportedMediaType => StatusCodes.Status415UnsupportedMediaType,
         ErrorKind.Unprocessable => StatusCodes.Status422UnprocessableEntity,
         ErrorKind.TooManyRequests => StatusCodes.Status429TooManyRequests,

@@ -31,6 +31,12 @@
       "owner": "BuildingBlocks"
     },
     {
+      "code": "VALIDATION_REQUEST_TOO_LARGE",
+      "status": 413,
+      "message": "The request body is too large.",
+      "owner": "BuildingBlocks"
+    },
+    {
       "code": "VALIDATION_UNSUPPORTED_MEDIA_TYPE",
       "status": 415,
       "message": "The request body must be JSON.",

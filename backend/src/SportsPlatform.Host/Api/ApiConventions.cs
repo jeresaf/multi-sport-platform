@@ -61,12 +61,14 @@ public static class ApiConventions
     }
 
     // Other statuses get their codes from the code that produces them (authentication and authorization: T4, S03).
+    // Kestrel answers 408 and 431 before the pipeline runs, so those responses have no body at all.
     // A bare 404 from a matched endpoint is a bug (endpoints return ToProblem()); it must not claim "no route".
     private static Error? PipelineError(int status, HttpContext httpContext) => status switch
     {
         StatusCodes.Status400BadRequest => CommonErrors.MalformedRequest,
         StatusCodes.Status404NotFound when httpContext.GetEndpoint() is null => CommonErrors.RouteNotFound,
         StatusCodes.Status405MethodNotAllowed => CommonErrors.MethodNotAllowed,
+        StatusCodes.Status413PayloadTooLarge => CommonErrors.RequestTooLarge,
         StatusCodes.Status415UnsupportedMediaType => CommonErrors.UnsupportedMediaType,
         StatusCodes.Status500InternalServerError => CommonErrors.UnexpectedError,
         _ => null,
