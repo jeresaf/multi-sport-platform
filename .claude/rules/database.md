@@ -52,8 +52,13 @@ paths:
 - Instants `timestamptz`; date-only `date`; money `numeric(19,4)` + currency code.
 - JSONB only for genuinely variable payloads (timeline payloads, rules snapshots, definition content, audit
   metadata) — not as a shortcut to avoid modelling.
-- Append-only tables (timeline events, audit) get triggers that reject UPDATE/DELETE where specified.
+- Append-only tables (timeline events, audit): `IsAppendOnly()` in the EF configuration (no `updated_*` columns)
+  and `migrationBuilder.AppendOnly(schema, table)` in the migration (grants + triggers rejecting UPDATE, DELETE
+  and TRUNCATE for every role).
 
 ## Roles
 - `sp_app` (application, subject to RLS, no DDL), `sp_migrator` (owner, DDL), `sp_platform` (BYPASSRLS, only for
   explicit platform services). Don't grant extra privileges to make something work — ask.
+- Every table needs an access policy (docs/architecture/data-conventions.md "Table access"): read-write (default),
+  `migrationBuilder.ReadOnlyForRuntimeRoles(schema, table)` for reference/global tables, or `AppendOnly`. Declare
+  it in `TableAccessPolicies` (integration tests); the grants test fails for a table that isn't there.

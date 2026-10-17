@@ -94,8 +94,29 @@ auto-merge. Person rules are specified in docs/build/slices/S06-people-registry.
   backup/restore note in the PR.
 - Production applies migrations with the CLI (`migrate`) as `sp_migrator`, never automatically at app start.
 
+## Table access
+
+`01-roles.sh` gives `sp_app` and `sp_platform` SELECT, INSERT, UPDATE and DELETE on every table `sp_migrator`
+creates (never TRUNCATE). Each table gets one policy, set in the migration that creates it:
+
+| Policy | Runtime roles may | How |
+|---|---|---|
+| Read-write | SELECT, INSERT, UPDATE, DELETE | default, no call |
+| Read-only (reference and global tables) | SELECT | `migrationBuilder.ReadOnlyForRuntimeRoles(schema, table)`; seeds run as `sp_migrator` |
+| Append-only (audit, timeline) | SELECT, INSERT | `migrationBuilder.AppendOnly(schema, table)` + `IsAppendOnly()` in the EF configuration |
+| Migrations history | nothing | revoked by the `migrate` runner after every run |
+
+- Append-only tables also get triggers that reject UPDATE, DELETE and TRUNCATE for every role, the owner
+  included (AR-19). Only a superuser with `session_replication_role = replica` gets past them; that is the test
+  reset, and managed PostgreSQL in production has no superuser.
+- Read-only covers `sp_platform` too: it bypasses tenant isolation for cross-tenant work; it doesn't write
+  reference data. A platform service that must write a global table is a declared exception (below).
+- The grants test (`TableGrantsTests`) reads `has_table_privilege` for every table and compares it with
+  `TableAccessPolicies` in the integration tests. A new table fails until its policy is declared there;
+  exceptions for one role are declared there with a reason.
+
 ## CI checks (automate as they become relevant)
 
-Tenant column + RLS presence · forbidden cross-module references · public DTO field classification ·
+Tenant column + RLS presence · table grants match the declared access policy · forbidden cross-module references · public DTO field classification ·
 stale generated catalogues (actions, errors, events, OpenAPI) · published configuration hash unchanged ·
 no `IgnoreQueryFilters()` outside allow-listed platform services · no `DateTime.Now` in domain/handlers.
