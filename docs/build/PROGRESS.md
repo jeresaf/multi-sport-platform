@@ -83,6 +83,11 @@ Consolidated by the S00 slice review (2026-10-17). Each item names where it gets
 - `seed --reset` (Development, T7) can't TRUNCATE or DELETE append-only tables as `sp_migrator` (the triggers stop
   the owner too): reset by recreating the database or skip append-only tables (T7; S01-T2b).
 - 401/403 still produce Problem Details without a `code`; codes come with T4/S03 (S01-T3a pre-review).
+- `ICurrentActor` is still the singleton `SystemActor`, so every HTTP request (anonymous ones included) is logged as
+  `ActorKind=System`. Add a per-request actor with an anonymous kind for unauthenticated requests and update
+  `RequestLoggingTests.Request_is_logged_with_correlation_ID_and_actor` (S03, or T4 if it needs one; #17 R1).
+- `/health/ready` is anonymous and runs `SELECT 1` on every hit: expose `/health/*` only to the load balancer and
+  probes, or rate-limit them at the edge (infrastructure task after M1, ADR-0016; #17 R3).
 - `ProblemDetails:TypeBaseUri` is the placeholder `https://errors.sportsplatform.invalid/` until Q10 (domain).
 
 **Owner decisions / housekeeping**
