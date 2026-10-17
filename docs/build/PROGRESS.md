@@ -6,14 +6,13 @@ at the start of every review.
 ## Now
 
 - **Current slice:** S00 — Repo foundation
-- **Current task:** S00-T2 — Web workspace (in progress, branch `s00/t2-web-workspace`, stacked on PR #7)
-- **Blocked on:** nothing (PR #7 awaiting merge)
+- **Current task:** S00-T2 — Web workspace (PR open, stacked on PR #7)
+- **Blocked on:** merge of PR #7 (S00-T1), then review of the S00-T2 PR
 
 ## Next up
 
-1. S00-T2 Web workspace (needs Node 24 + pnpm)
-2. S00-T3 Local infrastructure
-3. S00-T4 CI
+1. S00-T3 Local infrastructure
+2. S00-T4 CI
 
 ## Log
 
@@ -22,14 +21,20 @@ at the start of every review.
 | 2026-10-17 | — | — | Kit added: CLAUDE.md, .claude/, docs/ | Handoff from reviewer |
 | 2026-10-17 | — | — | Kit v2: owner answers Q1, Q2, Q4, Q5; ADR-0016 (hosting); plans and pricing; fictional pilot customer; roadmap Phase 5 reordered (rugby, basketball, cricket); prototype review and selected prototype docs | Restart in the existing repo; prototype at tag `prototype-v0` |
 | 2026-10-17 | S00-T1 | #7 | Root conventions (editorconfig, gitattributes, gitignore, global.json, README); `backend/SportsPlatform.slnx` with Host (`GET /health/live`), BuildingBlocks, Unit/Integration/Architecture tests, CLI; central package management; CLAUDE.md commands | xUnit v3 on Microsoft.Testing.Platform → test command is `dotnet test --solution backend` (agreed) |
+| 2026-10-17 | S00-T2 | (PR pending) | `web/` pnpm 12 + Turborepo workspace; Next.js 16.4 `apps/public` (3000) and `apps/admin` (3001) with Tailwind 4; `packages/config` (tsconfig, ESLint flat config with a colour-literal rule, shared Tailwind theme), `packages/tokens` (CSS variables light/dark + TS export), `packages/ui` (`Button` + Vitest), `packages/api-client` placeholder; Playwright smoke tests in `web/e2e` | Tailwind 4 shared `theme.css` instead of a preset; placeholder token colours (both agreed). ESLint 9 (eslint-config-next plugins don't support 10); TypeScript 6.0 (typescript-eslint needs < 6.1) |
 
 ## Deviations from spec (agreed)
 
 - **S00-T1:** test command `dotnet test --solution backend` instead of `dotnet test backend`. xUnit v3 4.x needs
   Microsoft.Testing.Platform on the .NET 10 SDK (selected in `global.json`). Owner approved 2026-10-17. Noted in
   the S00 spec's Implementation notes.
+- **S00-T2:** Tailwind 4 has no JS presets, so `web/packages/config` ships a shared `theme.css` (`@theme` mapped to
+  the tokens) instead of a "Tailwind preset". Token colour values are placeholders (design-system.md names the
+  groups but not the values) until the owner or the Branding work sets them. Owner approved 2026-10-17.
 
 ## Tech debt / follow-ups
 
 - S01: replace the placeholder `BuildingBlocksAssemblyTests` once real unit tests exist; mark `GET /health/live`
   with `.AllowPublic()` when the action catalogue lands (PR #7 review R3 and question).
+- Token colour values are placeholders (`web/packages/tokens/tokens.css`); owner/Branding to confirm.
+- ESLint stays on 9.x until eslint-config-next's plugins support ESLint 10.

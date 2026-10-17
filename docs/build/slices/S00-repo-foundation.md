@@ -47,9 +47,9 @@ Deliver:
 - Update CLAUDE.md commands for web.
 
 Acceptance:
-- [ ] `pnpm install --frozen-lockfile`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build` pass from `web/`.
-- [ ] `pnpm e2e` runs both smoke tests against production builds.
-- [ ] No colour literals in components — tokens only.
+- [x] `pnpm install --frozen-lockfile`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build` pass from `web/`.
+- [x] `pnpm e2e` runs both smoke tests against production builds.
+- [x] No colour literals in components — tokens only.
 
 ### T3 — Local infrastructure
 Deliver:
@@ -90,3 +90,9 @@ Acceptance:
   the .NET 10 SDK, so `global.json` selects that runner and the test command is `dotnet test --solution backend`
   (the form `dotnet test backend` is rejected by the SDK). Use this form wherever the spec says `dotnet test`,
   including the T4 CI workflow.
+- **T2 — Tailwind 4 (owner-approved).** Tailwind 4 is configured in CSS and has no JS presets, so the shared
+  "Tailwind preset" is `web/packages/config/theme.css` (`@theme inline` mapping utilities to the token variables,
+  default palette removed). Token colour values are placeholders until the owner or the Branding work sets them.
+- **T2 — colour literals** are enforced by ESLint (`no-restricted-syntax` in `@msp/config/eslint`): hex,
+  `rgb()`/`hsl()`/`oklch()` and Tailwind arbitrary colours fail lint in every web package. Colour values live only
+  in `web/packages/tokens/tokens.css`.
