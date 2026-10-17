@@ -1,10 +1,12 @@
 using System.Text.RegularExpressions;
+using SportsPlatform.BuildingBlocks.Messaging;
 
 namespace SportsPlatform.Host.Api;
 
 /// <summary>
 /// Gives every request a correlation ID: a well-formed incoming <c>X-Correlation-Id</c> or a new UUIDv7. The ID becomes
-/// <see cref="HttpContext.TraceIdentifier"/>, is echoed in the response header and is added to the logging scope.
+/// <see cref="HttpContext.TraceIdentifier"/> and the request's <see cref="CorrelationContext"/> (so outbox messages carry it),
+/// is echoed in the response header and is added to the logging scope.
 /// </summary>
 public sealed partial class CorrelationIdMiddleware(RequestDelegate next, TimeProvider timeProvider, ILogger<CorrelationIdMiddleware> logger)
 {
@@ -21,6 +23,7 @@ public sealed partial class CorrelationIdMiddleware(RequestDelegate next, TimePr
             : Guid.CreateVersion7(timeProvider.GetUtcNow()).ToString();
 
         context.TraceIdentifier = correlationId;
+        context.RequestServices.GetService<CorrelationContext>()?.Set(correlationId, causationId: null);
         // OnStarting survives the exception handler clearing the response, so error responses carry the header too.
         context.Response.OnStarting(() =>
         {
