@@ -2,6 +2,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using SportsPlatform.BuildingBlocks.Messaging;
+using SportsPlatform.BuildingBlocks.Persistence.Messaging;
+using SportsPlatform.BuildingBlocks.Tenancy;
 
 namespace SportsPlatform.BuildingBlocks.Persistence;
 
@@ -18,14 +21,21 @@ public static class PersistenceServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
 
+        services.TryAddScoped<MessagingInterceptor>();
         services.TryAddScoped<AuditColumnsInterceptor>();
+        services.TryAddScoped<TenantContext>();
+        services.TryAddScoped<ITenantContext>(provider => provider.GetRequiredService<TenantContext>());
+        services.TryAddScoped<CorrelationContext>();
         services.TryAddSingleton<MigrationRunner>();
 
         // The connection string is read when a context is created, so hosts that never touch the database
         // (and tests that don't need one) start without it.
         services.AddDbContext<TContext>((provider, options) => options
             .UseModuleDefaults<TContext>(RequiredConnectionString(configuration, ConnectionStringNames.App), schema)
-            .AddInterceptors(provider.GetRequiredService<AuditColumnsInterceptor>()));
+            // Order matters: rows added by domain event handlers still get their audit columns.
+            .AddInterceptors(
+                provider.GetRequiredService<MessagingInterceptor>(),
+                provider.GetRequiredService<AuditColumnsInterceptor>()));
 
         services.AddSingleton(new ModuleDatabase(
             schema,

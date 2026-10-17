@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\SportsPlatform.BuildingBlocks\SportsPlatform.BuildingBlocks.csproj" />
+    <ProjectReference Include="..\..\src\SportsPlatform.BuildingBlocks.Persistence\SportsPlatform.BuildingBlocks.Persistence.csproj" />
   </ItemGroup>
 
 </Project>
