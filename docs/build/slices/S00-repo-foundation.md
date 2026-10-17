@@ -80,9 +80,9 @@ Acceptance:
 
 ## Slice acceptance
 
-- [ ] All four tasks merged; CI green on `main`.
+- [x] All four tasks merged; CI green on `main`.
 - [ ] A new contributor can follow README and get everything running in under 30 minutes.
-- [ ] PROGRESS.md and roadmap updated.
+- [x] PROGRESS.md and roadmap updated.
 
 ## Implementation notes
 
