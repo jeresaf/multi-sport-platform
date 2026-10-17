@@ -1,4 +1,6 @@
 using SportsPlatform.Host.Api;
+using SportsPlatform.Host.Authorization;
+using SportsPlatform.Host.Catalogues;
 using SportsPlatform.Host.Health;
 using SportsPlatform.Host.Modules;
 using SportsPlatform.Host.Observability;
@@ -21,12 +23,14 @@ public static class SportsPlatformApp
         builder.Services.AddApiConventions(builder.Configuration);
         builder.Services.AddHealthEndpoints();
         builder.Services.AddApiDocumentation();
+        builder.Services.AddActionAuthorization();
 
         var app = builder.Build();
 
         app.UseRequestLogging();
         app.UseApiConventions();
         app.UseRouting();
+        app.UseActionAuthorization();
 
         app.MapHealthEndpoints();
         app.MapApiDocumentation(app.Environment);
@@ -37,6 +41,9 @@ public static class SportsPlatformApp
         // OpenAPI document) now. With the implicit one that happens only when the app starts, and the CLI exports
         // the document from an app it builds but never starts.
         app.UseEndpoints(static _ => { });
+
+        // Fail closed: the API (and the CLI's export) won't build with an endpoint that declares no action.
+        app.EnsureEndpointsDeclareActions(ActionCatalogue.Build(ModuleRegistry.All));
 
         return app;
     }

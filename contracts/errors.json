@@ -1,6 +1,12 @@
 {
   "errors": [
     {
+      "code": "AUTH_FORBIDDEN",
+      "status": 403,
+      "message": "You are not allowed to perform this action.",
+      "owner": "BuildingBlocks"
+    },
+    {
       "code": "PLATFORM_CONCURRENCY_CONFLICT",
       "status": 409,
       "message": "The record was changed by someone else. Reload and try again.",

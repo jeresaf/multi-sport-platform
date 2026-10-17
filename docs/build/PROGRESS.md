@@ -7,16 +7,15 @@ at the start of every review.
 
 - **Current slice:** S01 — Backend platform (docs/build/slices/S01-backend-platform.md). S00 is on `main`; its
   "new contributor in under 30 minutes" check is still with the owner
-- **Current task:** none. S01-T3c (OpenAPI, Scalar, `export-openapi`, TS client, `Contracts` CI job) is in review
-  as #18
-- **Next:** S01-T4 (action catalogue and authorization skeleton)
+- **Current task:** none. S01-T4 (action catalogue and authorization skeleton) is in review as #19
+- **Next:** S01-T5 (domain events, outbox and inbox)
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S01-T4 — Action catalogue and authorization skeleton
-2. S01-T5 — Domain events, outbox and inbox
-3. S01-T6 — Audit
+1. S01-T5 — Domain events, outbox and inbox
+2. S01-T6 — Audit
+3. S01-T7 — Seed framework and reference data
 
 ## Log
 
@@ -34,6 +33,7 @@ at the start of every review.
 | 2026-10-17 | S01-T3a | #16 | `SportsPlatform.BuildingBlocks.Api` (`ErrorKind` → status, `Error.ToProblem()`, `Result.ToHttpResult()`); `CommonErrors` for pipeline failures; Host `AddApiConventions`/`UseApiConventions` (Problem Details with `code`, `type`, `correlationId`; exception handler → 500 `PLATFORM_UNEXPECTED_ERROR` without internals; routing/binding failures coded); `X-Correlation-Id` middleware; `ErrorCatalogue` + CLI `export-catalogues` → `docs/generated/errors.md`, `contracts/errors.json` | T3 split in three (owner). Added `VALIDATION_UNSUPPORTED_MEDIA_TYPE` (415) and `ErrorKind.MethodNotAllowed`/`UnsupportedMediaType`/`Unexpected`. Stale-file CI check comes with T3c |
 | 2026-10-17 | S01-T3c | #18 | One OpenAPI 3.1 document `v1` (no `servers`; `ProblemDetails` with required `code`/`correlationId`), served with Scalar in Development only; `.ProducesErrors(...)` documents error codes per status (`x-error-codes`); `SportsPlatformApp` shared by API and CLI; CLI `export-openapi` → `contracts/openapi.json`; `@msp/api-client` (openapi-typescript + openapi-fetch, `isProblemDetails`); CI job `Contracts` fails on stale generated files | Explicit `UseRouting`/`UseEndpoints` (an unstarted app otherwise documents no endpoints); strict JSON numbers; openapi-typescript's TS ^5 peer allowed for 6. Health probes left out of the document (owner) |
 | 2026-10-17 | S01-T3b | #17 | Serilog JSON console logs with `CorrelationId`, `ActorKind`, `ActorId`, `TenantId` (`RequestContextEnricher`) and one completion event per request; OpenTelemetry traces and metrics (ASP.NET Core, HttpClient, Npgsql; OTLP only when configured; probes not traced); `GET /health/ready` (database on `App`, status-only body); `VALIDATION_REQUEST_TOO_LARGE` (413); relaxed escaping in `contracts/errors.json` (#16 R1) | JSON in every environment, no OTLP logs, 413 code with 408/431 documented as body-less (owner). Pre-review: real-Kestrel 413 test, enricher re-entry guard. Review: ASP.NET Core `RequestId` dropped from logs (R2) |
+| 2026-10-17 | S01-T4 | #19 | `ActionDefinition` (code, scope, scopable-by, audit, entitlement, idempotent, since), `.RequireAction(...)`/`.AllowPublic()`, `IAuthorizationEvaluator` (default deny → 403 `AUTH_FORBIDDEN`) enforced by a middleware after routing; Host refuses to build with an unmarked, double-marked or public admin/platform endpoint; health, OpenAPI, Scalar and the public group are public; `PlatformActions` (`platform.outbox.read`, `platform.outbox.redrive`); `export-catalogues` → `docs/generated/actions.md`, `contracts/actions.json`; `TestAuthorizationEvaluator` | Middleware instead of endpoint filter and build-time endpoint check (owner). Pre-review: marked non-route endpoints evaluated, protected paths from parsed segments |
 
 ## Deviations from spec (agreed)
 
@@ -68,13 +68,15 @@ at the start of every review.
   reviewer and owner to confirm on #18: the Host calls `UseRouting`/`UseEndpoints` explicitly (routing now runs
   after the correlation, exception and status-code middleware), and JSON numbers are strict (`"5"` → 400
   `VALIDATION_MALFORMED_REQUEST`).
+- **S01-T4:** authorization is enforced by a middleware after routing, not an endpoint filter (docs/architecture/
+  authorization.md updated): it covers every endpoint type and denies before the body is bound. Beyond the spec,
+  the Host also checks the endpoint rules when it is built (not only in a test). Owner approved the plan 2026-10-17.
 
 ## Tech debt / follow-ups
 
 Consolidated by the S00 slice review (2026-10-17). Each item names where it gets done.
 
 **Assigned to S01** (see the spec's "Carried over from S00")
-- Mark `GET /health/live` and `/health/ready` with `.AllowPublic()`; the startup test covers every endpoint (T4).
 - Apply the T2b grant helpers to the real tables: outbox/inbox (T5, read-write), `audit.audit_entries`
   (`AppendOnly`, T6), reference tables (`ReadOnlyForRuntimeRoles`, T7); declare each in `TableAccessPolicies`.
 - `xmin`/`updated_*` cover only the aggregate root's row: a change to only a child entity or owned type doesn't
@@ -88,7 +90,10 @@ Consolidated by the S00 slice review (2026-10-17). Each item names where it gets
   re-run the reference seed after each reset (T7; reviewer note on #14).
 - `seed --reset` (Development, T7) can't TRUNCATE or DELETE append-only tables as `sp_migrator` (the triggers stop
   the owner too): reset by recreating the database or skip append-only tables (T7; S01-T2b).
-- 401/403 still produce Problem Details without a `code`; codes come with T4/S03 (S01-T3a pre-review).
+- T5: test `platform.outbox.read`/`platform.outbox.redrive` allowed and denied through `TestApp.Authorization` (the
+  first end-to-end check that the real Host's pipeline enforces actions; S01-T4 pre-review).
+- 401 still produces Problem Details without a `code` (no authentication yet); comes with S03. 403 from the
+  authorization middleware is `AUTH_FORBIDDEN` (T4) (S01-T3a pre-review).
 - `ICurrentActor` is still the singleton `SystemActor`, so every HTTP request (anonymous ones included) is logged as
   `ActorKind=System`. Add a per-request actor with an anonymous kind for unauthenticated requests and update
   `RequestLoggingTests.Request_is_logged_with_correlation_ID_and_actor` (S03, or T4 if it needs one; #17 R1).
@@ -96,9 +101,6 @@ Consolidated by the S00 slice review (2026-10-17). Each item names where it gets
   setting, used by the Development launch profile; JSON stays everywhere else. Can ride the next PR.
 - `/health/ready` is anonymous and runs `SELECT 1` on every hit: expose `/health/*` only to the load balancer and
   probes, or rate-limit them at the edge (infrastructure task after M1, ADR-0016; #17 R3).
-- `docs/generated/README.md` doesn't mention `contracts/openapi.json`, the generated TS client or the `Contracts`
-  job. It is hand-written, but Claude Code's settings deny edits under `docs/generated/`: owner to edit it, or
-  exempt the README from the deny rule (S01-T3c).
 - `ProblemDetails:TypeBaseUri` is the placeholder `https://errors.sportsplatform.invalid/` until Q10 (domain).
 
 **Owner decisions / housekeeping**

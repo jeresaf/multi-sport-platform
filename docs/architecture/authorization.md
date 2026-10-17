@@ -41,7 +41,8 @@ For every admin request:
 4. Domain rules  (owning module, inside the handler)       → e.g. CONTEST_NOT_READY
 ```
 
-Steps 1–3 run in an endpoint filter using the declared action; quota checks that need a count run inside the
+Steps 1–3 run in the Host's authorization middleware (after routing, before the request body is bound) using the
+endpoint's declared action; quota checks that need a count run inside the
 handler via `IEntitlements.CheckQuota` in the same transaction as the create.
 
 ## Roles and scopes

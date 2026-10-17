@@ -6,6 +6,7 @@ the message is the default title and may change.
 
 | Code | HTTP | Default message | Owner |
 |---|---|---|---|
+| `AUTH_FORBIDDEN` | 403 | You are not allowed to perform this action. | BuildingBlocks |
 | `PLATFORM_CONCURRENCY_CONFLICT` | 409 | The record was changed by someone else. Reload and try again. | Platform |
 | `PLATFORM_METHOD_NOT_ALLOWED` | 405 | This endpoint does not support the HTTP method. | BuildingBlocks |
 | `PLATFORM_ROUTE_NOT_FOUND` | 404 | No endpoint matches this path. | BuildingBlocks |

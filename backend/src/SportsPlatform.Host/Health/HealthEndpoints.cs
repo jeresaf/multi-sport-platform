@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using SportsPlatform.BuildingBlocks.Api;
 
 namespace SportsPlatform.Host.Health;
 
@@ -24,7 +25,8 @@ public static class HealthEndpoints
     {
         endpoints.MapGet(LivePath, () => TypedResults.Ok(new HealthResponse("ok")))
             .WithName("HealthLive")
-            .ExcludeFromDescription();
+            .ExcludeFromDescription()
+            .AllowPublic();
 
         endpoints.MapHealthChecks(ReadyPath, new HealthCheckOptions
         {
@@ -38,7 +40,8 @@ public static class HealthEndpoints
             ResponseWriter = (context, report) => context.Response.WriteAsJsonAsync(
                 new HealthResponse(report.Status == HealthStatus.Unhealthy ? "unavailable" : "ok"), context.RequestAborted),
         }).WithName("HealthReady")
-            .ExcludeFromDescription();
+            .ExcludeFromDescription()
+            .AllowPublic();
 
         return endpoints;
     }

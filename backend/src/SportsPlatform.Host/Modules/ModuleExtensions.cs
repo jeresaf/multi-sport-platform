@@ -1,3 +1,4 @@
+using SportsPlatform.BuildingBlocks.Api;
 using SportsPlatform.BuildingBlocks.Modules;
 
 namespace SportsPlatform.Host.Modules;
@@ -19,11 +20,14 @@ public static class ModuleExtensions
         return services;
     }
 
-    /// <summary>Maps each module's endpoints into the three API families.</summary>
+    /// <summary>
+    /// Maps each module's endpoints into the three API families. Public endpoints are <c>.AllowPublic()</c> as a group, so
+    /// one that also requires an action is rejected at startup.
+    /// </summary>
     public static IEndpointRouteBuilder MapModules(this IEndpointRouteBuilder endpoints, IEnumerable<IModule> modules)
     {
         var groups = new ApiEndpointGroups(
-            Public: endpoints.MapGroup(PublicPrefix),
+            Public: endpoints.MapGroup(PublicPrefix).AllowPublic(),
             Admin: endpoints.MapGroup(AdminPrefix),
             Platform: endpoints.MapGroup(PlatformPrefix));
 
