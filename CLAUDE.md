@@ -58,8 +58,8 @@ prototype-v0:<path>`). What was kept: `docs/reference/first-attempt/README.md`. 
 
 ## Commands
 
-> Run from the repository root. Keep this block accurate. Lines marked "(S00-T3)" don't work until that task is
-> merged. Web needs Node 24 and `corepack enable` (pnpm is pinned in web/package.json).
+> Run from the repository root. Keep this block accurate. Web needs Node 24 and `corepack enable` (pnpm is pinned
+> in web/package.json). Local infra needs `cp .env.example .env` once.
 
 ```bash
 dotnet build backend -warnaserror               # backend/SportsPlatform.slnx
@@ -67,7 +67,9 @@ dotnet test --solution backend                  # xUnit v3 on Microsoft.Testing.
 dotnet format backend --verify-no-changes       # drop --verify-no-changes to fix formatting
 dotnet run --project backend/src/SportsPlatform.Host     # API on http://localhost:5080 (GET /health/live)
 dotnet run --project backend/tools/SportsPlatform.Cli   # lists CLI commands
-docker compose up -d                            # (S00-T3) local PostgreSQL + Mailpit
+docker compose up -d                            # local PostgreSQL 17 + Mailpit (UI http://localhost:8025)
+infrastructure/local/postgres/check-roles.sh    # verifies sp_migrator / sp_app / sp_platform permissions
+docker compose down -v                          # stop and delete local data
 cd web && pnpm install --frozen-lockfile && pnpm lint && pnpm typecheck && pnpm test && pnpm build
 cd web && pnpm --filter @msp/e2e exec playwright install chromium   # once per machine
 cd web && pnpm e2e                              # builds both apps, smoke tests on ports 3000/3001
