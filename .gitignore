@@ -14,9 +14,9 @@ coverage*.xml
 node_modules/
 .pnpm-store/
 .next/
-out/
+web/**/out/
 .turbo/
-dist/
+web/**/dist/
 coverage/
 *.tsbuildinfo
 next-env.d.ts

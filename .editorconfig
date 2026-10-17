@@ -56,7 +56,6 @@ dotnet_naming_style.underscore_camel_case.capitalization = camel_case
 # IDE0005 (unnecessary using) needs GenerateDocumentationFile to be reported at build time.
 dotnet_diagnostic.IDE0005.severity = warning
 
-
 # Test projects: test method names use underscores for readability.
 [backend/tests/**.cs]
 dotnet_diagnostic.CA1707.severity = none
