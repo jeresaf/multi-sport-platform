@@ -58,7 +58,7 @@ Modules call each other in-process through Contracts, never over HTTP.
   (`SportsPlatform.BuildingBlocks.Api`); the Host adds `type` and `correlationId`. `title` is the error's
   default message.
 - Failures raised by the HTTP pipeline itself (`CommonErrors`): `VALIDATION_MALFORMED_REQUEST` (400, body or
-  parameters unreadable), `VALIDATION_UNSUPPORTED_MEDIA_TYPE` (415), `PLATFORM_ROUTE_NOT_FOUND` (404),
+  parameters unreadable), `VALIDATION_UNSUPPORTED_MEDIA_TYPE` (415), `PLATFORM_ROUTE_NOT_FOUND` (404, no endpoint matched),
   `PLATFORM_METHOD_NOT_ALLOWED` (405), `PLATFORM_UNEXPECTED_ERROR` (500, any unhandled exception).
 - Never leak stack traces or internal details; they go to logs with the correlation ID.
 
@@ -66,7 +66,8 @@ Modules call each other in-process through Contracts, never over HTTP.
 
 - Every response carries `X-Correlation-Id`. An incoming value is kept if it is 1–64 characters of
   `[A-Za-z0-9._-]`; otherwise the API generates a UUIDv7. The same value is the Problem Details
-  `correlationId` and is in the logging scope (`CorrelationId`).
+  `correlationId` (the only request ID in the body; ASP.NET Core's `traceId` is removed) and is in the logging
+  scope (`CorrelationId`).
 
 ## Pagination, filtering, sorting
 
