@@ -40,4 +40,6 @@ at the start of every review.
 - ESLint stays on 9.x until eslint-config-next's plugins support ESLint 10; TypeScript stays below 6.1 until
   typescript-eslint supports it.
 - shadcn/ui is not initialised yet (ADR-0011); do it with the first real admin UI (S03). `Button` is hand-written.
+- S01 migrations: narrow `sp_app`'s default DML grants for read-only/global, append-only (timeline, audit) and
+  migrations-history tables (S00 spec, T3 implementation notes).
 - pnpm 12's minimum-release-age policy is on: new package versions are installable about a day after release.

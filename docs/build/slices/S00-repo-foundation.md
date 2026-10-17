@@ -105,3 +105,7 @@ Acceptance:
   `USAGE`/DML on future schemas, tables, sequences and functions through `ALTER DEFAULT PRIVILEGES FOR ROLE
   sp_migrator`, never `CREATE`. `infrastructure/local/postgres/check-roles.sh` proves this (8 checks) and is meant
   for reuse in CI. The S01 Testcontainers fixture should run the same init script so tests use the same roles.
+  The defaults grant DML on **every** table `sp_migrator` creates. From S01, migrations must narrow this where a
+  table needs it: `REVOKE INSERT, UPDATE, DELETE … FROM sp_app` for global/reference tables (read-only to the app),
+  append-only tables (timeline, audit; plus the trigger from AR-19) and each schema's migrations history table.
+  Local ports are bound to `127.0.0.1` because the development passwords are public.
