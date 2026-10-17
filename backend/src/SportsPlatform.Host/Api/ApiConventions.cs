@@ -43,7 +43,7 @@ public static class ApiConventions
 
         // Problems from the framework (routing, binding, unhandled exceptions) have no code yet: use the pipeline's.
         if (!problem.Extensions.ContainsKey(ProblemFields.Code)
-            && PipelineError(problem.Status ?? context.HttpContext.Response.StatusCode) is { } error)
+            && PipelineError(problem.Status ?? context.HttpContext.Response.StatusCode, context.HttpContext) is { } error)
         {
             problem.Title = error.Message;
             problem.Detail = null;
@@ -55,14 +55,17 @@ public static class ApiConventions
             problem.Type = typeBaseUri + code;
         }
 
+        // One request ID in the body: the framework's traceId would differ from correlationId once tracing is on.
+        problem.Extensions.Remove("traceId");
         problem.Extensions[ProblemFields.CorrelationId] = context.HttpContext.TraceIdentifier;
     }
 
     // Other statuses get their codes from the code that produces them (authentication and authorization: T4, S03).
-    private static Error? PipelineError(int status) => status switch
+    // A bare 404 from a matched endpoint is a bug (endpoints return ToProblem()); it must not claim "no route".
+    private static Error? PipelineError(int status, HttpContext httpContext) => status switch
     {
         StatusCodes.Status400BadRequest => CommonErrors.MalformedRequest,
-        StatusCodes.Status404NotFound => CommonErrors.RouteNotFound,
+        StatusCodes.Status404NotFound when httpContext.GetEndpoint() is null => CommonErrors.RouteNotFound,
         StatusCodes.Status405MethodNotAllowed => CommonErrors.MethodNotAllowed,
         StatusCodes.Status415UnsupportedMediaType => CommonErrors.UnsupportedMediaType,
         StatusCodes.Status500InternalServerError => CommonErrors.UnexpectedError,

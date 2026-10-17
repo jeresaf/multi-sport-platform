@@ -3,7 +3,7 @@ using System.Text;
 
 namespace SportsPlatform.IntegrationTests.Api;
 
-public sealed class PipelineProblemDetailsTests(PipelineTestApp app) : IClassFixture<PipelineTestApp>
+public abstract class PipelineProblemDetailsTests(PipelineTestApp app)
 {
     [Fact]
     public async Task Unhandled_exception_returns_500_without_internals()
@@ -18,6 +18,7 @@ public sealed class PipelineProblemDetailsTests(PipelineTestApp app) : IClassFix
         body.ShouldNotContain(nameof(InvalidOperationException));
         body.ShouldNotContain("at SportsPlatform");
         problem.TryGetProperty("detail", out _).ShouldBeFalse();
+        problem.TryGetProperty("exception", out _).ShouldBeFalse();
     }
 
     [Fact]
@@ -62,4 +63,34 @@ public sealed class PipelineProblemDetailsTests(PipelineTestApp app) : IClassFix
 
         await response.ShouldBeProblemAsync(HttpStatusCode.MethodNotAllowed, "PLATFORM_METHOD_NOT_ALLOWED");
     }
+
+    // Endpoints return failures through ToProblem(); a bare 404 from a matched route must not claim "no route".
+    [Fact]
+    public async Task Bare_not_found_from_a_matched_endpoint_is_not_route_not_found()
+    {
+        using var client = app.CreateClient();
+
+        using var response = await client.GetAsync(new Uri("/bare-not-found", UriKind.Relative), TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        body.ShouldNotContain("PLATFORM_ROUTE_NOT_FOUND");
+    }
+
+    [Fact]
+    public async Task Problem_has_one_request_id()
+    {
+        using var client = app.CreateClient();
+
+        using var response = await client.GetAsync(new Uri("/conflict", UriKind.Relative), TestContext.Current.CancellationToken);
+
+        var problem = await response.ShouldBeProblemAsync(HttpStatusCode.Conflict, "PLATFORM_CONCURRENCY_CONFLICT");
+        problem.TryGetProperty("traceId", out _).ShouldBeFalse();
+    }
 }
+
+public sealed class TestingPipelineProblemDetailsTests(TestingPipelineApp app)
+    : PipelineProblemDetailsTests(app), IClassFixture<TestingPipelineApp>;
+
+public sealed class DevelopmentPipelineProblemDetailsTests(DevelopmentPipelineApp app)
+    : PipelineProblemDetailsTests(app), IClassFixture<DevelopmentPipelineApp>;

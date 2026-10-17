@@ -34,7 +34,7 @@ public sealed class HostProblemDetailsTests(HostOnlyApp factory) : IClassFixture
 
     [Theory]
     [InlineData("has spaces")]
-    [InlineData("new\\nline")]
+    [InlineData("back\\slash")]
     [InlineData("<script>")]
     [InlineData("an-id-that-is-far-too-long-to-be-accepted-as-a-correlation-identifier-x")]
     public async Task Malformed_incoming_correlation_id_is_replaced(string incoming)

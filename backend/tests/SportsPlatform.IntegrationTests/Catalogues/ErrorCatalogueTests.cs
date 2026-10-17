@@ -20,8 +20,14 @@ public sealed class ErrorCatalogueTests
         "REPORT", "IMPORT", "PROVIDER", "NOTIFICATION", "BRAND", "SPONSOR", "MEDIA", "AUDIT", "INTEGRITY", "VALIDATION",
     ];
 
-    private static IEnumerable<Assembly> DeclaringAssemblies =>
-        [typeof(Error).Assembly, .. ModuleRegistry.All.Select(module => module.GetType().Assembly)];
+    // What the catalogue scans, plus the Contracts and the Host, where a declared error would be missed.
+    private static IEnumerable<Assembly> ScannedAssemblies =>
+    [
+        typeof(Error).Assembly,
+        typeof(ErrorCatalogue).Assembly,
+        .. ModuleRegistry.All.Select(module => module.GetType().Assembly),
+        .. ModuleRegistry.All.Select(module => Assembly.Load($"{module.GetType().Assembly.GetName().Name}.Contracts")),
+    ];
 
     [Fact]
     public void Catalogue_has_the_pipeline_and_module_errors()
@@ -45,18 +51,21 @@ public sealed class ErrorCatalogueTests
         undocumented.ShouldBeEmpty();
     }
 
-    // The exporter only finds errors declared as public readonly fields of static *Errors classes. Instance members
+    // The exporter only finds errors declared as public readonly fields of static *Errors classes in BuildingBlocks
+    // and module assemblies (not Contracts or the Host). Instance members
     // (Result.Error, a DbContext's ConcurrencyConflictError) refer to declared errors and aren't declarations.
     [Fact]
     public void Every_static_error_is_a_public_readonly_field_of_an_Errors_class()
     {
         const BindingFlags members = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.DeclaredOnly;
 
-        var misplaced = DeclaringAssemblies
+        var catalogued = new HashSet<Assembly>([typeof(Error).Assembly, .. ModuleRegistry.All.Select(module => module.GetType().Assembly)]);
+
+        var misplaced = ScannedAssemblies
             .SelectMany(assembly => assembly.GetTypes())
             .SelectMany(type =>
             {
-                var declaring = ErrorCatalogue.DeclaringTypes(type.Assembly).Contains(type);
+                var declaring = catalogued.Contains(type.Assembly) && ErrorCatalogue.DeclaringTypes(type.Assembly).Contains(type);
                 var fields = type.GetFields(members)
                     .Where(field => field.FieldType == typeof(Error) && !(declaring && field.IsInitOnly && field.IsPublic));
                 var properties = type.GetProperties(members).Where(property => property.PropertyType == typeof(Error));

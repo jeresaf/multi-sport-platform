@@ -35,6 +35,6 @@ public sealed partial class CorrelationIdMiddleware(RequestDelegate next, TimePr
     }
 
     // Client-supplied IDs end up in logs and headers: short, and only characters that need no escaping.
-    [GeneratedRegex("^[A-Za-z0-9._-]{1,64}$")]
+    [GeneratedRegex(@"^[A-Za-z0-9._-]{1,64}\z")]
     private static partial Regex Format();
 }

@@ -11,9 +11,10 @@ namespace SportsPlatform.IntegrationTests.Api;
 
 /// <summary>
 /// A minimal app with the Host's error pipeline and endpoints that fail on purpose; the real Host has no endpoints
-/// that can fail yet.
+/// that can fail yet. Development differs: binding failures throw (RouteHandlerOptions.ThrowOnBadRequest) and the
+/// developer exception page is on.
 /// </summary>
-public sealed class PipelineTestApp : IAsyncLifetime
+public abstract class PipelineTestApp(string environmentName) : IAsyncLifetime
 {
     public const string ExceptionSecret = "connection to db-internal-7 failed";
 
@@ -23,7 +24,7 @@ public sealed class PipelineTestApp : IAsyncLifetime
 
     public async ValueTask InitializeAsync()
     {
-        var builder = WebApplication.CreateBuilder(new WebApplicationOptions { EnvironmentName = "Testing" });
+        var builder = WebApplication.CreateBuilder(new WebApplicationOptions { EnvironmentName = environmentName });
         builder.WebHost.UseTestServer();
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
@@ -36,6 +37,7 @@ public sealed class PipelineTestApp : IAsyncLifetime
         app.MapGet("/throws", IResult () => throw new InvalidOperationException(ExceptionSecret));
         app.MapGet("/conflict", () => Result.Failure(PlatformErrors.ConcurrencyConflict).ToHttpResult());
         app.MapPost("/fixtures", (FixtureRequest request) => TypedResults.Ok(request));
+        app.MapGet("/bare-not-found", () => TypedResults.NotFound());
 
         await app.StartAsync(TestContext.Current.CancellationToken);
         _app = app;
@@ -47,7 +49,13 @@ public sealed class PipelineTestApp : IAsyncLifetime
         {
             await _app.DisposeAsync();
         }
+
+        GC.SuppressFinalize(this);
     }
 
     public sealed record FixtureRequest(string HomeTeam, DateTimeOffset KickOff);
 }
+
+public sealed class TestingPipelineApp() : PipelineTestApp("Testing");
+
+public sealed class DevelopmentPipelineApp() : PipelineTestApp("Development");

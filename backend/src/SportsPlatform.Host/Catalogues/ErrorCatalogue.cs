@@ -27,6 +27,7 @@ public static class ErrorCatalogue
         sources.AddRange(modules.Select(module => (module.Name, module.GetType().Assembly)));
 
         var entries = sources
+            .DistinctBy(source => source.Assembly)
             .SelectMany(source => DeclaringTypes(source.Assembly)
                 .SelectMany(type => type.GetFields(BindingFlags.Public | BindingFlags.Static))
                 .Where(field => field.FieldType == typeof(Error) && field.IsInitOnly)
