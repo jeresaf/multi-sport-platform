@@ -1,0 +1,40 @@
+{
+  "errors": [
+    {
+      "code": "PLATFORM_CONCURRENCY_CONFLICT",
+      "status": 409,
+      "message": "The record was changed by someone else. Reload and try again.",
+      "owner": "Platform"
+    },
+    {
+      "code": "PLATFORM_METHOD_NOT_ALLOWED",
+      "status": 405,
+      "message": "This endpoint does not support the HTTP method.",
+      "owner": "BuildingBlocks"
+    },
+    {
+      "code": "PLATFORM_ROUTE_NOT_FOUND",
+      "status": 404,
+      "message": "No endpoint matches this path.",
+      "owner": "BuildingBlocks"
+    },
+    {
+      "code": "PLATFORM_UNEXPECTED_ERROR",
+      "status": 500,
+      "message": "An unexpected error occurred. Quote the correlation ID when reporting it.",
+      "owner": "BuildingBlocks"
+    },
+    {
+      "code": "VALIDATION_MALFORMED_REQUEST",
+      "status": 400,
+      "message": "The request could not be read.",
+      "owner": "BuildingBlocks"
+    },
+    {
+      "code": "VALIDATION_UNSUPPORTED_MEDIA_TYPE",
+      "status": 415,
+      "message": "The request body must be JSON.",
+      "owner": "BuildingBlocks"
+    }
+  ]
+}

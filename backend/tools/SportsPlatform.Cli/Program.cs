@@ -6,11 +6,14 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.Host;
+using SportsPlatform.Host.Catalogues;
+using SportsPlatform.Host.Modules;
 
 (string Name, string Description, Func<string[], Task<int>>? Run)[] commands =
 [
     ("migrate", "Apply database migrations for every module (as sp_migrator)", MigrateAsync),
     ("seed", "Run seeders for a category", null),
+    ("export-catalogues", "Write the error catalogue to docs/generated and contracts", ExportCataloguesAsync),
     ("export-openapi", "Write contracts/openapi.json", null),
     ("create-platform-admin", "Create the first platform administrator", null),
 ];
@@ -50,6 +53,42 @@ static async Task<int> MigrateAsync(string[] args)
 
     await host.Services.GetRequiredService<MigrationRunner>().RunAsync();
     return 0;
+}
+
+// Generated files are written from code only; CI (S01-T3c) regenerates them and fails when they are stale.
+static async Task<int> ExportCataloguesAsync(string[] args)
+{
+    var root = FindRepositoryRoot(Directory.GetCurrentDirectory());
+    if (root is null)
+    {
+        Console.Error.WriteLine("Run this inside the repository (no backend/SportsPlatform.slnx above the current directory).");
+        return 1;
+    }
+
+    var errors = ErrorCatalogue.Build(ModuleRegistry.All);
+    await WriteAsync(Path.Combine(root, "docs", "generated", "errors.md"), ErrorCatalogue.ToMarkdown(errors));
+    await WriteAsync(Path.Combine(root, "contracts", "errors.json"), ErrorCatalogue.ToJson(errors));
+    return 0;
+
+    static async Task WriteAsync(string path, string content)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        await File.WriteAllTextAsync(path, content);
+        Console.WriteLine($"Wrote {path}");
+    }
+}
+
+static string? FindRepositoryRoot(string start)
+{
+    for (var directory = new DirectoryInfo(start); directory is not null; directory = directory.Parent)
+    {
+        if (File.Exists(Path.Combine(directory.FullName, "backend", "SportsPlatform.slnx")))
+        {
+            return directory.FullName;
+        }
+    }
+
+    return null;
 }
 
 void PrintUsage()

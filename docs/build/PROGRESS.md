@@ -7,15 +7,16 @@ at the start of every review.
 
 - **Current slice:** S01 — Backend platform (docs/build/slices/S01-backend-platform.md). S00 is on `main`; its
   "new contributor in under 30 minutes" check is still with the owner
-- **Current task:** none. S01-T2b (grant narrowing) is in review as #15
-- **Next:** S01-T3 (API conventions, errors, OpenAPI and generated client)
+- **Current task:** none. S01-T3a (Problem Details, error catalogue) is in review as #16
+- **Next:** S01-T3b (logging, OpenTelemetry, `/health/ready`), then S01-T3c (OpenAPI, Scalar, TS client,
+  `Contracts` CI job)
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S01-T3 — API conventions, errors, OpenAPI and generated client (may be two PRs: T3a Problem Details, errors,
-   correlation, logging, OpenTelemetry, health; T3b OpenAPI, Scalar, `export-openapi`, TS client, `Contracts` job)
-2. S01-T4 — Action catalogue and authorization skeleton
+1. S01-T3b — Serilog JSON logging (correlation, tenant, actor), OpenTelemetry, `/health/ready`
+2. S01-T3c — OpenAPI, Scalar, `export-openapi`, TS client, `Contracts` CI job
+3. S01-T4 — Action catalogue and authorization skeleton
 
 ## Log
 
@@ -30,6 +31,7 @@ at the start of every review.
 | 2026-10-17 | S01-T1 | #13 | BuildingBlocks primitives (`IModule`, `ApiEndpointGroups`, `Result`/`Error` with `AREA_CONDITION` check, `Entity`/`AggregateRoot` + domain events, `ITenantOwned`, `ICurrentActor` + `SystemActor`, `ITenantContext`, `ActionCode` + endpoint action metadata); Platform module + Contracts; Host module registry and `/api/{public,admin,platform}/v1` groups; NetArchTest architecture tests (AR-02, AR-26, AR-33, Domain layering) replace the S00 placeholders | BuildingBlocks references ASP.NET Core for `IModule` only (agreed, see Deviations). NetArchTest.Rules 1.3.2 (MIT) |
 | 2026-10-17 | S01-T2a | #14 | `SportsPlatform.BuildingBlocks.Persistence`: `ModuleDbContext` (schema, snake_case, app UUIDv7 keys, shadow audit columns via `AuditColumnsInterceptor`, `xmin` row version on aggregates, `SaveChangesResultAsync` → `<MODULE>_CONCURRENCY_CONFLICT`), `App`/`Migrator`/`Platform` connection strings, `MigrationRunner`; `PlatformDbContext` + initial migration; CLI `migrate`; Development auto-migrate; `dotnet-ef` tool manifest; Testcontainers harness (compose image + `01-roles.sh`, app as `sp_app`, Respawn on a fixture-only superuser connection, `FakeTimeProvider`, `TestActor`); `Entity()` no longer generates IDs (#13 R3) | T2 split into T2a/T2b (agreed). EF migration names keep `yyyyMMddHHmmss_`. Pre-review caught `WebApplicationFactory` defaulting to Development (would migrate localhost) → `HostOnlyApp` + guard test |
 | 2026-10-17 | S01-T2b | #15 | Migration helpers `ReadOnlyForRuntimeRoles` and `AppendOnly` (grants + per-schema `reject_append_only_change()` triggers rejecting UPDATE, DELETE and TRUNCATE for every role); `migrate` revokes runtime access to each `__ef_migrations_history`; `TableAccessPolicies` + `TableGrantsTests` (every table, view, matview and foreign table; column grants included); reset as unpooled superuser with `session_replication_role = replica`; `check-roles.sh` `sp_platform` DDL and TRUNCATE checks; test-only `reference_probes`/`append_only_probes` | Read-only also covers `sp_platform`; trigger also blocks TRUNCATE (both owner-agreed) |
+| 2026-10-17 | S01-T3a | #16 | `SportsPlatform.BuildingBlocks.Api` (`ErrorKind` → status, `Error.ToProblem()`, `Result.ToHttpResult()`); `CommonErrors` for pipeline failures; Host `AddApiConventions`/`UseApiConventions` (Problem Details with `code`, `type`, `correlationId`; exception handler → 500 `PLATFORM_UNEXPECTED_ERROR` without internals; routing/binding failures coded); `X-Correlation-Id` middleware; `ErrorCatalogue` + CLI `export-catalogues` → `docs/generated/errors.md`, `contracts/errors.json` | T3 split in three (owner). Added `VALIDATION_UNSUPPORTED_MEDIA_TYPE` (415) and `ErrorKind.MethodNotAllowed`/`UnsupportedMediaType`/`Unexpected`. Stale-file CI check comes with T3c |
 
 ## Deviations from spec (agreed)
 
@@ -54,6 +56,10 @@ at the start of every review.
   `sp_app` only; reviewer advice on #14). A platform service that must write a global table is declared as an
   exception, with a reason, in `TableAccessPolicies`. The `AppendOnly` trigger also blocks `TRUNCATE`. Owner
   approved 2026-10-17.
+- **S01-T3:** delivered as three PRs (T3a errors and correlation; T3b logging, OpenTelemetry, health; T3c OpenAPI,
+  client, `Contracts` CI job). `Result` → HTTP helpers live in `SportsPlatform.BuildingBlocks.Api`, a second
+  BuildingBlocks namespace allowed to use ASP.NET Core (`LayeringTests`). T3a adds `VALIDATION_UNSUPPORTED_MEDIA_TYPE`
+  (415) beyond the four approved pipeline codes. Owner approved the plan 2026-10-17.
 
 ## Tech debt / follow-ups
 
@@ -74,6 +80,9 @@ Consolidated by the S00 slice review (2026-10-17). Each item names where it gets
   re-run the reference seed after each reset (T7; reviewer note on #14).
 - `seed --reset` (Development, T7) can't TRUNCATE or DELETE append-only tables as `sp_migrator` (the triggers stop
   the owner too): reset by recreating the database or skip append-only tables (T7; S01-T2b).
+- Kestrel/framework statuses 408, 413 and 431 still produce Problem Details without a `code`; add codes (or map
+  them to `VALIDATION_MALFORMED_REQUEST`) with T3b or T4. 401/403 codes come with T4/S03 (S01-T3a pre-review).
+- `ProblemDetails:TypeBaseUri` is the placeholder `https://errors.sportsplatform.invalid/` until Q10 (domain).
 
 **Owner decisions / housekeeping**
 - `main` has no branch protection: GitHub doesn't offer it for private repositories on the Free plan. Options:

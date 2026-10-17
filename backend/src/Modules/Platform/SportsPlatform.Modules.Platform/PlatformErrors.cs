@@ -2,7 +2,7 @@ using SportsPlatform.BuildingBlocks.Results;
 
 namespace SportsPlatform.Modules.Platform;
 
-/// <summary>The Platform module's expected failures. T3 exports them to the error catalogue.</summary>
+/// <summary>The Platform module's expected failures; exported to docs/generated/errors.md by the CLI.</summary>
 public static class PlatformErrors
 {
     public static readonly Error ConcurrencyConflict = new(
