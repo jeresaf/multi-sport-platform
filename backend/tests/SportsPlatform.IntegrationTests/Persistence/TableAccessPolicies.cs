@@ -27,6 +27,15 @@ public static class TableAccessPolicies
     /// <summary>Every table except the migrations history tables (those are always <see cref="TableAccess.NoAccess"/>).</summary>
     public static IReadOnlyDictionary<string, TableAccess> Tables { get; } = new Dictionary<string, TableAccess>
     {
+        // Every module schema gets an outbox and an inbox (ModuleDbContext); the processor updates and S01-T5b re-drives.
+        ["platform.outbox_messages"] = TableAccess.ReadWrite,
+        ["platform.inbox_messages"] = TableAccess.ReadWrite,
+        ["conventions_test.outbox_messages"] = TableAccess.ReadWrite,
+        ["conventions_test.inbox_messages"] = TableAccess.ReadWrite,
+        ["messaging_test.outbox_messages"] = TableAccess.ReadWrite,
+        ["messaging_test.inbox_messages"] = TableAccess.ReadWrite,
+        ["messaging_test.probes"] = TableAccess.ReadWrite,
+        ["messaging_test.received_probes"] = TableAccess.ReadWrite,
         ["conventions_test.convention_probes"] = TableAccess.ReadWrite,
         ["conventions_test.reference_probes"] = TableAccess.ReadOnly,
         ["conventions_test.append_only_probes"] = TableAccess.AppendOnly,

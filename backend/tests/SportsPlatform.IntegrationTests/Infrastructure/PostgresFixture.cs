@@ -7,6 +7,7 @@ using Npgsql;
 using Respawn;
 using Respawn.Graph;
 using SportsPlatform.BuildingBlocks.Persistence;
+using SportsPlatform.BuildingBlocks.Persistence.Messaging;
 using Testcontainers.PostgreSql;
 
 namespace SportsPlatform.IntegrationTests.Infrastructure;
@@ -68,6 +69,8 @@ public sealed partial class PostgresFixture : IAsyncLifetime
             [$"ConnectionStrings:{ConnectionStringNames.App}"] = ConnectionString("sp_app"),
             [$"ConnectionStrings:{ConnectionStringNames.Migrator}"] = ConnectionString("sp_migrator"),
             [$"ConnectionStrings:{ConnectionStringNames.Platform}"] = ConnectionString("sp_platform"),
+            // Few attempts keep the poison-message tests short.
+            [$"{OutboxOptions.SectionName}:{nameof(OutboxOptions.MaxAttempts)}"] = "3",
         });
         await App.Services.GetRequiredService<MigrationRunner>().RunAsync();
 

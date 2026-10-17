@@ -8,13 +8,14 @@ using Microsoft.Extensions.Time.Testing;
 using SportsPlatform.BuildingBlocks.Actions;
 using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.BuildingBlocks.Persistence;
+using SportsPlatform.IntegrationTests.Messaging;
 using SportsPlatform.IntegrationTests.Persistence;
 
 namespace SportsPlatform.IntegrationTests.Infrastructure;
 
 /// <summary>
-/// The Host under test: <c>Testing</c> environment, the container's role connections, a fake clock and a configurable
-/// authorization evaluator.
+/// The Host under test: <c>Testing</c> environment, the container's role connections, a fake clock, a configurable
+/// authorization evaluator and the messaging test module.
 /// </summary>
 public sealed class TestApp(IReadOnlyDictionary<string, string?> settings) : WebApplicationFactory<Program>
 {
@@ -25,6 +26,8 @@ public sealed class TestApp(IReadOnlyDictionary<string, string?> settings) : Web
     public TelemetryCapture Telemetry { get; } = new();
 
     public TestAuthorizationEvaluator Authorization { get; } = new();
+
+    public ConsumerLog Consumers { get; } = new();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -44,6 +47,10 @@ public sealed class TestApp(IReadOnlyDictionary<string, string?> settings) : Web
 
             // A test-only module context that exercises the persistence conventions.
             services.AddModuleDbContext<ConventionsTestDbContext>(configuration, ConventionsTestDbContext.SchemaName);
+
+            // A test-only module that publishes and consumes, for the outbox and inbox.
+            services.AddModuleDbContext<MessagingTestDbContext>(configuration, MessagingTestDbContext.SchemaName);
+            services.AddMessagingTestHandlers(Consumers);
         });
     }
 }

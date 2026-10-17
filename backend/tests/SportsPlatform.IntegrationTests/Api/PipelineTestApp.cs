@@ -2,7 +2,9 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using SportsPlatform.BuildingBlocks.Api;
+using SportsPlatform.BuildingBlocks.Messaging;
 using SportsPlatform.BuildingBlocks.Results;
 using SportsPlatform.Host.Api;
 using SportsPlatform.Host.Observability;
@@ -36,6 +38,7 @@ public abstract class PipelineTestApp(string environmentName) : IAsyncLifetime
         });
         builder.AddObservability();
         builder.Services.AddApiConventions(builder.Configuration);
+        builder.Services.AddScoped<CorrelationContext>();
         Telemetry.AddTo(builder.Services);
 
         var app = builder.Build();
@@ -46,6 +49,7 @@ public abstract class PipelineTestApp(string environmentName) : IAsyncLifetime
         app.MapPost("/fixtures", (FixtureRequest request) => TypedResults.Ok(request));
         app.MapGet("/bare-not-found", () => TypedResults.NotFound());
         app.MapPost("/rounds", (RoundRequest request) => TypedResults.Ok(request));
+        app.MapGet("/correlation", (CorrelationContext correlation) => TypedResults.Ok(correlation.CorrelationId));
 
         await app.StartAsync(TestContext.Current.CancellationToken);
         _app = app;
