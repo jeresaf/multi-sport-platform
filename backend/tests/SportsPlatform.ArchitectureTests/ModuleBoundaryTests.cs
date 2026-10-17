@@ -2,19 +2,20 @@ using System.Xml.Linq;
 
 namespace SportsPlatform.ArchitectureTests;
 
-// AR-02 and AR-26: modules talk only through Contracts; BuildingBlocks knows no module.
+// AR-02 and AR-26: modules talk only through Contracts; BuildingBlocks knows no module. Module implementations
+// may also use BuildingBlocks.Persistence (their Infrastructure); Contracts may not.
 // Assembly metadata lists only references whose types are used, so the project files are checked as well.
 public sealed class ModuleBoundaryTests
 {
     [Fact]
-    public void Module_and_Contracts_project_files_reference_only_BuildingBlocks_and_Contracts()
+    public void Module_and_Contracts_project_files_reference_only_allowed_projects()
     {
         var violations = ModuleProjectFiles()
             .SelectMany(project => XDocument.Load(project)
                 .Descendants("ProjectReference")
                 .Select(reference => Path.GetFileNameWithoutExtension(
                     reference.Attribute("Include")!.Value.Replace('\\', Path.DirectorySeparatorChar)))
-                .Where(name => name != SolutionAssemblies.BuildingBlocksName && !SolutionAssemblies.IsContracts(name))
+                .Where(name => !MayReference(Path.GetFileNameWithoutExtension(project), name))
                 .Select(name => $"{Path.GetFileNameWithoutExtension(project)} -> {name}"))
             .ToList();
 
@@ -50,12 +51,11 @@ public sealed class ModuleBoundaryTests
     }
 
     [Fact]
-    public void Modules_reference_only_BuildingBlocks_and_Contracts()
+    public void Modules_reference_only_BuildingBlocks_Persistence_and_Contracts()
     {
         var violations = SolutionAssemblies.Modules
             .SelectMany(module => SolutionAssemblies.SolutionReferences(module)
-                .Where(reference => reference != SolutionAssemblies.BuildingBlocksName
-                    && !SolutionAssemblies.IsContracts(reference))
+                .Where(reference => !MayReference(SolutionAssemblies.Name(module), reference))
                 .Select(reference => $"{SolutionAssemblies.Name(module)} -> {reference}"))
             .ToList();
 
@@ -93,6 +93,18 @@ public sealed class ModuleBoundaryTests
     {
         SolutionAssemblies.SolutionReferences(SolutionAssemblies.BuildingBlocks).ShouldBeEmpty();
     }
+
+    [Fact]
+    public void BuildingBlocks_Persistence_references_only_BuildingBlocks()
+    {
+        SolutionAssemblies.SolutionReferences(SolutionAssemblies.Persistence)
+            .ShouldBe([SolutionAssemblies.BuildingBlocksName]);
+    }
+
+    private static bool MayReference(string project, string reference) =>
+        reference == SolutionAssemblies.BuildingBlocksName
+        || SolutionAssemblies.IsContracts(reference)
+        || (reference == SolutionAssemblies.PersistenceName && SolutionAssemblies.IsModule(project));
 
     private static string[] ModuleProjectFiles() => Directory.GetFiles(
         Path.Combine(SolutionAssemblies.BackendDirectory, "src", "Modules"), "*.csproj", SearchOption.AllDirectories);

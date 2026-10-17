@@ -4,4 +4,9 @@
     <OutputType>Exe</OutputType>
   </PropertyGroup>
 
+  <!-- Reuses the Host's module list, service registration and appsettings*.json (copied to the output). -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\SportsPlatform.Host\SportsPlatform.Host.csproj" />
+  </ItemGroup>
+
 </Project>

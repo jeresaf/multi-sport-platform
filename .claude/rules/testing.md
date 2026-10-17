@@ -22,4 +22,10 @@ paths:
   mutable fixtures between tests.
 - Don't mock the database in integration tests. Mock only external services (email → Mailpit/test double).
 - Assert error `code`s, not message text.
+- **Database tests** derive from `DatabaseTest` (`SportsPlatform.IntegrationTests/Infrastructure`): one
+  Testcontainers PostgreSQL per run (compose's image tag + `01-roles.sh`), migrated as `sp_migrator`; the app
+  (`TestApp`, environment `Testing`, `App.Clock` is a `FakeTimeProvider`) runs as `sp_app`. Each test starts
+  with a Respawn reset on a separate superuser connection that only the fixture holds — never hand the superuser
+  to code under test (it bypasses RLS). Migrations history tables are not reset. Pass `Ct`
+  (`TestContext.Current.CancellationToken`) to async calls.
 - **Never** delete, skip or weaken a failing test to get green. Fix the cause or ask the owner.

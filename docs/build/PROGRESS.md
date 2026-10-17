@@ -7,12 +7,19 @@ at the start of every review.
 
 - **Current slice:** S01 — Backend platform (docs/build/slices/S01-backend-platform.md). S00 is on `main`; its
   "new contributor in under 30 minutes" check is still with the owner
-- **Current task:** none. S01-T1 (module system and architecture tests) is in review as #13
+- **Current task:** none. S01-T2a (persistence conventions + test harness) is in review as #14
+- **Next:** S01-T2b (grant narrowing), stacked on T2a's branch
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S01-T2 — Persistence conventions and test harness
+1. S01-T2b — Grant narrowing: `ReadOnlyForRuntimeRoles`, `AppendOnly` (+ trigger, also blocking `TRUNCATE`),
+   migrations-history revoke, grants test, `check-roles.sh` `sp_platform` checks (acceptance criterion 3).
+   Reviewer (#14): `ReadOnlyForRuntimeRoles` should make **`sp_platform`** read-only too (a platform service that
+   must write a global table declares it in the grants test, with a reason) — wider than the spec, so confirm with
+   the owner in the T2b plan. Prove the reset works with the trigger, including `TRUNCATE`. Stacked on #14: merge
+   #14 first, then retarget T2b's PR to `main`
+2. S01-T3 — API conventions, errors, OpenAPI and generated client
 
 ## Log
 
@@ -25,6 +32,7 @@ at the start of every review.
 | 2026-10-17 | S00-T3 | #9 (reached `main` via #10) | `docker-compose.yml`: `postgres:17` (named volume, TCP healthcheck, init script creating `sportsplatform` and roles `sp_migrator`/`sp_app`/`sp_platform` with default privileges for future schemas), Mailpit v1.31.6, optional `observability` profile (Aspire dashboard 13.6); `.env.example`; `infrastructure/local/postgres/check-roles.sh`; README Local setup | Roles get privileges via `ALTER DEFAULT PRIVILEGES FOR ROLE sp_migrator`, so S01+ migrations need no grant boilerplate |
 | 2026-10-17 | S00-T4 | #10 (also landed T2 and T3 on `main`) | `.github/workflows/ci.yml`: backend (restore, build `-warnaserror`, test, format), web (frozen install, lint, typecheck, test, build), e2e (Playwright Chromium, smoke tests against production builds, report artifact on failure), infra (compose up `--wait`, role checks); NuGet and pnpm caches; superseded PR runs cancelled, every push to `main` keeps its own run | Added an `infra` job (not in the spec) so T3's role guarantees are regression-tested |
 | 2026-10-17 | S01-T1 | #13 | BuildingBlocks primitives (`IModule`, `ApiEndpointGroups`, `Result`/`Error` with `AREA_CONDITION` check, `Entity`/`AggregateRoot` + domain events, `ITenantOwned`, `ICurrentActor` + `SystemActor`, `ITenantContext`, `ActionCode` + endpoint action metadata); Platform module + Contracts; Host module registry and `/api/{public,admin,platform}/v1` groups; NetArchTest architecture tests (AR-02, AR-26, AR-33, Domain layering) replace the S00 placeholders | BuildingBlocks references ASP.NET Core for `IModule` only (agreed, see Deviations). NetArchTest.Rules 1.3.2 (MIT) |
+| 2026-10-17 | S01-T2a | #14 | `SportsPlatform.BuildingBlocks.Persistence`: `ModuleDbContext` (schema, snake_case, app UUIDv7 keys, shadow audit columns via `AuditColumnsInterceptor`, `xmin` row version on aggregates, `SaveChangesResultAsync` → `<MODULE>_CONCURRENCY_CONFLICT`), `App`/`Migrator`/`Platform` connection strings, `MigrationRunner`; `PlatformDbContext` + initial migration; CLI `migrate`; Development auto-migrate; `dotnet-ef` tool manifest; Testcontainers harness (compose image + `01-roles.sh`, app as `sp_app`, Respawn on a fixture-only superuser connection, `FakeTimeProvider`, `TestActor`); `Entity()` no longer generates IDs (#13 R3) | T2 split into T2a/T2b (agreed). EF migration names keep `yyyyMMddHHmmss_`. Pre-review caught `WebApplicationFactory` defaulting to Development (would migrate localhost) → `HostOnlyApp` + guard test |
 
 ## Deviations from spec (agreed)
 
@@ -40,6 +48,11 @@ at the start of every review.
   needs `IEndpointRouteBuilder`. Only the `SportsPlatform.BuildingBlocks.Modules` namespace may use ASP.NET Core;
   no BuildingBlocks namespace may use EF Core (`LayeringTests`). This replaces S00's "BuildingBlocks references no
   ASP.NET Core" placeholder test. Owner approved the plan 2026-10-17.
+- **S01-T2:** delivered as two PRs (T2a conventions + harness, T2b grant narrowing). Migration files keep EF's
+  `yyyyMMddHHmmss_` prefix; docs/architecture/data-conventions.md updated. A published CLI defaults to Production
+  (`dotnet run` uses Development via launchSettings). The planned "EF Core only in module `Infrastructure`"
+  architecture rule was dropped (handlers use the DbContext as unit of work); "Contracts don't use EF Core" added
+  instead. Owner approved the plan 2026-10-17.
 
 ## Tech debt / follow-ups
 
@@ -49,17 +62,18 @@ Consolidated by the S00 slice review (2026-10-17). Each item names where it gets
 - Mark `GET /health/live` and `/health/ready` with `.AllowPublic()`; the startup test covers every endpoint (T4).
 - Narrow `sp_app`/`sp_platform` default DML grants: read-only reference/global tables, append-only tables
   (audit now, timeline later), migrations-history tables; grants test (T2, T5–T7).
-- Testcontainers fixture runs `infrastructure/local/postgres/init/01-roles.sh`; app connects as `sp_app`,
-  migrations as `sp_migrator`, Respawn on a test-only superuser connection (T2).
-- `ModuleDbContext` goes in a separate `SportsPlatform.BuildingBlocks.Persistence` project (EF Core allowed there,
-  used only by module `Infrastructure/`); architecture tests allow it for modules and check it references no
-  module; core BuildingBlocks stays free of EF Core (reviewer guidance on #13) (T2).
-- `Entity()` generates a UUIDv7 that EF Core discards on load: give EF a constructor path without generation
-  (#13 R3) (T2).
+- Respawn reset must keep working with T6's append-only trigger: superuser + `session_replication_role = replica`
+  (T2b decides and tests it).
+- `xmin`/`updated_*` cover only the aggregate root's row: a change to only a child entity or owned type doesn't
+  bump the root's version, so two edits to different children both succeed. Mark the root `Modified` when a
+  dependent changes, with a test, before the first aggregate with child tables (S06 at the latest) (S01-T2a
+  pre-review).
 - `ITenantOwned.TenantId` stays get-only: S02's interceptor sets it with `entry.Property(...).CurrentValue`, never
   a public setter. Moving `BuildingBlocks/Modules` to a `BuildingBlocks.Web` project is optional, not planned
   (reviewer guidance on #13).
 - `check-roles.sh`: add checks that `sp_platform` cannot create tables or schemas (T2, small).
+- The per-test reset will wipe reference data (countries, currencies…): exclude those tables from Respawn or
+  re-run the reference seed after each reset (T7; reviewer note on #14).
 
 **Owner decisions / housekeeping**
 - `main` has no branch protection: GitHub doesn't offer it for private repositories on the Free plan. Options:

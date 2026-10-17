@@ -39,6 +39,17 @@ public sealed class LayeringTests
         result.FailingTypeNames.ShouldBeNull();
     }
 
+    // Contracts are DTOs and interfaces other modules compile against; persistence stays inside the module.
+    [Fact]
+    public void Contracts_do_not_use_EF_Core()
+    {
+        var result = Types.InAssemblies(SolutionAssemblies.Contracts)
+            .ShouldNot().HaveDependencyOn("Microsoft.EntityFrameworkCore")
+            .GetResult();
+
+        result.FailingTypeNames.ShouldBeNull();
+    }
+
     // AR-33: cloud SDKs only in infrastructure adapters, which the Host registers.
     [Fact]
     public void Only_the_Host_references_cloud_provider_SDKs()

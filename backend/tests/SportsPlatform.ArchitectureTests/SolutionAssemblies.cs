@@ -6,6 +6,7 @@ namespace SportsPlatform.ArchitectureTests;
 internal static class SolutionAssemblies
 {
     public const string BuildingBlocksName = "SportsPlatform.BuildingBlocks";
+    public const string PersistenceName = "SportsPlatform.BuildingBlocks.Persistence";
     public const string HostName = "SportsPlatform.Host";
     public const string ModulePrefix = "SportsPlatform.Modules.";
     public const string ContractsSuffix = ".Contracts";
@@ -13,7 +14,8 @@ internal static class SolutionAssemblies
     public static IReadOnlyList<Assembly> All { get; } = Directory
         .GetFiles(AppContext.BaseDirectory, "SportsPlatform.*.dll")
         .Select(path => Path.GetFileNameWithoutExtension(path))
-        .Where(name => name is BuildingBlocksName or HostName || name.StartsWith(ModulePrefix, StringComparison.Ordinal))
+        .Where(name => name is BuildingBlocksName or PersistenceName or HostName
+            || name.StartsWith(ModulePrefix, StringComparison.Ordinal))
         .Order(StringComparer.Ordinal)
         .Select(name => Assembly.Load(new AssemblyName(name)))
         .ToList();
@@ -22,6 +24,8 @@ internal static class SolutionAssemblies
     public static string BackendDirectory { get; } = FindBackendDirectory();
 
     public static Assembly BuildingBlocks => All.Single(a => Name(a) == BuildingBlocksName);
+
+    public static Assembly Persistence => All.Single(a => Name(a) == PersistenceName);
 
     public static IReadOnlyList<Assembly> Modules => All.Where(IsModule).ToList();
 
