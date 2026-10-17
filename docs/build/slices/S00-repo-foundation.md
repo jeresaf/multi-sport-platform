@@ -93,6 +93,7 @@ Acceptance:
 - **T2 — Tailwind 4 (owner-approved).** Tailwind 4 is configured in CSS and has no JS presets, so the shared
   "Tailwind preset" is `web/packages/config/theme.css` (`@theme inline` mapping utilities to the token variables,
   default palette removed). Token colour values are placeholders until the owner or the Branding work sets them.
-- **T2 — colour literals** are enforced by ESLint (`no-restricted-syntax` in `@msp/config/eslint`): hex,
-  `rgb()`/`hsl()`/`oklch()` and Tailwind arbitrary colours fail lint in every web package. Colour values live only
-  in `web/packages/tokens/tokens.css`.
+- **T2 — colour literals** fail `pnpm lint`: in JS/TS, ESLint (`no-restricted-syntax` in `@msp/config/eslint`)
+  rejects hex, `rgb()`/`hsl()`/`oklch()` and Tailwind arbitrary colours (`bg-[#fff]`, `text-[red]`); in app CSS,
+  `@msp/config/check-css-colours` rejects hex and colour functions. Not caught: named colours in inline
+  `style` objects. Colour values live only in `web/packages/tokens/tokens.css`.

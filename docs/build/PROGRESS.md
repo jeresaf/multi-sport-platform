@@ -37,4 +37,7 @@ at the start of every review.
 - S01: replace the placeholder `BuildingBlocksAssemblyTests` once real unit tests exist; mark `GET /health/live`
   with `.AllowPublic()` when the action catalogue lands (PR #7 review R3 and question).
 - Token colour values are placeholders (`web/packages/tokens/tokens.css`); owner/Branding to confirm.
-- ESLint stays on 9.x until eslint-config-next's plugins support ESLint 10.
+- ESLint stays on 9.x until eslint-config-next's plugins support ESLint 10; TypeScript stays below 6.1 until
+  typescript-eslint supports it.
+- shadcn/ui is not initialised yet (ADR-0011); do it with the first real admin UI (S03). `Button` is hand-written.
+- pnpm 12's minimum-release-age policy is on: new package versions are installable about a day after release.
