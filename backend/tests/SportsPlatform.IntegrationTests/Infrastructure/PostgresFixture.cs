@@ -29,6 +29,8 @@ public sealed partial class PostgresFixture : IAsyncLifetime
         ["sp_platform"] = "sp-platform-test-only",
     };
 
+    private static readonly TimeSpan _startupTimeout = TimeSpan.FromMinutes(2);
+
     private PostgreSqlContainer? _container;
     private Respawner? _respawner;
 
@@ -55,9 +57,11 @@ public sealed partial class PostgresFixture : IAsyncLifetime
                 Convert.ToUInt32("755", 8))
             // The init scripts run on a socket-only server that restarts afterwards, so "server answers" is not
             // enough: wait until sp_migrator can log in over TCP.
-            .WithWaitStrategy(Wait.ForUnixContainer().AddCustomWaitStrategy(new UntilMigratorCanConnect(this)))
+            .WithWaitStrategy(Wait.ForUnixContainer().AddCustomWaitStrategy(
+                new UntilMigratorCanConnect(this),
+                wait => wait.WithTimeout(_startupTimeout).WithInterval(TimeSpan.FromMilliseconds(500))))
             .Build();
-        await _container.StartAsync();
+        await StartContainerAsync();
 
         App = new TestApp(new Dictionary<string, string?>
         {
@@ -75,6 +79,23 @@ public sealed partial class PostgresFixture : IAsyncLifetime
             SchemasToInclude = [.. databases.Select(d => d.Schema)],
             TablesToIgnore = [.. databases.Select(d => new Table(d.Schema, ModuleDbContextOptions.MigrationsHistoryTable))],
         });
+    }
+
+    // A broken init script would otherwise hang until the CI job times out, with no useful output.
+    private async Task StartContainerAsync()
+    {
+        try
+        {
+            await _container!.StartAsync();
+        }
+        catch (TimeoutException exception)
+        {
+            var (stdout, stderr) = await _container!.GetLogsAsync();
+            throw new InvalidOperationException(
+                $"sp_migrator could not log in within {_startupTimeout}; check 01-roles.sh.\n" +
+                $"Container stdout:\n{stdout}\nContainer stderr:\n{stderr}",
+                exception);
+        }
     }
 
     public async ValueTask DisposeAsync()
