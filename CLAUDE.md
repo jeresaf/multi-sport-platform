@@ -58,8 +58,8 @@ prototype-v0:<path>`). What was kept: `docs/reference/first-attempt/README.md`. 
 
 ## Commands
 
-> Run from the repository root. Keep this block accurate. Lines marked "(S00-T2)" / "(S00-T3)" don't work until
-> that task is merged.
+> Run from the repository root. Keep this block accurate. Lines marked "(S00-T3)" don't work until that task is
+> merged. Web needs Node 24 and `corepack enable` (pnpm is pinned in web/package.json).
 
 ```bash
 dotnet build backend -warnaserror               # backend/SportsPlatform.slnx
@@ -68,8 +68,10 @@ dotnet format backend --verify-no-changes       # drop --verify-no-changes to fi
 dotnet run --project backend/src/SportsPlatform.Host     # API on http://localhost:5080 (GET /health/live)
 dotnet run --project backend/tools/SportsPlatform.Cli   # lists CLI commands
 docker compose up -d                            # (S00-T3) local PostgreSQL + Mailpit
-cd web && pnpm install && pnpm lint && pnpm typecheck && pnpm test && pnpm build   # (S00-T2)
-cd web && pnpm e2e                              # (S00-T2)
+cd web && pnpm install --frozen-lockfile && pnpm lint && pnpm typecheck && pnpm test && pnpm build
+cd web && pnpm --filter @msp/e2e exec playwright install chromium   # once per machine
+cd web && pnpm e2e                              # builds both apps, smoke tests on ports 3000/3001
+cd web && pnpm --filter @msp/public dev         # or @msp/admin (port 3001)
 ```
 
 ## Non-negotiables (full list and rationale in docs/architecture/rules.md)
