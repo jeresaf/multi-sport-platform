@@ -6,7 +6,7 @@ at the start of every review.
 ## Now
 
 - **Current slice:** S00 — Repo foundation
-- **Current task:** S00-T2 — Web workspace (PR open, stacked on PR #7)
+- **Current task:** S00-T3 — Local infrastructure (in progress, branch `s00/t3-local-infra`, stacked on PR #8)
 - **Blocked on:** merge of PR #7 (S00-T1), then review of the S00-T2 PR
 
 ## Next up
