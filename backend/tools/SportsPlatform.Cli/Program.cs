@@ -15,7 +15,7 @@ using SportsPlatform.Host.OpenApi;
 [
     ("migrate", "Apply database migrations for every module (as sp_migrator)", MigrateAsync),
     ("seed", "Run seeders for a category", null),
-    ("export-catalogues", "Write the error catalogue to docs/generated and contracts", ExportCataloguesAsync),
+    ("export-catalogues", "Write the action and error catalogues to docs/generated and contracts", ExportCataloguesAsync),
     ("export-openapi", "Write contracts/openapi.json", ExportOpenApiAsync),
     ("create-platform-admin", "Create the first platform administrator", null),
 ];
@@ -66,6 +66,10 @@ static async Task<int> ExportCataloguesAsync(string[] args)
         Console.Error.WriteLine("Run this inside the repository (no backend/SportsPlatform.slnx above the current directory).");
         return 1;
     }
+
+    var actions = ActionCatalogue.Build(ModuleRegistry.All);
+    await WriteGeneratedAsync(Path.Combine(root, "docs", "generated", "actions.md"), ActionCatalogue.ToMarkdown(actions));
+    await WriteGeneratedAsync(Path.Combine(root, "contracts", "actions.json"), ActionCatalogue.ToJson(actions));
 
     var errors = ErrorCatalogue.Build(ModuleRegistry.All);
     await WriteGeneratedAsync(Path.Combine(root, "docs", "generated", "errors.md"), ErrorCatalogue.ToMarkdown(errors));

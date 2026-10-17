@@ -1,0 +1,26 @@
+{
+  "actions": [
+    {
+      "code": "platform.outbox.read",
+      "module": "Platform",
+      "description": "View outbox messages and their delivery status.",
+      "scope": "PLATFORM",
+      "scopableBy": [],
+      "audit": "REQUIRED",
+      "entitlement": null,
+      "idempotent": false,
+      "since": "S01"
+    },
+    {
+      "code": "platform.outbox.redrive",
+      "module": "Platform",
+      "description": "Re-deliver failed outbox messages.",
+      "scope": "PLATFORM",
+      "scopableBy": [],
+      "audit": "REQUIRED_WITH_REASON",
+      "entitlement": null,
+      "idempotent": false,
+      "since": "S01"
+    }
+  ]
+}

@@ -1,0 +1,82 @@
+using Microsoft.AspNetCore.Routing.Patterns;
+using SportsPlatform.BuildingBlocks.Actions;
+using SportsPlatform.Host.Catalogues;
+
+namespace SportsPlatform.Host.Authorization;
+
+/// <summary>
+/// Fail closed: every endpoint declares exactly one of <c>.RequireAction(...)</c> or <c>.AllowPublic()</c>; admin and
+/// platform endpoints are never public; a required action is in the catalogue. The Host checks this when it is built.
+/// </summary>
+public static class EndpointActionRules
+{
+    private static readonly string[] _protectedFamilies = ["api/admin", "api/platform"];
+
+    public static IReadOnlyList<string> Validate(IEnumerable<Endpoint> endpoints, IReadOnlyList<ActionCatalogueEntry> catalogue)
+    {
+        ArgumentNullException.ThrowIfNull(endpoints);
+        ArgumentNullException.ThrowIfNull(catalogue);
+
+        var catalogued = catalogue.Select(entry => entry.Action).ToHashSet(ReferenceEqualityComparer.Instance);
+        var violations = new List<string>();
+        foreach (var endpoint in endpoints)
+        {
+            var name = Describe(endpoint);
+            var required = endpoint.Metadata.GetOrderedMetadata<RequiresActionMetadata>();
+            var isPublic = endpoint.Metadata.GetMetadata<AllowPublicMetadata>() is not null;
+
+            if (required.Count == 0 && !isPublic)
+            {
+                violations.Add($"{name} declares neither .RequireAction(...) nor .AllowPublic().");
+            }
+            else if (required.Count > 0 && isPublic)
+            {
+                violations.Add($"{name} declares both .RequireAction(...) and .AllowPublic().");
+            }
+            else if (required.Count > 1)
+            {
+                violations.Add($"{name} declares more than one action ({string.Join(", ", required.Select(r => r.Action.Code))}).");
+            }
+
+            if (isPublic && IsProtectedFamily(endpoint))
+            {
+                violations.Add($"{name} is under /api/admin or /api/platform and cannot be .AllowPublic().");
+            }
+
+            violations.AddRange(required
+                .Where(r => !catalogued.Contains(r.Action))
+                .Select(r => $"{name} requires '{r.Action.Code}', which is not declared in a module's *Actions class."));
+        }
+
+        return violations;
+    }
+
+    /// <summary>Throws when any endpoint breaks the rules, listing every violation.</summary>
+    public static void EnsureEndpointsDeclareActions(this IEndpointRouteBuilder endpoints, IReadOnlyList<ActionCatalogueEntry> catalogue)
+    {
+        ArgumentNullException.ThrowIfNull(endpoints);
+
+        var violations = Validate(endpoints.DataSources.SelectMany(source => source.Endpoints), catalogue);
+        if (violations.Count > 0)
+        {
+            throw new InvalidOperationException(
+                "Every endpoint must declare exactly one of .RequireAction(...) or .AllowPublic():\n" + string.Join("\n", violations));
+        }
+    }
+
+    private static bool IsProtectedFamily(Endpoint endpoint)
+    {
+        var path = (endpoint as RouteEndpoint)?.RoutePattern.RawText?.TrimStart('/');
+        return path is not null && _protectedFamilies.Any(family =>
+            path.Equals(family, StringComparison.OrdinalIgnoreCase) || path.StartsWith(family + "/", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string Describe(Endpoint endpoint)
+    {
+        var methods = endpoint.Metadata.GetMetadata<IHttpMethodMetadata>()?.HttpMethods;
+        var verb = methods is { Count: > 0 } ? string.Join("|", methods) + " " : string.Empty;
+        return endpoint is RouteEndpoint { RoutePattern: RoutePattern pattern }
+            ? $"{verb}{pattern.RawText}"
+            : endpoint.DisplayName ?? "An endpoint";
+    }
+}

@@ -40,8 +40,8 @@ public static class ApiDocumentation
         ArgumentNullException.ThrowIfNull(environment);
         if (environment.IsDevelopment())
         {
-            endpoints.MapOpenApi(DocumentPath);
-            endpoints.MapScalarApiReference(ScalarPath);
+            endpoints.MapOpenApi(DocumentPath).AllowPublic();
+            endpoints.MapScalarApiReference(ScalarPath).AllowPublic();
         }
 
         return endpoints;
