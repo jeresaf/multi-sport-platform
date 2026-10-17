@@ -6,7 +6,7 @@ at the start of every review.
 ## Now
 
 - **Current slice:** S00 — Repo foundation
-- **Current task:** S00-T3 — Local infrastructure (PR open, stacked on PR #8)
+- **Current task:** S00-T4 — Continuous integration (in progress, branch `s00/t4-ci`, stacked on PR #9)
 - **Blocked on:** merges of PR #7 and PR #8, then review of the S00-T3 PR
 
 ## Next up
