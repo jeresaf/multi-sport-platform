@@ -8,7 +8,7 @@ public sealed class AggregateRootTests
     [Fact]
     public void New_entities_get_unique_UUIDv7_ids_with_non_decreasing_timestamps()
     {
-        var ids = Enumerable.Range(0, 50).Select(_ => new Venue("Nakivubo Grounds").Id).ToList();
+        var ids = Enumerable.Range(0, 50).Select(_ => new Venue("Bukoto Community Stadium").Id).ToList();
 
         ids.ShouldAllBe(id => id.Version == 7);
         ids.Distinct().Count().ShouldBe(ids.Count);
@@ -21,19 +21,19 @@ public sealed class AggregateRootTests
     [Fact]
     public void An_entity_cannot_have_an_empty_id()
     {
-        Should.Throw<ArgumentException>(() => new Venue(Guid.Empty, "Nakivubo Grounds"));
+        Should.Throw<ArgumentException>(() => new Venue(Guid.Empty, "Bukoto Community Stadium"));
     }
 
     [Fact]
     public void Raised_domain_events_are_kept_until_cleared()
     {
-        var venue = new Venue("Nakivubo Grounds");
+        var venue = new Venue("Bukoto Community Stadium");
 
-        venue.Rename("Kampala City Stadium");
-        venue.Rename("Wankulukuku Grounds");
+        venue.Rename("Kisaasi Recreation Ground");
+        venue.Rename("Seeta Hill Sports Field");
 
         venue.DomainEvents.Count.ShouldBe(2);
-        venue.DomainEvents[1].ShouldBe(new VenueRenamed(venue.Id, "Wankulukuku Grounds"));
+        venue.DomainEvents[1].ShouldBe(new VenueRenamed(venue.Id, "Seeta Hill Sports Field"));
 
         venue.ClearDomainEvents();
 
