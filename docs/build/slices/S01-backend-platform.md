@@ -251,3 +251,18 @@ Acceptance:
   Tests capture telemetry with `TelemetryCapture` (DI Serilog sink + in-memory span exporter). TestServer can stop
   a request's span after the client has the response, so "not traced" is tested through the configured filter, not
   by the absence of a span.
+- **T3c:** `Host/OpenApi/ApiDocumentation` (`AddApiDocumentation`, `MapApiDocumentation`, `ExportAsync`): one
+  document `v1`, OpenAPI 3.1, title "MSP API", generated in every environment and served (`/openapi/v1.json`,
+  Scalar at `/scalar`) in Development only. Transformers: `servers` removed (the committed file must not depend on
+  the request), a `ProblemDetails` component always present with required `code` and `correlationId`, and the error
+  codes of `.ProducesErrors(...)` (`SportsPlatform.BuildingBlocks.Api`, one Problem Details response per status)
+  listed in each response's description and `x-error-codes`. Health probes are excluded from the document. The
+  API's composition moved to `SportsPlatformApp.Build` (shared by `Program` and the CLI); it calls `UseRouting`
+  and `UseEndpoints` explicitly, after every `Map…`, because `WebApplication` otherwise registers endpoints with
+  routing only when the app starts and `export-openapi` builds the app without starting it (no server, no hosted
+  services, no database). JSON number handling is `Strict` (the web default reads `"5"` as a number and documents
+  every number as `integer | string`). `web/packages/api-client`: `pnpm generate` (openapi-typescript 7.13 →
+  `src/generated/schema.ts`, committed, not linted), `createApiClient` (openapi-fetch 0.17), `ProblemDetails` type
+  and `isProblemDetails` guard; openapi-typescript's `typescript ^5` peer is allowed for 6
+  (`pnpm-workspace.yaml`). CI job `Contracts` runs `export-catalogues`, `export-openapi` and the client
+  generator, then fails on any diff, untracked files included.

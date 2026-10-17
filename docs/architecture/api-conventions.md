@@ -122,4 +122,11 @@ Modules call each other in-process through Contracts, never over HTTP.
 
 - The backend generates OpenAPI; the CLI writes `contracts/openapi.json` (committed so diffs are reviewable).
 - Web and mobile clients are generated from it. A CI step fails if the committed document is stale.
-- Every endpoint has a summary, request/response schemas, and documented error codes.
+- Every endpoint has a summary, request/response schemas, and documented error codes: `.ProducesErrors(...)`
+  (`SportsPlatform.BuildingBlocks.Api`) adds one Problem Details response per status and lists that status's codes
+  in the response description and in `x-error-codes`.
+- One document, `v1`, OpenAPI 3.1, covering all three families. Health probes are infrastructure and are left
+  out. The document is served (`/openapi/v1.json`, Scalar at `/scalar`) in Development only.
+- JSON numbers are strict: a number sent as a string (`"5"`) is a malformed request (400).
+- Regenerate: CLI `export-openapi`, then `pnpm --filter @msp/api-client generate` in `web/`. The `Contracts` CI
+  job checks both, and the error catalogue.
