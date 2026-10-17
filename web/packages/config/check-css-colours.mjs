@@ -1,9 +1,10 @@
-// Fails when a CSS file outside @msp/tokens defines a colour value (hex or a colour function).
-// Usage: node check-css-colours.mjs <dir>... (run by each app's lint script). Colour values belong in tokens.css.
+#!/usr/bin/env node
+// Fails when a CSS file outside @msp/tokens defines a colour value. Usage: msp-check-css-colours <dir>...
+// Run by each app's lint script; the rules are in colour-rules.js.
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
+import { findCssColourIssues } from "./colour-rules.js";
 
-const colourValue = /#[0-9a-fA-F]{3,8}\b|\b(rgba?|hsla?|oklch|oklab|lab|lch)\(/;
 const skip = new Set(["node_modules", ".next", ".turbo"]);
 
 function* cssFiles(dir) {
@@ -18,14 +19,10 @@ function* cssFiles(dir) {
 let failures = 0;
 for (const dir of process.argv.slice(2)) {
   for (const file of cssFiles(dir)) {
-    readFileSync(file, "utf8")
-      .split("\n")
-      .forEach((line, i) => {
-        if (colourValue.test(line)) {
-          console.error(`${file}:${i + 1}: colour value outside @msp/tokens: ${line.trim()}`);
-          failures++;
-        }
-      });
+    for (const issue of findCssColourIssues(readFileSync(file, "utf8"))) {
+      console.error(`${file}:${issue}`);
+      failures++;
+    }
   }
 }
 process.exit(failures > 0 ? 1 : 0);

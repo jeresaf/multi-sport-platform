@@ -3,15 +3,25 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "bin": {
+    "msp-check-css-colours": "./check-css-colours.mjs"
+  },
   "exports": {
     "./eslint": "./eslint.config.js",
     "./theme.css": "./theme.css",
     "./tsconfig/base.json": "./tsconfig/base.json",
     "./tsconfig/nextjs.json": "./tsconfig/nextjs.json",
-    "./tsconfig/library.json": "./tsconfig/library.json",
-    "./check-css-colours": "./check-css-colours.mjs"
+    "./tsconfig/library.json": "./tsconfig/library.json"
+  },
+  "scripts": {
+    "lint": "eslint . --max-warnings=0 --config eslint.self.config.js",
+    "test": "vitest run"
   },
   "dependencies": {
     "typescript-eslint": "8.71.2"
+  },
+  "devDependencies": {
+    "eslint": "9.39.5",
+    "vitest": "5.0.5"
   }
 }

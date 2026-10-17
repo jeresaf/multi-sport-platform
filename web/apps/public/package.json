@@ -7,7 +7,7 @@
     "dev": "next dev --port 3000",
     "build": "next build",
     "start": "next start --port 3000",
-    "lint": "eslint . --max-warnings=0 && node ../../packages/config/check-css-colours.mjs app",
+    "lint": "eslint . --max-warnings=0 && msp-check-css-colours app",
     "typecheck": "next typegen && tsc --noEmit"
   },
   "dependencies": {
