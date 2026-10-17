@@ -5,7 +5,8 @@ namespace SportsPlatform.Host.Health;
 
 /// <summary>
 /// <c>GET /health/live</c> (the process answers) and <c>GET /health/ready</c> (the database answers). Both return only
-/// <c>{"status": …}</c>: no versions, host names or error text.
+/// <c>{"status": …}</c>: no versions, host names or error text. Probes are infrastructure, not part of the API
+/// contract, so they are left out of the OpenAPI document.
 /// </summary>
 public static class HealthEndpoints
 {
@@ -22,7 +23,8 @@ public static class HealthEndpoints
     public static IEndpointRouteBuilder MapHealthEndpoints(this IEndpointRouteBuilder endpoints)
     {
         endpoints.MapGet(LivePath, () => TypedResults.Ok(new HealthResponse("ok")))
-            .WithName("HealthLive");
+            .WithName("HealthLive")
+            .ExcludeFromDescription();
 
         endpoints.MapHealthChecks(ReadyPath, new HealthCheckOptions
         {
@@ -35,7 +37,8 @@ public static class HealthEndpoints
             },
             ResponseWriter = (context, report) => context.Response.WriteAsJsonAsync(
                 new HealthResponse(report.Status == HealthStatus.Unhealthy ? "unavailable" : "ok"), context.RequestAborted),
-        }).WithName("HealthReady");
+        }).WithName("HealthReady")
+            .ExcludeFromDescription();
 
         return endpoints;
     }
