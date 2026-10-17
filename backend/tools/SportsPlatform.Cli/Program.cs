@@ -2,19 +2,21 @@
 // that needs it. Configuration comes from the Host's appsettings*.json and environment variables
 // (e.g. ConnectionStrings__Migrator); `dotnet run` uses the Development environment (launchSettings.json),
 // a published build defaults to Production.
+using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.Host;
 using SportsPlatform.Host.Catalogues;
 using SportsPlatform.Host.Modules;
+using SportsPlatform.Host.OpenApi;
 
 (string Name, string Description, Func<string[], Task<int>>? Run)[] commands =
 [
     ("migrate", "Apply database migrations for every module (as sp_migrator)", MigrateAsync),
     ("seed", "Run seeders for a category", null),
     ("export-catalogues", "Write the error catalogue to docs/generated and contracts", ExportCataloguesAsync),
-    ("export-openapi", "Write contracts/openapi.json", null),
+    ("export-openapi", "Write contracts/openapi.json", ExportOpenApiAsync),
     ("create-platform-admin", "Create the first platform administrator", null),
 ];
 
@@ -66,16 +68,37 @@ static async Task<int> ExportCataloguesAsync(string[] args)
     }
 
     var errors = ErrorCatalogue.Build(ModuleRegistry.All);
-    await WriteAsync(Path.Combine(root, "docs", "generated", "errors.md"), ErrorCatalogue.ToMarkdown(errors));
-    await WriteAsync(Path.Combine(root, "contracts", "errors.json"), ErrorCatalogue.ToJson(errors));
+    await WriteGeneratedAsync(Path.Combine(root, "docs", "generated", "errors.md"), ErrorCatalogue.ToMarkdown(errors));
+    await WriteGeneratedAsync(Path.Combine(root, "contracts", "errors.json"), ErrorCatalogue.ToJson(errors));
     return 0;
+}
 
-    static async Task WriteAsync(string path, string content)
+// Builds the API (services and endpoints, as the Host maps them) without starting it: no server, no database.
+static async Task<int> ExportOpenApiAsync(string[] args)
+{
+    var root = FindRepositoryRoot(Directory.GetCurrentDirectory());
+    if (root is null)
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        await File.WriteAllTextAsync(path, content);
-        Console.WriteLine($"Wrote {path}");
+        Console.Error.WriteLine("Run this inside the repository (no backend/SportsPlatform.slnx above the current directory).");
+        return 1;
     }
+
+    var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+    {
+        Args = args,
+        ContentRootPath = AppContext.BaseDirectory,
+    });
+    await using var app = SportsPlatformApp.Build(builder);
+
+    await WriteGeneratedAsync(Path.Combine(root, "contracts", "openapi.json"), await ApiDocumentation.ExportAsync(app.Services));
+    return 0;
+}
+
+static async Task WriteGeneratedAsync(string path, string content)
+{
+    Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+    await File.WriteAllTextAsync(path, content);
+    Console.WriteLine($"Wrote {path}");
 }
 
 static string? FindRepositoryRoot(string start)
