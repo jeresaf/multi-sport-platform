@@ -25,6 +25,12 @@ public sealed class AggregateRootTests
     }
 
     [Fact]
+    public void The_materialisation_constructor_does_not_generate_an_id()
+    {
+        new MaterialisedVenue().Id.ShouldBe(Guid.Empty);
+    }
+
+    [Fact]
     public void Raised_domain_events_are_kept_until_cleared()
     {
         var venue = new Venue("Bukoto Community Stadium");
@@ -42,9 +48,12 @@ public sealed class AggregateRootTests
 
     private sealed record VenueRenamed(Guid VenueId, string Name) : IDomainEvent;
 
+    private sealed class MaterialisedVenue : AggregateRoot;
+
     private sealed class Venue : AggregateRoot
     {
-        public Venue(string name) => Name = name;
+        public Venue(string name)
+            : base(NewId()) => Name = name;
 
         public Venue(Guid id, string name)
             : base(id) => Name = name;

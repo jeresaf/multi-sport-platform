@@ -3,10 +3,12 @@ namespace SportsPlatform.BuildingBlocks.Domain;
 /// <summary>Base for persisted entities. IDs are UUIDv7, generated in the application.</summary>
 public abstract class Entity
 {
-    // Also runs when EF Core materialises an entity: EF then overwrites Id with the stored value, so the generated
-    // ID is discarded. T2 gives EF a constructor path that skips generation.
+    /// <summary>
+    /// For EF Core materialisation only: leaves <see cref="Id"/> empty for EF to set from the stored value. Domain
+    /// code creates entities with <see cref="Entity(Guid)"/> and <see cref="NewId"/>; saving a new entity with an
+    /// empty ID throws.
+    /// </summary>
     protected Entity()
-        : this(Guid.CreateVersion7())
     {
     }
 
@@ -21,4 +23,7 @@ public abstract class Entity
     }
 
     public Guid Id { get; private set; }
+
+    /// <summary>A new time-ordered UUIDv7.</summary>
+    protected static Guid NewId() => Guid.CreateVersion7();
 }
