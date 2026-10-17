@@ -8,7 +8,8 @@ namespace SportsPlatform.Host.Observability;
 /// <summary>
 /// Adds the request's <c>CorrelationId</c>, <c>TenantId</c>, <c>ActorKind</c> and <c>ActorId</c> to every event logged
 /// during a request. Values are read when the event is written, so a tenant or actor resolved later in the pipeline
-/// (S02, S03) appears from that point on. <c>TenantId</c> is left out when the request has no tenant.
+/// (S02, S03) appears from that point on. <c>TenantId</c> is left out when the request has no tenant. ASP.NET Core's
+/// <c>RequestId</c> (Kestrel's connection-based ID) is removed: the correlation ID is the one request ID to quote.
 /// </summary>
 /// <remarks>
 /// An <see cref="ITenantContext"/> or <see cref="ICurrentActor"/> that logs while it is being built would make the
@@ -25,6 +26,8 @@ public sealed class RequestContextEnricher(IHttpContextAccessor httpContextAcces
     public const string ActorKind = "ActorKind";
     public const string ActorId = "ActorId";
 
+    private const string _frameworkRequestId = "RequestId";
+
     public void Enrich(LogEvent logEvent, ILogEventPropertyFactory propertyFactory)
     {
         ArgumentNullException.ThrowIfNull(logEvent);
@@ -36,6 +39,7 @@ public sealed class RequestContextEnricher(IHttpContextAccessor httpContextAcces
         }
 
         logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty(CorrelationId, context.TraceIdentifier));
+        logEvent.RemovePropertyIfPresent(_frameworkRequestId);
 
         // Null once the request's scope is gone (events logged as the request finishes).
         if (_resolving || context.RequestServices is not IServiceProvider services)

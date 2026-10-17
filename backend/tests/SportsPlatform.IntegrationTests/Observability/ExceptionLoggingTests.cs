@@ -22,6 +22,7 @@ public sealed class ExceptionLoggingTests(TestingPipelineApp app) : IClassFixtur
         error.Level.ShouldBe(LogEventLevel.Error);
         error.Exception!.Message.ShouldBe(PipelineTestApp.ExceptionSecret);
         error.Properties[RequestContextEnricher.CorrelationId].ShouldBe(new ScalarValue("kmsa-req-0500"));
+        error.Properties.ShouldNotContainKey("RequestId"); // the correlation ID is the one request ID
 
         var completion = await app.Telemetry.WaitForRequestLogAsync("/throws");
         completion.Level.ShouldBe(LogEventLevel.Error);

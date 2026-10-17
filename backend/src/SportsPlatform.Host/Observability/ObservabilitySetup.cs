@@ -32,14 +32,17 @@ public static class ObservabilitySetup
         builder.Services.AddHttpContextAccessor();
         builder.Services.AddSingleton<ILogEventEnricher, RequestContextEnricher>();
 
-        // ReadFrom.Services also picks up sinks registered in DI (tests capture events that way). The logger lives in
-        // DI only: the static Log.Logger is left alone, so several hosts in one process (tests) don't share one.
+        // Enrichers and sinks sit in a sub-logger, which gets each event only after Microsoft.Extensions.Logging has
+        // added its scope properties, so RequestContextEnricher can drop the framework's RequestId. ReadFrom.Services
+        // also picks up sinks registered in DI (tests capture events that way). The logger lives in DI only: the
+        // static Log.Logger is left alone, so several hosts in one process (tests) don't share one.
         builder.Services.AddSerilog(
             (services, logger) => logger
                 .ReadFrom.Configuration(configuration)
-                .ReadFrom.Services(services)
                 .Enrich.FromLogContext()
-                .WriteTo.Console(ConsoleFormatter),
+                .WriteTo.Logger(output => output
+                    .ReadFrom.Services(services)
+                    .WriteTo.Console(ConsoleFormatter)),
             preserveStaticLogger: true);
 
         var exportOtlp = !string.IsNullOrWhiteSpace(configuration[OtlpEndpointSetting]);

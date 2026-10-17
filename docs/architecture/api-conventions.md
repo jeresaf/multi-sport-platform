@@ -75,7 +75,7 @@ Modules call each other in-process through Contracts, never over HTTP.
 
 - Logs are Serilog JSON on the console, one object per line (`@t`, `@m`, `@l`, `@x` and properties). Every event
   logged during a request carries `CorrelationId`, `ActorKind`, `ActorId` and, once the request has a tenant,
-  `TenantId`. One completion event per request (method, path without the query string, status, elapsed): Error for
+  `TenantId`. ASP.NET Core's `RequestId` is removed, so `CorrelationId` is the only request ID in logs. One completion event per request (method, path without the query string, status, elapsed): Error for
   5xx and exceptions, Verbose for health probes, otherwise Information. Levels: `Serilog:MinimumLevel`.
 - Never log `PRIVATE` or `SENSITIVE` values (ADR-0015); use message templates with IDs.
 - OpenTelemetry traces and metrics for ASP.NET Core, HttpClient and Npgsql (SQL text, never parameter values;

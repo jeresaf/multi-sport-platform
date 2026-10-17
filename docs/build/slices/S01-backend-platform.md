@@ -238,7 +238,9 @@ Acceptance:
   `options.Logger`): with the static `Log.Logger`, several hosts in one process (tests) wrote to whichever was
   built last. The enricher reads `ITenantContext`/`ICurrentActor` from `RequestServices` at log time (so S02's
   tenant appears once resolved), skips them when `RequestServices` is null, and has a per-thread re-entry guard for
-  a service that logs while being built. Request completion: Error for 5xx/exceptions, Verbose for the two probe
+  a service that logs while being built. It also drops ASP.NET Core's `RequestId` (#17 R2); enrichers and sinks
+  sit in a Serilog sub-logger because Microsoft.Extensions.Logging scope properties are added after the root
+  logger's enrichers. Request completion: Error for 5xx/exceptions, Verbose for the two probe
   paths, otherwise Information. OpenTelemetry: traces (ASP.NET Core without probes, HttpClient, Npgsql) and metrics
   (ASP.NET Core, HttpClient, Npgsql, `System.Runtime`); OTLP exporters only when `OTEL_EXPORTER_OTLP_ENDPOINT` is
   set (launchSettings points at the Aspire dashboard); no OTLP logs (owner). `/health/ready` runs `SELECT 1` on the
