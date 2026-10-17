@@ -54,7 +54,11 @@ public sealed class ResultTests
     [InlineData("", "message")]
     [InlineData(" ", "message")]
     [InlineData("PLATFORM_X", "")]
-    public void Error_requires_a_code_and_a_message(string code, string message)
+    [InlineData("venue clash", "message")]
+    [InlineData("CONTEST", "message")]
+    [InlineData("contest_not_ready", "message")]
+    [InlineData("CONTEST_NOT_READY_", "message")]
+    public void Error_requires_an_AREA_CONDITION_code_and_a_message(string code, string message)
     {
         Should.Throw<ArgumentException>(() => new Error(code, message, ErrorKind.Validation));
     }

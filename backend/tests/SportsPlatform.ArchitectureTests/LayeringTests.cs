@@ -22,7 +22,7 @@ public sealed class LayeringTests
     public void BuildingBlocks_uses_ASP_NET_Core_only_in_its_Modules_namespace()
     {
         var result = Types.InAssembly(SolutionAssemblies.BuildingBlocks)
-            .That().DoNotResideInNamespace("SportsPlatform.BuildingBlocks.Modules")
+            .That().DoNotResideInNamespaceMatching(@"^SportsPlatform\.BuildingBlocks\.Modules(\..+)?$")
             .ShouldNot().HaveDependencyOn("Microsoft.AspNetCore")
             .GetResult();
 

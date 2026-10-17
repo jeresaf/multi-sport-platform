@@ -1,8 +1,29 @@
 namespace SportsPlatform.ArchitectureTests;
 
 // AR-02 and AR-26: modules talk only through Contracts; BuildingBlocks knows no module.
+// Reference checks read assembly metadata, which lists only references whose types are used; an unused
+// forbidden ProjectReference is caught as soon as code starts using it.
 public sealed class ModuleBoundaryTests
 {
+    [Fact]
+    public void Scan_covers_every_module_project_in_the_source_tree()
+    {
+        var projects = Directory
+            .GetFiles(Path.Combine(SolutionAssemblies.BackendDirectory, "src", "Modules"), "*.csproj", SearchOption.AllDirectories)
+            .Select(path => Path.GetFileNameWithoutExtension(path))
+            .Order(StringComparer.Ordinal)
+            .ToList();
+
+        var scanned = SolutionAssemblies.All
+            .Select(SolutionAssemblies.Name)
+            .Where(name => name.StartsWith(SolutionAssemblies.ModulePrefix, StringComparison.Ordinal))
+            .Order(StringComparer.Ordinal)
+            .ToList();
+
+        projects.ShouldNotBeEmpty();
+        scanned.ShouldBe(projects, "every module project must be referenced (via the Host) so these tests see it");
+    }
+
     [Fact]
     public void Scan_finds_BuildingBlocks_and_the_Platform_module_with_its_Contracts()
     {

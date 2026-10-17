@@ -18,6 +18,9 @@ internal static class SolutionAssemblies
         .Select(name => Assembly.Load(new AssemblyName(name)))
         .ToList();
 
+    /// <summary>The <c>backend/</c> folder, found by walking up from the test output to <c>SportsPlatform.slnx</c>.</summary>
+    public static string BackendDirectory { get; } = FindBackendDirectory();
+
     public static Assembly BuildingBlocks => All.Single(a => Name(a) == BuildingBlocksName);
 
     public static IReadOnlyList<Assembly> Modules => All.Where(IsModule).ToList();
@@ -42,6 +45,19 @@ internal static class SolutionAssemblies
     public static IEnumerable<string> SolutionReferences(Assembly assembly) => assembly.GetReferencedAssemblies()
         .Select(a => a.Name!)
         .Where(name => name.StartsWith("SportsPlatform.", StringComparison.Ordinal));
+
+    private static string FindBackendDirectory()
+    {
+        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
+        {
+            if (File.Exists(Path.Combine(directory.FullName, "SportsPlatform.slnx")))
+            {
+                return directory.FullName;
+            }
+        }
+
+        throw new InvalidOperationException("SportsPlatform.slnx not found above the test output folder.");
+    }
 
     private static bool IsModule(Assembly assembly) => IsModule(Name(assembly));
 
