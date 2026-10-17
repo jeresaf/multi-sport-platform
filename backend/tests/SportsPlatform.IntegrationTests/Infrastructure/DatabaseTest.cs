@@ -17,11 +17,15 @@ public abstract class DatabaseTest(PostgresFixture fixture) : IAsyncLifetime
 
     protected static CancellationToken Ct => TestContext.Current.CancellationToken;
 
-    public async ValueTask InitializeAsync() => await Fixture.ResetAsync();
+    public async ValueTask InitializeAsync()
+    {
+        App.Actor.ActAsSystem();
+        await Fixture.ResetAsync();
+    }
 
     public ValueTask DisposeAsync()
     {
-        GC.SuppressFinalize(this);
+        GC.SuppressFinalize(this); // CA1816; derived test classes have no finalizers.
         return ValueTask.CompletedTask;
     }
 }

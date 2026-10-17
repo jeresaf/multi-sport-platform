@@ -29,6 +29,10 @@ public sealed class ConventionProbe : AggregateRoot
     public ConventionProbe(string venueName)
         : base(NewId()) => VenueName = venueName;
 
+    /// <summary>With a chosen ID, e.g. a UUIDv7 for a known instant.</summary>
+    public ConventionProbe(Guid id, string venueName)
+        : base(id) => VenueName = venueName;
+
     private ConventionProbe()
     {
     }

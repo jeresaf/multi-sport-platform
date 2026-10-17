@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Time.Testing;
+using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.IntegrationTests.Persistence;
 
@@ -15,16 +16,20 @@ public sealed class TestApp(IReadOnlyDictionary<string, string?> settings) : Web
 {
     public FakeTimeProvider Clock { get; } = new(new DateTimeOffset(2026, 10, 17, 9, 0, 0, TimeSpan.Zero));
 
+    public TestActor Actor { get; } = new();
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(settings).Build();
 
-        builder.UseEnvironment("Testing");
+        builder.UseEnvironment(TestEnvironment.Name);
         builder.ConfigureAppConfiguration(config => config.AddInMemoryCollection(settings));
         builder.ConfigureTestServices(services =>
         {
             services.RemoveAll<TimeProvider>();
             services.AddSingleton<TimeProvider>(Clock);
+            services.RemoveAll<ICurrentActor>();
+            services.AddSingleton<ICurrentActor>(Actor);
 
             // A test-only module context that exercises the persistence conventions.
             services.AddModuleDbContext<ConventionsTestDbContext>(configuration, ConventionsTestDbContext.SchemaName);

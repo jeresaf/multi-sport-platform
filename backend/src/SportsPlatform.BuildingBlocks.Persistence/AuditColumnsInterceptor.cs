@@ -48,11 +48,16 @@ public sealed class AuditColumnsInterceptor(ICurrentActor actor, TimeProvider ti
                     }
 
                     break;
-                case EntityState.Modified when hasUpdatedColumns:
+                case EntityState.Modified:
+                    // Who created a row never changes, whatever the entity's code did.
                     entry.Property(AuditColumns.CreatedAt).IsModified = false;
                     entry.Property(AuditColumns.CreatedBy).IsModified = false;
-                    entry.Property(AuditColumns.UpdatedAt).CurrentValue = now;
-                    entry.Property(AuditColumns.UpdatedBy).CurrentValue = actor.ActorId;
+                    if (hasUpdatedColumns)
+                    {
+                        entry.Property(AuditColumns.UpdatedAt).CurrentValue = now;
+                        entry.Property(AuditColumns.UpdatedBy).CurrentValue = actor.ActorId;
+                    }
+
                     break;
                 default:
                     break;

@@ -1,10 +1,10 @@
 using System.Net;
 using System.Text.Json;
-using Microsoft.AspNetCore.Mvc.Testing;
+using SportsPlatform.IntegrationTests.Infrastructure;
 
 namespace SportsPlatform.IntegrationTests.Health;
 
-public sealed class HealthLiveTests(WebApplicationFactory<Program> factory) : IClassFixture<WebApplicationFactory<Program>>
+public sealed class HealthLiveTests(HostOnlyApp factory) : IClassFixture<HostOnlyApp>
 {
     [Fact]
     public async Task Get_health_live_returns_ok_status()
