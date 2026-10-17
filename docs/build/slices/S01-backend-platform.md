@@ -134,8 +134,8 @@ Deliver:
   `platform.outbox.redrive`.
 
 Acceptance:
-- [ ] A test endpoint without an action fails the startup test; so does an endpoint with both markers.
-- [ ] Generated actions catalogue lists the Platform actions with module, scope, audit and entitlement fields.
+- [x] A test endpoint without an action fails the startup test; so does an endpoint with both markers.
+- [x] Generated actions catalogue lists the Platform actions with module, scope, audit and entitlement fields.
 
 ### T5 — Domain events, outbox and inbox
 Deliver per docs/architecture/events-and-jobs.md:
@@ -275,8 +275,9 @@ Acceptance:
   not scopable; tenant actions are always scopable by `TENANT`. `Entitlement` is a string until S04. Enforcement is a
   middleware after `UseRouting` (owner, instead of an endpoint filter): it works for every endpoint type and runs
   before body binding, so a caller who is not allowed gets 403, not 400. It passes requests with no matched endpoint
-  and the router's 405 endpoint (not a `RouteEndpoint`), and refuses at runtime any endpoint without exactly one
-  action. `SportsPlatformApp.Build` throws if an endpoint breaks the rules (`EndpointActionRules`: neither or both
+  and unmarked endpoints that are not a `RouteEndpoint` (the router's 405), evaluates a marked endpoint of any type,
+  and refuses at runtime any endpoint without exactly one action. Admin/platform paths are detected from the parsed
+  route segments (`~/api/admin/...` counts). Modules sharing an assembly are rejected by the action catalogue. `SportsPlatformApp.Build` throws if an endpoint breaks the rules (`EndpointActionRules`: neither or both
   markers, two actions, `.AllowPublic()` under `/api/admin` or `/api/platform`, an action not in the catalogue), so the
   API and `export-openapi` won't build with one. The public module group is `.AllowPublic()` as a group. Default
   evaluator: `DenyAllAuthorizationEvaluator`; `TestApp.Authorization` is a `TestAuthorizationEvaluator` (denies until
