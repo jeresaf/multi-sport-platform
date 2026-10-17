@@ -45,6 +45,9 @@ paths:
 
 ## Style
 - Nullable enabled; warnings are errors; async all the way with `CancellationToken`.
-- Structured logging with message templates and IDs (no string interpolation in log calls).
+- Structured logging with message templates and IDs (no string interpolation in log calls); prefer
+  `[LoggerMessage]` methods. Don't add `CorrelationId`, `TenantId`, `ActorKind` or `ActorId` yourself: every
+  request's events get them (`RequestContextEnricher`). `ITenantContext`/`ICurrentActor` must not log while being
+  resolved.
 - Prefer small, explicit code over clever abstractions; no MediatR, AutoMapper, MassTransit or other
   commercially licensed packages (ADR-0013).

@@ -58,8 +58,10 @@ Modules call each other in-process through Contracts, never over HTTP.
   (`SportsPlatform.BuildingBlocks.Api`); the Host adds `type` and `correlationId`. `title` is the error's
   default message.
 - Failures raised by the HTTP pipeline itself (`CommonErrors`): `VALIDATION_MALFORMED_REQUEST` (400, body or
-  parameters unreadable), `VALIDATION_UNSUPPORTED_MEDIA_TYPE` (415), `PLATFORM_ROUTE_NOT_FOUND` (404, no endpoint matched),
-  `PLATFORM_METHOD_NOT_ALLOWED` (405), `PLATFORM_UNEXPECTED_ERROR` (500, any unhandled exception).
+  parameters unreadable), `VALIDATION_REQUEST_TOO_LARGE` (413, body over the size limit),
+  `VALIDATION_UNSUPPORTED_MEDIA_TYPE` (415), `PLATFORM_ROUTE_NOT_FOUND` (404, no endpoint matched),
+  `PLATFORM_METHOD_NOT_ALLOWED` (405), `PLATFORM_UNEXPECTED_ERROR` (500, any unhandled exception). Kestrel rejects
+  408 (request timeout) and 431 (headers too large) before the pipeline runs, so those responses have no body.
 - Never leak stack traces or internal details; they go to logs with the correlation ID.
 
 ## Correlation ID
@@ -68,6 +70,20 @@ Modules call each other in-process through Contracts, never over HTTP.
   `[A-Za-z0-9._-]`; otherwise the API generates a UUIDv7. The same value is the Problem Details
   `correlationId` (the only request ID in the body; ASP.NET Core's `traceId` is removed) and is in the logging
   scope (`CorrelationId`).
+
+## Logging, tracing and health
+
+- Logs are Serilog JSON on the console, one object per line (`@t`, `@m`, `@l`, `@x` and properties). Every event
+  logged during a request carries `CorrelationId`, `ActorKind`, `ActorId` and, once the request has a tenant,
+  `TenantId`. One completion event per request (method, path without the query string, status, elapsed): Error for
+  5xx and exceptions, Verbose for health probes, otherwise Information. Levels: `Serilog:MinimumLevel`.
+- Never log `PRIVATE` or `SENSITIVE` values (ADR-0015); use message templates with IDs.
+- OpenTelemetry traces and metrics for ASP.NET Core, HttpClient and Npgsql (SQL text, never parameter values;
+  query-string values are redacted). Health probes are not traced. OTLP export only when
+  `OTEL_EXPORTER_OTLP_ENDPOINT` is set; Azure Monitor gets its own exporter adapter (ADR-0016).
+- `GET /health/live` → `200 {"status":"ok"}` while the process runs. `GET /health/ready` → `200 {"status":"ok"}`
+  when the database answers on the `App` connection, else `503 {"status":"unavailable"}`. Health bodies never
+  contain versions, host names or error text; the reason is logged as a Warning.
 
 ## Pagination, filtering, sorting
 
