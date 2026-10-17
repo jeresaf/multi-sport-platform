@@ -19,6 +19,8 @@ paths:
 - New entities: `base(NewId())` in the domain constructor; a private parameterless constructor for EF. Saving a
   new entity with an empty ID throws.
 - Save with `SaveChangesResultAsync()`; a lost update returns the module's `<MODULE>_CONCURRENCY_CONFLICT` (409).
+  Known gap: only the root row's `xmin` is checked; a change to only a child table or owned type doesn't touch
+  the root (PROGRESS tech debt) — until fixed, change the root too when a child changes.
 - Create a migration (run from the repository root; `dotnet tool restore` once first):
   ```bash
   dotnet ef migrations add <Name> --project backend/src/Modules/<M>/SportsPlatform.Modules.<M> \
