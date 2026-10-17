@@ -227,8 +227,24 @@ Acceptance:
   `ErrorKind` gained `MethodNotAllowed`, `UnsupportedMediaType` and `Unexpected`. `PLATFORM_ROUTE_NOT_FOUND` only
   when no endpoint matched; a bare 404 from a matched endpoint gets no code (endpoints must use `ToProblem()`). The
   framework's `traceId` member is removed (one request ID per body). Other framework statuses still have no code:
-  401/403 (T4/S03) and Kestrel's 408/413/431 (follow-up). Pipeline tests run in Testing and Development. Errors are discovered by reflection: public static readonly `Error`
+  401/403 (T4/S03) and Kestrel's 408/413/431 (413 coded in T3b; 408 and 431 have no body). Pipeline tests run in Testing and Development. Errors are discovered by reflection: public static readonly `Error`
   fields of static `*Errors` classes in BuildingBlocks and each module assembly (a test fails for any other static
   `Error`). The correlation ID is `HttpContext.TraceIdentifier`. `ProblemDetails:TypeBaseUri` placeholder
   `https://errors.sportsplatform.invalid/` until Q10 (domain) is decided. Stale-file checking arrives with T3c's
   `Contracts` job.
+- **T3b:** `Host/Observability` (`AddObservability`, `UseRequestLogging`, `RequestContextEnricher`) and
+  `Host/Health`. Serilog JSON (`RenderedCompactJsonFormatter`) in every environment; levels from
+  `Serilog:MinimumLevel`. The logger lives in DI only (`preserveStaticLogger: true`, request logging gets it via
+  `options.Logger`): with the static `Log.Logger`, several hosts in one process (tests) wrote to whichever was
+  built last. The enricher reads `ITenantContext`/`ICurrentActor` from `RequestServices` at log time (so S02's
+  tenant appears once resolved), skips them when `RequestServices` is null, and has a per-thread re-entry guard for
+  a service that logs while being built. Request completion: Error for 5xx/exceptions, Verbose for the two probe
+  paths, otherwise Information. OpenTelemetry: traces (ASP.NET Core without probes, HttpClient, Npgsql) and metrics
+  (ASP.NET Core, HttpClient, Npgsql, `System.Runtime`); OTLP exporters only when `OTEL_EXPORTER_OTLP_ENDPOINT` is
+  set (launchSettings points at the Aspire dashboard); no OTLP logs (owner). `/health/ready` runs `SELECT 1` on the
+  `App` connection, 5 s timeout, 200 `{"status":"ok"}` / 503 `{"status":"unavailable"}`; failures and cancellations
+  are logged as separate Warnings. Added `VALIDATION_REQUEST_TOO_LARGE` (413, `ErrorKind.PayloadTooLarge`), proven on
+  real Kestrel (`KestrelLimitsTests`); Kestrel's 408/431 are rejected before the pipeline and have no body (owner).
+  Tests capture telemetry with `TelemetryCapture` (DI Serilog sink + in-memory span exporter). TestServer can stop
+  a request's span after the client has the response, so "not traced" is tested through the configured filter, not
+  by the absence of a span.
