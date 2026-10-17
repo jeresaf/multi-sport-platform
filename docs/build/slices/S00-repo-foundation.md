@@ -29,9 +29,9 @@ Deliver:
 - Update the **Commands** section of CLAUDE.md with the exact build/test/format commands.
 
 Acceptance:
-- [ ] `dotnet build backend -warnaserror` and `dotnet test backend` pass with zero warnings.
-- [ ] `dotnet format backend --verify-no-changes` passes.
-- [ ] CLAUDE.md commands are copy-paste correct.
+- [x] `dotnet build backend -warnaserror` and `dotnet test backend` pass with zero warnings (see Implementation notes).
+- [x] `dotnet format backend --verify-no-changes` passes.
+- [x] CLAUDE.md commands are copy-paste correct.
 
 ### T2 — Web workspace
 Deliver:
@@ -83,3 +83,10 @@ Acceptance:
 - [ ] All four tasks merged; CI green on `main`.
 - [ ] A new contributor can follow README and get everything running in under 30 minutes.
 - [ ] PROGRESS.md and roadmap updated.
+
+## Implementation notes
+
+- **T1 — test command (owner-approved deviation).** xUnit v3 (4.x) runs only on Microsoft.Testing.Platform with
+  the .NET 10 SDK, so `global.json` selects that runner and the test command is `dotnet test --solution backend`
+  (the form `dotnet test backend` is rejected by the SDK). Use this form wherever the spec says `dotnet test`,
+  including the T4 CI workflow.

@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/SportsPlatform.BuildingBlocks/SportsPlatform.BuildingBlocks.csproj" />
+    <Project Path="src/SportsPlatform.Host/SportsPlatform.Host.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/SportsPlatform.ArchitectureTests/SportsPlatform.ArchitectureTests.csproj" />
+    <Project Path="tests/SportsPlatform.IntegrationTests/SportsPlatform.IntegrationTests.csproj" />
+    <Project Path="tests/SportsPlatform.UnitTests/SportsPlatform.UnitTests.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/SportsPlatform.Cli/SportsPlatform.Cli.csproj" />
+  </Folder>
+</Solution>
