@@ -9,6 +9,7 @@ public enum ErrorKind
     NotFound,
     MethodNotAllowed,
     Conflict,
+    PayloadTooLarge,
     UnsupportedMediaType,
     Unprocessable,
     TooManyRequests,

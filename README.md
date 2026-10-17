@@ -45,7 +45,9 @@ infrastructure/local/postgres/check-roles.sh      # proves the database roles (s
   that setting stops the API at startup, so only the CLI ever holds the `sp_migrator` credentials.
 - Mailpit: SMTP `localhost:1025`, inbox at http://localhost:8025.
 - Optional OpenTelemetry dashboard: `docker compose --profile observability up -d`, then http://localhost:18888
-  (OTLP gRPC on `localhost:4317`).
+  (OTLP gRPC on `localhost:4317`). `dotnet run` of the API exports traces and metrics there (launchSettings sets
+  `OTEL_EXPORTER_OTLP_ENDPOINT`); logs stay on the console as JSON.
+- Health: http://localhost:5080/health/live (process) and http://localhost:5080/health/ready (database).
 - Reset everything: `docker compose down -v` (deletes the database volume; the init script runs again next time).
 - Port 5432 already in use (a local PostgreSQL)? Set `POSTGRES_PORT=5433` in `.env`.
 

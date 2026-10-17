@@ -18,6 +18,8 @@ public sealed class TestApp(IReadOnlyDictionary<string, string?> settings) : Web
 
     public TestActor Actor { get; } = new();
 
+    public TelemetryCapture Telemetry { get; } = new();
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(settings).Build();
@@ -30,6 +32,7 @@ public sealed class TestApp(IReadOnlyDictionary<string, string?> settings) : Web
             services.AddSingleton<TimeProvider>(Clock);
             services.RemoveAll<ICurrentActor>();
             services.AddSingleton<ICurrentActor>(Actor);
+            Telemetry.AddTo(services);
 
             // A test-only module context that exercises the persistence conventions.
             services.AddModuleDbContext<ConventionsTestDbContext>(configuration, ConventionsTestDbContext.SchemaName);

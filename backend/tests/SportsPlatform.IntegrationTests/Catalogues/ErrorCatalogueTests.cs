@@ -109,6 +109,14 @@ public sealed class ErrorCatalogueTests
             .ShouldBe(catalogue.Select(entry => entry.Code));
     }
 
+    [Fact]
+    public void Json_keeps_apostrophes_and_non_ASCII_characters_readable()
+    {
+        var json = ErrorCatalogue.ToJson([new ErrorCatalogueEntry("FIXTURE_VENUE_CLASH", 409, "Can't play at Bukoto & Kisaasi – clash.", "Fixtures")]);
+
+        json.ShouldContain("\"Can't play at Bukoto & Kisaasi – clash.\"");
+    }
+
     private sealed class DuplicateModule : IModule
     {
         public string Name => "Duplicate";

@@ -6,6 +6,9 @@ public static class CommonErrors
     public static readonly Error MalformedRequest = new(
         "VALIDATION_MALFORMED_REQUEST", "The request could not be read.", ErrorKind.Validation);
 
+    public static readonly Error RequestTooLarge = new(
+        "VALIDATION_REQUEST_TOO_LARGE", "The request body is too large.", ErrorKind.PayloadTooLarge);
+
     public static readonly Error UnsupportedMediaType = new(
         "VALIDATION_UNSUPPORTED_MEDIA_TYPE", "The request body must be JSON.", ErrorKind.UnsupportedMediaType);
 

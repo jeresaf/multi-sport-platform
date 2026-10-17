@@ -11,4 +11,5 @@ the message is the default title and may change.
 | `PLATFORM_ROUTE_NOT_FOUND` | 404 | No endpoint matches this path. | BuildingBlocks |
 | `PLATFORM_UNEXPECTED_ERROR` | 500 | An unexpected error occurred. Quote the correlation ID when reporting it. | BuildingBlocks |
 | `VALIDATION_MALFORMED_REQUEST` | 400 | The request could not be read. | BuildingBlocks |
+| `VALIDATION_REQUEST_TOO_LARGE` | 413 | The request body is too large. | BuildingBlocks |
 | `VALIDATION_UNSUPPORTED_MEDIA_TYPE` | 415 | The request body must be JSON. | BuildingBlocks |
