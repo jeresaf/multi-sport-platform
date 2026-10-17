@@ -75,8 +75,8 @@ Deliver `.github/workflows/ci.yml` running on pull requests and pushes to `main`
 - README-FIRST already tells the owner to protect `main` (require PR + passing CI).
 
 Acceptance:
-- [ ] CI passes on this PR (link the run in the PR).
-- [ ] Workflow uses pinned major versions of actions.
+- [x] CI passes on this PR (link the run in the PR).
+- [x] Workflow uses pinned major versions of actions.
 
 ## Slice acceptance
 
@@ -109,3 +109,7 @@ Acceptance:
   table needs it: `REVOKE INSERT, UPDATE, DELETE … FROM sp_app` for global/reference tables (read-only to the app),
   append-only tables (timeline, audit; plus the trigger from AR-19) and each schema's migrations history table.
   Local ports are bound to `127.0.0.1` because the development passwords are public.
+- **T4 — CI.** `.github/workflows/ci.yml` runs on every pull request (no branch filter, so stacked PRs get CI)
+  and on pushes to `main`. Jobs (check names to require in branch protection): `Backend`, `Web`,
+  `E2E (Playwright)`, `Local infrastructure` (extra, owner-approved: compose up + `check-roles.sh`). Superseded
+  pull-request runs are cancelled; runs on `main` never are. First green run: PR #10, run 39020260112.
