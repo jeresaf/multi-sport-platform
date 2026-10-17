@@ -6,13 +6,12 @@ at the start of every review.
 ## Now
 
 - **Current slice:** S00 — Repo foundation
-- **Current task:** S00-T3 — Local infrastructure (in progress, branch `s00/t3-local-infra`, stacked on PR #8)
-- **Blocked on:** merge of PR #7 (S00-T1), then review of the S00-T2 PR
+- **Current task:** S00-T3 — Local infrastructure (PR open, stacked on PR #8)
+- **Blocked on:** merges of PR #7 and PR #8, then review of the S00-T3 PR
 
 ## Next up
 
-1. S00-T3 Local infrastructure
-2. S00-T4 CI
+1. S00-T4 CI
 
 ## Log
 
@@ -22,6 +21,7 @@ at the start of every review.
 | 2026-10-17 | — | — | Kit v2: owner answers Q1, Q2, Q4, Q5; ADR-0016 (hosting); plans and pricing; fictional pilot customer; roadmap Phase 5 reordered (rugby, basketball, cricket); prototype review and selected prototype docs | Restart in the existing repo; prototype at tag `prototype-v0` |
 | 2026-10-17 | S00-T1 | #7 | Root conventions (editorconfig, gitattributes, gitignore, global.json, README); `backend/SportsPlatform.slnx` with Host (`GET /health/live`), BuildingBlocks, Unit/Integration/Architecture tests, CLI; central package management; CLAUDE.md commands | xUnit v3 on Microsoft.Testing.Platform → test command is `dotnet test --solution backend` (agreed) |
 | 2026-10-17 | S00-T2 | #8 | `web/` pnpm 12 + Turborepo workspace; Next.js 16.4 `apps/public` (3000) and `apps/admin` (3001) with Tailwind 4; `packages/config` (tsconfig, ESLint flat config with a colour-literal rule, shared Tailwind theme), `packages/tokens` (CSS variables light/dark + TS export), `packages/ui` (`Button` + Vitest), `packages/api-client` placeholder; Playwright smoke tests in `web/e2e` | Tailwind 4 shared `theme.css` instead of a preset; placeholder token colours (both agreed). ESLint 9 (eslint-config-next plugins don't support 10); TypeScript 6.0 (typescript-eslint needs < 6.1) |
+| 2026-10-17 | S00-T3 | (PR pending) | `docker-compose.yml`: `postgres:17` (named volume, TCP healthcheck, init script creating `sportsplatform` and roles `sp_migrator`/`sp_app`/`sp_platform` with default privileges for future schemas), Mailpit v1.31.6, optional `observability` profile (Aspire dashboard 13.6); `.env.example`; `infrastructure/local/postgres/check-roles.sh`; README Local setup | Roles get privileges via `ALTER DEFAULT PRIVILEGES FOR ROLE sp_migrator`, so S01+ migrations need no grant boilerplate |
 
 ## Deviations from spec (agreed)
 

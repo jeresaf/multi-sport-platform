@@ -61,9 +61,9 @@ Deliver:
 - README "Local setup" section (Windows/macOS/Linux notes).
 
 Acceptance:
-- [ ] `docker compose up -d` → services healthy; `psql` connects as `sp_app` and cannot create tables in
+- [x] `docker compose up -d` → services healthy; `psql` connects as `sp_app` and cannot create tables in
       application schemas.
-- [ ] README steps work from a fresh clone.
+- [x] README steps work from a fresh clone.
 
 ### T4 — Continuous integration
 Deliver `.github/workflows/ci.yml` running on pull requests and pushes to `main`:
@@ -100,3 +100,8 @@ Acceptance:
   are ignored). Known gaps: named colours in inline `style` objects; colour inside shorthand values other than
   `background` (e.g. `border: 1px solid red`). Known false positives: hex-like strings (`"#add"`, `"Fixture #101"`).
   Colour values live only in `web/packages/tokens/tokens.css`.
+- **T3 — database roles.** `infrastructure/local/postgres/init/01-roles.sh` creates the roles once per volume.
+  `sp_migrator` owns the database (and so the schemas migrations create); `sp_app` and `sp_platform` get
+  `USAGE`/DML on future schemas, tables, sequences and functions through `ALTER DEFAULT PRIVILEGES FOR ROLE
+  sp_migrator`, never `CREATE`. `infrastructure/local/postgres/check-roles.sh` proves this (8 checks) and is meant
+  for reuse in CI. The S01 Testcontainers fixture should run the same init script so tests use the same roles.
