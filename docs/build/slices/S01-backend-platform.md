@@ -127,7 +127,8 @@ Deliver:
   `GET /health/ready`, `/api/public/v1/**` and the Development-only OpenAPI/Scalar endpoints are marked
   `.AllowPublic()`.
 - Exporter writes `docs/generated/actions.md` and `contracts/actions.json`; CI staleness check.
-- Authorization endpoint filter calling `IAuthorizationEvaluator`; default registration **denies**; tests use a
+- Authorization middleware (owner, 2026-10-17: middleware rather than an endpoint filter) calling
+  `IAuthorizationEvaluator`; default registration **denies**; tests use a
   configurable test evaluator. Denials return `403 AUTH_FORBIDDEN` and are written to audit in T6.
 - Platform actions for this slice: `reference.read` (if any admin reads), `platform.outbox.read`,
   `platform.outbox.redrive`.
@@ -266,3 +267,20 @@ Acceptance:
   and `isProblemDetails` guard; openapi-typescript's `typescript ^5` peer is allowed for 6
   (`pnpm-workspace.yaml`). CI job `Contracts` runs `export-catalogues`, `export-openapi` and the client
   generator, then fails on any diff, untracked files included.
+- **T4:** `ActionDefinition`, `IAuthorizationEvaluator`/`AuthorizationRequest` (action + actor; the resource scope
+  chain comes with S03) and `AUTH_FORBIDDEN` live in `SportsPlatform.BuildingBlocks.Actions`; `.RequireAction(...)`
+  and `.AllowPublic()` (metadata only, any endpoint builder) in `SportsPlatform.BuildingBlocks.Api`. A module's actions
+  are the public static readonly `ActionDefinition` fields of its static `*Actions` class; the catalogue adds the
+  module name, like the error catalogue (a test fails for any other static `ActionDefinition`). Platform actions are
+  not scopable; tenant actions are always scopable by `TENANT`. `Entitlement` is a string until S04. Enforcement is a
+  middleware after `UseRouting` (owner, instead of an endpoint filter): it works for every endpoint type and runs
+  before body binding, so a caller who is not allowed gets 403, not 400. It passes requests with no matched endpoint
+  and the router's 405 endpoint (not a `RouteEndpoint`), and refuses at runtime any endpoint without exactly one
+  action. `SportsPlatformApp.Build` throws if an endpoint breaks the rules (`EndpointActionRules`: neither or both
+  markers, two actions, `.AllowPublic()` under `/api/admin` or `/api/platform`, an action not in the catalogue), so the
+  API and `export-openapi` won't build with one. The public module group is `.AllowPublic()` as a group. Default
+  evaluator: `DenyAllAuthorizationEvaluator`; `TestApp.Authorization` is a `TestAuthorizationEvaluator` (denies until
+  `Allow(...)`/`AllowAll()`). `export-catalogues` writes `actions.md`/`actions.json`, checked by the `Contracts` job.
+  Owner: `platform.outbox.read` is audit `REQUIRED`, `platform.outbox.redrive` `REQUIRED_WITH_REASON`; no
+  `reference.read` (T7's reference endpoints are public). Allowed/denied tests for the two outbox actions come with
+  their endpoints in T5.

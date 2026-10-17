@@ -67,13 +67,15 @@ at the start of every review.
   reviewer and owner to confirm on #18: the Host calls `UseRouting`/`UseEndpoints` explicitly (routing now runs
   after the correlation, exception and status-code middleware), and JSON numbers are strict (`"5"` → 400
   `VALIDATION_MALFORMED_REQUEST`).
+- **S01-T4:** authorization is enforced by a middleware after routing, not an endpoint filter (docs/architecture/
+  authorization.md updated): it covers every endpoint type and denies before the body is bound. Beyond the spec,
+  the Host also checks the endpoint rules when it is built (not only in a test). Owner approved the plan 2026-10-17.
 
 ## Tech debt / follow-ups
 
 Consolidated by the S00 slice review (2026-10-17). Each item names where it gets done.
 
 **Assigned to S01** (see the spec's "Carried over from S00")
-- Mark `GET /health/live` and `/health/ready` with `.AllowPublic()`; the startup test covers every endpoint (T4).
 - Apply the T2b grant helpers to the real tables: outbox/inbox (T5, read-write), `audit.audit_entries`
   (`AppendOnly`, T6), reference tables (`ReadOnlyForRuntimeRoles`, T7); declare each in `TableAccessPolicies`.
 - `xmin`/`updated_*` cover only the aggregate root's row: a change to only a child entity or owned type doesn't
@@ -87,7 +89,8 @@ Consolidated by the S00 slice review (2026-10-17). Each item names where it gets
   re-run the reference seed after each reset (T7; reviewer note on #14).
 - `seed --reset` (Development, T7) can't TRUNCATE or DELETE append-only tables as `sp_migrator` (the triggers stop
   the owner too): reset by recreating the database or skip append-only tables (T7; S01-T2b).
-- 401/403 still produce Problem Details without a `code`; codes come with T4/S03 (S01-T3a pre-review).
+- 401 still produces Problem Details without a `code` (no authentication yet); comes with S03. 403 from the
+  authorization middleware is `AUTH_FORBIDDEN` (T4) (S01-T3a pre-review).
 - `ICurrentActor` is still the singleton `SystemActor`, so every HTTP request (anonymous ones included) is logged as
   `ActorKind=System`. Add a per-request actor with an anonymous kind for unauthenticated requests and update
   `RequestLoggingTests.Request_is_logged_with_correlation_ID_and_actor` (S03, or T4 if it needs one; #17 R1).
@@ -95,9 +98,6 @@ Consolidated by the S00 slice review (2026-10-17). Each item names where it gets
   setting, used by the Development launch profile; JSON stays everywhere else. Can ride the next PR.
 - `/health/ready` is anonymous and runs `SELECT 1` on every hit: expose `/health/*` only to the load balancer and
   probes, or rate-limit them at the edge (infrastructure task after M1, ADR-0016; #17 R3).
-- `docs/generated/README.md` doesn't mention `contracts/openapi.json`, the generated TS client or the `Contracts`
-  job. It is hand-written, but Claude Code's settings deny edits under `docs/generated/`: owner to edit it, or
-  exempt the README from the deny rule (S01-T3c).
 - `ProblemDetails:TypeBaseUri` is the placeholder `https://errors.sportsplatform.invalid/` until Q10 (domain).
 
 **Owner decisions / housekeeping**
