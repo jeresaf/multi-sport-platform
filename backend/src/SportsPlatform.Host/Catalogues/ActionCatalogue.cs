@@ -22,7 +22,17 @@ public static class ActionCatalogue
 
         var entries = modules
             .Select(module => (module.Name, Assembly: module.GetType().Assembly))
-            .DistinctBy(source => source.Assembly)
+            .ToList();
+
+        // Actions are credited to the module whose assembly declares them: one module per assembly.
+        var shared = entries.GroupBy(source => source.Assembly).Where(group => group.Count() > 1).ToList();
+        if (shared.Count > 0)
+        {
+            throw new InvalidOperationException(
+                $"Modules share an assembly: {string.Join("; ", shared.Select(group => string.Join(", ", group.Select(source => source.Name))))}.");
+        }
+
+        var catalogue = entries
             .SelectMany(source => DeclaringTypes(source.Assembly)
                 .SelectMany(type => type.GetFields(BindingFlags.Public | BindingFlags.Static))
                 .Where(field => field.FieldType == typeof(ActionDefinition) && field.IsInitOnly)
@@ -30,13 +40,13 @@ public static class ActionCatalogue
             .OrderBy(entry => entry.Action.Code.Value, StringComparer.Ordinal)
             .ToList();
 
-        var duplicates = entries.GroupBy(entry => entry.Action.Code).Where(group => group.Count() > 1).Select(group => group.Key).ToList();
+        var duplicates = catalogue.GroupBy(entry => entry.Action.Code).Where(group => group.Count() > 1).Select(group => group.Key).ToList();
         if (duplicates.Count > 0)
         {
             throw new InvalidOperationException($"Action codes declared more than once: {string.Join(", ", duplicates)}.");
         }
 
-        return entries;
+        return catalogue;
     }
 
     /// <summary>Static classes whose name ends in <c>Actions</c>.</summary>

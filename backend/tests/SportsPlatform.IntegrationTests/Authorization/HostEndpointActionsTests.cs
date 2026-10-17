@@ -1,10 +1,12 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
 using SportsPlatform.BuildingBlocks.Actions;
 using SportsPlatform.Host;
 using SportsPlatform.Host.Authorization;
 using SportsPlatform.Host.Catalogues;
 using SportsPlatform.Host.Modules;
+using SportsPlatform.IntegrationTests.Api;
 using SportsPlatform.IntegrationTests.Infrastructure;
 
 namespace SportsPlatform.IntegrationTests.Authorization;
@@ -49,5 +51,25 @@ public sealed class HostEndpointActionsTests
         {
             publicPaths.ShouldNotContain(path => path!.StartsWith("/scalar", StringComparison.Ordinal));
         }
+    }
+}
+
+/// <summary>The real Host's authorization registration; T5's outbox endpoints add end-to-end allowed/denied tests.</summary>
+public sealed class HostAuthorizationTests(HostOnlyApp factory) : IClassFixture<HostOnlyApp>
+{
+    [Fact]
+    public void Host_denies_by_default()
+    {
+        factory.Services.GetRequiredService<IAuthorizationEvaluator>().ShouldBeOfType<DenyAllAuthorizationEvaluator>();
+    }
+
+    [Fact]
+    public async Task Wrong_method_on_a_public_endpoint_is_405_not_403()
+    {
+        using var client = factory.CreateClient();
+
+        using var response = await client.PostAsync(new Uri("/health/live", UriKind.Relative), content: null, TestContext.Current.CancellationToken);
+
+        await response.ShouldBeProblemAsync(System.Net.HttpStatusCode.MethodNotAllowed, "PLATFORM_METHOD_NOT_ALLOWED");
     }
 }

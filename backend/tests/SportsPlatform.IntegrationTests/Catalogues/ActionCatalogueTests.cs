@@ -107,6 +107,29 @@ public sealed class ActionCatalogueTests
         exception.Message.ShouldContain("platform.outbox.read");
     }
 
+    [Fact]
+    public void Modules_sharing_an_assembly_are_rejected()
+    {
+        var exception = Should.Throw<InvalidOperationException>(() => ActionCatalogue.Build([new DuplicateModule(), new SiblingModule()]));
+
+        exception.Message.ShouldContain("Duplicate, Sibling");
+    }
+
+    private sealed class SiblingModule : IModule
+    {
+        public string Name => "Sibling";
+
+        public string Schema => "sibling";
+
+        public void AddServices(IServiceCollection services, IConfiguration configuration)
+        {
+        }
+
+        public void MapEndpoints(ApiEndpointGroups groups)
+        {
+        }
+    }
+
     private sealed class DuplicateModule : IModule
     {
         public string Name => "Duplicate";

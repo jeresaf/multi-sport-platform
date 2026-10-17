@@ -10,7 +10,7 @@ namespace SportsPlatform.Host.Authorization;
 /// </summary>
 public static class EndpointActionRules
 {
-    private static readonly string[] _protectedFamilies = ["api/admin", "api/platform"];
+    private static readonly string[] _protectedFamilies = ["admin", "platform"];
 
     public static IReadOnlyList<string> Validate(IEnumerable<Endpoint> endpoints, IReadOnlyList<ActionCatalogueEntry> catalogue)
     {
@@ -64,11 +64,21 @@ public static class EndpointActionRules
         }
     }
 
+    // From the parsed segments, not the raw text, so "~/api/admin/..." and patterns built without raw text count too.
     private static bool IsProtectedFamily(Endpoint endpoint)
     {
-        var path = (endpoint as RouteEndpoint)?.RoutePattern.RawText?.TrimStart('/');
-        return path is not null && _protectedFamilies.Any(family =>
-            path.Equals(family, StringComparison.OrdinalIgnoreCase) || path.StartsWith(family + "/", StringComparison.OrdinalIgnoreCase));
+        if (endpoint is not RouteEndpoint route)
+        {
+            return false;
+        }
+
+        var literals = route.RoutePattern.PathSegments
+            .Take(2)
+            .Select(segment => segment.IsSimple && segment.Parts[0] is RoutePatternLiteralPart literal ? literal.Content : null)
+            .ToList();
+        return literals.Count == 2
+            && string.Equals(literals[0], "api", StringComparison.OrdinalIgnoreCase)
+            && _protectedFamilies.Any(family => string.Equals(literals[1], family, StringComparison.OrdinalIgnoreCase));
     }
 
     private static string Describe(Endpoint endpoint)

@@ -10,17 +10,19 @@ namespace SportsPlatform.Host.Authorization;
 /// </summary>
 internal sealed class ActionAuthorizationMiddleware(RequestDelegate next)
 {
-    public async Task InvokeAsync(HttpContext context, IAuthorizationEvaluator evaluator, ICurrentActor actor)
+    public async Task InvokeAsync(HttpContext context)
     {
-        // No match (404) or the router's own 405 endpoint, which is not a RouteEndpoint: nothing to authorize.
-        if (context.GetEndpoint() is not RouteEndpoint endpoint)
+        var endpoint = context.GetEndpoint();
+        var required = endpoint?.Metadata.GetOrderedMetadata<RequiresActionMetadata>() ?? [];
+        var isPublic = endpoint?.Metadata.GetMetadata<AllowPublicMetadata>() is not null;
+
+        // No match (404), or the router's own unmarked 405 endpoint (not a RouteEndpoint): nothing to authorize.
+        // A marked endpoint of any type goes through the checks below.
+        if (endpoint is null || (endpoint is not RouteEndpoint && required.Count == 0 && !isPublic))
         {
             await next(context);
             return;
         }
-
-        var required = endpoint.Metadata.GetOrderedMetadata<RequiresActionMetadata>();
-        var isPublic = endpoint.Metadata.GetMetadata<AllowPublicMetadata>() is not null;
 
         if (isPublic && required.Count == 0)
         {
@@ -35,7 +37,9 @@ internal sealed class ActionAuthorizationMiddleware(RequestDelegate next)
             return;
         }
 
-        var result = await evaluator.AuthorizeAsync(new AuthorizationRequest(required[0].Action, actor), context.RequestAborted);
+        var services = context.RequestServices;
+        var request = new AuthorizationRequest(required[0].Action, services.GetRequiredService<ICurrentActor>());
+        var result = await services.GetRequiredService<IAuthorizationEvaluator>().AuthorizeAsync(request, context.RequestAborted);
         if (result.IsFailure)
         {
             await result.Error.ToProblem().ExecuteAsync(context);

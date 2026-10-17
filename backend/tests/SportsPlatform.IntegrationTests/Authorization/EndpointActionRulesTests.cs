@@ -70,6 +70,7 @@ public sealed class EndpointActionRulesTests
     [InlineData("/api/admin/v1/fixtures")]
     [InlineData("/api/platform/v1/diagnostics/outbox")]
     [InlineData("api/Admin")]
+    [InlineData("~/api/admin/v1/fixtures")]
     public async Task Admin_and_platform_endpoints_cannot_be_public(string path)
     {
         await using var app = WebApplication.CreateSlimBuilder().Build();

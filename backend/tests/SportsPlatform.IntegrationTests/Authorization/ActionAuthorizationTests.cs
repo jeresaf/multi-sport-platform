@@ -109,6 +109,23 @@ public sealed class ActionAuthorizationTests
         evaluator.Requests.ShouldBeEmpty();
     }
 
+    // An endpoint set by other middleware is not a RouteEndpoint; its declared action is still enforced.
+    [Fact]
+    public async Task Marked_endpoint_that_is_not_a_route_endpoint_is_evaluated()
+    {
+        var evaluator = new TestAuthorizationEvaluator();
+        await using var app = await StartAsync(evaluator);
+        using var client = app.GetTestClient();
+
+        using var denied = await client.GetAsync(new Uri(_customEndpointPath, UriKind.Relative), Ct);
+        evaluator.Allow(AuthorizationTestActions.FixtureRead);
+        using var allowed = await client.GetAsync(new Uri(_customEndpointPath, UriKind.Relative), Ct);
+
+        await denied.ShouldBeProblemAsync(HttpStatusCode.Forbidden, "AUTH_FORBIDDEN");
+        allowed.StatusCode.ShouldBe(HttpStatusCode.OK);
+        evaluator.Requests.Count.ShouldBe(2);
+    }
+
     [Fact]
     public async Task Public_endpoint_is_not_evaluated()
     {
@@ -135,6 +152,8 @@ public sealed class ActionAuthorizationTests
         await wrongMethod.ShouldBeProblemAsync(HttpStatusCode.MethodNotAllowed, "PLATFORM_METHOD_NOT_ALLOWED");
     }
 
+    private const string _customEndpointPath = "/custom-endpoint";
+
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     /// <summary>The Host's error pipeline and authorization, in <c>SportsPlatformApp</c>'s order.</summary>
@@ -158,6 +177,18 @@ public sealed class ActionAuthorizationTests
         var app = builder.Build();
         app.UseApiConventions();
         app.UseRouting();
+        app.Use((context, next) =>
+        {
+            if (context.Request.Path == _customEndpointPath)
+            {
+                context.SetEndpoint(new Endpoint(
+                    static endpointContext => endpointContext.Response.WriteAsync("reached", endpointContext.RequestAborted),
+                    new EndpointMetadataCollection(new RequiresActionMetadata(AuthorizationTestActions.FixtureRead)),
+                    "Custom endpoint"));
+            }
+
+            return next(context);
+        });
         app.UseActionAuthorization();
 
         app.MapGet("/api/admin/v1/fixtures", () => TypedResults.Ok()).RequireAction(AuthorizationTestActions.FixtureRead);
