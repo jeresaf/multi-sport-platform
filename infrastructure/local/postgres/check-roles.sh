@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Checks the local database roles (S00-T3). Run after `docker compose up -d` (from any directory):
+# Checks the local database roles (S00-T3, S01-T2b). Run after `docker compose up -d` (from any directory):
 #   infrastructure/local/postgres/check-roles.sh
 # Exits non-zero if a check fails.
 set -uo pipefail
@@ -62,10 +62,27 @@ denied "$(as_role sp_app "$SP_APP_PASSWORD" "CREATE TABLE public.t (id int)")" \
 denied "$(as_role sp_app "$SP_APP_PASSWORD" "CREATE SCHEMA s00_app")" \
   && pass "sp_app cannot create schemas" || fail "sp_app was not denied creating a schema"
 
+denied "$(as_role sp_platform "$SP_PLATFORM_PASSWORD" "CREATE TABLE s00_check.t (id int)")" \
+  && pass "sp_platform cannot create tables in an application schema" \
+  || fail "sp_platform was not denied creating a table in an application schema"
+
+denied "$(as_role sp_platform "$SP_PLATFORM_PASSWORD" "CREATE TABLE public.t (id int)")" \
+  && pass "sp_platform cannot create tables in public" || fail "sp_platform was not denied creating a table in public"
+
+denied "$(as_role sp_platform "$SP_PLATFORM_PASSWORD" "CREATE SCHEMA s00_platform")" \
+  && pass "sp_platform cannot create schemas" || fail "sp_platform was not denied creating a schema"
+
 as_role sp_migrator "$SP_MIGRATOR_PASSWORD" "CREATE TABLE s00_check.t (id int)" >/dev/null
 [[ "$(as_role sp_app "$SP_APP_PASSWORD" "INSERT INTO s00_check.t VALUES (1); SELECT count(*) FROM s00_check.t")" == "1" ]] \
   && pass "sp_app can read and write tables created by sp_migrator" \
   || fail "sp_app cannot use tables created by sp_migrator"
+
+# Default privileges grant DML only; TRUNCATE skips row triggers, so the runtime roles must never have it.
+denied "$(as_role sp_app "$SP_APP_PASSWORD" "TRUNCATE s00_check.t")" \
+  && pass "sp_app cannot truncate tables" || fail "sp_app was not denied truncating a table"
+
+denied "$(as_role sp_platform "$SP_PLATFORM_PASSWORD" "TRUNCATE s00_check.t")" \
+  && pass "sp_platform cannot truncate tables" || fail "sp_platform was not denied truncating a table"
 
 [[ "$(as_role sp_app "$SP_APP_PASSWORD" "SELECT rolsuper OR rolbypassrls FROM pg_roles WHERE rolname = 'sp_app'")" == "f" ]] \
   && pass "sp_app is not superuser and does not bypass RLS" || fail "sp_app is superuser or bypasses RLS"
