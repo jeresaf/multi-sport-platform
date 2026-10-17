@@ -1,0 +1,49 @@
+# .NET
+bin/
+obj/
+TestResults/
+*.user
+*.suo
+*.rsuser
+*.binlog
+*.trx
+coverage*.xml
+*.coverage
+
+# Node / web
+node_modules/
+.pnpm-store/
+.next/
+out/
+.turbo/
+dist/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
+playwright-report/
+test-results/
+blob-report/
+playwright/.cache/
+
+# IDEs and OS
+.vs/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Environment files (only the example is committed)
+.env
+.env.*
+!.env.example
+
+# Personal Claude Code files
+CLAUDE.local.md
+.claude/settings.local.json
+
+# Logs
+*.log
+logs/
