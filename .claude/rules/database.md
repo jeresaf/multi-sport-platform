@@ -11,9 +11,23 @@ paths:
 ## Migrations
 - One DbContext and migrations folder per module (`Infrastructure/Migrations`), default schema = module schema,
   migrations history table inside that schema.
-- Create (S01 replaces this with the exact tested command):
-  `dotnet ef migrations add <Name> --project backend/src/Modules/<M>/SportsPlatform.Modules.<M> --startup-project backend/src/SportsPlatform.Host --context <M>DbContext --output-dir Infrastructure/Migrations`
-- Apply locally with the CLI `migrate` command (or dev auto-migrate). Production uses the CLI as `sp_migrator`.
+- The module's DbContext derives from `ModuleDbContext` (`SportsPlatform.BuildingBlocks.Persistence`) and is
+  registered in `<M>Module.AddServices` with `services.AddModuleDbContext<<M>DbContext>(configuration, Schema)`.
+  That gives the schema, snake_case, app-generated UUIDv7 keys (`ValueGeneratedNever`), audit columns
+  (`created_at/by`, `updated_at/by` as shadow properties set by `AuditColumnsInterceptor`), `xmin` as the row
+  version of every `AggregateRoot`, and the history table `<schema>.__ef_migrations_history`.
+- New entities: `base(NewId())` in the domain constructor; a private parameterless constructor for EF. Saving a
+  new entity with an empty ID throws.
+- Save with `SaveChangesResultAsync()`; a lost update returns the module's `<MODULE>_CONCURRENCY_CONFLICT` (409).
+- Create a migration (run from the repository root; `dotnet tool restore` once first):
+  ```bash
+  dotnet ef migrations add <Name> --project backend/src/Modules/<M>/SportsPlatform.Modules.<M> \
+    --startup-project backend/src/SportsPlatform.Host --context <M>DbContext --output-dir Infrastructure/Migrations
+  ```
+  Keep EF's file names (`<yyyyMMddHHmmss>_<Name>`). Migrations are marked generated code in `.editorconfig`.
+- Apply: `dotnet run --project backend/tools/SportsPlatform.Cli -- migrate` (all modules in `ModuleRegistry`
+  order, as `sp_migrator`), or let the API migrate on startup in Development (`Database:MigrateOnStartup`).
+  Production always uses the CLI. The API itself always connects as `sp_app` (connection string `App`).
 - **Never edit a migration that is on `main`** (the guard hook blocks it). Add a new migration.
 - Review generated SQL: names, types, nullability, defaults, indexes, constraints.
 - Semantic data changes need a data migration in the same PR; destructive steps need a backup/restore note.

@@ -63,10 +63,12 @@ prototype-v0:<path>`). What was kept: `docs/reference/first-attempt/README.md`. 
 
 ```bash
 dotnet build backend -warnaserror               # backend/SportsPlatform.slnx
-dotnet test --solution backend                  # xUnit v3 on Microsoft.Testing.Platform (set in global.json)
+dotnet test --solution backend                  # xUnit v3 on MTP; integration tests need Docker (Testcontainers)
 dotnet format backend --verify-no-changes       # drop --verify-no-changes to fix formatting
 dotnet run --project backend/src/SportsPlatform.Host     # API on http://localhost:5080 (GET /health/live)
 dotnet run --project backend/tools/SportsPlatform.Cli   # lists CLI commands
+dotnet run --project backend/tools/SportsPlatform.Cli -- migrate   # all module migrations, as sp_migrator
+dotnet tool restore                             # once: dotnet-ef (pinned in .config/dotnet-tools.json)
 docker compose up -d                            # local PostgreSQL 17 + Mailpit (UI http://localhost:8025)
 infrastructure/local/postgres/check-roles.sh    # verifies sp_migrator / sp_app / sp_platform permissions
 docker compose down -v                          # stop and delete local data

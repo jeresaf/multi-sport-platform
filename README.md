@@ -35,6 +35,13 @@ infrastructure/local/postgres/check-roles.sh      # proves the database roles (s
 - PostgreSQL: `localhost:5432`, database `sportsplatform`. The API connects as `sp_app` (no DDL, subject to
   row-level security); migrations run as `sp_migrator`; `sp_platform` (bypasses RLS) is for platform services only.
   See docs/architecture/multi-tenancy.md.
+- Connection strings: the backend uses three named connection strings, one per role — `App` (`sp_app`),
+  `Migrator` (`sp_migrator`) and `Platform` (`sp_platform`). Development values are in
+  `backend/src/SportsPlatform.Host/appsettings.Development.json` and match `.env.example` (public, development-only;
+  if you changed `POSTGRES_PORT`, override them with `ConnectionStrings__App=...` etc.). Production values come
+  from Azure Key Vault (ADR-0016), never from files.
+- Migrations: `dotnet run --project backend/tools/SportsPlatform.Cli -- migrate` (as `sp_migrator`). In
+  Development the API also migrates on startup (`Database:MigrateOnStartup`, off everywhere else).
 - Mailpit: SMTP `localhost:1025`, inbox at http://localhost:8025.
 - Optional OpenTelemetry dashboard: `docker compose --profile observability up -d`, then http://localhost:18888
   (OTLP gRPC on `localhost:4317`).
@@ -55,7 +62,7 @@ Requires the .NET 10 SDK (see `global.json`).
 
 ```bash
 dotnet build backend -warnaserror
-dotnet test --solution backend
+dotnet test --solution backend                    # integration tests start their own PostgreSQL container (Docker)
 dotnet format backend --verify-no-changes
 ```
 

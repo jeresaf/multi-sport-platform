@@ -197,3 +197,12 @@ Acceptance:
   test fails if a project under `src/Modules` is missing from the scan. `SystemActor.Id` is
   `00000000-0000-7000-8000-000000000001`. UUIDv7 IDs order by millisecond only; within one millisecond they are
   random.
+- **T2 (split, agreed):** T2a = conventions + harness; T2b = grant narrowing (helpers, `AppendOnly` trigger,
+  history-table revoke, grants test, `check-roles.sh`). `ModuleDbContext` lives in
+  `SportsPlatform.BuildingBlocks.Persistence`; modules (not Contracts) may reference it. `Entity()` no longer
+  generates an ID (EF path); domain code uses `base(NewId())`. Audit columns are shadow properties; `xmin` is the
+  row version of every `AggregateRoot`. Concurrency loss → `<MODULE>_CONCURRENCY_CONFLICT` via
+  `SaveChangesResultAsync`. Migration files keep EF's `yyyyMMddHHmmss_` prefix (data-conventions.md updated).
+  The CLI references the Host (module list, services, appsettings); `dotnet run` uses Development via
+  launchSettings, a published CLI defaults to Production. Integration tests: one container per run, database
+  tests serialised in the `Database` collection.
