@@ -7,9 +7,9 @@ at the start of every review.
 
 - **Current slice:** S01 — Backend platform (docs/build/slices/S01-backend-platform.md). S00 is on `main`; its
   "new contributor in under 30 minutes" check is still with the owner
-- **Current task:** none. S01-T3a (Problem Details, error catalogue) is in review as #16
-- **Next:** S01-T3b (logging, OpenTelemetry, `/health/ready`), then S01-T3c (OpenAPI, Scalar, TS client,
-  `Contracts` CI job)
+- **Current task:** S01-T3b — Serilog JSON logging (correlation, tenant, actor), OpenTelemetry, `/health/ready`
+  (branch `s01/t3b-logging-telemetry-health`; plan approved 2026-10-17). S01-T3a merged as #16
+- **Next:** S01-T3c (OpenAPI, Scalar, TS client, `Contracts` CI job)
 - **Blocked on:** nothing
 
 ## Next up

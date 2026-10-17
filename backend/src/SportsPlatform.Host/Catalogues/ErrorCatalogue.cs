@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Reflection;
 using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using SportsPlatform.BuildingBlocks.Api;
 using SportsPlatform.BuildingBlocks.Modules;
@@ -76,8 +77,10 @@ public static class ErrorCatalogue
     {
         ArgumentNullException.ThrowIfNull(entries);
 
+        // Relaxed escaping keeps messages like "can't" readable in diffs; the file is never embedded in HTML.
+        var options = new JsonWriterOptions { Indented = true, NewLine = "\n", Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
         using var stream = new MemoryStream();
-        using (var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true, NewLine = "\n" }))
+        using (var writer = new Utf8JsonWriter(stream, options))
         {
             writer.WriteStartObject();
             writer.WriteStartArray("errors");
