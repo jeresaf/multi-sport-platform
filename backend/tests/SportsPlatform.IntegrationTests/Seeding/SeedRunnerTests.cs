@@ -77,7 +77,8 @@ public sealed class SeedRunnerTests(PostgresFixture fixture) : DatabaseTest(fixt
     {
         await Runner(App).RunAsync(new SeedRequest(SeedCategory.Reference), Ct);
         await App.Services.GetRequiredService<IAuditLog>().AppendAsync(AuditTestData.Record(), Ct); // Append-only: no TRUNCATE.
-        await using var development = InEnvironment("Development");
+        // Testcontainers may report a non-local Docker host; locality itself is DatabaseResetTests'.
+        await using var development = InEnvironment("Development", new() { [DatabaseReset.AllowResetOfKey] = FixtureHost });
 
         var report = await Runner(development).RunAsync(new SeedRequest(SeedCategory.Reference, Reset: true), Ct);
 
@@ -85,6 +86,43 @@ public sealed class SeedRunnerTests(PostgresFixture fixture) : DatabaseTest(fixt
         (await AuditTestData.EntriesAsync(App.Services, Ct)).ShouldBeEmpty();
         (await SeedRunsAsync()).Select(run => run.SeederKey).ShouldBe(_referenceSeeders); // Only the runs after the reset.
         (await ProbeCodesAsync()).ShouldBe(["KE", "UG"]);
+    }
+
+    [Fact]
+    public async Task Reset_in_Development_is_refused_for_a_non_local_database_before_anything_runs()
+    {
+        await App.Services.GetRequiredService<IAuditLog>().AppendAsync(AuditTestData.Record(), Ct);
+        await using var development = InEnvironment("Development", new()
+        {
+            // Staging credentials exported in a Development shell; never contacted.
+            [$"ConnectionStrings:{ConnectionStringNames.Migrator}"] =
+                "Host=kmsa-staging.postgres.database.azure.com;Database=sportsplatform;Username=sp_migrator;Password=not-used",
+        });
+
+        var report = await Runner(development).RunAsync(new SeedRequest(SeedCategory.Reference, Reset: true), Ct);
+
+        report.Refusal.ShouldNotBeNull().ShouldContain("kmsa-staging.postgres.database.azure.com");
+        App.Seeds.Runs.ShouldBeEmpty();
+        (await AuditTestData.EntriesAsync(App.Services, Ct)).ShouldHaveSingleItem();
+    }
+
+    [Fact]
+    public async Task A_second_run_while_one_holds_the_seed_lock_is_refused()
+    {
+        await using (var other = await OpenMigratorAsync())
+        {
+            (await AdvisoryAsync(other, "pg_try_advisory_lock")).ShouldBeTrue(); // Another seed run, elsewhere.
+
+            var report = await Runner(App).RunAsync(new SeedRequest(SeedCategory.Reference), Ct);
+
+            report.Refusal.ShouldNotBeNull().ShouldContain("in progress");
+            App.Seeds.Runs.ShouldBeEmpty();
+            (await SeedRunsAsync()).ShouldBeEmpty();
+            await AdvisoryAsync(other, "pg_advisory_unlock");
+        }
+
+        (await Runner(App).RunAsync(new SeedRequest(SeedCategory.Reference), Ct)).IsRefused.ShouldBeFalse();
+        await ShouldBeUnlockedAsync();
     }
 
     [Fact]
@@ -156,6 +194,7 @@ public sealed class SeedRunnerTests(PostgresFixture fixture) : DatabaseTest(fixt
 
         App.Seeds.Runs.ShouldBe(_referenceSeeders);
         (await SeedRunsAsync()).Select(run => run.SeederKey).ShouldBe(_referenceSeeders);
+        await ShouldBeUnlockedAsync(); // A failed run releases the seed lock.
     }
 
     [Fact]
@@ -203,23 +242,49 @@ public sealed class SeedRunnerTests(PostgresFixture fixture) : DatabaseTest(fixt
     // The test app in another environment: same database, actor, clock and test seeders. No outbox processor, no
     // startup migration (Development's appsettings turn it on). Development's appsettings also name the developer's
     // local database: fail before anything runs unless the test container's connections won.
-    private WebApplicationFactory<Program> InEnvironment(string environment)
+    private WebApplicationFactory<Program> InEnvironment(string environment, Dictionary<string, string?>? settings = null)
     {
+        var overrides = new Dictionary<string, string?>(settings ?? [])
+        {
+            ["Outbox:Enabled"] = "false",
+            [StartupMigration.SettingKey] = "false",
+        };
         var app = App.WithWebHostBuilder(builder => builder
             .UseEnvironment(environment)
-            .ConfigureAppConfiguration(config => config.AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["Outbox:Enabled"] = "false",
-                [StartupMigration.SettingKey] = "false",
-            })));
+            .ConfigureAppConfiguration(config => config.AddInMemoryCollection(overrides)));
 
         var configuration = app.Services.GetRequiredService<IConfiguration>();
         foreach (var (name, role) in new[] { (ConnectionStringNames.Migrator, DatabaseRoles.Migrator), (ConnectionStringNames.App, DatabaseRoles.App) })
         {
-            configuration.GetConnectionString(name).ShouldBe(Fixture.ConnectionString(role));
+            if (!overrides.ContainsKey($"ConnectionStrings:{name}"))
+            {
+                configuration.GetConnectionString(name).ShouldBe(Fixture.ConnectionString(role));
+            }
         }
 
         return app;
+    }
+
+    private string FixtureHost => new NpgsqlConnectionStringBuilder(Fixture.ConnectionString(DatabaseRoles.Migrator)).Host!;
+
+    private async Task<NpgsqlConnection> OpenMigratorAsync()
+    {
+        var connection = new NpgsqlConnection(Fixture.ConnectionString(DatabaseRoles.Migrator) + ";Pooling=false");
+        await connection.OpenAsync(Ct);
+        return connection;
+    }
+
+    private static async Task<bool> AdvisoryAsync(NpgsqlConnection connection, string function)
+    {
+        await using var command = new NpgsqlCommand($"SELECT {function}({SeedRunner.LockKey})", connection);
+        return (bool)(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken))!;
+    }
+
+    private async Task ShouldBeUnlockedAsync()
+    {
+        await using var connection = await OpenMigratorAsync();
+        (await AdvisoryAsync(connection, "pg_try_advisory_lock")).ShouldBeTrue();
+        await AdvisoryAsync(connection, "pg_advisory_unlock");
     }
 
     private Task<List<string>> ProbeCodesAsync() => QueryAsync(

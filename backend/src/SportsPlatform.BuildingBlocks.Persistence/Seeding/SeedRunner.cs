@@ -1,18 +1,22 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Npgsql;
 
 namespace SportsPlatform.BuildingBlocks.Persistence.Seeding;
 
 /// <summary>
 /// Runs the registered seeders of a category and its prerequisites, in category order, then by
 /// <see cref="ISeeder.Order"/> and <see cref="ISeeder.Key"/>. Each seeder gets its own scope; a seeder whose
-/// checksum matches its last recorded run is skipped. A seeder that throws stops the run and records nothing.
+/// checksum matches its last recorded run is skipped. A seeder that throws stops the run and records nothing. One run
+/// at a time per database: a run holds a PostgreSQL advisory lock, and a second one is refused.
 /// </summary>
 public sealed partial class SeedRunner(
     IServiceScopeFactory scopeFactory,
     OwnerContextFactory ownerContexts,
     DatabaseReset databaseReset,
     SeedEnvironment environment,
+    IConfiguration configuration,
     TimeProvider timeProvider,
     ILogger<SeedRunner> logger)
 {
@@ -21,6 +25,9 @@ public sealed partial class SeedRunner(
 
     /// <inheritdoc cref="MaxKeyLength"/>
     public const int MaxChecksumLength = 100;
+
+    /// <summary>The advisory lock key of a seed run (any fixed bigint, unique to seeding).</summary>
+    public const long LockKey = 0x5345_4544_5255_4E; // "SEEDRUN"
 
     public async Task<SeedReport> RunAsync(SeedRequest request, CancellationToken cancellationToken = default)
     {
@@ -33,6 +40,35 @@ public sealed partial class SeedRunner(
             return SeedReport.Refused(refusal);
         }
 
+        if (request.Reset && databaseReset.Refusal() is { } resetRefusal)
+        {
+            LogRefused(resetRefusal);
+            return SeedReport.Refused(resetRefusal);
+        }
+
+        // Session-level, on a connection held for the whole run; unlocked explicitly, since a pooled connection outlives Close.
+        await using var lockConnection = new NpgsqlConnection(
+            PersistenceServiceCollectionExtensions.RequiredConnectionString(configuration, ConnectionStringNames.Migrator));
+        await lockConnection.OpenAsync(cancellationToken);
+        if (!await AdvisoryLockAsync(lockConnection, "pg_try_advisory_lock", cancellationToken))
+        {
+            const string busy = "Another seed run is in progress on this database; try again when it has finished.";
+            LogRefused(busy);
+            return SeedReport.Refused(busy);
+        }
+
+        try
+        {
+            return await RunLockedAsync(request, cancellationToken);
+        }
+        finally
+        {
+            await AdvisoryLockAsync(lockConnection, "pg_advisory_unlock", CancellationToken.None);
+        }
+    }
+
+    private async Task<SeedReport> RunLockedAsync(SeedRequest request, CancellationToken cancellationToken)
+    {
         if (request.Reset)
         {
             await databaseReset.ResetAsync(cancellationToken);
@@ -85,6 +121,13 @@ public sealed partial class SeedRunner(
             cancellationToken);
         LogSeeded(key, outcome.Inserted, outcome.Updated, outcome.Deactivated);
         return new SeederResult(key, category, Skipped: false, outcome);
+    }
+
+    private static async Task<bool> AdvisoryLockAsync(NpgsqlConnection connection, string function, CancellationToken cancellationToken)
+    {
+        await using var command = new NpgsqlCommand($"SELECT {function}(@key)", connection); // Function name is a constant.
+        command.Parameters.AddWithValue("key", LockKey);
+        return (bool)(await command.ExecuteScalarAsync(cancellationToken))!;
     }
 
     internal static IEnumerable<ISeeder> Ordered(IEnumerable<ISeeder> seeders, IReadOnlyList<SeedCategory> categories)
