@@ -127,7 +127,7 @@ public sealed partial class OutboxDiagnostics(
             await transaction.CommitAsync(cancellationToken);
         }
 
-        LogRedriven(database.Schema, messageId);
+        LogRedriven(messageId, database.Schema);
         return new OutboxRedriveResult(OutboxRedriveOutcome.Redriven, await FindAsync(context, messageId, cancellationToken));
     }
 
@@ -171,5 +171,5 @@ public sealed partial class OutboxDiagnostics(
     }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Outbox message {MessageId} in schema {Schema} re-driven")]
-    private partial void LogRedriven(string schema, Guid messageId);
+    private partial void LogRedriven(Guid messageId, string schema);
 }
