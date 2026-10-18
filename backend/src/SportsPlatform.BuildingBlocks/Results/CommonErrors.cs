@@ -1,6 +1,9 @@
 namespace SportsPlatform.BuildingBlocks.Results;
 
-/// <summary>Failures raised by the HTTP pipeline itself rather than by a module.</summary>
+/// <summary>
+/// Failures raised by the HTTP pipeline itself rather than by a module, and request-shape failures every module's
+/// endpoints share.
+/// </summary>
 public static class CommonErrors
 {
     public static readonly Error MalformedRequest = new(
@@ -11,6 +14,14 @@ public static class CommonErrors
 
     public static readonly Error UnsupportedMediaType = new(
         "VALIDATION_UNSUPPORTED_MEDIA_TYPE", "The request body must be JSON.", ErrorKind.UnsupportedMediaType);
+
+    /// <summary>A query parameter has a value the endpoint doesn't accept; the detail names the parameter.</summary>
+    public static readonly Error InvalidQuery = new(
+        "VALIDATION_INVALID_QUERY", "A query parameter is not valid.", ErrorKind.Validation);
+
+    /// <summary>An action whose audit is <c>REQUIRED_WITH_REASON</c> was sent without a usable reason.</summary>
+    public static readonly Error ReasonRequired = new(
+        "VALIDATION_REASON_REQUIRED", "This action needs a reason.", ErrorKind.Validation);
 
     public static readonly Error RouteNotFound = new(
         "PLATFORM_ROUTE_NOT_FOUND", "No endpoint matches this path.", ErrorKind.NotFound);

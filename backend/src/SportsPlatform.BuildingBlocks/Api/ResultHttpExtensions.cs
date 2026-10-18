@@ -7,11 +7,16 @@ namespace SportsPlatform.BuildingBlocks.Api;
 /// <summary>Turns <see cref="Result"/> failures into Problem Details; the Host adds <c>type</c> and <c>correlationId</c>.</summary>
 public static class ResultHttpExtensions
 {
-    public static ProblemHttpResult ToProblem(this Error error)
+    /// <summary>
+    /// The error as Problem Details; <paramref name="detail"/> says what went wrong in this request (e.g. which
+    /// parameter), never internal details.
+    /// </summary>
+    public static ProblemHttpResult ToProblem(this Error error, string? detail = null)
     {
         ArgumentNullException.ThrowIfNull(error);
         return TypedResults.Problem(
             title: error.Message,
+            detail: detail,
             statusCode: error.Kind.ToStatusCode(),
             extensions: new Dictionary<string, object?> { [ProblemFields.Code] = error.Code });
     }
