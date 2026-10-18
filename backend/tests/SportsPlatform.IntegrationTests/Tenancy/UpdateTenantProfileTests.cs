@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
@@ -86,6 +87,34 @@ public sealed class UpdateTenantProfileTests(PostgresFixture fixture) : Database
         using var second = await PatchAsync(tenantId, new { displayName = "Kampala Metro", version = read.Version });
         await second.ShouldBeProblemAsync(HttpStatusCode.Conflict, "TENANT_CONCURRENCY_CONFLICT");
         (await GetAsync(tenantId)).DisplayName.ShouldBe("KMSA");
+    }
+
+    [Theory]
+    [InlineData(0u, HttpStatusCode.OK)]
+    [InlineData(1u, HttpStatusCode.Conflict)]
+    public async Task If_match_is_evaluated(uint offset, HttpStatusCode expected)
+    {
+        var tenantId = await TenantTestData.SaveTenantAsync(App.Services, "kmsa", TenantStatus.Active, Ct);
+        var read = await GetAsync(tenantId);
+        using var client = CreateClient();
+        using var request = new HttpRequestMessage(HttpMethod.Patch, new Uri($"{TenantTestData.TenantsPath}/{tenantId}", UriKind.Relative))
+        {
+            Content = JsonContent.Create(new { displayName = "KMSA" }),
+        };
+        request.Headers.IfMatch.Add(new EntityTagHeaderValue($"\"{read.Version + offset}\""));
+
+        using var response = await client.SendAsync(request, Ct);
+
+        if (expected == HttpStatusCode.OK)
+        {
+            response.StatusCode.ShouldBe(HttpStatusCode.OK);
+            (await GetAsync(tenantId)).DisplayName.ShouldBe("KMSA");
+        }
+        else
+        {
+            await response.ShouldBeProblemAsync(expected, "TENANT_CONCURRENCY_CONFLICT");
+            (await GetAsync(tenantId)).ShouldBe(read);
+        }
     }
 
     [Fact]

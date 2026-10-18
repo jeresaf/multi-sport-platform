@@ -25,4 +25,39 @@ public static class TenancyActions
         ActionScope.Platform,
         AuditRequirement.Required,
         since: "S02");
+
+    public static readonly ActionDefinition TenantActivate = new(
+        "tenant.activate",
+        "Activate a provisioned tenant (PROVISIONING → ACTIVE).",
+        ActionScope.Platform,
+        AuditRequirement.Required,
+        since: "S02");
+
+    public static readonly ActionDefinition TenantSuspend = new(
+        "tenant.suspend",
+        "Suspend an active tenant, with a reason (ACTIVE → SUSPENDED).",
+        ActionScope.Platform,
+        AuditRequirement.RequiredWithReason,
+        since: "S02");
+
+    public static readonly ActionDefinition TenantRestore = new(
+        "tenant.restore",
+        "Restore a suspended tenant (SUSPENDED → ACTIVE).",
+        ActionScope.Platform,
+        AuditRequirement.Required,
+        since: "S02");
+
+    public static readonly ActionDefinition TenantArchive = new(
+        "tenant.archive",
+        "Archive a tenant, with a reason (ACTIVE or SUSPENDED → ARCHIVED).",
+        ActionScope.Platform,
+        AuditRequirement.RequiredWithReason,
+        since: "S02");
+
+    public static readonly ActionDefinition TenantUnarchive = new(
+        "tenant.unarchive",
+        "Bring an archived tenant back, with a reason (ARCHIVED → SUSPENDED).",
+        ActionScope.Platform,
+        AuditRequirement.RequiredWithReason,
+        since: "S02");
 }

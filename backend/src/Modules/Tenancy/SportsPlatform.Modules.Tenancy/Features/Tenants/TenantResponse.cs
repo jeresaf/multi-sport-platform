@@ -52,6 +52,6 @@ public sealed record TenantResponse(
     public void SetETag(HttpResponse response)
     {
         ArgumentNullException.ThrowIfNull(response);
-        response.Headers.ETag = $"\"{Version}\"";
+        response.Headers.ETag = TenantVersion.EntityTag(Version).ToString();
     }
 }

@@ -6,6 +6,7 @@ using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Persistence.Messaging;
 using SportsPlatform.Modules.Tenancy.Domain.Tenants;
 using SportsPlatform.Modules.Tenancy.Features.Tenants;
+using SportsPlatform.Modules.Tenancy.Features.Tenants.ChangeTenantStatus;
 using SportsPlatform.Modules.Tenancy.Features.Tenants.CreateTenant;
 using SportsPlatform.Modules.Tenancy.Features.Tenants.GetTenant;
 using SportsPlatform.Modules.Tenancy.Features.Tenants.ListTenants;
@@ -38,7 +39,10 @@ public sealed class TenancyModule : IModule
         services.AddScoped<GetTenantHandler>();
         services.AddScoped<UpdateTenantProfileHandler>();
         services.AddScoped<IValidator<UpdateTenantProfileRequest>, UpdateTenantProfileRequestValidator>();
+        services.AddScoped<ChangeTenantStatusHandler>();
+        services.AddSingleton<IValidator<ChangeTenantStatusWithReasonRequest>, ChangeTenantStatusWithReasonRequestValidator>();
         services.AddDomainEventSubscriber<TenantCreatedDomainEvent, PublishTenantCreated>();
+        services.AddDomainEventSubscriber<TenantStatusChangedDomainEvent, PublishTenantStatusChanged>();
     }
 
     public void MapEndpoints(ApiEndpointGroups groups)
@@ -49,5 +53,6 @@ public sealed class TenancyModule : IModule
         GetTenantEndpoint.Map(tenants);
         CreateTenantEndpoint.Map(tenants);
         UpdateTenantProfileEndpoint.Map(tenants);
+        ChangeTenantStatusEndpoints.Map(tenants);
     }
 }

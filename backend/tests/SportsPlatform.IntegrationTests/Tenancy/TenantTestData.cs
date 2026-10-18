@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using SportsPlatform.BuildingBlocks.Actors;
+using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Persistence.Messaging;
 using SportsPlatform.Modules.Tenancy.Contracts.Tenants;
 using SportsPlatform.Modules.Tenancy.Domain.Tenants;
@@ -85,9 +86,22 @@ internal static class TenantTestData
             .OrderBy(m => m.Sequence).ToListAsync(cancellationToken);
     }
 
+    /// <summary>A tenant's status and version, read straight from the module's DbContext.</summary>
+    public static async Task<TenantState> TenantAsync(IServiceProvider services, Guid tenantId, CancellationToken cancellationToken)
+    {
+        await using var scope = services.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<TenancyDbContext>();
+        var tenant = await context.Set<Tenant>().AsNoTracking().SingleAsync(t => t.Id == tenantId, cancellationToken);
+        var version = await context.Set<Tenant>().AsNoTracking().Where(t => t.Id == tenantId)
+            .Select(t => EF.Property<uint>(t, AuditColumns.Version)).SingleAsync(cancellationToken);
+        return new(tenant.Status, version);
+    }
+
     public static async Task<int> TenantCountAsync(IServiceProvider services, CancellationToken cancellationToken)
     {
         await using var scope = services.CreateAsyncScope();
         return await scope.ServiceProvider.GetRequiredService<TenancyDbContext>().Set<Tenant>().CountAsync(cancellationToken);
     }
 }
+
+internal sealed record TenantState(TenantStatus Status, uint Version);

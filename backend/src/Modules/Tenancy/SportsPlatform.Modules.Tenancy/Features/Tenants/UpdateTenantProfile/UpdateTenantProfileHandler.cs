@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using SportsPlatform.BuildingBlocks.Api;
 using SportsPlatform.BuildingBlocks.Auditing;
 using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Results;
@@ -9,13 +10,15 @@ using SportsPlatform.Modules.Tenancy.Infrastructure;
 namespace SportsPlatform.Modules.Tenancy.Features.Tenants.UpdateTenantProfile;
 
 /// <summary>
-/// Changes the fields sent, in any status. Runs under the route's tenant (S02 D2). A sent <c>version</c> that is not the
-/// current one, or a change saved by someone else in between, is <c>TENANT_CONCURRENCY_CONFLICT</c>. A request that
+/// Changes the fields sent, in any status. Runs under the route's tenant (S02 D2). A sent <c>version</c> or
+/// <c>If-Match</c> that is not the current version, or a change saved by someone else in between, is
+/// <c>TENANT_CONCURRENCY_CONFLICT</c>. A request that
 /// changes nothing saves nothing (the Host still audits it).
 /// </summary>
 public sealed class UpdateTenantProfileHandler(TenancyDbContext context, TenantContext tenantContext, AuditScope audit)
 {
-    public async Task<Result<TenantResponse>> HandleAsync(Guid tenantId, UpdateTenantProfileRequest request, CancellationToken cancellationToken)
+    public async Task<Result<TenantResponse>> HandleAsync(
+        Guid tenantId, UpdateTenantProfileRequest request, IfMatch ifMatch, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
         tenantContext.Set(tenantId);
@@ -29,7 +32,7 @@ public sealed class UpdateTenantProfileHandler(TenancyDbContext context, TenantC
 
         // A change saved by someone else after this read still conflicts on save: xmin is the concurrency token.
         var entry = context.Entry(tenant);
-        if (request.Version is { } expected && expected != entry.Property<uint>(AuditColumns.Version).CurrentValue)
+        if (!TenantVersion.IsSatisfied(entry.Property<uint>(AuditColumns.Version).CurrentValue, request.Version, ifMatch))
         {
             return TenancyErrors.ConcurrencyConflict;
         }
