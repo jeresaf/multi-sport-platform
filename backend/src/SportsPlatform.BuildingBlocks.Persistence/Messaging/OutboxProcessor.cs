@@ -20,6 +20,7 @@ public sealed partial class OutboxProcessor
     private readonly TimeProvider _timeProvider;
     private readonly OutboxOptions _options;
     private readonly ILogger<OutboxProcessor> _logger;
+    private readonly Dictionary<string, OutboxModuleBackoff> _backoff;
 
     public OutboxProcessor(
         IServiceScopeFactory scopes,
@@ -45,26 +46,55 @@ public sealed partial class OutboxProcessor
         _timeProvider = timeProvider;
         _options = options.Value;
         _logger = logger;
+        _backoff = _databases.ToDictionary(database => database.Schema, _ => new OutboxModuleBackoff());
     }
 
     /// <summary>
     /// Processes one batch per module; returns how many messages were attempted. A module that fails (e.g. its schema is
-    /// not migrated yet) is logged and skipped, so the others still deliver.
+    /// not migrated yet) is logged and skipped for a growing delay (<see cref="OutboxModuleBackoff"/>), so the others
+    /// still deliver and an outage doesn't log an error per module on every poll.
     /// </summary>
     public async Task<int> ProcessOnceAsync(CancellationToken cancellationToken = default)
     {
         var attempted = 0;
         foreach (var database in _databases)
         {
+            var backoff = _backoff[database.Schema];
+            lock (backoff)
+            {
+                if (!backoff.IsDue(_timeProvider.GetUtcNow()))
+                {
+                    continue;
+                }
+            }
+
             try
             {
                 attempted += await ProcessModuleAsync(database, cancellationToken);
+                bool recovered;
+                lock (backoff)
+                {
+                    recovered = backoff.RecordSuccess();
+                }
+
+                if (recovered)
+                {
+                    LogModuleRecovered(database.Schema);
+                }
             }
 #pragma warning disable CA1031 // One module's outage must not stop delivery for the others.
             catch (Exception exception) when (exception is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
 #pragma warning restore CA1031
             {
-                LogModuleFailed(exception, database.Schema);
+                TimeSpan delay;
+                int failures;
+                lock (backoff)
+                {
+                    delay = backoff.RecordFailure(_timeProvider.GetUtcNow());
+                    failures = backoff.ConsecutiveFailures;
+                }
+
+                LogModuleFailed(exception, database.Schema, failures, delay);
             }
         }
 
@@ -122,7 +152,14 @@ public sealed partial class OutboxProcessor
     private async Task<List<string>> DeliverAsync(OutboxMessage message, CancellationToken cancellationToken)
     {
         var errors = new List<string>();
-        foreach (var subscription in _subscriptions[(message.EventName, message.EventVersion)])
+        var subscriptions = _subscriptions[(message.EventName, message.EventVersion)].ToList();
+        if (subscriptions.Count == 0)
+        {
+            // A forgotten consumer registration would drop events here; T5b's event catalogue makes that visible.
+            LogNoConsumers(message.Id, message.EventName, message.EventVersion);
+        }
+
+        foreach (var subscription in subscriptions)
         {
             try
             {
@@ -149,8 +186,14 @@ public sealed partial class OutboxProcessor
     [LoggerMessage(Level = LogLevel.Error, Message = "Outbox message {MessageId} ({EventName} v{EventVersion}) in schema {Schema} is FAILED after {Attempts} attempts")]
     private partial void LogFailed(string schema, Guid messageId, string eventName, int eventVersion, int attempts);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Outbox processing failed for schema {Schema}; the other modules continue")]
-    private partial void LogModuleFailed(Exception exception, string schema);
+    [LoggerMessage(Level = LogLevel.Error, Message = "Outbox processing failed for schema {Schema} ({Failures} in a row); skipping it for {Delay}, the other modules continue")]
+    private partial void LogModuleFailed(Exception exception, string schema, int failures, TimeSpan delay);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Outbox processing for schema {Schema} works again")]
+    private partial void LogModuleRecovered(string schema);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "No consumers for message {MessageId} ({EventName} v{EventVersion}); marked processed")]
+    private partial void LogNoConsumers(Guid messageId, string eventName, int eventVersion);
 
     [LoggerMessage(Level = LogLevel.Debug, Message = "Consumer {Consumer} already handled message {MessageId}")]
     private partial void LogDuplicate(string consumer, Guid messageId);
