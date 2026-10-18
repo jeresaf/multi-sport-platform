@@ -283,3 +283,13 @@ global). `AuditScope.Describe(targetTenantId:)`: the scope's tenant wins, a diff
 test also refuses a second permissive policy and stale exceptions; its only exception is `*.outbox_messages`
 (`inbox_messages` has no `tenant_id`, D4 named it). `IgnoreQueryFilters(` is refused under `backend/src` by an
 architecture test. Under `FORCE` RLS the owner sees an audit entry only with `app.tenant_id` set.
+
+**T3a.** Tenant actions (the admin API) resolve `X-Tenant-Id` with membership; platform endpoints opt in with
+`.RunsUnderRouteTenant()` (a platform action and the route parameter, checked at startup) and every other platform
+endpoint runs without a tenant. Step 1 calls `ITenantAccess.CheckAdminAccessAsync`, which returns `TENANT_BLOCKED` or
+`TENANT_NOT_FOUND` from `TenancyErrors` (errors are declared in module assemblies, not Contracts); no resolved tenant
+is `AUTH_TENANT_FORBIDDEN`. `ITenantDirectory` has `GetByIdAsync` (a `Result`) and `FindBySlugAsync`; T3b adds the
+host lookup. The actor is a scoped `ActorContext` set from the principal's `sub`; seeds stamp the system actor. A
+404 for an unknown route tenant is audited without a tenant or entity (the handler never runs). Acceptance items
+for the admin header and `TENANT_BLOCKED` are covered by `TenantResolutionTests`; the host items are T3b's.
+

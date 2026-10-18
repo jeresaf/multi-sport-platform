@@ -109,7 +109,7 @@ OutboxProcessor (hosted service, polls ~500 ms, batches, FOR UPDATE SKIP LOCKED)
 
 - **Scope.** `AuditScope` (BuildingBlocks `Auditing`, scoped) holds the request's audited action (`REQUIRED` or
   `REQUIRED_WITH_REASON`; `NONE` is ignored), what it touched and why. The Host's `AuditMiddleware` begins it with the
-  endpoint's action, after routing and before authorization. A handler describes the action:
+  endpoint's action, after routing and the actor, before tenant resolution and authorization (S02 D8). A handler describes the action:
   `audit.Describe(entityType, entityId, reason, metadata)`. `metadata` is a typed record, serialized at once by
   `AuditMetadata` with every `[PersonalData(PRIVATE | SENSITIVE)]` property written as `"[REDACTED]"`, so the value is
   in neither the outbox payload nor the table.
