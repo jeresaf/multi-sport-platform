@@ -43,10 +43,15 @@ paths:
 
 ## Tenant tables
 - `tenant_id uuid not null` on every tenant-owned table.
-- In the same migration: enable + force RLS and add the `tenant_isolation` policy (use the
-  `EnableTenantRls(schema, table)` helper from S02).
+- The entity implements `ITenantOwned` (get-only `TenantId`; the interceptor stamps it). In the same migration:
+  `migrationBuilder.EnableTenantRls(schema, table)` (enable + force RLS + the `tenant_isolation` policy).
+- A foreign key between two tenant-owned tables is composite: `(tenant_id, parent_id) → (tenant_id, id)`, with
+  `HasAlternateKey(p => new { p.TenantId, p.Id })` on the parent and `.HasForeignKey(c => new { c.TenantId,
+  c.ParentId }).HasPrincipalKey(p => new { p.TenantId, p.Id })` on the child. PostgreSQL checks foreign keys without
+  RLS, so a single-column key would let one tenant point at another's row; `ModuleDbContext` refuses it at model
+  build. Keys to a global table (e.g. `tenancy.tenants`) stay single-column.
 - Unique constraints and lookup indexes start with `tenant_id`.
-- The isolation harness and RLS coverage test must pass.
+- The isolation harness (with a sample for the new entity) and the RLS coverage test must pass.
 
 ## Modelling
 - snake_case names; plural tables; `id uuid` primary keys (UUIDv7 from the app).

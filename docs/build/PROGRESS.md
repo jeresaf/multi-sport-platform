@@ -47,6 +47,7 @@ at the start of every review.
 | 2026-10-18 | S01 slice review (reviewer, 2026-10-18) | — | S01 accepted; roadmap S00 and S01 → ☑; S02 spec amended (tasks reordered so RLS lands before the first tenant-owned business table, decisions D1–D10, S01 carry-overs assigned to tasks); owner decisions recorded; CLI launch profile documented; modules.md names `AuditScope` and the audit middleware | Owner's 30-minute contributor check done 2026-10-18 |
 | 2026-10-18 | S02-T1a | #30 | New module `Tenancy` (schema `tenancy`): `tenants` (slug unique for ever, "C" collation, format checks) and append-only `tenant_status_history`; `Tenant` aggregate with the full state machine; `POST`/`GET`/`GET {id}`/`PATCH {id}` under `/api/platform/v1/tenants` (`tenant.create`, `tenant.read`, `tenant.update`, audited under the target tenant, D2); `TenantCreated.V1`; `IReferenceData` in Platform Contracts; `VALIDATION_INVALID_REQUEST`; `WithErrorCode` rule in backend.md | T1 split in two; locale, version, history and `publicEnabled` defaults (owner, plan). Status transitions over HTTP come with T1b |
 | 2026-10-18 | S02-T1b | #31 | `POST /api/platform/v1/tenants/{id}/{activate\|suspend\|restore\|archive\|unarchive}` (`tenant.activate`, `tenant.suspend`, `tenant.restore`, `tenant.archive`, `tenant.unarchive`; reason 1–500 for suspend, archive, unarchive) through one `ChangeTenantStatusHandler`; `TenantStatusChanged.V1`; `IfMatch` (BuildingBlocks `Api`) on PATCH and the transitions; slug check before the tenant is set; tests for both T1a races; T1 complete | Owner on #30: R1 evaluate `If-Match`, R2 amend D1. No migrations, new errors or dependencies. Pre-review found `ValidateRequest` threw (500) when a required body was missing (filters run with a null argument): now 400 `VALIDATION_MALFORMED_REQUEST`, also for the outbox re-drive |
+| 2026-10-18 | S02-T2a | — | Tenant isolation in EF and PostgreSQL: named query filter `TenantIsolation` on every `ITenantOwned`; `TenantOwnershipInterceptor` stamps `TenantId` through the change tracker (#13) and throws on no/another tenant; `TenantConnectionInterceptor` sets `app.tenant_id` on every open; `EnableTenantRls`/`DisableTenantRls`; composite FKs required between tenant-owned entities (checked at model build); `TenantContext.Set` once per scope (D1); `tenant_status_history` tenant-owned with RLS; isolation harness (`IIsolationSample` per entity), pool leak, consumers under RLS, D1 timing tests | T2 split in two and composite FKs enforced (owner). No new actions, errors, events or dependencies |
 
 ## Deviations from spec (agreed)
 
@@ -120,6 +121,12 @@ at the start of every review.
   T1b (owner on #30): `If-Match` is evaluated on PATCH and the transitions (R1); tenant creation checks the slug before
   setting the new tenant, so a taken slug is audited without a tenant, and D1 now reads "before the first connection
   that reads or writes tenant data" (R2, spec amended). The race path still audits the would-be tenant ID (documented).
+- **S02-T2:** delivered as two PRs (owner, 2026-10-18): T2a enforcement and harness; T2b audit on the `Platform`
+  connection, audit RLS and indexes, `AuditScope` target tenant, RLS coverage test, audit under RLS. Every foreign key
+  between two tenant-owned tables is composite `(tenant_id, x_id) → (tenant_id, id)`, refused otherwise at model
+  build and proven by the harness (owner; multi-tenancy.md said "where catastrophic"). Beyond the spec, the harness
+  also proves a row can't be copied into another tenant (RLS `WITH CHECK`); append-only tables refuse cross-tenant
+  `UPDATE`/`DELETE` by grant before RLS.
 
 ## Tech debt / follow-ups
 
@@ -127,9 +134,6 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
 (2026-10-18). The S00 carry-overs assigned to S01 are done. Each item names where it gets done.
 
 **S02 — tenancy**
-- **S02-T2:** `ITenantOwned.TenantId` stays get-only: S02's interceptor sets it with `entry.Property(...).CurrentValue`, never
-  a public setter. Moving `BuildingBlocks/Modules` to a `BuildingBlocks.Web` project is optional, not planned
-  (reviewer guidance on #13).
 - **S02-T2:** `audit.audit_entries` has a nullable `tenant_id` and no RLS: S02 adds the policy (tenant users see their tenant's
   entries; entries with no tenant only through platform services) and the isolation tests, and revisits the audit
   indexes (tenant first) with the policy (S01-T6a pre-review); then also make the entity index
@@ -142,17 +146,10 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
   `ITenantContext`, empty on platform routes, so `GET /api/platform/v1/audit-entries?tenantId=…` stores the tenant only
   in metadata. multi-tenancy.md says platform calls are audited with the target tenant: S02 adds a target tenant to
   `AuditScope.Describe` (set when a platform read is filtered to one tenant) with the audit RLS (S01-T6b pre-review).
-- **S02-T2:** `tenancy.tenant_status_history` has a `tenant_id` column (FK to `tenants`) and no RLS: enable RLS on it
-  (writes run under the tenant, D2; platform reads of one tenant's history run under the route tenant) rather than
-  adding an exception, so the D4 list stays the Q15 tables (S02-T1a; #30 R3, reviewer's preference).
 - **S02-T4:** the tenant row holds `time_zone`, `default_locale`, `currency_code` and `public_enabled`, which T4's
   `tenant_settings` also lists: T4's plan decides the single source. Reviewer's suggestion: the tenant row keeps
   identity (slug, names, country, status); the editable values move to `tenant_settings` (tenant-owned, RLS) with a
   T4 migration, and platform edits write them under the target tenant (S02-T1a; #30 R4).
-- **S02-T2:** the D1 amendment relies on tenant creation's slug check closing its connection before the save opens a
-  new one: when the connection interceptor writes `app.tenant_id`, test that the create save's connection carries the
-  new tenant, and that inside an explicit transaction the tenant must be set before it begins (S02-T1b pre-review;
-  #31 R1).
 - **OpenAPI (with the first admin UI client, S03 or later):** optional request members (`version`, PATCH fields) are
   listed as `required` (nullable) in the schemas, so the TS client makes callers pass `null`; endpoints don't declare
   the `If-Match` request header or the `ETag` response header, and activate/restore list no 400 (pipeline errors).

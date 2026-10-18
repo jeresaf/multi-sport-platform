@@ -27,14 +27,19 @@ status changes.
 
 ### Layer 1 — application (EF Core)
 
-- Tenant-owned entities implement `ITenantOwned { Guid TenantId }`.
-- Each module DbContext applies a global query filter `e => e.TenantId == _tenantContext.TenantId` to every
-  `ITenantOwned` entity (applied by convention in a base configuration, not by hand per entity).
-- A `SaveChanges` interceptor:
-  - stamps `TenantId` on added entities from the context;
-  - throws if a modified/added entity's `TenantId` differs from the context (defence against bugs).
+- Tenant-owned entities implement `ITenantOwned { Guid TenantId }` (get-only; no public setter).
+- `ModuleDbContext` applies a named query filter (`TenantIsolation`) `e => e.TenantId == CurrentTenantId` to every
+  `ITenantOwned` entity by convention. `CurrentTenantId` is the scoped `ITenantContext`'s value, read per query; no
+  tenant matches no row (fail closed). The name leaves room for a module's own filters.
+- `TenantOwnershipInterceptor` (a `SaveChanges` interceptor, after `MessagingInterceptor` so rows that domain event
+  subscribers add are covered, before `AuditColumnsInterceptor`):
+  - stamps `TenantId` on added entities whose `TenantId` is empty, through the change tracker;
+  - throws if there is no tenant, or an added, modified or deleted entity's `TenantId` (current or original)
+    differs from the context. A mismatch is a bug, so it is an exception, not an error code.
+- `TenantContext.Set` is called once per scope (S02 D1): the same value again is a no-op, any other value throws.
 - `IgnoreQueryFilters()` is forbidden in feature code. The only exceptions live in explicitly named platform
   services (e.g. `PlatformTenantStatistics`) and are reviewed.
+- Owner contexts (seeds on `Migrator`) have no tenant, so they can't write tenant-owned rows.
 
 ### Layer 2 — database (PostgreSQL Row-Level Security)
 
@@ -50,9 +55,11 @@ CREATE POLICY tenant_isolation ON registry.persons
   WITH CHECK (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid);
 ```
 
-- A `DbConnectionInterceptor` runs `SELECT set_config('app.tenant_id', @tenantId, false)` **every time a
-  connection is opened** — session-level, so it also covers EF Core queries that run outside explicit
-  transactions. It always sets a value: the current tenant ID, or an empty string when there is no tenant
+- Migrations call `migrationBuilder.EnableTenantRls(schema, table)`, which writes the three statements above
+  (`DisableTenantRls` for a `Down` that keeps the table).
+- `TenantConnectionInterceptor` (a `DbConnectionInterceptor`) runs
+  `SELECT set_config('app.tenant_id', @tenantId, false)` **every time a connection is opened** — session-level,
+  so it also covers EF Core queries that run outside explicit transactions. It always sets a value: the current tenant ID, or an empty string when there is no tenant
   context (which matches no rows thanks to `NULLIF`).
 - Pooled connections: Npgsql resets session state before a pooled connection is reused, and the interceptor
   overwrites the value on every open anyway. A test proves a pooled connection never carries a previous
@@ -70,8 +77,12 @@ CREATE POLICY tenant_isolation ON registry.persons
 ### Layer 3 — tests
 
 - **Isolation harness** (`SportsPlatform.IntegrationTests/Isolation`): discovers every `ITenantOwned` entity
-  type from all DbContexts, creates a row in tenant A, then as tenant B asserts: not visible in queries, cannot
-  update, cannot delete, cannot reference it by ID through any API that accepts that ID.
+  type from all module DbContexts (each needs a registered sample, or the harness fails), creates a row in tenant A,
+  then as tenant B asserts, in EF and in raw SQL as `sp_app`: not visible, cannot update, cannot delete, cannot be
+  copied into tenant A (`WITH CHECK`), cannot be referenced (composite foreign keys). How to add a sample:
+  `.claude/rules/testing.md`.
+- **Pool leak test:** a reused pooled connection gets the new scope's tenant, or `''` without one.
+- **Consumers under RLS:** a consumer writes its envelope tenant's rows; a write for another tenant fails RLS.
 - **RLS coverage test:** queries `pg_class`/`pg_policies` and fails if any table with a `tenant_id` column lacks
   RLS enabled + forced + a `tenant_isolation` policy.
 - **API-level tests** for each new endpoint that takes an ID from another aggregate (e.g. adding a person to a
@@ -81,9 +92,11 @@ CREATE POLICY tenant_isolation ON registry.persons
 
 - Tenant-scoped unique keys always include `tenant_id`: `(tenant_id, slug)`, `(tenant_id, authority, value)`
   for external identifiers.
-- Within a module, foreign keys reference the parent and implicitly the same tenant; for extra safety, use
-  composite FKs `(tenant_id, parent_id)` on tables where cross-tenant references would be catastrophic
-  (memberships, rosters, lineups, timeline actors).
+- Within a module, a foreign key between two tenant-owned tables is always composite: `(tenant_id, parent_id) →
+  (tenant_id, id)`, with a unique `(tenant_id, id)` key on the parent (owner, S02-T2, 2026-10-18). PostgreSQL checks
+  foreign keys without RLS, so a single-column key would let tenant B's row point at tenant A's row.
+  `ModuleDbContext` refuses a single-column key between tenant-owned entities when the model is built. Keys to a
+  global table (e.g. `tenancy.tenants`) stay single-column.
 - Across modules there are no FKs (ADR-0001); handlers validate referenced IDs through the owning module's
   Contracts, which run under the same tenant context.
 
