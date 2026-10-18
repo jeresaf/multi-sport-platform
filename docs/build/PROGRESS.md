@@ -7,13 +7,14 @@ at the start of every review.
 
 - **Current slice:** S01 — Backend platform (docs/build/slices/S01-backend-platform.md). S00 is on `main`; its
   "new contributor in under 30 minutes" check is still with the owner
-- **Current task:** none. S01-T5b-2 (outbox diagnostics and re-drive) is in review as #22
-- **Next:** S01-T6 (audit)
+- **Current task:** S01-T6a (audit trail: table, recording, redaction, outbox audits), branch
+  `s01/t6a-audit-trail`
+- **Next:** S01-T6b (audit query endpoint)
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S01-T6 — Audit
+1. S01-T6b — Audit query endpoint
 2. S01-T7 — Seed framework and reference data
 
 ## Log
