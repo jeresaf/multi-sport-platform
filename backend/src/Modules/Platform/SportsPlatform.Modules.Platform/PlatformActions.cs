@@ -18,4 +18,11 @@ public static class PlatformActions
         ActionScope.Platform,
         AuditRequirement.RequiredWithReason,
         since: "S01");
+
+    public static readonly ActionDefinition AuditRead = new(
+        "platform.audit.read",
+        "View audit entries of every tenant.",
+        ActionScope.Platform,
+        AuditRequirement.Required,
+        since: "S01");
 }
