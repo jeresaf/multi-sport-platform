@@ -141,6 +141,7 @@ public sealed class EventCatalogueTests
 
         markdown.ShouldContain("| `FixturePublished` | 1 | Fixtures | — | — |\n");
         markdown.ShouldContain("| `FixtureRescheduled` | 2 | Fixtures | `fixtureId: uuid`, `startsAt: instant`, `note: string?` | `progression.standings` |\n");
+        markdown.ShouldContain(" `kind: string (enum FixtureKind: LEAGUE \\| ROUND_ROBIN)` | — |\n");
         markdown.ShouldNotContain("\r");
         json.ShouldNotContain("\r");
         json.ShouldEndWith("}\n");

@@ -140,7 +140,11 @@ public static class EventCatalogue
             .Append("|---|---|---|---|---|\n");
         foreach (var (name, module, payload, consumers) in entries)
         {
-            var fields = payload.Count == 0 ? "—" : string.Join(", ", payload.Select(field => $"`{field.Name}: {field.Type}{(field.Nullable ? "?" : string.Empty)}`"));
+            // Enum types list their values with "|", which would split the table cell (even inside backticks).
+            var fields = payload.Count == 0
+                ? "—"
+                : string.Join(", ", payload.Select(field => $"`{field.Name}: {field.Type}{(field.Nullable ? "?" : string.Empty)}`"))
+                    .Replace("|", "\\|", StringComparison.Ordinal);
             var subscribers = consumers.Count == 0 ? "—" : string.Join(", ", consumers.Select(consumer => $"`{consumer}`"));
             markdown.Append(CultureInfo.InvariantCulture, $"| `{name.Name}` | {name.Version} | {module} | {fields} | {subscribers} |\n");
         }
