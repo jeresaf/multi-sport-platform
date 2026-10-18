@@ -7,16 +7,13 @@ at the start of every review.
 
 - **Current slice:** S01 — Backend platform (docs/build/slices/S01-backend-platform.md). S00 is on `main`; its
   "new contributor in under 30 minutes" check is still with the owner
-- **Current task:** none. S01-T7b-1 (reference tables, data files, REFERENCE seeders) is in review as #26; T7b split
-  in two (owner, 2026-10-18)
-- **Next:** S01-T7b-2 (public reference endpoints)
+- **Current task:** S01-T7b-2 — public reference endpoints (branch `s01/t7b2-reference-endpoints`); the last S01 task
+- **Next:** S01 slice acceptance and slice review
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S01-T7b-2 — Public reference endpoints `/api/public/v1/reference/{countries|currencies|languages|time-zones}`:
-   `{ items }`, active entries only, `time-zones?country=`, `Cache-Control: public, max-age=3600` + strong ETag/304
-   (owner: headers only, no server cache), OpenAPI and TS client
+1. S01 slice acceptance (spec "Slice acceptance") and the reviewer's slice review
 
 ## Log
 
@@ -159,6 +156,9 @@ Consolidated by the S00 slice review (2026-10-17). Each item names where it gets
   setting, used by the Development launch profile; JSON stays everywhere else. Can ride the next PR.
 - `/health/ready` is anonymous and runs `SELECT 1` on every hit: expose `/health/*` only to the load balancer and
   probes, or rate-limit them at the edge (infrastructure task after M1, ADR-0016; #17 R3).
+- The public reference lists (S01-T7b-2) query the database and hash the body on every request (no server cache,
+  owner): rate-limit `/api/public` at the edge and let the CDN honour `Cache-Control`/`ETag` (infrastructure task
+  after M1, with the `/health/*` item above).
 - `ProblemDetails:TypeBaseUri` is the placeholder `https://errors.sportsplatform.invalid/` until Q10 (domain).
 
 **Owner decisions / housekeeping**
