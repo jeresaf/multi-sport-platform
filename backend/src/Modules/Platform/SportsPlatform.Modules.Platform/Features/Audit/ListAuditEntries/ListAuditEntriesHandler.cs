@@ -41,7 +41,9 @@ public sealed class ListAuditEntriesHandler(PlatformDbContext context, AuditScop
         var entries = Filter(context.Set<AuditEntry>().AsNoTracking(), query);
         if (query is { CursorAt: { } at, CursorId: { } id })
         {
-            entries = entries.Where(e => e.OccurredAt < at || (e.OccurredAt == at && e.Id.CompareTo(id) < 0));
+            // The redundant `<= at` gives the planner an index range on occurred_at; the OR alone is not one.
+            entries = entries.Where(e => e.OccurredAt <= at
+                && (e.OccurredAt < at || (e.OccurredAt == at && e.Id.CompareTo(id) < 0)));
         }
 
         var page = await entries
