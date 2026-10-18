@@ -15,7 +15,7 @@ at the start of every review.
 ## Next up
 
 1. S02-T2b — Audit under RLS and RLS coverage
-3. S02-T3 — Tenant context and resolution
+2. S02-T3 — Tenant context and resolution
 
 ## Log
 
