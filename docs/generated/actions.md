@@ -9,3 +9,6 @@ admin endpoint requires one of these; the code is stable and is what roles grant
 | `platform.audit.read` | Platform | PLATFORM | — | REQUIRED | — | no | S01 | View audit entries of every tenant. |
 | `platform.outbox.read` | Platform | PLATFORM | — | REQUIRED | — | no | S01 | View outbox messages and their delivery status. |
 | `platform.outbox.redrive` | Platform | PLATFORM | — | REQUIRED_WITH_REASON | — | no | S01 | Re-deliver failed outbox messages. |
+| `tenant.create` | Tenancy | PLATFORM | — | REQUIRED | — | no | S02 | Create a tenant (status PROVISIONING). |
+| `tenant.read` | Tenancy | PLATFORM | — | REQUIRED | — | no | S02 | View tenants and their profiles. |
+| `tenant.update` | Tenancy | PLATFORM | — | REQUIRED | — | no | S02 | Change a tenant's profile: names, country, time zone, locale, currency, public site. |

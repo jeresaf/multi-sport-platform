@@ -396,6 +396,246 @@
           }
         }
       }
+    },
+    "/api/platform/v1/tenants": {
+      "get": {
+        "tags": [
+          "Tenants"
+        ],
+        "summary": "List tenants",
+        "description": "Every tenant, ordered by slug. Filter by `status` (PROVISIONING, ACTIVE, SUSPENDED or ARCHIVED); `limit` is 1–100 (25). Every page read is audited.",
+        "operationId": "ListTenants",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListTenantsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_QUERY`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_QUERY"
+            ]
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Tenants"
+        ],
+        "summary": "Create a tenant",
+        "description": "Creates a tenant in PROVISIONING. `slug` (3–40 lower-case letters, digits and hyphens, not a reserved word) names its platform subdomain, never changes and is never reused, even after the tenant is archived. Country, time zone, locale (`en` or `en-UG`) and currency must be active reference data. `publicEnabled` defaults to false; the public site shows only while the tenant is ACTIVE.",
+        "operationId": "CreateTenant",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTenantRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TenantResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_REQUEST`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_REQUEST"
+            ]
+          },
+          "409": {
+            "description": "Problem Details; `code`: `TENANT_SLUG_TAKEN`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "TENANT_SLUG_TAKEN"
+            ]
+          }
+        }
+      }
+    },
+    "/api/platform/v1/tenants/{tenantId}": {
+      "get": {
+        "tags": [
+          "Tenants"
+        ],
+        "summary": "Get a tenant",
+        "description": "One tenant with its profile, status and `version` (also the `ETag`).",
+        "operationId": "GetTenant",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TenantResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Problem Details; `code`: `TENANT_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "TENANT_NOT_FOUND"
+            ]
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Tenants"
+        ],
+        "summary": "Change a tenant's profile",
+        "description": "Changes the fields sent; missing or null fields stay as they are. The slug never changes, and the status changes only through the status actions. Send `version` from the last read to get 409 TENANT_CONCURRENCY_CONFLICT instead of overwriting someone else's change.",
+        "operationId": "UpdateTenantProfile",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTenantProfileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TenantResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_REQUEST`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_REQUEST"
+            ]
+          },
+          "404": {
+            "description": "Problem Details; `code`: `TENANT_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "TENANT_NOT_FOUND"
+            ]
+          },
+          "409": {
+            "description": "Problem Details; `code`: `TENANT_CONCURRENCY_CONFLICT`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "TENANT_CONCURRENCY_CONFLICT"
+            ]
+          }
+        }
+      }
     }
   },
   "components": {
@@ -539,6 +779,71 @@
         },
         "description": "An ISO 3166-1 country: alpha-2 `code` (`UG`), alpha-3, numeric code and English name."
       },
+      "CreateTenantRequest": {
+        "required": [
+          "slug",
+          "legalName",
+          "displayName",
+          "countryCode",
+          "timeZone",
+          "defaultLocale",
+          "currencyCode",
+          "publicEnabled"
+        ],
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "legalName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "displayName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "countryCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "timeZone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "defaultLocale": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "currencyCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "publicEnabled": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "description": "A new tenant. Every field but `publicEnabled` (default false) is required; unknown members are rejected,\nso a status can't be sent (a new tenant is always `PROVISIONING`)."
+      },
       "CurrencyResponse": {
         "required": [
           "code",
@@ -652,6 +957,24 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/OutboxMessageResponse"
+            }
+          },
+          "page": {
+            "$ref": "#/components/schemas/PageInfo"
+          }
+        }
+      },
+      "ListTenantsResponse": {
+        "required": [
+          "items",
+          "page"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TenantResponse"
             }
           },
           "page": {
@@ -879,6 +1202,79 @@
         },
         "description": "Why the message is re-driven; the audit entry records it (action audit `REQUIRED_WITH_REASON`). Kept permanently\nand not redacted, so it must not contain personal data."
       },
+      "TenantResponse": {
+        "required": [
+          "id",
+          "slug",
+          "legalName",
+          "displayName",
+          "countryCode",
+          "timeZone",
+          "defaultLocale",
+          "currencyCode",
+          "status",
+          "publicEnabled",
+          "createdAt",
+          "updatedAt",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "legalName": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "countryCode": {
+            "type": "string"
+          },
+          "timeZone": {
+            "type": "string"
+          },
+          "defaultLocale": {
+            "type": "string"
+          },
+          "currencyCode": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TenantStatus"
+          },
+          "publicEnabled": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "version": {
+            "type": "integer",
+            "format": "uint32"
+          }
+        },
+        "description": "A tenant as the platform API shows it. `version` is the row version: send it back with a change to\nmake it fail with `409 TENANT_CONCURRENCY_CONFLICT` if someone else changed the tenant first."
+      },
+      "TenantStatus": {
+        "enum": [
+          "PROVISIONING",
+          "ACTIVE",
+          "SUSPENDED",
+          "ARCHIVED"
+        ],
+        "description": "A tenant's stored lifecycle status (docs/domain/state-machines.md, \"Tenant\")."
+      },
       "TimeZoneResponse": {
         "required": [
           "code",
@@ -897,6 +1293,72 @@
           }
         },
         "description": "An IANA time zone: its ID as `code` (`Africa/Kampala`) and its country; no country for `Etc/UTC`."
+      },
+      "UpdateTenantProfileRequest": {
+        "required": [
+          "legalName",
+          "displayName",
+          "countryCode",
+          "timeZone",
+          "defaultLocale",
+          "currencyCode",
+          "publicEnabled",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "legalName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "displayName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "countryCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "timeZone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "defaultLocale": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "currencyCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "publicEnabled": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "version": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "uint32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "The profile fields to change; a missing or null field stays as it is. The slug and the status can't be changed here\n(unknown members are rejected). `version`, when sent, must be the tenant's current version."
       }
     }
   },
@@ -909,6 +1371,9 @@
     },
     {
       "name": "Audit"
+    },
+    {
+      "name": "Tenants"
     }
   ]
 }

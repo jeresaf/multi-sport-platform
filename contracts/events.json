@@ -79,6 +79,29 @@
       "consumers": [
         "platform.audit"
       ]
+    },
+    {
+      "name": "TenantCreated",
+      "version": 1,
+      "module": "Tenancy",
+      "payload": [
+        {
+          "name": "tenantId",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "slug",
+          "type": "string",
+          "nullable": false
+        },
+        {
+          "name": "status",
+          "type": "string (enum TenantStatus: PROVISIONING | ACTIVE | SUSPENDED | ARCHIVED)",
+          "nullable": false
+        }
+      ],
+      "consumers": []
     }
   ]
 }

@@ -43,9 +43,39 @@
       "owner": "BuildingBlocks"
     },
     {
+      "code": "TENANT_CONCURRENCY_CONFLICT",
+      "status": 409,
+      "message": "The tenant was changed by someone else. Reload and try again.",
+      "owner": "Tenancy"
+    },
+    {
+      "code": "TENANT_INVALID_TRANSITION",
+      "status": 409,
+      "message": "The tenant's status does not allow this change.",
+      "owner": "Tenancy"
+    },
+    {
+      "code": "TENANT_NOT_FOUND",
+      "status": 404,
+      "message": "No tenant with this ID.",
+      "owner": "Tenancy"
+    },
+    {
+      "code": "TENANT_SLUG_TAKEN",
+      "status": 409,
+      "message": "This slug belongs to another tenant, possibly an archived one. Slugs are never reused.",
+      "owner": "Tenancy"
+    },
+    {
       "code": "VALIDATION_INVALID_QUERY",
       "status": 400,
       "message": "A query parameter is not valid.",
+      "owner": "BuildingBlocks"
+    },
+    {
+      "code": "VALIDATION_INVALID_REQUEST",
+      "status": 400,
+      "message": "A field of the request is not valid.",
       "owner": "BuildingBlocks"
     },
     {
