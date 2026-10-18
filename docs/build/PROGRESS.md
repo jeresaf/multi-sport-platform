@@ -7,8 +7,7 @@ at the start of every review.
 
 - **Current slice:** S01 — Backend platform (docs/build/slices/S01-backend-platform.md). S00 is on `main`; its
   "new contributor in under 30 minutes" check is still with the owner
-- **Current task:** S01-T6a (audit trail: table, recording, redaction, outbox audits), branch
-  `s01/t6a-audit-trail`
+- **Current task:** none. S01-T6a (audit trail) is in review
 - **Next:** S01-T6b (audit query endpoint)
 - **Blocked on:** nothing
 
@@ -110,7 +109,8 @@ Consolidated by the S00 slice review (2026-10-17). Each item names where it gets
 - `seed --reset` (Development, T7) can't TRUNCATE or DELETE append-only tables as `sp_migrator` (the triggers stop
   the owner too): reset by recreating the database or skip append-only tables (T7; S01-T2b).
 - `audit.audit_entries` has a nullable `tenant_id` and no RLS: S02 adds the policy (tenant users see their tenant's
-  entries; entries with no tenant only through platform services) and the isolation tests (S01-T6a).
+  entries; entries with no tenant only through platform services) and the isolation tests, and revisits the audit
+  indexes (tenant first) with the policy (S01-T6a pre-review).
 - A failed direct audit write (denial, failure, read) is only logged: the response is already written. Alert on that
   Error with the `FAILED` outbox alert below (infrastructure task after M1; S01-T6a).
 - The audit middleware's exception path (`FAILURE` with `PLATFORM_UNEXPECTED_ERROR`) has no test: no audited endpoint
