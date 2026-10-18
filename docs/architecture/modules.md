@@ -42,7 +42,7 @@ directly.
 **Purpose:** cross-cutting foundations that are not business domains.
 **Owns:** reference data (countries, currencies, languages, IANA time zones, units); `audit.audit_entries`
 (append-only); media asset metadata (ADR-0014); product analytics events; seed runner bookkeeping.
-**Provides (Contracts):** `IReferenceData`, `IAuditLog` (also used automatically by the command pipeline),
+**Provides (Contracts):** `IReferenceData`, `IAuditLog` (also used automatically by AuditScope and the audit middleware),
 `IMediaAssets` (URLs, upload validation), analytics recording.
 **Also lives here (code, not data):** action catalogue export, error catalogue export, outbox processor host,
 seed framework.
@@ -233,7 +233,7 @@ before publish; removing sponsors never breaks layouts.
 |---|---|
 | Constant Manager | Split on purpose: reference data → Platform; statuses/rules → owning module's code; tunable values → Sports Configuration / tenant settings; app settings → environment config. Catalogues of actions, errors and events are **generated from code** (docs/generated/). |
 | Seed Manager | Platform seed framework + per-module seeders (stable keys, environment guards) |
-| Audit Manager | Platform (`audit` schema), recorded automatically by the command pipeline |
+| Audit Manager | Platform (`audit` schema), recorded automatically by AuditScope and the audit middleware |
 | Data Integrity Manager | Conventions + tests + DB constraints (docs/architecture/data-conventions.md, architecture tests) — not a runtime module |
 | Analytics Manager | Platform (product analytics); never mixed with sports statistics |
 | Sports Management System | Sports Configuration |
