@@ -53,13 +53,29 @@ public static class EventCatalogue
             .SelectMany(source => source.Types.Select(type => (Name: IntegrationEventName.Of(type), Type: type, source.Module)))
             .ToList();
 
+        // Consumers subscribe to classes only (IIntegrationEventConsumer<T> where T : class), so a struct event could be
+        // published but never delivered.
+        var structs = declared.Where(e => e.Type.IsValueType).Select(e => e.Type.FullName).ToList();
+        if (structs.Count > 0)
+        {
+            throw new InvalidOperationException($"Integration events must be record classes: {string.Join(", ", structs)}.");
+        }
+
         var duplicates = declared.GroupBy(e => e.Name).Where(group => group.Count() > 1).Select(group => group.Key).ToList();
         if (duplicates.Count > 0)
         {
             throw new InvalidOperationException($"Integration events declared more than once: {string.Join(", ", duplicates)}.");
         }
 
-        var consumers = subscriptions.ToLookup(subscription => subscription.EventName, subscription => subscription.Consumer);
+        var all = subscriptions.ToList();
+        var twice = all.GroupBy(s => (s.Consumer, s.EventName)).Where(group => group.Count() > 1)
+            .Select(group => $"{group.Key.Consumer} → {group.Key.EventName}").ToList();
+        if (twice.Count > 0)
+        {
+            throw new InvalidOperationException($"Consumers subscribed more than once to the same event: {string.Join(", ", twice)}.");
+        }
+
+        var consumers = all.ToLookup(subscription => subscription.EventName, subscription => subscription.Consumer);
         var names = declared.Select(e => e.Name).ToHashSet();
         var undeclared = consumers.Where(group => !names.Contains(group.Key))
             .SelectMany(group => group.Select(consumer => $"{consumer} → {group.Key}"))
@@ -73,7 +89,7 @@ public static class EventCatalogue
 
         return declared
             .Select(e => new EventCatalogueEntry(
-                e.Name, e.Module, Payload(e.Type), [.. consumers[e.Name].Order(StringComparer.Ordinal)]))
+                e.Name, e.Module, Payload(e.Name, e.Type), [.. consumers[e.Name].Order(StringComparer.Ordinal)]))
             .OrderBy(entry => entry.Event.Name, StringComparer.Ordinal)
             .ThenBy(entry => entry.Event.Version)
             .ToList();
@@ -89,18 +105,18 @@ public static class EventCatalogue
         {
             return Assembly.Load(new AssemblyName(name));
         }
-        catch (FileNotFoundException exception)
+        catch (Exception exception) when (exception is FileNotFoundException or FileLoadException or BadImageFormatException)
         {
-            throw new InvalidOperationException($"Module {module.Name} has no Contracts assembly '{name}'.", exception);
+            throw new InvalidOperationException($"Module {module.Name}'s Contracts assembly '{name}' can't be loaded.", exception);
         }
     }
 
-    /// <summary>Concrete types implementing <see cref="IIntegrationEvent"/>.</summary>
+    /// <summary>Concrete types (classes and structs) implementing <see cref="IIntegrationEvent"/>.</summary>
     public static IEnumerable<Type> EventTypes(Assembly assembly)
     {
         ArgumentNullException.ThrowIfNull(assembly);
         return assembly.GetTypes().Where(type =>
-            type is { IsClass: true, IsAbstract: false } && typeof(IIntegrationEvent).IsAssignableFrom(type));
+            type is { IsInterface: false, IsAbstract: false } && typeof(IIntegrationEvent).IsAssignableFrom(type));
     }
 
     public static string ToMarkdown(IReadOnlyList<EventCatalogueEntry> entries)
@@ -175,33 +191,40 @@ public static class EventCatalogue
         return Encoding.UTF8.GetString(stream.ToArray()) + "\n";
     }
 
-    /// <summary>The members the outbox serializes (<see cref="MessageSerialization"/>), in their JSON order.</summary>
-    private static List<EventPayloadField> Payload(Type eventType) =>
+    /// <summary>
+    /// The members the outbox serializes (<see cref="MessageSerialization"/>), in their JSON order. Payloads carry IDs and
+    /// display fields, so only scalar members and lists of them are described; anything else fails the export until
+    /// the catalogue can describe it truthfully.
+    /// </summary>
+    private static List<EventPayloadField> Payload(IntegrationEventName eventName, Type eventType) =>
         [.. _payloadOptions.GetTypeInfo(eventType).Properties
             .Where(property => property.Get is not null)
             .Select(property => new EventPayloadField(
                 property.Name,
-                TypeName(Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType),
+                TypeName(property.PropertyType) ?? throw new InvalidOperationException(
+                    $"{eventName} member '{property.Name}' has a type the event catalogue can't describe ({property.PropertyType.Name}); use scalars or lists of them."),
                 property.IsGetNullable))];
 
-    private static string TypeName(Type type)
+    /// <summary>The JSON shape of a scalar or a list of scalars; null for anything else.</summary>
+    private static string? TypeName(Type type)
     {
-        if (type == typeof(string))
+        type = Nullable.GetUnderlyingType(type) ?? type;
+        if (ScalarName(type) is { } scalar)
         {
-            return "string";
+            return scalar;
         }
 
-        if (type.IsEnum)
-        {
-            return $"enum {type.Name}";
-        }
+        // byte[] is written as a base64 string and dictionaries as objects: neither is a list.
+        return type != typeof(byte[]) && !IsDictionary(type) && ElementType(type) is { } element && ScalarName(Nullable.GetUnderlyingType(element) ?? element) is { } item
+            ? $"{item}[]"
+            : null;
+    }
 
-        if (ElementType(type) is { } element)
-        {
-            return $"{TypeName(Nullable.GetUnderlyingType(element) ?? element)}[]";
-        }
-
-        return Type.GetTypeCode(type) switch
+    private static string? ScalarName(Type type) =>
+        type == typeof(string) ? "string"
+        // Web defaults have no string enum converter: an enum is written as its number.
+        : type.IsEnum ? $"integer (enum {type.Name})"
+        : Type.GetTypeCode(type) switch
         {
             TypeCode.Boolean => "boolean",
             TypeCode.Byte or TypeCode.SByte or TypeCode.Int16 or TypeCode.UInt16 or TypeCode.Int32 or TypeCode.UInt32
@@ -213,9 +236,12 @@ public static class EventCatalogue
             _ when type == typeof(DateOnly) => "date",
             _ when type == typeof(TimeOnly) => "time",
             _ when type == typeof(TimeSpan) => "duration",
-            _ => type.Name,
+            _ => null,
         };
-    }
+
+    private static bool IsDictionary(Type type) =>
+        type.GetInterfaces().Append(type).Any(candidate => candidate.IsGenericType
+            && (candidate.GetGenericTypeDefinition() == typeof(IDictionary<,>) || candidate.GetGenericTypeDefinition() == typeof(IReadOnlyDictionary<,>)));
 
     private static Type? ElementType(Type type) =>
         type.IsArray

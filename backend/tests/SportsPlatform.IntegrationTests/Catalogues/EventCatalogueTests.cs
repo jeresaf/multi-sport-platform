@@ -16,7 +16,8 @@ public sealed class EventCatalogueTests
     private static readonly EventCatalogueSource _fixtures =
         new("Fixtures", [typeof(FixtureRescheduled.V2), typeof(FixtureRescheduled.V1), typeof(FixturePublished.V1)]);
 
-    // What the CLI exports: the Host's modules and the consumers they register. Fails if a module subscribes to an
+    // What the CLI exports: the Host's modules and the consumers they register. No module declares an event yet, so the
+    // value is that the build succeeds: every module's Contracts assembly loads and no consumer subscribes to an
     // event no Contracts declare.
     [Fact]
     public void The_Host_catalogue_builds_from_its_modules_and_consumers()
@@ -59,7 +60,7 @@ public sealed class EventCatalogueTests
             new EventPayloadField("note", "string", true),
             new EventPayloadField("officialIds", "uuid[]", false),
             new EventPayloadField("matchDate", "date", false),
-            new EventPayloadField("kind", "enum FixtureKind", false),
+            new EventPayloadField("kind", "integer (enum FixtureKind)", false),
         ]);
         catalogue.Single(entry => entry.Event == new IntegrationEventName("FixturePublished", 1)).Payload.ShouldBeEmpty();
     }
@@ -80,6 +81,46 @@ public sealed class EventCatalogueTests
             services => services.AddIntegrationEventConsumer<ProbeCreated.V1, NoopConsumer<ProbeCreated.V1>, MessagingTestDbContext>("progression.probes"))));
 
         exception.Message.ShouldContain("progression.probes → ProbeCreated.V1");
+    }
+
+    [Fact]
+    public void A_consumer_subscribed_twice_to_an_event_is_rejected()
+    {
+        var exception = Should.Throw<InvalidOperationException>(() => EventCatalogue.Build([_fixtures], Subscriptions(
+            services => services
+                .AddIntegrationEventConsumer<FixturePublished.V1, NoopConsumer<FixturePublished.V1>, MessagingTestDbContext>("progression.standings")
+                .AddIntegrationEventConsumer<FixturePublished.V1, NoopConsumer<FixturePublished.V1>, MessagingTestDbContext>("progression.standings"))));
+
+        exception.Message.ShouldContain("progression.standings → FixturePublished.V1");
+    }
+
+    [Fact]
+    public void A_struct_event_is_rejected()
+    {
+        var exception = Should.Throw<InvalidOperationException>(() =>
+            EventCatalogue.Build([new EventCatalogueSource("Fixtures", [typeof(FixtureMoved.V1)])], []));
+
+        exception.Message.ShouldContain("must be record classes");
+    }
+
+    // A struct event in a Contracts assembly is found (and then rejected by Build), not silently skipped.
+    [Fact]
+    public void Struct_events_are_discovered()
+    {
+        EventCatalogue.EventTypes(typeof(EventCatalogueTests).Assembly).ShouldContain(typeof(FixtureMoved.V1));
+    }
+
+    [Theory]
+    [InlineData(typeof(FixtureScored.V1), "scores")]
+    [InlineData(typeof(FixtureScored.V2), "sheet")]
+    [InlineData(typeof(FixtureScored.V3), "venue")]
+    [InlineData(typeof(FixtureScored.V4), "rounds")]
+    public void A_member_the_catalogue_cannot_describe_is_rejected(Type eventType, string member)
+    {
+        var exception = Should.Throw<InvalidOperationException>(() =>
+            EventCatalogue.Build([new EventCatalogueSource("Fixtures", [eventType])], []));
+
+        exception.Message.ShouldContain($"member '{member}'");
     }
 
     [Fact]
@@ -166,6 +207,25 @@ public sealed class EventCatalogueTests
     }
 
     public sealed record UnversionedFixtureEvent : IIntegrationEvent;
+
+    public static class FixtureMoved
+    {
+        public readonly record struct V1(Guid FixtureId) : IIntegrationEvent;
+    }
+
+    public sealed record VenueSummary(Guid VenueId, string Name);
+
+    /// <summary>Members serialized as objects, base64 or nested lists, which the catalogue doesn't describe.</summary>
+    public static class FixtureScored
+    {
+        public sealed record V1(IReadOnlyDictionary<string, int> Scores) : IIntegrationEvent;
+
+        public sealed record V2(byte[] Sheet) : IIntegrationEvent;
+
+        public sealed record V3(VenueSummary Venue) : IIntegrationEvent;
+
+        public sealed record V4(IReadOnlyList<IReadOnlyList<int>> Rounds) : IIntegrationEvent;
+    }
 
     private sealed class NoopConsumer<TEvent> : IIntegrationEventConsumer<TEvent>
         where TEvent : IIntegrationEvent
