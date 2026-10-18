@@ -60,8 +60,8 @@ CREATE POLICY tenant_isolation ON registry.persons
   (`DisableTenantRls` for a `Down` that keeps the table).
 - `TenantConnectionInterceptor` (a `DbConnectionInterceptor`) runs
   `SELECT set_config('app.tenant_id', @tenantId, false)` **every time a connection is opened** — session-level,
-  so it also covers EF Core queries that run outside explicit transactions. It always sets a value: the current tenant ID, or an empty string when there is no tenant
-  context (which matches no rows thanks to `NULLIF`).
+  so it also covers EF Core queries that run outside explicit transactions. It always sets a value: the current
+  tenant ID, or an empty string when there is no tenant context (which matches no rows thanks to `NULLIF`).
 - Pooled connections: Npgsql resets session state before a pooled connection is reused, and the interceptor
   overwrites the value on every open anyway. A test proves a pooled connection never carries a previous
   request's tenant.
