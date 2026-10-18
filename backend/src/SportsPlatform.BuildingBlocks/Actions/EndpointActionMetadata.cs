@@ -12,3 +12,9 @@ public sealed record AllowPublicMetadata
     {
     }
 }
+
+/// <summary>
+/// Endpoint metadata: a platform endpoint that works on one tenant named by a route value; the Host runs it under
+/// that tenant (S02 D2).
+/// </summary>
+public sealed record RunsUnderRouteTenantMetadata(string RouteValueName);

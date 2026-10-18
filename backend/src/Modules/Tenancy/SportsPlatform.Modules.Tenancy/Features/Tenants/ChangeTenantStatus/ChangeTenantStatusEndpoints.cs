@@ -46,6 +46,7 @@ internal static class ChangeTenantStatusEndpoints
         .WithSummary(summary)
         .WithDescription($"{description} The body is optional. {_versionNote}")
         .RequireAction(action)
+        .RunsUnderRouteTenant()
         .ProducesErrors(TenancyErrors.NotFound, TenancyErrors.InvalidTransition, TenancyErrors.ConcurrencyConflict);
 
     private static void MapWithReason(
@@ -64,6 +65,7 @@ internal static class ChangeTenantStatusEndpoints
         .WithDescription($"{description} The body `{{ \"reason\": … }}` is required (no body: VALIDATION_MALFORMED_REQUEST). " +
             $"{_reasonNote} {_versionNote}")
         .RequireAction(action)
+        .RunsUnderRouteTenant()
         .ValidateRequest<ChangeTenantStatusWithReasonRequest>(CommonErrors.ReasonRequired)
         .ProducesErrors(TenancyErrors.NotFound, TenancyErrors.InvalidTransition, TenancyErrors.ConcurrencyConflict);
 

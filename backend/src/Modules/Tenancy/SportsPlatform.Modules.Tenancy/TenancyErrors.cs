@@ -14,6 +14,10 @@ public static class TenancyErrors
     public static readonly Error SlugTaken = new(
         "TENANT_SLUG_TAKEN", "This slug belongs to another tenant, possibly an archived one. Slugs are never reused.", ErrorKind.Conflict);
 
+    /// <summary>Access mode BLOCKED (suspended or archived): admin requests are refused (S02 D9).</summary>
+    public static readonly Error Blocked = new(
+        "TENANT_BLOCKED", "This tenant is suspended or archived.", ErrorKind.Forbidden);
+
     public static readonly Error InvalidTransition = new(
         "TENANT_INVALID_TRANSITION", "The tenant's status does not allow this change.", ErrorKind.Conflict);
 }

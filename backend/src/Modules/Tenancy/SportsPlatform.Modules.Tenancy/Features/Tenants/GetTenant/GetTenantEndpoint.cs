@@ -14,6 +14,7 @@ internal static class GetTenantEndpoint
         .WithSummary("Get a tenant")
         .WithDescription("One tenant with its profile, status and `version` (also the `ETag`).")
         .RequireAction(TenancyActions.TenantRead)
+        .RunsUnderRouteTenant()
         .ProducesErrors(TenancyErrors.NotFound);
 
     private static async Task<Results<Ok<TenantResponse>, ProblemHttpResult>> HandleAsync(
