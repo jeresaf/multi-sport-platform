@@ -62,7 +62,8 @@ public sealed class ReferenceEndpointsTests(PostgresFixture fixture) : DatabaseT
         (await CodesAsync(client, "time-zones?country=UG")).ShouldBe(["Africa/Kampala"]);
         (await CodesAsync(client, "time-zones?country=US")).ShouldContain("America/New_York");
         (await CodesAsync(client, "time-zones?country=US")).ShouldNotContain("Africa/Kampala");
-        (await CodesAsync(client, "time-zones?country=ZZ")).ShouldBeEmpty(); // a valid code without zones
+        (await CodesAsync(client, "time-zones?country=BV")).ShouldBeEmpty(); // a country without zones (Bouvet Island)
+        (await CodesAsync(client, "time-zones?country=ZZ")).ShouldBeEmpty(); // not a country at all
         (await CodesAsync(client, "time-zones")).ShouldContain("Etc/UTC");
     }
 

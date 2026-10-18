@@ -54,6 +54,7 @@ public sealed class CacheableJson<T> : IResult, IStatusCodeHttpResult, IValueHtt
 
     public TimeSpan MaxAge { get; }
 
+    /// <summary>The nominal status: <see cref="ExecuteAsync"/> writes 304 instead when <c>If-None-Match</c> matches.</summary>
     int? IStatusCodeHttpResult.StatusCode => StatusCodes.Status200OK;
 
     [SuppressMessage("Design", "CA1000:Do not declare static members on generic types", Justification = "IEndpointMetadataProvider is a static abstract member.")]
