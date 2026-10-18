@@ -7,7 +7,7 @@ at the start of every review.
 
 - **Current slice:** S02 — Tenancy core and isolation (docs/build/slices/S02-tenancy-core.md, as amended by the
   S01 slice review). S00 and S01 are done
-- **Current task:** S02-T1b — Tenant status transitions and `TenantStatusChanged.V1` — in review (branch
+- **Current task:** S02-T1b — Tenant status transitions and `TenantStatusChanged.V1` — in review, PR #31 (branch
   `s02/t1b-tenant-transitions`)
 - **Next:** S02-T2 — Isolation enforcement (application + database)
 - **Blocked on:** nothing
@@ -45,7 +45,7 @@ at the start of every review.
 | 2026-10-18 | S01 acceptance | — | Slice acceptance checked on `main` (all five criteria met); spec boxes ticked; tech debt regrouped by owner (S02, S03, infrastructure after M1, later) | Local DB had a pre-merge `AddReferenceData` migration applied; rebuilt with `seed --reset` (local only, no code change) |
 | 2026-10-18 | S01 slice review (reviewer, 2026-10-18) | — | S01 accepted; roadmap S00 and S01 → ☑; S02 spec amended (tasks reordered so RLS lands before the first tenant-owned business table, decisions D1–D10, S01 carry-overs assigned to tasks); owner decisions recorded; CLI launch profile documented; modules.md names `AuditScope` and the audit middleware | Owner's 30-minute contributor check done 2026-10-18 |
 | 2026-10-18 | S02-T1a | #30 | New module `Tenancy` (schema `tenancy`): `tenants` (slug unique for ever, "C" collation, format checks) and append-only `tenant_status_history`; `Tenant` aggregate with the full state machine; `POST`/`GET`/`GET {id}`/`PATCH {id}` under `/api/platform/v1/tenants` (`tenant.create`, `tenant.read`, `tenant.update`, audited under the target tenant, D2); `TenantCreated.V1`; `IReferenceData` in Platform Contracts; `VALIDATION_INVALID_REQUEST`; `WithErrorCode` rule in backend.md | T1 split in two; locale, version, history and `publicEnabled` defaults (owner, plan). Status transitions over HTTP come with T1b |
-| 2026-10-18 | S02-T1b | — | `POST /api/platform/v1/tenants/{id}/{activate\|suspend\|restore\|archive\|unarchive}` (`tenant.activate`, `tenant.suspend`, `tenant.restore`, `tenant.archive`, `tenant.unarchive`; reason 1–500 for suspend, archive, unarchive) through one `ChangeTenantStatusHandler`; `TenantStatusChanged.V1`; `IfMatch` (BuildingBlocks `Api`) on PATCH and the transitions; slug check before the tenant is set; tests for both T1a races; T1 complete | Owner on #30: R1 evaluate `If-Match`, R2 amend D1. No migrations, new errors or dependencies. Pre-review found `ValidateRequest` threw (500) when a required body was missing (filters run with a null argument): now 400 `VALIDATION_MALFORMED_REQUEST`, also for the outbox re-drive |
+| 2026-10-18 | S02-T1b | #31 | `POST /api/platform/v1/tenants/{id}/{activate\|suspend\|restore\|archive\|unarchive}` (`tenant.activate`, `tenant.suspend`, `tenant.restore`, `tenant.archive`, `tenant.unarchive`; reason 1–500 for suspend, archive, unarchive) through one `ChangeTenantStatusHandler`; `TenantStatusChanged.V1`; `IfMatch` (BuildingBlocks `Api`) on PATCH and the transitions; slug check before the tenant is set; tests for both T1a races; T1 complete | Owner on #30: R1 evaluate `If-Match`, R2 amend D1. No migrations, new errors or dependencies. Pre-review found `ValidateRequest` threw (500) when a required body was missing (filters run with a null argument): now 400 `VALIDATION_MALFORMED_REQUEST`, also for the outbox re-drive |
 
 ## Deviations from spec (agreed)
 
