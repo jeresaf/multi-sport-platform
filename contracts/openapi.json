@@ -351,6 +351,25 @@
           "correlationId": {
             "type": "string",
             "description": "The request's correlation ID (also the `X-Correlation-Id` response header)."
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "required": [
+                "field",
+                "code"
+              ],
+              "type": "object",
+              "properties": {
+                "field": {
+                  "type": "string"
+                },
+                "code": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Validation failures, one per field: `field` (camelCase) and `code`."
           }
         }
       },

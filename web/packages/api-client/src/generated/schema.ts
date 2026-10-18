@@ -108,6 +108,11 @@ export interface components {
             code: string;
             /** @description The request's correlation ID (also the `X-Correlation-Id` response header). */
             correlationId: string;
+            /** @description Validation failures, one per field: `field` (camelCase) and `code`. */
+            errors?: {
+                field: string;
+                code: string;
+            }[];
         };
         /** @description Why the message is re-driven; the audit entry records it (action audit `REQUIRED_WITH_REASON`). */
         RedriveOutboxMessageRequest: {
