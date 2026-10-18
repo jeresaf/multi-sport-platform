@@ -4,6 +4,86 @@
  */
 
 export interface paths {
+    "/api/public/v1/reference/countries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List countries
+         * @description Active ISO 3166-1 countries, ordered by alpha-2 code. Cacheable for an hour; send the `ETag` back as `If-None-Match` to get 304.
+         */
+        get: operations["ListCountries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/public/v1/reference/currencies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List currencies
+         * @description Active ISO 4217 currencies (money only), ordered by code, with their minor units. Cacheable for an hour; send the `ETag` back as `If-None-Match` to get 304.
+         */
+        get: operations["ListCurrencies"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/public/v1/reference/languages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List languages
+         * @description Active ISO 639-1 languages, ordered by code. Cacheable for an hour; send the `ETag` back as `If-None-Match` to get 304.
+         */
+        get: operations["ListLanguages"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/public/v1/reference/time-zones": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List time zones
+         * @description Active IANA time zones, ordered by ID. `country` (ISO 3166-1 alpha-2, upper case) keeps only that country's zones; a country without zones gives an empty list. Cacheable for an hour; send the `ETag` back as `If-None-Match` to get 304.
+         */
+        get: operations["ListTimeZones"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/platform/v1/diagnostics/outbox": {
         parameters: {
             query?: never;
@@ -105,14 +185,46 @@ export interface components {
          * @enum {unknown}
          */
         AuditSource: "API" | "SYSTEM";
+        /** @description An ISO 3166-1 country: alpha-2 `code` (`UG`), alpha-3, numeric code and English name. */
+        CountryResponse: {
+            code: string;
+            alpha3Code: string;
+            numericCode: string;
+            name: string;
+        };
+        /** @description An ISO 4217 currency: alphabetic `code` (`UGX`), numeric code, English name, minor units (UGX 0). */
+        CurrencyResponse: {
+            code: string;
+            numericCode: string;
+            name: string;
+            /** Format: int32 */
+            minorUnits: number;
+        };
         JsonElement: unknown;
+        /** @description An ISO 639-1 language: two-letter `code` (`sw`) and English name. */
+        LanguageResponse: {
+            code: string;
+            name: string;
+        };
         ListAuditEntriesResponse: {
             items: components["schemas"]["AuditEntryResponse"][];
             page: components["schemas"]["PageInfo"];
         };
+        ListCountriesResponse: {
+            items: components["schemas"]["CountryResponse"][];
+        };
+        ListCurrenciesResponse: {
+            items: components["schemas"]["CurrencyResponse"][];
+        };
+        ListLanguagesResponse: {
+            items: components["schemas"]["LanguageResponse"][];
+        };
         ListOutboxMessagesResponse: {
             items: components["schemas"]["OutboxMessageResponse"][];
             page: components["schemas"]["PageInfo"];
+        };
+        ListTimeZonesResponse: {
+            items: components["schemas"]["TimeZoneResponse"][];
         };
         /**
          * @description One outbox message in the platform diagnostics: envelope and delivery state, no payload. `heldBackBy` is set on
@@ -183,6 +295,11 @@ export interface components {
         RedriveOutboxMessageRequest: {
             reason: null | string;
         };
+        /** @description An IANA time zone: its ID as `code` (`Africa/Kampala`) and its country; no country for `Etc/UTC`. */
+        TimeZoneResponse: {
+            code: string;
+            countryCode: null | string;
+        };
     };
     responses: never;
     parameters: never;
@@ -192,6 +309,125 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    ListCountries: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListCountriesResponse"];
+                };
+            };
+            /** @description Not Modified */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ListCurrencies: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListCurrenciesResponse"];
+                };
+            };
+            /** @description Not Modified */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ListLanguages: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListLanguagesResponse"];
+                };
+            };
+            /** @description Not Modified */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ListTimeZones: {
+        parameters: {
+            query?: {
+                country?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListTimeZonesResponse"];
+                };
+            };
+            /** @description Not Modified */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_QUERY` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     ListOutboxMessages: {
         parameters: {
             query?: {

@@ -12,6 +12,11 @@ using SportsPlatform.Modules.Platform.Features.Audit.AppendAuditEntry;
 using SportsPlatform.Modules.Platform.Features.Audit.ListAuditEntries;
 using SportsPlatform.Modules.Platform.Features.Outbox.ListOutboxMessages;
 using SportsPlatform.Modules.Platform.Features.Outbox.RedriveOutboxMessage;
+using SportsPlatform.Modules.Platform.Features.Reference;
+using SportsPlatform.Modules.Platform.Features.Reference.ListCountries;
+using SportsPlatform.Modules.Platform.Features.Reference.ListCurrencies;
+using SportsPlatform.Modules.Platform.Features.Reference.ListLanguages;
+using SportsPlatform.Modules.Platform.Features.Reference.ListTimeZones;
 using SportsPlatform.Modules.Platform.Features.Seeding;
 using SportsPlatform.Modules.Platform.Infrastructure;
 using SportsPlatform.Modules.Platform.Infrastructure.Messaging;
@@ -60,6 +65,11 @@ public sealed class PlatformModule : IModule
         services.AddSeeder<CurrencySeeder>();
         services.AddSeeder<LanguageSeeder>();
         services.AddSeeder<TimeZoneSeeder>();
+        services.AddScoped<ListCountriesHandler>();
+        services.AddScoped<ListCurrenciesHandler>();
+        services.AddScoped<ListLanguagesHandler>();
+        services.AddScoped<ListTimeZonesHandler>();
+        services.AddSingleton<IValidator<ListTimeZonesRequest>, ListTimeZonesRequestValidator>();
     }
 
     public void MapEndpoints(ApiEndpointGroups groups)
@@ -68,5 +78,11 @@ public sealed class PlatformModule : IModule
         ListOutboxMessagesEndpoint.Map(groups.Platform);
         RedriveOutboxMessageEndpoint.Map(groups.Platform);
         ListAuditEntriesEndpoint.Map(groups.Platform);
+
+        var reference = ReferenceEndpoints.Group(groups.Public);
+        ListCountriesEndpoint.Map(reference);
+        ListCurrenciesEndpoint.Map(reference);
+        ListLanguagesEndpoint.Map(reference);
+        ListTimeZonesEndpoint.Map(reference);
     }
 }

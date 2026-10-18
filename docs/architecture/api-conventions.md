@@ -111,6 +111,20 @@ Modules call each other in-process through Contracts, never over HTTP.
 - Mutable admin resources return `version` (from PostgreSQL `xmin`) and `ETag`. Updates send `If-Match` or
   `version`; mismatch → `409 *_CONCURRENCY_CONFLICT`.
 
+## Caching public reads
+
+- Public reads that change rarely (reference data) return `CacheableJson.Ok(value, maxAge)`
+  (`SportsPlatform.BuildingBlocks.Api`): `Cache-Control: public, max-age=<seconds>` and a strong `ETag`, the quoted
+  base64url SHA-256 of the JSON body. A request whose `If-None-Match` matches (weak comparison, lists and `*`
+  included) gets `304 Not Modified` with the same headers and no body. The OpenAPI document lists `200` and `304`.
+- Nothing is cached on the server: each request queries the database and hashes the body. Errors carry no cache
+  headers.
+- A cacheable response must be the same for every caller: no user-specific content or headers, no `Set-Cookie`.
+  Shared caches replay the stored headers, including the first request's `X-Correlation-Id`; the edge (CDN) should
+  strip or replace it when it serves from cache.
+- The reference lists (`/api/public/v1/reference/{countries|currencies|languages|time-zones}`) use one hour.
+  Responses are `{ "items": [...] }` with active entries only, ordered by code (ordinal), not paginated.
+
 ## Idempotency
 
 - Required for: timeline recording (`clientEventId` in body), offline sync batches, import execution, provider

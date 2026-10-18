@@ -385,3 +385,9 @@ Acceptance:
   seeder saves deactivations before inserts and updates, in one transaction, so a reused number never collides (R1);
   currencies are money only, without funds or codes without minor units, so `minor_units` is NOT NULL (R2, owner);
   CD, CG, HK, MM and MO use CLDR's alternative display names (R3, owner).
+  T7b-2 (plan approved 2026-10-18): `GET /api/public/v1/reference/{countries|currencies|languages|time-zones}` in
+  Platform (`Features/Reference`), `{ items }` with active entries only, ordered by `code` (ordinal); time zones use
+  `code` for the IANA ID and take `country` (upper-case alpha-2 only, else `VALIDATION_INVALID_QUERY`; a country with
+  no zones gives an empty list). `CacheableJson` (BuildingBlocks `Api`) writes `Cache-Control: public, max-age=3600`
+  and a strong SHA-256 `ETag` and answers a matching `If-None-Match` with 304; no server-side cache, no HEAD. No
+  actions, new errors, events or migrations.
