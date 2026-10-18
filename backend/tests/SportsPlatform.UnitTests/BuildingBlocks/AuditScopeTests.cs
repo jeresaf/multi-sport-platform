@@ -1,0 +1,94 @@
+using SportsPlatform.BuildingBlocks.Actions;
+using SportsPlatform.BuildingBlocks.Actors;
+using SportsPlatform.BuildingBlocks.Auditing;
+using SportsPlatform.BuildingBlocks.Messaging;
+using SportsPlatform.BuildingBlocks.Tenancy;
+
+namespace SportsPlatform.UnitTests.BuildingBlocks;
+
+public sealed class AuditScopeTests
+{
+    private static readonly DateTimeOffset _now = new(2026, 10, 17, 9, 0, 0, TimeSpan.Zero);
+
+    private static readonly ActionDefinition _redrive = new(
+        "platform.outbox.redrive", "Re-deliver failed outbox messages.", ActionScope.Platform, AuditRequirement.RequiredWithReason, "S01");
+
+    private static readonly ActionDefinition _read = new(
+        "fixture.read", "View fixtures.", ActionScope.Tenant, AuditRequirement.None, "S10", [AssignmentScope.Tenant]);
+
+    [Fact]
+    public void Record_carries_the_action_actor_correlation_and_description()
+    {
+        var correlation = new CorrelationContext();
+        correlation.Set("kmsa-req-0042", null);
+        var scope = new AuditScope(SystemActor.Instance, new TenantContext(), correlation, new FixedClock(_now));
+        var messageId = Guid.CreateVersion7();
+        scope.Begin(_redrive, AuditSource.Api);
+
+        var record = scope.Describe("OutboxMessage", messageId, "  Consumer fixed  ").CreateRecord(AuditOutcome.Success);
+
+        record.ShouldSatisfyAllConditions(
+            r => r.ActionCode.ShouldBe("platform.outbox.redrive"),
+            r => r.Outcome.ShouldBe(AuditOutcome.Success),
+            r => r.ActorKind.ShouldBe(ActorKind.System),
+            r => r.ActorId.ShouldBe(SystemActor.Id),
+            r => r.CorrelationId.ShouldBe("kmsa-req-0042"),
+            r => r.Source.ShouldBe(AuditSource.Api),
+            r => r.EntityType.ShouldBe("OutboxMessage"),
+            r => r.EntityId.ShouldBe(messageId),
+            r => r.Reason.ShouldBe("Consumer fixed"),
+            r => r.OccurredAt.ShouldBe(_now),
+            r => r.Id.Version.ShouldBe(7));
+    }
+
+    [Fact]
+    public void Error_code_is_kept_for_failures_only()
+    {
+        var scope = NewScope();
+        scope.Begin(_redrive, AuditSource.Api);
+        scope.SetErrorCode("PLATFORM_OUTBOX_MESSAGE_NOT_FAILED");
+
+        scope.CreateRecord(AuditOutcome.Failure).ErrorCode.ShouldBe("PLATFORM_OUTBOX_MESSAGE_NOT_FAILED");
+        scope.CreateRecord(AuditOutcome.Success).ErrorCode.ShouldBeNull();
+    }
+
+    [Fact]
+    public void Action_without_audit_is_not_pending()
+    {
+        var scope = NewScope();
+
+        scope.Begin(_read, AuditSource.Api);
+
+        scope.IsPending.ShouldBeFalse();
+        scope.Action.ShouldBeNull();
+    }
+
+    [Fact]
+    public void Recorded_entry_is_no_longer_pending()
+    {
+        var scope = NewScope();
+        scope.Begin(_redrive, AuditSource.Api);
+        scope.IsPending.ShouldBeTrue();
+
+        scope.MarkRecorded();
+
+        scope.IsPending.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void An_audit_begins_once()
+    {
+        var scope = NewScope();
+        scope.Begin(_redrive, AuditSource.Api);
+
+        Should.Throw<InvalidOperationException>(() => scope.Begin(_redrive, AuditSource.Api));
+    }
+
+    private static AuditScope NewScope() =>
+        new(SystemActor.Instance, new TenantContext(), new CorrelationContext(), new FixedClock(_now));
+
+    private sealed class FixedClock(DateTimeOffset now) : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => now;
+    }
+}

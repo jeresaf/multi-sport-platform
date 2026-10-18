@@ -1,4 +1,5 @@
 using SportsPlatform.Host.Api;
+using SportsPlatform.Host.Auditing;
 using SportsPlatform.Host.Authorization;
 using SportsPlatform.Host.Catalogues;
 using SportsPlatform.Host.Health;
@@ -30,6 +31,7 @@ public static class SportsPlatformApp
         app.UseRequestLogging();
         app.UseApiConventions();
         app.UseRouting();
+        app.UseAudit();
         app.UseActionAuthorization();
 
         app.MapHealthEndpoints();

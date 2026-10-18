@@ -16,7 +16,8 @@ internal static class RedriveOutboxMessageEndpoint
         .WithSummary("Re-drive a failed outbox message")
         .WithDescription(
             "Moves one FAILED message back to PENDING with its attempts reset; the processor delivers it on its next poll. " +
-            "Fix the cause first: a message that fails again ends FAILED again.")
+            "Fix the cause first: a message that fails again ends FAILED again. " +
+            "The reason is kept permanently in the audit trail: don't include personal data.")
         .RequireAction(PlatformActions.OutboxRedrive)
         .ValidateRequest<RedriveOutboxMessageRequest>(CommonErrors.ReasonRequired)
         .ProducesErrors(PlatformErrors.OutboxMessageNotFound, PlatformErrors.OutboxMessageNotFailed);

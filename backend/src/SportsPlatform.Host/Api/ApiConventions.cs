@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using SportsPlatform.BuildingBlocks.Api;
+using SportsPlatform.BuildingBlocks.Auditing;
 using SportsPlatform.BuildingBlocks.Persistence.Messaging;
 using SportsPlatform.BuildingBlocks.Results;
 
@@ -62,9 +63,15 @@ public static class ApiConventions
             problem.Extensions[ProblemFields.Code] = error.Code;
         }
 
-        if (typeBaseUri is not null && problem.Extensions.TryGetValue(ProblemFields.Code, out var code) && code is string)
+        if (problem.Extensions.TryGetValue(ProblemFields.Code, out var code) && code is string errorCode)
         {
-            problem.Type = typeBaseUri + code;
+            if (typeBaseUri is not null)
+            {
+                problem.Type = typeBaseUri + errorCode;
+            }
+
+            // A failure or denial of an audited action records which error it was.
+            context.HttpContext.RequestServices?.GetService<AuditScope>()?.SetErrorCode(errorCode);
         }
 
         // One request ID in the body: the framework's traceId would differ from correlationId once tracing is on.

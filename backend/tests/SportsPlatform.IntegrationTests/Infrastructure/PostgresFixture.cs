@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 using DotNet.Testcontainers.Builders;
 using DotNet.Testcontainers.Configurations;
 using DotNet.Testcontainers.Containers;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using Respawn;
@@ -79,9 +80,20 @@ public sealed partial class PostgresFixture : IAsyncLifetime
         _respawner = await Respawner.CreateAsync(connection, new RespawnerOptions
         {
             DbAdapter = DbAdapter.Postgres,
-            SchemasToInclude = [.. databases.Select(d => d.Schema)],
+            SchemasToInclude = [.. ModelSchemas(databases)],
             TablesToIgnore = [.. databases.Select(d => new Table(d.Schema, ModuleDbContextOptions.MigrationsHistoryTable))],
         });
+    }
+
+    /// <summary>Each module's schema and any other schema its model maps to (Platform's <c>audit</c>).</summary>
+    private string[] ModelSchemas(IEnumerable<ModuleDatabase> databases)
+    {
+        using var scope = App.Services.CreateScope();
+        return [.. databases
+            .SelectMany(database => ((DbContext)scope.ServiceProvider.GetRequiredService(database.ContextType)).Model
+                .GetEntityTypes().Select(entity => entity.GetSchema()).Append(database.Schema))
+            .OfType<string>()
+            .Distinct()];
     }
 
     // A broken init script would otherwise hang until the CI job times out, with no useful output.

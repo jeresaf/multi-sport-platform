@@ -163,9 +163,9 @@ Deliver:
 - Query endpoint for platform staff (filters: tenant, actor, action, entity, date range, correlation ID).
 
 Acceptance:
-- [ ] Trigger test: UPDATE/DELETE on audit entries fails, both for `sp_app` (privilege) and `sp_migrator` (trigger).
-- [ ] Test: an audited action produces exactly one entry with correlation ID and reason.
-- [ ] Redaction test passes.
+- [x] Trigger test: UPDATE/DELETE on audit entries fails, both for `sp_app` (privilege) and `sp_migrator` (trigger).
+- [x] Test: an audited action produces exactly one entry with correlation ID and reason.
+- [x] Redaction test passes.
 
 ### T7 — Seed framework and reference data
 Deliver:
@@ -333,3 +333,20 @@ Acceptance:
   (BuildingBlocks.Api endpoint filter); failures add `errors: [{field, code}]`. Every list parameter is bound as text
   (`[AsParameters]`), so `?limit=abc` is `VALIDATION_INVALID_QUERY` like `limit=0` (#22 R1).
   The handler takes the reason but nothing records it until T6.
+- **T6 (split in two, owner 2026-10-18):** T6a = `audit.audit_entries`, recording through the outbox and directly,
+  redaction, the outbox diagnostics' audits (all three acceptance criteria); T6b = the query endpoint for platform
+  staff. There was no command pipeline, so T6a adds the minimum: `AuditScope` (BuildingBlocks `Auditing`, scoped), begun
+  by the Host's `AuditMiddleware` (after `UseRouting`, before `UseActionAuthorization`) with the endpoint's action;
+  `MessagingInterceptor` puts the scope's entry in the first saving module's outbox (`AuditRecorded.V1`, declared in
+  Platform's Contracts and built through `IAuditEventFactory`, because BuildingBlocks can't reference Platform); a
+  failed save detaches it again. `ModuleDbContext.RecordAudit` serves work in its own scope (the re-drive commits its
+  entry in the target module's outbox, #22 R2). The middleware writes the rest directly through `IAuditLog`: `DENIED`
+  for 401/403, `FAILURE` for other errors and exceptions, `SUCCESS` for audited actions that saved nothing (the outbox
+  list, with its filters as metadata). Owner defaults (plan, 2026-10-18): no RLS until S02; direct `SUCCESS` for actions
+  that save nothing; one unit of work per command (an explicit transaction rolled back after the save loses the entry);
+  validation failures audited with their code. Columns beyond pack spec 40: `error_code` (from the Problem Details
+  customizer), `actor_kind` (`USER`/`SYSTEM`, spec's `actor_type`). `source` is `API` or `SYSTEM`. Redaction:
+  `[PersonalData]` (BuildingBlocks `Privacy`) on metadata record properties; `AuditMetadata` writes `PRIVATE`/`SENSITIVE`
+  values as `"[REDACTED]"` before the record leaves the request; `reason` is free text and not redacted. The test reset
+  now covers every schema a module's model maps to (Platform's `audit`). `AuditRecorded` is listed with producer
+  Platform in events.md, though every module publishes it.

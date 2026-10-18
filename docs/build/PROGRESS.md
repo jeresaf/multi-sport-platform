@@ -7,13 +7,13 @@ at the start of every review.
 
 - **Current slice:** S01 — Backend platform (docs/build/slices/S01-backend-platform.md). S00 is on `main`; its
   "new contributor in under 30 minutes" check is still with the owner
-- **Current task:** none. S01-T5b-2 (outbox diagnostics and re-drive) is in review as #22
-- **Next:** S01-T6 (audit)
+- **Current task:** none. S01-T6a (audit trail) is in review as #23
+- **Next:** S01-T6b (audit query endpoint)
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S01-T6 — Audit
+1. S01-T6b — Audit query endpoint
 2. S01-T7 — Seed framework and reference data
 
 ## Log
@@ -36,6 +36,7 @@ at the start of every review.
 | 2026-10-18 | S01-T5a | #20 | Domain event dispatch (`IDomainEventSubscriber<T>`, rounds before commit, `MessagingInterceptor`); `outbox_messages`/`inbox_messages` in every module schema; `ModuleDbContext.Publish` with the ADR-0009 envelope; `OutboxProcessor` (`FOR UPDATE SKIP LOCKED`, strict per-aggregate `sequence` order, backoff 2 s…5 min, `FAILED` after `MaxAttempts`) hosted by Platform; consumers (`IIntegrationEventConsumer<T>`) deduplicated by the inbox under the event's tenant; scoped `TenantContext`/`CorrelationContext`; outbox state machine in state-machines.md | T5 split in two (owner). No RLS on outbox/inbox (owner, Q15). Pre-review: strict per-aggregate ordering (owner) with `sequence` and monotonic outbox IDs (EF orders inserts by key); ~1,700 changed lines without migrations, kept as one PR. Review: per-module backoff on failures (R1); migrations kept as two per context (R2, owner) |
 | 2026-10-18 | S01-T5b-1 | #21 | `EventCatalogue` (Host): every `IIntegrationEvent` in the modules' Contracts with payload members (camelCase name, simple type, nullability) and registered consumers; `export-catalogues` → `docs/generated/events.md`, `contracts/events.json` (empty: no events yet), checked by the `Contracts` job | T5b split in two (owner). Export fails on duplicate, badly named or struct events, undescribable payload types, a consumer registered twice or subscribed to an undeclared event (pre-review). No `since` column. Review: payload enums are UPPER_SNAKE strings (R1), `DateTime` members rejected (R2) |
 | 2026-10-18 | S01-T5b-2 | #22 | `OutboxDiagnostics` (BuildingBlocks, through each module's DbContext); Platform endpoints `GET /api/platform/v1/diagnostics/outbox` (`module`, `status`, `limit`, `cursor`; newest first across modules; no payload; `heldBackBy`) and `POST …/{module}/{messageId}/redrive` (`reason` 1–500, `FAILED` → `PENDING`, attempts 0); `PLATFORM_OUTBOX_MESSAGE_NOT_FOUND`/`_NOT_FAILED`, `VALIDATION_INVALID_QUERY`/`_REASON_REQUIRED`; HTTP JSON enums as UPPER_SNAKE strings; allowed/denied tests for both outbox actions; T5 acceptance complete | FluentValidation 12.2.0 (Apache-2.0, owner on review) with `.ValidateRequest<T>()` and `errors: [{field, code}]`; `ToProblem(detail)`; `TestAuthorizationEvaluator.Reset` before each database test. ~940 changed lines without generated files, kept as one PR. Review: `limit` parsed by the request, so every bad value is `VALIDATION_INVALID_QUERY` (R1); T6 audits the re-drive in the target module's outbox (R2) |
+| 2026-10-18 | S01-T6a | #23 | `audit.audit_entries` (append-only, indexes for T6b's filters); `AuditScope` + `AuditMiddleware`: the first module save commits `AuditRecorded.V1` in that module's outbox (consumer `platform.audit`), denials/failures/no-save actions go directly through `IAuditLog`; error code recorded from Problem Details; `[PersonalData]` + `AuditMetadata` redaction; re-drive audited in the target module's outbox with its reason, the list with its filters | T6 split in two (owner). Defaults approved: no RLS until S02, direct `SUCCESS` for no-save actions, one unit of work per command, validation failures audited. Test reset now covers Platform's `audit` schema. Pre-review: cancelled saves discard their audit messages. Review: reasons are permanent, no personal data (R3); anonymous actor and denial rate limits are follow-ups (R1, R2) |
 
 ## Deviations from spec (agreed)
 
@@ -84,13 +85,18 @@ at the start of every review.
   `VALIDATION_REASON_REQUIRED` live in `CommonErrors` so later endpoints reuse them; no `status` means all statuses.
   On the review (#22) the owner chose to add FluentValidation 12.2.0 (Apache-2.0) now: `.ValidateRequest<TRequest>(error)`
   runs the module's `IValidator<TRequest>`, and validation problems carry `errors: [{field, code}]`.
+- **S01-T6:** delivered as two PRs (T6a audit trail; T6b query endpoint). The spec's "command pipeline" didn't exist:
+  T6a adds `AuditScope` and the Host's `AuditMiddleware` instead of a pipeline. Owner approved the plan 2026-10-18 with
+  its defaults: `tenant_id` nullable without RLS until S02; audited actions that save nothing (reads) are written
+  directly as `SUCCESS` (the spec names only denials and failures); one unit of work per command (an explicit
+  transaction rolled back after its save loses the entry); validation failures are audited as `FAILURE` with their code.
 
 ## Tech debt / follow-ups
 
 Consolidated by the S00 slice review (2026-10-17). Each item names where it gets done.
 
 **Assigned to S01** (see the spec's "Carried over from S00")
-- Apply the T2b grant helpers to the real tables: `audit.audit_entries` (`AppendOnly`, T6), reference tables (`ReadOnlyForRuntimeRoles`, T7); declare each in `TableAccessPolicies`.
+- Apply the T2b grant helpers to the real tables: reference tables (`ReadOnlyForRuntimeRoles`, T7); declare each in `TableAccessPolicies`. (`audit.audit_entries` is `AppendOnly` since T6a.)
 - `xmin`/`updated_*` cover only the aggregate root's row: a change to only a child entity or owned type doesn't
   bump the root's version, so two edits to different children both succeed. Mark the root `Modified` when a
   dependent changes, with a test, before the first aggregate with child tables (S06 at the latest) (S01-T2a
@@ -102,11 +108,23 @@ Consolidated by the S00 slice review (2026-10-17). Each item names where it gets
   re-run the reference seed after each reset (T7; reviewer note on #14).
 - `seed --reset` (Development, T7) can't TRUNCATE or DELETE append-only tables as `sp_migrator` (the triggers stop
   the owner too): reset by recreating the database or skip append-only tables (T7; S01-T2b).
-- T6: audit the outbox diagnostics: the list (`platform.outbox.read`, `REQUIRED`) and the re-drive
-  (`REQUIRED_WITH_REASON`; `RedriveOutboxMessageHandler` already takes the reason). Both run outside any command
-  pipeline, so T6 must hook them in explicitly. Re-drive (reviewer, #22 R2): give `RedriveAsync` the actor and reason
-  and publish `AuditRecorded.V1` to the *target* module's outbox in the re-drive transaction (that is where the change
-  is, so audit and re-drive commit together); the list's read goes through Platform's own audit path (S01-T5b-2).
+- `audit.audit_entries` has a nullable `tenant_id` and no RLS: S02 adds the policy (tenant users see their tenant's
+  entries; entries with no tenant only through platform services) and the isolation tests, and revisits the audit
+  indexes (tenant first) with the policy (S01-T6a pre-review).
+- A failed direct audit write (denial, failure, read) is only logged: the response is already written. Alert on that
+  Error with the `FAILED` outbox alert below (infrastructure task after M1; S01-T6a).
+- The audit middleware's exception path (`FAILURE` with `PLATFORM_UNEXPECTED_ERROR`) has no test: no audited endpoint
+  can throw yet. Add one with the first audited endpoint that can (S01-T6a).
+- Audit retention and partitioning by `occurred_at` (pack spec 40 §7): with the retention job (S01-T6a).
+- Anonymous actor for audit (#23 R1): `actor_kind` allows `USER`/`SYSTEM` and `actor_id` is NOT NULL, so once S03
+  has real sign-in an anonymous 401 on an audited endpoint would fail the direct insert and the denial would only be
+  logged. S03: add an anonymous actor kind (nullable or fixed `actor_id`) with the check-constraint migration, and a test
+  that an anonymous 401 on an audited endpoint writes a `DENIED` entry.
+- Denials cost a permanent row each (#23 R2): rate-limit `/api/admin` and `/api/platform` at the edge (Cloudflare),
+  with the `/health/*` item below (infrastructure task after M1). S03 decides whether anonymous denials are counted per
+  minute instead of one row each.
+- `platform.outbox.read` (and T6b's `platform.audit.read`) write an entry per page: diagnostics and audit screens must
+  not auto-refresh by polling (#23 review).
 - Alert on any `FAILED` outbox message (OpenTelemetry counter or gauge): with strict ordering one holds back its
   aggregate's later events until re-driven (infrastructure task after M1; #20 R3).
 - `GET …/diagnostics/outbox?status=…` orders by `id` and the only status index is `(status, next_attempt_at,

@@ -1,9 +1,12 @@
 using FluentValidation;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using SportsPlatform.BuildingBlocks.Auditing;
 using SportsPlatform.BuildingBlocks.Modules;
 using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Persistence.Messaging;
+using SportsPlatform.Modules.Platform.Contracts.Audit;
+using SportsPlatform.Modules.Platform.Features.Audit.AppendAuditEntry;
 using SportsPlatform.Modules.Platform.Features.Outbox.ListOutboxMessages;
 using SportsPlatform.Modules.Platform.Features.Outbox.RedriveOutboxMessage;
 using SportsPlatform.Modules.Platform.Infrastructure;
@@ -30,6 +33,10 @@ public sealed class PlatformModule : IModule
         services.AddOptions<OutboxOptions>().Bind(configuration.GetSection(OutboxOptions.SectionName));
         services.AddOutboxProcessor();
         services.AddHostedService<OutboxHostedService>();
+
+        services.AddSingleton<IAuditLog, AuditLog>();
+        services.AddSingleton<IAuditEventFactory, AuditEventFactory>();
+        services.AddIntegrationEventConsumer<AuditRecorded.V1, AuditRecordedConsumer, PlatformDbContext>(AuditRecordedConsumer.Name);
 
         services.AddOutboxDiagnostics();
         services.AddScoped<ListOutboxMessagesHandler>();

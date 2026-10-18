@@ -4,7 +4,7 @@ using SportsPlatform.BuildingBlocks.Results;
 
 namespace SportsPlatform.Modules.Platform.Infrastructure;
 
-/// <summary>The Platform module's unit of work (schema <c>platform</c>). Tables arrive with T5–T7.</summary>
+/// <summary>The Platform module's unit of work: schema <c>platform</c>, and <c>audit</c> for the audit entries.</summary>
 public sealed class PlatformDbContext(DbContextOptions<PlatformDbContext> options)
     : ModuleDbContext(options, PlatformModule.SchemaName)
 {
