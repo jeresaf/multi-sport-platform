@@ -98,6 +98,33 @@ public sealed class ReferenceDataSeedTests(PostgresFixture fixture) : DatabaseTe
         (await CountriesAsync("KE", "UG")).ShouldBe([("KE", "Kenya", true), ("UG", "Uganda", true)]);
     }
 
+    [Fact]
+    public async Task A_new_code_may_take_the_numeric_and_alpha3_codes_of_one_dropped_in_the_same_update()
+    {
+        try
+        {
+            // ISO retires KE and gives its numbers to a new entry: the old row must be deactivated before the insert.
+            await using var edited = WithCountries(countries =>
+            {
+                countries.Remove(countries.Single(c => (string?)c!["code"] == "KE"));
+                countries.Add(new JsonObject { ["code"] = "QZ", ["alpha3Code"] = "KEN", ["numericCode"] = "404", ["name"] = "Successor of Kenya" });
+            });
+
+            var report = await RunAsync(edited);
+
+            report.Single(s => s.Key == CountrySeeder.SeederKey).Outcome.ShouldBe(new SeedOutcome(1, 0, 1));
+            (await QueryAsync(
+                DatabaseRoles.App,
+                "SELECT code, alpha3_code, numeric_code, is_active FROM platform.countries WHERE numeric_code = '404' ORDER BY code",
+                reader => (reader.GetString(0), reader.GetString(1), reader.GetString(2), reader.GetBoolean(3))))
+                .ShouldBe([("KE", "KEN", "404", false), ("QZ", "KEN", "404", true)]);
+        }
+        finally
+        {
+            await Fixture.RestoreReferenceDataAsync();
+        }
+    }
+
     private static async Task<List<SeederResult>> RunAsync(WebApplicationFactory<Program> app)
     {
         var report = await app.Services.GetRequiredService<SeedRunner>().RunAsync(new SeedRequest(SeedCategory.Reference), Ct);

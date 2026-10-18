@@ -40,11 +40,25 @@ public abstract class ReferenceSeeder<TItem, TEntry>(ReferenceDataFiles files) :
         var items = files.Items<TItem>(File);
         var db = context.CreateOwnerContext<PlatformDbContext>();
         var entries = await db.Set<TEntry>().ToDictionaryAsync(e => e.Code, StringComparer.Ordinal, cancellationToken);
+        var listed = items.Select(CodeOf).ToHashSet(StringComparer.Ordinal);
 
-        int inserted = 0, updated = 0, deactivated = 0;
+        // Two saves in one transaction: deactivations are written before any insert or update, so a new entry may take
+        // the alpha-3 or numeric code of one dropped in the same update (those are unique among active rows only).
+        // EF Core doesn't promise that order within a single save.
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+
+        var deactivated = 0;
+        foreach (var entry in entries.Values.Where(entry => !listed.Contains(entry.Code)))
+        {
+            deactivated += entry.Deactivate() ? 1 : 0;
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+
+        int inserted = 0, updated = 0;
         foreach (var item in items)
         {
-            if (entries.Remove(CodeOf(item), out var entry))
+            if (entries.TryGetValue(CodeOf(item), out var entry))
             {
                 updated += Apply(entry, item) ? 1 : 0;
             }
@@ -55,12 +69,8 @@ public abstract class ReferenceSeeder<TItem, TEntry>(ReferenceDataFiles files) :
             }
         }
 
-        foreach (var missing in entries.Values)
-        {
-            deactivated += missing.Deactivate() ? 1 : 0;
-        }
-
         await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         return new SeedOutcome(inserted, updated, deactivated);
     }
 }
