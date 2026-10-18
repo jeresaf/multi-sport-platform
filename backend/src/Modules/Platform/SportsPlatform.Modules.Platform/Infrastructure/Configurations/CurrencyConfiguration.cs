@@ -18,6 +18,7 @@ internal sealed class CurrencyConfiguration : IEntityTypeConfiguration<Currency>
         builder.Property(c => c.NumericCode).HasMaxLength(3);
         builder.Property(c => c.Name).HasMaxLength(200);
         builder.Property(c => c.MinorUnits).HasColumnType("smallint");
-        builder.HasIndex(c => c.NumericCode).IsUnique();
+        // Among active rows only: ISO may give a retired currency's number to a new one.
+        builder.HasIndex(c => c.NumericCode).IsUnique().HasFilter("is_active");
     }
 }

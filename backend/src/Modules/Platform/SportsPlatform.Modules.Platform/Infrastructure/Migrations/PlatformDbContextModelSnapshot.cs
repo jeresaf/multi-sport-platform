@@ -335,7 +335,8 @@ namespace SportsPlatform.Modules.Platform.Infrastructure.Migrations
 
                     b.HasIndex("Alpha3Code")
                         .IsUnique()
-                        .HasDatabaseName("ix_countries_alpha3_code");
+                        .HasDatabaseName("ix_countries_alpha3_code")
+                        .HasFilter("is_active");
 
                     b.HasIndex("Code")
                         .IsUnique()
@@ -343,7 +344,8 @@ namespace SportsPlatform.Modules.Platform.Infrastructure.Migrations
 
                     b.HasIndex("NumericCode")
                         .IsUnique()
-                        .HasDatabaseName("ix_countries_numeric_code");
+                        .HasDatabaseName("ix_countries_numeric_code")
+                        .HasFilter("is_active");
 
                     b.ToTable("countries", "platform", t =>
                         {
@@ -412,7 +414,8 @@ namespace SportsPlatform.Modules.Platform.Infrastructure.Migrations
 
                     b.HasIndex("NumericCode")
                         .IsUnique()
-                        .HasDatabaseName("ix_currencies_numeric_code");
+                        .HasDatabaseName("ix_currencies_numeric_code")
+                        .HasFilter("is_active");
 
                     b.ToTable("currencies", "platform", t =>
                         {

@@ -18,7 +18,8 @@ internal sealed class CountryConfiguration : IEntityTypeConfiguration<Country>
         builder.Property(c => c.Alpha3Code).HasColumnName("alpha3_code").HasMaxLength(3); // The convention says alpha3code.
         builder.Property(c => c.NumericCode).HasMaxLength(3);
         builder.Property(c => c.Name).HasMaxLength(200);
-        builder.HasIndex(c => c.Alpha3Code).IsUnique();
-        builder.HasIndex(c => c.NumericCode).IsUnique();
+        // Among active rows only: ISO may give a retired code's alpha-3 or number to a new country.
+        builder.HasIndex(c => c.Alpha3Code).IsUnique().HasFilter("is_active");
+        builder.HasIndex(c => c.NumericCode).IsUnique().HasFilter("is_active");
     }
 }

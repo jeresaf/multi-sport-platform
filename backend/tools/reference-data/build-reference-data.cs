@@ -54,11 +54,13 @@ var countries = TabRows(await GetTextAsync($"{TzBase}/iso3166.tab"))
     })
     .ToList();
 
-// Currencies: ISO 4217 list one (current codes), CLDR's English names where it has one.
+// Currencies: ISO 4217 list one (current codes), CLDR's English names where it has one. XTS (reserved for testing)
+// and XXX (no currency) are codes, not currencies a tenant could use, so they are left out.
+string[] notCurrencies = ["XTS", "XXX"];
 var isoList = XDocument.Parse(await GetTextAsync(IsoCurrencies));
 var published = isoList.Root!.Attribute("Pblshd")!.Value;
 var currencies = isoList.Descendants("CcyNtry")
-    .Where(entry => entry.Element("Ccy") is not null)
+    .Where(entry => entry.Element("Ccy") is { } code && !notCurrencies.Contains(code.Value))
     .GroupBy(entry => entry.Element("Ccy")!.Value, StringComparer.Ordinal)
     .OrderBy(group => group.Key, StringComparer.Ordinal)
     .Select(group =>

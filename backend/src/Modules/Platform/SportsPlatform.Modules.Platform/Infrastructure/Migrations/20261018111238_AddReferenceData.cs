@@ -105,7 +105,8 @@ namespace SportsPlatform.Modules.Platform.Infrastructure.Migrations
                 schema: "platform",
                 table: "countries",
                 column: "alpha3_code",
-                unique: true);
+                unique: true,
+                filter: "is_active");
 
             migrationBuilder.CreateIndex(
                 name: "ix_countries_code",
@@ -119,7 +120,8 @@ namespace SportsPlatform.Modules.Platform.Infrastructure.Migrations
                 schema: "platform",
                 table: "countries",
                 column: "numeric_code",
-                unique: true);
+                unique: true,
+                filter: "is_active");
 
             migrationBuilder.CreateIndex(
                 name: "ix_currencies_code",
@@ -133,7 +135,8 @@ namespace SportsPlatform.Modules.Platform.Infrastructure.Migrations
                 schema: "platform",
                 table: "currencies",
                 column: "numeric_code",
-                unique: true);
+                unique: true,
+                filter: "is_active");
 
             migrationBuilder.CreateIndex(
                 name: "ix_languages_code",

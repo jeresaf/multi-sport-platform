@@ -42,6 +42,7 @@ public sealed partial class ReferenceDataFilesTests
         Currencies.Single(c => c.Code == "UGX").ShouldBe(new CurrencyItem("UGX", "800", "Ugandan Shilling", 0));
         Currencies.Single(c => c.Code == "KES").MinorUnits.ShouldBe(2);
         Currencies.Single(c => c.Code == "XAU").MinorUnits.ShouldBeNull(); // ISO 4217 "N.A.".
+        Currencies.ShouldNotContain(c => c.Code == "XTS" || c.Code == "XXX"); // Testing and "no currency" codes.
     }
 
     [Fact]

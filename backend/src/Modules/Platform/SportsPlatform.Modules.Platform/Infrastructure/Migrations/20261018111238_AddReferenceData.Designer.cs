@@ -12,7 +12,7 @@ using SportsPlatform.Modules.Platform.Infrastructure;
 namespace SportsPlatform.Modules.Platform.Infrastructure.Migrations
 {
     [DbContext(typeof(PlatformDbContext))]
-    [Migration("20261018104820_AddReferenceData")]
+    [Migration("20261018111238_AddReferenceData")]
     partial class AddReferenceData
     {
         /// <inheritdoc />
@@ -338,7 +338,8 @@ namespace SportsPlatform.Modules.Platform.Infrastructure.Migrations
 
                     b.HasIndex("Alpha3Code")
                         .IsUnique()
-                        .HasDatabaseName("ix_countries_alpha3_code");
+                        .HasDatabaseName("ix_countries_alpha3_code")
+                        .HasFilter("is_active");
 
                     b.HasIndex("Code")
                         .IsUnique()
@@ -346,7 +347,8 @@ namespace SportsPlatform.Modules.Platform.Infrastructure.Migrations
 
                     b.HasIndex("NumericCode")
                         .IsUnique()
-                        .HasDatabaseName("ix_countries_numeric_code");
+                        .HasDatabaseName("ix_countries_numeric_code")
+                        .HasFilter("is_active");
 
                     b.ToTable("countries", "platform", t =>
                         {
@@ -415,7 +417,8 @@ namespace SportsPlatform.Modules.Platform.Infrastructure.Migrations
 
                     b.HasIndex("NumericCode")
                         .IsUnique()
-                        .HasDatabaseName("ix_currencies_numeric_code");
+                        .HasDatabaseName("ix_currencies_numeric_code")
+                        .HasFilter("is_active");
 
                     b.ToTable("currencies", "platform", t =>
                         {

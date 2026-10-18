@@ -121,12 +121,13 @@ public sealed class ReferenceDataSeedTests(PostgresFixture fixture) : DatabaseTe
         var rows = new List<string>();
         foreach (var table in PostgresFixture.ReferenceTables)
         {
-            rows.AddRange(await QueryAsync(
+            var tableRows = await QueryAsync(
                 DatabaseRoles.App, $"SELECT '{table}' || ' ' || xmin::text || ' ' || t::text FROM platform.{table} t ORDER BY code",
-                reader => reader.GetString(0)));
+                reader => reader.GetString(0));
+            tableRows.ShouldNotBeEmpty(table);
+            rows.AddRange(tableRows);
         }
 
-        rows.Count.ShouldBeGreaterThan(1000);
         return rows;
     }
 
