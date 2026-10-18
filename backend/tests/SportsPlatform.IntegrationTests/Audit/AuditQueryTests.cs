@@ -127,6 +127,7 @@ public sealed class AuditQueryTests(PostgresFixture fixture) : DatabaseTest(fixt
     [InlineData("?outcome=ERROR", "outcome")]
     [InlineData("?from=2026-10-17", "from")]
     [InlineData("?from=2026-10-17T09:00:00", "from")] // no offset
+    [InlineData("?from=2026-10-17T09:00:00.0000001Z", "from")] // finer than PostgreSQL's microseconds
     [InlineData("?from=2026-10-17T09:00:00 03:00", "from")] // an unencoded + is a space
     [InlineData("?to=17/10/2026 09:00", "to")]
     [InlineData("?from=2026-10-17T10:00:00Z&to=2026-10-17T10:00:00Z", "to")]

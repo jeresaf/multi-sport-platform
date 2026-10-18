@@ -37,7 +37,7 @@ public sealed partial record ListAuditEntriesRequest(
 
     public static bool TryParseOutcome(string value, out AuditOutcome outcome) => _outcomes.TryGetValue(value, out outcome);
 
-    /// <summary>An ISO 8601 instant with an offset (<c>2026-10-17T09:00:00Z</c>), as UTC.</summary>
+    /// <summary>An ISO 8601 instant with an offset (<c>2026-10-17T09:00:00Z</c>), at most microseconds as stored, as UTC.</summary>
     public static bool TryParseInstant(string value, out DateTimeOffset instant)
     {
         instant = default;
@@ -92,6 +92,6 @@ public sealed partial record ListAuditEntriesRequest(
 
     private static InvalidOperationException NotValidated() => new("Validate the request first.");
 
-    [GeneratedRegex("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?(Z|[+-]\\d{2}:\\d{2})$")]
+    [GeneratedRegex("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,6})?(Z|[+-]\\d{2}:\\d{2})$")]
     private static partial Regex InstantFormat();
 }
