@@ -7,13 +7,13 @@ at the start of every review.
 
 - **Current slice:** S01 — Backend platform (docs/build/slices/S01-backend-platform.md). S00 is on `main`; its
   "new contributor in under 30 minutes" check is still with the owner
-- **Current task:** none. S01-T6b (audit query endpoint) is in review as #24
-- **Next:** S01-T7 (seed framework and reference data)
+- **Current task:** S01-T7a (seed framework); T7 split in two (owner, 2026-10-18)
+- **Next:** S01-T7b (reference data and public endpoints)
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S01-T7 — Seed framework and reference data
+1. S01-T7b — Reference data (countries, currencies, time zones, languages) and public endpoints
 
 ## Log
 
@@ -85,6 +85,10 @@ at the start of every review.
   `VALIDATION_REASON_REQUIRED` live in `CommonErrors` so later endpoints reuse them; no `status` means all statuses.
   On the review (#22) the owner chose to add FluentValidation 12.2.0 (Apache-2.0) now: `.ValidateRequest<TRequest>(error)`
   runs the module's `IValidator<TRequest>`, and validation problems carry `errors: [{field, code}]`.
+- **S01-T7:** delivered as two PRs (T7a seed framework; T7b reference data and endpoints). Owner approved the plan
+  2026-10-18 with its defaults: `DEMO`/`TEST` also run in the `Testing` environment (the spec names Development and
+  Staging); a category runs `REFERENCE` and `CONFIGURATION` first; `--reset` drops every module schema as the owner and
+  migrates again (not a database re-create, which needs the superuser); languages are all of ISO 639-1 (T7b).
 - **S01-T6:** delivered as two PRs (T6a audit trail; T6b query endpoint). The spec's "command pipeline" didn't exist:
   T6a adds `AuditScope` and the Host's `AuditMiddleware` instead of a pipeline. Owner approved the plan 2026-10-18 with
   its defaults: `tenant_id` nullable without RLS until S02; audited actions that save nothing (reads) are written
@@ -108,8 +112,6 @@ Consolidated by the S00 slice review (2026-10-17). Each item names where it gets
   (reviewer guidance on #13).
 - The per-test reset will wipe reference data (countries, currencies…): exclude those tables from Respawn or
   re-run the reference seed after each reset (T7; reviewer note on #14).
-- `seed --reset` (Development, T7) can't TRUNCATE or DELETE append-only tables as `sp_migrator` (the triggers stop
-  the owner too): reset by recreating the database or skip append-only tables (T7; S01-T2b).
 - `audit.audit_entries` has a nullable `tenant_id` and no RLS: S02 adds the policy (tenant users see their tenant's
   entries; entries with no tenant only through platform services) and the isolation tests, and revisits the audit
   indexes (tenant first) with the policy (S01-T6a pre-review); then also make the entity index
