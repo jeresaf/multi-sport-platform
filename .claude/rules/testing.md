@@ -20,7 +20,9 @@ paths:
   sample fails `Every_tenant_owned_entity_has_a_sample`. To add one: a class implementing `IIsolationSample` in
   `Isolation/IsolationSamples.cs`, listed in `IsolationSamples.All`. `Add(context)` adds a new entity and the parents
   it needs (leave `TenantId` empty unless the entity takes it from its parent); `Referencing(foreignKey, id)` returns
-  a new entity pointing at `id` for each tenant-owned foreign key **onto** another type, else null.
+  a new entity pointing at `id` for each tenant-owned foreign key **onto** another type, else null. Discovery uses
+  the `ModuleDatabase` registrations (`AddModuleDbContext`): a `ModuleDbContext` without one fails
+  `ModuleDatabaseRegistrationTests` unless it is listed there with a reason.
 - **Tenant in tests:** set the scope's tenant with `scope.ServiceProvider.GetRequiredService<TenantContext>().Set(id)`
   before the first query or save; without one, tenant-owned queries return nothing and saves throw. Read across
   tenants only as `sp_platform` (`QueryAsync(DatabaseRoles.Platform, …)`).

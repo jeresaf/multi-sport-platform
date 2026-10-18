@@ -18,6 +18,17 @@ public sealed class PublishProbeCreated(MessagingTestDbContext context) : IDomai
     }
 }
 
+/// <summary>Adds a tenant-owned row from a domain event subscriber, so the tenant interceptor must see it.</summary>
+public sealed class AddConsumedNote(MessagingTestDbContext context) : IDomainEventSubscriber<ProbeNoted>
+{
+    public Task HandleAsync(ProbeNoted domainEvent, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(domainEvent);
+        context.ConsumedNotes.Add(new ConsumedNote(domainEvent.NoteId));
+        return Task.CompletedTask;
+    }
+}
+
 public sealed class EchoAgain : IDomainEventSubscriber<ProbeEchoed>
 {
     public Task HandleAsync(ProbeEchoed domainEvent, CancellationToken cancellationToken)
@@ -125,6 +136,7 @@ public static class MessagingTestServices
         services.AddSingleton(log);
         services.AddDomainEventSubscriber<ProbeRegistered, PublishProbeCreated>();
         services.AddDomainEventSubscriber<ProbeEchoed, EchoAgain>();
+        services.AddDomainEventSubscriber<ProbeNoted, AddConsumedNote>();
         services.AddIntegrationEventConsumer<ProbeCreated.V1, RecordingConsumer, MessagingTestDbContext>(RecordingConsumer.Name);
         services.AddIntegrationEventConsumer<ProbeCreated.V1, FlakyConsumer, MessagingTestDbContext>(FlakyConsumer.Name);
         services.AddIntegrationEventConsumer<NoteRequested.V1, NoteWriter, MessagingTestDbContext>(NoteWriter.Name);

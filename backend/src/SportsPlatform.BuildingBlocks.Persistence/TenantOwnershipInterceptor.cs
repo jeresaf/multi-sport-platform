@@ -44,7 +44,8 @@ public sealed class TenantOwnershipInterceptor(ITenantContext tenant) : SaveChan
                 continue;
             }
 
-            var current = tenant.TenantId ?? throw new InvalidOperationException(
+            var current = tenant.TenantId ?? throw new TenantIsolationViolationException(
+                TenantIsolationViolation.NoTenant,
                 $"A {entry.Entity.GetType().Name} is tenant-owned and there is no tenant; set the tenant context before saving.");
             var tenantId = entry.Property(e => e.TenantId);
             if (entry.State == EntityState.Added && tenantId.CurrentValue == Guid.Empty)
@@ -55,7 +56,8 @@ public sealed class TenantOwnershipInterceptor(ITenantContext tenant) : SaveChan
 
             if (tenantId.CurrentValue != current || (entry.State != EntityState.Added && tenantId.OriginalValue != current))
             {
-                throw new InvalidOperationException(
+                throw new TenantIsolationViolationException(
+                    TenantIsolationViolation.OtherTenant,
                     $"A {entry.Entity.GetType().Name} of another tenant cannot be {Verb(entry)} under tenant {current}.");
             }
         }

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.BuildingBlocks.Domain;
@@ -46,13 +47,30 @@ public sealed class TenantOwnershipTests(PostgresFixture fixture) : DatabaseTest
     }
 
     [Fact]
+    public async Task The_query_filter_alone_shows_each_context_only_its_tenant()
+    {
+        await SaveProbeAsync(_tenantA);
+        await SaveProbeAsync(_tenantB);
+
+        // sp_platform bypasses RLS, so only the EF filter separates the tenants; two instances share one cached model.
+        await using var underA = PlatformContext(_tenantA);
+        await using var underB = PlatformContext(_tenantB);
+        await using var withoutTenant = PlatformContext(null);
+
+        (await underA.TenantProbes.Select(p => p.TenantId).ToListAsync(Ct)).ShouldBe([_tenantA]);
+        (await underB.TenantProbes.Select(p => p.TenantId).ToListAsync(Ct)).ShouldBe([_tenantB]);
+        (await withoutTenant.TenantProbes.CountAsync(Ct)).ShouldBe(0);
+        (await underA.TenantProbes.CountAsync(Ct)).ShouldBe(1); // still A after B's query
+    }
+
+    [Fact]
     public async Task Saving_a_tenant_owned_entity_without_a_tenant_throws()
     {
         await using var scope = Scope(null, out var context);
         context.TenantProbes.Add(new TenantProbe("Lugogo Indoor Stadium"));
 
-        (await Should.ThrowAsync<InvalidOperationException>(() => context.SaveChangesAsync(Ct)))
-            .Message.ShouldContain("no tenant");
+        (await Should.ThrowAsync<TenantIsolationViolationException>(() => context.SaveChangesAsync(Ct)))
+            .Violation.ShouldBe(TenantIsolationViolation.NoTenant);
     }
 
     [Fact]
@@ -64,8 +82,8 @@ public sealed class TenantOwnershipTests(PostgresFixture fixture) : DatabaseTest
         var profile = new TenantProfile("Mukono Sports Council", "Mukono Sports", "UG", "Africa/Kampala", "en", "UGX", PublicEnabled: false);
         context.Add(Tenant.Create("mukono-sports", profile, SystemActor.Instance, App.Clock.GetUtcNow())); // history carries the new tenant's ID
 
-        (await Should.ThrowAsync<InvalidOperationException>(() => context.SaveChangesAsync(Ct)))
-            .Message.ShouldContain("another tenant");
+        (await Should.ThrowAsync<TenantIsolationViolationException>(() => context.SaveChangesAsync(Ct)))
+            .Violation.ShouldBe(TenantIsolationViolation.OtherTenant);
     }
 
     [Fact]
@@ -84,20 +102,34 @@ public sealed class TenantOwnershipTests(PostgresFixture fixture) : DatabaseTest
             var note = await context.TenantProbeNotes.SingleAsync(Ct);
             context.Entry(note).Property(n => n.TenantId).CurrentValue = _tenantB;
 
-            (await Should.ThrowAsync<InvalidOperationException>(() => context.SaveChangesAsync(Ct)))
-                .Message.ShouldContain("another tenant");
+            (await Should.ThrowAsync<TenantIsolationViolationException>(() => context.SaveChangesAsync(Ct)))
+                .Violation.ShouldBe(TenantIsolationViolation.OtherTenant);
         }
     }
 
-    [Fact]
-    public void A_single_column_foreign_key_between_tenant_owned_entities_is_refused()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void A_foreign_key_between_tenant_owned_entities_must_pair_the_tenant_ids(bool misaligned)
     {
-        var builder = new DbContextOptionsBuilder<SingleColumnKeyContext>();
-        builder.UseModuleDefaults<SingleColumnKeyContext>("Host=localhost", "single_key_test");
-        using var context = new SingleColumnKeyContext(builder.Options);
+        var builder = new DbContextOptionsBuilder<KeyCheckContext>();
+        builder.UseModuleDefaults<KeyCheckContext>("Host=localhost", "key_check_test");
+        using var context = new KeyCheckContext(builder.Options, misaligned);
 
+        // A single-column key, or a composite one that maps branch_id to tenant_id, is refused.
         Should.Throw<InvalidOperationException>(() => context.Model)
             .Message.ShouldContain($"{nameof(Leaf)} → {nameof(Branch)}");
+    }
+
+    /// <summary>A context on <c>sp_platform</c> (BYPASSRLS) with no interceptors, under <paramref name="tenantId"/>.</summary>
+    private ConventionsTestDbContext PlatformContext(Guid? tenantId)
+    {
+        var tenant = new TenantContext();
+        tenant.Set(tenantId);
+        var builder = new DbContextOptionsBuilder<ConventionsTestDbContext>();
+        builder.UseModuleDefaults<ConventionsTestDbContext>(
+            Fixture.ConnectionString(DatabaseRoles.Platform), ConventionsTestDbContext.SchemaName);
+        return new ConventionsTestDbContext(builder.Options, tenant);
     }
 
     private async Task<Guid> SaveProbeAsync(Guid tenantId)
@@ -117,13 +149,37 @@ public sealed class TenantOwnershipTests(PostgresFixture fixture) : DatabaseTest
         return scope;
     }
 
-    private sealed class SingleColumnKeyContext(DbContextOptions<SingleColumnKeyContext> options)
-        : ModuleDbContext(options, "single_key_test", new TenantContext())
+    /// <summary>A model-check fixture, never registered or migrated (see <c>ModuleDatabaseRegistrationTests</c>).</summary>
+    internal sealed class KeyCheckContext(DbContextOptions<KeyCheckContext> options, bool misaligned)
+        : ModuleDbContext(options, "key_check_test", new TenantContext())
     {
+        public bool Misaligned => misaligned;
+
         protected override Error ConcurrencyConflictError => ConventionsTestDbContext.ConcurrencyConflict;
 
-        protected override void ConfigureModel(ModelBuilder modelBuilder) =>
-            modelBuilder.Entity<Leaf>().HasOne<Branch>().WithMany().HasForeignKey(l => l.BranchId);
+        protected override void ConfigureModel(ModelBuilder modelBuilder)
+        {
+            if (misaligned)
+            {
+                modelBuilder.Entity<Branch>().HasAlternateKey(b => new { b.TenantId, b.Id });
+                modelBuilder.Entity<Leaf>().HasOne<Branch>().WithMany()
+                    .HasForeignKey(l => new { l.BranchId, l.TenantId }).HasPrincipalKey(b => new { b.TenantId, b.Id });
+            }
+            else
+            {
+                modelBuilder.Entity<Leaf>().HasOne<Branch>().WithMany().HasForeignKey(l => l.BranchId);
+            }
+        }
+
+        // Each variant is a different model.
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) =>
+            optionsBuilder.ReplaceService<IModelCacheKeyFactory, KeyCheckModelCacheKey>();
+    }
+
+    private sealed class KeyCheckModelCacheKey : IModelCacheKeyFactory
+    {
+        public object Create(DbContext context, bool designTime) =>
+            (context.GetType(), ((KeyCheckContext)context).Misaligned, designTime);
     }
 
     private sealed class Branch : Entity, ITenantOwned

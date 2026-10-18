@@ -35,7 +35,8 @@ status changes.
   subscribers add are covered, before `AuditColumnsInterceptor`):
   - stamps `TenantId` on added entities whose `TenantId` is empty, through the change tracker;
   - throws if there is no tenant, or an added, modified or deleted entity's `TenantId` (current or original)
-    differs from the context. A mismatch is a bug, so it is an exception, not an error code.
+    differs from the context. A mismatch is a bug, so it is a `TenantIsolationViolationException` (`NoTenant` or
+    `OtherTenant`), not an error code.
 - `TenantContext.Set` is called once per scope (S02 D1): the same value again is a no-op, any other value throws.
 - `IgnoreQueryFilters()` is forbidden in feature code. The only exceptions live in explicitly named platform
   services (e.g. `PlatformTenantStatistics`) and are reviewed.

@@ -25,10 +25,12 @@ public sealed class PooledConnectionTests(PostgresFixture fixture) : DatabaseTes
             await context.SaveChangesAsync(Ct);
         }
 
-        // One connection in the pool, so each context below gets the same server session back.
+        // One connection in the pool, so each context below gets the same server session back; no DISCARD ALL on
+        // return (as behind a transaction-pooling proxy), so only the interceptor can clear the previous tenant.
         var connectionString = new NpgsqlConnectionStringBuilder(Fixture.ConnectionString(DatabaseRoles.App))
         {
             MaxPoolSize = 1,
+            NoResetOnClose = true,
             ApplicationName = nameof(PooledConnectionTests),
         }.ConnectionString;
 

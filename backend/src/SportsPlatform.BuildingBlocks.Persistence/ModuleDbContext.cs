@@ -169,19 +169,36 @@ public abstract class ModuleDbContext : DbContext
             .Where(fk => !fk.IsOwnership
                 && typeof(ITenantOwned).IsAssignableFrom(fk.DeclaringEntityType.ClrType)
                 && typeof(ITenantOwned).IsAssignableFrom(fk.PrincipalEntityType.ClrType)
-                && !(IncludesTenantId(fk.Properties) && IncludesTenantId(fk.PrincipalKey.Properties)))
+                && !PairsTenantIds(fk))
             .Select(fk => $"{fk.DeclaringEntityType.ClrType.Name} → {fk.PrincipalEntityType.ClrType.Name}")
             .ToList();
         if (singleColumn.Count > 0)
         {
             throw new InvalidOperationException(
-                "Foreign keys between tenant-owned entities must include TenantId on both sides " +
+                "Foreign keys between tenant-owned entities must pair TenantId with TenantId " +
                 $"(HasForeignKey(TenantId, ParentId).HasPrincipalKey(TenantId, Id)): {string.Join(", ", singleColumn)}.");
         }
     }
 
-    private static bool IncludesTenantId(IEnumerable<IMutableProperty> properties) =>
-        properties.Any(property => property.Name == nameof(ITenantOwned.TenantId));
+    // TenantId on both sides, at the same position, so tenant_id references tenant_id.
+    private static bool PairsTenantIds(IMutableForeignKey foreignKey)
+    {
+        var position = TenantIdPosition(foreignKey.Properties);
+        return position >= 0 && position == TenantIdPosition(foreignKey.PrincipalKey.Properties);
+    }
+
+    private static int TenantIdPosition(IReadOnlyList<IMutableProperty> properties)
+    {
+        for (var i = 0; i < properties.Count; i++)
+        {
+            if (properties[i].Name == nameof(ITenantOwned.TenantId))
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
 
     // Owned types and derived types share their owner's or base type's row, so only roots get the columns.
     private static bool IsTableRoot(IMutableEntityType entityType) =>

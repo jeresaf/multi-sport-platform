@@ -42,7 +42,8 @@ public sealed class ConsumerRlsTests : DatabaseTest
         message.ShouldSatisfyAllConditions(
             m => m.Status.ShouldBe(OutboxMessageStatus.Pending),
             m => m.Attempts.ShouldBe(1),
-            m => m.LastError.ShouldNotBeNull().ShouldContain("row-level security"));
+            // 42501 here can only be RLS: sp_app may insert into this table (TableAccessPolicies).
+            m => m.LastError.ShouldNotBeNull().ShouldContain("PostgresException: 42501"));
         (await NoteTenantsAsync()).ShouldBeEmpty();
     }
 

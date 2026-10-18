@@ -61,6 +61,9 @@ public sealed class MessagingProbe : AggregateRoot
 
     public void Echo(int remaining) => Raise(new ProbeEchoed(this, remaining));
 
+    /// <summary>Asks <see cref="AddConsumedNote"/> for a tenant-owned row, added while the save runs.</summary>
+    public void Note(Guid noteId) => Raise(new ProbeNoted(noteId));
+
     internal void CountEcho() => Echoes++;
 }
 
@@ -101,6 +104,8 @@ public sealed class ConsumedNote : Entity, ITenantOwned
 }
 
 public sealed record ProbeRegistered(Guid ProbeId, string Name) : IDomainEvent;
+
+public sealed record ProbeNoted(Guid NoteId) : IDomainEvent;
 
 /// <summary>Each handled echo raises the next one until <see cref="Remaining"/> is 0.</summary>
 public sealed record ProbeEchoed(MessagingProbe Probe, int Remaining) : IDomainEvent;

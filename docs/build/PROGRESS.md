@@ -134,6 +134,7 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
 (2026-10-18). The S00 carry-overs assigned to S01 are done. Each item names where it gets done.
 
 **S02 — tenancy**
+- Moving `BuildingBlocks/Modules` to a `BuildingBlocks.Web` project is optional, not planned (reviewer guidance on #13).
 - **S02-T2:** `audit.audit_entries` has a nullable `tenant_id` and no RLS: S02 adds the policy (tenant users see their tenant's
   entries; entries with no tenant only through platform services) and the isolation tests, and revisits the audit
   indexes (tenant first) with the policy (S01-T6a pre-review); then also make the entity index
