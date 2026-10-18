@@ -7,9 +7,9 @@ public sealed class Currency : ReferenceEntry
 {
     private string _numericCode = string.Empty;
     private string _name = string.Empty;
-    private int? _minorUnits;
+    private int _minorUnits;
 
-    public Currency(string code, string numericCode, string name, int? minorUnits)
+    public Currency(string code, string numericCode, string name, int minorUnits)
         : base(IdFor(code), code) => Apply(numericCode, name, minorUnits);
 
     private Currency()
@@ -20,12 +20,12 @@ public sealed class Currency : ReferenceEntry
 
     public string Name { get => _name; private set => _name = value; }
 
-    /// <summary>Digits after the decimal point (UGX 0, KES 2); null where ISO 4217 has none (gold, XAU).</summary>
-    public int? MinorUnits { get => _minorUnits; private set => _minorUnits = value; }
+    /// <summary>Digits after the decimal point (UGX 0, KES 2).</summary>
+    public int MinorUnits { get => _minorUnits; private set => _minorUnits = value; }
 
     public static Guid IdFor(string code) => DeterministicIds.Create($"platform.currency:{code}");
 
     /// <summary>Takes the values from the reference data; returns whether anything changed.</summary>
-    public bool Apply(string numericCode, string name, int? minorUnits) =>
+    public bool Apply(string numericCode, string name, int minorUnits) =>
         Set(ref _numericCode, numericCode) | Set(ref _name, name) | Set(ref _minorUnits, minorUnits) | Reactivate();
 }

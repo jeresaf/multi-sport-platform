@@ -44,7 +44,7 @@ namespace SportsPlatform.Modules.Platform.Infrastructure.Migrations
                     id = table.Column<Guid>(type: "uuid", nullable: false),
                     numeric_code = table.Column<string>(type: "character varying(3)", maxLength: 3, nullable: false),
                     name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
-                    minor_units = table.Column<short>(type: "smallint", nullable: true),
+                    minor_units = table.Column<short>(type: "smallint", nullable: false),
                     created_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     created_by = table.Column<Guid>(type: "uuid", nullable: false),
                     updated_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),

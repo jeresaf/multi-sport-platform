@@ -9,6 +9,8 @@ public sealed partial class ReferenceDataFilesTests
     private static readonly ReferenceDataFiles _files = new();
     private static readonly string[] _eastAfrica = ["KE", "TZ", "RW", "BI", "SS", "CD"];
     private static readonly string[] _pilotLanguages = ["en", "fr", "lg", "rw"];
+    private static readonly string[] _currencyCodesUsedInEastAndCentralAfrica = ["UGX", "KES", "TZS", "RWF", "BIF", "SSP", "CDF", "XAF", "USD"];
+    private static readonly string[] _notMoney = ["BOV", "USN", "XAD", "XAU", "XAG", "XBA", "XDR", "XSU", "XUA", "XTS", "XXX"];
 
     private static IReadOnlyList<CountryItem> Countries => _files.Items<CountryItem>("countries.json");
 
@@ -29,20 +31,24 @@ public sealed partial class ReferenceDataFilesTests
         ShouldBeUnique(Countries.Select(c => c.NumericCode));
         Countries.ShouldNotContain(c => c.Code == "XK"); // User-assigned, not ISO 3166-1.
         Countries.Single(c => c.Code == "UG").ShouldBe(new CountryItem("UG", "UGA", "800", "Uganda"));
+        // Display names, not CLDR's disambiguating defaults ("Congo - Kinshasa").
+        Countries.Single(c => c.Code == "CD").Name.ShouldBe("Congo (DRC)");
+        Countries.Single(c => c.Code == "CG").Name.ShouldBe("Congo (Republic)");
+        Countries.Single(c => c.Code == "GB").Name.ShouldBe("United Kingdom"); // Not the short "UK".
         _eastAfrica.ShouldBeSubsetOf(Countries.Select(c => c.Code));
     }
 
     [Fact]
-    public void Currencies_are_unique_ISO_4217_codes_with_their_minor_units()
+    public void Currencies_are_unique_ISO_4217_codes_of_money_with_their_minor_units()
     {
         Currencies.ShouldAllBe(c => UpperAlpha3().IsMatch(c.Code) && Numeric3().IsMatch(c.NumericCode) && !string.IsNullOrWhiteSpace(c.Name));
-        Currencies.ShouldAllBe(c => c.MinorUnits == null || (c.MinorUnits >= 0 && c.MinorUnits <= 6));
+        Currencies.ShouldAllBe(c => c.MinorUnits >= 0 && c.MinorUnits <= 6);
         ShouldBeUnique(Currencies.Select(c => c.Code));
         ShouldBeUnique(Currencies.Select(c => c.NumericCode));
         Currencies.Single(c => c.Code == "UGX").ShouldBe(new CurrencyItem("UGX", "800", "Ugandan Shilling", 0));
         Currencies.Single(c => c.Code == "KES").MinorUnits.ShouldBe(2);
-        Currencies.Single(c => c.Code == "XAU").MinorUnits.ShouldBeNull(); // ISO 4217 "N.A.".
-        Currencies.ShouldNotContain(c => c.Code == "XTS" || c.Code == "XXX"); // Testing and "no currency" codes.
+        _currencyCodesUsedInEastAndCentralAfrica.ShouldBeSubsetOf(Currencies.Select(c => c.Code));
+        _notMoney.ShouldAllBe(code => !Currencies.Any(c => c.Code == code)); // Funds, metals, units, testing, none.
     }
 
     [Fact]

@@ -43,7 +43,7 @@ public sealed record ReferenceDataFile<TItem>(string Source, string Version, IRe
 
 public sealed record CountryItem(string Code, string Alpha3Code, string NumericCode, string Name);
 
-public sealed record CurrencyItem(string Code, string NumericCode, string Name, int? MinorUnits);
+public sealed record CurrencyItem(string Code, string NumericCode, string Name, int MinorUnits);
 
 public sealed record LanguageItem(string Code, string Name);
 

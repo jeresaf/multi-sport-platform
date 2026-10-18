@@ -23,8 +23,8 @@ public sealed class ReferenceEntryTests
         var currency = new Currency("UGX", "800", "Ugandan Shilling", 0);
 
         currency.Apply("800", "Ugandan Shilling", 0).ShouldBeFalse();
-        currency.Apply("800", "Ugandan Shilling", null).ShouldBeTrue();
-        currency.MinorUnits.ShouldBeNull();
+        currency.Apply("800", "Ugandan Shilling", 2).ShouldBeTrue();
+        currency.MinorUnits.ShouldBe(2);
     }
 
     [Fact]

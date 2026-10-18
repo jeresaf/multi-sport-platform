@@ -37,7 +37,17 @@ var codeMappings = (await GetJsonAsync($"{CldrBase}/cldr-core/supplemental/codeM
     ["supplemental"]!["codeMappings"]!.AsObject();
 
 // Countries: the officially assigned ISO 3166-1 codes as tzdata keeps them (CLDR also maps user-assigned codes
-// such as XK), with CLDR's alpha-3 and numeric codes and English names.
+// such as XK), with CLDR's alpha-3 and numeric codes and English names. CLDR's default names tell similar names
+// apart ("Congo - Kinshasa"); where that reads badly on a form, its alternative is used. Only these: other
+// alternatives are abbreviations ("UK") or outdated ("Swaziland").
+Dictionary<string, string> displayNames = new(StringComparer.Ordinal)
+{
+    ["CD"] = "CD-alt-variant", // Congo (DRC)
+    ["CG"] = "CG-alt-variant", // Congo (Republic)
+    ["HK"] = "HK-alt-short", // Hong Kong
+    ["MM"] = "MM-alt-short", // Myanmar
+    ["MO"] = "MO-alt-short", // Macao
+};
 var countries = TabRows(await GetTextAsync($"{TzBase}/iso3166.tab"))
     .Select(row => row[0])
     .Order(StringComparer.Ordinal)
@@ -49,31 +59,31 @@ var countries = TabRows(await GetTextAsync($"{TzBase}/iso3166.tab"))
             ["code"] = code,
             ["alpha3Code"] = Required(mapping["_alpha3"], $"alpha-3 code of {code}"),
             ["numericCode"] = Required(mapping["_numeric"], $"numeric code of {code}"),
-            ["name"] = Required(territories[code], $"English name of {code}"),
+            ["name"] = Required(territories[displayNames.GetValueOrDefault(code, code)], $"English name of {code}"),
         };
     })
     .ToList();
 
-// Currencies: ISO 4217 list one (current codes), CLDR's English names where it has one. XTS (reserved for testing)
-// and XXX (no currency) are codes, not currencies a tenant could use, so they are left out.
-string[] notCurrencies = ["XTS", "XXX"];
+// Currencies: ISO 4217 list one (current codes), CLDR's English names where it has one. Only money a tenant could
+// charge in: funds (IsFund="true", e.g. BOV, USN) and codes without minor units (metals such as XAU, bond units,
+// XDR, XSU, XUA, XTS for testing, XXX for no currency) are left out.
 var isoList = XDocument.Parse(await GetTextAsync(IsoCurrencies));
 var published = isoList.Root!.Attribute("Pblshd")!.Value;
 var currencies = isoList.Descendants("CcyNtry")
-    .Where(entry => entry.Element("Ccy") is { } code && !notCurrencies.Contains(code.Value))
+    .Where(entry => entry.Element("Ccy") is not null
+        && entry.Element("CcyNm")!.Attribute("IsFund")?.Value != "true"
+        && entry.Element("CcyMnrUnts")!.Value != "N.A.")
     .GroupBy(entry => entry.Element("Ccy")!.Value, StringComparer.Ordinal)
     .OrderBy(group => group.Key, StringComparer.Ordinal)
     .Select(group =>
     {
         var entry = group.First();
-        var minorUnits = entry.Element("CcyMnrUnts")!.Value;
         return new JsonObject
         {
             ["code"] = group.Key,
             ["numericCode"] = entry.Element("CcyNbr")!.Value,
             ["name"] = currencyNames[group.Key]?["displayName"]?.GetValue<string>() ?? entry.Element("CcyNm")!.Value.Trim(),
-            // "N.A." for codes with no minor unit, such as gold (XAU).
-            ["minorUnits"] = int.TryParse(minorUnits, CultureInfo.InvariantCulture, out var units) ? units : null,
+            ["minorUnits"] = int.Parse(entry.Element("CcyMnrUnts")!.Value, CultureInfo.InvariantCulture),
         };
     })
     .ToList();

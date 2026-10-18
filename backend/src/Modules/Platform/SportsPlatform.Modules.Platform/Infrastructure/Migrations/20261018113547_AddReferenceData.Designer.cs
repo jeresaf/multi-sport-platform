@@ -12,7 +12,7 @@ using SportsPlatform.Modules.Platform.Infrastructure;
 namespace SportsPlatform.Modules.Platform.Infrastructure.Migrations
 {
     [DbContext(typeof(PlatformDbContext))]
-    [Migration("20261018111238_AddReferenceData")]
+    [Migration("20261018113547_AddReferenceData")]
     partial class AddReferenceData
     {
         /// <inheritdoc />
@@ -384,7 +384,7 @@ namespace SportsPlatform.Modules.Platform.Infrastructure.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_active");
 
-                    b.Property<short?>("MinorUnits")
+                    b.Property<short>("MinorUnits")
                         .HasColumnType("smallint")
                         .HasColumnName("minor_units");
 
