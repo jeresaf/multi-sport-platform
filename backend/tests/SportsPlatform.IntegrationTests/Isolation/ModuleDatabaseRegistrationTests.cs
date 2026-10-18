@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.IntegrationTests.Infrastructure;
 using SportsPlatform.IntegrationTests.Persistence;
+using SportsPlatform.Modules.Platform.Infrastructure;
 
 namespace SportsPlatform.IntegrationTests.Isolation;
 
@@ -15,6 +16,8 @@ public sealed class ModuleDatabaseRegistrationTests(PostgresFixture fixture) : D
     private static readonly Dictionary<Type, string> _unregistered = new()
     {
         [typeof(TenantOwnershipTests.KeyCheckContext)] = "a model-check fixture; never used against a database",
+        [typeof(PlatformAuditDbContext)] =
+            "a platform service on sp_platform (AddPlatformServiceDbContext): not migrated, no tenant-owned entities",
     };
 
     [Fact]

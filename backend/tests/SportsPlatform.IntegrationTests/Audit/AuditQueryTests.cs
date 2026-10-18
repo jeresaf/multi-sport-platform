@@ -99,12 +99,14 @@ public sealed class AuditQueryTests(PostgresFixture fixture) : DatabaseTest(fixt
         }
 
         App.Authorization.Allow(PlatformActions.AuditRead);
-        var all = (await ListAsync($"?tenantId={_kmsa}")).Items;
+        // Each read is audited under its target tenant, so the filter leaves the reads' own entries out.
+        const string filter = $"?tenantId={_kmsa}&action=person.update";
+        var all = (await ListAsync(filter)).Items;
 
-        var pages = new List<ListAuditEntriesResponse> { await ListAsync($"?tenantId={_kmsa}&limit=2") };
+        var pages = new List<ListAuditEntriesResponse> { await ListAsync($"{filter}&limit=2") };
         while (pages[^1].Page.NextCursor is { } cursor)
         {
-            pages.Add(await ListAsync($"?tenantId={_kmsa}&limit=2&cursor={cursor}"));
+            pages.Add(await ListAsync($"{filter}&limit=2&cursor={cursor}"));
         }
 
         pages.Select(p => p.Items.Count).ShouldBe([2, 2, 1]);
@@ -196,12 +198,25 @@ public sealed class AuditQueryTests(PostgresFixture fixture) : DatabaseTest(fixt
         entry.ShouldSatisfyAllConditions(
             e => e.ActionCode.ShouldBe("platform.audit.read"),
             e => e.Outcome.ShouldBe(AuditOutcome.Success),
-            e => e.ActorId.ShouldBe(_staffId));
+            e => e.ActorId.ShouldBe(_staffId),
+            e => e.TenantId.ShouldBe(Guid.Parse(_kmsa))); // the read's target tenant
         var metadata = JsonDocument.Parse(entry.Metadata.ShouldNotBeNull()).RootElement;
         metadata.GetProperty("tenantId").GetString().ShouldBe(_kmsa);
         metadata.GetProperty("outcome").GetString().ShouldBe("DENIED");
         metadata.GetProperty("from").GetDateTimeOffset().ShouldBe(new DateTimeOffset(2026, 10, 17, 9, 0, 0, TimeSpan.Zero));
         metadata.GetProperty("actorId").ValueKind.ShouldBe(JsonValueKind.Null);
+    }
+
+    [Fact]
+    public async Task A_list_across_tenants_is_audited_without_a_tenant()
+    {
+        App.Authorization.Allow(PlatformActions.AuditRead);
+        using var client = App.CreateClient();
+
+        using var response = await client.GetAsync(new Uri($"{_listPath}?outcome=DENIED", UriKind.Relative), Ct);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await AuditTestData.EntriesAsync(App.Services, Ct)).ShouldHaveSingleItem().TenantId.ShouldBeNull();
     }
 
     /// <summary>The four entries of <see cref="Filters_select_the_matching_entries"/>, by letter.</summary>

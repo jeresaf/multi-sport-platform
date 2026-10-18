@@ -7,7 +7,7 @@ using SportsPlatform.Modules.Platform.Infrastructure;
 
 namespace SportsPlatform.IntegrationTests.Audit;
 
-/// <summary>Reads and writes <c>audit.audit_entries</c> for the audit tests.</summary>
+/// <summary>Reads <c>audit.audit_entries</c> for the audit tests, as <c>sp_platform</c> (every tenant and none).</summary>
 internal static class AuditTestData
 {
     public static AuditRecord Record(string actionCode = "platform.outbox.redrive", string? reason = "Kawempe fixture consumer fixed") => new(
@@ -18,7 +18,7 @@ internal static class AuditTestData
     public static async Task<List<AuditEntry>> EntriesAsync(IServiceProvider services, CancellationToken cancellationToken)
     {
         await using var scope = services.CreateAsyncScope();
-        return await scope.ServiceProvider.GetRequiredService<PlatformDbContext>().Set<AuditEntry>()
+        return await scope.ServiceProvider.GetRequiredService<PlatformAuditDbContext>().Set<AuditEntry>()
             .AsNoTracking().OrderBy(e => e.Id).ToListAsync(cancellationToken);
     }
 }

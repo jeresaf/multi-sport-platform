@@ -44,14 +44,18 @@ public sealed class AuditEntriesAppendOnlyTests(PostgresFixture fixture) : Datab
     [MemberData(nameof(OwnerChanges))]
     public async Task The_trigger_stops_the_owner_changing_audit_entries(string sql)
     {
-        await AppendAsync();
+        // FORCE ROW LEVEL SECURITY binds the owner too: it sees the entry only under the entry's tenant, and an UPDATE
+        // or DELETE that matches no row would never reach the row trigger.
+        var tenantId = Guid.CreateVersion7();
+        await App.Services.GetRequiredService<IAuditLog>().AppendAsync(AuditTestData.Record() with { TenantId = tenantId }, Ct);
 
-        var exception = await Should.ThrowAsync<PostgresException>(() => ExecuteAsync(DatabaseRoles.Migrator, sql));
+        var exception = await Should.ThrowAsync<PostgresException>(() => ExecuteAsync(
+            DatabaseRoles.Migrator, $"SELECT set_config('app.tenant_id', '{tenantId}', false); {sql}"));
 
         exception.SqlState.ShouldBe(TableAccessMigrationExtensions.AppendOnlyViolationSqlState);
         (await AuditTestData.EntriesAsync(App.Services, Ct)).ShouldHaveSingleItem().Reason.ShouldBe("Kawempe fixture consumer fixed");
     }
 
-    // The app appends as sp_app.
+    // The app appends as sp_platform (PlatformAuditDbContext).
     private Task AppendAsync() => App.Services.GetRequiredService<IAuditLog>().AppendAsync(AuditTestData.Record(), Ct);
 }
