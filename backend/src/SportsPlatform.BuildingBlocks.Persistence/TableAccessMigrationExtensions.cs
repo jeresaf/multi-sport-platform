@@ -57,7 +57,7 @@ public static partial class TableAccessMigrationExtensions
 
     internal static string QualifiedName(string schema, string table) => $"{Identifier(schema)}.{Identifier(table)}";
 
-    private static string Identifier(string name)
+    internal static string Identifier(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         return SnakeCaseIdentifier().IsMatch(name)
