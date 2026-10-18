@@ -313,7 +313,8 @@ Acceptance:
   `<module assembly>.Contracts` and the `IntegrationEventSubscription`s that `AddSportsPlatform` registers (the CLI
   builds the services, no database). Payload members come from the outbox's JSON settings (`MessageSerialization`,
   read through a copy with the reflection resolver), with a simple type (`uuid`, `instant`, `integer`, `uuid[]`,
-  `enum X`, …) and nullability. The export fails for a duplicate or badly named event and for a consumer of an
-  undeclared event; `EventCatalogueTests` also fails for an event declared outside Contracts. No events are declared
+  `integer (enum X)` since enums are written as numbers, …) and nullability; any other member type (dictionary,
+  `byte[]`, nested record, list of lists) fails the export until the catalogue can describe it. The export also fails
+  for a duplicate, badly named or struct event, a consumer subscribed twice, and a consumer of an undeclared event; `EventCatalogueTests` also fails for an event declared outside Contracts. No events are declared
   yet, so `events.md` says so and `events.json` is `{"events": []}`. The `Contracts` CI job already fails on any stale
   generated file. There is no `since` column: events carry no such declaration.
