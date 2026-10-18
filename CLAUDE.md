@@ -69,6 +69,7 @@ dotnet run --project backend/src/SportsPlatform.Host     # API on http://localho
 dotnet run --project backend/tools/SportsPlatform.Cli   # lists CLI commands
 dotnet run --project backend/tools/SportsPlatform.Cli -- migrate   # all module migrations, as sp_migrator
 dotnet run --project backend/tools/SportsPlatform.Cli -- seed --category REFERENCE   # also CONFIGURATION|DEMO|TEST; --reset (Development) drops and re-migrates first
+dotnet run backend/tools/reference-data/build-reference-data.cs   # regenerate Platform's reference data files (then seed REFERENCE)
 dotnet run --project backend/tools/SportsPlatform.Cli -- export-catalogues   # docs/generated/{actions,errors,events}.md, contracts/{actions,errors,events}.json
 dotnet run --project backend/tools/SportsPlatform.Cli -- export-openapi      # contracts/openapi.json (Scalar: http://localhost:5080/scalar)
 dotnet tool restore                             # once: dotnet-ef (pinned in .config/dotnet-tools.json)

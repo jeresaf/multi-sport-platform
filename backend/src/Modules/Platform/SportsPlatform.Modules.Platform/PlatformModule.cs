@@ -15,6 +15,7 @@ using SportsPlatform.Modules.Platform.Features.Outbox.RedriveOutboxMessage;
 using SportsPlatform.Modules.Platform.Features.Seeding;
 using SportsPlatform.Modules.Platform.Infrastructure;
 using SportsPlatform.Modules.Platform.Infrastructure.Messaging;
+using SportsPlatform.Modules.Platform.Seed.Reference;
 
 namespace SportsPlatform.Modules.Platform;
 
@@ -52,6 +53,13 @@ public sealed class PlatformModule : IModule
 
         // The seed framework (BuildingBlocks) with Platform's bookkeeping; modules register seeders with AddSeeder.
         services.AddSeedRunner<SeedRunLog>(provider => provider.GetRequiredService<IHostEnvironment>().EnvironmentName);
+
+        // Reference data (countries, currencies, languages, time zones) from the embedded data files.
+        services.AddSingleton<ReferenceDataFiles>();
+        services.AddSeeder<CountrySeeder>();
+        services.AddSeeder<CurrencySeeder>();
+        services.AddSeeder<LanguageSeeder>();
+        services.AddSeeder<TimeZoneSeeder>();
     }
 
     public void MapEndpoints(ApiEndpointGroups groups)

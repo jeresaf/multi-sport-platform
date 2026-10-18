@@ -12,7 +12,10 @@ using SportsPlatform.Modules.Platform.Contracts.Audit;
 
 namespace SportsPlatform.IntegrationTests.Seeding;
 
-/// <summary>The seed runner with the test seeders (<see cref="TestSeederRegistration"/>), on the test database.</summary>
+/// <summary>
+/// The seed runner with the test seeders (<see cref="TestSeederRegistration"/>), on the test database. Platform's
+/// REFERENCE seeders run too; assertions look at the test seeders (<see cref="TestSeeders"/>, <see cref="SeedRunsAsync"/>).
+/// </summary>
 public sealed class SeedRunnerTests(PostgresFixture fixture) : DatabaseTest(fixture)
 {
     private static readonly string[] _referenceSeeders = [ProbeReferenceSeeder.SeederKey, "test.reference.second"];
@@ -86,6 +89,8 @@ public sealed class SeedRunnerTests(PostgresFixture fixture) : DatabaseTest(fixt
         (await AuditTestData.EntriesAsync(App.Services, Ct)).ShouldBeEmpty();
         (await SeedRunsAsync()).Select(run => run.SeederKey).ShouldBe(_referenceSeeders); // Only the runs after the reset.
         (await ProbeCodesAsync()).ShouldBe(["KE", "UG"]);
+        (await QueryAsync(DatabaseRoles.App, "SELECT count(*) FROM platform.countries", reader => reader.GetInt64(0)))
+            .ShouldHaveSingleItem().ShouldBeGreaterThan(0); // The real reference data is seeded again.
     }
 
     [Fact]
@@ -132,8 +137,8 @@ public sealed class SeedRunnerTests(PostgresFixture fixture) : DatabaseTest(fixt
 
         string[] expected = [.. _referenceSeeders, "test.configuration.probe", "test.demo.probe"];
         App.Seeds.Runs.ShouldBe(expected);
-        report.Seeders.Select(s => s.Key).ShouldBe(expected);
-        report.Seeders.Select(s => s.Category).ShouldBe(
+        TestSeeders(report).Select(s => s.Key).ShouldBe(expected);
+        TestSeeders(report).Select(s => s.Category).ShouldBe(
             [SeedCategory.Reference, SeedCategory.Reference, SeedCategory.Configuration, SeedCategory.Demo]);
     }
 
@@ -144,7 +149,7 @@ public sealed class SeedRunnerTests(PostgresFixture fixture) : DatabaseTest(fixt
 
         var report = await Runner(App).RunAsync(new SeedRequest(SeedCategory.Reference), Ct);
 
-        report.Seeders[0].Outcome.ShouldBe(new SeedOutcome(2, 0, 0));
+        TestSeeders(report)[0].Outcome.ShouldBe(new SeedOutcome(2, 0, 0));
         var probes = await QueryAsync(
             DatabaseRoles.App,
             "SELECT id, code, created_at, created_by FROM conventions_test.reference_probes ORDER BY code",
@@ -179,8 +184,8 @@ public sealed class SeedRunnerTests(PostgresFixture fixture) : DatabaseTest(fixt
 
         var report = await Runner(App).RunAsync(new SeedRequest(SeedCategory.Reference), Ct);
 
-        report.Seeders.Select(s => (s.Key, s.Skipped)).ShouldBe([(ProbeReferenceSeeder.SeederKey, false), ("test.reference.second", true)]);
-        report.Seeders[0].Outcome.ShouldBe(new SeedOutcome(1, 0, 0));
+        TestSeeders(report).Select(s => (s.Key, s.Skipped)).ShouldBe([(ProbeReferenceSeeder.SeederKey, false), ("test.reference.second", true)]);
+        TestSeeders(report)[0].Outcome.ShouldBe(new SeedOutcome(1, 0, 0));
         (await ProbeCodesAsync()).ShouldBe(["KE", "TZ", "UG"]);
         (await SeedRunsAsync()).Select(run => run.Checksum).ShouldBe(["UG,KE", "v1", "UG,KE,TZ"]);
     }
@@ -237,6 +242,9 @@ public sealed class SeedRunnerTests(PostgresFixture fixture) : DatabaseTest(fixt
         (await SeedRunsAsync()).Count.ShouldBe(2);
     }
 
+    /// <summary>The report's entries for the test seeders, in run order.</summary>
+    private static List<SeederResult> TestSeeders(SeedReport report) => [.. report.Seeders.Where(s => s.Key.StartsWith("test.", StringComparison.Ordinal))];
+
     private static SeedRunner Runner(WebApplicationFactory<Program> app) => app.Services.GetRequiredService<SeedRunner>();
 
     // The test app in another environment: same database, actor, clock and test seeders. No outbox processor, no
@@ -290,10 +298,11 @@ public sealed class SeedRunnerTests(PostgresFixture fixture) : DatabaseTest(fixt
     private Task<List<string>> ProbeCodesAsync() => QueryAsync(
         DatabaseRoles.App, "SELECT code FROM conventions_test.reference_probes ORDER BY code", reader => reader.GetString(0));
 
+    /// <summary>The test seeders' runs, oldest first.</summary>
     private Task<List<SeedRunRow>> SeedRunsAsync() => QueryAsync(
         DatabaseRoles.App,
         "SELECT seeder_key, category, checksum, environment, inserted, updated, deactivated, started_at, completed_at, created_by " +
-        "FROM platform.seed_runs ORDER BY id",
+        "FROM platform.seed_runs WHERE seeder_key LIKE 'test.%' ORDER BY id",
         reader => new SeedRunRow(
             reader.GetString(0), reader.GetString(1), reader.GetString(2), reader.GetString(3), reader.GetInt32(4),
             reader.GetInt32(5), reader.GetInt32(6), reader.GetFieldValue<DateTimeOffset>(7),

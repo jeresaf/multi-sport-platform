@@ -16,6 +16,7 @@ the date and where the decision is recorded.
 | Q12 | Build in the existing GitHub repository or a new one? | History, reviewer access, CI | The existing `jeresaf/multi-sport-platform`: preserve the prototype at tag `prototype-v0` and branch `prototype/v0`, then replace `main` with the kit (README-FIRST.md). Keep the repository private; CI on pull requests | S00 |
 | Q13 | Which legal entity signs customer contracts and registers with Uganda's PDPO? | Required before real personal data (ADR-0016 pilot gate) | Owner's company registers with the PDPO; a lawyer reviews the processing agreement template, privacy notice and transfer register | Before pilot |
 | Q14 | Do the indicative prices survive conversations with about five prospects? | Revenue, plan limits | Use the prices in docs/product/pricing-and-plans.md; revisit after the first three paying customers | Before the first invoice |
+| Q16 | Should the country list include Kosovo (`XK`) or other codes that aren't ISO 3166-1 but that sports bodies use (e.g. England, Scotland, Wales for FIFA)? | Nationality and team country fields, eligibility | ISO 3166-1 only (S01-T7b-1); sporting "nations" become a separate list if a sport definition needs them | S06 (people) |
 
 ## Answered
 

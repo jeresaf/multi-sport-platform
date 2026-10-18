@@ -9,6 +9,8 @@ using Respawn;
 using Respawn.Graph;
 using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Persistence.Messaging;
+using SportsPlatform.BuildingBlocks.Persistence.Seeding;
+using SportsPlatform.Modules.Platform;
 using Testcontainers.PostgreSql;
 
 namespace SportsPlatform.IntegrationTests.Infrastructure;
@@ -81,8 +83,39 @@ public sealed partial class PostgresFixture : IAsyncLifetime
         {
             DbAdapter = DbAdapter.Postgres,
             SchemasToInclude = [.. ModelSchemas(databases)],
-            TablesToIgnore = [.. databases.Select(d => new Table(d.Schema, ModuleDbContextOptions.MigrationsHistoryTable))],
+            TablesToIgnore =
+            [
+                .. databases.Select(d => new Table(d.Schema, ModuleDbContextOptions.MigrationsHistoryTable)),
+                .. ReferenceTables.Select(table => new Table(PlatformModule.SchemaName, table)),
+            ],
         });
+
+        // Real reference data once per run; the reset keeps it.
+        await RestoreReferenceDataAsync();
+    }
+
+    /// <summary>
+    /// Platform's reference tables, seeded once when the fixture starts and kept by <see cref="ResetAsync"/>: the
+    /// runtime roles can't change them, so a test that does (as the owner) restores them with
+    /// <see cref="RestoreReferenceDataAsync"/>.
+    /// </summary>
+    public static IReadOnlyList<string> ReferenceTables { get; } = ["countries", "currencies", "languages", "time_zones"];
+
+    /// <summary>
+    /// Resets, then seeds the real reference data again (the reset empties <c>seed_runs</c>, so every REFERENCE seeder
+    /// runs): after a test changed reference data or dropped the schemas.
+    /// </summary>
+    public async Task RestoreReferenceDataAsync()
+    {
+        await ResetAsync();
+        var report = await App.Services.GetRequiredService<SeedRunner>()
+            .RunAsync(new SeedRequest(SeedCategory.Reference), TestContext.Current.CancellationToken);
+        if (report.IsRefused)
+        {
+            throw new InvalidOperationException($"Reference data not restored: {report.Refusal}");
+        }
+
+        await ResetAsync();
     }
 
     /// <summary>Each module's schema and any other schema its model maps to (Platform's <c>audit</c>).</summary>

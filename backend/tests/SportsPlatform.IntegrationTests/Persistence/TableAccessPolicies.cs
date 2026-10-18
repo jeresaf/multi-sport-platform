@@ -34,6 +34,12 @@ public static class TableAccessPolicies
         // Seed bookkeeping (S01-T7): written by the seed runner as the owner, never changed.
         ["platform.seed_runs"] = TableAccess.AppendOnly,
 
+        // Reference data (S01-T7b): global, written only by the REFERENCE seeders as the owner.
+        ["platform.countries"] = TableAccess.ReadOnly,
+        ["platform.currencies"] = TableAccess.ReadOnly,
+        ["platform.languages"] = TableAccess.ReadOnly,
+        ["platform.time_zones"] = TableAccess.ReadOnly,
+
         ["platform.outbox_messages"] = TableAccess.ReadWrite,
         ["platform.inbox_messages"] = TableAccess.ReadWrite,
         ["conventions_test.outbox_messages"] = TableAccess.ReadWrite,

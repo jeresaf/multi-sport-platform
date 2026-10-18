@@ -280,6 +280,257 @@ namespace SportsPlatform.Modules.Platform.Infrastructure.Migrations
                     b.HasAnnotation("SportsPlatform:AppendOnly", true);
                 });
 
+            modelBuilder.Entity("SportsPlatform.Modules.Platform.Domain.Reference.Country", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Alpha3Code")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)")
+                        .HasColumnName("alpha3_code");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(2)
+                        .HasColumnType("character varying(2)")
+                        .HasColumnName("code");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("NumericCode")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)")
+                        .HasColumnName("numeric_code");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_countries");
+
+                    b.HasIndex("Alpha3Code")
+                        .IsUnique()
+                        .HasDatabaseName("ix_countries_alpha3_code")
+                        .HasFilter("is_active");
+
+                    b.HasIndex("Code")
+                        .IsUnique()
+                        .HasDatabaseName("ix_countries_code");
+
+                    b.HasIndex("NumericCode")
+                        .IsUnique()
+                        .HasDatabaseName("ix_countries_numeric_code")
+                        .HasFilter("is_active");
+
+                    b.ToTable("countries", "platform", t =>
+                        {
+                            t.HasCheckConstraint("ck_countries_alpha3_code", "alpha3_code ~ '^[A-Z]{3}$'");
+
+                            t.HasCheckConstraint("ck_countries_code", "code ~ '^[A-Z]{2}$'");
+
+                            t.HasCheckConstraint("ck_countries_numeric_code", "numeric_code ~ '^[0-9]{3}$'");
+                        });
+                });
+
+            modelBuilder.Entity("SportsPlatform.Modules.Platform.Domain.Reference.Currency", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)")
+                        .HasColumnName("code");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<short>("MinorUnits")
+                        .HasColumnType("smallint")
+                        .HasColumnName("minor_units");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("NumericCode")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)")
+                        .HasColumnName("numeric_code");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_currencies");
+
+                    b.HasIndex("Code")
+                        .IsUnique()
+                        .HasDatabaseName("ix_currencies_code");
+
+                    b.HasIndex("NumericCode")
+                        .IsUnique()
+                        .HasDatabaseName("ix_currencies_numeric_code")
+                        .HasFilter("is_active");
+
+                    b.ToTable("currencies", "platform", t =>
+                        {
+                            t.HasCheckConstraint("ck_currencies_code", "code ~ '^[A-Z]{3}$'");
+
+                            t.HasCheckConstraint("ck_currencies_minor_units", "minor_units BETWEEN 0 AND 6");
+
+                            t.HasCheckConstraint("ck_currencies_numeric_code", "numeric_code ~ '^[0-9]{3}$'");
+                        });
+                });
+
+            modelBuilder.Entity("SportsPlatform.Modules.Platform.Domain.Reference.IanaTimeZone", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("code");
+
+                    b.Property<string>("CountryCode")
+                        .HasMaxLength(2)
+                        .HasColumnType("character varying(2)")
+                        .HasColumnName("country_code");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_time_zones");
+
+                    b.HasIndex("Code")
+                        .IsUnique()
+                        .HasDatabaseName("ix_time_zones_code");
+
+                    b.HasIndex("CountryCode")
+                        .HasDatabaseName("ix_time_zones_country_code");
+
+                    b.ToTable("time_zones", "platform", t =>
+                        {
+                            t.HasCheckConstraint("ck_time_zones_country_code", "country_code ~ '^[A-Z]{2}$'");
+                        });
+                });
+
+            modelBuilder.Entity("SportsPlatform.Modules.Platform.Domain.Reference.Language", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(2)
+                        .HasColumnType("character varying(2)")
+                        .HasColumnName("code");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_languages");
+
+                    b.HasIndex("Code")
+                        .IsUnique()
+                        .HasDatabaseName("ix_languages_code");
+
+                    b.ToTable("languages", "platform", t =>
+                        {
+                            t.HasCheckConstraint("ck_languages_code", "code ~ '^[a-z]{2}$'");
+                        });
+                });
+
             modelBuilder.Entity("SportsPlatform.Modules.Platform.Domain.Seeding.SeedRun", b =>
                 {
                     b.Property<Guid>("Id")
