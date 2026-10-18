@@ -8,6 +8,7 @@ using SportsPlatform.BuildingBlocks.Modules;
 using SportsPlatform.Host.Authorization;
 using SportsPlatform.Host.Catalogues;
 using SportsPlatform.Host.Modules;
+using SportsPlatform.Modules.Tenancy;
 
 namespace SportsPlatform.IntegrationTests.Authorization;
 
@@ -109,6 +110,25 @@ public sealed class EndpointActionRulesTests
         [
             "GET /api/public/v1/fixtures/{id} declares both .RequireAction(...) and .AllowPublic().",
             "GET /api/platform/v1/probes declares neither .RequireAction(...) nor .AllowPublic().",
+        ], ignoreOrder: true);
+    }
+
+    // S02-T3a: the Host sets the tenant from the route, so the endpoint must be a platform one and name the parameter.
+    [Fact]
+    public async Task Endpoint_running_under_the_route_tenant_needs_a_platform_action_and_the_parameter()
+    {
+        await using var app = WebApplication.CreateSlimBuilder().Build();
+        app.MapGet("/api/platform/v1/tenants/{tenantId:guid}", (Guid tenantId) => Results.Ok(tenantId))
+            .RequireAction(TenancyActions.TenantRead).RunsUnderRouteTenant();
+        app.MapGet("/api/platform/v1/tenants", () => Results.Ok())
+            .RequireAction(TenancyActions.TenantRead).RunsUnderRouteTenant();
+        app.MapGet("/api/admin/v1/fixtures/{tenantId:guid}", (Guid tenantId) => Results.Ok(tenantId))
+            .RequireAction(AuthorizationTestActions.FixtureRead).RunsUnderRouteTenant();
+
+        EndpointActionRules.Validate(Endpoints(app), [.. _catalogue, new(TenancyActions.TenantRead, "Tenancy")]).ShouldBe(
+        [
+            "GET /api/platform/v1/tenants runs under the route's tenant, so it needs one platform action and a '{tenantId}' route parameter.",
+            "GET /api/admin/v1/fixtures/{tenantId:guid} runs under the route's tenant, so it needs one platform action and a '{tenantId}' route parameter.",
         ], ignoreOrder: true);
     }
 

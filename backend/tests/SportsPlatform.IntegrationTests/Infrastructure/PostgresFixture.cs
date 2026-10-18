@@ -45,6 +45,9 @@ public sealed partial class PostgresFixture : IAsyncLifetime
 
     public TestApp App { get; private set; } = null!;
 
+    /// <summary>The app's configuration: the container's role connections.</summary>
+    public IReadOnlyDictionary<string, string?> AppSettings { get; private set; } = null!;
+
     public async ValueTask InitializeAsync()
     {
         _container = new PostgreSqlBuilder(ImageFromCompose)
@@ -67,14 +70,15 @@ public sealed partial class PostgresFixture : IAsyncLifetime
             .Build();
         await StartContainerAsync();
 
-        App = new TestApp(new Dictionary<string, string?>
+        AppSettings = new Dictionary<string, string?>
         {
             [$"ConnectionStrings:{ConnectionStringNames.App}"] = ConnectionString("sp_app"),
             [$"ConnectionStrings:{ConnectionStringNames.Migrator}"] = ConnectionString("sp_migrator"),
             [$"ConnectionStrings:{ConnectionStringNames.Platform}"] = ConnectionString("sp_platform"),
             // Few attempts keep the poison-message tests short.
             [$"{OutboxOptions.SectionName}:{nameof(OutboxOptions.MaxAttempts)}"] = "3",
-        });
+        };
+        App = new TestApp(AppSettings);
         await App.Services.GetRequiredService<MigrationRunner>().RunAsync();
 
         var databases = App.Services.GetServices<ModuleDatabase>().ToList();

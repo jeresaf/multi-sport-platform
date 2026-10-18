@@ -243,8 +243,7 @@ public sealed class AuditTrailTests : DatabaseTest
     /// <summary>Requests from a platform staff member, with a known correlation ID.</summary>
     private HttpClient CreateClient()
     {
-        App.Actor.ActAsUser(_staffId);
-        var client = App.CreateClient();
+        var client = App.CreateClient().AsUser(_staffId);
         client.DefaultRequestHeaders.Add(CorrelationIdMiddleware.HeaderName, _correlationId);
         return client;
     }

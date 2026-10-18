@@ -60,9 +60,9 @@ public sealed class ModuleDbContextConventionsTests(PostgresFixture fixture) : D
         await SaveNewAsync(probe);
 
         App.Clock.Advance(TimeSpan.FromMinutes(5));
-        App.Actor.ActAsUser(_registrar);
         using (var scope = App.Services.CreateScope())
         {
+            scope.ServiceProvider.GetRequiredService<ActorContext>().Set(new UserActor(_registrar));
             var context = Context(scope);
             var stored = await context.ConventionProbes.SingleAsync(p => p.Id == probe.Id, Ct);
             stored.Rename("Seeta Hill Sports Field");
