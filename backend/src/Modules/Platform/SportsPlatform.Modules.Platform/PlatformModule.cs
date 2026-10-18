@@ -40,6 +40,8 @@ public sealed class PlatformModule : IModule
     public void AddServices(IServiceCollection services, IConfiguration configuration)
     {
         services.AddModuleDbContext<PlatformDbContext>(configuration, Schema);
+        // The audit trail reads and writes across tenants on sp_platform (S02 D3); PlatformDbContext migrates its table.
+        services.AddPlatformServiceDbContext<PlatformAuditDbContext>(configuration, Schema);
 
         services.AddOptions<OutboxOptions>().Bind(configuration.GetSection(OutboxOptions.SectionName));
         services.AddOutboxProcessor();
@@ -47,7 +49,7 @@ public sealed class PlatformModule : IModule
 
         services.AddSingleton<IAuditLog, AuditLog>();
         services.AddSingleton<IAuditEventFactory, AuditEventFactory>();
-        services.AddIntegrationEventConsumer<AuditRecorded.V1, AuditRecordedConsumer, PlatformDbContext>(AuditRecordedConsumer.Name);
+        services.AddIntegrationEventConsumer<AuditRecorded.V1, AuditRecordedConsumer, PlatformAuditDbContext>(AuditRecordedConsumer.Name);
         services.AddScoped<ListAuditEntriesHandler>();
         services.AddSingleton<IValidator<ListAuditEntriesRequest>, ListAuditEntriesRequestValidator>();
 

@@ -9,6 +9,7 @@ namespace SportsPlatform.UnitTests.BuildingBlocks;
 public sealed class AuditScopeTests
 {
     private static readonly DateTimeOffset _now = new(2026, 10, 17, 9, 0, 0, TimeSpan.Zero);
+    private static readonly Guid _kmsa = Guid.Parse("0192a1b2-0000-7000-8000-00000000c001");
 
     private static readonly ActionDefinition _redrive = new(
         "platform.outbox.redrive", "Re-deliver failed outbox messages.", ActionScope.Platform, AuditRequirement.RequiredWithReason, "S01");
@@ -84,8 +85,52 @@ public sealed class AuditScopeTests
         Should.Throw<InvalidOperationException>(() => scope.Begin(_redrive, AuditSource.Api));
     }
 
-    private static AuditScope NewScope() =>
-        new(SystemActor.Instance, new TenantContext(), new CorrelationContext(), new FixedClock(_now));
+    [Fact]
+    public void Record_has_the_scope_tenant()
+    {
+        var scope = NewScope(_kmsa);
+        scope.Begin(_redrive, AuditSource.Api);
+
+        scope.CreateRecord(AuditOutcome.Success).TenantId.ShouldBe(_kmsa);
+    }
+
+    [Fact]
+    public void Record_has_the_target_tenant_when_the_scope_has_none()
+    {
+        var scope = NewScope();
+        scope.Begin(_redrive, AuditSource.Api);
+
+        scope.Describe(targetTenantId: _kmsa).Describe(reason: "Consumer fixed");
+
+        scope.CreateRecord(AuditOutcome.Success).TenantId.ShouldBe(_kmsa);
+    }
+
+    [Fact]
+    public void A_target_tenant_may_repeat_the_scope_tenant()
+    {
+        var scope = NewScope(_kmsa);
+        scope.Begin(_redrive, AuditSource.Api);
+
+        scope.Describe(targetTenantId: _kmsa);
+
+        scope.CreateRecord(AuditOutcome.Success).TenantId.ShouldBe(_kmsa);
+    }
+
+    [Fact]
+    public void A_target_tenant_other_than_the_scope_tenant_is_a_bug()
+    {
+        var scope = NewScope(_kmsa);
+        scope.Begin(_redrive, AuditSource.Api);
+
+        Should.Throw<InvalidOperationException>(() => scope.Describe(targetTenantId: Guid.CreateVersion7()));
+    }
+
+    private static AuditScope NewScope(Guid? tenantId = null)
+    {
+        var tenant = new TenantContext();
+        tenant.Set(tenantId);
+        return new(SystemActor.Instance, tenant, new CorrelationContext(), new FixedClock(_now));
+    }
 
     private sealed class FixedClock(DateTimeOffset now) : TimeProvider
     {

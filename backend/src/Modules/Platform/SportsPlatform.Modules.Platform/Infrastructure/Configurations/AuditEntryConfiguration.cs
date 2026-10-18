@@ -8,7 +8,10 @@ using SportsPlatform.Modules.Platform.Domain.Audit;
 
 namespace SportsPlatform.Modules.Platform.Infrastructure.Configurations;
 
-/// <summary><c>audit.audit_entries</c>: append-only (migration <c>AppendOnly</c>), enums as UPPER_SNAKE text.</summary>
+/// <summary>
+/// <c>audit.audit_entries</c>: append-only (migration <c>AppendOnly</c>), tenant RLS (<c>EnableTenantRls</c>), enums as
+/// UPPER_SNAKE text. Mapped by <see cref="PlatformDbContext"/> (migrations) and <see cref="PlatformAuditDbContext"/>.
+/// </summary>
 internal sealed class AuditEntryConfiguration : IEntityTypeConfiguration<AuditEntry>
 {
     public const string Schema = "audit";
@@ -34,12 +37,13 @@ internal sealed class AuditEntryConfiguration : IEntityTypeConfiguration<AuditEn
         builder.Property(e => e.Reason).HasMaxLength(AuditRecord.ReasonMaxLength);
         builder.Property(e => e.Metadata).HasColumnType("jsonb");
 
-        // pack spec 40 §7: date, tenant and action indexes; the rest serve T6b's query filters.
+        // Tenant first where a value repeats across tenants (RLS adds the tenant to every sp_app query); entity, actor
+        // and correlation IDs are global. occurred_at alone serves the platform query's newest-first order.
         builder.HasIndex(e => e.OccurredAt);
         builder.HasIndex(e => new { e.TenantId, e.OccurredAt });
-        builder.HasIndex(e => new { e.ActionCode, e.OccurredAt });
-        builder.HasIndex(e => new { e.ActorId, e.OccurredAt });
-        builder.HasIndex(e => new { e.EntityType, e.EntityId });
+        builder.HasIndex(e => new { e.TenantId, e.ActionCode, e.OccurredAt });
+        builder.HasIndex(e => new { e.TenantId, e.ActorId, e.OccurredAt });
+        builder.HasIndex(e => new { e.EntityType, e.EntityId, e.OccurredAt });
         builder.HasIndex(e => e.CorrelationId);
     }
 

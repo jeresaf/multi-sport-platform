@@ -7,15 +7,15 @@ at the start of every review.
 
 - **Current slice:** S02 — Tenancy core and isolation (docs/build/slices/S02-tenancy-core.md, as amended by the
   S01 slice review). S00 and S01 are done
-- **Current task:** S02-T2a — Isolation enforcement (query filter, stamping and connection interceptors,
-  `EnableTenantRls`, composite FKs, isolation harness) — in review, PR #32 (branch `s02/t2a-isolation-enforcement`)
-- **Next:** S02-T2b — Audit on the `Platform` connection, audit RLS and indexes, RLS coverage test
+- **Current task:** S02-T2b — Audit on the `Platform` connection, audit RLS and indexes, `AuditScope` target tenant,
+  RLS coverage test — in review, PR #33 (branch `s02/t2b-audit-rls`)
+- **Next:** S02-T3 — Tenant context and resolution
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S02-T2b — Audit under RLS and RLS coverage
-2. S02-T3 — Tenant context and resolution
+1. S02-T3 — Tenant context and resolution
+2. S02-T4 — Domains and settings
 
 ## Log
 
@@ -47,6 +47,7 @@ at the start of every review.
 | 2026-10-18 | S02-T1a | #30 | New module `Tenancy` (schema `tenancy`): `tenants` (slug unique for ever, "C" collation, format checks) and append-only `tenant_status_history`; `Tenant` aggregate with the full state machine; `POST`/`GET`/`GET {id}`/`PATCH {id}` under `/api/platform/v1/tenants` (`tenant.create`, `tenant.read`, `tenant.update`, audited under the target tenant, D2); `TenantCreated.V1`; `IReferenceData` in Platform Contracts; `VALIDATION_INVALID_REQUEST`; `WithErrorCode` rule in backend.md | T1 split in two; locale, version, history and `publicEnabled` defaults (owner, plan). Status transitions over HTTP come with T1b |
 | 2026-10-18 | S02-T1b | #31 | `POST /api/platform/v1/tenants/{id}/{activate\|suspend\|restore\|archive\|unarchive}` (`tenant.activate`, `tenant.suspend`, `tenant.restore`, `tenant.archive`, `tenant.unarchive`; reason 1–500 for suspend, archive, unarchive) through one `ChangeTenantStatusHandler`; `TenantStatusChanged.V1`; `IfMatch` (BuildingBlocks `Api`) on PATCH and the transitions; slug check before the tenant is set; tests for both T1a races; T1 complete | Owner on #30: R1 evaluate `If-Match`, R2 amend D1. No migrations, new errors or dependencies. Pre-review found `ValidateRequest` threw (500) when a required body was missing (filters run with a null argument): now 400 `VALIDATION_MALFORMED_REQUEST`, also for the outbox re-drive |
 | 2026-10-18 | S02-T2a | #32 | Tenant isolation in EF and PostgreSQL: named query filter `TenantIsolation` on every `ITenantOwned`; `TenantOwnershipInterceptor` stamps `TenantId` through the change tracker (#13) and throws on no/another tenant; `TenantConnectionInterceptor` sets `app.tenant_id` on every open; `EnableTenantRls`/`DisableTenantRls`; composite FKs required between tenant-owned entities (checked at model build); `TenantContext.Set` once per scope (D1); `tenant_status_history` tenant-owned with RLS; isolation harness (`IIsolationSample` per entity), pool leak, consumers under RLS, D1 timing tests | T2 split in two and composite FKs enforced (owner). No new actions, errors, events or dependencies |
+| 2026-10-19 | S02-T2b | #33 | Audit under RLS: `audit.audit_entries` gets `EnableTenantRls`; `AddPlatformServiceDbContext` (connection `Platform`, not migrated) and `PlatformAuditDbContext` for `AuditLog`, `AuditRecordedConsumer` (inbox row in the same transaction) and the platform audit query (D3); tenant-first action/actor indexes and `(entity_type, entity_id, occurred_at)` (#24 R2); `AuditScope.Describe(targetTenantId:)` (audit read with `?tenantId=` audited under that tenant); RLS coverage test (forced RLS, one permissive `tenant_isolation` policy, exceptions with reasons); audit-under-RLS tests; architecture tests for `IgnoreQueryFilters` and the audit context's users; T2 complete | Only `*.outbox_messages` is an exception (`inbox_messages` has no `tenant_id`). No new actions, errors, events or dependencies |
 
 ## Deviations from spec (agreed)
 
@@ -126,6 +127,9 @@ at the start of every review.
   build and proven by the harness (owner; multi-tenancy.md said "where catastrophic"). Beyond the spec, the harness
   also proves a row can't be copied into another tenant (RLS `WITH CHECK`); append-only tables refuse cross-tenant
   `UPDATE`/`DELETE` by grant before RLS.
+  T2b (plan approved 2026-10-19): the RLS exception list has only `*.outbox_messages` (D4 also named `inbox_messages`,
+  which has no `tenant_id`); platform-wide audit filters by action or actor alone use the `occurred_at` index (the
+  action and actor indexes are tenant-first); the coverage test also refuses a second permissive policy.
 
 ## Tech debt / follow-ups
 
@@ -134,18 +138,10 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
 
 **S02 — tenancy**
 - Moving `BuildingBlocks/Modules` to a `BuildingBlocks.Web` project is optional, not planned (reviewer guidance on #13).
-- **S02-T2:** `audit.audit_entries` has a nullable `tenant_id` and no RLS: S02 adds the policy (tenant users see their tenant's
-  entries; entries with no tenant only through platform services) and the isolation tests, and revisits the audit
-  indexes (tenant first) with the policy (S01-T6a pre-review); then also make the entity index
-  `(entity_type, entity_id, occurred_at)` so an entity's history needs no sort (#24 R2).
 - **S02-T5:** DEMO/TEST seeders run application commands outside HTTP (#25 R3): before the first DEMO seeder (S02 or later),
   `SeedContext` gets a way to run commands as a tenant (set `TenantContext` in the seeder's scope, needed once S02's
   RLS is on) and begins an audit scope so demo data is audited with source `SYSTEM` (reviewer's suggestion; owner: yes,
   2026-10-18).
-- **S02-T2:** Platform reads of one tenant's data are audited with `tenant_id` NULL: `AuditScope` takes the tenant from
-  `ITenantContext`, empty on platform routes, so `GET /api/platform/v1/audit-entries?tenantId=…` stores the tenant only
-  in metadata. multi-tenancy.md says platform calls are audited with the target tenant: S02 adds a target tenant to
-  `AuditScope.Describe` (set when a platform read is filtered to one tenant) with the audit RLS (S01-T6b pre-review).
 - **S02-T4:** the tenant row holds `time_zone`, `default_locale`, `currency_code` and `public_enabled`, which T4's
   `tenant_settings` also lists: T4's plan decides the single source. Reviewer's suggestion: the tenant row keeps
   identity (slug, names, country, status); the editable values move to `tenant_settings` (tenant-owned, RLS) with a
@@ -158,6 +154,11 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
   DENIED (403) or validation FAILURE (400) is audited with `tenant_id` NULL, and a 404 with the unknown ID. T3's route
   middleware sets the tenant before authorization (404 for an unknown tenant); then drop `Set` from the handlers and
   test that those entries carry the target tenant (S02-T1a pre-review).
+
+- **S02-T3:** `AuditScope.Describe(targetTenantId:)` throws when the scope already has another tenant (S02-T2b). Platform
+  routes have no scope tenant today; T3's host resolution must not set one on `/api/platform` (or
+  `GET /api/platform/v1/audit-entries?tenantId=<other>` from a tenant host would be a 500). Add a test with T3 (S02-T2b
+  pre-review).
 
 **S03 — identity and access**
 - Anonymous actor for audit (#23 R1): `actor_kind` allows `USER`/`SYSTEM` and `actor_id` is NOT NULL, so once S03
@@ -174,6 +175,8 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
   `RequestLoggingTests.Request_is_logged_with_correlation_ID_and_actor` (S03, or T4 if it needs one; #17 R1).
 
 **Infrastructure task after M1**
+- The API needs `ConnectionStrings:Platform` (`sp_platform`) at runtime for the audit trail (S02-T2b): provision that
+  secret for the API in Key Vault with the staging setup, or every audited request fails there (#33 N1).
 - A failed direct audit write (denial, failure, read) is only logged: the response is already written. Alert on that
   Error with the `FAILED` outbox alert below (infrastructure task after M1; S01-T6a).
 - Alert on any `FAILED` outbox message (OpenTelemetry counter or gauge): with strict ordering one holds back its
@@ -195,6 +198,9 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
 - Demo seeding is audited (owner, 2026-10-18): `SeedContext` runs commands as a tenant with source `SYSTEM` (S02-T5).
 
 **Later** (each item names its trigger)
+- With the second `AddPlatformServiceDbContext<T>` (e.g. `PlatformTenantStatistics`): make
+  `TenantIsolationRulesTests.Only_the_audit_features_use_the_platform_audit_context` generic: discover the contexts
+  registered that way and require an allowed-users entry for each (#33 N2).
 - `xmin`/`updated_*` cover only the aggregate root's row: a change to only a child entity or owned type doesn't
   bump the root's version, so two edits to different children both succeed. Mark the root `Modified` when a
   dependent changes, with a test, before the first aggregate with child tables (S06 at the latest) (S01-T2a

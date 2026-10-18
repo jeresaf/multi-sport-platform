@@ -17,6 +17,7 @@ public sealed class AuditScope(ICurrentActor actor, ITenantContext tenant, Corre
     private Guid? _entityId;
     private string? _reason;
     private string? _metadata;
+    private Guid? _targetTenantId;
 
     /// <summary>The action being performed, when it is audited (<c>REQUIRED</c> or <c>REQUIRED_WITH_REASON</c>).</summary>
     public ActionDefinition? Action { get; private set; }
@@ -50,19 +51,28 @@ public sealed class AuditScope(ICurrentActor actor, ITenantContext tenant, Corre
 
     /// <summary>
     /// What the action touched and why. <paramref name="metadata"/> is serialized now, with personal data masked
-    /// (<see cref="AuditMetadata"/>).
+    /// (<see cref="AuditMetadata"/>). <paramref name="targetTenantId"/> is the tenant a platform action works on when
+    /// the scope has none (a platform read filtered to one tenant); with a scope tenant it must be that tenant.
     /// </summary>
-    public AuditScope Describe(string? entityType = null, Guid? entityId = null, string? reason = null, object? metadata = null)
+    public AuditScope Describe(
+        string? entityType = null, Guid? entityId = null, string? reason = null, object? metadata = null, Guid? targetTenantId = null)
     {
         if (entityType is { Length: > AuditRecord.EntityTypeMaxLength })
         {
             throw new ArgumentException($"An audit entity type is at most {AuditRecord.EntityTypeMaxLength} characters.", nameof(entityType));
         }
 
+        if (targetTenantId is { } target && tenant.TenantId is { } current && target != current)
+        {
+            throw new InvalidOperationException(
+                $"The audit target tenant {target} differs from the scope's tenant {current}.");
+        }
+
         _entityType = entityType ?? _entityType;
         _entityId = entityId ?? _entityId;
         _reason = reason is null ? _reason : Truncate(reason.Trim(), AuditRecord.ReasonMaxLength);
         _metadata = metadata is null ? _metadata : AuditMetadata.Serialize(metadata);
+        _targetTenantId = targetTenantId ?? _targetTenantId;
         return this;
     }
 
@@ -81,7 +91,7 @@ public sealed class AuditScope(ICurrentActor actor, ITenantContext tenant, Corre
             outcome == AuditOutcome.Success ? null : ErrorCode,
             actor.Kind,
             actor.ActorId,
-            tenant.TenantId,
+            tenant.TenantId ?? _targetTenantId,
             _entityType,
             _entityId,
             now,

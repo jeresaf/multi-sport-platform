@@ -28,15 +28,16 @@ public sealed record AuditQuery(
 public sealed record ListAuditEntriesResponse(IReadOnlyList<AuditEntryResponse> Items, PageInfo Page);
 
 /// <summary>
-/// Lists audit entries, newest first by <c>(occurred_at, id)</c>. Saves nothing, so the Host writes this read's own
-/// audit entry (with the filters) after the response.
+/// Lists audit entries of every tenant (and of none) on <c>sp_platform</c>, newest first by <c>(occurred_at, id)</c>.
+/// Saves nothing, so the Host writes this read's own audit entry (with the filters) after the response; filtered to
+/// one tenant, the entry has that tenant.
 /// </summary>
-public sealed class ListAuditEntriesHandler(PlatformDbContext context, AuditScope audit)
+public sealed class ListAuditEntriesHandler(PlatformAuditDbContext context, AuditScope audit)
 {
     public async Task<ListAuditEntriesResponse> HandleAsync(AuditQuery query, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(query);
-        audit.Describe(metadata: ListAuditEntriesMetadata.Of(query));
+        audit.Describe(metadata: ListAuditEntriesMetadata.Of(query), targetTenantId: query.TenantId);
 
         var entries = Filter(context.Set<AuditEntry>().AsNoTracking(), query);
         if (query is { CursorAt: { } at, CursorId: { } id })

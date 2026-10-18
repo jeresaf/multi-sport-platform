@@ -39,7 +39,8 @@ status changes.
     `OtherTenant`), not an error code.
 - `TenantContext.Set` is called once per scope (S02 D1): the same value again is a no-op, any other value throws.
 - `IgnoreQueryFilters()` is forbidden in feature code. The only exceptions live in explicitly named platform
-  services (e.g. `PlatformTenantStatistics`) and are reviewed.
+  services (e.g. `PlatformTenantStatistics`) and are reviewed. An architecture test (`TenantIsolationRulesTests`)
+  fails on any `IgnoreQueryFilters(` under `backend/src` outside its allowlist of such services (empty today).
 - Owner contexts (seeds on `Migrator`) have no tenant, so they can't write tenant-owned rows.
 
 ### Layer 2 — database (PostgreSQL Row-Level Security)
@@ -66,7 +67,17 @@ CREATE POLICY tenant_isolation ON registry.persons
   overwrites the value on every open anyway. A test proves a pooled connection never carries a previous
   request's tenant.
 - Platform-wide operations that legitimately span tenants use a dedicated role/connection string
-  (`sp_platform`) with `BYPASSRLS`, only inside platform services, and are audited.
+  (`sp_platform`) with `BYPASSRLS`, only inside platform services, and are audited. A platform service gets its own
+  DbContext registered with `AddPlatformServiceDbContext<T>` (connection `Platform`): it maps tables that the
+  module's migrated context owns, is never migrated, and an architecture test names the features allowed to use it.
+  The first one is `PlatformAuditDbContext` (S02 D3).
+- **Audit under RLS (as built, S02-T2b):** `audit.audit_entries` has the `tenant_isolation` policy, so `sp_app` reads
+  and inserts its tenant's entries only, and entries without a tenant not at all (they would be a future tenant-facing
+  audit view's rows). The writers (`AuditLog` for direct entries, `AuditRecordedConsumer` for entries through a
+  module's outbox, with its `platform.inbox_messages` row in the same transaction) and the platform query
+  (`GET /api/platform/v1/audit-entries`) use `PlatformAuditDbContext`. A platform action is audited with its target
+  tenant: the tenant context on tenant routes (D2), or `AuditScope.Describe(targetTenantId:)` for a platform read
+  filtered to one tenant (a different target than the scope's tenant is a bug and throws).
 - Global tables (no `tenant_id`) have no policy; the app role has read-only grants on them where appropriate.
 - The three roles are created when the database server is provisioned, not by EF migrations. On managed
   PostgreSQL (Azure Database for PostgreSQL Flexible Server, ADR-0016) the server admin is not a superuser but can
@@ -84,8 +95,13 @@ CREATE POLICY tenant_isolation ON registry.persons
   `.claude/rules/testing.md`.
 - **Pool leak test:** a reused pooled connection gets the new scope's tenant, or `''` without one.
 - **Consumers under RLS:** a consumer writes its envelope tenant's rows; a write for another tenant fails RLS.
-- **RLS coverage test:** queries `pg_class`/`pg_policies` and fails if any table with a `tenant_id` column lacks
-  RLS enabled + forced + a `tenant_isolation` policy.
+- **RLS coverage test** (`RlsCoverageTests`): queries `pg_class`/`pg_policies` and fails if any table with a
+  `tenant_id` column, in any schema, lacks RLS enabled + forced + the `tenant_isolation` policy (all commands, every
+  role, `USING` = `WITH CHECK` on `app.tenant_id`), or has another permissive policy that would widen it. Exceptions
+  are listed in the test with a reason: `*.outbox_messages` (the envelope's nullable tenant; owner decision Q15).
+  `inbox_messages` has no `tenant_id`. A second test fails when an exception no longer matches a table.
+- **Audit under RLS** (`AuditRlsTests`, with the audit trail tests): `sp_app` sees and writes only its tenant's
+  entries; the platform query sees every tenant and none; direct and outbox writes land.
 - **API-level tests** for each new endpoint that takes an ID from another aggregate (e.g. adding a person to a
   team): an ID from another tenant must yield `404` (not `403` — don't reveal existence).
 

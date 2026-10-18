@@ -23,9 +23,13 @@ paths:
   a new entity pointing at `id` for each tenant-owned foreign key **onto** another type, else null. Discovery uses
   the `ModuleDatabase` registrations (`AddModuleDbContext`): a `ModuleDbContext` without one fails
   `ModuleDatabaseRegistrationTests` unless it is listed there with a reason.
+- **RLS coverage** (`Isolation/RlsCoverageTests`): every table with a `tenant_id` column needs `EnableTenantRls` in
+  its migration (test schemas included). A table that must not have RLS goes in the test's exception list with a
+  reason, agreed with the owner; a stale exception fails the test.
 - **Tenant in tests:** set the scope's tenant with `scope.ServiceProvider.GetRequiredService<TenantContext>().Set(id)`
   before the first query or save; without one, tenant-owned queries return nothing and saves throw. Read across
-  tenants only as `sp_platform` (`QueryAsync(DatabaseRoles.Platform, …)`).
+  tenants only as `sp_platform` (`QueryAsync(DatabaseRoles.Platform, …)`). Audit entries are under RLS: read them
+  with `AuditTestData.EntriesAsync` (`PlatformAuditDbContext`, `sp_platform`); as the owner, set `app.tenant_id` first.
 - **Every sport rule:** a passing and a rejecting engine scenario (YAML under
   `backend/tests/SportsPlatform.UnitTests/Engines/Scenarios/<variant>/`), written so a non-developer can read it.
 - **Deterministic:** fake `TimeProvider`, fixed random seeds, no `Thread.Sleep`/arbitrary waits; Playwright waits

@@ -9,7 +9,7 @@ namespace SportsPlatform.Modules.Platform.Features.Audit.AppendAuditEntry;
 
 /// <summary>
 /// Writes entries straight to <c>audit.audit_entries</c> in a scope of its own, so nothing the caller's DbContexts
-/// track is saved with it.
+/// track is saved with it. On <c>sp_platform</c>, so entries of any tenant, or of none, land under RLS.
 /// </summary>
 internal sealed class AuditLog(IServiceScopeFactory scopes) : IAuditLog
 {
@@ -19,7 +19,7 @@ internal sealed class AuditLog(IServiceScopeFactory scopes) : IAuditLog
 
         await using var scope = scopes.CreateAsyncScope();
         scope.ServiceProvider.GetRequiredService<CorrelationContext>().Set(record.CorrelationId, null);
-        var context = scope.ServiceProvider.GetRequiredService<PlatformDbContext>();
+        var context = scope.ServiceProvider.GetRequiredService<PlatformAuditDbContext>();
         context.Add(AuditEntry.From(record));
         await context.SaveChangesAsync(cancellationToken);
     }
