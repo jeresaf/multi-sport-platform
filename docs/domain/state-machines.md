@@ -236,7 +236,8 @@ PENDING ──attempt failed, attempts = max──► FAILED
 FAILED  ──re-drive (platform.outbox.redrive, reason)──► PENDING   (attempts reset)
 ```
 
-Delivery state, not a business lifecycle: no status history table. The outbox processor makes the automatic
+Delivery state, not a business lifecycle: no status history table. Per aggregate, messages move in `sequence`
+order: one stays `PENDING` while an earlier message of its aggregate is not `PROCESSED`. The outbox processor makes the automatic
 transitions; the re-drive is a platform action and is audited (docs/architecture/events-and-jobs.md).
 
 ---

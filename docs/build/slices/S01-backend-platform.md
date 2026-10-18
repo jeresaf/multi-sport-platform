@@ -148,7 +148,7 @@ Deliver per docs/architecture/events-and-jobs.md:
 - Platform diagnostics: `GET /api/platform/v1/diagnostics/outbox?status=FAILED` and a re-drive action.
 
 Acceptance:
-- [ ] Test: state change + message commit atomically (rollback leaves neither).
+- [x] Test: state change + message commit atomically (rollback leaves neither).
 - [ ] Test: duplicate delivery handled once; poison message ends `FAILED`; re-drive succeeds after fix.
 
 ### T6 — Audit
@@ -298,3 +298,11 @@ Acceptance:
   `Outbox:MaxAttempts = 3`. A message with no consumers is `PROCESSED` (an unknown event version can't be told apart
   from an unsubscribed one). Test module `messaging_test` (`MessagingTestDbContext`, table `probes`) publishes and
   consumes.
+  Pre-review (owner decision): per-aggregate order is kept strictly. `outbox_messages.sequence` is an identity
+  column (migration `AddOutboxSequence`); the claim takes messages by `sequence` and skips one while an earlier
+  message of its aggregate is not `PROCESSED`, so a retrying or `FAILED` message holds back its aggregate's later
+  ones. Outbox IDs come from `SequentialIds` (monotonic UUIDv7) because EF Core orders one save's inserts by key (a
+  test fails with random UUIDv7s). The hosted service drains (repeats while a call attempted something). Also from
+  pre-review: a failing module is logged and skipped; the processor requires `ITenantContext` to be the scoped
+  `TenantContext` (S02 must keep a settable context for consumers); IDs of entities added by domain event
+  subscribers are checked; tests for a locked message (`SKIP LOCKED`) and for losing the inbox race.
