@@ -6,6 +6,128 @@
     "version": "v1"
   },
   "paths": {
+    "/api/public/v1/reference/countries": {
+      "get": {
+        "tags": [
+          "Reference"
+        ],
+        "summary": "List countries",
+        "description": "Active ISO 3166-1 countries, ordered by alpha-2 code. Cacheable for an hour; send the `ETag` back as `If-None-Match` to get 304.",
+        "operationId": "ListCountries",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListCountriesResponse"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Not Modified"
+          }
+        }
+      }
+    },
+    "/api/public/v1/reference/currencies": {
+      "get": {
+        "tags": [
+          "Reference"
+        ],
+        "summary": "List currencies",
+        "description": "Active ISO 4217 currencies (money only), ordered by code, with their minor units. Cacheable for an hour; send the `ETag` back as `If-None-Match` to get 304.",
+        "operationId": "ListCurrencies",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListCurrenciesResponse"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Not Modified"
+          }
+        }
+      }
+    },
+    "/api/public/v1/reference/languages": {
+      "get": {
+        "tags": [
+          "Reference"
+        ],
+        "summary": "List languages",
+        "description": "Active ISO 639-1 languages, ordered by code. Cacheable for an hour; send the `ETag` back as `If-None-Match` to get 304.",
+        "operationId": "ListLanguages",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListLanguagesResponse"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Not Modified"
+          }
+        }
+      }
+    },
+    "/api/public/v1/reference/time-zones": {
+      "get": {
+        "tags": [
+          "Reference"
+        ],
+        "summary": "List time zones",
+        "description": "Active IANA time zones, ordered by ID. `country` (ISO 3166-1 alpha-2, upper case) keeps only that country's zones; a country without zones gives an empty list. Cacheable for an hour; send the `ETag` back as `If-None-Match` to get 304.",
+        "operationId": "ListTimeZones",
+        "parameters": [
+          {
+            "name": "country",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListTimeZonesResponse"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Not Modified"
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_QUERY`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_QUERY"
+            ]
+          }
+        }
+      }
+    },
     "/api/platform/v1/diagnostics/outbox": {
       "get": {
         "tags": [
@@ -393,7 +515,72 @@
         ],
         "description": "Where the action came from."
       },
+      "CountryResponse": {
+        "required": [
+          "code",
+          "alpha3Code",
+          "numericCode",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "alpha3Code": {
+            "type": "string"
+          },
+          "numericCode": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "description": "An ISO 3166-1 country: alpha-2 `code` (`UG`), alpha-3, numeric code and English name."
+      },
+      "CurrencyResponse": {
+        "required": [
+          "code",
+          "numericCode",
+          "name",
+          "minorUnits"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "numericCode": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "minorUnits": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "An ISO 4217 currency: alphabetic `code` (`UGX`), numeric code, English name, minor units (UGX 0)."
+      },
       "JsonElement": { },
+      "LanguageResponse": {
+        "required": [
+          "code",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "description": "An ISO 639-1 language: two-letter `code` (`sw`) and English name."
+      },
       "ListAuditEntriesResponse": {
         "required": [
           "items",
@@ -412,6 +599,48 @@
           }
         }
       },
+      "ListCountriesResponse": {
+        "required": [
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CountryResponse"
+            }
+          }
+        }
+      },
+      "ListCurrenciesResponse": {
+        "required": [
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CurrencyResponse"
+            }
+          }
+        }
+      },
+      "ListLanguagesResponse": {
+        "required": [
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LanguageResponse"
+            }
+          }
+        }
+      },
       "ListOutboxMessagesResponse": {
         "required": [
           "items",
@@ -427,6 +656,20 @@
           },
           "page": {
             "$ref": "#/components/schemas/PageInfo"
+          }
+        }
+      },
+      "ListTimeZonesResponse": {
+        "required": [
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TimeZoneResponse"
+            }
           }
         }
       },
@@ -635,10 +878,32 @@
           }
         },
         "description": "Why the message is re-driven; the audit entry records it (action audit `REQUIRED_WITH_REASON`). Kept permanently\nand not redacted, so it must not contain personal data."
+      },
+      "TimeZoneResponse": {
+        "required": [
+          "code",
+          "countryCode"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "countryCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "An IANA time zone: its ID as `code` (`Africa/Kampala`) and its country; no country for `Etc/UTC`."
       }
     }
   },
   "tags": [
+    {
+      "name": "Reference"
+    },
     {
       "name": "Diagnostics"
     },
