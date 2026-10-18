@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using SportsPlatform.BuildingBlocks.Auditing;
 using SportsPlatform.BuildingBlocks.Messaging;
 using SportsPlatform.BuildingBlocks.Persistence.Messaging;
 using SportsPlatform.BuildingBlocks.Tenancy;
@@ -26,6 +27,7 @@ public static class PersistenceServiceCollectionExtensions
         services.TryAddScoped<TenantContext>();
         services.TryAddScoped<ITenantContext>(provider => provider.GetRequiredService<TenantContext>());
         services.TryAddScoped<CorrelationContext>();
+        services.TryAddScoped<AuditScope>();
         services.TryAddSingleton<MigrationRunner>();
 
         // The connection string is read when a context is created, so hosts that never touch the database

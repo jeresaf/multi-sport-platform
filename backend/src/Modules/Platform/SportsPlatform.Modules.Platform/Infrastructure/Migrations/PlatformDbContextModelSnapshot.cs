@@ -168,6 +168,117 @@ namespace SportsPlatform.Modules.Platform.Infrastructure.Migrations
                             t.HasCheckConstraint("ck_outbox_messages_status", "status IN ('PENDING', 'PROCESSED', 'FAILED')");
                         });
                 });
+
+            modelBuilder.Entity("SportsPlatform.Modules.Platform.Domain.Audit.AuditEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("ActionCode")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("action_code");
+
+                    b.Property<Guid>("ActorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("actor_id");
+
+                    b.Property<string>("ActorKind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("actor_kind");
+
+                    b.Property<string>("CorrelationId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("correlation_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<Guid?>("EntityId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("entity_id");
+
+                    b.Property<string>("EntityType")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("entity_type");
+
+                    b.Property<string>("ErrorCode")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("error_code");
+
+                    b.Property<string>("Metadata")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("metadata");
+
+                    b.Property<DateTimeOffset>("OccurredAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("occurred_at");
+
+                    b.Property<string>("Outcome")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("outcome");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("reason");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("source");
+
+                    b.Property<Guid?>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_audit_entries");
+
+                    b.HasIndex("CorrelationId")
+                        .HasDatabaseName("ix_audit_entries_correlation_id");
+
+                    b.HasIndex("OccurredAt")
+                        .HasDatabaseName("ix_audit_entries_occurred_at");
+
+                    b.HasIndex("ActionCode", "OccurredAt")
+                        .HasDatabaseName("ix_audit_entries_action_code_occurred_at");
+
+                    b.HasIndex("ActorId", "OccurredAt")
+                        .HasDatabaseName("ix_audit_entries_actor_id_occurred_at");
+
+                    b.HasIndex("EntityType", "EntityId")
+                        .HasDatabaseName("ix_audit_entries_entity_type_entity_id");
+
+                    b.HasIndex("TenantId", "OccurredAt")
+                        .HasDatabaseName("ix_audit_entries_tenant_id_occurred_at");
+
+                    b.ToTable("audit_entries", "audit", t =>
+                        {
+                            t.HasCheckConstraint("ck_audit_entries_actor_kind", "actor_kind IN ('USER', 'SYSTEM')");
+
+                            t.HasCheckConstraint("ck_audit_entries_outcome", "outcome IN ('SUCCESS', 'FAILURE', 'DENIED')");
+
+                            t.HasCheckConstraint("ck_audit_entries_source", "source IN ('API', 'SYSTEM')");
+                        });
+
+                    b.HasAnnotation("SportsPlatform:AppendOnly", true);
+                });
 #pragma warning restore 612, 618
         }
     }

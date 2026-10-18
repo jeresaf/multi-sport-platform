@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using SportsPlatform.BuildingBlocks.Auditing;
+using SportsPlatform.BuildingBlocks.Messaging;
 
 namespace SportsPlatform.BuildingBlocks.Persistence.Messaging;
 
@@ -91,10 +93,14 @@ public sealed partial class OutboxDiagnostics(
 
     /// <summary>
     /// Moves one <c>FAILED</c> message back to <c>PENDING</c> (docs/domain/state-machines.md, "Outbox message"). The row
-    /// is locked first, so a processor that is failing it right now finishes before the status is checked.
+    /// is locked first, so a processor that is failing it right now finishes before the status is checked. The audit
+    /// entry goes to the target module's outbox in the re-drive's transaction, so it is recorded only if the re-drive
+    /// commits.
     /// </summary>
-    public async Task<OutboxRedriveResult> RedriveAsync(string module, Guid messageId, CancellationToken cancellationToken)
+    public async Task<OutboxRedriveResult> RedriveAsync(string module, Guid messageId, AuditRecord audit, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(audit);
+
         var database = _databases.SingleOrDefault(database => database.Schema == module);
         if (database is null)
         {
@@ -102,6 +108,8 @@ public sealed partial class OutboxDiagnostics(
         }
 
         await using var scope = scopes.CreateAsyncScope();
+        // The audit message's envelope carries the request's correlation ID, like any message the request publishes.
+        scope.ServiceProvider.GetRequiredService<CorrelationContext>().Set(audit.CorrelationId, null);
         var context = Context(scope, database);
         await using (var transaction = await context.Database.BeginTransactionAsync(cancellationToken))
         {
@@ -123,6 +131,7 @@ public sealed partial class OutboxDiagnostics(
             }
 
             message.Redrive(timeProvider.GetUtcNow());
+            context.RecordAudit(audit);
             await context.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
         }

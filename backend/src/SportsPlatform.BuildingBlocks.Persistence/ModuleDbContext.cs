@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
+using SportsPlatform.BuildingBlocks.Auditing;
 using SportsPlatform.BuildingBlocks.Domain;
 using SportsPlatform.BuildingBlocks.Messaging;
 using SportsPlatform.BuildingBlocks.Persistence.Messaging;
@@ -46,13 +47,39 @@ public abstract class ModuleDbContext : DbContext
     /// Queues an integration event in this module's outbox; it is saved with the rest of the unit of work and
     /// delivered after commit. Call it from a use-case handler or a domain event subscriber, never after saving.
     /// </summary>
-    public void Publish(IIntegrationEvent integrationEvent, string aggregateType, Guid aggregateId)
+    public void Publish(IIntegrationEvent integrationEvent, string aggregateType, Guid aggregateId) =>
+        AddOutboxMessage(integrationEvent, aggregateType, aggregateId);
+
+    /// <summary>
+    /// Queues an audit entry: it goes to this module's outbox when the context next saves, in the same transaction.
+    /// For work that saves in its own scope, with a record from the request's <see cref="AuditScope"/>; within the
+    /// request's scope the first save records the scope's entry by itself.
+    /// </summary>
+    public void RecordAudit(AuditRecord record)
+    {
+        ArgumentNullException.ThrowIfNull(record);
+        _pendingAudits.Add(record);
+    }
+
+    private readonly List<AuditRecord> _pendingAudits = [];
+
+    /// <summary>The audit records queued with <see cref="RecordAudit"/>, handed over to the save that writes them.</summary>
+    internal List<AuditRecord> TakePendingAudits()
+    {
+        var records = _pendingAudits.ToList();
+        _pendingAudits.Clear();
+        return records;
+    }
+
+    internal OutboxMessage AddOutboxMessage(IIntegrationEvent integrationEvent, string aggregateType, Guid aggregateId)
     {
         ArgumentNullException.ThrowIfNull(integrationEvent);
 
         var eventType = integrationEvent.GetType();
         var payload = JsonSerializer.Serialize(integrationEvent, eventType, MessageSerialization.Options);
-        Add(new OutboxMessage(IntegrationEventName.Of(eventType), payload, aggregateType, aggregateId));
+        var message = new OutboxMessage(IntegrationEventName.Of(eventType), payload, aggregateType, aggregateId);
+        Add(message);
+        return message;
     }
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)

@@ -28,6 +28,9 @@ public static class TableAccessPolicies
     public static IReadOnlyDictionary<string, TableAccess> Tables { get; } = new Dictionary<string, TableAccess>
     {
         // Every module schema gets an outbox and an inbox (ModuleDbContext); the processor updates and S01-T5b re-drives.
+        // Audit entries (S01-T6, AR-19).
+        ["audit.audit_entries"] = TableAccess.AppendOnly,
+
         ["platform.outbox_messages"] = TableAccess.ReadWrite,
         ["platform.inbox_messages"] = TableAccess.ReadWrite,
         ["conventions_test.outbox_messages"] = TableAccess.ReadWrite,

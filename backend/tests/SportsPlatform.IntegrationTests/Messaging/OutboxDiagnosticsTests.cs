@@ -50,7 +50,7 @@ public sealed class OutboxDiagnosticsTests : DatabaseTest
             m => m.NextAttemptAt.ShouldBe(App.Clock.GetUtcNow()),
             m => m.LastError.ShouldBe(failed.LastError)); // kept until the next outcome
 
-        (await Processor.ProcessOnceAsync(Ct)).ShouldBe(1); // the re-driven message
+        (await Processor.ProcessOnceAsync(Ct)).ShouldBe(2); // the re-driven message and the re-drive's audit message
         (await Processor.ProcessOnceAsync(Ct)).ShouldBe(1); // then the one it held back
         (await ListAsync()).Items.ShouldAllBe(m => m.Status == OutboxMessageStatus.Processed && m.LastError == null);
     }
