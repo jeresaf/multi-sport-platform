@@ -44,7 +44,10 @@ public sealed class Tenant : AggregateRoot
     /// <summary>Whether the tenant wants a public site; it is shown only while the tenant is <c>ACTIVE</c>.</summary>
     public bool PublicEnabled { get; private set; }
 
-    /// <summary>The rows added in this unit of work (the history is not loaded with the tenant).</summary>
+    /// <summary>
+    /// The rows added in this unit of work: the history is never loaded with the tenant. Read history with
+    /// <c>AsNoTracking</c>, or EF fix-up adds the rows it reads to this list.
+    /// </summary>
     public IReadOnlyList<TenantStatusChange> StatusHistory => _statusHistory;
 
     public TenantProfile Profile => new(LegalName, DisplayName, CountryCode, TimeZone, DefaultLocale, CurrencyCode, PublicEnabled);

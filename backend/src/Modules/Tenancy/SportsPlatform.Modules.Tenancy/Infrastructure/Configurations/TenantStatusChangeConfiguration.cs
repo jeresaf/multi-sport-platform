@@ -7,7 +7,7 @@ using SportsPlatform.Modules.Tenancy.Domain.Tenants;
 
 namespace SportsPlatform.Modules.Tenancy.Infrastructure.Configurations;
 
-/// <summary><c>tenancy.tenant_status_history</c>: append-only (migration <c>AppendOnly</c>), newest per tenant first.</summary>
+/// <summary><c>tenancy.tenant_status_history</c>: append-only (migration <c>AppendOnly</c>), read per tenant in time order.</summary>
 internal sealed class TenantStatusChangeConfiguration : IEntityTypeConfiguration<TenantStatusChange>
 {
     public const string Table = "tenant_status_history";

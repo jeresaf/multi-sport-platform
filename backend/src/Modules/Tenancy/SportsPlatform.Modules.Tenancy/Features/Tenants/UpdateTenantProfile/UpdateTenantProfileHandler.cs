@@ -19,7 +19,7 @@ public sealed class UpdateTenantProfileHandler(TenancyDbContext context, TenantC
     {
         ArgumentNullException.ThrowIfNull(request);
         tenantContext.Set(tenantId);
-        audit.Describe(TenantAudit.EntityType, tenantId, metadata: new UpdateTenantProfileMetadata(ChangedFields(request)));
+        audit.Describe(TenantAudit.EntityType, tenantId, metadata: new UpdateTenantProfileMetadata(SentFields(request)));
 
         var tenant = await context.Set<Tenant>().SingleOrDefaultAsync(t => t.Id == tenantId, cancellationToken);
         if (tenant is null)
@@ -27,17 +27,11 @@ public sealed class UpdateTenantProfileHandler(TenancyDbContext context, TenantC
             return TenancyErrors.NotFound;
         }
 
+        // A change saved by someone else after this read still conflicts on save: xmin is the concurrency token.
         var entry = context.Entry(tenant);
-        var version = entry.Property<uint>(AuditColumns.Version);
-        if (request.Version is { } expected)
+        if (request.Version is { } expected && expected != entry.Property<uint>(AuditColumns.Version).CurrentValue)
         {
-            if (expected != version.CurrentValue)
-            {
-                return TenancyErrors.ConcurrencyConflict;
-            }
-
-            // The UPDATE checks it too, so a change saved after this read still conflicts.
-            version.OriginalValue = expected;
+            return TenancyErrors.ConcurrencyConflict;
         }
 
         var current = tenant.Profile;
@@ -63,7 +57,7 @@ public sealed class UpdateTenantProfileHandler(TenancyDbContext context, TenantC
         return Result.Success(TenantResponse.From(entry));
     }
 
-    private static string[] ChangedFields(UpdateTenantProfileRequest request) =>
+    private static string[] SentFields(UpdateTenantProfileRequest request) =>
     [
         .. new (string Field, bool Sent)[]
         {

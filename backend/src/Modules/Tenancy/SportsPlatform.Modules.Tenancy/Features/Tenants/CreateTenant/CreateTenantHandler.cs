@@ -21,12 +21,6 @@ public sealed class CreateTenantHandler(
     public async Task<Result<TenantResponse>> HandleAsync(CreateTenantRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
-        var slug = request.Slug!;
-        if (await context.Set<Tenant>().AnyAsync(t => t.Slug == slug, cancellationToken))
-        {
-            return TenancyErrors.SlugTaken;
-        }
-
         var profile = new TenantProfile(
             request.LegalName!.Trim(),
             request.DisplayName!.Trim(),
@@ -35,10 +29,16 @@ public sealed class CreateTenantHandler(
             request.DefaultLocale!,
             request.CurrencyCode!,
             request.PublicEnabled ?? false);
-        var tenant = Tenant.Create(slug, profile, actor, timeProvider.GetUtcNow());
+        var tenant = Tenant.Create(request.Slug!, profile, actor, timeProvider.GetUtcNow());
 
+        // Before the scope's first database connection (S02 D1).
         tenantContext.Set(tenant.Id);
         audit.Describe(TenantAudit.EntityType, tenant.Id);
+        if (await context.Set<Tenant>().AnyAsync(t => t.Slug == tenant.Slug, cancellationToken))
+        {
+            return TenancyErrors.SlugTaken;
+        }
+
         var entry = context.Add(tenant);
 
         try

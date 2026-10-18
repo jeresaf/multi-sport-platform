@@ -7,8 +7,8 @@ at the start of every review.
 
 - **Current slice:** S02 — Tenancy core and isolation (docs/build/slices/S02-tenancy-core.md, as amended by the
   S01 slice review). S00 and S01 are done
-- **Current task:** S02-T1a — Tenancy module, tenants: create, read, update (branch `s02/t1a-tenants`; T1 split
-  into T1a and T1b, owner 2026-10-18)
+- **Current task:** S02-T1a — Tenancy module, tenants: create, read, update — in review (branch `s02/t1a-tenants`;
+  T1 split into T1a and T1b, owner 2026-10-18)
 - **Next:** S02-T1b — tenant status transitions
 - **Blocked on:** nothing
 
@@ -144,7 +144,17 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
 - **S02-T4:** the tenant row holds `time_zone`, `default_locale`, `currency_code` and `public_enabled`, which T4's
   `tenant_settings` also lists: T4 decides which one is the source (S02-T1a).
 - **S02-T1b:** the slug unique-violation path of `CreateTenantHandler` (a concurrent create between the check and the
-  insert → `TENANT_SLUG_TAKEN`) has no test; the sequential case is tested (S02-T1a).
+  insert → `TENANT_SLUG_TAKEN`) has no test; the sequential case is tested. Its FAILURE audit entry names the tenant
+  ID that was never inserted: the test decides whether that is kept (documented) or cleared (S02-T1a pre-review).
+- **S02-T1b:** the PATCH race (version matches at load, another save lands before this one → `xmin` conflict → 409) has
+  no test; the stale-`version` case is tested (S02-T1a pre-review).
+- **S02-T3:** D2 is done in the Tenancy handlers, after authorization and validation, so on `/tenants/{tenantId}` a
+  DENIED (403) or validation FAILURE (400) is audited with `tenant_id` NULL, and a 404 with the unknown ID. T3's route
+  middleware sets the tenant before authorization (404 for an unknown tenant); then drop `Set` from the handlers and
+  test that those entries carry the target tenant (S02-T1a pre-review).
+- **Owner:** tenant responses send an `ETag`, but PATCH doesn't evaluate `If-Match` (owner chose body `version` for
+  T1a); api-conventions.md allows either. The endpoint description says so. Decide when the admin UI needs it
+  (S02-T1a pre-review, MAJOR).
 
 **S03 — identity and access**
 - Anonymous actor for audit (#23 R1): `actor_kind` allows `USER`/`SYSTEM` and `actor_id` is NOT NULL, so once S03

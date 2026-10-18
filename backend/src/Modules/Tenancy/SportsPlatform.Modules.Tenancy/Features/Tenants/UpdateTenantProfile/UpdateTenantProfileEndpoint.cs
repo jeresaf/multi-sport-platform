@@ -16,7 +16,8 @@ internal static class UpdateTenantProfileEndpoint
         .WithDescription(
             "Changes the fields sent; missing or null fields stay as they are. The slug never changes, and the status " +
             "changes only through the status actions. Send `version` from the last read to get " +
-            "409 TENANT_CONCURRENCY_CONFLICT instead of overwriting someone else's change.")
+            "409 TENANT_CONCURRENCY_CONFLICT instead of overwriting someone else's change. `If-Match` is not evaluated yet: " +
+            "send the version in the body.")
         .RequireAction(TenancyActions.TenantUpdate)
         .ValidateRequest<UpdateTenantProfileRequest>(CommonErrors.InvalidRequest)
         .ProducesErrors(TenancyErrors.NotFound, TenancyErrors.ConcurrencyConflict);
