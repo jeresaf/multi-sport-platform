@@ -6,7 +6,8 @@ namespace SportsPlatform.Modules.Platform.Domain.Audit;
 
 /// <summary>
 /// One row of <c>audit.audit_entries</c>: who did which action to what, when, why and how it ended (AR-19). Append-only:
-/// the table rejects UPDATE, DELETE and TRUNCATE for every role. Not tenant-filtered yet; RLS arrives with S02.
+/// the table rejects UPDATE, DELETE and TRUNCATE for every role. Under RLS: <c>sp_app</c> sees
+/// its tenant's entries only, entries without a tenant only platform services see (<c>PlatformAuditDbContext</c>).
 /// </summary>
 public sealed class AuditEntry : Entity
 {

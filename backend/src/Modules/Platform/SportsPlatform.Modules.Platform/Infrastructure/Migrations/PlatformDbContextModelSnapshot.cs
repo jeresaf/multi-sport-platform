@@ -256,17 +256,17 @@ namespace SportsPlatform.Modules.Platform.Infrastructure.Migrations
                     b.HasIndex("OccurredAt")
                         .HasDatabaseName("ix_audit_entries_occurred_at");
 
-                    b.HasIndex("ActionCode", "OccurredAt")
-                        .HasDatabaseName("ix_audit_entries_action_code_occurred_at");
-
-                    b.HasIndex("ActorId", "OccurredAt")
-                        .HasDatabaseName("ix_audit_entries_actor_id_occurred_at");
-
-                    b.HasIndex("EntityType", "EntityId")
-                        .HasDatabaseName("ix_audit_entries_entity_type_entity_id");
-
                     b.HasIndex("TenantId", "OccurredAt")
                         .HasDatabaseName("ix_audit_entries_tenant_id_occurred_at");
+
+                    b.HasIndex("EntityType", "EntityId", "OccurredAt")
+                        .HasDatabaseName("ix_audit_entries_entity_type_entity_id_occurred_at");
+
+                    b.HasIndex("TenantId", "ActionCode", "OccurredAt")
+                        .HasDatabaseName("ix_audit_entries_tenant_id_action_code_occurred_at");
+
+                    b.HasIndex("TenantId", "ActorId", "OccurredAt")
+                        .HasDatabaseName("ix_audit_entries_tenant_id_actor_id_occurred_at");
 
                     b.ToTable("audit_entries", "audit", t =>
                         {
