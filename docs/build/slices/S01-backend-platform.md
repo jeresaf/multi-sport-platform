@@ -149,7 +149,7 @@ Deliver per docs/architecture/events-and-jobs.md:
 
 Acceptance:
 - [x] Test: state change + message commit atomically (rollback leaves neither).
-- [ ] Test: duplicate delivery handled once; poison message ends `FAILED`; re-drive succeeds after fix.
+- [x] Test: duplicate delivery handled once; poison message ends `FAILED`; re-drive succeeds after fix.
 
 ### T6 — Audit
 Deliver:
@@ -321,3 +321,13 @@ Acceptance:
   Review (#21 R1, R2): `MessageSerialization` writes enums as UPPER_SNAKE strings (`JsonStringEnumConverter`,
   `SnakeCaseUpper`, numbers rejected on read), as api-conventions.md requires; `DateTime` members fail the export
   (use `DateTimeOffset` or `DateOnly`).
+  T5b-2 (plan approved 2026-10-18): `OutboxDiagnostics` (BuildingBlocks.Persistence, next to the processor) lists and
+  re-drives through each module's own DbContext; the Platform module maps `GET /api/platform/v1/diagnostics/outbox`
+  (`module`, `status`, `limit`, `cursor`; newest first by message ID, merged across modules; no payload; `heldBackBy`)
+  and `POST …/diagnostics/outbox/{module}/{messageId}/redrive` (`{"reason"}`, 1–500 characters; row locked with
+  `FOR UPDATE`; `FAILED` → `PENDING`, attempts 0, due now, `last_error` kept). Errors:
+  `PLATFORM_OUTBOX_MESSAGE_NOT_FOUND` (404, unknown module too), `PLATFORM_OUTBOX_MESSAGE_NOT_FAILED` (409), and in
+  `CommonErrors` `VALIDATION_INVALID_QUERY` and `VALIDATION_REASON_REQUIRED` (400, with a `detail`). The cursor is the
+  last ID, base64url (`OutboxCursor`). HTTP JSON now writes enums as UPPER_SNAKE strings (first endpoint with an enum).
+  Request shape is checked by hand in `*Request.Validate()`: FluentValidation (backend.md) is not a dependency yet.
+  The handler takes the reason but nothing records it until T6.
