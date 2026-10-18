@@ -39,8 +39,9 @@ Q15), docs/product/pilot-customer.md.
 ## Decisions (reviewer defaults; confirm or change in each task's plan)
 
 - **D1 — Tenant context is set once per scope.** `TenantContext.Set` throws if a *different* tenant is already
-  set in the scope (setting the same tenant again is a no-op). It must be set before the scope's first database
-  connection opens, because the RLS value is written when a connection opens.
+  set in the scope (setting the same tenant again is a no-op). It must be set before the first connection that reads
+  or writes tenant data opens, because the RLS value is written when a connection opens; a read of a global table
+  only (e.g. tenant creation's slug check) may come first (amended by the owner, 2026-10-18, #30 R2).
 - **D2 — Platform work on one tenant runs under that tenant.** Platform endpoints under
   `/api/platform/v1/tenants/{tenantId}/…` set `ITenantContext` to the route's tenant after the route is matched
   (the platform action is still authorized by the middleware). Tenant creation sets the context to the new
@@ -109,11 +110,11 @@ Deliver:
   the tenant's context (D2).
 
 Acceptance:
-- [ ] Every transition in the state machine works; every other transition returns `409 TENANT_INVALID_TRANSITION`;
+- [x] Every transition in the state machine works; every other transition returns `409 TENANT_INVALID_TRANSITION`;
       a missing reason returns `400 VALIDATION_REASON_REQUIRED`.
-- [ ] Each transition writes one status-history row and one audit entry whose `tenant_id` is the target tenant (D2).
-- [ ] Allowed and denied tests for every new action.
-- [ ] `events.md`/`events.json` list both events with their payloads.
+- [x] Each transition writes one status-history row and one audit entry whose `tenant_id` is the target tenant (D2).
+- [x] Allowed and denied tests for every new action.
+- [x] `events.md`/`events.json` list both events with their payloads.
 
 ### T2 — Isolation enforcement (application + database)
 Deliver:
@@ -249,3 +250,10 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
 ## Implementation notes
 
 (The builder adds notes here as tasks merge.)
+
+**T1 (#30 T1a, T1b).** Delivered in two PRs (owner). Tenants are created in `PROVISIONING` with a first history row
+(`from_status` NULL); `publicEnabled` defaults to false; `default_locale` is `ll` or `ll-CC`. Changes take an optional
+body `version` and/or `If-Match` (strong comparison, `*`); each one sent must be current, else
+`TENANT_CONCURRENCY_CONFLICT`. Body fields that fail validation are `VALIDATION_INVALID_REQUEST` (new shared code);
+bodies reject unknown members. The tenant context is set by the Tenancy handlers until T3's route middleware (D2); a
+taken slug is audited without a tenant. `tenant_status_history` has `tenant_id` and gets RLS in T2.

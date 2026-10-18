@@ -45,6 +45,7 @@ at the start of every review.
 | 2026-10-18 | S01 acceptance | — | Slice acceptance checked on `main` (all five criteria met); spec boxes ticked; tech debt regrouped by owner (S02, S03, infrastructure after M1, later) | Local DB had a pre-merge `AddReferenceData` migration applied; rebuilt with `seed --reset` (local only, no code change) |
 | 2026-10-18 | S01 slice review (reviewer, 2026-10-18) | — | S01 accepted; roadmap S00 and S01 → ☑; S02 spec amended (tasks reordered so RLS lands before the first tenant-owned business table, decisions D1–D10, S01 carry-overs assigned to tasks); owner decisions recorded; CLI launch profile documented; modules.md names `AuditScope` and the audit middleware | Owner's 30-minute contributor check done 2026-10-18 |
 | 2026-10-18 | S02-T1a | #30 | New module `Tenancy` (schema `tenancy`): `tenants` (slug unique for ever, "C" collation, format checks) and append-only `tenant_status_history`; `Tenant` aggregate with the full state machine; `POST`/`GET`/`GET {id}`/`PATCH {id}` under `/api/platform/v1/tenants` (`tenant.create`, `tenant.read`, `tenant.update`, audited under the target tenant, D2); `TenantCreated.V1`; `IReferenceData` in Platform Contracts; `VALIDATION_INVALID_REQUEST`; `WithErrorCode` rule in backend.md | T1 split in two; locale, version, history and `publicEnabled` defaults (owner, plan). Status transitions over HTTP come with T1b |
+| 2026-10-18 | S02-T1b | — | `POST /api/platform/v1/tenants/{id}/{activate\|suspend\|restore\|archive\|unarchive}` (`tenant.activate`, `tenant.suspend`, `tenant.restore`, `tenant.archive`, `tenant.unarchive`; reason 1–500 for suspend, archive, unarchive) through one `ChangeTenantStatusHandler`; `TenantStatusChanged.V1`; `IfMatch` (BuildingBlocks `Api`) on PATCH and the transitions; slug check before the tenant is set; tests for both T1a races; T1 complete | Owner on #30: R1 evaluate `If-Match`, R2 amend D1. No migrations, new errors or dependencies |
 
 ## Deviations from spec (agreed)
 
@@ -115,6 +116,9 @@ at the start of every review.
   `VALIDATION_INVALID_REQUEST` (400) for body fields (the spec named only existing `VALIDATION_*` codes). Beyond the
   spec: tenant request bodies reject unknown members (`VALIDATION_MALFORMED_REQUEST`), the slug column uses the "C"
   collation (list ordered by slug), and the profile PATCH audit records the names of the fields sent.
+  T1b (owner on #30): `If-Match` is evaluated on PATCH and the transitions (R1); tenant creation checks the slug before
+  setting the new tenant, so a taken slug is audited without a tenant, and D1 now reads "before the first connection
+  that reads or writes tenant data" (R2, spec amended). The race path still audits the would-be tenant ID (documented).
 
 ## Tech debt / follow-ups
 
@@ -144,20 +148,10 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
   `tenant_settings` also lists: T4's plan decides the single source. Reviewer's suggestion: the tenant row keeps
   identity (slug, names, country, status); the editable values move to `tenant_settings` (tenant-owned, RLS) with a
   T4 migration, and platform edits write them under the target tenant (S02-T1a; #30 R4).
-- **S02-T1b:** the slug unique-violation path of `CreateTenantHandler` (a concurrent create between the check and the
-  insert → `TENANT_SLUG_TAKEN`) has no test; the sequential case is tested. A failed create's audit entry names the
-  tenant ID that was never inserted. Owner (#30 R2): set the tenant after the slug check, so a failed create is audited
-  with no tenant, and reword D1 to "before the first connection that reads or writes tenant data" (the check reads
-  only the global `tenants`; the save opens a new connection); document the race path (S02-T1a pre-review).
-- **S02-T1b:** the PATCH race (version matches at load, another save lands before this one → `xmin` conflict → 409) has
-  no test; the stale-`version` case is tested (S02-T1a pre-review).
 - **S02-T3:** D2 is done in the Tenancy handlers, after authorization and validation, so on `/tenants/{tenantId}` a
   DENIED (403) or validation FAILURE (400) is audited with `tenant_id` NULL, and a 404 with the unknown ID. T3's route
   middleware sets the tenant before authorization (404 for an unknown tenant); then drop `Set` from the handlers and
   test that those entries carry the target tenant (S02-T1a pre-review).
-- **S02-T1b:** evaluate `If-Match` (owner, #30 R1): on PATCH and the transition endpoints, an `If-Match` that isn't the
-  current version → `409 TENANT_CONCURRENCY_CONFLICT`; `If-Match` and a body `version` sent together must agree; tests
-  for both; drop the "not evaluated" note from the PATCH description (S02-T1a pre-review).
 
 **S03 — identity and access**
 - Anonymous actor for audit (#23 R1): `actor_kind` allows `USER`/`SYSTEM` and `actor_id` is NOT NULL, so once S03
