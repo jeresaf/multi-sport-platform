@@ -9,8 +9,12 @@ the message is the default title and may change.
 | `AUTH_FORBIDDEN` | 403 | You are not allowed to perform this action. | BuildingBlocks |
 | `PLATFORM_CONCURRENCY_CONFLICT` | 409 | The record was changed by someone else. Reload and try again. | Platform |
 | `PLATFORM_METHOD_NOT_ALLOWED` | 405 | This endpoint does not support the HTTP method. | BuildingBlocks |
+| `PLATFORM_OUTBOX_MESSAGE_NOT_FAILED` | 409 | Only a FAILED outbox message can be re-driven. | Platform |
+| `PLATFORM_OUTBOX_MESSAGE_NOT_FOUND` | 404 | No outbox message with this ID in this module. | Platform |
 | `PLATFORM_ROUTE_NOT_FOUND` | 404 | No endpoint matches this path. | BuildingBlocks |
 | `PLATFORM_UNEXPECTED_ERROR` | 500 | An unexpected error occurred. Quote the correlation ID when reporting it. | BuildingBlocks |
+| `VALIDATION_INVALID_QUERY` | 400 | A query parameter is not valid. | BuildingBlocks |
 | `VALIDATION_MALFORMED_REQUEST` | 400 | The request could not be read. | BuildingBlocks |
+| `VALIDATION_REASON_REQUIRED` | 400 | This action needs a reason. | BuildingBlocks |
 | `VALIDATION_REQUEST_TOO_LARGE` | 413 | The request body is too large. | BuildingBlocks |
 | `VALIDATION_UNSUPPORTED_MEDIA_TYPE` | 415 | The request body must be JSON. | BuildingBlocks |

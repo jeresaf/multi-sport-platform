@@ -99,6 +99,26 @@ public static class ApiDocumentation
             Type = JsonSchemaType.String,
             Description = "The request's correlation ID (also the `X-Correlation-Id` response header).",
         };
+        // HttpValidationProblemDetails has its own `errors` (a dictionary); ours is the field list of RequestValidationExtensions.
+        if (!schema.Properties.ContainsKey(ProblemFields.Errors))
+        {
+            schema.Properties[ProblemFields.Errors] = new OpenApiSchema
+            {
+                Type = JsonSchemaType.Array,
+                Description = "Validation failures, one per field: `field` (camelCase) and `code`.",
+                Items = new OpenApiSchema
+                {
+                    Type = JsonSchemaType.Object,
+                    Properties = new Dictionary<string, IOpenApiSchema>
+                    {
+                        ["field"] = new OpenApiSchema { Type = JsonSchemaType.String },
+                        ["code"] = new OpenApiSchema { Type = JsonSchemaType.String },
+                    },
+                    Required = new HashSet<string> { "field", "code" },
+                },
+            };
+        }
+
         schema.Required ??= new HashSet<string>();
         schema.Required.Add(ProblemFields.Code);
         schema.Required.Add(ProblemFields.CorrelationId);

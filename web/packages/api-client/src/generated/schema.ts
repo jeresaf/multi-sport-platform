@@ -3,10 +3,100 @@
  * Do not make direct changes to the file.
  */
 
-export type paths = Record<string, never>;
+export interface paths {
+    "/api/platform/v1/diagnostics/outbox": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List outbox messages
+         * @description Outbox messages of every module, newest first, without their payloads. Filter by `module` (a module schema) and `status` (PENDING, PROCESSED or FAILED); `limit` is 1–100 (25). `heldBackBy` names the earlier message a PENDING one waits for.
+         */
+        get: operations["ListOutboxMessages"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/v1/diagnostics/outbox/{module}/{messageId}/redrive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Re-drive a failed outbox message
+         * @description Moves one FAILED message back to PENDING with its attempts reset; the processor delivers it on its next poll. Fix the cause first: a message that fails again ends FAILED again.
+         */
+        post: operations["RedriveOutboxMessage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+}
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        ListOutboxMessagesResponse: {
+            items: components["schemas"]["OutboxMessageResponse"][];
+            page: components["schemas"]["PageInfo"];
+        };
+        /**
+         * @description One outbox message in the platform diagnostics: envelope and delivery state, no payload. `heldBackBy` is set on
+         *     a `PENDING` message that waits for an earlier, not yet processed message of its aggregate.
+         */
+        OutboxMessageResponse: {
+            module: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: int64 */
+            sequence: number;
+            eventName: string;
+            /** Format: int32 */
+            eventVersion: number;
+            aggregateType: string;
+            /** Format: uuid */
+            aggregateId: string;
+            /** Format: uuid */
+            tenantId: null | string;
+            correlationId: null | string;
+            /** Format: date-time */
+            occurredAt: string;
+            status: components["schemas"]["OutboxMessageStatus"];
+            /** Format: int32 */
+            attempts: number;
+            /** Format: date-time */
+            nextAttemptAt: string;
+            lastError: null | string;
+            /** Format: date-time */
+            processedAt: null | string;
+            /** Format: uuid */
+            heldBackBy: null | string;
+        };
+        /**
+         * @description Delivery status of an outbox message (docs/domain/state-machines.md, "Outbox message").
+         * @enum {unknown}
+         */
+        OutboxMessageStatus: "PENDING" | "PROCESSED" | "FAILED";
+        /**
+         * @description The `page` member of a cursor-paginated list (docs/architecture/api-conventions.md): pass
+         *     NextCursor as `cursor` to get the next page; it is null on the last page.
+         */
+        PageInfo: {
+            nextCursor: null | string;
+            hasMore: boolean;
+        };
         ProblemDetails: {
             type?: null | string;
             title?: null | string;
@@ -18,6 +108,15 @@ export interface components {
             code: string;
             /** @description The request's correlation ID (also the `X-Correlation-Id` response header). */
             correlationId: string;
+            /** @description Validation failures, one per field: `field` (camelCase) and `code`. */
+            errors?: {
+                field: string;
+                code: string;
+            }[];
+        };
+        /** @description Why the message is re-driven; the audit entry records it (action audit `REQUIRED_WITH_REASON`). */
+        RedriveOutboxMessageRequest: {
+            reason: null | string;
         };
     };
     responses: never;
@@ -27,4 +126,93 @@ export interface components {
     pathItems: never;
 }
 export type $defs = Record<string, never>;
-export type operations = Record<string, never>;
+export interface operations {
+    ListOutboxMessages: {
+        parameters: {
+            query?: {
+                module?: string;
+                status?: string;
+                limit?: string;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListOutboxMessagesResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_QUERY` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    RedriveOutboxMessage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                module: string;
+                messageId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RedriveOutboxMessageRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OutboxMessageResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_REASON_REQUIRED` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `PLATFORM_OUTBOX_MESSAGE_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `PLATFORM_OUTBOX_MESSAGE_NOT_FAILED` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+}

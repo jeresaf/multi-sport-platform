@@ -5,4 +5,9 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
+  <!-- Request-shape validators (Apache-2.0); run by RequestValidationExtensions in the .Api namespace. -->
+  <ItemGroup>
+    <PackageReference Include="FluentValidation" />
+  </ItemGroup>
+
 </Project>

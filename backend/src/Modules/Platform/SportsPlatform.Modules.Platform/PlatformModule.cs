@@ -1,8 +1,11 @@
+using FluentValidation;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SportsPlatform.BuildingBlocks.Modules;
 using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Persistence.Messaging;
+using SportsPlatform.Modules.Platform.Features.Outbox.ListOutboxMessages;
+using SportsPlatform.Modules.Platform.Features.Outbox.RedriveOutboxMessage;
 using SportsPlatform.Modules.Platform.Infrastructure;
 using SportsPlatform.Modules.Platform.Infrastructure.Messaging;
 
@@ -27,9 +30,18 @@ public sealed class PlatformModule : IModule
         services.AddOptions<OutboxOptions>().Bind(configuration.GetSection(OutboxOptions.SectionName));
         services.AddOutboxProcessor();
         services.AddHostedService<OutboxHostedService>();
+
+        services.AddOutboxDiagnostics();
+        services.AddScoped<ListOutboxMessagesHandler>();
+        services.AddScoped<RedriveOutboxMessageHandler>();
+        services.AddSingleton<IValidator<ListOutboxMessagesRequest>, ListOutboxMessagesRequestValidator>();
+        services.AddSingleton<IValidator<RedriveOutboxMessageRequest>, RedriveOutboxMessageRequestValidator>();
     }
 
     public void MapEndpoints(ApiEndpointGroups groups)
     {
+        ArgumentNullException.ThrowIfNull(groups);
+        ListOutboxMessagesEndpoint.Map(groups.Platform);
+        RedriveOutboxMessageEndpoint.Map(groups.Platform);
     }
 }

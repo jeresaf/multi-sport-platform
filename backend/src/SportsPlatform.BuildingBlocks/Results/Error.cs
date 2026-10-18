@@ -27,6 +27,9 @@ public sealed partial record Error
 
     public ErrorKind Kind { get; }
 
+    /// <summary>Whether <paramref name="code"/> has the <c>AREA_CONDITION</c> format.</summary>
+    public static bool IsCode(string? code) => code is not null && CodeFormat().IsMatch(code);
+
     [GeneratedRegex("^[A-Z][A-Z0-9]*(_[A-Z0-9]+)+$")]
     private static partial Regex CodeFormat();
 }

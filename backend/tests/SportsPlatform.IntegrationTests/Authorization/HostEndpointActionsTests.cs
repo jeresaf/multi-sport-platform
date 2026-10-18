@@ -54,7 +54,7 @@ public sealed class HostEndpointActionsTests
     }
 }
 
-/// <summary>The real Host's authorization registration; T5's outbox endpoints add end-to-end allowed/denied tests.</summary>
+/// <summary>The real Host's authorization registration; OutboxDiagnosticsTests checks allowed and denied end to end.</summary>
 public sealed class HostAuthorizationTests(HostOnlyApp factory) : IClassFixture<HostOnlyApp>
 {
     [Fact]

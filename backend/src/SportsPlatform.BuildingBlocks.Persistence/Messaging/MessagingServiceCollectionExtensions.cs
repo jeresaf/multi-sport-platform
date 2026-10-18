@@ -47,6 +47,14 @@ public static partial class MessagingServiceCollectionExtensions
         return services;
     }
 
+    /// <summary>Lists and re-drives every module's outbox messages (the Platform module's diagnostics endpoints).</summary>
+    public static IServiceCollection AddOutboxDiagnostics(this IServiceCollection services)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        services.TryAddSingleton<OutboxDiagnostics>();
+        return services;
+    }
+
     [GeneratedRegex(@"^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+\z")]
     private static partial Regex ConsumerName();
 }

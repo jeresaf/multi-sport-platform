@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using SportsPlatform.BuildingBlocks.Api;
+using SportsPlatform.BuildingBlocks.Persistence.Messaging;
 using SportsPlatform.BuildingBlocks.Results;
 
 namespace SportsPlatform.Host.Api;
@@ -21,7 +22,13 @@ public static class ApiConventions
 
         // Numbers are JSON numbers: the web default also accepts "5", which types every number in the OpenAPI
         // document (and the generated client) as `integer | string`.
-        services.ConfigureHttpJsonOptions(options => options.SerializerOptions.NumberHandling = JsonNumberHandling.Strict);
+        // Enums are UPPER_SNAKE strings, never numbers (as in outbox payloads: MessageSerialization).
+        services.ConfigureHttpJsonOptions(options =>
+        {
+            options.SerializerOptions.NumberHandling = JsonNumberHandling.Strict;
+            options.SerializerOptions.Converters.Add(
+                new JsonStringEnumConverter(MessageSerialization.EnumNamingPolicy, allowIntegerValues: false));
+        });
 
         var typeBaseUri = configuration[TypeBaseUriSetting];
         services.AddProblemDetails(options => options.CustomizeProblemDetails = context => Customize(context, typeBaseUri));

@@ -30,7 +30,7 @@ OutboxProcessor (hosted service, polls ~500 ms, batches, FOR UPDATE SKIP LOCKED)
 ```
 
 - Retries with exponential backoff; after N failures the message is marked `FAILED` and listed in the platform
-  diagnostics page (re-drive button, audited).
+  diagnostics page (re-drive button, audited; endpoints below).
 - **Audit uses the same path:** for successful audit-required actions the command pipeline writes an
   `AuditRecorded` message to the module's outbox in the same transaction as the change, and Platform appends it
   to `audit.audit_entries` (so audit can never disagree with what committed). Authorization denials and failures
@@ -92,6 +92,16 @@ OutboxProcessor (hosted service, polls ~500 ms, batches, FOR UPDATE SKIP LOCKED)
   named or struct event, a consumer subscribed twice, or a consumer subscribed to an event no Contracts declare; a test fails for an
   event declared outside a Contracts assembly. An event with no consumers is listed with none ("—"): its messages are
   marked `PROCESSED` undelivered.
+- **Diagnostics (S01-T5b-2).** `GET /api/platform/v1/diagnostics/outbox` (`platform.outbox.read`) lists every
+  module's messages newest first, by message ID (UUIDv7), with optional `module` (a module schema), `status`
+  (`PENDING`/`PROCESSED`/`FAILED`), `limit` (1–100, default 25) and `cursor`. Items carry the envelope and delivery
+  state, never the payload; `heldBackBy` is the earliest earlier message of the same aggregate that a `PENDING` message
+  waits for. `POST /api/platform/v1/diagnostics/outbox/{module}/{messageId}/redrive` (`platform.outbox.redrive`, body
+  `{"reason": "…"}`, 1–500 characters) locks the row and moves one `FAILED` message to `PENDING` with `attempts` 0, due
+  now; `last_error` stays until the next outcome. Anything not `FAILED` is `409 PLATFORM_OUTBOX_MESSAGE_NOT_FAILED`. The
+  code is `OutboxDiagnostics` (BuildingBlocks, next to the processor): like the processor it reads each module's table
+  through that module's DbContext, never across schemas; the Platform module maps the endpoints. Fix the cause before
+  re-driving: a message that fails again ends `FAILED` again after `MaxAttempts`.
 - **Sizing.** The claim transaction stays open while its batch is delivered, and every delivery uses a second
   connection: count about two pooled connections per poll.
 

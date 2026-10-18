@@ -14,7 +14,9 @@ paths:
 
 ## Adding a use case
 1. Folder `Features/<Area>/<UseCase>/` with request, handler, validator (FluentValidation for request shape),
-   endpoint mapping and response DTO.
+   endpoint mapping and response DTO. Register the validator as `IValidator<TRequest>` in the module and add
+   `.ValidateRequest<TRequest>(<error>)` to the endpoint (query parameters: `[AsParameters]` record with
+   `[FromQuery(Name = "camelCase")]`). Custom messages that never echo the value; no domain rules in validators.
 2. Endpoint declares exactly one action: `.RequireAction(<Module>Actions.X)` (or `.AllowPublic()` for public reads).
 3. Handler loads the aggregate, calls a domain method, saves. Expected failures → `Result.Failure(<Module>Errors.X)`.
    The endpoint returns `result.ToHttpResult(...)` (Problem Details with the error's `code`).

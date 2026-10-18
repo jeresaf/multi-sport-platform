@@ -7,15 +7,14 @@ at the start of every review.
 
 - **Current slice:** S01 — Backend platform (docs/build/slices/S01-backend-platform.md). S00 is on `main`; its
   "new contributor in under 30 minutes" check is still with the owner
-- **Current task:** none. S01-T5b-1 (event catalogue) is in review as #21
-- **Next:** S01-T5b-2 (outbox diagnostics and re-drive)
+- **Current task:** none. S01-T5b-2 (outbox diagnostics and re-drive) is in review as #22
+- **Next:** S01-T6 (audit)
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S01-T5b-2 — Outbox diagnostics and re-drive
-2. S01-T6 — Audit
-3. S01-T7 — Seed framework and reference data
+1. S01-T6 — Audit
+2. S01-T7 — Seed framework and reference data
 
 ## Log
 
@@ -36,6 +35,7 @@ at the start of every review.
 | 2026-10-17 | S01-T4 | #19 | `ActionDefinition` (code, scope, scopable-by, audit, entitlement, idempotent, since), `.RequireAction(...)`/`.AllowPublic()`, `IAuthorizationEvaluator` (default deny → 403 `AUTH_FORBIDDEN`) enforced by a middleware after routing; Host refuses to build with an unmarked, double-marked or public admin/platform endpoint; health, OpenAPI, Scalar and the public group are public; `PlatformActions` (`platform.outbox.read`, `platform.outbox.redrive`); `export-catalogues` → `docs/generated/actions.md`, `contracts/actions.json`; `TestAuthorizationEvaluator` | Middleware instead of endpoint filter and build-time endpoint check (owner). Pre-review: marked non-route endpoints evaluated, protected paths from parsed segments |
 | 2026-10-18 | S01-T5a | #20 | Domain event dispatch (`IDomainEventSubscriber<T>`, rounds before commit, `MessagingInterceptor`); `outbox_messages`/`inbox_messages` in every module schema; `ModuleDbContext.Publish` with the ADR-0009 envelope; `OutboxProcessor` (`FOR UPDATE SKIP LOCKED`, strict per-aggregate `sequence` order, backoff 2 s…5 min, `FAILED` after `MaxAttempts`) hosted by Platform; consumers (`IIntegrationEventConsumer<T>`) deduplicated by the inbox under the event's tenant; scoped `TenantContext`/`CorrelationContext`; outbox state machine in state-machines.md | T5 split in two (owner). No RLS on outbox/inbox (owner, Q15). Pre-review: strict per-aggregate ordering (owner) with `sequence` and monotonic outbox IDs (EF orders inserts by key); ~1,700 changed lines without migrations, kept as one PR. Review: per-module backoff on failures (R1); migrations kept as two per context (R2, owner) |
 | 2026-10-18 | S01-T5b-1 | #21 | `EventCatalogue` (Host): every `IIntegrationEvent` in the modules' Contracts with payload members (camelCase name, simple type, nullability) and registered consumers; `export-catalogues` → `docs/generated/events.md`, `contracts/events.json` (empty: no events yet), checked by the `Contracts` job | T5b split in two (owner). Export fails on duplicate, badly named or struct events, undescribable payload types, a consumer registered twice or subscribed to an undeclared event (pre-review). No `since` column. Review: payload enums are UPPER_SNAKE strings (R1), `DateTime` members rejected (R2) |
+| 2026-10-18 | S01-T5b-2 | #22 | `OutboxDiagnostics` (BuildingBlocks, through each module's DbContext); Platform endpoints `GET /api/platform/v1/diagnostics/outbox` (`module`, `status`, `limit`, `cursor`; newest first across modules; no payload; `heldBackBy`) and `POST …/{module}/{messageId}/redrive` (`reason` 1–500, `FAILED` → `PENDING`, attempts 0); `PLATFORM_OUTBOX_MESSAGE_NOT_FOUND`/`_NOT_FAILED`, `VALIDATION_INVALID_QUERY`/`_REASON_REQUIRED`; HTTP JSON enums as UPPER_SNAKE strings; allowed/denied tests for both outbox actions; T5 acceptance complete | FluentValidation 12.2.0 (Apache-2.0, owner on review) with `.ValidateRequest<T>()` and `errors: [{field, code}]`; `ToProblem(detail)`; `TestAuthorizationEvaluator.Reset` before each database test. ~940 changed lines without generated files, kept as one PR. Review: `limit` parsed by the request, so every bad value is `VALIDATION_INVALID_QUERY` (R1); T6 audits the re-drive in the target module's outbox (R2) |
 
 ## Deviations from spec (agreed)
 
@@ -80,7 +80,10 @@ at the start of every review.
   back later messages of its aggregate. The PR is well over the ~600-line guideline; kept as one PR.
   T5b is delivered as two PRs (T5b-1 event catalogue; T5b-2 diagnostics and re-drive). Owner approved the plan
   2026-10-18, with its defaults: re-drive is one message at a time, takes a required reason that T6's audit records,
-  and the diagnostics list leaves the payload out.
+  and the diagnostics list leaves the payload out. T5b-2 (plan approved 2026-10-18): `VALIDATION_INVALID_QUERY` and
+  `VALIDATION_REASON_REQUIRED` live in `CommonErrors` so later endpoints reuse them; no `status` means all statuses.
+  On the review (#22) the owner chose to add FluentValidation 12.2.0 (Apache-2.0) now: `.ValidateRequest<TRequest>(error)`
+  runs the module's `IValidator<TRequest>`, and validation problems carry `errors: [{field, code}]`.
 
 ## Tech debt / follow-ups
 
@@ -99,12 +102,16 @@ Consolidated by the S00 slice review (2026-10-17). Each item names where it gets
   re-run the reference seed after each reset (T7; reviewer note on #14).
 - `seed --reset` (Development, T7) can't TRUNCATE or DELETE append-only tables as `sp_migrator` (the triggers stop
   the owner too): reset by recreating the database or skip append-only tables (T7; S01-T2b).
-- T5b: test `platform.outbox.read`/`platform.outbox.redrive` allowed and denied through `TestApp.Authorization` (the
-  first end-to-end check that the real Host's pipeline enforces actions; S01-T4 pre-review).
-- T5b: the outbox diagnostics must show held-back messages (`PENDING` behind a `FAILED` one of the same
-  aggregate), since a `FAILED` message now blocks its aggregate (S01-T5a pre-review).
+- T6: audit the outbox diagnostics: the list (`platform.outbox.read`, `REQUIRED`) and the re-drive
+  (`REQUIRED_WITH_REASON`; `RedriveOutboxMessageHandler` already takes the reason). Both run outside any command
+  pipeline, so T6 must hook them in explicitly. Re-drive (reviewer, #22 R2): give `RedriveAsync` the actor and reason
+  and publish `AuditRecorded.V1` to the *target* module's outbox in the re-drive transaction (that is where the change
+  is, so audit and re-drive commit together); the list's read goes through Platform's own audit path (S01-T5b-2).
 - Alert on any `FAILED` outbox message (OpenTelemetry counter or gauge): with strict ordering one holds back its
   aggregate's later events until re-driven (infrastructure task after M1; #20 R3).
+- `GET …/diagnostics/outbox?status=…` orders by `id` and the only status index is `(status, next_attempt_at,
+  sequence)`: with a large `PROCESSED` history PostgreSQL sorts or walks the primary key. Add an index on `(status, id)`
+  if the page gets slow, at the latest with the retention job (S01-T5b-2 pre-review).
 - Outbox and inbox tables grow forever: add a retention job for `PROCESSED` messages and old inbox rows (Hangfire,
   first slice that adds scheduled jobs; S01-T5a).
 - 401 still produces Problem Details without a `code` (no authentication yet); comes with S03. 403 from the
@@ -116,9 +123,6 @@ Consolidated by the S00 slice review (2026-10-17). Each item names where it gets
   setting, used by the Development launch profile; JSON stays everywhere else. Can ride the next PR.
 - `/health/ready` is anonymous and runs `SELECT 1` on every hit: expose `/health/*` only to the load balancer and
   probes, or rate-limit them at the edge (infrastructure task after M1, ADR-0016; #17 R3).
-- The API's HTTP JSON has no string enum converter yet (api-conventions.md: enums as UPPER_SNAKE strings; payloads
-  got one in #21 R1). Add `JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseUpper)` to `ConfigureHttpJsonOptions`
-  with the first endpoint that carries an enum, so the OpenAPI document shows strings (S02 at the latest).
 - `ProblemDetails:TypeBaseUri` is the placeholder `https://errors.sportsplatform.invalid/` until Q10 (domain).
 
 **Owner decisions / housekeeping**

@@ -14,7 +14,8 @@ Modules call each other in-process through Contracts, never over HTTP.
 ## Resources and actions
 
 - Plural nouns, kebab-case paths: `/api/admin/v1/competition-editions/{id}`.
-- JSON properties camelCase; enums as UPPER_SNAKE strings.
+- JSON properties camelCase; enums as UPPER_SNAKE strings (`JsonStringEnumConverter` with `SnakeCaseUpper` in the
+  HTTP JSON options; numbers are rejected).
 - Use explicit action endpoints for workflow transitions instead of generic PATCH:
   `POST /api/admin/v1/contests/{id}/start`, `POST /api/admin/v1/results/{id}/approve`,
   `POST /api/admin/v1/fixtures/{id}/reschedule`.
@@ -62,6 +63,15 @@ Modules call each other in-process through Contracts, never over HTTP.
   `VALIDATION_UNSUPPORTED_MEDIA_TYPE` (415), `PLATFORM_ROUTE_NOT_FOUND` (404, no endpoint matched),
   `PLATFORM_METHOD_NOT_ALLOWED` (405), `PLATFORM_UNEXPECTED_ERROR` (500, any unhandled exception). Kestrel rejects
   408 (request timeout) and 431 (headers too large) before the pipeline runs, so those responses have no body.
+- Request-shape failures shared by every module's endpoints (`CommonErrors`): `VALIDATION_INVALID_QUERY` (400, a
+  query parameter has a value the endpoint doesn't accept; `detail` names it) and `VALIDATION_REASON_REQUIRED` (400,
+  an action whose audit is `REQUIRED_WITH_REASON` got no usable `reason`). `error.ToProblem(detail)` adds a
+  request-specific `detail`; it never carries internal details.
+- Request shape is checked by a FluentValidation validator (`IValidator<TRequest>`, registered by the module) that
+  `.ValidateRequest<TRequest>(error)` runs before the handler (after authorization). A failure is `error` with the
+  messages as `detail` and `errors: [{ "field": "limit", "code": "VALIDATION_INVALID_QUERY" }]`, one entry per
+  failure (camelCase field; a rule's `WithErrorCode` sets a finer code). Messages name the field and what is
+  accepted, never echo the value sent. Domain rules stay in the aggregates (expected failures as `Result`).
 - Never leak stack traces or internal details; they go to logs with the correlation ID.
 
 ## Correlation ID
