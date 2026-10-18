@@ -179,6 +179,27 @@ public sealed class AuditTrailTests : DatabaseTest
     }
 
     [Fact]
+    public async Task Cancelled_save_commits_no_audit_message_and_leaves_the_entry_pending()
+    {
+        await using var scope = App.Services.CreateAsyncScope();
+        var audit = BeginAudit(scope);
+        var context = scope.ServiceProvider.GetRequiredService<MessagingTestDbContext>();
+        using var cancellation = new CancellationTokenSource();
+        await cancellation.CancelAsync();
+
+        context.Probes.Add(new MessagingProbe("Kisaasi Recreation Ground"));
+        await Should.ThrowAsync<OperationCanceledException>(() => context.SaveChangesAsync(cancellation.Token));
+
+        audit.IsPending.ShouldBeTrue();
+        context.ChangeTracker.Entries<OutboxMessage>()
+            .ShouldNotContain(entry => entry.Entity.EventName == nameof(AuditRecorded) && entry.State == EntityState.Added);
+
+        await context.SaveChangesAsync(Ct); // the retry records the entry, once
+        audit.IsRecorded.ShouldBeTrue();
+        (await AuditMessagesAsync()).ShouldHaveSingleItem();
+    }
+
+    [Fact]
     public async Task Personal_data_in_metadata_is_masked_in_the_outbox_and_the_entry()
     {
         await using (var scope = App.Services.CreateAsyncScope())

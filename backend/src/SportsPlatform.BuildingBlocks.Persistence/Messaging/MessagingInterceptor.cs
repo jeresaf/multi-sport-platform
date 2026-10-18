@@ -26,7 +26,8 @@ public sealed class MessagingInterceptor(
     AuditScope audit,
     TimeProvider timeProvider) : SaveChangesInterceptor
 {
-    // The audit messages of the save under way; detached again if it fails, so a later save can't commit them.
+    // The audit messages of the save under way; detached again if it fails or is cancelled, so a later save can't
+    // commit them. One field: the interceptor is shared by the scope's DbContexts, whose saves run one after another.
     private InFlightAudit? _inFlight;
 
     /// <summary>More rounds than this means subscribers keep raising events for each other.</summary>
@@ -79,6 +80,14 @@ public sealed class MessagingInterceptor(
     }
 
     public override void SaveChangesFailed(DbContextErrorEventData eventData) => DiscardAudits(eventData);
+
+    public override void SaveChangesCanceled(DbContextEventData eventData) => DiscardAudits(eventData);
+
+    public override Task SaveChangesCanceledAsync(DbContextEventData eventData, CancellationToken cancellationToken = default)
+    {
+        DiscardAudits(eventData);
+        return Task.CompletedTask;
+    }
 
     public override Task SaveChangesFailedAsync(DbContextErrorEventData eventData, CancellationToken cancellationToken = default)
     {
