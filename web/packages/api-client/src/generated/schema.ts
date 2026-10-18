@@ -35,7 +35,7 @@ export interface paths {
         put?: never;
         /**
          * Re-drive a failed outbox message
-         * @description Moves one FAILED message back to PENDING with its attempts reset; the processor delivers it on its next poll. Fix the cause first: a message that fails again ends FAILED again.
+         * @description Moves one FAILED message back to PENDING with its attempts reset; the processor delivers it on its next poll. Fix the cause first: a message that fails again ends FAILED again. The reason is kept permanently in the audit trail: don't include personal data.
          */
         post: operations["RedriveOutboxMessage"];
         delete?: never;
@@ -114,7 +114,10 @@ export interface components {
                 code: string;
             }[];
         };
-        /** @description Why the message is re-driven; the audit entry records it (action audit `REQUIRED_WITH_REASON`). */
+        /**
+         * @description Why the message is re-driven; the audit entry records it (action audit `REQUIRED_WITH_REASON`). Kept permanently
+         *     and not redacted, so it must not contain personal data.
+         */
         RedriveOutboxMessageRequest: {
             reason: null | string;
         };
