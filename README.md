@@ -45,7 +45,7 @@ infrastructure/local/postgres/check-roles.sh      # proves the database roles (s
   that setting stops the API at startup, so only the CLI ever holds the `sp_migrator` credentials.
 - Seed data: `dotnet run --project backend/tools/SportsPlatform.Cli -- seed --category REFERENCE` (or
   `CONFIGURATION`, `DEMO`, `TEST`; lower categories run first, unchanged seeders are skipped). Add `--reset` to drop
-  every module schema and migrate again first (Development only). `DEMO` and `TEST` run only in Development,
+  every module schema and migrate again first (Development only, and only a local database). `DEMO` and `TEST` run only in Development,
   Staging and Testing.
 - Mailpit: SMTP `localhost:1025`, inbox at http://localhost:8025.
 - Optional OpenTelemetry dashboard: `docker compose --profile observability up -d`, then http://localhost:18888

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Npgsql;
 using SportsPlatform.BuildingBlocks.Persistence.Seeding;
 
 namespace SportsPlatform.BuildingBlocks.Persistence;
@@ -8,8 +9,11 @@ namespace SportsPlatform.BuildingBlocks.Persistence;
 /// <summary>
 /// Development's <c>seed --reset</c>: drops every module schema (and any other schema a module maps to, like
 /// Platform's <c>audit</c>) as their owner, then applies the migrations again. Dropping, not truncating, because the
-/// append-only triggers reject TRUNCATE for the owner too. Refuses to run outside Development, whoever calls it; the
-/// drops are one transaction.
+/// append-only triggers reject TRUNCATE for the owner too. The drops are one transaction. Two independent checks,
+/// whoever calls it: the environment is Development, and the <c>Migrator</c> connection points at a local server
+/// (localhost, a loopback address, a Unix socket or the compose service <c>postgres</c>), so Development settings with
+/// another environment's credentials exported can't wipe that database. A non-local Development database needs
+/// <c>Seeding:AllowResetOf</c> set to its host.
 /// </summary>
 public sealed partial class DatabaseReset(
     IEnumerable<ModuleDatabase> databases,
@@ -18,11 +22,37 @@ public sealed partial class DatabaseReset(
     SeedEnvironment environment,
     ILogger<DatabaseReset> logger)
 {
-    public async Task ResetAsync(CancellationToken cancellationToken = default)
+    public const string AllowResetOfKey = "Seeding:AllowResetOf";
+
+    private static readonly string[] _localHosts = ["localhost", "127.0.0.1", "::1", "postgres"];
+
+    /// <summary>Why a reset is refused here, or null when it may run. <see cref="ResetAsync"/> checks it again.</summary>
+    public string? Refusal()
     {
         if (!string.Equals(environment.Name, SeedEnvironmentPolicy.Development, StringComparison.Ordinal))
         {
-            throw new InvalidOperationException($"A database reset is allowed only in Development (environment: {environment.Name}).");
+            return $"A database reset is allowed only in Development (environment: {environment.Name}).";
+        }
+
+        var connectionString = PersistenceServiceCollectionExtensions.RequiredConnectionString(
+            configuration, ConnectionStringNames.Migrator);
+        var allowed = configuration[AllowResetOfKey];
+        var hosts = Hosts(new NpgsqlConnectionStringBuilder(connectionString).Host);
+        var remote = hosts.FirstOrDefault(host => !IsLocal(host) && !string.Equals(host, allowed, StringComparison.OrdinalIgnoreCase));
+        if (hosts.Count == 0 || remote is not null)
+        {
+            return $"A database reset drops only a local database; the Migrator connection points at '{remote ?? "(no host)"}'. " +
+                $"For a non-local Development database, set {AllowResetOfKey} to its host.";
+        }
+
+        return null;
+    }
+
+    public async Task ResetAsync(CancellationToken cancellationToken = default)
+    {
+        if (Refusal() is { } refusal)
+        {
+            throw new InvalidOperationException(refusal);
         }
 
         var connectionString = PersistenceServiceCollectionExtensions.RequiredConnectionString(
@@ -60,6 +90,27 @@ public sealed partial class DatabaseReset(
 
         await migrationRunner.RunAsync(cancellationToken);
     }
+
+    // Npgsql's Host is a comma-separated list of host[:port]; an IPv6 address may be bracketed.
+    private static List<string> Hosts(string? value) => [.. (value ?? string.Empty)
+        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .Select(StripPort)];
+
+    private static string StripPort(string host)
+    {
+        if (host.StartsWith('['))
+        {
+            var end = host.IndexOf(']', StringComparison.Ordinal);
+            return end > 0 ? host[1..end] : host;
+        }
+
+        // One colon: host:port. More than one: a bare IPv6 address.
+        var colon = host.IndexOf(':', StringComparison.Ordinal);
+        return colon > 0 && colon == host.LastIndexOf(':') ? host[..colon] : host;
+    }
+
+    private static bool IsLocal(string host) =>
+        host.StartsWith('/') || _localHosts.Contains(host, StringComparer.OrdinalIgnoreCase);
 
     private static bool IsSystemSchema(string schema) =>
         schema is "public" or "information_schema" || schema.StartsWith("pg_", StringComparison.Ordinal);
