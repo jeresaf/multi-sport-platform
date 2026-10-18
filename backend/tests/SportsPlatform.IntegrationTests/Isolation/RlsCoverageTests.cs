@@ -6,7 +6,8 @@ namespace SportsPlatform.IntegrationTests.Isolation;
 /// <summary>
 /// Every table with a <c>tenant_id</c> column, in every schema the migrations created (test schemas included), has
 /// row-level security enabled and forced and the <c>tenant_isolation</c> policy (<c>EnableTenantRls</c>), and no other
-/// permissive policy that would widen it. Exceptions are listed with a reason (S02 D4).
+/// permissive policy that would widen it. A materialized view with <c>tenant_id</c> fails too (it can't have RLS), so it
+/// needs an exception with a reason. Exceptions are listed with a reason (S02 D4).
 /// </summary>
 public sealed class RlsCoverageTests(PostgresFixture fixture) : DatabaseTest(fixture)
 {
@@ -34,7 +35,7 @@ public sealed class RlsCoverageTests(PostgresFixture fixture) : DatabaseTest(fix
         FROM pg_class c
         JOIN pg_namespace n ON n.oid = c.relnamespace
         JOIN pg_attribute a ON a.attrelid = c.oid AND a.attname = 'tenant_id' AND NOT a.attisdropped
-        WHERE c.relkind IN ('r', 'p')
+        WHERE c.relkind IN ('r', 'p', 'm')
           AND n.nspname NOT IN ('pg_catalog', 'information_schema') AND n.nspname NOT LIKE 'pg\_%'
         ORDER BY 1
         """;

@@ -155,6 +155,11 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
   middleware sets the tenant before authorization (404 for an unknown tenant); then drop `Set` from the handlers and
   test that those entries carry the target tenant (S02-T1a pre-review).
 
+- **S02-T3:** `AuditScope.Describe(targetTenantId:)` throws when the scope already has another tenant (S02-T2b). Platform
+  routes have no scope tenant today; T3's host resolution must not set one on `/api/platform` (or
+  `GET /api/platform/v1/audit-entries?tenantId=<other>` from a tenant host would be a 500). Add a test with T3 (S02-T2b
+  pre-review).
+
 **S03 — identity and access**
 - Anonymous actor for audit (#23 R1): `actor_kind` allows `USER`/`SYSTEM` and `actor_id` is NOT NULL, so once S03
   has real sign-in an anonymous 401 on an audited endpoint would fail the direct insert and the denial would only be
