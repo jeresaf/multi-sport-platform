@@ -32,7 +32,9 @@ public sealed class IfMatch
             return true;
         }
 
-        if (!EntityTagHeaderValue.TryParseStrictList(header, out var tags) || tags.Count == 0)
+        // RFC 9110: "*" / #entity-tag, so "*" never shares the header with tags.
+        if (!EntityTagHeaderValue.TryParseStrictList(header, out var tags) || tags.Count == 0
+            || (tags.Count > 1 && tags.Any(tag => tag.Equals(EntityTagHeaderValue.Any))))
         {
             return false;
         }

@@ -153,8 +153,44 @@ public sealed class ChangeTenantStatusTests(PostgresFixture fixture) : DatabaseT
     }
 
     [Theory]
+    [InlineData("suspend")]
+    [InlineData("archive")]
+    [InlineData("unarchive")]
+    public async Task A_reason_transition_without_a_body_is_malformed(string transition)
+    {
+        var from = transition == "unarchive" ? TenantStatus.Archived : TenantStatus.Active;
+        var tenantId = await TenantTestData.SaveTenantAsync(App.Services, "kmsa", from, Ct);
+
+        using var response = await PostJsonAsync(tenantId, transition, null);
+
+        await response.ShouldBeProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_MALFORMED_REQUEST");
+        (await TenantTestData.TenantAsync(App.Services, tenantId, Ct)).Status.ShouldBe(from);
+    }
+
+    [Fact]
+    public async Task The_reason_is_stored_trimmed_and_may_be_500_characters()
+    {
+        var active = await TenantTestData.SaveTenantAsync(App.Services, "kmsa", TenantStatus.Active, Ct);
+        var archived = await TenantTestData.SaveTenantAsync(App.Services, "elssc", TenantStatus.Archived, Ct);
+        var longest = new string('x', 500);
+
+        using var suspended = await PostAsync(active, "suspend", new { reason = $"  {_reason}  " });
+        using var unarchived = await PostAsync(archived, "unarchive", new { reason = longest });
+
+        suspended.StatusCode.ShouldBe(HttpStatusCode.OK);
+        unarchived.StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await TenantTestData.HistoryAsync(App.Services, active, Ct))[^1].Reason.ShouldBe(_reason);
+        (await TenantTestData.HistoryAsync(App.Services, archived, Ct))[^1].Reason.ShouldBe(longest);
+        var processor = App.Services.GetRequiredService<OutboxProcessor>();
+        await processor.ProcessOnceAsync(Ct);
+        await processor.ProcessOnceAsync(Ct);
+        (await AuditTestData.EntriesAsync(App.Services, Ct)).Single(e => e.TenantId == active).Reason.ShouldBe(_reason);
+    }
+
+    [Theory]
     [InlineData(null)]
     [InlineData("{}")]
+    [InlineData("null")]
     public async Task Activate_and_restore_take_an_optional_body(string? body)
     {
         var provisioning = await TenantTestData.SaveTenantAsync(App.Services, "kmsa", TenantStatus.Provisioning, Ct);
@@ -165,6 +201,19 @@ public sealed class ChangeTenantStatusTests(PostgresFixture fixture) : DatabaseT
 
         activated.StatusCode.ShouldBe(HttpStatusCode.OK);
         restored.StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await TenantTestData.TenantAsync(App.Services, provisioning, Ct)).Status.ShouldBe(TenantStatus.Active);
+        (await TenantTestData.TenantAsync(App.Services, suspended, Ct)).Status.ShouldBe(TenantStatus.Active);
+    }
+
+    [Fact]
+    public async Task Activate_refuses_a_reason_it_does_not_take()
+    {
+        var tenantId = await TenantTestData.SaveTenantAsync(App.Services, "kmsa", TenantStatus.Provisioning, Ct);
+
+        using var response = await PostAsync(tenantId, "activate", new { reason = _reason });
+
+        await response.ShouldBeProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_MALFORMED_REQUEST");
+        (await TenantTestData.TenantAsync(App.Services, tenantId, Ct)).Status.ShouldBe(TenantStatus.Provisioning);
     }
 
     [Fact]

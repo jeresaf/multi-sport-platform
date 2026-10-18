@@ -223,7 +223,7 @@ export interface paths {
         put?: never;
         /**
          * Suspend a tenant
-         * @description ACTIVE → SUSPENDED, with a reason: the tenant is blocked until restored. The reason is kept permanently in the status history and the audit trail: don't include personal data. Send `version` or `If-Match` from the last read to get 409 TENANT_CONCURRENCY_CONFLICT if the tenant changed since.
+         * @description ACTIVE → SUSPENDED, with a reason: the tenant is blocked until restored. The body `{ "reason": … }` is required (no body: VALIDATION_MALFORMED_REQUEST). The reason is kept permanently in the status history and the audit trail: don't include personal data. Send `version` or `If-Match` from the last read to get 409 TENANT_CONCURRENCY_CONFLICT if the tenant changed since.
          */
         post: operations["SuspendTenant"];
         delete?: never;
@@ -263,7 +263,7 @@ export interface paths {
         put?: never;
         /**
          * Archive a tenant
-         * @description ACTIVE or SUSPENDED → ARCHIVED, with a reason. Its data and slug are kept; the slug is never reused. The reason is kept permanently in the status history and the audit trail: don't include personal data. Send `version` or `If-Match` from the last read to get 409 TENANT_CONCURRENCY_CONFLICT if the tenant changed since.
+         * @description ACTIVE or SUSPENDED → ARCHIVED, with a reason. Its data and slug are kept; the slug is never reused. The body `{ "reason": … }` is required (no body: VALIDATION_MALFORMED_REQUEST). The reason is kept permanently in the status history and the audit trail: don't include personal data. Send `version` or `If-Match` from the last read to get 409 TENANT_CONCURRENCY_CONFLICT if the tenant changed since.
          */
         post: operations["ArchiveTenant"];
         delete?: never;
@@ -283,7 +283,7 @@ export interface paths {
         put?: never;
         /**
          * Unarchive a tenant
-         * @description ARCHIVED → SUSPENDED, with a reason; restore it as a separate step. The reason is kept permanently in the status history and the audit trail: don't include personal data. Send `version` or `If-Match` from the last read to get 409 TENANT_CONCURRENCY_CONFLICT if the tenant changed since.
+         * @description ARCHIVED → SUSPENDED, with a reason; restore it as a separate step. The body `{ "reason": … }` is required (no body: VALIDATION_MALFORMED_REQUEST). The reason is kept permanently in the status history and the audit trail: don't include personal data. Send `version` or `If-Match` from the last read to get 409 TENANT_CONCURRENCY_CONFLICT if the tenant changed since.
          */
         post: operations["UnarchiveTenant"];
         delete?: never;

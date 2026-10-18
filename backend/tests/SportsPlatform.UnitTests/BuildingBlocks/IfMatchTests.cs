@@ -27,6 +27,7 @@ public sealed class IfMatchTests
     [InlineData("1234")]
     [InlineData("\"1234")]
     [InlineData("\"1234\" garbage")]
+    [InlineData("*, \"1234\"")]
     public void A_header_that_does_not_parse_is_refused(string header) =>
         IfMatch.TryParse(new StringValues(header), out _).ShouldBeFalse();
 }

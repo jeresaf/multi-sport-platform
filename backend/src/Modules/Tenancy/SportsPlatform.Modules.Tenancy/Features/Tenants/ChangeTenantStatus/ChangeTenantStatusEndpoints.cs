@@ -61,7 +61,8 @@ internal static class ChangeTenantStatusEndpoints
             HandleAsync(tenantId, transition, request.Reason!.Trim(), request.Version, handler, httpRequest, response, cancellationToken))
         .WithName(name)
         .WithSummary(summary)
-        .WithDescription($"{description} {_reasonNote} {_versionNote}")
+        .WithDescription($"{description} The body `{{ \"reason\": … }}` is required (no body: VALIDATION_MALFORMED_REQUEST). " +
+            $"{_reasonNote} {_versionNote}")
         .RequireAction(action)
         .ValidateRequest<ChangeTenantStatusWithReasonRequest>(CommonErrors.ReasonRequired)
         .ProducesErrors(TenancyErrors.NotFound, TenancyErrors.InvalidTransition, TenancyErrors.ConcurrencyConflict);
