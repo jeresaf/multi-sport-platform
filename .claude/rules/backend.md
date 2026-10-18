@@ -27,6 +27,8 @@ paths:
    `Describe(entityType, entityId, reason, metadata)` before saving. Save once per command, never two saves at once. Work that saves in its own
    scope takes `audit.CreateRecord(...)` and calls `context.RecordAudit(record)`, then the handler calls
    `audit.MarkRecorded()` (docs/architecture/events-and-jobs.md, "Audit as built").
+   Reasons are free text, kept permanently and not redacted: every reason field (endpoint description, admin UI)
+   says "don't include personal data". Put personal values in classified metadata, never in the reason.
 
 ## Domain
 - Aggregates enforce invariants through methods; no public setters for state that has rules.
