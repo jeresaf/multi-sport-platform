@@ -8,6 +8,10 @@
     <Project Path="src/Modules/Platform/SportsPlatform.Modules.Platform.Contracts/SportsPlatform.Modules.Platform.Contracts.csproj" />
     <Project Path="src/Modules/Platform/SportsPlatform.Modules.Platform/SportsPlatform.Modules.Platform.csproj" />
   </Folder>
+  <Folder Name="/src/Modules/Tenancy/">
+    <Project Path="src/Modules/Tenancy/SportsPlatform.Modules.Tenancy.Contracts/SportsPlatform.Modules.Tenancy.Contracts.csproj" />
+    <Project Path="src/Modules/Tenancy/SportsPlatform.Modules.Tenancy/SportsPlatform.Modules.Tenancy.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/SportsPlatform.ArchitectureTests/SportsPlatform.ArchitectureTests.csproj" />
     <Project Path="tests/SportsPlatform.IntegrationTests/SportsPlatform.IntegrationTests.csproj" />

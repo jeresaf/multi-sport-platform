@@ -20,6 +20,7 @@
     <ProjectReference Include="..\SportsPlatform.BuildingBlocks\SportsPlatform.BuildingBlocks.csproj" />
     <ProjectReference Include="..\SportsPlatform.BuildingBlocks.Persistence\SportsPlatform.BuildingBlocks.Persistence.csproj" />
     <ProjectReference Include="..\Modules\Platform\SportsPlatform.Modules.Platform\SportsPlatform.Modules.Platform.csproj" />
+    <ProjectReference Include="..\Modules\Tenancy\SportsPlatform.Modules.Tenancy\SportsPlatform.Modules.Tenancy.csproj" />
   </ItemGroup>
 
 </Project>

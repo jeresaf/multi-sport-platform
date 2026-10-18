@@ -1,0 +1,40 @@
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Routing;
+using SportsPlatform.BuildingBlocks.Api;
+using SportsPlatform.BuildingBlocks.Results;
+
+namespace SportsPlatform.Modules.Tenancy.Features.Tenants.UpdateTenantProfile;
+
+internal static class UpdateTenantProfileEndpoint
+{
+    public static void Map(IEndpointRouteBuilder tenants) => tenants
+        .MapPatch("/{tenantId:guid}", HandleAsync)
+        .WithName("UpdateTenantProfile")
+        .WithSummary("Change a tenant's profile")
+        .WithDescription(
+            "Changes the fields sent; missing or null fields stay as they are. The slug never changes, and the status " +
+            "changes only through the status actions. Send `version` from the last read to get " +
+            "409 TENANT_CONCURRENCY_CONFLICT instead of overwriting someone else's change.")
+        .RequireAction(TenancyActions.TenantUpdate)
+        .ValidateRequest<UpdateTenantProfileRequest>(CommonErrors.InvalidRequest)
+        .ProducesErrors(TenancyErrors.NotFound, TenancyErrors.ConcurrencyConflict);
+
+    private static async Task<Results<Ok<TenantResponse>, ProblemHttpResult>> HandleAsync(
+        Guid tenantId,
+        UpdateTenantProfileRequest request,
+        UpdateTenantProfileHandler handler,
+        HttpResponse response,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.HandleAsync(tenantId, request, cancellationToken);
+        if (result.IsFailure)
+        {
+            return result.Error.ToProblem();
+        }
+
+        result.Value.SetETag(response);
+        return TypedResults.Ok(result.Value);
+    }
+}
