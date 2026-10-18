@@ -160,10 +160,258 @@
           }
         }
       }
+    },
+    "/api/platform/v1/audit-entries": {
+      "get": {
+        "tags": [
+          "Audit"
+        ],
+        "summary": "List audit entries",
+        "description": "Audit entries of every tenant, newest first. Filter by `tenantId`, `actorId`, `action` (an action code), `entityType` and `entityId` (`entityId` needs `entityType`), `correlationId`, `outcome` (SUCCESS, FAILURE or DENIED), and `from` (inclusive) / `to` (exclusive), ISO 8601 instants with an offset (encode `+` as `%2B`); `limit` is 1–100 (25). Entries recorded through a module's outbox arrive shortly after the action, so one can appear before a page already read. Every page read is itself audited: don't poll this list.",
+        "operationId": "ListAuditEntries",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "actorId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "action",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "entityType",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "entityId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "correlationId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "outcome",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListAuditEntriesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_QUERY`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_QUERY"
+            ]
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "ActorKind": {
+        "enum": [
+          "USER",
+          "SYSTEM"
+        ]
+      },
+      "AuditEntryResponse": {
+        "required": [
+          "id",
+          "occurredAt",
+          "actionCode",
+          "outcome",
+          "errorCode",
+          "actorKind",
+          "actorId",
+          "tenantId",
+          "entityType",
+          "entityId",
+          "source",
+          "correlationId",
+          "reason",
+          "metadata"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "actionCode": {
+            "type": "string"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/AuditOutcome"
+          },
+          "errorCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "actorKind": {
+            "$ref": "#/components/schemas/ActorKind"
+          },
+          "actorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tenantId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "entityType": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "entityId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "source": {
+            "$ref": "#/components/schemas/AuditSource"
+          },
+          "correlationId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "metadata": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/JsonElement"
+              }
+            ]
+          }
+        },
+        "description": "One audit entry as platform staff see it: every column, with `metadata` as the JSON object it was stored as\n(personal data already masked when it was recorded)."
+      },
+      "AuditOutcome": {
+        "enum": [
+          "SUCCESS",
+          "FAILURE",
+          "DENIED"
+        ],
+        "description": "How an audited action ended."
+      },
+      "AuditSource": {
+        "enum": [
+          "API",
+          "SYSTEM"
+        ],
+        "description": "Where the action came from."
+      },
+      "JsonElement": { },
+      "ListAuditEntriesResponse": {
+        "required": [
+          "items",
+          "page"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuditEntryResponse"
+            }
+          },
+          "page": {
+            "$ref": "#/components/schemas/PageInfo"
+          }
+        }
+      },
       "ListOutboxMessagesResponse": {
         "required": [
           "items",
@@ -393,6 +641,9 @@
   "tags": [
     {
       "name": "Diagnostics"
+    },
+    {
+      "name": "Audit"
     }
   ]
 }
