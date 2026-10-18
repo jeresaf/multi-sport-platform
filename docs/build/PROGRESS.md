@@ -47,6 +47,7 @@ at the start of every review.
 | 2026-10-18 | S02-T1a | #30 | New module `Tenancy` (schema `tenancy`): `tenants` (slug unique for ever, "C" collation, format checks) and append-only `tenant_status_history`; `Tenant` aggregate with the full state machine; `POST`/`GET`/`GET {id}`/`PATCH {id}` under `/api/platform/v1/tenants` (`tenant.create`, `tenant.read`, `tenant.update`, audited under the target tenant, D2); `TenantCreated.V1`; `IReferenceData` in Platform Contracts; `VALIDATION_INVALID_REQUEST`; `WithErrorCode` rule in backend.md | T1 split in two; locale, version, history and `publicEnabled` defaults (owner, plan). Status transitions over HTTP come with T1b |
 | 2026-10-18 | S02-T1b | #31 | `POST /api/platform/v1/tenants/{id}/{activate\|suspend\|restore\|archive\|unarchive}` (`tenant.activate`, `tenant.suspend`, `tenant.restore`, `tenant.archive`, `tenant.unarchive`; reason 1–500 for suspend, archive, unarchive) through one `ChangeTenantStatusHandler`; `TenantStatusChanged.V1`; `IfMatch` (BuildingBlocks `Api`) on PATCH and the transitions; slug check before the tenant is set; tests for both T1a races; T1 complete | Owner on #30: R1 evaluate `If-Match`, R2 amend D1. No migrations, new errors or dependencies. Pre-review found `ValidateRequest` threw (500) when a required body was missing (filters run with a null argument): now 400 `VALIDATION_MALFORMED_REQUEST`, also for the outbox re-drive |
 | 2026-10-18 | S02-T2a | #32 | Tenant isolation in EF and PostgreSQL: named query filter `TenantIsolation` on every `ITenantOwned`; `TenantOwnershipInterceptor` stamps `TenantId` through the change tracker (#13) and throws on no/another tenant; `TenantConnectionInterceptor` sets `app.tenant_id` on every open; `EnableTenantRls`/`DisableTenantRls`; composite FKs required between tenant-owned entities (checked at model build); `TenantContext.Set` once per scope (D1); `tenant_status_history` tenant-owned with RLS; isolation harness (`IIsolationSample` per entity), pool leak, consumers under RLS, D1 timing tests | T2 split in two and composite FKs enforced (owner). No new actions, errors, events or dependencies |
+| 2026-10-19 | S02-T2b | #PR | Audit under RLS: `audit.audit_entries` gets `EnableTenantRls`; `AddPlatformServiceDbContext` (connection `Platform`, not migrated) and `PlatformAuditDbContext` for `AuditLog`, `AuditRecordedConsumer` (inbox row in the same transaction) and the platform audit query (D3); tenant-first action/actor indexes and `(entity_type, entity_id, occurred_at)` (#24 R2); `AuditScope.Describe(targetTenantId:)` (audit read with `?tenantId=` audited under that tenant); RLS coverage test (forced RLS, one permissive `tenant_isolation` policy, exceptions with reasons); audit-under-RLS tests; architecture tests for `IgnoreQueryFilters` and the audit context's users; T2 complete | Only `*.outbox_messages` is an exception (`inbox_messages` has no `tenant_id`). No new actions, errors, events or dependencies |
 
 ## Deviations from spec (agreed)
 
@@ -126,6 +127,9 @@ at the start of every review.
   build and proven by the harness (owner; multi-tenancy.md said "where catastrophic"). Beyond the spec, the harness
   also proves a row can't be copied into another tenant (RLS `WITH CHECK`); append-only tables refuse cross-tenant
   `UPDATE`/`DELETE` by grant before RLS.
+  T2b (plan approved 2026-10-19): the RLS exception list has only `*.outbox_messages` (D4 also named `inbox_messages`,
+  which has no `tenant_id`); platform-wide audit filters by action or actor alone use the `occurred_at` index (the
+  action and actor indexes are tenant-first); the coverage test also refuses a second permissive policy.
 
 ## Tech debt / follow-ups
 
@@ -134,18 +138,10 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
 
 **S02 — tenancy**
 - Moving `BuildingBlocks/Modules` to a `BuildingBlocks.Web` project is optional, not planned (reviewer guidance on #13).
-- **S02-T2:** `audit.audit_entries` has a nullable `tenant_id` and no RLS: S02 adds the policy (tenant users see their tenant's
-  entries; entries with no tenant only through platform services) and the isolation tests, and revisits the audit
-  indexes (tenant first) with the policy (S01-T6a pre-review); then also make the entity index
-  `(entity_type, entity_id, occurred_at)` so an entity's history needs no sort (#24 R2).
 - **S02-T5:** DEMO/TEST seeders run application commands outside HTTP (#25 R3): before the first DEMO seeder (S02 or later),
   `SeedContext` gets a way to run commands as a tenant (set `TenantContext` in the seeder's scope, needed once S02's
   RLS is on) and begins an audit scope so demo data is audited with source `SYSTEM` (reviewer's suggestion; owner: yes,
   2026-10-18).
-- **S02-T2:** Platform reads of one tenant's data are audited with `tenant_id` NULL: `AuditScope` takes the tenant from
-  `ITenantContext`, empty on platform routes, so `GET /api/platform/v1/audit-entries?tenantId=…` stores the tenant only
-  in metadata. multi-tenancy.md says platform calls are audited with the target tenant: S02 adds a target tenant to
-  `AuditScope.Describe` (set when a platform read is filtered to one tenant) with the audit RLS (S01-T6b pre-review).
 - **S02-T4:** the tenant row holds `time_zone`, `default_locale`, `currency_code` and `public_enabled`, which T4's
   `tenant_settings` also lists: T4's plan decides the single source. Reviewer's suggestion: the tenant row keeps
   identity (slug, names, country, status); the editable values move to `tenant_settings` (tenant-owned, RLS) with a

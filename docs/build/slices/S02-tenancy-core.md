@@ -156,7 +156,7 @@ Deliver:
 Acceptance:
 - [ ] All test groups pass. A temporary commit that drops one policy makes the RLS coverage test fail; link the
       failing CI run in the PR.
-- [ ] `check-roles.sh` and the grants test still pass; nothing in feature code uses `IgnoreQueryFilters()`.
+- [x] `check-roles.sh` and the grants test still pass; nothing in feature code uses `IgnoreQueryFilters()`.
 
 ### T3 — Tenant context and resolution
 Deliver:
@@ -266,3 +266,14 @@ test. The query filter is named `TenantIsolation`. Foreign keys between tenant-o
 `conventions_test.tenant_probes`/`tenant_probe_notes`, `messaging_test.consumed_notes` and
 `tenancy.tenant_status_history`; it also checks that a row can't be copied into another tenant. Owner contexts (seeds
 on `Migrator`) have no tenant, so they can't write tenant-owned rows.
+
+**T2b.** The audit trail is a platform service: `PlatformAuditDbContext` (registered with
+`AddPlatformServiceDbContext`, connection `Platform`, never migrated) maps `audit_entries` and, from the base,
+Platform's outbox and inbox, so `AuditRecordedConsumer` commits its inbox row with the entry; `AuditLog` and the
+platform query use it too, and an architecture test allows no other users. `audit_entries` has `EnableTenantRls`;
+indexes `(tenant_id, action_code, occurred_at)`, `(tenant_id, actor_id, occurred_at)` and
+`(entity_type, entity_id, occurred_at)` replace the action, actor and entity ones (entity, actor and correlation IDs are
+global). `AuditScope.Describe(targetTenantId:)`: the scope's tenant wins, a different target throws. The RLS coverage
+test also refuses a second permissive policy and stale exceptions; its only exception is `*.outbox_messages`
+(`inbox_messages` has no `tenant_id`, D4 named it). `IgnoreQueryFilters(` is refused under `backend/src` by an
+architecture test. Under `FORCE` RLS the owner sees an audit entry only with `app.tenant_id` set.
