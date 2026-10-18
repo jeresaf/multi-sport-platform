@@ -56,7 +56,8 @@ public sealed class TenantIsolationTests(PostgresFixture fixture) : DatabaseTest
         {
             await using var scope = ScopeFor(_tenantB, contextType, out var context);
             context.Attach(row).State = state;
-            await Should.ThrowAsync<InvalidOperationException>(() => context.SaveChangesAsync(Ct));
+            (await Should.ThrowAsync<TenantIsolationViolationException>(() => context.SaveChangesAsync(Ct)))
+                .Violation.ShouldBe(TenantIsolationViolation.OtherTenant);
         }
 
         foreach (var sql in new[] { $"UPDATE {table} SET tenant_id = tenant_id WHERE id = @id", $"DELETE FROM {table} WHERE id = @id" })
