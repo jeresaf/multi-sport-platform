@@ -155,7 +155,7 @@ public sealed partial class OutboxProcessor
         var subscriptions = _subscriptions[(message.EventName, message.EventVersion)].ToList();
         if (subscriptions.Count == 0)
         {
-            // A forgotten consumer registration would drop events here; T5b's event catalogue makes that visible.
+            // A forgotten consumer registration would drop events here; docs/generated/events.md lists events without consumers.
             LogNoConsumers(message.Id, message.EventName, message.EventVersion);
         }
 

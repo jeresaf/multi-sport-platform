@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using SportsPlatform.BuildingBlocks.Persistence;
+using SportsPlatform.BuildingBlocks.Persistence.Messaging;
 using SportsPlatform.Host;
 using SportsPlatform.Host.Catalogues;
 using SportsPlatform.Host.Modules;
@@ -15,7 +16,7 @@ using SportsPlatform.Host.OpenApi;
 [
     ("migrate", "Apply database migrations for every module (as sp_migrator)", MigrateAsync),
     ("seed", "Run seeders for a category", null),
-    ("export-catalogues", "Write the action and error catalogues to docs/generated and contracts", ExportCataloguesAsync),
+    ("export-catalogues", "Write the action, error and event catalogues to docs/generated and contracts", ExportCataloguesAsync),
     ("export-openapi", "Write contracts/openapi.json", ExportOpenApiAsync),
     ("create-platform-admin", "Create the first platform administrator", null),
 ];
@@ -44,6 +45,14 @@ return await command.Run(args[1..]);
 
 static async Task<int> MigrateAsync(string[] args)
 {
+    using var host = BuildHost(args);
+    await host.Services.GetRequiredService<MigrationRunner>().RunAsync();
+    return 0;
+}
+
+// The Host's services and configuration, without the web app; nothing runs until a service is used.
+static IHost BuildHost(string[] args)
+{
     // appsettings*.json sit next to the CLI, not in the directory it is run from.
     var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
     {
@@ -51,10 +60,7 @@ static async Task<int> MigrateAsync(string[] args)
         ContentRootPath = AppContext.BaseDirectory,
     });
     builder.Services.AddSportsPlatform(builder.Configuration);
-    using var host = builder.Build();
-
-    await host.Services.GetRequiredService<MigrationRunner>().RunAsync();
-    return 0;
+    return builder.Build();
 }
 
 // Generated files are written from code only; CI (S01-T3c) regenerates them and fails when they are stale.
@@ -74,6 +80,12 @@ static async Task<int> ExportCataloguesAsync(string[] args)
     var errors = ErrorCatalogue.Build(ModuleRegistry.All);
     await WriteGeneratedAsync(Path.Combine(root, "docs", "generated", "errors.md"), ErrorCatalogue.ToMarkdown(errors));
     await WriteGeneratedAsync(Path.Combine(root, "contracts", "errors.json"), ErrorCatalogue.ToJson(errors));
+
+    // Consumers are what the modules register; building the services doesn't touch the database.
+    using var host = BuildHost(args);
+    var events = EventCatalogue.Build(ModuleRegistry.All, host.Services.GetServices<IntegrationEventSubscription>());
+    await WriteGeneratedAsync(Path.Combine(root, "docs", "generated", "events.md"), EventCatalogue.ToMarkdown(events));
+    await WriteGeneratedAsync(Path.Combine(root, "contracts", "events.json"), EventCatalogue.ToJson(events));
     return 0;
 }
 

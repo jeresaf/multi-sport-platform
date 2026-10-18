@@ -47,7 +47,7 @@ OutboxProcessor (hosted service, polls ~500 ms, batches, FOR UPDATE SKIP LOCKED)
   `context.Publish(new ResultApproved.V1(...), aggregateType, aggregateId)` on its module's DbContext; the message
   is saved by the same `SaveChangesAsync` as the change. Event types are records named `V<n>` nested in a static
   class named after the event (`IntegrationEventName`): `event_name` is the class name, `event_version` the number.
-  Payloads are JSON (camelCase).
+  Payloads are JSON (camelCase, enums as UPPER_SNAKE strings: `MessageSerialization`).
 - **Domain events.** `IDomainEventSubscriber<TEvent>`, registered with `services.AddDomainEventSubscriber<…>()`.
   `MessagingInterceptor` dispatches them during `SaveChangesAsync`, before the audit-column interceptor, in rounds
   (events raised by subscribers go to the next round; more than 10 rounds throws). Synchronous `SaveChanges` throws
@@ -84,6 +84,14 @@ OutboxProcessor (hosted service, polls ~500 ms, batches, FOR UPDATE SKIP LOCKED)
   processor, or `FAILED` (until it is re-driven, T5b). Outbox message IDs are strictly increasing UUIDv7s
   (`SequentialIds`) because EF Core orders one save's inserts by key: the messages of one save get their
   `sequence` in the order they were published.
+- **Catalogue (S01-T5b).** `export-catalogues` writes `docs/generated/events.md` and `contracts/events.json`: every
+  `IIntegrationEvent` in each module's `*.Contracts` assembly (name, version, producer module, payload members as
+  serialized with their type and nullability) and the consumers registered for it. Payload members are scalars or lists of
+  scalars; enums are UPPER_SNAKE strings, listed with their values (never numbers, so a stored message keeps its
+  meaning when members are added or reordered); `DateTime` and other types fail the export. The export also fails for an event declared twice, a badly
+  named or struct event, a consumer subscribed twice, or a consumer subscribed to an event no Contracts declare; a test fails for an
+  event declared outside a Contracts assembly. An event with no consumers is listed with none ("—"): its messages are
+  marked `PROCESSED` undelivered.
 - **Sizing.** The claim transaction stays open while its batch is delivered, and every delivery uses a second
   connection: count about two pooled connections per poll.
 
