@@ -15,7 +15,7 @@ public sealed class SeedLog
     public IReadOnlyList<string> Runs => _runs;
 
     /// <summary>The codes <see cref="ProbeReferenceSeeder"/> writes; its checksum follows them.</summary>
-    public IReadOnlyList<string> ProbeCodes { get; set; } = [];
+    public IReadOnlyList<string> ProbeCodes { get; set; } = ["UG", "KE"];
 
     /// <summary>A seeder that throws when it runs.</summary>
     public string? FailingKey { get; set; }
@@ -46,7 +46,7 @@ internal static class TestSeederRegistration
 {
     public static IServiceCollection AddTestSeeders(this IServiceCollection services, SeedLog log)
     {
-        log.Reset();
+        // Not reset here: hosts derived with WithWebHostBuilder register again, mid-test. DatabaseTest resets it.
         services.AddSingleton(log);
         // Out of run order on purpose: category, then Order, decide when a seeder runs, not registration.
         services.AddSeeder<TestProbeSeeder>();

@@ -41,7 +41,7 @@ public sealed class SeedRunnerTests(PostgresFixture fixture) : DatabaseTest(fixt
 
         report.IsRefused.ShouldBeFalse();
         App.Seeds.Runs.ShouldBe(_referenceSeeders);
-        (await SeedRunsAsync()).ShouldAllBe(run => run.Environment == "Production");
+        (await SeedRunsAsync()).Select(run => run.Environment).ShouldBe(["Production", "Production"]);
     }
 
     [Theory]
@@ -57,6 +57,18 @@ public sealed class SeedRunnerTests(PostgresFixture fixture) : DatabaseTest(fixt
 
         report.IsRefused.ShouldBeTrue();
         App.Seeds.Runs.ShouldBeEmpty();
+        (await AuditTestData.EntriesAsync(App.Services, Ct)).ShouldHaveSingleItem();
+    }
+
+    [Fact]
+    public async Task The_database_reset_refuses_outside_Development_whoever_calls_it()
+    {
+        await App.Services.GetRequiredService<IAuditLog>().AppendAsync(AuditTestData.Record(), Ct);
+
+        var exception = await Should.ThrowAsync<InvalidOperationException>(
+            () => App.Services.GetRequiredService<DatabaseReset>().ResetAsync(Ct));
+
+        exception.Message.ShouldContain("only in Development");
         (await AuditTestData.EntriesAsync(App.Services, Ct)).ShouldHaveSingleItem();
     }
 
@@ -147,12 +159,26 @@ public sealed class SeedRunnerTests(PostgresFixture fixture) : DatabaseTest(fixt
     }
 
     [Fact]
+    public async Task A_checksum_too_long_to_record_stops_the_run_before_the_seeder_writes()
+    {
+        App.Seeds.ProbeCodes = [.. Enumerable.Range(1, 40).Select(i => $"P{i:00}")]; // Checksum: 40 × 3 + 39 commas.
+
+        var exception = await Should.ThrowAsync<InvalidOperationException>(() => Runner(App).RunAsync(new SeedRequest(SeedCategory.Reference), Ct));
+
+        exception.Message.ShouldContain(ProbeReferenceSeeder.SeederKey);
+        App.Seeds.Runs.ShouldBeEmpty();
+        (await ProbeCodesAsync()).ShouldBeEmpty();
+        (await SeedRunsAsync()).ShouldBeEmpty();
+    }
+
+    [Fact]
     public async Task A_demo_seeder_gets_no_owner_context()
     {
         App.Seeds.DemoAsksForOwnerContext = true;
 
-        await Should.ThrowAsync<InvalidOperationException>(() => Runner(App).RunAsync(new SeedRequest(SeedCategory.Demo), Ct));
+        var exception = await Should.ThrowAsync<InvalidOperationException>(() => Runner(App).RunAsync(new SeedRequest(SeedCategory.Demo), Ct));
 
+        exception.Message.ShouldContain("never as the owner");
         (await SeedRunsAsync()).ShouldNotContain(run => run.Category == "DEMO");
     }
 
@@ -175,14 +201,26 @@ public sealed class SeedRunnerTests(PostgresFixture fixture) : DatabaseTest(fixt
     private static SeedRunner Runner(WebApplicationFactory<Program> app) => app.Services.GetRequiredService<SeedRunner>();
 
     // The test app in another environment: same database, actor, clock and test seeders. No outbox processor, no
-    // startup migration (Development's appsettings turn it on).
-    private WebApplicationFactory<Program> InEnvironment(string environment) => App.WithWebHostBuilder(builder => builder
-        .UseEnvironment(environment)
-        .ConfigureAppConfiguration(config => config.AddInMemoryCollection(new Dictionary<string, string?>
+    // startup migration (Development's appsettings turn it on). Development's appsettings also name the developer's
+    // local database: fail before anything runs unless the test container's connections won.
+    private WebApplicationFactory<Program> InEnvironment(string environment)
+    {
+        var app = App.WithWebHostBuilder(builder => builder
+            .UseEnvironment(environment)
+            .ConfigureAppConfiguration(config => config.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Outbox:Enabled"] = "false",
+                [StartupMigration.SettingKey] = "false",
+            })));
+
+        var configuration = app.Services.GetRequiredService<IConfiguration>();
+        foreach (var (name, role) in new[] { (ConnectionStringNames.Migrator, DatabaseRoles.Migrator), (ConnectionStringNames.App, DatabaseRoles.App) })
         {
-            ["Outbox:Enabled"] = "false",
-            [StartupMigration.SettingKey] = "false",
-        })));
+            configuration.GetConnectionString(name).ShouldBe(Fixture.ConnectionString(role));
+        }
+
+        return app;
+    }
 
     private Task<List<string>> ProbeCodesAsync() => QueryAsync(
         DatabaseRoles.App, "SELECT code FROM conventions_test.reference_probes ORDER BY code", reader => reader.GetString(0));

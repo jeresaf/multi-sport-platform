@@ -16,6 +16,12 @@ public sealed partial class SeedRunner(
     TimeProvider timeProvider,
     ILogger<SeedRunner> logger)
 {
+    /// <summary>The longest <see cref="ISeeder.Key"/> and <see cref="ISeeder.Checksum"/> that <c>seed_runs</c> stores.</summary>
+    public const int MaxKeyLength = 100;
+
+    /// <inheritdoc cref="MaxKeyLength"/>
+    public const int MaxChecksumLength = 100;
+
     public async Task<SeedReport> RunAsync(SeedRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -55,6 +61,12 @@ public sealed partial class SeedRunner(
         var runLog = scope.ServiceProvider.GetRequiredService<ISeedRunLog>();
 
         var checksum = seeder.Checksum;
+        // Before the seeder writes anything: the run couldn't be recorded afterwards.
+        if (string.IsNullOrWhiteSpace(checksum) || checksum.Length > MaxChecksumLength)
+        {
+            throw new InvalidOperationException($"Seeder {key} has an empty checksum or one longer than {MaxChecksumLength} characters.");
+        }
+
         if (await runLog.LastChecksumAsync(key, cancellationToken) == checksum)
         {
             LogSkipped(key);
@@ -78,15 +90,22 @@ public sealed partial class SeedRunner(
     internal static IEnumerable<ISeeder> Ordered(IEnumerable<ISeeder> seeders, IReadOnlyList<SeedCategory> categories)
     {
         var all = seeders.ToList();
+        var badKey = all.FirstOrDefault(s => string.IsNullOrWhiteSpace(s.Key) || s.Key.Length > MaxKeyLength);
+        if (badKey is not null)
+        {
+            throw new InvalidOperationException($"{badKey.GetType().Name} has an empty key or one longer than {MaxKeyLength} characters.");
+        }
+
         var duplicate = all.GroupBy(s => s.Key, StringComparer.Ordinal).FirstOrDefault(g => g.Count() > 1);
         if (duplicate is not null)
         {
             throw new InvalidOperationException($"Seeder key '{duplicate.Key}' is registered more than once.");
         }
 
+        var position = categories.Select((category, index) => (category, index)).ToDictionary(p => p.category, p => p.index);
         return all
-            .Where(s => categories.Contains(s.Category))
-            .OrderBy(s => categories.ToList().IndexOf(s.Category))
+            .Where(s => position.ContainsKey(s.Category))
+            .OrderBy(s => position[s.Category])
             .ThenBy(s => s.Order)
             .ThenBy(s => s.Key, StringComparer.Ordinal);
     }

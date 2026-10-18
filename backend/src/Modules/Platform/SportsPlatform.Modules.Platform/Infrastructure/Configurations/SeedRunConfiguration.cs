@@ -17,11 +17,11 @@ internal sealed class SeedRunConfiguration : IEntityTypeConfiguration<SeedRun>
             "ck_seed_runs_category", "category IN ('REFERENCE', 'CONFIGURATION', 'DEMO', 'TEST')"));
         builder.IsAppendOnly();
 
-        builder.Property(r => r.SeederKey).HasMaxLength(100);
+        builder.Property(r => r.SeederKey).HasMaxLength(SeedRunner.MaxKeyLength);
         builder.Property(r => r.Category)
             .HasConversion(value => value.Code(), value => Enum.Parse<SeedCategory>(value, true))
             .HasMaxLength(20);
-        builder.Property(r => r.Checksum).HasMaxLength(100);
+        builder.Property(r => r.Checksum).HasMaxLength(SeedRunner.MaxChecksumLength);
         builder.Property(r => r.Environment).HasMaxLength(50);
 
         // The runner reads a seeder's latest run.
