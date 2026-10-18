@@ -138,8 +138,14 @@ creates (never TRUNCATE). Each table gets one policy, set in the migration that 
   never change a key once records exist. Seeders never delete: a record dropped from the data is deactivated.
 - `platform.seed_runs` (append-only) records each completed run with its checksum, environment and counts. A seeder
   whose last run has the same checksum is skipped; a seeder that throws stops the run and records nothing.
-- `seed --reset` (Development only) drops every module schema as the owner and applies the migrations again before
-  seeding; append-only tables can't be truncated, even by the owner.
+- One seed run at a time per database: the runner holds a PostgreSQL advisory lock (`SeedRunner.LockKey`) for the whole
+  run, and a second run is refused.
+- `seed --reset` drops every module schema as the owner and applies the migrations again before seeding (append-only
+  tables can't be truncated, even by the owner). It needs Development **and** a local `Migrator` host (localhost,
+  loopback, a Unix socket or the compose service `postgres`); a non-local Development database must be named in
+  `Seeding:AllowResetOf`.
+- DEMO and TEST seeders call application commands outside HTTP: no tenant is set and no audit scope is begun yet (see
+  PROGRESS follow-ups; needed before the first DEMO seeder).
 
 ## CI checks (automate as they become relevant)
 

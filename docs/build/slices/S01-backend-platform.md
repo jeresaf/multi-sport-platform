@@ -368,3 +368,5 @@ Acceptance:
   nothing. Seed run IDs are `SequentialIds`, so the latest run of a key is the highest ID. Refusals are a
   `SeedReport`, not an `Error`: seeding isn't HTTP, so no error codes. Integration tests use test-only seeders (one or
   two per category; the REFERENCE one writes the read-only `conventions_test.reference_probes` as the owner).
+  Review (#25): the reset also requires a local `Migrator` host (or `Seeding:AllowResetOf`) (R1), and a run holds a
+  PostgreSQL advisory lock so concurrent runs are refused (R2).
