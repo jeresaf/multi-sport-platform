@@ -561,7 +561,7 @@
           "Tenants"
         ],
         "summary": "Change a tenant's profile",
-        "description": "Changes the fields sent; missing or null fields stay as they are. The slug never changes, and the status changes only through the status actions. Send `version` from the last read to get 409 TENANT_CONCURRENCY_CONFLICT instead of overwriting someone else's change. `If-Match` is not evaluated yet: send the version in the body.",
+        "description": "Changes the fields sent; missing or null fields stay as they are. The slug never changes, and the status changes only through the status actions. Send `version` from the last read to get 409 TENANT_CONCURRENCY_CONFLICT instead of overwriting someone else's change; `If-Match` with the `ETag` works the same way (if both are sent, both must match).",
         "operationId": "UpdateTenantProfile",
         "parameters": [
           {
@@ -632,6 +632,407 @@
             },
             "x-error-codes": [
               "TENANT_CONCURRENCY_CONFLICT"
+            ]
+          }
+        }
+      }
+    },
+    "/api/platform/v1/tenants/{tenantId}/activate": {
+      "post": {
+        "tags": [
+          "Tenants"
+        ],
+        "summary": "Activate a tenant",
+        "description": "PROVISIONING → ACTIVE: setup is done; the public site shows if `publicEnabled`. The body is optional. Send `version` or `If-Match` from the last read to get 409 TENANT_CONCURRENCY_CONFLICT if the tenant changed since.",
+        "operationId": "ActivateTenant",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/ChangeTenantStatusRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TenantResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Problem Details; `code`: `TENANT_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "TENANT_NOT_FOUND"
+            ]
+          },
+          "409": {
+            "description": "Problem Details; `code`: `TENANT_CONCURRENCY_CONFLICT`, `TENANT_INVALID_TRANSITION`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "TENANT_CONCURRENCY_CONFLICT",
+              "TENANT_INVALID_TRANSITION"
+            ]
+          }
+        }
+      }
+    },
+    "/api/platform/v1/tenants/{tenantId}/suspend": {
+      "post": {
+        "tags": [
+          "Tenants"
+        ],
+        "summary": "Suspend a tenant",
+        "description": "ACTIVE → SUSPENDED, with a reason: the tenant is blocked until restored. The reason is kept permanently in the status history and the audit trail: don't include personal data. Send `version` or `If-Match` from the last read to get 409 TENANT_CONCURRENCY_CONFLICT if the tenant changed since.",
+        "operationId": "SuspendTenant",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeTenantStatusWithReasonRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TenantResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_REASON_REQUIRED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_REASON_REQUIRED"
+            ]
+          },
+          "404": {
+            "description": "Problem Details; `code`: `TENANT_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "TENANT_NOT_FOUND"
+            ]
+          },
+          "409": {
+            "description": "Problem Details; `code`: `TENANT_CONCURRENCY_CONFLICT`, `TENANT_INVALID_TRANSITION`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "TENANT_CONCURRENCY_CONFLICT",
+              "TENANT_INVALID_TRANSITION"
+            ]
+          }
+        }
+      }
+    },
+    "/api/platform/v1/tenants/{tenantId}/restore": {
+      "post": {
+        "tags": [
+          "Tenants"
+        ],
+        "summary": "Restore a suspended tenant",
+        "description": "SUSPENDED → ACTIVE. The body is optional. Send `version` or `If-Match` from the last read to get 409 TENANT_CONCURRENCY_CONFLICT if the tenant changed since.",
+        "operationId": "RestoreTenant",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/ChangeTenantStatusRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TenantResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Problem Details; `code`: `TENANT_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "TENANT_NOT_FOUND"
+            ]
+          },
+          "409": {
+            "description": "Problem Details; `code`: `TENANT_CONCURRENCY_CONFLICT`, `TENANT_INVALID_TRANSITION`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "TENANT_CONCURRENCY_CONFLICT",
+              "TENANT_INVALID_TRANSITION"
+            ]
+          }
+        }
+      }
+    },
+    "/api/platform/v1/tenants/{tenantId}/archive": {
+      "post": {
+        "tags": [
+          "Tenants"
+        ],
+        "summary": "Archive a tenant",
+        "description": "ACTIVE or SUSPENDED → ARCHIVED, with a reason. Its data and slug are kept; the slug is never reused. The reason is kept permanently in the status history and the audit trail: don't include personal data. Send `version` or `If-Match` from the last read to get 409 TENANT_CONCURRENCY_CONFLICT if the tenant changed since.",
+        "operationId": "ArchiveTenant",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeTenantStatusWithReasonRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TenantResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_REASON_REQUIRED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_REASON_REQUIRED"
+            ]
+          },
+          "404": {
+            "description": "Problem Details; `code`: `TENANT_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "TENANT_NOT_FOUND"
+            ]
+          },
+          "409": {
+            "description": "Problem Details; `code`: `TENANT_CONCURRENCY_CONFLICT`, `TENANT_INVALID_TRANSITION`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "TENANT_CONCURRENCY_CONFLICT",
+              "TENANT_INVALID_TRANSITION"
+            ]
+          }
+        }
+      }
+    },
+    "/api/platform/v1/tenants/{tenantId}/unarchive": {
+      "post": {
+        "tags": [
+          "Tenants"
+        ],
+        "summary": "Unarchive a tenant",
+        "description": "ARCHIVED → SUSPENDED, with a reason; restore it as a separate step. The reason is kept permanently in the status history and the audit trail: don't include personal data. Send `version` or `If-Match` from the last read to get 409 TENANT_CONCURRENCY_CONFLICT if the tenant changed since.",
+        "operationId": "UnarchiveTenant",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeTenantStatusWithReasonRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TenantResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_REASON_REQUIRED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_REASON_REQUIRED"
+            ]
+          },
+          "404": {
+            "description": "Problem Details; `code`: `TENANT_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "TENANT_NOT_FOUND"
+            ]
+          },
+          "409": {
+            "description": "Problem Details; `code`: `TENANT_CONCURRENCY_CONFLICT`, `TENANT_INVALID_TRANSITION`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "TENANT_CONCURRENCY_CONFLICT",
+              "TENANT_INVALID_TRANSITION"
             ]
           }
         }
@@ -754,6 +1155,47 @@
           "SYSTEM"
         ],
         "description": "Where the action came from."
+      },
+      "ChangeTenantStatusRequest": {
+        "required": [
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "uint32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "The optional body of `activate` and `restore`: `version`, when sent, must be the tenant's current one."
+      },
+      "ChangeTenantStatusWithReasonRequest": {
+        "required": [
+          "reason",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "version": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "uint32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "The body of `suspend`, `archive` and `unarchive` (audit `REQUIRED_WITH_REASON`). The reason is kept\npermanently in the status history and the audit trail and is not redacted: it must not contain personal data."
       },
       "CountryResponse": {
         "required": [

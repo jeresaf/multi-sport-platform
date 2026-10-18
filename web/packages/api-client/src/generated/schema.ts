@@ -187,9 +187,109 @@ export interface paths {
         head?: never;
         /**
          * Change a tenant's profile
-         * @description Changes the fields sent; missing or null fields stay as they are. The slug never changes, and the status changes only through the status actions. Send `version` from the last read to get 409 TENANT_CONCURRENCY_CONFLICT instead of overwriting someone else's change. `If-Match` is not evaluated yet: send the version in the body.
+         * @description Changes the fields sent; missing or null fields stay as they are. The slug never changes, and the status changes only through the status actions. Send `version` from the last read to get 409 TENANT_CONCURRENCY_CONFLICT instead of overwriting someone else's change; `If-Match` with the `ETag` works the same way (if both are sent, both must match).
          */
         patch: operations["UpdateTenantProfile"];
+        trace?: never;
+    };
+    "/api/platform/v1/tenants/{tenantId}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Activate a tenant
+         * @description PROVISIONING → ACTIVE: setup is done; the public site shows if `publicEnabled`. The body is optional. Send `version` or `If-Match` from the last read to get 409 TENANT_CONCURRENCY_CONFLICT if the tenant changed since.
+         */
+        post: operations["ActivateTenant"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/v1/tenants/{tenantId}/suspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Suspend a tenant
+         * @description ACTIVE → SUSPENDED, with a reason: the tenant is blocked until restored. The reason is kept permanently in the status history and the audit trail: don't include personal data. Send `version` or `If-Match` from the last read to get 409 TENANT_CONCURRENCY_CONFLICT if the tenant changed since.
+         */
+        post: operations["SuspendTenant"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/v1/tenants/{tenantId}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore a suspended tenant
+         * @description SUSPENDED → ACTIVE. The body is optional. Send `version` or `If-Match` from the last read to get 409 TENANT_CONCURRENCY_CONFLICT if the tenant changed since.
+         */
+        post: operations["RestoreTenant"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/v1/tenants/{tenantId}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Archive a tenant
+         * @description ACTIVE or SUSPENDED → ARCHIVED, with a reason. Its data and slug are kept; the slug is never reused. The reason is kept permanently in the status history and the audit trail: don't include personal data. Send `version` or `If-Match` from the last read to get 409 TENANT_CONCURRENCY_CONFLICT if the tenant changed since.
+         */
+        post: operations["ArchiveTenant"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/v1/tenants/{tenantId}/unarchive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Unarchive a tenant
+         * @description ARCHIVED → SUSPENDED, with a reason; restore it as a separate step. The reason is kept permanently in the status history and the audit trail: don't include personal data. Send `version` or `If-Match` from the last read to get 409 TENANT_CONCURRENCY_CONFLICT if the tenant changed since.
+         */
+        post: operations["UnarchiveTenant"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
 }
@@ -233,6 +333,20 @@ export interface components {
          * @enum {unknown}
          */
         AuditSource: "API" | "SYSTEM";
+        /** @description The optional body of `activate` and `restore`: `version`, when sent, must be the tenant's current one. */
+        ChangeTenantStatusRequest: {
+            /** Format: uint32 */
+            version: null | number;
+        };
+        /**
+         * @description The body of `suspend`, `archive` and `unarchive` (audit `REQUIRED_WITH_REASON`). The reason is kept
+         *     permanently in the status history and the audit trail and is not redacted: it must not contain personal data.
+         */
+        ChangeTenantStatusWithReasonRequest: {
+            reason: null | string;
+            /** Format: uint32 */
+            version: null | number;
+        };
         /** @description An ISO 3166-1 country: alpha-2 `code` (`UG`), alpha-3, numeric code and English name. */
         CountryResponse: {
             code: string;
@@ -815,6 +929,253 @@ export interface operations {
                 };
             };
             /** @description Problem Details; `code`: `TENANT_CONCURRENCY_CONFLICT` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ActivateTenant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenantId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["ChangeTenantStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TenantResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `TENANT_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TENANT_CONCURRENCY_CONFLICT`, `TENANT_INVALID_TRANSITION` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    SuspendTenant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenantId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeTenantStatusWithReasonRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TenantResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_REASON_REQUIRED` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TENANT_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TENANT_CONCURRENCY_CONFLICT`, `TENANT_INVALID_TRANSITION` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    RestoreTenant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenantId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["ChangeTenantStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TenantResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `TENANT_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TENANT_CONCURRENCY_CONFLICT`, `TENANT_INVALID_TRANSITION` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ArchiveTenant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenantId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeTenantStatusWithReasonRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TenantResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_REASON_REQUIRED` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TENANT_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TENANT_CONCURRENCY_CONFLICT`, `TENANT_INVALID_TRANSITION` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    UnarchiveTenant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenantId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeTenantStatusWithReasonRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TenantResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_REASON_REQUIRED` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TENANT_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TENANT_CONCURRENCY_CONFLICT`, `TENANT_INVALID_TRANSITION` */
             409: {
                 headers: {
                     [name: string]: unknown;

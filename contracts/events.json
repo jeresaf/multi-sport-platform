@@ -102,6 +102,29 @@
         }
       ],
       "consumers": []
+    },
+    {
+      "name": "TenantStatusChanged",
+      "version": 1,
+      "module": "Tenancy",
+      "payload": [
+        {
+          "name": "tenantId",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "from",
+          "type": "string (enum TenantStatus: PROVISIONING | ACTIVE | SUSPENDED | ARCHIVED)",
+          "nullable": false
+        },
+        {
+          "name": "to",
+          "type": "string (enum TenantStatus: PROVISIONING | ACTIVE | SUSPENDED | ARCHIVED)",
+          "nullable": false
+        }
+      ],
+      "consumers": []
     }
   ]
 }
