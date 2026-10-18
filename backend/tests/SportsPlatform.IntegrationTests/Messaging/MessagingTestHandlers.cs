@@ -47,12 +47,16 @@ public sealed class ConsumerLog
         set => Volatile.Write(ref _flakyFailuresLeft, value);
     }
 
+    /// <summary>Runs inside the recording consumer before its changes are saved (to stage a race).</summary>
+    public Func<Guid, Task>? BeforeRecorderSaves { get; set; }
+
     public IReadOnlyList<Delivery> For(string consumer) => [.. Deliveries.Where(d => d.Consumer == consumer)];
 
     public void Reset()
     {
         Deliveries.Clear();
         FlakyFailuresLeft = 0;
+        BeforeRecorderSaves = null;
     }
 
     internal bool ConsumeFlakyFailure() => Interlocked.Decrement(ref _flakyFailuresLeft) >= 0;
@@ -64,11 +68,14 @@ public sealed class RecordingConsumer(MessagingTestDbContext context, ConsumerLo
 {
     public const string Name = "messaging_test.recorder";
 
-    public Task HandleAsync(ProbeCreated.V1 integrationEvent, IntegrationEventEnvelope envelope, CancellationToken cancellationToken)
+    public async Task HandleAsync(ProbeCreated.V1 integrationEvent, IntegrationEventEnvelope envelope, CancellationToken cancellationToken)
     {
         log.Deliveries.Enqueue(new Delivery(Name, envelope, tenant.TenantId, correlation.CorrelationId, correlation.CausationId));
         context.ReceivedProbes.Add(new ReceivedProbe(integrationEvent.ProbeId, envelope.EventId));
-        return Task.CompletedTask;
+        if (log.BeforeRecorderSaves is { } hook)
+        {
+            await hook(envelope.EventId);
+        }
     }
 }
 

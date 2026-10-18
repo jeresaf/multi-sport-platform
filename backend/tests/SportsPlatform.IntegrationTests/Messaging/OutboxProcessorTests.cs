@@ -1,6 +1,9 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Npgsql;
+using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.BuildingBlocks.Messaging;
 using SportsPlatform.BuildingBlocks.Persistence.Messaging;
 using SportsPlatform.BuildingBlocks.Tenancy;
@@ -176,6 +179,143 @@ public sealed class OutboxProcessorTests : DatabaseTest
         recorded.Select(d => d.Envelope.EventId).Distinct().Count().ShouldBe(count);
     }
 
+    [Fact]
+    public async Task Messages_of_one_aggregate_are_delivered_in_publication_order()
+    {
+        const int count = 20;
+        var aggregateId = Guid.CreateVersion7();
+        await using (var scope = App.Services.CreateAsyncScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<MessagingTestDbContext>();
+            for (var i = 1; i <= count; i++)
+            {
+                context.Publish(new ProbeCreated.V1(aggregateId, $"Round {i}"), nameof(MessagingProbe), aggregateId);
+            }
+
+            await context.SaveChangesAsync(Ct); // one save: one occurred_at for all of them
+        }
+
+        var rounds = 0;
+        while (await Processor.ProcessOnceAsync(Ct) is var attempted && attempted > 0)
+        {
+            attempted.ShouldBe(1); // the next one waits until its predecessor is processed
+            rounds++;
+        }
+
+        rounds.ShouldBe(count);
+        var expected = Enumerable.Range(1, count).Select(i => $"Round {i}").ToList();
+        (await DeliveredNamesAsync()).ShouldBe(expected);
+    }
+
+    [Fact]
+    public async Task Later_message_waits_while_an_earlier_one_of_its_aggregate_is_retried()
+    {
+        var first = await CreateProbeAsync();
+        await PublishAsync(first, "Kisaasi Recreation Ground, renamed");
+        var other = await CreateProbeAsync();
+        App.Consumers.FlakyFailuresLeft = 1; // the first message's flaky delivery fails
+
+        (await Processor.ProcessOnceAsync(Ct)).ShouldBe(2); // first's first message and other's; not first's second
+
+        var messages = await OutboxAsync();
+        messages.Single(m => m.AggregateId == other).Status.ShouldBe(OutboxMessageStatus.Processed);
+        var waiting = messages.Where(m => m.AggregateId == first).OrderBy(m => m.Sequence).ToList();
+        waiting[0].ShouldSatisfyAllConditions(m => m.Status.ShouldBe(OutboxMessageStatus.Pending), m => m.Attempts.ShouldBe(1));
+        waiting[1].ShouldSatisfyAllConditions(m => m.Status.ShouldBe(OutboxMessageStatus.Pending), m => m.Attempts.ShouldBe(0));
+
+        App.Clock.Advance(OutboxRetry.Delay(1));
+        (await Processor.ProcessOnceAsync(Ct)).ShouldBe(1);
+        (await Processor.ProcessOnceAsync(Ct)).ShouldBe(1);
+
+        (await OutboxAsync()).ShouldAllBe(m => m.Status == OutboxMessageStatus.Processed);
+        (await DeliveredNamesAsync()).ShouldBe(
+            ["Kisaasi Recreation Ground", "Kisaasi Recreation Ground", "Kisaasi Recreation Ground, renamed"]);
+    }
+
+    [Fact]
+    public async Task Failed_message_holds_back_later_messages_of_its_aggregate()
+    {
+        var probe = await CreateProbeAsync();
+        await PublishAsync(probe, "Kisaasi Recreation Ground, renamed");
+        App.Consumers.FlakyFailuresLeft = int.MaxValue;
+
+        for (var attempt = 1; attempt <= MaxAttempts(); attempt++)
+        {
+            (await Processor.ProcessOnceAsync(Ct)).ShouldBe(1);
+            App.Clock.Advance(OutboxRetry.MaxDelay);
+        }
+
+        App.Consumers.FlakyFailuresLeft = 0;
+        (await Processor.ProcessOnceAsync(Ct)).ShouldBe(0);
+        var messages = (await OutboxAsync()).OrderBy(m => m.Sequence).ToList();
+        messages[0].Status.ShouldBe(OutboxMessageStatus.Failed);
+        messages[1].ShouldSatisfyAllConditions(m => m.Status.ShouldBe(OutboxMessageStatus.Pending), m => m.Attempts.ShouldBe(0));
+    }
+
+    [Fact]
+    public async Task Message_locked_by_another_processor_is_skipped()
+    {
+        var locked = await CreateProbeAsync();
+        var free = await CreateProbeAsync();
+
+        await using (var connection = new NpgsqlConnection(Fixture.ConnectionString("sp_app")))
+        {
+            await connection.OpenAsync(Ct);
+            await using var transaction = await connection.BeginTransactionAsync(Ct);
+            await using (var claim = new NpgsqlCommand(
+                $"SELECT id FROM messaging_test.outbox_messages WHERE aggregate_id = '{locked}' FOR UPDATE", connection, transaction))
+            {
+                await claim.ExecuteNonQueryAsync(Ct);
+            }
+
+            (await Processor.ProcessOnceAsync(Ct)).ShouldBe(1);
+            var messages = await OutboxAsync();
+            messages.Single(m => m.AggregateId == free).Status.ShouldBe(OutboxMessageStatus.Processed);
+            messages.Single(m => m.AggregateId == locked).Status.ShouldBe(OutboxMessageStatus.Pending);
+
+            await transaction.RollbackAsync(Ct);
+        }
+
+        (await Processor.ProcessOnceAsync(Ct)).ShouldBe(1);
+        (await OutboxAsync()).ShouldAllBe(m => m.Status == OutboxMessageStatus.Processed);
+    }
+
+    [Fact]
+    public async Task Delivery_that_loses_the_inbox_race_is_rolled_back_and_counts_as_handled()
+    {
+        await CreateProbeAsync();
+        // Another delivery of the same message commits its inbox row after this one checked the inbox.
+        App.Consumers.BeforeRecorderSaves = messageId => ExecuteAsync("sp_app", $"""
+            INSERT INTO messaging_test.inbox_messages (message_id, consumer, created_at, created_by, updated_at, updated_by)
+            VALUES ('{messageId}', '{RecordingConsumer.Name}', now(), '{SystemActor.Id}', now(), '{SystemActor.Id}')
+            """);
+
+        await Processor.ProcessOnceAsync(Ct);
+
+        (await OutboxAsync()).ShouldHaveSingleItem().ShouldSatisfyAllConditions(
+            m => m.Status.ShouldBe(OutboxMessageStatus.Processed),
+            m => m.LastError.ShouldBeNull());
+        await using var scope = App.Services.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<MessagingTestDbContext>();
+        (await context.ReceivedProbes.CountAsync(Ct)).ShouldBe(0); // the losing delivery's change rolled back
+        (await context.Set<InboxMessage>().CountAsync(m => m.Consumer == RecordingConsumer.Name, Ct)).ShouldBe(1);
+    }
+
+    private async Task PublishAsync(Guid probeId, string name)
+    {
+        await using var scope = App.Services.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<MessagingTestDbContext>();
+        context.Publish(new ProbeCreated.V1(probeId, name), nameof(MessagingProbe), probeId);
+        await context.SaveChangesAsync(Ct);
+    }
+
+    private async Task<List<string>> DeliveredNamesAsync()
+    {
+        var ids = App.Consumers.For(RecordingConsumer.Name).Select(d => d.Envelope.EventId).ToList();
+        var payloads = (await OutboxAsync()).ToDictionary(m => m.Id, m => m.Payload);
+        return [.. ids.Select(id => JsonSerializer.Deserialize<ProbeCreated.V1>(payloads[id], MessageSerialization.Options)!.Name)];
+    }
+
     private int MaxAttempts() =>
         App.Services.GetRequiredService<IOptions<OutboxOptions>>().Value.MaxAttempts;
 
@@ -195,6 +335,6 @@ public sealed class OutboxProcessorTests : DatabaseTest
     {
         await using var scope = App.Services.CreateAsyncScope();
         return await scope.ServiceProvider.GetRequiredService<MessagingTestDbContext>()
-            .Set<OutboxMessage>().AsNoTracking().OrderBy(m => m.OccurredAt).ThenBy(m => m.Id).ToListAsync(Ct);
+            .Set<OutboxMessage>().AsNoTracking().OrderBy(m => m.Sequence).ToListAsync(Ct);
     }
 }

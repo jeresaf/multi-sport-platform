@@ -129,6 +129,13 @@ namespace SportsPlatform.IntegrationTests.Messaging.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("processed_at");
 
+                    b.Property<long>("Sequence")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("sequence");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityAlwaysColumn(b.Property<long>("Sequence"));
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -150,8 +157,11 @@ namespace SportsPlatform.IntegrationTests.Messaging.Migrations
                     b.HasKey("Id")
                         .HasName("pk_outbox_messages");
 
-                    b.HasIndex("Status", "NextAttemptAt", "OccurredAt")
-                        .HasDatabaseName("ix_outbox_messages_status_next_attempt_at_occurred_at");
+                    b.HasIndex("AggregateType", "AggregateId", "Sequence")
+                        .HasDatabaseName("ix_outbox_messages_aggregate_type_aggregate_id_sequence");
+
+                    b.HasIndex("Status", "NextAttemptAt", "Sequence")
+                        .HasDatabaseName("ix_outbox_messages_status_next_attempt_at_sequence");
 
                     b.ToTable("outbox_messages", "messaging_test", t =>
                         {
