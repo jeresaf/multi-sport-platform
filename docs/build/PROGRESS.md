@@ -179,6 +179,9 @@ Consolidated by the S00 slice review (2026-10-17). Each item names where it gets
   name per language with the first non-English UI (S01-T7b-1).
 - `IReferenceData` (modules.md, Platform Contracts) doesn't exist yet: add it with its first consumer (S02 tenant
   settings validating time zone, currency, locale) (S01-T7b-1).
+- The OpenAPI document gives `time-zones?country=` no `pattern` (`^[A-Z]{2}$`) and documents no `ETag`/`Cache-Control`
+  response headers on the reference lists (the endpoint descriptions say both): add them with the first web consumer of
+  the reference lists, or when the OpenAPI document gets header support (#27 R1).
 - tzdata releases several times a year: rerun `build-reference-data.cs` with a new `Tzdata` pin when one changes a
   zone the customers use (the API host's own tzdata, used by `TimeZoneInfo`, comes with its container image).
 - Token colour values are placeholders (`web/packages/tokens/tokens.css`); owner/Branding (S22) to confirm. The
