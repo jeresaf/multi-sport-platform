@@ -1,15 +1,18 @@
 using FluentValidation;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using SportsPlatform.BuildingBlocks.Auditing;
 using SportsPlatform.BuildingBlocks.Modules;
 using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Persistence.Messaging;
+using SportsPlatform.BuildingBlocks.Persistence.Seeding;
 using SportsPlatform.Modules.Platform.Contracts.Audit;
 using SportsPlatform.Modules.Platform.Features.Audit.AppendAuditEntry;
 using SportsPlatform.Modules.Platform.Features.Audit.ListAuditEntries;
 using SportsPlatform.Modules.Platform.Features.Outbox.ListOutboxMessages;
 using SportsPlatform.Modules.Platform.Features.Outbox.RedriveOutboxMessage;
+using SportsPlatform.Modules.Platform.Features.Seeding;
 using SportsPlatform.Modules.Platform.Infrastructure;
 using SportsPlatform.Modules.Platform.Infrastructure.Messaging;
 
@@ -46,6 +49,9 @@ public sealed class PlatformModule : IModule
         services.AddScoped<RedriveOutboxMessageHandler>();
         services.AddSingleton<IValidator<ListOutboxMessagesRequest>, ListOutboxMessagesRequestValidator>();
         services.AddSingleton<IValidator<RedriveOutboxMessageRequest>, RedriveOutboxMessageRequestValidator>();
+
+        // The seed framework (BuildingBlocks) with Platform's bookkeeping; modules register seeders with AddSeeder.
+        services.AddSeedRunner<SeedRunLog>(provider => provider.GetRequiredService<IHostEnvironment>().EnvironmentName);
     }
 
     public void MapEndpoints(ApiEndpointGroups groups)

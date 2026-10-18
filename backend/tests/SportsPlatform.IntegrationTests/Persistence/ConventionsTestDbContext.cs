@@ -60,6 +60,10 @@ public sealed class ReferenceProbe : Entity
     public ReferenceProbe(string code)
         : base(NewId()) => Code = code;
 
+    /// <summary>With a chosen ID, e.g. a deterministic one from a seeder.</summary>
+    public ReferenceProbe(Guid id, string code)
+        : base(id) => Code = code;
+
     private ReferenceProbe()
     {
     }

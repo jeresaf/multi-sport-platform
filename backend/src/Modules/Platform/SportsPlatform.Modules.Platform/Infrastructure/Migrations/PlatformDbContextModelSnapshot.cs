@@ -279,6 +279,78 @@ namespace SportsPlatform.Modules.Platform.Infrastructure.Migrations
 
                     b.HasAnnotation("SportsPlatform:AppendOnly", true);
                 });
+
+            modelBuilder.Entity("SportsPlatform.Modules.Platform.Domain.Seeding.SeedRun", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("category");
+
+                    b.Property<string>("Checksum")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("checksum");
+
+                    b.Property<DateTimeOffset>("CompletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completed_at");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<int>("Deactivated")
+                        .HasColumnType("integer")
+                        .HasColumnName("deactivated");
+
+                    b.Property<string>("Environment")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("environment");
+
+                    b.Property<int>("Inserted")
+                        .HasColumnType("integer")
+                        .HasColumnName("inserted");
+
+                    b.Property<string>("SeederKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("seeder_key");
+
+                    b.Property<DateTimeOffset>("StartedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("started_at");
+
+                    b.Property<int>("Updated")
+                        .HasColumnType("integer")
+                        .HasColumnName("updated");
+
+                    b.HasKey("Id")
+                        .HasName("pk_seed_runs");
+
+                    b.HasIndex("SeederKey", "Id")
+                        .HasDatabaseName("ix_seed_runs_seeder_key_id");
+
+                    b.ToTable("seed_runs", "platform", t =>
+                        {
+                            t.HasCheckConstraint("ck_seed_runs_category", "category IN ('REFERENCE', 'CONFIGURATION', 'DEMO', 'TEST')");
+                        });
+
+                    b.HasAnnotation("SportsPlatform:AppendOnly", true);
+                });
 #pragma warning restore 612, 618
         }
     }
