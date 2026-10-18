@@ -10,4 +10,9 @@
     <ProjectReference Include="..\SportsPlatform.Modules.Platform.Contracts\SportsPlatform.Modules.Platform.Contracts.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Reference data for the REFERENCE seeders (Seed/Reference/Data/README.md). -->
+    <EmbeddedResource Include="Seed/Reference/Data/*.json" LogicalName="SportsPlatform.Modules.Platform.Seed.Reference.Data.%(Filename)%(Extension)" />
+  </ItemGroup>
+
 </Project>
