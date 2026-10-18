@@ -175,6 +175,8 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
   `RequestLoggingTests.Request_is_logged_with_correlation_ID_and_actor` (S03, or T4 if it needs one; #17 R1).
 
 **Infrastructure task after M1**
+- The API needs `ConnectionStrings:Platform` (`sp_platform`) at runtime for the audit trail (S02-T2b): provision that
+  secret for the API in Key Vault with the staging setup, or every audited request fails there (#33 N1).
 - A failed direct audit write (denial, failure, read) is only logged: the response is already written. Alert on that
   Error with the `FAILED` outbox alert below (infrastructure task after M1; S01-T6a).
 - Alert on any `FAILED` outbox message (OpenTelemetry counter or gauge): with strict ordering one holds back its
@@ -196,6 +198,9 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
 - Demo seeding is audited (owner, 2026-10-18): `SeedContext` runs commands as a tenant with source `SYSTEM` (S02-T5).
 
 **Later** (each item names its trigger)
+- With the second `AddPlatformServiceDbContext<T>` (e.g. `PlatformTenantStatistics`): make
+  `TenantIsolationRulesTests.Only_the_audit_features_use_the_platform_audit_context` generic: discover the contexts
+  registered that way and require an allowed-users entry for each (#33 N2).
 - `xmin`/`updated_*` cover only the aggregate root's row: a change to only a child entity or owned type doesn't
   bump the root's version, so two edits to different children both succeed. Mark the root `Modified` when a
   dependent changes, with a test, before the first aggregate with child tables (S06 at the latest) (S01-T2a
