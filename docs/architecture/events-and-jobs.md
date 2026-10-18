@@ -16,7 +16,8 @@ Decision: ADR-0009.
   (`ResultApproved.V1`). Additive changes only; breaking change → new version, publish both during migration.
 - Envelope: `event_id, event_name, event_version, occurred_at, tenant_id, correlation_id, causation_id,
   actor_id, aggregate_type, aggregate_id, payload`.
-- No secrets or `PRIVATE`/`SENSITIVE` personal data in payloads — IDs and display names only.
+- No secrets or `PRIVATE`/`SENSITIVE` personal data in payloads — IDs and `PUBLIC` display fields only (ADR-0015).
+  The outbox tables have no row-level security (Q15), so this rule is what keeps them safe.
 - Catalogue exported to `docs/generated/events.md` and `contracts/events.json` (CI check, like actions).
 
 ### Outbox / inbox
@@ -57,7 +58,8 @@ OutboxProcessor (hosted service, polls ~500 ms, batches, FOR UPDATE SKIP LOCKED)
 - **Tables.** Every module schema has `outbox_messages` (envelope, `sequence` (identity, publication order),
   `payload jsonb`, `status`, `attempts`, `next_attempt_at`, `last_error`, `processed_at`) and `inbox_messages` (primary key `message_id, consumer`), mapped
   by `ModuleDbContext`. Both are read-write for the runtime roles. `tenant_id` is a nullable envelope column; the
-  tables are not tenant-owned and have no RLS (owner, S01-T5a; revisit in S02, open question Q15).
+  tables are not tenant-owned and have no RLS; the processor uses the `App` connection and never the superuser (Q15,
+  owner 2026-10-18).
 - **Consumers.** `IIntegrationEventConsumer<TEvent>`, registered with
   `services.AddIntegrationEventConsumer<TEvent, TConsumer, TContext>("<module>.<purpose>")`. The consumer name is
   stored in the inbox: never rename it. Each delivery gets its own scope (tenant and correlation set from the
@@ -74,7 +76,9 @@ OutboxProcessor (hosted service, polls ~500 ms, batches, FOR UPDATE SKIP LOCKED)
 - **Hosting.** The Platform module's hosted service calls the processor every `PollInterval`, and again straight
   away while a call attempted something (so a burst for one aggregate doesn't wait a tick per message). Settings (section
   `Outbox`): `Enabled` (true; false in `Testing`, where tests call the processor), `PollInterval` (500 ms),
-  `BatchSize` (50), `MaxAttempts` (10). A failed poll is logged and retried on the next tick.
+  `BatchSize` (50), `MaxAttempts` (10). A module whose outbox can't be processed (database down, schema not
+  migrated) is logged and skipped for 1, 2, 4 … 30 s (`OutboxModuleBackoff`), reset by its first success; the other
+  modules keep their normal pace. A message with no consumers is logged at Debug.
 - **Ordering.** A batch holds at most one message per aggregate, so an aggregate's messages are delivered one per
   call, in `sequence` order. A message waits while an earlier one of its aggregate is retrying, locked by another
   processor, or `FAILED` (until it is re-driven, T5b). Outbox message IDs are strictly increasing UUIDv7s

@@ -289,7 +289,7 @@ Acceptance:
   `OutboxProcessor` and its hosted service; T5b = event catalogue + `events.md`/`events.json` + CI check, outbox
   diagnostics and re-drive (with the allowed/denied tests and "re-drive succeeds after fix"). Outbox statuses
   `PENDING`/`PROCESSED`/`FAILED` added to docs/domain/state-machines.md (owner). Outbox and inbox are read-write,
-  with a nullable `tenant_id` and no RLS (owner; Q15 for S02). Names: `IDomainEventSubscriber<T>` and
+  with a nullable `tenant_id` and no RLS (owner; Q15 answered 2026-10-18: stays so in S02). Names: `IDomainEventSubscriber<T>` and
   `IIntegrationEventConsumer<T>` (the analyzers reserve the `EventHandler` suffix, CA1711); `ModuleDbContext.Publish`;
   `AddDomainEventSubscriber`/`AddIntegrationEventConsumer`. `MessagingInterceptor` (dispatch, then envelope) runs
   before `AuditColumnsInterceptor`. `TenantContext` and `CorrelationContext` are scoped and settable (registered by
@@ -306,3 +306,5 @@ Acceptance:
   pre-review: a failing module is logged and skipped; the processor requires `ITenantContext` to be the scoped
   `TenantContext` (S02 must keep a settable context for consumers); IDs of entities added by domain event
   subscribers are checked; tests for a locked message (`SKIP LOCKED`) and for losing the inbox race.
+  Review (#20 R1): a failing module backs off 1 s … 30 s (`OutboxModuleBackoff`) instead of logging an error on
+  every poll; a message without consumers is logged at Debug.
