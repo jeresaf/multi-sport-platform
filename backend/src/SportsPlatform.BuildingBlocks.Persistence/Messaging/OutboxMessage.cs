@@ -12,7 +12,7 @@ public sealed class OutboxMessage : Entity
     public const int LastErrorMaxLength = 2000;
 
     internal OutboxMessage(IntegrationEventName eventName, string payload, string aggregateType, Guid aggregateId)
-        : base(NewId())
+        : base(SequentialIds.Next())
     {
         ArgumentNullException.ThrowIfNull(eventName);
         ArgumentException.ThrowIfNullOrWhiteSpace(aggregateType);
@@ -28,6 +28,9 @@ public sealed class OutboxMessage : Entity
     private OutboxMessage()
     {
     }
+
+    /// <summary>Publication order (identity column): the processor delivers by it, one aggregate's messages in turn.</summary>
+    public long Sequence { get; private set; }
 
     public string EventName { get; private set; } = string.Empty;
 

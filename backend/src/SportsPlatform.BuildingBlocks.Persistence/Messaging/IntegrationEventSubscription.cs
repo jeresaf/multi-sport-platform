@@ -51,7 +51,14 @@ public sealed class IntegrationEventSubscription
 
         await using var scope = scopes.CreateAsyncScope();
         var services = scope.ServiceProvider;
-        services.GetRequiredService<TenantContext>().Set(envelope.TenantId);
+        // Consumers and the outbox stamps read ITenantContext, so that is the instance that must carry the tenant.
+        if (services.GetRequiredService<ITenantContext>() is not TenantContext tenant)
+        {
+            throw new InvalidOperationException(
+                $"ITenantContext must resolve to the scoped {nameof(TenantContext)} so consumers run under the event's tenant.");
+        }
+
+        tenant.Set(envelope.TenantId);
         services.GetRequiredService<CorrelationContext>().Set(envelope.CorrelationId, envelope.EventId);
 
         var context = services.GetRequiredService<TContext>();

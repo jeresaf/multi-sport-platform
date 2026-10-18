@@ -51,6 +51,7 @@ public sealed class MessagingInterceptor(
         if (eventData.Context is { } context)
         {
             await DispatchDomainEventsAsync(context, cancellationToken);
+            (context as ModuleDbContext)?.EnsureNewEntitiesHaveIds();
             StampNewOutboxMessages(context);
         }
 

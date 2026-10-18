@@ -14,6 +14,7 @@ internal static class MessagingModel
         {
             outbox.ToTable(OutboxTable, table => table.HasCheckConstraint(
                 "ck_outbox_messages_status", "status IN ('PENDING', 'PROCESSED', 'FAILED')"));
+            outbox.Property(m => m.Sequence).UseIdentityAlwaysColumn();
             outbox.Property(m => m.EventName).HasMaxLength(200);
             outbox.Property(m => m.CorrelationId).HasMaxLength(64);
             outbox.Property(m => m.AggregateType).HasMaxLength(100);
@@ -22,8 +23,10 @@ internal static class MessagingModel
                 .HasConversion(status => status.ToString().ToUpperInvariant(), value => Enum.Parse<OutboxMessageStatus>(value, true))
                 .HasMaxLength(20);
             outbox.Property(m => m.LastError).HasMaxLength(OutboxMessage.LastErrorMaxLength);
-            // The processor's claim query: due PENDING messages, oldest first.
-            outbox.HasIndex(m => new { m.Status, m.NextAttemptAt, m.OccurredAt });
+            // The processor's claim query: due PENDING messages in publication order, and for each the check that no
+            // earlier message of the same aggregate is still undelivered.
+            outbox.HasIndex(m => new { m.Status, m.NextAttemptAt, m.Sequence });
+            outbox.HasIndex(m => new { m.AggregateType, m.AggregateId, m.Sequence });
         });
 
         modelBuilder.Entity<InboxMessage>(inbox =>

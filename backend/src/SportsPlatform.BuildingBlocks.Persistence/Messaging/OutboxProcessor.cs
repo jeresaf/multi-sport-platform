@@ -8,7 +8,9 @@ namespace SportsPlatform.BuildingBlocks.Persistence.Messaging;
 /// <summary>
 /// Delivers every module's due outbox messages to their subscribers (at least once; consumers are deduplicated by
 /// their inbox). Each module's batch is claimed with <c>FOR UPDATE SKIP LOCKED</c> in one transaction, so two
-/// processors never deliver the same message at the same time.
+/// processors never deliver the same message at the same time. Per aggregate, messages go in publication order: one
+/// waits while an earlier message of its aggregate is not yet <c>PROCESSED</c> (retrying, locked by another processor,
+/// or <c>FAILED</c> until re-driven), so a batch holds at most one message per aggregate.
 /// </summary>
 public sealed partial class OutboxProcessor
 {
@@ -45,13 +47,25 @@ public sealed partial class OutboxProcessor
         _logger = logger;
     }
 
-    /// <summary>Processes one batch per module; returns how many messages were attempted.</summary>
+    /// <summary>
+    /// Processes one batch per module; returns how many messages were attempted. A module that fails (e.g. its schema is
+    /// not migrated yet) is logged and skipped, so the others still deliver.
+    /// </summary>
     public async Task<int> ProcessOnceAsync(CancellationToken cancellationToken = default)
     {
         var attempted = 0;
         foreach (var database in _databases)
         {
-            attempted += await ProcessModuleAsync(database, cancellationToken);
+            try
+            {
+                attempted += await ProcessModuleAsync(database, cancellationToken);
+            }
+#pragma warning disable CA1031 // One module's outage must not stop delivery for the others.
+            catch (Exception exception) when (exception is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
+#pragma warning restore CA1031
+            {
+                LogModuleFailed(exception, database.Schema);
+            }
         }
 
         return attempted;
@@ -64,9 +78,20 @@ public sealed partial class OutboxProcessor
         await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
 
         var table = TableAccessMigrationExtensions.QualifiedName(context.Schema, MessagingModel.OutboxTable);
-        // The table name is a validated identifier; the values are parameters.
-        var sql = $"SELECT * FROM {table} WHERE status = 'PENDING' AND next_attempt_at <= {{0}} " +
-            "ORDER BY occurred_at, id LIMIT {1} FOR UPDATE SKIP LOCKED";
+        // The table name is a validated identifier; the values are parameters. The NOT EXISTS reads earlier messages
+        // whether or not another processor has locked them, so a locked earlier message holds its successors back too.
+        var sql =
+            $$"""
+            SELECT m.* FROM {{table}} AS m
+            WHERE m.status = 'PENDING' AND m.next_attempt_at <= {0}
+              AND NOT EXISTS (
+                SELECT 1 FROM {{table}} AS earlier
+                WHERE earlier.aggregate_type = m.aggregate_type AND earlier.aggregate_id = m.aggregate_id
+                  AND earlier.sequence < m.sequence AND earlier.status <> 'PROCESSED')
+            ORDER BY m.sequence
+            LIMIT {1}
+            FOR UPDATE OF m SKIP LOCKED
+            """;
         var batch = await context.Set<OutboxMessage>()
             .FromSqlRaw(sql, _timeProvider.GetUtcNow(), _options.BatchSize)
             .ToListAsync(cancellationToken);
@@ -123,6 +148,9 @@ public sealed partial class OutboxProcessor
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Outbox message {MessageId} ({EventName} v{EventVersion}) in schema {Schema} is FAILED after {Attempts} attempts")]
     private partial void LogFailed(string schema, Guid messageId, string eventName, int eventVersion, int attempts);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Outbox processing failed for schema {Schema}; the other modules continue")]
+    private partial void LogModuleFailed(Exception exception, string schema);
 
     [LoggerMessage(Level = LogLevel.Debug, Message = "Consumer {Consumer} already handled message {MessageId}")]
     private partial void LogDuplicate(string consumer, Guid messageId);

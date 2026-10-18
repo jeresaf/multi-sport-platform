@@ -22,7 +22,10 @@ internal sealed partial class OutboxHostedService(
         {
             try
             {
-                await processor.ProcessOnceAsync(stoppingToken);
+                // Drain: a full batch, or an aggregate's next message unblocked by this one, needn't wait a tick.
+                while (await processor.ProcessOnceAsync(stoppingToken) > 0)
+                {
+                }
             }
 #pragma warning disable CA1031 // A database outage must not stop the host; the next tick tries again.
             catch (Exception exception) when (!stoppingToken.IsCancellationRequested)

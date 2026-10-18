@@ -105,7 +105,8 @@ public abstract class ModuleDbContext : DbContext
     private static bool IsTableRoot(IMutableEntityType entityType) =>
         !entityType.IsOwned() && entityType.BaseType is null && entityType.ClrType != typeof(Dictionary<string, object>);
 
-    private void EnsureNewEntitiesHaveIds()
+    /// <summary>Also run by <see cref="MessagingInterceptor"/> for entities that domain event subscribers added.</summary>
+    internal void EnsureNewEntitiesHaveIds()
     {
         var missing = ChangeTracker.Entries<Entity>()
             .FirstOrDefault(entry => entry.State == EntityState.Added && entry.Entity.Id == Guid.Empty);
