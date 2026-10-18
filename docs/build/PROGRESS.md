@@ -7,13 +7,13 @@ at the start of every review.
 
 - **Current slice:** S01 — Backend platform (docs/build/slices/S01-backend-platform.md). S00 is on `main`; its
   "new contributor in under 30 minutes" check is still with the owner
-- **Current task:** none. S01-T5a (domain events, outbox, processor and inbox) is in review as #20
-- **Next:** S01-T5b (event catalogue, outbox diagnostics and re-drive)
+- **Current task:** S01-T5b-1 — event catalogue (`events.md`, `events.json`). T5b split in two (owner, 2026-10-18)
+- **Next:** S01-T5b-2 (outbox diagnostics and re-drive)
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S01-T5b — Event catalogue, outbox diagnostics and re-drive
+1. S01-T5b-2 — Outbox diagnostics and re-drive
 2. S01-T6 — Audit
 3. S01-T7 — Seed framework and reference data
 
@@ -77,6 +77,9 @@ at the start of every review.
   inbox in every module schema, read-write, nullable `tenant_id`, no RLS (Q15, answered 2026-10-18). Owner approved the plan 2026-10-17.
   On the pre-review (2026-10-18) the owner chose strict per-aggregate ordering: a retrying or `FAILED` message holds
   back later messages of its aggregate. The PR is well over the ~600-line guideline; kept as one PR.
+  T5b is delivered as two PRs (T5b-1 event catalogue; T5b-2 diagnostics and re-drive). Owner approved the plan
+  2026-10-18, with its defaults: re-drive is one message at a time, takes a required reason that T6's audit records,
+  and the diagnostics list leaves the payload out.
 
 ## Tech debt / follow-ups
 
