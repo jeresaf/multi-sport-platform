@@ -47,6 +47,9 @@ infrastructure/local/postgres/check-roles.sh      # proves the database roles (s
   `CONFIGURATION`, `DEMO`, `TEST`; lower categories run first, unchanged seeders are skipped). Add `--reset` to drop
   every module schema and migrate again first (Development only, and only a local database). `DEMO` and `TEST` run only in Development,
   Staging and Testing.
+- CLI environment: `dotnet run` applies the CLI's launch profile, which sets `DOTNET_ENVIRONMENT=Development` and
+  overrides the shell's value. To run the CLI as another environment, add `--no-launch-profile`, for example
+  `DOTNET_ENVIRONMENT=Staging dotnet run --no-launch-profile --project backend/tools/SportsPlatform.Cli -- migrate`.
 - Mailpit: SMTP `localhost:1025`, inbox at http://localhost:8025.
 - Optional OpenTelemetry dashboard: `docker compose --profile observability up -d`, then http://localhost:18888
   (OTLP gRPC on `localhost:4317`). `dotnet run` of the API exports traces and metrics there (launchSettings sets

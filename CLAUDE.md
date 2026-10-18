@@ -66,7 +66,8 @@ dotnet build backend -warnaserror               # backend/SportsPlatform.slnx
 dotnet test --solution backend                  # xUnit v3 on MTP; integration tests need Docker (Testcontainers)
 dotnet format backend --verify-no-changes       # drop --verify-no-changes to fix formatting
 dotnet run --project backend/src/SportsPlatform.Host     # API on http://localhost:5080 (GET /health/live)
-dotnet run --project backend/tools/SportsPlatform.Cli   # lists CLI commands
+dotnet run --project backend/tools/SportsPlatform.Cli   # lists CLI commands; runs as Development (launch profile)
+DOTNET_ENVIRONMENT=Staging dotnet run --no-launch-profile --project backend/tools/SportsPlatform.Cli -- migrate   # another environment needs --no-launch-profile
 dotnet run --project backend/tools/SportsPlatform.Cli -- migrate   # all module migrations, as sp_migrator
 dotnet run --project backend/tools/SportsPlatform.Cli -- seed --category REFERENCE   # also CONFIGURATION|DEMO|TEST; --reset (Development) drops and re-migrates first
 dotnet run backend/tools/reference-data/build-reference-data.cs   # regenerate Platform's reference data files (then seed REFERENCE)

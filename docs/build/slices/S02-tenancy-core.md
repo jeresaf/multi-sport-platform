@@ -1,99 +1,251 @@
 # S02 — Tenancy core and isolation
 
-**Goal:** tenants exist, every request knows its tenant, and tenant data is isolated in the application **and**
-the database — proven by tests that every later slice reuses.
-**Modules touched:** Tenancy & Commercial (new), Platform, Host, public web.
-**Depends on:** S01.
-**Demo:** platform API creates/suspends tenants with history and audit; `demo.localhost:3000` and
-`schools.localhost:3000` show different tenants; an unknown host shows a friendly page; isolation tests prove
-cross-tenant access fails at both layers.
+> Amended by the S01 slice review (2026-10-18) to match what S01 actually built. It replaces the kit's version.
+> Changes from the kit's version: the tasks are reordered so no tenant-owned table reaches `main` without RLS
+> (enforcement is now T2, before the first tenant-owned business table in T4); the decisions below (D1–D10) are
+> written out; the S01 follow-ups assigned to S02 are folded into the tasks ("Carried over from S01").
 
-Read first: ADR-0004, docs/architecture/multi-tenancy.md, docs/domain/state-machines.md (tenant section).
+**Goal:** tenants exist, every request knows its tenant, and tenant data is isolated in the application **and**
+the database, proven by tests that every later slice reuses.
+**Modules touched:** Tenancy & Commercial (new module `Tenancy`, schema `tenancy`), Platform, Host, public web.
+**Depends on:** S01.
+**Demo:** the platform API creates, activates, suspends and restores tenants, with status history and audit
+entries; `kmsa.localhost:3000` and `elssc.localhost:3000` show different tenants; an unknown host shows a friendly
+page; the isolation and RLS tests prove cross-tenant access fails at both layers.
+
+Read first: ADR-0004, docs/architecture/multi-tenancy.md, docs/domain/state-machines.md (Tenant, Access mode),
+docs/architecture/authorization.md ("Decision formula"), docs/architecture/events-and-jobs.md ("Audit as built",
+Q15), docs/product/pilot-customer.md.
+
+## What S01 gives you (use it, don't rebuild it)
+
+- `ITenantOwned` (BuildingBlocks `Domain`, get-only `TenantId`); `ITenantContext` + scoped, settable
+  `TenantContext` (BuildingBlocks `Tenancy`); `RequestContextEnricher` already logs `TenantId` when it is set.
+- `ModuleDbContext`, `MessagingInterceptor` → `AuditColumnsInterceptor` (order matters), `AddModuleDbContext`,
+  the three connection names (`App` = `sp_app`, `Migrator` = `sp_migrator`, `Platform` = `sp_platform`, BYPASSRLS).
+  Nothing uses `Platform` yet: S02 is its first user.
+- Migration helpers `ReadOnlyForRuntimeRoles`, `AppendOnly` and the grants test (`TableAccessPolicies`).
+- Actions (`ActionDefinition`, `.RequireAction`, `.AllowPublic`, fail-closed endpoint check), the authorization
+  middleware (after routing) and `IAuthorizationEvaluator` (Host default: deny all; tests: `TestAuthorizationEvaluator`).
+- `AuditScope` + `AuditMiddleware` (before authorization) + `AuditRecorded.V1` through each module's outbox.
+- Outbox/inbox per module schema (no RLS, Q15); consumers run under the event envelope's tenant and require
+  `ITenantContext` to resolve to the scoped `TenantContext`.
+- FluentValidation request validation (`.ValidateRequest<T>(error)`, `errors: [{field, code}]`).
+- Seed framework (`ISeeder`, categories, `SeedContext`, `DeterministicIds`), reference data and its public lists.
+- `CacheableJson` for cacheable public reads (responses must be the same for every caller of that URL and host).
+- Test harness: `DatabaseTest`, `PostgresFixture` (Respawn on a superuser connection only the fixture holds),
+  `TestApp`, `TestActor`, `TestTenantContext` (to be retired by T3).
+
+## Decisions (reviewer defaults; confirm or change in each task's plan)
+
+- **D1 — Tenant context is set once per scope.** `TenantContext.Set` throws if a *different* tenant is already
+  set in the scope (setting the same tenant again is a no-op). It must be set before the scope's first database
+  connection opens, because the RLS value is written when a connection opens.
+- **D2 — Platform work on one tenant runs under that tenant.** Platform endpoints under
+  `/api/platform/v1/tenants/{tenantId}/…` set `ITenantContext` to the route's tenant after the route is matched
+  (the platform action is still authorized by the middleware). Tenant creation sets the context to the new
+  tenant before its first save. So RLS applies, and audit entries get the target tenant without extra code.
+- **D3 — Cross-tenant reads only through `sp_platform`, in named platform services.** The platform audit query
+  (`GET /api/platform/v1/audit-entries`) and the audit writers move to the `Platform` connection (see T2).
+  `IgnoreQueryFilters()` stays forbidden in feature code; the named platform services are the reviewed exceptions
+  (multi-tenancy.md). The outbox processor and diagnostics stay on `App` (Q15: outbox/inbox have no RLS).
+- **D4 — The RLS coverage test has an explicit exception list with reasons:** `*.outbox_messages` and
+  `*.inbox_messages` (nullable envelope `tenant_id`, no RLS by owner decision Q15). Any other table with a
+  `tenant_id` column without RLS fails the test.
+- **D5 — Actor.** S02 adds a per-request `ICurrentActor` built from the authenticated principal. Only the test
+  authentication scheme (environment `Testing`) authenticates in S02. Unauthenticated requests keep `SystemActor`
+  until S03 adds the anonymous actor (S03 follow-up #23 R1), so the audit `actor_kind` constraint is not hit.
+- **D6 — Public tenant resolution is opt-in per endpoint.** Public endpoints that serve tenant data declare it
+  (e.g. `.RequireTenant()` metadata on the endpoint or group); the reference lists stay tenant-free and keep
+  working on any host.
+- **D7 — Where the public tenant comes from.** The request host, honouring `X-Forwarded-Host` only from configured
+  proxies (ASP.NET Core forwarded headers with known proxies/networks; the Next.js server is the proxy in dev).
+  This is safe because public data is public. In Development only, `X-Tenant-Slug` or `?tenant=` may override.
+  Admin requests never take the tenant from the host or any header other than a membership-validated
+  `X-Tenant-Id`.
+- **D8 — Pipeline order:** correlation and logging → routing → **audit** → **tenant resolution** → **authorization**
+  (step 1 access mode, then the evaluator) → endpoint. Audit runs before tenant resolution so a refused tenant
+  (`AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`) on an audited action is audited as `DENIED`. Update
+  docs/architecture/authorization.md to match.
+- **D9 — Access mode is status-only in S02:** `PROVISIONING`, `ACTIVE` → `FULL`; `SUSPENDED`, `ARCHIVED` →
+  `BLOCKED` (state-machines.md; subscriptions arrive in S04). `PROVISIONING` keeps the public site hidden.
+- **D10 — Tenant events carry IDs and `PUBLIC` fields only** (ADR-0015, Q15 condition): `TenantCreated.V1`
+  (`tenantId`, `slug`, `status`), `TenantStatusChanged.V1` (`tenantId`, `from`, `to`). They are the first entries
+  in `docs/generated/events.md`.
 
 ## Out of scope
 
-Users and login (S03) — tests use a test authentication scheme that supplies actor and memberships as claims.
-Plans/subscriptions (S04) — access mode is status-only for now (`ACTIVE`/`PROVISIONING` → `FULL`,
-`SUSPENDED`/`ARCHIVED` → `BLOCKED`).
+- Users and login (S03). Tests use a test authentication scheme that supplies actor ID and tenant memberships as
+  claims; production has no sign-in yet, so admin endpoints stay denied.
+- The anonymous actor kind and its audit migration (S03).
+- Plans and subscriptions (S04): access mode is status-only (D9).
+- Custom domains beyond the data model (verification flow comes with Branding/PRO).
+- A tenant-facing audit view (the RLS policy is in place for it; the endpoint comes later).
 
 ## Tasks
 
-### T1 — Tenants and lifecycle
+### T1 — Tenancy module, tenants and lifecycle
 Deliver:
-- `tenancy.tenants` (platform-managed; no RLS): `id, slug, legal_name, display_name, country_code, time_zone,
-  default_locale, currency_code, status, public_enabled, timestamps, version`; `tenancy.tenant_status_history`.
-- Actions (platform): `tenant.create`, `tenant.update`, `tenant.activate`, `tenant.suspend` (reason),
-  `tenant.restore`, `tenant.archive` (reason). Endpoints under `/api/platform/v1/tenants`.
-- Validation: slug `[a-z0-9-]{3,40}`, reserved words (`www`, `api`, `admin`, `app`, `platform`, `static`,
-  `assets`, `mail`, `status`, `docs`), never reused after archive; country/time zone/currency validated through
-  Platform Contracts.
-- Integration events `TenantCreated`, `TenantStatusChanged`.
+- New module `Tenancy` (`SportsPlatform.Modules.Tenancy` + `.Contracts`), schema `tenancy`, registered in
+  `ModuleRegistry`; architecture tests updated (the scan finds the new module and its Contracts).
+- `Platform.Contracts`: `IReferenceData` (is this an active country / time zone / currency / language code),
+  backed by the reference tables (S01 follow-up). Tenancy validates through it, never by reading Platform tables.
+- `tenancy.tenants` (platform-managed, global, no RLS): `id, slug, legal_name, display_name, country_code,
+  time_zone, default_locale, currency_code, status, public_enabled`, audit columns, `version` (`xmin`).
+  `tenancy.tenant_status_history` (append-only: `AppendOnly`): `tenant_id, from_status, to_status, reason,
+  actor_kind, actor_id, occurred_at`. Both declared in `TableAccessPolicies`.
+- The tenant state machine exactly as in state-machines.md, including `unarchive` (platform, reason).
+- Actions (PLATFORM scope): `tenant.create`, `tenant.update`, `tenant.activate`, `tenant.suspend` (reason),
+  `tenant.restore`, `tenant.archive` (reason), `tenant.unarchive` (reason), `tenant.read`. Audit:
+  `REQUIRED_WITH_REASON` where a reason is required, `REQUIRED` otherwise. Endpoints under
+  `/api/platform/v1/tenants` (`GET` list and detail, `POST` create, `PATCH` profile, `POST …/{tenantId}/<transition>`).
+- Validation: slug `^[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])$` (3–40, no leading/trailing hyphen), reserved words (`www`,
+  `api`, `admin`, `app`, `platform`, `static`, `assets`, `mail`, `status`, `docs`), unique for ever (an archived
+  tenant's slug is never reused); country, time zone, currency and locale through `IReferenceData`.
+- Errors (`TenancyErrors`): `TENANT_INVALID_TRANSITION` (409), `TENANT_SLUG_TAKEN` (409), `TENANT_NOT_FOUND` (404),
+  `TENANT_CONCURRENCY_CONFLICT` (409); request-shape failures reuse `VALIDATION_*` with `WithErrorCode` only for
+  declared codes (#22 N3: add that rule to `.claude/rules/backend.md` here).
+- Integration events `TenantCreated.V1`, `TenantStatusChanged.V1` (D10), published through the Tenancy outbox under
+  the tenant's context (D2).
 
 Acceptance:
-- [ ] Invalid transitions return `409 TENANT_INVALID_TRANSITION`; reasons required where specified.
-- [ ] Status history and audit entries recorded for each transition.
+- [ ] Every transition in the state machine works; every other transition returns `409 TENANT_INVALID_TRANSITION`;
+      a missing reason returns `400 VALIDATION_REASON_REQUIRED`.
+- [ ] Each transition writes one status-history row and one audit entry whose `tenant_id` is the target tenant (D2).
+- [ ] Allowed and denied tests for every new action.
+- [ ] `events.md`/`events.json` list both events with their payloads.
 
-### T2 — Domains and settings
+### T2 — Isolation enforcement (application + database)
 Deliver:
-- `tenancy.tenant_domains` (host unique, type `PLATFORM_SUBDOMAIN | CUSTOM`, `is_primary`, status); creating a
-  tenant creates `<slug>.<Platform:BaseDomain>` (dev default `localhost`).
-- `tenancy.tenant_settings` (**tenant-owned**, RLS) with typed, allow-listed keys: time zone, locale, currency,
-  public visibility, `starting_soon_minutes`, `minor_registration_consent` (`REQUIRED | RECOMMENDED | OFF`).
-- Admin endpoints `GET/PATCH /api/admin/v1/tenant/settings` (actions `tenant.settings.read`,
-  `tenant.settings.update`).
+- **Application layer:** a global query filter convention in `ModuleDbContext` for every `ITenantOwned` entity
+  (`TenantId == current tenant`); a `SaveChanges` interceptor that stamps `TenantId` on added entities through
+  `entry.Property(...).CurrentValue` (no public setter, #13) and throws when an added or modified entity's tenant
+  differs from the context, or when there is no tenant.
+- **Database layer:** a `DbConnectionInterceptor` that runs `set_config('app.tenant_id', <tenant or ''>, false)` on
+  every connection open (multi-tenancy.md); migration helper `EnableTenantRls(schema, table)` (enable + force +
+  `tenant_isolation` policy with `USING` and `WITH CHECK` on `NULLIF(current_setting('app.tenant_id', true), '')::uuid`).
+- `TenantContext.Set` once per scope (D1).
+- **`audit.audit_entries` gets RLS** (S01 follow-up): `EnableTenantRls`; rows with no tenant are visible only
+  through platform services. The audit writers (`AuditLog`, `AuditRecordedConsumer`) and the platform audit query
+  (`ListAuditEntriesHandler`) use the `Platform` connection (D3). The plan names the mechanism (for example a
+  Platform-internal audit context on `Platform` that is not migrated and maps the same tables) and how the consumer
+  still writes its inbox row in the same transaction.
+- Audit indexes reworked tenant-first, and the entity index becomes `(entity_type, entity_id, occurred_at)`
+  (#24 R2); a migration, not an edit of the T6 migration.
+- `AuditScope.Describe(…, targetTenantId:)` for platform reads that are filtered to one tenant but not under a
+  tenant route (the audit query with `?tenantId=`): the entry gets that tenant (S01-T6b follow-up).
+- **Tests** in `SportsPlatform.IntegrationTests/Isolation`, reused by every later slice:
+  - **Isolation harness:** discovers every `ITenantOwned` entity type in every registered `ModuleDbContext`,
+    creates a row in tenant A, then as tenant B asserts it is not visible, can't be updated, can't be deleted and
+    can't be referenced. Each entity type needs a registered sample builder; an entity without one **fails** the
+    harness (so nothing is skipped silently). Until T4 the harness runs on a test-only `ITenantOwned` entity in the
+    `conventions_test` schema.
+  - **RLS coverage:** every table with a `tenant_id` column has RLS enabled and forced and a `tenant_isolation`
+    policy, except the documented list (D4).
+  - **Pool leak:** a pooled connection never carries a previous scope's tenant (open with tenant A, return it,
+    reopen without a tenant → `''`, no rows).
+  - **Audit under RLS:** a tenant entry is invisible to `sp_app` under another tenant; the platform query still
+    sees every tenant; a direct write (denial) and an outbox write (re-drive) both still land.
+  - **Consumers under RLS:** a consumer writing a tenant-owned row runs under the envelope's tenant and succeeds;
+    the same write under another tenant fails.
+- Docs: multi-tenancy.md (as built), `.claude/rules/testing.md` (how to add a sample builder to the harness).
 
 Acceptance:
-- [ ] Unknown setting keys rejected; values type-checked.
-- [ ] Settings are the first table covered by the isolation harness (T4).
+- [ ] All test groups pass. A temporary commit that drops one policy makes the RLS coverage test fail; link the
+      failing CI run in the PR.
+- [ ] `check-roles.sh` and the grants test still pass; nothing in feature code uses `IgnoreQueryFilters()`.
 
 ### T3 — Tenant context and resolution
 Deliver:
-- Admin: `X-Tenant-Id` header validated against the actor's memberships (interface `ITenantMembershipChecker`;
-  S02 implementation reads test claims; S03 replaces it).
-- Public: host → `tenant_domains` lookup with short-lived cache and invalidation on domain/status change. In
-  Development only, `X-Tenant-Slug` header or `?tenant=` query may override (for browsers that don't resolve
-  `*.localhost`).
-- Jobs/consumers: tenant from the event envelope.
-- `ITenantContext` populated for every request; access mode check (status-only) before authorization.
-- `/api/public/v1/site` returns the tenant's public profile (display name, primary domain, public flags).
+- Tenancy Contracts: `ITenantDirectory` (by ID, slug, host), `ITenantAccess` (status-only access mode, D9).
+- Host tenant-resolution middleware in the D8 position:
+  - **Admin:** `X-Tenant-Id` validated against the actor's memberships through `ITenantMembershipChecker`
+    (BuildingBlocks `Tenancy` interface; Host default: no memberships; tests: reads membership claims; S03
+    replaces it). Missing or not a member → `403 AUTH_TENANT_FORBIDDEN`.
+  - **Platform:** tenant routes set the route's tenant (D2); unknown tenant → `404 TENANT_NOT_FOUND`.
+  - **Public:** host → `tenancy.tenant_domains` (D6, D7) through `ITenantDirectory`, with a short-lived in-memory
+    cache (at most 60 s) invalidated in-process on domain or status change. Unknown host → `404 TENANT_NOT_FOUND`;
+    a known host whose tenant is hidden (`PROVISIONING`, `public_enabled = false`) or `BLOCKED` →
+    `403 TENANT_UNAVAILABLE` (the host is public knowledge; the body says nothing more), so the public web can show
+    "not found" and "unavailable" as different pages.
+  - **Jobs/consumers:** unchanged (envelope tenant).
+- Access mode in the authorization middleware, step 1 (authorization.md): an admin request on a `BLOCKED` tenant →
+  `403 TENANT_BLOCKED`.
+- Errors: `AUTH_TENANT_FORBIDDEN` (403), `TENANT_BLOCKED` (403), `TENANT_UNAVAILABLE` (403); `TENANT_NOT_FOUND`
+  from T1.
+- Per-request `ICurrentActor` from the authenticated principal (D5); the test authentication scheme (Testing only)
+  supplies actor ID and memberships. Retire `TestTenantContext`; tests choose the tenant through headers, claims
+  or `TenantContext.Set` in a scope.
+- `GET /api/public/v1/site` (requires a public tenant): display name, primary domain, public flags — `PUBLIC`
+  fields only. Cacheable with `CacheableJson`; responses differ per host, which shared caches key on.
+- AR-21 architecture test (DTOs are not entities): no endpoint's documented response type derives from `Entity`
+  (the first tenant DTO arrives here).
 
 Acceptance:
 - [ ] Wrong or missing tenant header → `403 AUTH_TENANT_FORBIDDEN`; unknown host → `404 TENANT_NOT_FOUND`;
-      suspended tenant → `403 TENANT_BLOCKED` (admin) / unavailable page (public).
+      blocked tenant → `403 TENANT_BLOCKED` (admin); hidden or blocked tenant on its host → `403 TENANT_UNAVAILABLE`
+      (public); each audited when the action is audited.
+- [ ] The reference lists still answer on any host (D6).
+- [ ] A forwarded host from an unknown proxy is ignored (D7); the dev override works only in Development.
 
-### T4 — Isolation enforcement (application + database)
+### T4 — Domains and settings
 Deliver:
-- EF Core global filter convention for all `ITenantOwned` entities in `ModuleDbContext`; SaveChanges
-  interceptor stamps/validates `tenant_id`.
-- RLS: connection interceptor sets `app.tenant_id` on every connection open (session-level; always set —
-  empty string when there is no tenant; policies use `NULLIF(…, '')::uuid` per multi-tenancy.md); migration
-  helper `EnableTenantRls(schema, table)` (enable + force + policy); app runs as `sp_app`.
-- Tests (reused by every later slice):
-  - **Isolation harness** discovering all `ITenantOwned` entities across DbContexts: cross-tenant read, update,
-    delete and reference attempts fail.
-  - **RLS coverage**: every table with a `tenant_id` column has RLS enabled, forced, and a `tenant_isolation`
-    policy.
-  - **Pool leak**: a pooled connection never carries a previous request's tenant.
-  - **API**: another tenant's ID returns `404`.
+- `tenancy.tenant_domains` (global, no RLS): `host` unique, type `PLATFORM_SUBDOMAIN | CUSTOM`, `is_primary`,
+  status. Creating a tenant creates `<slug>.<Platform:BaseDomain>` (dev default `localhost`; Q10 sets the real one).
+- `tenancy.tenant_settings` — the **first tenant-owned business table** (`ITenantOwned`, `EnableTenantRls`):
+  typed, allow-listed keys: time zone, locale, currency, public visibility, `starting_soon_minutes`,
+  `minor_registration_consent` (`REQUIRED | RECOMMENDED | OFF`, default `RECOMMENDED`, Q11). Created with defaults
+  in the tenant-creation transaction under the new tenant's context (D2).
+- Admin endpoints `GET`/`PATCH /api/admin/v1/tenant/settings` (TENANT actions `tenant.settings.read`,
+  `tenant.settings.update`; audit `REQUIRED`). Values validated through `IReferenceData`.
+- Sample builder for `TenantSettings` in the isolation harness.
 
 Acceptance:
-- [ ] All four test groups pass; disabling a policy (temporary commit) makes the RLS coverage test fail — show in
-      the PR.
+- [ ] Unknown keys and wrongly typed values are rejected with `errors` entries naming the field.
+- [ ] The isolation harness covers `tenant_settings` (and fails if its builder is removed); the RLS coverage test
+      sees its policy.
+- [ ] Cross-tenant API test: tenant B's admin can't read or change tenant A's settings (`403` for the header,
+      no data either way).
 
 ### T5 — Public web shell and demo tenants
 Deliver:
-- Public app resolves the tenant per request (host → `/api/public/v1/site`) and renders tenant name, "Coming
-  soon", footer; friendly pages for unknown host and unavailable tenant.
-- DEMO seed (through Tenancy commands): `Kampala Metro Sports Association` (`kmsa`) and `Eastern Lakes Schools
-  Sports Council` (`elssc`) from docs/product/pilot-customer.md, both `ACTIVE`, time zone `Africa/Kampala`,
-  currency `UGX`, country `UG`.
-- Playwright tests: both tenants render by host (or dev override), unknown host shows the not-found page.
+- The public app resolves the tenant per request (host → `/api/public/v1/site`, sending the host as
+  `X-Forwarded-Host`, D7) and renders the tenant's name, "Coming soon" and a footer; friendly pages for an unknown
+  host and an unavailable tenant.
+- Seeding support (S01-T7a follow-up #25 R3, owner: demo seeding is audited): `SeedContext` can run commands as a
+  tenant (sets `TenantContext` once in the seeder's scope, D1) and begins an audit scope with source `SYSTEM` for
+  the command's action.
+- DEMO seeder (through Tenancy commands, never raw inserts): Kampala Metro Sports Association (`kmsa`) and Eastern
+  Lakes Schools Sports Council (`elssc`) from docs/product/pilot-customer.md, both `ACTIVE`, `Africa/Kampala`, `UGX`,
+  `UG`; deterministic IDs (`tenancy.tenant:<slug>`); idempotent by slug.
+- Playwright: both tenants render by host (or the dev override); an unknown host shows the not-found page.
 
 Acceptance:
-- [ ] `pnpm e2e` covers the three cases; screenshots at phone/tablet/desktop widths attached to the PR.
+- [ ] `seed --category DEMO` twice: the second run changes nothing; each created tenant has audit entries with
+      source `SYSTEM`.
+- [ ] `pnpm e2e` covers the three cases; screenshots at phone, tablet and desktop widths in the PR.
+
+## Carried over from S01 (slice review 2026-10-18)
+
+Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task merges.
+- `ITenantOwned.TenantId` stays get-only; the interceptor sets it through the change tracker (#13) — T2.
+- RLS on `audit.audit_entries`, tenant-first audit indexes, entity index with `occurred_at` (#24 R2) — T2.
+- Target tenant on platform reads (`AuditScope`) — T2 (and D2 for tenant routes).
+- `IReferenceData` in Platform Contracts — T1.
+- `SeedContext` runs commands as a tenant and audits demo seeding as `SYSTEM` (#25 R3, owner: yes) — T5.
+- Consumers keep a settable `ITenantContext` (Q15) — T2 test "Consumers under RLS".
+- `WithErrorCode` only with declared codes, rule in backend.md (#22 N3) — T1.
+- AR-21 architecture test — T3.
 
 ## Slice acceptance
 
-- [ ] Two tenants with isolated data proven at application and database level.
-- [ ] Tenant lifecycle with history and audit; public shell per host.
-- [ ] Isolation harness documented in `.claude/rules/testing.md` so later slices extend it.
+- [ ] Two tenants with isolated data, proven at the application and database levels (harness, RLS coverage, pool
+      leak, API tests green in CI).
+- [ ] Tenant lifecycle with status history and audit; public shell per host.
+- [ ] The isolation harness and the RLS exception list are documented in `.claude/rules/testing.md` so later slices
+      extend them.
+- [ ] The S01 carry-overs above are done and removed from PROGRESS.md "Tech debt / follow-ups".
+
+## Implementation notes
+
+(The builder adds notes here as tasks merge.)
