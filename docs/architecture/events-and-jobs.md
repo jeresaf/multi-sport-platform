@@ -84,6 +84,12 @@ OutboxProcessor (hosted service, polls ~500 ms, batches, FOR UPDATE SKIP LOCKED)
   processor, or `FAILED` (until it is re-driven, T5b). Outbox message IDs are strictly increasing UUIDv7s
   (`SequentialIds`) because EF Core orders one save's inserts by key: the messages of one save get their
   `sequence` in the order they were published.
+- **Catalogue (S01-T5b).** `export-catalogues` writes `docs/generated/events.md` and `contracts/events.json`: every
+  `IIntegrationEvent` in each module's `*.Contracts` assembly (name, version, producer module, payload members as
+  serialized with their type and nullability) and the consumers registered for it. The export fails for an event
+  declared twice, a badly named event, or a consumer subscribed to an event no Contracts declare; a test fails for an
+  event declared outside a Contracts assembly. An event with no consumers is listed with none ("—"): its messages are
+  marked `PROCESSED` undelivered.
 - **Sizing.** The claim transaction stays open while its batch is delivered, and every delivery uses a second
   connection: count about two pooled connections per poll.
 

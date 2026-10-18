@@ -308,3 +308,12 @@ Acceptance:
   subscribers are checked; tests for a locked message (`SKIP LOCKED`) and for losing the inbox race.
   Review (#20 R1): a failing module backs off 1 s … 30 s (`OutboxModuleBackoff`) instead of logging an error on
   every poll; a message without consumers is logged at Debug.
+- **T5b (split in two, owner 2026-10-18):** T5b-1 = event catalogue; T5b-2 = outbox diagnostics, re-drive and their
+  allowed/denied tests. `Host/Catalogues/EventCatalogue` reads every `IIntegrationEvent` in each module's
+  `<module assembly>.Contracts` and the `IntegrationEventSubscription`s that `AddSportsPlatform` registers (the CLI
+  builds the services, no database). Payload members come from the outbox's JSON settings (`MessageSerialization`,
+  read through a copy with the reflection resolver), with a simple type (`uuid`, `instant`, `integer`, `uuid[]`,
+  `enum X`, …) and nullability. The export fails for a duplicate or badly named event and for a consumer of an
+  undeclared event; `EventCatalogueTests` also fails for an event declared outside Contracts. No events are declared
+  yet, so `events.md` says so and `events.json` is `{"events": []}`. The `Contracts` CI job already fails on any stale
+  generated file. There is no `since` column: events carry no such declaration.
