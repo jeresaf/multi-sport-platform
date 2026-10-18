@@ -116,6 +116,15 @@ Consolidated by the S00 slice review (2026-10-17). Each item names where it gets
 - The audit middleware's exception path (`FAILURE` with `PLATFORM_UNEXPECTED_ERROR`) has no test: no audited endpoint
   can throw yet. Add one with the first audited endpoint that can (S01-T6a).
 - Audit retention and partitioning by `occurred_at` (pack spec 40 §7): with the retention job (S01-T6a).
+- Anonymous actor for audit (#23 R1): `actor_kind` allows `USER`/`SYSTEM` and `actor_id` is NOT NULL, so once S03
+  has real sign-in an anonymous 401 on an audited endpoint would fail the direct insert and the denial would only be
+  logged. S03: add an anonymous actor kind (nullable or fixed `actor_id`) with the check-constraint migration, and a test
+  that an anonymous 401 on an audited endpoint writes a `DENIED` entry.
+- Denials cost a permanent row each (#23 R2): rate-limit `/api/admin` and `/api/platform` at the edge (Cloudflare),
+  with the `/health/*` item below (infrastructure task after M1). S03 decides whether anonymous denials are counted per
+  minute instead of one row each.
+- `platform.outbox.read` (and T6b's `platform.audit.read`) write an entry per page: diagnostics and audit screens must
+  not auto-refresh by polling (#23 review).
 - Alert on any `FAILED` outbox message (OpenTelemetry counter or gauge): with strict ordering one holds back its
   aggregate's later events until re-driven (infrastructure task after M1; #20 R3).
 - `GET …/diagnostics/outbox?status=…` orders by `id` and the only status index is `(status, next_attempt_at,
