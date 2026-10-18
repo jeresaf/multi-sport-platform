@@ -259,3 +259,10 @@ body `version` and/or `If-Match` (strong comparison, `*`); each one sent must be
 `TENANT_CONCURRENCY_CONFLICT`. Body fields that fail validation are `VALIDATION_INVALID_REQUEST` (new shared code);
 bodies reject unknown members. The tenant context is set by the Tenancy handlers until T3's route middleware (D2); a
 taken slug is audited without a tenant. `tenant_status_history` has `tenant_id` and gets RLS in T2.
+
+**T2a (#32).** T2 is two PRs (owner): T2a enforcement and harness, T2b audit under RLS and the RLS coverage
+test. The query filter is named `TenantIsolation`. Foreign keys between tenant-owned tables are composite
+`(tenant_id, x_id) → (tenant_id, id)`; `ModuleDbContext` refuses single-column ones (owner). The harness runs on
+`conventions_test.tenant_probes`/`tenant_probe_notes`, `messaging_test.consumed_notes` and
+`tenancy.tenant_status_history`; it also checks that a row can't be copied into another tenant. Owner contexts (seeds
+on `Migrator`) have no tenant, so they can't write tenant-owned rows.

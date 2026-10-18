@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -6,6 +7,7 @@ using SportsPlatform.BuildingBlocks.Domain;
 using SportsPlatform.BuildingBlocks.Messaging;
 using SportsPlatform.BuildingBlocks.Persistence.Messaging;
 using SportsPlatform.BuildingBlocks.Results;
+using SportsPlatform.BuildingBlocks.Tenancy;
 
 namespace SportsPlatform.BuildingBlocks.Persistence;
 
@@ -13,18 +15,30 @@ namespace SportsPlatform.BuildingBlocks.Persistence;
 /// Base for each module's DbContext (the module's unit of work). Applies the data conventions: the module's schema,
 /// app-generated UUIDv7 keys, audit columns, <c>xmin</c> concurrency for aggregates
 /// (docs/architecture/data-conventions.md), and the module's <c>outbox_messages</c> and <c>inbox_messages</c>
-/// (docs/architecture/events-and-jobs.md). snake_case names come from <see cref="ModuleDbContextOptions"/>.
+/// (docs/architecture/events-and-jobs.md), and tenant isolation for <see cref="ITenantOwned"/> entities: a query filter
+/// on the current tenant and composite foreign keys between tenant-owned tables (docs/architecture/multi-tenancy.md).
+/// snake_case names come from <see cref="ModuleDbContextOptions"/>.
 /// </summary>
 public abstract class ModuleDbContext : DbContext
 {
-    protected ModuleDbContext(DbContextOptions options, string schema)
+    /// <summary>The name of the query filter on every <see cref="ITenantOwned"/> entity.</summary>
+    public const string TenantFilter = "TenantIsolation";
+
+    private readonly ITenantContext _tenantContext;
+
+    protected ModuleDbContext(DbContextOptions options, string schema, ITenantContext tenantContext)
         : base(options)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(schema);
+        ArgumentNullException.ThrowIfNull(tenantContext);
         Schema = schema;
+        _tenantContext = tenantContext;
     }
 
     public string Schema { get; }
+
+    /// <summary>Read by the tenant query filter on every query, so it follows the scope's tenant; null matches nothing.</summary>
+    protected Guid? CurrentTenantId => _tenantContext.TenantId;
 
     /// <summary>The module's <c>&lt;MODULE&gt;_CONCURRENCY_CONFLICT</c> error (409).</summary>
     protected abstract Error ConcurrencyConflictError { get; }
@@ -125,7 +139,65 @@ public abstract class ModuleDbContext : DbContext
                 // PostgreSQL's xmin system column changes on every update; Npgsql never creates it in migrations.
                 entity.Property<uint>(AuditColumns.Version).HasColumnName("xmin").HasColumnType("xid").IsRowVersion();
             }
+
+            if (typeof(ITenantOwned).IsAssignableFrom(entityType.ClrType))
+            {
+                entity.HasQueryFilter(TenantFilter, TenantFilterFor(entityType.ClrType));
+            }
         }
+
+        EnsureCompositeTenantForeignKeys(modelBuilder.Model);
+    }
+
+    // e => e.TenantId == this.CurrentTenantId; EF reads the context member per query, as a parameter.
+    private LambdaExpression TenantFilterFor(Type clrType)
+    {
+        var entity = Expression.Parameter(clrType, "e");
+        var tenantId = Expression.Convert(Expression.Property(entity, nameof(ITenantOwned.TenantId)), typeof(Guid?));
+        var current = Expression.Property(Expression.Constant(this), nameof(CurrentTenantId));
+        return Expression.Lambda(Expression.Equal(tenantId, current), entity);
+    }
+
+    /// <summary>
+    /// PostgreSQL checks foreign keys without RLS, so only a key that includes <c>tenant_id</c> on both sides stops a
+    /// row from referencing another tenant's row: <c>(tenant_id, parent_id) → (tenant_id, id)</c>.
+    /// </summary>
+    private static void EnsureCompositeTenantForeignKeys(IMutableModel model)
+    {
+        var singleColumn = model.GetEntityTypes()
+            .SelectMany(entityType => entityType.GetDeclaredForeignKeys())
+            .Where(fk => !fk.IsOwnership
+                && typeof(ITenantOwned).IsAssignableFrom(fk.DeclaringEntityType.ClrType)
+                && typeof(ITenantOwned).IsAssignableFrom(fk.PrincipalEntityType.ClrType)
+                && !PairsTenantIds(fk))
+            .Select(fk => $"{fk.DeclaringEntityType.ClrType.Name} → {fk.PrincipalEntityType.ClrType.Name}")
+            .ToList();
+        if (singleColumn.Count > 0)
+        {
+            throw new InvalidOperationException(
+                "Foreign keys between tenant-owned entities must pair TenantId with TenantId " +
+                $"(HasForeignKey(TenantId, ParentId).HasPrincipalKey(TenantId, Id)): {string.Join(", ", singleColumn)}.");
+        }
+    }
+
+    // TenantId on both sides, at the same position, so tenant_id references tenant_id.
+    private static bool PairsTenantIds(IMutableForeignKey foreignKey)
+    {
+        var position = TenantIdPosition(foreignKey.Properties);
+        return position >= 0 && position == TenantIdPosition(foreignKey.PrincipalKey.Properties);
+    }
+
+    private static int TenantIdPosition(IReadOnlyList<IMutableProperty> properties)
+    {
+        for (var i = 0; i < properties.Count; i++)
+        {
+            if (properties[i].Name == nameof(ITenantOwned.TenantId))
+            {
+                return i;
+            }
+        }
+
+        return -1;
     }
 
     // Owned types and derived types share their owner's or base type's row, so only roots get the columns.

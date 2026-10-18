@@ -270,6 +270,109 @@ namespace SportsPlatform.IntegrationTests.Persistence.Migrations
 
                     b.ToTable("reference_probes", "conventions_test");
                 });
+
+            modelBuilder.Entity("SportsPlatform.IntegrationTests.Persistence.TenantProbe", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_tenant_probes");
+
+                    b.HasAlternateKey("TenantId", "Id")
+                        .HasName("ak_tenant_probes_tenant_id_id");
+
+                    b.ToTable("tenant_probes", "conventions_test");
+                });
+
+            modelBuilder.Entity("SportsPlatform.IntegrationTests.Persistence.TenantProbeNote", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<Guid>("ProbeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("probe_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("text");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_tenant_probe_notes");
+
+                    b.HasIndex("TenantId", "ProbeId")
+                        .HasDatabaseName("ix_tenant_probe_notes_tenant_id_probe_id");
+
+                    b.ToTable("tenant_probe_notes", "conventions_test");
+                });
+
+            modelBuilder.Entity("SportsPlatform.IntegrationTests.Persistence.TenantProbeNote", b =>
+                {
+                    b.HasOne("SportsPlatform.IntegrationTests.Persistence.TenantProbe", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId", "ProbeId")
+                        .HasPrincipalKey("TenantId", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_tenant_probe_notes_tenant_probes_tenant_id_probe_id");
+                });
 #pragma warning restore 612, 618
         }
     }

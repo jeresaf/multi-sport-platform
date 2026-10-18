@@ -24,6 +24,8 @@ public static class PersistenceServiceCollectionExtensions
 
         services.TryAddScoped<MessagingInterceptor>();
         services.TryAddScoped<AuditColumnsInterceptor>();
+        services.TryAddScoped<TenantOwnershipInterceptor>();
+        services.TryAddScoped<TenantConnectionInterceptor>();
         services.TryAddScoped<TenantContext>();
         services.TryAddScoped<ITenantContext>(provider => provider.GetRequiredService<TenantContext>());
         services.TryAddScoped<CorrelationContext>();
@@ -34,16 +36,19 @@ public static class PersistenceServiceCollectionExtensions
         // (and tests that don't need one) start without it.
         services.AddDbContext<TContext>((provider, options) => options
             .UseModuleDefaults<TContext>(RequiredConnectionString(configuration, ConnectionStringNames.App), schema)
-            // Order matters: rows added by domain event handlers still get their audit columns.
+            // Order matters: rows added by domain event handlers are still checked for their tenant and get their
+            // audit columns.
             .AddInterceptors(
                 provider.GetRequiredService<MessagingInterceptor>(),
-                provider.GetRequiredService<AuditColumnsInterceptor>()));
+                provider.GetRequiredService<TenantOwnershipInterceptor>(),
+                provider.GetRequiredService<AuditColumnsInterceptor>(),
+                provider.GetRequiredService<TenantConnectionInterceptor>()));
 
         services.AddSingleton(new ModuleDatabase(
             schema,
             typeof(TContext),
             connectionString => (TContext)Activator.CreateInstance(
-                typeof(TContext), ModuleDbContextOptions.ForMigrations<TContext>(connectionString, schema))!));
+                typeof(TContext), ModuleDbContextOptions.ForMigrations<TContext>(connectionString, schema), new TenantContext())!));
 
         return services;
     }

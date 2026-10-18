@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using SportsPlatform.BuildingBlocks.Actors;
+using SportsPlatform.BuildingBlocks.Tenancy;
 using SportsPlatform.IntegrationTests.Infrastructure;
 using SportsPlatform.Modules.Tenancy;
 using SportsPlatform.Modules.Tenancy.Contracts.Tenants;
@@ -43,7 +44,9 @@ public sealed class TenantPersistenceTests(PostgresFixture fixture) : DatabaseTe
         await using var scope = App.Services.CreateAsyncScope();
         var context = scope.ServiceProvider.GetRequiredService<TenancyDbContext>();
         var profile = new TenantProfile("Kampala Metro Sports", "KMSA", "UG", "Africa/Kampala", "en", "UGX", PublicEnabled: false);
-        context.Add(Tenant.Create("kmsa", profile, SystemActor.Instance, App.Clock.GetUtcNow()));
+        var tenant = Tenant.Create("kmsa", profile, SystemActor.Instance, App.Clock.GetUtcNow());
+        scope.ServiceProvider.GetRequiredService<TenantContext>().Set(tenant.Id); // as the create handler does (D2)
+        context.Add(tenant);
 
         var exception = await Should.ThrowAsync<DbUpdateException>(() => context.SaveChangesAsync(Ct));
 

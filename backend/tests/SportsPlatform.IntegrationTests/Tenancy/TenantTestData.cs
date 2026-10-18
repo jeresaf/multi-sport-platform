@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Persistence.Messaging;
+using SportsPlatform.BuildingBlocks.Tenancy;
 using SportsPlatform.Modules.Tenancy.Contracts.Tenants;
 using SportsPlatform.Modules.Tenancy.Domain.Tenants;
 using SportsPlatform.Modules.Tenancy.Infrastructure;
@@ -44,7 +45,10 @@ internal static class TenantTestData
         return body;
     }
 
-    /// <summary>A tenant saved straight through the module's DbContext, moved to <paramref name="status"/>.</summary>
+    /// <summary>
+    /// A tenant saved straight through the module's DbContext, moved to <paramref name="status"/>; under the new tenant,
+    /// like the handlers, because its status history is tenant-owned.
+    /// </summary>
     public static async Task<Guid> SaveTenantAsync(IServiceProvider services, string slug, TenantStatus status, CancellationToken cancellationToken)
     {
         await using var scope = services.CreateAsyncScope();
@@ -67,14 +71,17 @@ internal static class TenantTestData
             tenant.Archive("Council merged into another association", SystemActor.Instance, now).IsSuccess.ShouldBeTrue();
         }
 
+        scope.ServiceProvider.GetRequiredService<TenantContext>().Set(tenant.Id);
         context.Add(tenant);
         await context.SaveChangesAsync(cancellationToken);
         return tenant.Id;
     }
 
+    /// <summary>A tenant's status history, read under that tenant (it is tenant-owned).</summary>
     public static async Task<List<TenantStatusChange>> HistoryAsync(IServiceProvider services, Guid tenantId, CancellationToken cancellationToken)
     {
         await using var scope = services.CreateAsyncScope();
+        scope.ServiceProvider.GetRequiredService<TenantContext>().Set(tenantId);
         return await scope.ServiceProvider.GetRequiredService<TenancyDbContext>().Set<TenantStatusChange>().AsNoTracking()
             .Where(c => c.TenantId == tenantId).OrderBy(c => c.OccurredAt).ThenBy(c => c.Id).ToListAsync(cancellationToken);
     }
