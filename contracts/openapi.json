@@ -5,9 +5,308 @@
     "description": "Multi-sport competition platform. Errors are Problem Details with a stable `code` (contracts/errors.json) and the request's `correlationId`.",
     "version": "v1"
   },
-  "paths": { },
+  "paths": {
+    "/api/platform/v1/diagnostics/outbox": {
+      "get": {
+        "tags": [
+          "Diagnostics"
+        ],
+        "summary": "List outbox messages",
+        "description": "Outbox messages of every module, newest first, without their payloads. Filter by `module` (a module schema) and `status` (PENDING, PROCESSED or FAILED); `limit` is 1–100 (25). `heldBackBy` names the earlier message a PENDING one waits for.",
+        "operationId": "ListOutboxMessages",
+        "parameters": [
+          {
+            "name": "module",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListOutboxMessagesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_QUERY`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_QUERY"
+            ]
+          }
+        }
+      }
+    },
+    "/api/platform/v1/diagnostics/outbox/{module}/{messageId}/redrive": {
+      "post": {
+        "tags": [
+          "Diagnostics"
+        ],
+        "summary": "Re-drive a failed outbox message",
+        "description": "Moves one FAILED message back to PENDING with its attempts reset; the processor delivers it on its next poll. Fix the cause first: a message that fails again ends FAILED again.",
+        "operationId": "RedriveOutboxMessage",
+        "parameters": [
+          {
+            "name": "module",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "messageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RedriveOutboxMessageRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutboxMessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_REASON_REQUIRED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_REASON_REQUIRED"
+            ]
+          },
+          "404": {
+            "description": "Problem Details; `code`: `PLATFORM_OUTBOX_MESSAGE_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "PLATFORM_OUTBOX_MESSAGE_NOT_FOUND"
+            ]
+          },
+          "409": {
+            "description": "Problem Details; `code`: `PLATFORM_OUTBOX_MESSAGE_NOT_FAILED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "PLATFORM_OUTBOX_MESSAGE_NOT_FAILED"
+            ]
+          }
+        }
+      }
+    }
+  },
   "components": {
     "schemas": {
+      "ListOutboxMessagesResponse": {
+        "required": [
+          "items",
+          "page"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OutboxMessageResponse"
+            }
+          },
+          "page": {
+            "$ref": "#/components/schemas/PageInfo"
+          }
+        }
+      },
+      "OutboxMessageResponse": {
+        "required": [
+          "module",
+          "id",
+          "sequence",
+          "eventName",
+          "eventVersion",
+          "aggregateType",
+          "aggregateId",
+          "tenantId",
+          "correlationId",
+          "occurredAt",
+          "status",
+          "attempts",
+          "nextAttemptAt",
+          "lastError",
+          "processedAt",
+          "heldBackBy"
+        ],
+        "type": "object",
+        "properties": {
+          "module": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sequence": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "eventName": {
+            "type": "string"
+          },
+          "eventVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "aggregateType": {
+            "type": "string"
+          },
+          "aggregateId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tenantId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "correlationId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "$ref": "#/components/schemas/OutboxMessageStatus"
+          },
+          "attempts": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "nextAttemptAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastError": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "processedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "heldBackBy": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        },
+        "description": "One outbox message in the platform diagnostics: envelope and delivery state, no payload. `heldBackBy` is set on\na `PENDING` message that waits for an earlier, not yet processed message of its aggregate."
+      },
+      "OutboxMessageStatus": {
+        "enum": [
+          "PENDING",
+          "PROCESSED",
+          "FAILED"
+        ],
+        "description": "Delivery status of an outbox message (docs/domain/state-machines.md, \"Outbox message\")."
+      },
+      "PageInfo": {
+        "required": [
+          "nextCursor",
+          "hasMore"
+        ],
+        "type": "object",
+        "properties": {
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        },
+        "description": "The `page` member of a cursor-paginated list (docs/architecture/api-conventions.md): pass\nNextCursor as `cursor` to get the next page; it is null on the last page."
+      },
       "ProblemDetails": {
         "required": [
           "code",
@@ -55,7 +354,27 @@
             "description": "The request's correlation ID (also the `X-Correlation-Id` response header)."
           }
         }
+      },
+      "RedriveOutboxMessageRequest": {
+        "required": [
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Why the message is re-driven; the audit entry records it (action audit `REQUIRED_WITH_REASON`)."
       }
     }
-  }
+  },
+  "tags": [
+    {
+      "name": "Diagnostics"
+    }
+  ]
 }

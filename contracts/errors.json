@@ -19,6 +19,18 @@
       "owner": "BuildingBlocks"
     },
     {
+      "code": "PLATFORM_OUTBOX_MESSAGE_NOT_FAILED",
+      "status": 409,
+      "message": "Only a FAILED outbox message can be re-driven.",
+      "owner": "Platform"
+    },
+    {
+      "code": "PLATFORM_OUTBOX_MESSAGE_NOT_FOUND",
+      "status": 404,
+      "message": "No outbox message with this ID in this module.",
+      "owner": "Platform"
+    },
+    {
       "code": "PLATFORM_ROUTE_NOT_FOUND",
       "status": 404,
       "message": "No endpoint matches this path.",
@@ -31,9 +43,21 @@
       "owner": "BuildingBlocks"
     },
     {
+      "code": "VALIDATION_INVALID_QUERY",
+      "status": 400,
+      "message": "A query parameter is not valid.",
+      "owner": "BuildingBlocks"
+    },
+    {
       "code": "VALIDATION_MALFORMED_REQUEST",
       "status": 400,
       "message": "The request could not be read.",
+      "owner": "BuildingBlocks"
+    },
+    {
+      "code": "VALIDATION_REASON_REQUIRED",
+      "status": 400,
+      "message": "This action needs a reason.",
       "owner": "BuildingBlocks"
     },
     {
