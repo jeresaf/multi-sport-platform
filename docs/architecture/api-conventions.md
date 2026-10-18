@@ -67,6 +67,11 @@ Modules call each other in-process through Contracts, never over HTTP.
   query parameter has a value the endpoint doesn't accept; `detail` names it) and `VALIDATION_REASON_REQUIRED` (400,
   an action whose audit is `REQUIRED_WITH_REASON` got no usable `reason`). `error.ToProblem(detail)` adds a
   request-specific `detail`; it never carries internal details.
+- Request shape is checked by a FluentValidation validator (`IValidator<TRequest>`, registered by the module) that
+  `.ValidateRequest<TRequest>(error)` runs before the handler (after authorization). A failure is `error` with the
+  messages as `detail` and `errors: [{ "field": "limit", "code": "VALIDATION_INVALID_QUERY" }]`, one entry per
+  failure (camelCase field; a rule's `WithErrorCode` sets a finer code). Messages name the field and what is
+  accepted, never echo the value sent. Domain rules stay in the aggregates (expected failures as `Result`).
 - Never leak stack traces or internal details; they go to logs with the correlation ID.
 
 ## Correlation ID

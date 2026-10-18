@@ -329,5 +329,7 @@ Acceptance:
   `PLATFORM_OUTBOX_MESSAGE_NOT_FOUND` (404, unknown module too), `PLATFORM_OUTBOX_MESSAGE_NOT_FAILED` (409), and in
   `CommonErrors` `VALIDATION_INVALID_QUERY` and `VALIDATION_REASON_REQUIRED` (400, with a `detail`). The cursor is the
   last ID, base64url (`OutboxCursor`). HTTP JSON now writes enums as UPPER_SNAKE strings (first endpoint with an enum).
-  Request shape is checked by hand in `*Request.Validate()`: FluentValidation (backend.md) is not a dependency yet.
+  Request shape: FluentValidation 12.2.0 (Apache-2.0; owner on #22) validators run by `.ValidateRequest<TRequest>(error)`
+  (BuildingBlocks.Api endpoint filter); failures add `errors: [{field, code}]`. Every list parameter is bound as text
+  (`[AsParameters]`), so `?limit=abc` is `VALIDATION_INVALID_QUERY` like `limit=0` (#22 R1).
   The handler takes the reason but nothing records it until T6.
