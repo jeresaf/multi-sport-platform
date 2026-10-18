@@ -7,14 +7,16 @@ at the start of every review.
 
 - **Current slice:** S02 — Tenancy core and isolation (docs/build/slices/S02-tenancy-core.md, as amended by the
   S01 slice review). S00 and S01 are done
-- **Current task:** none yet
-- **Next:** S02-T1 — Tenancy module, tenants and lifecycle
+- **Current task:** S02-T1a — Tenancy module, tenants: create, read, update (branch `s02/t1a-tenants`; T1 split
+  into T1a and T1b, owner 2026-10-18)
+- **Next:** S02-T1b — tenant status transitions
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S02-T1 — Tenancy module, tenants and lifecycle
-2. S02-T2 — Isolation enforcement (application + database)
+1. S02-T1a — Tenancy module, tenants: create, read, update
+2. S02-T1b — Tenant status transitions and `TenantStatusChanged.V1`
+3. S02-T2 — Isolation enforcement (application + database)
 
 ## Log
 
