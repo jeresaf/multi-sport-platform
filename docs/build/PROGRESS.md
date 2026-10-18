@@ -45,6 +45,7 @@ at the start of every review.
 | 2026-10-18 | S01-T7b-2 | #27 | `GET /api/public/v1/reference/{countries|currencies|languages|time-zones}` (Platform `Features/Reference`): `{ items }`, active entries only, ordered by `code` (ordinal); `time-zones?country=` (upper-case alpha-2, else `VALIDATION_INVALID_QUERY`; no zones → `[]`); `CacheableJson` (BuildingBlocks `Api`): `Cache-Control: public, max-age=3600`, strong SHA-256 `ETag`, 304 on a matching `If-None-Match` (weak comparison, lists, `*`); OpenAPI (200/304) and TS client; T7 complete | Owner defaults (plan): sort by code, strict `country`, `code` for the IANA ID, no HEAD; no server cache, no actions, new errors, events or migrations. Pre-review: cacheable responses must be the same for every caller (no `Set-Cookie`), the edge strips the replayed `X-Correlation-Id` (api-conventions.md) |
 | 2026-10-18 | S01 acceptance | — | Slice acceptance checked on `main` (all five criteria met); spec boxes ticked; tech debt regrouped by owner (S02, S03, infrastructure after M1, later) | Local DB had a pre-merge `AddReferenceData` migration applied; rebuilt with `seed --reset` (local only, no code change) |
 | 2026-10-18 | S01 slice review (reviewer, 2026-10-18) | — | S01 accepted; roadmap S00 and S01 → ☑; S02 spec amended (tasks reordered so RLS lands before the first tenant-owned business table, decisions D1–D10, S01 carry-overs assigned to tasks); owner decisions recorded; CLI launch profile documented; modules.md names `AuditScope` and the audit middleware | Owner's 30-minute contributor check done 2026-10-18 |
+| 2026-10-18 | S02-T1a | — | New module `Tenancy` (schema `tenancy`): `tenants` (slug unique for ever, "C" collation, format checks) and append-only `tenant_status_history`; `Tenant` aggregate with the full state machine; `POST`/`GET`/`GET {id}`/`PATCH {id}` under `/api/platform/v1/tenants` (`tenant.create`, `tenant.read`, `tenant.update`, audited under the target tenant, D2); `TenantCreated.V1`; `IReferenceData` in Platform Contracts; `VALIDATION_INVALID_REQUEST`; `WithErrorCode` rule in backend.md | T1 split in two; locale, version, history and `publicEnabled` defaults (owner, plan). Status transitions over HTTP come with T1b |
 
 ## Deviations from spec (agreed)
 
@@ -108,6 +109,13 @@ at the start of every review.
   transaction rolled back after its save loses the entry); validation failures are audited as `FAILURE` with their code.
   T6b (plan approved 2026-10-18): an `outcome` filter beyond the spec's list (pack spec 40's Audit Explorer); no module
   filter (no column) and no "entries without a tenant" filter until S02; `entityId` needs `entityType`.
+- **S02-T1:** delivered as two PRs (T1a module, create/read/update; T1b status transitions). Owner decisions
+  2026-10-18: `default_locale` is `ll` or `ll-CC` (language and country checked through `IReferenceData`); `version`
+  is optional on changes (stale → `TENANT_CONCURRENCY_CONFLICT`), responses carry `version` and an `ETag`; creation
+  writes a status-history row with `from_status` NULL; `publicEnabled` defaults to false; a new shared
+  `VALIDATION_INVALID_REQUEST` (400) for body fields (the spec named only existing `VALIDATION_*` codes). Beyond the
+  spec: tenant request bodies reject unknown members (`VALIDATION_MALFORMED_REQUEST`), the slug column uses the "C"
+  collation (list ordered by slug), and the profile PATCH audit records the names of the fields sent.
 
 ## Tech debt / follow-ups
 
@@ -130,10 +138,13 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
   `ITenantContext`, empty on platform routes, so `GET /api/platform/v1/audit-entries?tenantId=…` stores the tenant only
   in metadata. multi-tenancy.md says platform calls are audited with the target tenant: S02 adds a target tenant to
   `AuditScope.Describe` (set when a platform read is filtered to one tenant) with the audit RLS (S01-T6b pre-review).
-- **S02-T1:** `IReferenceData` (modules.md, Platform Contracts) doesn't exist yet: add it with its first consumer (S02 tenant
-  settings validating time zone, currency, locale) (S01-T7b-1).
-- **S02-T1:** `WithErrorCode` may only take a declared `Error`'s code (`XErrors.Y.Code`), otherwise the error catalogue misses it:
-  add this rule to `.claude/rules/backend.md`. With the next validator that sets a code (#22 re-review N3).
+- **S02-T2:** `tenancy.tenant_status_history` has a `tenant_id` column (FK to `tenants`) and no RLS: T2's RLS coverage test
+  must either enable RLS on it (writes already run under the tenant, D2) or list it as an exception with a reason
+  (S02-T1a).
+- **S02-T4:** the tenant row holds `time_zone`, `default_locale`, `currency_code` and `public_enabled`, which T4's
+  `tenant_settings` also lists: T4 decides which one is the source (S02-T1a).
+- **S02-T1b:** the slug unique-violation path of `CreateTenantHandler` (a concurrent create between the check and the
+  insert → `TENANT_SLUG_TAKEN`) has no test; the sequential case is tested (S02-T1a).
 
 **S03 — identity and access**
 - Anonymous actor for audit (#23 R1): `actor_kind` allows `USER`/`SYSTEM` and `actor_id` is NOT NULL, so once S03

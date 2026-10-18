@@ -64,7 +64,9 @@ Modules call each other in-process through Contracts, never over HTTP.
   `PLATFORM_METHOD_NOT_ALLOWED` (405), `PLATFORM_UNEXPECTED_ERROR` (500, any unhandled exception). Kestrel rejects
   408 (request timeout) and 431 (headers too large) before the pipeline runs, so those responses have no body.
 - Request-shape failures shared by every module's endpoints (`CommonErrors`): `VALIDATION_INVALID_QUERY` (400, a
-  query parameter has a value the endpoint doesn't accept; `detail` names it) and `VALIDATION_REASON_REQUIRED` (400,
+  query parameter has a value the endpoint doesn't accept; `detail` names it), `VALIDATION_INVALID_REQUEST` (400, a
+  body field has a value the endpoint doesn't accept, including a code that isn't active reference data; one
+  `errors` entry per field) and `VALIDATION_REASON_REQUIRED` (400,
   an action whose audit is `REQUIRED_WITH_REASON` got no usable `reason`). `error.ToProblem(detail)` adds a
   request-specific `detail`; it never carries internal details.
 - Request shape is checked by a FluentValidation validator (`IValidator<TRequest>`, registered by the module) that
