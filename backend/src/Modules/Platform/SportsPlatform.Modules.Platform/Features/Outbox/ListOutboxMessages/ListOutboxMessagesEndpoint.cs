@@ -13,10 +13,11 @@ internal static class ListOutboxMessagesEndpoint
     public static void Map(IEndpointRouteBuilder platform) => platform
         .MapGet("/diagnostics/outbox", HandleAsync)
         .WithName("ListOutboxMessages")
+        .WithTags("Diagnostics")
         .WithSummary("List outbox messages")
         .WithDescription(
             "Outbox messages of every module, newest first, without their payloads. Filter by `module` (a module schema) " +
-            "and `status`; `heldBackBy` names the earlier message a PENDING one waits for.")
+            "and `status` (PENDING, PROCESSED or FAILED); `limit` is 1–100 (25). `heldBackBy` names the earlier message a PENDING one waits for.")
         .RequireAction(PlatformActions.OutboxRead)
         .ProducesErrors(CommonErrors.InvalidQuery);
 

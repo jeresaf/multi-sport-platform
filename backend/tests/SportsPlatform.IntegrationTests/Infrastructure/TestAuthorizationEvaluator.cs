@@ -22,6 +22,14 @@ public sealed class TestAuthorizationEvaluator : IAuthorizationEvaluator
 
     public void AllowAll() => _allowAll = true;
 
+    /// <summary>Back to denying everything, with no recorded requests (each database test starts here).</summary>
+    public void Reset()
+    {
+        _allowed.Clear();
+        _allowAll = false;
+        Requests.Clear();
+    }
+
     public ValueTask<Result> AuthorizeAsync(AuthorizationRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);

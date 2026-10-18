@@ -12,6 +12,7 @@ internal static class RedriveOutboxMessageEndpoint
     public static void Map(IEndpointRouteBuilder platform) => platform
         .MapPost("/diagnostics/outbox/{module}/{messageId:guid}/redrive", HandleAsync)
         .WithName("RedriveOutboxMessage")
+        .WithTags("Diagnostics")
         .WithSummary("Re-drive a failed outbox message")
         .WithDescription(
             "Moves one FAILED message back to PENDING with its attempts reset; the processor delivers it on its next poll. " +
