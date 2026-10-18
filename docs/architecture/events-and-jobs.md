@@ -132,6 +132,13 @@ OutboxProcessor (hosted service, polls ~500 ms, batches, FOR UPDATE SKIP LOCKED)
   action_code, outcome (SUCCESS | FAILURE | DENIED), error_code, entity_type, entity_id, occurred_at, source (API |
   SYSTEM), correlation_id, reason, metadata jsonb` and `created_*`; `AppendOnly` (runtime roles SELECT and INSERT;
   triggers reject UPDATE, DELETE and TRUNCATE for every role). No RLS until S02 (owner, 2026-10-18).
+- **Query (S01-T6b).** `GET /api/platform/v1/audit-entries` (`platform.audit.read`, audited: each page writes a
+  direct `SUCCESS` entry with the filters as metadata, so audit screens must not poll). Filters, combined with AND:
+  `tenantId`, `actorId`, `action` (action-code format, not checked against the catalogue, so retired codes can be
+  found), `entityType`, `entityId` (needs `entityType`), `correlationId`, `outcome`, `from` (inclusive) and `to`
+  (exclusive) as ISO 8601 instants with an offset. Newest first by `(occurred_at, id)`; the cursor encodes both.
+  Entries arriving through an outbox can land behind a cursor already read. `metadata` is returned as stored (already
+  redacted).
 
 ## Projections
 
