@@ -7,15 +7,16 @@ at the start of every review.
 
 - **Current slice:** S02 — Tenancy core and isolation (docs/build/slices/S02-tenancy-core.md, as amended by the
   S01 slice review). S00 and S01 are done
-- **Current task:** S02-T1b — Tenant status transitions and `TenantStatusChanged.V1` — in review, PR #31 (branch
-  `s02/t1b-tenant-transitions`)
-- **Next:** S02-T2 — Isolation enforcement (application + database)
+- **Current task:** S02-T2a — Isolation enforcement (query filter, stamping and connection interceptors,
+  `EnableTenantRls`, composite FKs, isolation harness) — in progress (branch `s02/t2a-isolation-enforcement`)
+- **Next:** S02-T2b — Audit on the `Platform` connection, audit RLS and indexes, RLS coverage test
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S02-T1b — Tenant status transitions and `TenantStatusChanged.V1`
-2. S02-T2 — Isolation enforcement (application + database)
+1. S02-T2a — Isolation enforcement (application + database)
+2. S02-T2b — Audit under RLS and RLS coverage
+3. S02-T3 — Tenant context and resolution
 
 ## Log
 
