@@ -6,9 +6,10 @@ namespace SportsPlatform.Modules.Tenancy.Domain.Tenants;
 
 /// <summary>
 /// One row of a tenant's status history (append-only). <see cref="FromStatus"/> is null only on the row written when
-/// the tenant is created. The reason is free text kept permanently: never personal data.
+/// the tenant is created. Tenant-owned (RLS): written and read under the tenant it belongs to. The reason is free text
+/// kept permanently: never personal data.
 /// </summary>
-public sealed class TenantStatusChange : Entity
+public sealed class TenantStatusChange : Entity, ITenantOwned
 {
     public const int ReasonMaxLength = 500;
 
