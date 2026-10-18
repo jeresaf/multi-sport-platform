@@ -138,23 +138,27 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
   `ITenantContext`, empty on platform routes, so `GET /api/platform/v1/audit-entries?tenantId=…` stores the tenant only
   in metadata. multi-tenancy.md says platform calls are audited with the target tenant: S02 adds a target tenant to
   `AuditScope.Describe` (set when a platform read is filtered to one tenant) with the audit RLS (S01-T6b pre-review).
-- **S02-T2:** `tenancy.tenant_status_history` has a `tenant_id` column (FK to `tenants`) and no RLS: T2's RLS coverage test
-  must either enable RLS on it (writes already run under the tenant, D2) or list it as an exception with a reason
-  (S02-T1a).
+- **S02-T2:** `tenancy.tenant_status_history` has a `tenant_id` column (FK to `tenants`) and no RLS: enable RLS on it
+  (writes run under the tenant, D2; platform reads of one tenant's history run under the route tenant) rather than
+  adding an exception, so the D4 list stays the Q15 tables (S02-T1a; #30 R3, reviewer's preference).
 - **S02-T4:** the tenant row holds `time_zone`, `default_locale`, `currency_code` and `public_enabled`, which T4's
-  `tenant_settings` also lists: T4 decides which one is the source (S02-T1a).
+  `tenant_settings` also lists: T4's plan decides the single source. Reviewer's suggestion: the tenant row keeps
+  identity (slug, names, country, status); the editable values move to `tenant_settings` (tenant-owned, RLS) with a
+  T4 migration, and platform edits write them under the target tenant (S02-T1a; #30 R4).
 - **S02-T1b:** the slug unique-violation path of `CreateTenantHandler` (a concurrent create between the check and the
-  insert → `TENANT_SLUG_TAKEN`) has no test; the sequential case is tested. Its FAILURE audit entry names the tenant
-  ID that was never inserted: the test decides whether that is kept (documented) or cleared (S02-T1a pre-review).
+  insert → `TENANT_SLUG_TAKEN`) has no test; the sequential case is tested. A failed create's audit entry names the
+  tenant ID that was never inserted. Owner (#30 R2): set the tenant after the slug check, so a failed create is audited
+  with no tenant, and reword D1 to "before the first connection that reads or writes tenant data" (the check reads
+  only the global `tenants`; the save opens a new connection); document the race path (S02-T1a pre-review).
 - **S02-T1b:** the PATCH race (version matches at load, another save lands before this one → `xmin` conflict → 409) has
   no test; the stale-`version` case is tested (S02-T1a pre-review).
 - **S02-T3:** D2 is done in the Tenancy handlers, after authorization and validation, so on `/tenants/{tenantId}` a
   DENIED (403) or validation FAILURE (400) is audited with `tenant_id` NULL, and a 404 with the unknown ID. T3's route
   middleware sets the tenant before authorization (404 for an unknown tenant); then drop `Set` from the handlers and
   test that those entries carry the target tenant (S02-T1a pre-review).
-- **Owner:** tenant responses send an `ETag`, but PATCH doesn't evaluate `If-Match` (owner chose body `version` for
-  T1a); api-conventions.md allows either. The endpoint description says so. Decide when the admin UI needs it
-  (S02-T1a pre-review, MAJOR).
+- **S02-T1b:** evaluate `If-Match` (owner, #30 R1): on PATCH and the transition endpoints, an `If-Match` that isn't the
+  current version → `409 TENANT_CONCURRENCY_CONFLICT`; `If-Match` and a body `version` sent together must agree; tests
+  for both; drop the "not evaluated" note from the PATCH description (S02-T1a pre-review).
 
 **S03 — identity and access**
 - Anonymous actor for audit (#23 R1): `actor_kind` allows `USER`/`SYSTEM` and `actor_id` is NOT NULL, so once S03
