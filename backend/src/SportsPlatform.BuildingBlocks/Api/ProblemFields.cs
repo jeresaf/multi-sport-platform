@@ -6,4 +6,7 @@ public static class ProblemFields
     public const string Code = "code";
 
     public const string CorrelationId = "correlationId";
+
+    /// <summary>Validation failures: <c>[{ "field": "reason", "code": "VALIDATION_REASON_REQUIRED" }]</c>.</summary>
+    public const string Errors = "errors";
 }

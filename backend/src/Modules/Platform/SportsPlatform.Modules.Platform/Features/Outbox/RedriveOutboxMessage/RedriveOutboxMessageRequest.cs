@@ -4,18 +4,4 @@ namespace SportsPlatform.Modules.Platform.Features.Outbox.RedriveOutboxMessage;
 public sealed record RedriveOutboxMessageRequest(string? Reason)
 {
     public const int MaxReasonLength = 500;
-
-    /// <summary>The trimmed reason, or the reason it is not usable (the Problem Details <c>detail</c>).</summary>
-    public (string? Reason, string? Problem) Validate()
-    {
-        var reason = Reason?.Trim();
-        if (string.IsNullOrEmpty(reason))
-        {
-            return (null, "'reason' must not be empty.");
-        }
-
-        return reason.Length > MaxReasonLength
-            ? (null, $"'reason' must be at most {MaxReasonLength} characters.")
-            : (reason, null);
-    }
 }

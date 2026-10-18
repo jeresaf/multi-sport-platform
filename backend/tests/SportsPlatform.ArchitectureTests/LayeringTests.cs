@@ -4,10 +4,11 @@ namespace SportsPlatform.ArchitectureTests;
 
 public sealed class LayeringTests
 {
-    private static readonly string[] _frameworks = ["Microsoft.EntityFrameworkCore", "Microsoft.AspNetCore"];
+    // FluentValidation checks request shape at the API edge; domain rules live in the aggregates.
+    private static readonly string[] _frameworks = ["Microsoft.EntityFrameworkCore", "Microsoft.AspNetCore", "FluentValidation"];
 
     [Fact]
-    public void Domain_namespaces_do_not_depend_on_EF_Core_or_ASP_NET_Core()
+    public void Domain_namespaces_do_not_depend_on_EF_Core_ASP_NET_Core_or_FluentValidation()
     {
         var domainTypes = Types.InAssemblies([SolutionAssemblies.BuildingBlocks, .. SolutionAssemblies.Modules])
             .That().ResideInNamespaceMatching(@"\.Domain(\.|$)");

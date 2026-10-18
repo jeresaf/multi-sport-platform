@@ -18,7 +18,8 @@ internal static class RedriveOutboxMessageEndpoint
             "Moves one FAILED message back to PENDING with its attempts reset; the processor delivers it on its next poll. " +
             "Fix the cause first: a message that fails again ends FAILED again.")
         .RequireAction(PlatformActions.OutboxRedrive)
-        .ProducesErrors(CommonErrors.ReasonRequired, PlatformErrors.OutboxMessageNotFound, PlatformErrors.OutboxMessageNotFailed);
+        .ValidateRequest<RedriveOutboxMessageRequest>(CommonErrors.ReasonRequired)
+        .ProducesErrors(PlatformErrors.OutboxMessageNotFound, PlatformErrors.OutboxMessageNotFailed);
 
     private static async Task<Results<Ok<OutboxMessageResponse>, ProblemHttpResult>> HandleAsync(
         string module,
@@ -27,13 +28,7 @@ internal static class RedriveOutboxMessageEndpoint
         RedriveOutboxMessageHandler handler,
         CancellationToken cancellationToken)
     {
-        var (reason, problem) = request.Validate();
-        if (reason is null)
-        {
-            return CommonErrors.ReasonRequired.ToProblem(problem);
-        }
-
-        var result = await handler.HandleAsync(module, messageId, reason, cancellationToken);
+        var result = await handler.HandleAsync(module, messageId, request.Reason!.Trim(), cancellationToken);
         return result.IsSuccess ? TypedResults.Ok(result.Value) : result.Error.ToProblem();
     }
 }

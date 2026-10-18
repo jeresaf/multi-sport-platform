@@ -1,3 +1,4 @@
+using FluentValidation;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SportsPlatform.BuildingBlocks.Modules;
@@ -33,6 +34,8 @@ public sealed class PlatformModule : IModule
         services.AddOutboxDiagnostics();
         services.AddScoped<ListOutboxMessagesHandler>();
         services.AddScoped<RedriveOutboxMessageHandler>();
+        services.AddSingleton<IValidator<ListOutboxMessagesRequest>, ListOutboxMessagesRequestValidator>();
+        services.AddSingleton<IValidator<RedriveOutboxMessageRequest>, RedriveOutboxMessageRequestValidator>();
     }
 
     public void MapEndpoints(ApiEndpointGroups groups)

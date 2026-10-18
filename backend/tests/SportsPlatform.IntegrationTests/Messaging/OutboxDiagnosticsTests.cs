@@ -126,16 +126,16 @@ public sealed class OutboxDiagnosticsTests : DatabaseTest
     }
 
     [Theory]
-    [InlineData("?status=failed")]
-    [InlineData("?status=RETRYING")]
-    [InlineData("?module=registry")]
-    [InlineData("?limit=0")]
-    [InlineData("?limit=101")]
-    [InlineData("?limit=abc")]
-    [InlineData("?limit=+5")]
-    [InlineData("?limit=")]
-    [InlineData("?cursor=not-a-cursor")]
-    public async Task Invalid_query_is_rejected(string query)
+    [InlineData("?status=failed", "status")]
+    [InlineData("?status=RETRYING", "status")]
+    [InlineData("?module=registry", "module")]
+    [InlineData("?limit=0", "limit")]
+    [InlineData("?limit=101", "limit")]
+    [InlineData("?limit=abc", "limit")]
+    [InlineData("?limit=+5", "limit")]
+    [InlineData("?limit=", "limit")]
+    [InlineData("?cursor=not-a-cursor", "cursor")]
+    public async Task Invalid_query_is_rejected(string query, string field)
     {
         App.Authorization.Allow(PlatformActions.OutboxRead);
         using var client = App.CreateClient();
@@ -144,6 +144,19 @@ public sealed class OutboxDiagnosticsTests : DatabaseTest
 
         var problem = await response.ShouldBeProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_INVALID_QUERY");
         problem.GetProperty("detail").GetString().ShouldNotBeNullOrWhiteSpace();
+        ShouldNameField(problem, field, "VALIDATION_INVALID_QUERY");
+    }
+
+    [Fact]
+    public async Task Every_invalid_parameter_is_listed()
+    {
+        App.Authorization.Allow(PlatformActions.OutboxRead);
+        using var client = App.CreateClient();
+
+        using var response = await client.GetAsync(new Uri($"{_listPath}?status=RETRYING&limit=0", UriKind.Relative), Ct);
+
+        var problem = await response.ShouldBeProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_INVALID_QUERY");
+        problem.GetProperty("errors").EnumerateArray().Select(e => e.GetProperty("field").GetString()).ShouldBe(["status", "limit"]);
     }
 
     [Fact]
@@ -214,7 +227,8 @@ public sealed class OutboxDiagnosticsTests : DatabaseTest
         using var content = new StringContent(body, Encoding.UTF8, "application/json");
         using var response = await client.PostAsync(RedrivePath(MessagingTestDbContext.SchemaName, failed.Id), content, Ct);
 
-        await response.ShouldBeProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_REASON_REQUIRED");
+        var problem = await response.ShouldBeProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_REASON_REQUIRED");
+        ShouldNameField(problem, "reason", "VALIDATION_REASON_REQUIRED");
         (await OutboxAsync()).ShouldHaveSingleItem().Status.ShouldBe(OutboxMessageStatus.Failed);
     }
 
@@ -271,6 +285,13 @@ public sealed class OutboxDiagnosticsTests : DatabaseTest
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         App.Authorization.Requests.ShouldHaveSingleItem().Action.ShouldBe(PlatformActions.OutboxRedrive);
+    }
+
+    private static void ShouldNameField(JsonElement problem, string field, string code)
+    {
+        var error = problem.GetProperty("errors").EnumerateArray().ShouldHaveSingleItem();
+        error.GetProperty("field").GetString().ShouldBe(field);
+        error.GetProperty("code").GetString().ShouldBe(code);
     }
 
     /// <summary>Runs the processor until the first due message is FAILED (the flaky consumer keeps failing).</summary>
