@@ -5,4 +5,6 @@ Declared in each module's Contracts as versioned records (`ResultApproved.V1`) a
 producer's outbox (docs/architecture/events-and-jobs.md). Payloads are JSON with these members; changes are
 additive, and a breaking change is a new version. An event without consumers is not delivered anywhere.
 
-No integration events are declared yet.
+| Event | Version | Producer | Payload | Consumers |
+|---|---|---|---|---|
+| `AuditRecorded` | 1 | Platform | `entryId: uuid`, `actionCode: string`, `outcome: string (enum AuditOutcome: SUCCESS \| FAILURE \| DENIED)`, `errorCode: string?`, `actorKind: string (enum ActorKind: USER \| SYSTEM)`, `actorId: uuid`, `tenantId: uuid?`, `entityType: string?`, `entityId: uuid?`, `occurredAt: instant`, `source: string (enum AuditSource: API \| SYSTEM)`, `correlationId: string?`, `reason: string?`, `metadata: string?` | `platform.audit` |

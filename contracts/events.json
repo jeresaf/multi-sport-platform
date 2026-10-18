@@ -1,3 +1,84 @@
 {
-  "events": []
+  "events": [
+    {
+      "name": "AuditRecorded",
+      "version": 1,
+      "module": "Platform",
+      "payload": [
+        {
+          "name": "entryId",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "actionCode",
+          "type": "string",
+          "nullable": false
+        },
+        {
+          "name": "outcome",
+          "type": "string (enum AuditOutcome: SUCCESS | FAILURE | DENIED)",
+          "nullable": false
+        },
+        {
+          "name": "errorCode",
+          "type": "string",
+          "nullable": true
+        },
+        {
+          "name": "actorKind",
+          "type": "string (enum ActorKind: USER | SYSTEM)",
+          "nullable": false
+        },
+        {
+          "name": "actorId",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "tenantId",
+          "type": "uuid",
+          "nullable": true
+        },
+        {
+          "name": "entityType",
+          "type": "string",
+          "nullable": true
+        },
+        {
+          "name": "entityId",
+          "type": "uuid",
+          "nullable": true
+        },
+        {
+          "name": "occurredAt",
+          "type": "instant",
+          "nullable": false
+        },
+        {
+          "name": "source",
+          "type": "string (enum AuditSource: API | SYSTEM)",
+          "nullable": false
+        },
+        {
+          "name": "correlationId",
+          "type": "string",
+          "nullable": true
+        },
+        {
+          "name": "reason",
+          "type": "string",
+          "nullable": true
+        },
+        {
+          "name": "metadata",
+          "type": "string",
+          "nullable": true
+        }
+      ],
+      "consumers": [
+        "platform.audit"
+      ]
+    }
+  ]
 }
