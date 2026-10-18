@@ -7,14 +7,13 @@ at the start of every review.
 
 - **Current slice:** S01 — Backend platform (docs/build/slices/S01-backend-platform.md). S00 is on `main`; its
   "new contributor in under 30 minutes" check is still with the owner
-- **Current task:** none. S01-T6a (audit trail) is in review as #23
-- **Next:** S01-T6b (audit query endpoint)
+- **Current task:** S01-T6b — Audit query endpoint (plan approved 2026-10-18)
+- **Next:** S01-T7 (seed framework and reference data)
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S01-T6b — Audit query endpoint
-2. S01-T7 — Seed framework and reference data
+1. S01-T7 — Seed framework and reference data
 
 ## Log
 
