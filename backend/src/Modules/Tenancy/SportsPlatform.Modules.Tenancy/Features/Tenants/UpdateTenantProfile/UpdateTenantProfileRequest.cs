@@ -4,7 +4,7 @@ namespace SportsPlatform.Modules.Tenancy.Features.Tenants.UpdateTenantProfile;
 
 /// <summary>
 /// The profile fields to change; a missing or null field stays as it is. The slug and the status can't be changed here
-/// (unknown members are rejected). <see cref="Version"/>, when sent, must be the tenant's current version.
+/// (unknown members are rejected). <c>version</c>, when sent, must be the tenant's current version.
 /// </summary>
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record UpdateTenantProfileRequest(

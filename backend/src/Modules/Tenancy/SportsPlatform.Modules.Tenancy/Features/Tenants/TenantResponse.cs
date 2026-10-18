@@ -9,7 +9,7 @@ using SportsPlatform.Modules.Tenancy.Domain.Tenants;
 namespace SportsPlatform.Modules.Tenancy.Features.Tenants;
 
 /// <summary>
-/// A tenant as the platform API shows it. <see cref="Version"/> is the row version: send it back with a change to
+/// A tenant as the platform API shows it. <c>version</c> is the row version: send it back with a change to
 /// make it fail with <c>409 TENANT_CONCURRENCY_CONFLICT</c> if someone else changed the tenant first.
 /// </summary>
 public sealed record TenantResponse(

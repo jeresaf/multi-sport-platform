@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 namespace SportsPlatform.Modules.Tenancy.Features.Tenants.CreateTenant;
 
 /// <summary>
-/// A new tenant. Every field but <see cref="PublicEnabled"/> (default false) is required; unknown members are rejected,
+/// A new tenant. Every field but <c>publicEnabled</c> (default false) is required; unknown members are rejected,
 /// so a status can't be sent (a new tenant is always <c>PROVISIONING</c>).
 /// </summary>
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
