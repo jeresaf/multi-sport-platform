@@ -9,6 +9,11 @@ admin endpoint requires one of these; the code is stable and is what roles grant
 | `platform.audit.read` | Platform | PLATFORM | — | REQUIRED | — | no | S01 | View audit entries of every tenant. |
 | `platform.outbox.read` | Platform | PLATFORM | — | REQUIRED | — | no | S01 | View outbox messages and their delivery status. |
 | `platform.outbox.redrive` | Platform | PLATFORM | — | REQUIRED_WITH_REASON | — | no | S01 | Re-deliver failed outbox messages. |
+| `tenant.activate` | Tenancy | PLATFORM | — | REQUIRED | — | no | S02 | Activate a provisioned tenant (PROVISIONING → ACTIVE). |
+| `tenant.archive` | Tenancy | PLATFORM | — | REQUIRED_WITH_REASON | — | no | S02 | Archive a tenant, with a reason (ACTIVE or SUSPENDED → ARCHIVED). |
 | `tenant.create` | Tenancy | PLATFORM | — | REQUIRED | — | no | S02 | Create a tenant (status PROVISIONING). |
 | `tenant.read` | Tenancy | PLATFORM | — | REQUIRED | — | no | S02 | View tenants and their profiles. |
+| `tenant.restore` | Tenancy | PLATFORM | — | REQUIRED | — | no | S02 | Restore a suspended tenant (SUSPENDED → ACTIVE). |
+| `tenant.suspend` | Tenancy | PLATFORM | — | REQUIRED_WITH_REASON | — | no | S02 | Suspend an active tenant, with a reason (ACTIVE → SUSPENDED). |
+| `tenant.unarchive` | Tenancy | PLATFORM | — | REQUIRED_WITH_REASON | — | no | S02 | Bring an archived tenant back, with a reason (ARCHIVED → SUSPENDED). |
 | `tenant.update` | Tenancy | PLATFORM | — | REQUIRED | — | no | S02 | Change a tenant's profile: names, country, time zone, locale, currency, public site. |

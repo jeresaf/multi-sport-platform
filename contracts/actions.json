@@ -34,6 +34,28 @@
       "since": "S01"
     },
     {
+      "code": "tenant.activate",
+      "module": "Tenancy",
+      "description": "Activate a provisioned tenant (PROVISIONING → ACTIVE).",
+      "scope": "PLATFORM",
+      "scopableBy": [],
+      "audit": "REQUIRED",
+      "entitlement": null,
+      "idempotent": false,
+      "since": "S02"
+    },
+    {
+      "code": "tenant.archive",
+      "module": "Tenancy",
+      "description": "Archive a tenant, with a reason (ACTIVE or SUSPENDED → ARCHIVED).",
+      "scope": "PLATFORM",
+      "scopableBy": [],
+      "audit": "REQUIRED_WITH_REASON",
+      "entitlement": null,
+      "idempotent": false,
+      "since": "S02"
+    },
+    {
       "code": "tenant.create",
       "module": "Tenancy",
       "description": "Create a tenant (status PROVISIONING).",
@@ -51,6 +73,39 @@
       "scope": "PLATFORM",
       "scopableBy": [],
       "audit": "REQUIRED",
+      "entitlement": null,
+      "idempotent": false,
+      "since": "S02"
+    },
+    {
+      "code": "tenant.restore",
+      "module": "Tenancy",
+      "description": "Restore a suspended tenant (SUSPENDED → ACTIVE).",
+      "scope": "PLATFORM",
+      "scopableBy": [],
+      "audit": "REQUIRED",
+      "entitlement": null,
+      "idempotent": false,
+      "since": "S02"
+    },
+    {
+      "code": "tenant.suspend",
+      "module": "Tenancy",
+      "description": "Suspend an active tenant, with a reason (ACTIVE → SUSPENDED).",
+      "scope": "PLATFORM",
+      "scopableBy": [],
+      "audit": "REQUIRED_WITH_REASON",
+      "entitlement": null,
+      "idempotent": false,
+      "since": "S02"
+    },
+    {
+      "code": "tenant.unarchive",
+      "module": "Tenancy",
+      "description": "Bring an archived tenant back, with a reason (ARCHIVED → SUSPENDED).",
+      "scope": "PLATFORM",
+      "scopableBy": [],
+      "audit": "REQUIRED_WITH_REASON",
       "entitlement": null,
       "idempotent": false,
       "since": "S02"

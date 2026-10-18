@@ -16,8 +16,8 @@ internal static class UpdateTenantProfileEndpoint
         .WithDescription(
             "Changes the fields sent; missing or null fields stay as they are. The slug never changes, and the status " +
             "changes only through the status actions. Send `version` from the last read to get " +
-            "409 TENANT_CONCURRENCY_CONFLICT instead of overwriting someone else's change. `If-Match` is not evaluated yet: " +
-            "send the version in the body.")
+            "409 TENANT_CONCURRENCY_CONFLICT instead of overwriting someone else's change; `If-Match` with the `ETag` " +
+            "works the same way (if both are sent, both must match).")
         .RequireAction(TenancyActions.TenantUpdate)
         .ValidateRequest<UpdateTenantProfileRequest>(CommonErrors.InvalidRequest)
         .ProducesErrors(TenancyErrors.NotFound, TenancyErrors.ConcurrencyConflict);
@@ -26,10 +26,16 @@ internal static class UpdateTenantProfileEndpoint
         Guid tenantId,
         UpdateTenantProfileRequest request,
         UpdateTenantProfileHandler handler,
+        HttpRequest httpRequest,
         HttpResponse response,
         CancellationToken cancellationToken)
     {
-        var result = await handler.HandleAsync(tenantId, request, cancellationToken);
+        if (!TenantVersion.TryReadIfMatch(httpRequest, out var ifMatch, out var malformed))
+        {
+            return malformed;
+        }
+
+        var result = await handler.HandleAsync(tenantId, request, ifMatch, cancellationToken);
         if (result.IsFailure)
         {
             return result.Error.ToProblem();

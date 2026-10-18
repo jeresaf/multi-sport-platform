@@ -96,8 +96,11 @@ public sealed class CreateTenantTests(PostgresFixture fixture) : DatabaseTest(fi
         await response.ShouldBeProblemAsync(HttpStatusCode.Conflict, "TENANT_SLUG_TAKEN");
         (await TenantTestData.TenantCountAsync(App.Services, Ct)).ShouldBe(1);
         var entry = (await AuditTestData.EntriesAsync(App.Services, Ct)).ShouldHaveSingleItem();
-        entry.Outcome.ShouldBe(AuditOutcome.Failure);
-        entry.ErrorCode.ShouldBe("TENANT_SLUG_TAKEN");
+        entry.ShouldSatisfyAllConditions(
+            e => e.Outcome.ShouldBe(AuditOutcome.Failure),
+            e => e.ErrorCode.ShouldBe("TENANT_SLUG_TAKEN"),
+            e => e.TenantId.ShouldBeNull("no tenant was created (#30 R2)"),
+            e => e.EntityId.ShouldBeNull());
     }
 
     [Theory]

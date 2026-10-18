@@ -36,7 +36,7 @@ Back in VS Code:
 /address-review <n>
 ```
 
-When the reviewer approves, squash-merge on GitHub, then in VS Code run `/clear` and `/next-task`.
+When the reviewer approves, merge on GitHub with a merge commit, then in VS Code run `/clear` and `/next-task`.
 
 ## At the end of each slice
 

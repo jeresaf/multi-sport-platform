@@ -100,7 +100,7 @@ VS Code:   /next-task  → read the plan, comment, approve → Claude implements
 claude.ai: "Review PR #12 in jeresaf/multi-sport-platform"  → the reviewer posts findings
 VS Code:   /address-review 12                                → fixes pushed
 claude.ai: "Re-review PR #12"                                → approved
-GitHub:    Squash and merge → VS Code: /clear → /next-task
+GitHub:    Merge pull request (merge commit) → VS Code: /clear → /next-task
 ```
 
 At the end of each slice, ask the reviewer: **"Slice review S0N"**. It checks for drift and writes the next slice's

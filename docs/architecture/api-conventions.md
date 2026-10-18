@@ -110,8 +110,11 @@ Modules call each other in-process through Contracts, never over HTTP.
 
 ## Concurrency
 
-- Mutable admin resources return `version` (from PostgreSQL `xmin`) and `ETag`. Updates send `If-Match` or
-  `version`; mismatch → `409 *_CONCURRENCY_CONFLICT`.
+- Mutable admin resources return `version` (from PostgreSQL `xmin`) and `ETag` (the quoted version). Updates send
+  `If-Match` or `version`, or both; each one sent must be the current version, otherwise `409 *_CONCURRENCY_CONFLICT`.
+  `If-Match` uses strong comparison (a `W/` tag never matches) and `*` matches any current version
+  (`IfMatch`, `SportsPlatform.BuildingBlocks.Api`); a header that doesn't parse is `VALIDATION_MALFORMED_REQUEST`. A
+  change saved by someone else between the read and the save also conflicts (`xmin` is the concurrency token).
 
 ## Caching public reads
 
