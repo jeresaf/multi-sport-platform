@@ -19,7 +19,7 @@ at the start of every review.
 ## Next up
 
 1. S01 owner demo and the reviewer's slice review (then roadmap S01 → ☑)
-2. S02 — Tenancy core and isolation (spec is detailed)
+2. S02 — Tenancy core and isolation (spec detailed in the kit; amended by the S01 slice review — start from the amended spec)
 
 ## Log
 
@@ -132,6 +132,8 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
   `ITenantContext`, empty on platform routes, so `GET /api/platform/v1/audit-entries?tenantId=…` stores the tenant only
   in metadata. multi-tenancy.md says platform calls are audited with the target tenant: S02 adds a target tenant to
   `AuditScope.Describe` (set when a platform read is filtered to one tenant) with the audit RLS (S01-T6b pre-review).
+- `IReferenceData` (modules.md, Platform Contracts) doesn't exist yet: add it with its first consumer (S02 tenant
+  settings validating time zone, currency, locale) (S01-T7b-1).
 
 **S03 — identity and access**
 - Anonymous actor for audit (#23 R1): `actor_kind` allows `USER`/`SYSTEM` and `actor_id` is NOT NULL, so once S03
@@ -186,11 +188,17 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
   first slice that adds scheduled jobs; S01-T5a).
 - Human-readable console logs in Development (owner, #17 re-review): a readable console formatter behind a
   setting, used by the Development launch profile; JSON stays everywhere else. Can ride the next PR.
+- A missing `IValidator<T>` for an endpoint with `.ValidateRequest<T>()` only fails at the first request (500 from
+  `GetRequiredService`): have the Host check this at startup like action markers, or add a test that walks the
+  endpoints. With the next endpoint that has a validator (#22 re-review N1).
+- Validation field names are camelCased by their first letter only (`JsonNamingPolicy.CamelCase.ConvertName` on the
+  whole path), so `Address.Street` becomes `address.Street`: convert each path segment. With the first nested request
+  body (#22 re-review N2).
+- `WithErrorCode` may only take a declared `Error`'s code (`XErrors.Y.Code`), otherwise the error catalogue misses it:
+  add this rule to `.claude/rules/backend.md`. With the next validator that sets a code (#22 re-review N3).
 - `ProblemDetails:TypeBaseUri` is the placeholder `https://errors.sportsplatform.invalid/` until Q10 (domain).
 - Reference names are English only: CLDR has Swahili, French and other names for the same codes; add a localised
   name per language with the first non-English UI (S01-T7b-1).
-- `IReferenceData` (modules.md, Platform Contracts) doesn't exist yet: add it with its first consumer (S02 tenant
-  settings validating time zone, currency, locale) (S01-T7b-1).
 - The OpenAPI document gives `time-zones?country=` no `pattern` (`^[A-Z]{2}$`) and documents no `ETag`/`Cache-Control`
   response headers on the reference lists (the endpoint descriptions say both): add them with the first web consumer of
   the reference lists, or when the OpenAPI document gets header support (#27 R1).
