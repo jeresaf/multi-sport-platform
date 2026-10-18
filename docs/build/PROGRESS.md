@@ -7,13 +7,13 @@ at the start of every review.
 
 - **Current slice:** S01 — Backend platform (docs/build/slices/S01-backend-platform.md). S00 is on `main`; its
   "new contributor in under 30 minutes" check is still with the owner
-- **Current task:** none. S01-T4 (action catalogue and authorization skeleton) is in review as #19
-- **Next:** S01-T5 (domain events, outbox and inbox)
+- **Current task:** none. S01-T5a (domain events, outbox, processor and inbox) is in review as #20
+- **Next:** S01-T5b (event catalogue, outbox diagnostics and re-drive)
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S01-T5 — Domain events, outbox and inbox
+1. S01-T5b — Event catalogue, outbox diagnostics and re-drive
 2. S01-T6 — Audit
 3. S01-T7 — Seed framework and reference data
 
@@ -34,6 +34,7 @@ at the start of every review.
 | 2026-10-17 | S01-T3c | #18 | One OpenAPI 3.1 document `v1` (no `servers`; `ProblemDetails` with required `code`/`correlationId`), served with Scalar in Development only; `.ProducesErrors(...)` documents error codes per status (`x-error-codes`); `SportsPlatformApp` shared by API and CLI; CLI `export-openapi` → `contracts/openapi.json`; `@msp/api-client` (openapi-typescript + openapi-fetch, `isProblemDetails`); CI job `Contracts` fails on stale generated files | Explicit `UseRouting`/`UseEndpoints` (an unstarted app otherwise documents no endpoints); strict JSON numbers; openapi-typescript's TS ^5 peer allowed for 6. Health probes left out of the document (owner) |
 | 2026-10-17 | S01-T3b | #17 | Serilog JSON console logs with `CorrelationId`, `ActorKind`, `ActorId`, `TenantId` (`RequestContextEnricher`) and one completion event per request; OpenTelemetry traces and metrics (ASP.NET Core, HttpClient, Npgsql; OTLP only when configured; probes not traced); `GET /health/ready` (database on `App`, status-only body); `VALIDATION_REQUEST_TOO_LARGE` (413); relaxed escaping in `contracts/errors.json` (#16 R1) | JSON in every environment, no OTLP logs, 413 code with 408/431 documented as body-less (owner). Pre-review: real-Kestrel 413 test, enricher re-entry guard. Review: ASP.NET Core `RequestId` dropped from logs (R2) |
 | 2026-10-17 | S01-T4 | #19 | `ActionDefinition` (code, scope, scopable-by, audit, entitlement, idempotent, since), `.RequireAction(...)`/`.AllowPublic()`, `IAuthorizationEvaluator` (default deny → 403 `AUTH_FORBIDDEN`) enforced by a middleware after routing; Host refuses to build with an unmarked, double-marked or public admin/platform endpoint; health, OpenAPI, Scalar and the public group are public; `PlatformActions` (`platform.outbox.read`, `platform.outbox.redrive`); `export-catalogues` → `docs/generated/actions.md`, `contracts/actions.json`; `TestAuthorizationEvaluator` | Middleware instead of endpoint filter and build-time endpoint check (owner). Pre-review: marked non-route endpoints evaluated, protected paths from parsed segments |
+| 2026-10-18 | S01-T5a | #20 | Domain event dispatch (`IDomainEventSubscriber<T>`, rounds before commit, `MessagingInterceptor`); `outbox_messages`/`inbox_messages` in every module schema; `ModuleDbContext.Publish` with the ADR-0009 envelope; `OutboxProcessor` (`FOR UPDATE SKIP LOCKED`, strict per-aggregate `sequence` order, backoff 2 s…5 min, `FAILED` after `MaxAttempts`) hosted by Platform; consumers (`IIntegrationEventConsumer<T>`) deduplicated by the inbox under the event's tenant; scoped `TenantContext`/`CorrelationContext`; outbox state machine in state-machines.md | T5 split in two (owner). No RLS on outbox/inbox (owner, Q15). Pre-review: strict per-aggregate ordering (owner) with `sequence` and monotonic outbox IDs (EF orders inserts by key); ~1,700 changed lines without migrations, kept as one PR. Review: per-module backoff on failures (R1); migrations kept as two per context (R2, owner) |
 
 ## Deviations from spec (agreed)
 
@@ -71,14 +72,18 @@ at the start of every review.
 - **S01-T4:** authorization is enforced by a middleware after routing, not an endpoint filter (docs/architecture/
   authorization.md updated): it covers every endpoint type and denies before the body is bound. Beyond the spec,
   the Host also checks the endpoint rules when it is built (not only in a test). Owner approved the plan 2026-10-17.
+- **S01-T5:** delivered as two PRs (T5a dispatch, outbox, processor, inbox; T5b event catalogue, diagnostics and
+  re-drive with "re-drive succeeds after fix"). Outbox statuses added to docs/domain/state-machines.md; outbox and
+  inbox in every module schema, read-write, nullable `tenant_id`, no RLS (Q15, answered 2026-10-18). Owner approved the plan 2026-10-17.
+  On the pre-review (2026-10-18) the owner chose strict per-aggregate ordering: a retrying or `FAILED` message holds
+  back later messages of its aggregate. The PR is well over the ~600-line guideline; kept as one PR.
 
 ## Tech debt / follow-ups
 
 Consolidated by the S00 slice review (2026-10-17). Each item names where it gets done.
 
 **Assigned to S01** (see the spec's "Carried over from S00")
-- Apply the T2b grant helpers to the real tables: outbox/inbox (T5, read-write), `audit.audit_entries`
-  (`AppendOnly`, T6), reference tables (`ReadOnlyForRuntimeRoles`, T7); declare each in `TableAccessPolicies`.
+- Apply the T2b grant helpers to the real tables: `audit.audit_entries` (`AppendOnly`, T6), reference tables (`ReadOnlyForRuntimeRoles`, T7); declare each in `TableAccessPolicies`.
 - `xmin`/`updated_*` cover only the aggregate root's row: a change to only a child entity or owned type doesn't
   bump the root's version, so two edits to different children both succeed. Mark the root `Modified` when a
   dependent changes, with a test, before the first aggregate with child tables (S06 at the latest) (S01-T2a
@@ -90,8 +95,14 @@ Consolidated by the S00 slice review (2026-10-17). Each item names where it gets
   re-run the reference seed after each reset (T7; reviewer note on #14).
 - `seed --reset` (Development, T7) can't TRUNCATE or DELETE append-only tables as `sp_migrator` (the triggers stop
   the owner too): reset by recreating the database or skip append-only tables (T7; S01-T2b).
-- T5: test `platform.outbox.read`/`platform.outbox.redrive` allowed and denied through `TestApp.Authorization` (the
+- T5b: test `platform.outbox.read`/`platform.outbox.redrive` allowed and denied through `TestApp.Authorization` (the
   first end-to-end check that the real Host's pipeline enforces actions; S01-T4 pre-review).
+- T5b: the outbox diagnostics must show held-back messages (`PENDING` behind a `FAILED` one of the same
+  aggregate), since a `FAILED` message now blocks its aggregate (S01-T5a pre-review).
+- Alert on any `FAILED` outbox message (OpenTelemetry counter or gauge): with strict ordering one holds back its
+  aggregate's later events until re-driven (infrastructure task after M1; #20 R3).
+- Outbox and inbox tables grow forever: add a retention job for `PROCESSED` messages and old inbox rows (Hangfire,
+  first slice that adds scheduled jobs; S01-T5a).
 - 401 still produces Problem Details without a `code` (no authentication yet); comes with S03. 403 from the
   authorization middleware is `AUTH_FORBIDDEN` (T4) (S01-T3a pre-review).
 - `ICurrentActor` is still the singleton `SystemActor`, so every HTTP request (anonymous ones included) is logged as

@@ -1,14 +1,18 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using SportsPlatform.BuildingBlocks.Domain;
+using SportsPlatform.BuildingBlocks.Messaging;
+using SportsPlatform.BuildingBlocks.Persistence.Messaging;
 using SportsPlatform.BuildingBlocks.Results;
 
 namespace SportsPlatform.BuildingBlocks.Persistence;
 
 /// <summary>
 /// Base for each module's DbContext (the module's unit of work). Applies the data conventions: the module's schema,
-/// app-generated UUIDv7 keys, audit columns and <c>xmin</c> concurrency for aggregates
-/// (docs/architecture/data-conventions.md). snake_case names come from <see cref="ModuleDbContextOptions"/>.
+/// app-generated UUIDv7 keys, audit columns, <c>xmin</c> concurrency for aggregates
+/// (docs/architecture/data-conventions.md), and the module's <c>outbox_messages</c> and <c>inbox_messages</c>
+/// (docs/architecture/events-and-jobs.md). snake_case names come from <see cref="ModuleDbContextOptions"/>.
 /// </summary>
 public abstract class ModuleDbContext : DbContext
 {
@@ -38,6 +42,19 @@ public abstract class ModuleDbContext : DbContext
         }
     }
 
+    /// <summary>
+    /// Queues an integration event in this module's outbox; it is saved with the rest of the unit of work and
+    /// delivered after commit. Call it from a use-case handler or a domain event subscriber, never after saving.
+    /// </summary>
+    public void Publish(IIntegrationEvent integrationEvent, string aggregateType, Guid aggregateId)
+    {
+        ArgumentNullException.ThrowIfNull(integrationEvent);
+
+        var eventType = integrationEvent.GetType();
+        var payload = JsonSerializer.Serialize(integrationEvent, eventType, MessageSerialization.Options);
+        Add(new OutboxMessage(IntegrationEventName.Of(eventType), payload, aggregateType, aggregateId));
+    }
+
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
         EnsureNewEntitiesHaveIds();
@@ -56,6 +73,7 @@ public abstract class ModuleDbContext : DbContext
     protected sealed override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema(Schema);
+        MessagingModel.Configure(modelBuilder);
         ConfigureModel(modelBuilder);
 
         foreach (var entityType in modelBuilder.Model.GetEntityTypes().Where(IsTableRoot).ToList())
@@ -87,7 +105,8 @@ public abstract class ModuleDbContext : DbContext
     private static bool IsTableRoot(IMutableEntityType entityType) =>
         !entityType.IsOwned() && entityType.BaseType is null && entityType.ClrType != typeof(Dictionary<string, object>);
 
-    private void EnsureNewEntitiesHaveIds()
+    /// <summary>Also run by <see cref="MessagingInterceptor"/> for entities that domain event subscribers added.</summary>
+    internal void EnsureNewEntitiesHaveIds()
     {
         var missing = ChangeTracker.Entries<Entity>()
             .FirstOrDefault(entry => entry.State == EntityState.Added && entry.Entity.Id == Guid.Empty);

@@ -148,7 +148,7 @@ Deliver per docs/architecture/events-and-jobs.md:
 - Platform diagnostics: `GET /api/platform/v1/diagnostics/outbox?status=FAILED` and a re-drive action.
 
 Acceptance:
-- [ ] Test: state change + message commit atomically (rollback leaves neither).
+- [x] Test: state change + message commit atomically (rollback leaves neither).
 - [ ] Test: duplicate delivery handled once; poison message ends `FAILED`; re-drive succeeds after fix.
 
 ### T6 — Audit
@@ -285,3 +285,26 @@ Acceptance:
   Owner: `platform.outbox.read` is audit `REQUIRED`, `platform.outbox.redrive` `REQUIRED_WITH_REASON`; no
   `reference.read` (T7's reference endpoints are public). Allowed/denied tests for the two outbox actions come with
   their endpoints in T5.
+- **T5 (split in two, owner 2026-10-17):** T5a = domain event dispatch, outbox and inbox in every module schema,
+  `OutboxProcessor` and its hosted service; T5b = event catalogue + `events.md`/`events.json` + CI check, outbox
+  diagnostics and re-drive (with the allowed/denied tests and "re-drive succeeds after fix"). Outbox statuses
+  `PENDING`/`PROCESSED`/`FAILED` added to docs/domain/state-machines.md (owner). Outbox and inbox are read-write,
+  with a nullable `tenant_id` and no RLS (owner; Q15 answered 2026-10-18: stays so in S02). Names: `IDomainEventSubscriber<T>` and
+  `IIntegrationEventConsumer<T>` (the analyzers reserve the `EventHandler` suffix, CA1711); `ModuleDbContext.Publish`;
+  `AddDomainEventSubscriber`/`AddIntegrationEventConsumer`. `MessagingInterceptor` (dispatch, then envelope) runs
+  before `AuditColumnsInterceptor`. `TenantContext` and `CorrelationContext` are scoped and settable (registered by
+  `AddModuleDbContext`); the correlation middleware fills `CorrelationContext`, the processor fills both from the
+  envelope. `Outbox:Enabled` is false in `appsettings.Testing.json`; tests call `ProcessOnceAsync` and use
+  `Outbox:MaxAttempts = 3`. A message with no consumers is `PROCESSED` (an unknown event version can't be told apart
+  from an unsubscribed one). Test module `messaging_test` (`MessagingTestDbContext`, table `probes`) publishes and
+  consumes.
+  Pre-review (owner decision): per-aggregate order is kept strictly. `outbox_messages.sequence` is an identity
+  column (migration `AddOutboxSequence`); the claim takes messages by `sequence` and skips one while an earlier
+  message of its aggregate is not `PROCESSED`, so a retrying or `FAILED` message holds back its aggregate's later
+  ones. Outbox IDs come from `SequentialIds` (monotonic UUIDv7) because EF Core orders one save's inserts by key (a
+  test fails with random UUIDv7s). The hosted service drains (repeats while a call attempted something). Also from
+  pre-review: a failing module is logged and skipped; the processor requires `ITenantContext` to be the scoped
+  `TenantContext` (S02 must keep a settable context for consumers); IDs of entities added by domain event
+  subscribers are checked; tests for a locked message (`SKIP LOCKED`) and for losing the inbox race.
+  Review (#20 R1): a failing module backs off 1 s … 30 s (`OutboxModuleBackoff`) instead of logging an error on
+  every poll; a message without consumers is logged at Debug.

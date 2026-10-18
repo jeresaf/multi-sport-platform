@@ -1,10 +1,24 @@
 using System.Net;
 using System.Text;
+using SportsPlatform.Host.Api;
 
 namespace SportsPlatform.IntegrationTests.Api;
 
 public abstract class PipelineProblemDetailsTests(PipelineTestApp app)
 {
+    [Fact]
+    public async Task Correlation_id_reaches_the_requests_correlation_context()
+    {
+        using var client = app.CreateClient();
+        using var request = new HttpRequestMessage(HttpMethod.Get, new Uri("/correlation", UriKind.Relative));
+        request.Headers.Add(CorrelationIdMiddleware.HeaderName, "kmsa-fixtures.17");
+
+        using var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)).ShouldBe("\"kmsa-fixtures.17\"");
+    }
+
     [Fact]
     public async Task Unhandled_exception_returns_500_without_internals()
     {
