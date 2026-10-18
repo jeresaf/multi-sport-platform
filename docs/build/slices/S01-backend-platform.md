@@ -350,3 +350,9 @@ Acceptance:
   values as `"[REDACTED]"` before the record leaves the request; `reason` is free text and not redacted. The test reset
   now covers every schema a module's model maps to (Platform's `audit`). `AuditRecorded` is listed with producer
   Platform in events.md, though every module publishes it.
+  T6b (plan approved 2026-10-18): `GET /api/platform/v1/audit-entries` in Platform `Features/Audit/ListAuditEntries`,
+  action `platform.audit.read` (`REQUIRED`). Filters as specified plus `outcome` (pack spec 40's Audit Explorer); no
+  module filter (no column; with the Audit Explorer UI) and no "entries without a tenant" filter (with S02's RLS).
+  `entityId` needs `entityType` (the `(entity_type, entity_id)` index); `action` is checked by format only
+  (`ActionCode.IsValid`). Keyset paging by `(occurred_at DESC, id DESC)`, cursor `AuditCursor` (base64url of UTC ticks
+  and ID). Bad parameters are `VALIDATION_INVALID_QUERY`; no new error codes, events or migrations.

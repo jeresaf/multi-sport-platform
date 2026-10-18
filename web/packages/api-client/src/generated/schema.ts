@@ -44,10 +44,72 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/platform/v1/audit-entries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List audit entries
+         * @description Audit entries of every tenant, newest first. Filter by `tenantId`, `actorId`, `action` (an action code), `entityType` and `entityId` (`entityId` needs `entityType`), `correlationId`, `outcome` (SUCCESS, FAILURE or DENIED), and `from` (inclusive) / `to` (exclusive), ISO 8601 instants with an offset (encode `+` as `%2B`); `limit` is 1–100 (25). Entries recorded through a module's outbox arrive shortly after the action, so one can appear before a page already read. Every page read is itself audited: don't poll this list.
+         */
+        get: operations["ListAuditEntries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @enum {unknown} */
+        ActorKind: "USER" | "SYSTEM";
+        /**
+         * @description One audit entry as platform staff see it: every column, with `metadata` as the JSON object it was stored as
+         *     (personal data already masked when it was recorded).
+         */
+        AuditEntryResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            occurredAt: string;
+            actionCode: string;
+            outcome: components["schemas"]["AuditOutcome"];
+            errorCode: null | string;
+            actorKind: components["schemas"]["ActorKind"];
+            /** Format: uuid */
+            actorId: string;
+            /** Format: uuid */
+            tenantId: null | string;
+            entityType: null | string;
+            /** Format: uuid */
+            entityId: null | string;
+            source: components["schemas"]["AuditSource"];
+            correlationId: null | string;
+            reason: null | string;
+            metadata: null | components["schemas"]["JsonElement"];
+        };
+        /**
+         * @description How an audited action ended.
+         * @enum {unknown}
+         */
+        AuditOutcome: "SUCCESS" | "FAILURE" | "DENIED";
+        /**
+         * @description Where the action came from.
+         * @enum {unknown}
+         */
+        AuditSource: "API" | "SYSTEM";
+        JsonElement: unknown;
+        ListAuditEntriesResponse: {
+            items: components["schemas"]["AuditEntryResponse"][];
+            page: components["schemas"]["PageInfo"];
+        };
         ListOutboxMessagesResponse: {
             items: components["schemas"]["OutboxMessageResponse"][];
             page: components["schemas"]["PageInfo"];
@@ -209,6 +271,47 @@ export interface operations {
             };
             /** @description Problem Details; `code`: `PLATFORM_OUTBOX_MESSAGE_NOT_FAILED` */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListAuditEntries: {
+        parameters: {
+            query?: {
+                tenantId?: string;
+                actorId?: string;
+                action?: string;
+                entityType?: string;
+                entityId?: string;
+                correlationId?: string;
+                outcome?: string;
+                from?: string;
+                to?: string;
+                limit?: string;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListAuditEntriesResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_QUERY` */
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };

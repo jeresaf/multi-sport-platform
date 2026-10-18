@@ -8,7 +8,7 @@ public sealed partial record ActionCode
     public ActionCode(string value)
     {
         ArgumentNullException.ThrowIfNull(value);
-        if (!Format().IsMatch(value))
+        if (!IsValid(value))
         {
             throw new ArgumentException(
                 $"Action code '{value}' must be lowercase '<resource>.<verb>' or '<resource>.<sub>.<verb>'.",
@@ -19,6 +19,9 @@ public sealed partial record ActionCode
     }
 
     public string Value { get; }
+
+    /// <summary>Whether <paramref name="value"/> has the format of an action code.</summary>
+    public static bool IsValid(string value) => Format().IsMatch(value);
 
     public override string ToString() => Value;
 

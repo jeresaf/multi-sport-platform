@@ -1,6 +1,17 @@
 {
   "actions": [
     {
+      "code": "platform.audit.read",
+      "module": "Platform",
+      "description": "View audit entries of every tenant.",
+      "scope": "PLATFORM",
+      "scopableBy": [],
+      "audit": "REQUIRED",
+      "entitlement": null,
+      "idempotent": false,
+      "since": "S01"
+    },
+    {
       "code": "platform.outbox.read",
       "module": "Platform",
       "description": "View outbox messages and their delivery status.",

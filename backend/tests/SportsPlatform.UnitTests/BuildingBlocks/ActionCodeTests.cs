@@ -12,6 +12,7 @@ public sealed class ActionCodeTests
     public void Accepts_lowercase_dotted_codes(string value)
     {
         new ActionCode(value).Value.ShouldBe(value);
+        ActionCode.IsValid(value).ShouldBeTrue();
     }
 
     [Theory]
@@ -25,6 +26,7 @@ public sealed class ActionCodeTests
     public void Rejects_other_formats(string value)
     {
         Should.Throw<ArgumentException>(() => new ActionCode(value));
+        ActionCode.IsValid(value).ShouldBeFalse();
     }
 
     [Fact]

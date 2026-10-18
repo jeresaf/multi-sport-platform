@@ -6,5 +6,6 @@ admin endpoint requires one of these; the code is stable and is what roles grant
 
 | Code | Module | Scope | Scopable by | Audit | Entitlement | Idempotent | Since | Description |
 |---|---|---|---|---|---|---|---|---|
+| `platform.audit.read` | Platform | PLATFORM | — | REQUIRED | — | no | S01 | View audit entries of every tenant. |
 | `platform.outbox.read` | Platform | PLATFORM | — | REQUIRED | — | no | S01 | View outbox messages and their delivery status. |
 | `platform.outbox.redrive` | Platform | PLATFORM | — | REQUIRED_WITH_REASON | — | no | S01 | Re-deliver failed outbox messages. |

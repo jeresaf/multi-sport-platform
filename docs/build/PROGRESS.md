@@ -7,14 +7,13 @@ at the start of every review.
 
 - **Current slice:** S01 — Backend platform (docs/build/slices/S01-backend-platform.md). S00 is on `main`; its
   "new contributor in under 30 minutes" check is still with the owner
-- **Current task:** none. S01-T6a (audit trail) is in review as #23
-- **Next:** S01-T6b (audit query endpoint)
+- **Current task:** none. S01-T6b (audit query endpoint) is in review as #24
+- **Next:** S01-T7 (seed framework and reference data)
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S01-T6b — Audit query endpoint
-2. S01-T7 — Seed framework and reference data
+1. S01-T7 — Seed framework and reference data
 
 ## Log
 
@@ -37,6 +36,7 @@ at the start of every review.
 | 2026-10-18 | S01-T5b-1 | #21 | `EventCatalogue` (Host): every `IIntegrationEvent` in the modules' Contracts with payload members (camelCase name, simple type, nullability) and registered consumers; `export-catalogues` → `docs/generated/events.md`, `contracts/events.json` (empty: no events yet), checked by the `Contracts` job | T5b split in two (owner). Export fails on duplicate, badly named or struct events, undescribable payload types, a consumer registered twice or subscribed to an undeclared event (pre-review). No `since` column. Review: payload enums are UPPER_SNAKE strings (R1), `DateTime` members rejected (R2) |
 | 2026-10-18 | S01-T5b-2 | #22 | `OutboxDiagnostics` (BuildingBlocks, through each module's DbContext); Platform endpoints `GET /api/platform/v1/diagnostics/outbox` (`module`, `status`, `limit`, `cursor`; newest first across modules; no payload; `heldBackBy`) and `POST …/{module}/{messageId}/redrive` (`reason` 1–500, `FAILED` → `PENDING`, attempts 0); `PLATFORM_OUTBOX_MESSAGE_NOT_FOUND`/`_NOT_FAILED`, `VALIDATION_INVALID_QUERY`/`_REASON_REQUIRED`; HTTP JSON enums as UPPER_SNAKE strings; allowed/denied tests for both outbox actions; T5 acceptance complete | FluentValidation 12.2.0 (Apache-2.0, owner on review) with `.ValidateRequest<T>()` and `errors: [{field, code}]`; `ToProblem(detail)`; `TestAuthorizationEvaluator.Reset` before each database test. ~940 changed lines without generated files, kept as one PR. Review: `limit` parsed by the request, so every bad value is `VALIDATION_INVALID_QUERY` (R1); T6 audits the re-drive in the target module's outbox (R2) |
 | 2026-10-18 | S01-T6a | #23 | `audit.audit_entries` (append-only, indexes for T6b's filters); `AuditScope` + `AuditMiddleware`: the first module save commits `AuditRecorded.V1` in that module's outbox (consumer `platform.audit`), denials/failures/no-save actions go directly through `IAuditLog`; error code recorded from Problem Details; `[PersonalData]` + `AuditMetadata` redaction; re-drive audited in the target module's outbox with its reason, the list with its filters | T6 split in two (owner). Defaults approved: no RLS until S02, direct `SUCCESS` for no-save actions, one unit of work per command, validation failures audited. Test reset now covers Platform's `audit` schema. Pre-review: cancelled saves discard their audit messages. Review: reasons are permanent, no personal data (R3); anonymous actor and denial rate limits are follow-ups (R1, R2) |
+| 2026-10-18 | S01-T6b | #24 | `GET /api/platform/v1/audit-entries` (`platform.audit.read`, audited with its filters): `tenantId`, `actorId`, `action` (format only), `entityType`/`entityId` (needs the type), `correlationId`, `outcome`, `from` (inclusive)/`to` (exclusive) instants with an offset, at most microseconds; newest first by `(occurred_at, id)` with `AuditCursor`; `ActionCode.IsValid`; T6 complete | `outcome` filter beyond the spec; no module or "no tenant" filter (owner, plan). No new errors, events or migrations. Pre-review: read's own entry has no target tenant (S02 follow-up), instants limited to microseconds |
 
 ## Deviations from spec (agreed)
 
@@ -90,6 +90,8 @@ at the start of every review.
   its defaults: `tenant_id` nullable without RLS until S02; audited actions that save nothing (reads) are written
   directly as `SUCCESS` (the spec names only denials and failures); one unit of work per command (an explicit
   transaction rolled back after its save loses the entry); validation failures are audited as `FAILURE` with their code.
+  T6b (plan approved 2026-10-18): an `outcome` filter beyond the spec's list (pack spec 40's Audit Explorer); no module
+  filter (no column) and no "entries without a tenant" filter until S02; `entityId` needs `entityType`.
 
 ## Tech debt / follow-ups
 
@@ -110,12 +112,17 @@ Consolidated by the S00 slice review (2026-10-17). Each item names where it gets
   the owner too): reset by recreating the database or skip append-only tables (T7; S01-T2b).
 - `audit.audit_entries` has a nullable `tenant_id` and no RLS: S02 adds the policy (tenant users see their tenant's
   entries; entries with no tenant only through platform services) and the isolation tests, and revisits the audit
-  indexes (tenant first) with the policy (S01-T6a pre-review).
+  indexes (tenant first) with the policy (S01-T6a pre-review); then also make the entity index
+  `(entity_type, entity_id, occurred_at)` so an entity's history needs no sort (#24 R2).
 - A failed direct audit write (denial, failure, read) is only logged: the response is already written. Alert on that
   Error with the `FAILED` outbox alert below (infrastructure task after M1; S01-T6a).
 - The audit middleware's exception path (`FAILURE` with `PLATFORM_UNEXPECTED_ERROR`) has no test: no audited endpoint
   can throw yet. Add one with the first audited endpoint that can (S01-T6a).
 - Audit retention and partitioning by `occurred_at` (pack spec 40 §7): with the retention job (S01-T6a).
+- Platform reads of one tenant's data are audited with `tenant_id` NULL: `AuditScope` takes the tenant from
+  `ITenantContext`, empty on platform routes, so `GET /api/platform/v1/audit-entries?tenantId=…` stores the tenant only
+  in metadata. multi-tenancy.md says platform calls are audited with the target tenant: S02 adds a target tenant to
+  `AuditScope.Describe` (set when a platform read is filtered to one tenant) with the audit RLS (S01-T6b pre-review).
 - Anonymous actor for audit (#23 R1): `actor_kind` allows `USER`/`SYSTEM` and `actor_id` is NOT NULL, so once S03
   has real sign-in an anonymous 401 on an audited endpoint would fail the direct insert and the denial would only be
   logged. S03: add an anonymous actor kind (nullable or fixed `actor_id`) with the check-constraint migration, and a test

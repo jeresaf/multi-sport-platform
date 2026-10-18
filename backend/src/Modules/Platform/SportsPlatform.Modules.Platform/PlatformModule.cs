@@ -7,6 +7,7 @@ using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Persistence.Messaging;
 using SportsPlatform.Modules.Platform.Contracts.Audit;
 using SportsPlatform.Modules.Platform.Features.Audit.AppendAuditEntry;
+using SportsPlatform.Modules.Platform.Features.Audit.ListAuditEntries;
 using SportsPlatform.Modules.Platform.Features.Outbox.ListOutboxMessages;
 using SportsPlatform.Modules.Platform.Features.Outbox.RedriveOutboxMessage;
 using SportsPlatform.Modules.Platform.Infrastructure;
@@ -37,6 +38,8 @@ public sealed class PlatformModule : IModule
         services.AddSingleton<IAuditLog, AuditLog>();
         services.AddSingleton<IAuditEventFactory, AuditEventFactory>();
         services.AddIntegrationEventConsumer<AuditRecorded.V1, AuditRecordedConsumer, PlatformDbContext>(AuditRecordedConsumer.Name);
+        services.AddScoped<ListAuditEntriesHandler>();
+        services.AddSingleton<IValidator<ListAuditEntriesRequest>, ListAuditEntriesRequestValidator>();
 
         services.AddOutboxDiagnostics();
         services.AddScoped<ListOutboxMessagesHandler>();
@@ -50,5 +53,6 @@ public sealed class PlatformModule : IModule
         ArgumentNullException.ThrowIfNull(groups);
         ListOutboxMessagesEndpoint.Map(groups.Platform);
         RedriveOutboxMessageEndpoint.Map(groups.Platform);
+        ListAuditEntriesEndpoint.Map(groups.Platform);
     }
 }
