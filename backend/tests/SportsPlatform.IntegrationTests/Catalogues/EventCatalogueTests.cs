@@ -60,7 +60,7 @@ public sealed class EventCatalogueTests
             new EventPayloadField("note", "string", true),
             new EventPayloadField("officialIds", "uuid[]", false),
             new EventPayloadField("matchDate", "date", false),
-            new EventPayloadField("kind", "integer (enum FixtureKind)", false),
+            new EventPayloadField("kind", "string (enum FixtureKind: LEAGUE | ROUND_ROBIN)", false),
         ]);
         catalogue.Single(entry => entry.Event == new IntegrationEventName("FixturePublished", 1)).Payload.ShouldBeEmpty();
     }
@@ -115,6 +115,7 @@ public sealed class EventCatalogueTests
     [InlineData(typeof(FixtureScored.V2), "sheet")]
     [InlineData(typeof(FixtureScored.V3), "venue")]
     [InlineData(typeof(FixtureScored.V4), "rounds")]
+    [InlineData(typeof(FixtureScored.V5), "kickOff")]
     public void A_member_the_catalogue_cannot_describe_is_rejected(Type eventType, string member)
     {
         var exception = Should.Throw<InvalidOperationException>(() =>
@@ -189,7 +190,7 @@ public sealed class EventCatalogueTests
     public enum FixtureKind
     {
         League,
-        Cup,
+        RoundRobin,
     }
 
     public static class FixtureRescheduled
@@ -215,7 +216,7 @@ public sealed class EventCatalogueTests
 
     public sealed record VenueSummary(Guid VenueId, string Name);
 
-    /// <summary>Members serialized as objects, base64 or nested lists, which the catalogue doesn't describe.</summary>
+    /// <summary>Members serialized as objects, base64, nested lists or zone-less times, which the catalogue doesn't describe.</summary>
     public static class FixtureScored
     {
         public sealed record V1(IReadOnlyDictionary<string, int> Scores) : IIntegrationEvent;
@@ -225,6 +226,8 @@ public sealed class EventCatalogueTests
         public sealed record V3(VenueSummary Venue) : IIntegrationEvent;
 
         public sealed record V4(IReadOnlyList<IReadOnlyList<int>> Rounds) : IIntegrationEvent;
+
+        public sealed record V5(DateTime KickOff) : IIntegrationEvent;
     }
 
     private sealed class NoopConsumer<TEvent> : IIntegrationEventConsumer<TEvent>

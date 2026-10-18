@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 using SportsPlatform.BuildingBlocks.Messaging;
 using SportsPlatform.BuildingBlocks.Modules;
@@ -222,22 +223,26 @@ public static class EventCatalogue
 
     private static string? ScalarName(Type type) =>
         type == typeof(string) ? "string"
-        // Web defaults have no string enum converter: an enum is written as its number.
-        : type.IsEnum ? $"integer (enum {type.Name})"
+        : type.IsEnum ? $"string (enum {type.Name}: {string.Join(" | ", EnumValues(type))})"
         : Type.GetTypeCode(type) switch
         {
             TypeCode.Boolean => "boolean",
             TypeCode.Byte or TypeCode.SByte or TypeCode.Int16 or TypeCode.UInt16 or TypeCode.Int32 or TypeCode.UInt32
                 or TypeCode.Int64 or TypeCode.UInt64 => "integer",
             TypeCode.Single or TypeCode.Double or TypeCode.Decimal => "number",
-            TypeCode.DateTime => "instant",
             _ when type == typeof(Guid) => "uuid",
             _ when type == typeof(DateTimeOffset) => "instant",
             _ when type == typeof(DateOnly) => "date",
             _ when type == typeof(TimeOnly) => "time",
             _ when type == typeof(TimeSpan) => "duration",
+            // Includes DateTime: an instant only when its Kind is UTC; contracts use DateTimeOffset or DateOnly (AR-31).
             _ => null,
         };
+
+    /// <summary>The names <see cref="MessageSerialization"/> writes, honouring <see cref="JsonStringEnumMemberNameAttribute"/>.</summary>
+    private static IEnumerable<string> EnumValues(Type type) =>
+        type.GetFields(BindingFlags.Public | BindingFlags.Static).Select(field =>
+            field.GetCustomAttribute<JsonStringEnumMemberNameAttribute>()?.Name ?? MessageSerialization.EnumNamingPolicy.ConvertName(field.Name));
 
     private static bool IsDictionary(Type type) =>
         type.GetInterfaces().Append(type).Any(candidate => candidate.IsGenericType
