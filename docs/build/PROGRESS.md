@@ -186,8 +186,8 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
   after M1, with the `/health/*` item above).
 
 **Owner decisions / housekeeping**
-- Merge style: README-FIRST says squash-and-merge; S00 used merge commits. Pick one. For stacked PRs, retarget
-  the next PR to `main` before merging it.
+- Merge style (owner, 2026-10-18): merge commits, not squash. For stacked PRs, retarget the next PR to `main`
+  before merging it.
 - The prototype's old branches (`agent/*`, `codex/*`, `feature/*`, `ci/*`) are not all covered by tag
   `prototype-v0`; keep them or tag them before deleting. (The merged S00 branches and `restart/kit` were deleted
   on 2026-10-17.)

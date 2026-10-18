@@ -31,7 +31,7 @@ has the final say; architectural disagreements become ADRs.
 4. The owner asks the reviewer: "Review PR #N" (docs/build/review-protocol.md).
 5. **`/address-review N`** — the builder reads the review (PR comments or pasted text), fixes or answers each
    finding, pushes, and replies on the PR.
-6. The reviewer re-reviews the changes; the owner squash-merges and deletes the branch.
+6. The reviewer re-reviews the changes; the owner merges (merge commit) and deletes the branch.
 7. **`/clear`** before the next task.
 
 ## Branches, commits, pull requests
@@ -42,7 +42,8 @@ has the final say; architectural disagreements become ADRs.
 - PR title: `[S05-T03] ADDITIVE scoring engine`. Body: .github/pull_request_template.md.
 - **Size:** aim for ≤ 600 changed lines excluding generated files, migrations, lockfiles and snapshots. If a task
   will be bigger, propose a split to the owner before starting.
-- `main` must always build and pass CI. Squash merge only.
+- `main` must always build and pass CI. Merge commits only (no squash or rebase; owner, 2026-10-18). For
+  stacked PRs, retarget the next PR to `main` before merging it.
 - **Never:** commit to `main`; force-push; merge your own PR; edit a migration that is on `main`; edit
   `docs/reference/`; rewrite an Accepted ADR; disable or skip tests to get green.
 
