@@ -150,7 +150,8 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
   T4 migration, and platform edits write them under the target tenant (S02-T1a; #30 R4).
 - **S02-T2:** the D1 amendment relies on tenant creation's slug check closing its connection before the save opens a
   new one: when the connection interceptor writes `app.tenant_id`, test that the create save's connection carries the
-  new tenant (S02-T1b pre-review).
+  new tenant, and that inside an explicit transaction the tenant must be set before it begins (S02-T1b pre-review;
+  #31 R1).
 - **OpenAPI (with the first admin UI client, S03 or later):** optional request members (`version`, PATCH fields) are
   listed as `required` (nullable) in the schemas, so the TS client makes callers pass `null`; endpoints don't declare
   the `If-Match` request header or the `ETag` response header, and activate/restore list no 400 (pipeline errors).

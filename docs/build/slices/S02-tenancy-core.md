@@ -41,7 +41,9 @@ Q15), docs/product/pilot-customer.md.
 - **D1 — Tenant context is set once per scope.** `TenantContext.Set` throws if a *different* tenant is already
   set in the scope (setting the same tenant again is a no-op). It must be set before the first connection that reads
   or writes tenant data opens, because the RLS value is written when a connection opens; a read of a global table
-  only (e.g. tenant creation's slug check) may come first (amended by the owner, 2026-10-18, #30 R2).
+  only (e.g. tenant creation's slug check) may come first (amended by the owner, 2026-10-18, #30 R2). If the handler
+  uses an explicit transaction, set the tenant before the transaction begins: the connection stays open until commit
+  (#31 R1).
 - **D2 — Platform work on one tenant runs under that tenant.** Platform endpoints under
   `/api/platform/v1/tenants/{tenantId}/…` set `ITenantContext` to the route's tenant after the route is matched
   (the platform action is still authorized by the middleware). Tenant creation sets the context to the new
