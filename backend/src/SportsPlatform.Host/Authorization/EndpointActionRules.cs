@@ -6,7 +6,8 @@ namespace SportsPlatform.Host.Authorization;
 
 /// <summary>
 /// Fail closed: every endpoint declares exactly one of <c>.RequireAction(...)</c> or <c>.AllowPublic()</c>; admin and
-/// platform endpoints are never public; a required action is in the catalogue. The Host checks this when it is built.
+/// platform endpoints are never public; a required action is in the catalogue; an endpoint that runs under the route's
+/// tenant has a platform action and that route parameter. The Host checks this when it is built.
 /// </summary>
 public static class EndpointActionRules
 {
@@ -41,6 +42,14 @@ public static class EndpointActionRules
             if (isPublic && IsProtectedFamily(endpoint))
             {
                 violations.Add($"{name} is under /api/admin or /api/platform and cannot be .AllowPublic().");
+            }
+
+            if (endpoint.Metadata.GetMetadata<RunsUnderRouteTenantMetadata>() is { } routeTenant
+                && (required.Count != 1 || required[0].Action.Scope != ActionScope.Platform
+                    || (endpoint as RouteEndpoint)?.RoutePattern.GetParameter(routeTenant.RouteValueName) is null))
+            {
+                violations.Add($"{name} runs under the route's tenant, so it needs one platform action and a " +
+                    $"'{{{routeTenant.RouteValueName}}}' route parameter.");
             }
 
             violations.AddRange(required

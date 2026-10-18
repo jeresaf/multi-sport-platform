@@ -1,3 +1,4 @@
+using SportsPlatform.Host.Actors;
 using SportsPlatform.Host.Api;
 using SportsPlatform.Host.Auditing;
 using SportsPlatform.Host.Authorization;
@@ -6,6 +7,7 @@ using SportsPlatform.Host.Health;
 using SportsPlatform.Host.Modules;
 using SportsPlatform.Host.Observability;
 using SportsPlatform.Host.OpenApi;
+using SportsPlatform.Host.Tenancy;
 
 namespace SportsPlatform.Host;
 
@@ -17,22 +19,10 @@ public static class SportsPlatformApp
 {
     public static WebApplication Build(WebApplicationBuilder builder)
     {
-        ArgumentNullException.ThrowIfNull(builder);
-
-        builder.AddObservability();
-        builder.Services.AddSportsPlatform(builder.Configuration);
-        builder.Services.AddApiConventions(builder.Configuration);
-        builder.Services.AddHealthEndpoints();
-        builder.Services.AddApiDocumentation();
-        builder.Services.AddActionAuthorization();
+        AddServices(builder);
 
         var app = builder.Build();
-
-        app.UseRequestLogging();
-        app.UseApiConventions();
-        app.UseRouting();
-        app.UseAudit();
-        app.UseActionAuthorization();
+        UsePipeline(app);
 
         app.MapHealthEndpoints();
         app.MapApiDocumentation(app.Environment);
@@ -48,5 +38,36 @@ public static class SportsPlatformApp
         app.EnsureEndpointsDeclareActions(ActionCatalogue.Build(ModuleRegistry.All));
 
         return app;
+    }
+
+    public static void AddServices(WebApplicationBuilder builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        builder.AddObservability();
+        builder.Services.AddSportsPlatform(builder.Configuration);
+        builder.Services.AddApiConventions(builder.Configuration);
+        builder.Services.AddHealthEndpoints();
+        builder.Services.AddApiDocumentation();
+        builder.Services.AddAuthentication();
+        builder.Services.AddTenantResolution();
+        builder.Services.AddActionAuthorization();
+    }
+
+    /// <summary>
+    /// The middleware, in order (docs/architecture/authorization.md, S02 D8): logging and correlation → routing → actor
+    /// → audit → tenant resolution → authorization → endpoint. Tests that need their own endpoints run this too.
+    /// </summary>
+    public static void UsePipeline(WebApplication app)
+    {
+        ArgumentNullException.ThrowIfNull(app);
+
+        app.UseRequestLogging();
+        app.UseApiConventions();
+        app.UseRouting();
+        app.UseCurrentActor();
+        app.UseAudit();
+        app.UseTenantResolution();
+        app.UseActionAuthorization();
     }
 }

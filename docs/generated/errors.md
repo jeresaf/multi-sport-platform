@@ -7,12 +7,14 @@ the message is the default title and may change.
 | Code | HTTP | Default message | Owner |
 |---|---|---|---|
 | `AUTH_FORBIDDEN` | 403 | You are not allowed to perform this action. | BuildingBlocks |
+| `AUTH_TENANT_FORBIDDEN` | 403 | You are not allowed to work in this tenant. | BuildingBlocks |
 | `PLATFORM_CONCURRENCY_CONFLICT` | 409 | The record was changed by someone else. Reload and try again. | Platform |
 | `PLATFORM_METHOD_NOT_ALLOWED` | 405 | This endpoint does not support the HTTP method. | BuildingBlocks |
 | `PLATFORM_OUTBOX_MESSAGE_NOT_FAILED` | 409 | Only a FAILED outbox message can be re-driven. | Platform |
 | `PLATFORM_OUTBOX_MESSAGE_NOT_FOUND` | 404 | No outbox message with this ID in this module. | Platform |
 | `PLATFORM_ROUTE_NOT_FOUND` | 404 | No endpoint matches this path. | BuildingBlocks |
 | `PLATFORM_UNEXPECTED_ERROR` | 500 | An unexpected error occurred. Quote the correlation ID when reporting it. | BuildingBlocks |
+| `TENANT_BLOCKED` | 403 | This tenant is suspended or archived. | Tenancy |
 | `TENANT_CONCURRENCY_CONFLICT` | 409 | The tenant was changed by someone else. Reload and try again. | Tenancy |
 | `TENANT_INVALID_TRANSITION` | 409 | The tenant's status does not allow this change. | Tenancy |
 | `TENANT_NOT_FOUND` | 404 | No tenant with this ID. | Tenancy |
