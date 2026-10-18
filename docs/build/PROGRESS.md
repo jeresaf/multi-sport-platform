@@ -7,15 +7,15 @@ at the start of every review.
 
 - **Current slice:** S02 — Tenancy core and isolation (docs/build/slices/S02-tenancy-core.md, as amended by the
   S01 slice review). S00 and S01 are done
-- **Current task:** S02-T2b — Audit on the `Platform` connection, audit RLS and indexes, `AuditScope` target tenant,
-  RLS coverage test — in review, PR #33 (branch `s02/t2b-audit-rls`)
-- **Next:** S02-T3 — Tenant context and resolution
+- **Current task:** S02-T3a — Admin and platform tenant resolution, per-request actor, access mode, AR-21
+  (branch `s02/t3a-tenant-resolution`). T3 is two PRs and `tenant_domains` moved from T4 to T3b (owner, Q17)
+- **Next:** S02-T3b — Public tenant resolution, domains and `/site`
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S02-T3 — Tenant context and resolution
-2. S02-T4 — Domains and settings
+1. S02-T3b — Public tenant resolution, domains and `/site`
+2. S02-T4 — Settings
 
 ## Log
 
