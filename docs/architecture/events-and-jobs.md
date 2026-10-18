@@ -105,6 +105,33 @@ OutboxProcessor (hosted service, polls ~500 ms, batches, FOR UPDATE SKIP LOCKED)
 - **Sizing.** The claim transaction stays open while its batch is delivered, and every delivery uses a second
   connection: count about two pooled connections per poll.
 
+### Audit as built (S01-T6a)
+
+- **Scope.** `AuditScope` (BuildingBlocks `Auditing`, scoped) holds the request's audited action (`REQUIRED` or
+  `REQUIRED_WITH_REASON`; `NONE` is ignored), what it touched and why. The Host's `AuditMiddleware` begins it with the
+  endpoint's action, after routing and before authorization. A handler describes the action:
+  `audit.Describe(entityType, entityId, reason, metadata)`. `metadata` is a typed record, serialized at once by
+  `AuditMetadata` with every `[PersonalData(PRIVATE | SENSITIVE)]` property written as `"[REDACTED]"`, so the value is
+  in neither the outbox payload nor the table.
+- **Through the outbox.** The first module DbContext save in the request's scope adds `AuditRecorded.V1` (declared in
+  Platform's Contracts; aggregate type `AuditEntry`, one aggregate per entry, so an audit message never waits for
+  another) to that module's outbox, in the save's transaction (`MessagingInterceptor`). Later saves add nothing. A save
+  that throws detaches the audit message again, and the entry stays pending. Work that saves in a scope of its own (the
+  outbox re-drive) gets `audit.CreateRecord(SUCCESS)` and calls `context.RecordAudit(record)`, then the handler calls
+  `audit.MarkRecorded()` once that work has committed. Rule: one unit of work per command. A handler that commits an explicit transaction and then
+  rolls it back loses the entry (owner, 2026-10-18). Platform's consumer `platform.audit` appends the entry; the entry
+  ID is the record's UUIDv7, taken when the action happened.
+- **Directly.** After the response, `AuditMiddleware` writes an entry no save recorded, through `IAuditLog`
+  (Platform's Contracts; `PlatformDbContext` in its own scope): 401/403 → `DENIED`, any other 4xx/5xx or an exception
+  → `FAILURE`, below 400 → `SUCCESS` (audited actions that save nothing, such as reads; owner, 2026-10-18). The Problem
+  Details customizer records the response's `code` (`error_code`). A denied request's body is never read, so it has no
+  reason. If the direct write fails, the response is already written: the middleware logs an Error and the entry is
+  lost.
+- **Table.** `audit.audit_entries` (Platform's second schema): `id, tenant_id (nullable), actor_kind, actor_id,
+  action_code, outcome (SUCCESS | FAILURE | DENIED), error_code, entity_type, entity_id, occurred_at, source (API |
+  SYSTEM), correlation_id, reason, metadata jsonb` and `created_*`; `AppendOnly` (runtime roles SELECT and INSERT;
+  triggers reject UPDATE, DELETE and TRUNCATE for every role). No RLS until S02 (owner, 2026-10-18).
+
 ## Projections
 
 - Owned by the consuming module (Insights read models, Progression standings, Engagement deliveries).

@@ -23,6 +23,10 @@ paths:
 4. Integration events for other modules go to the outbox in the same transaction: `context.Publish(event,
    aggregateType, aggregateId)`, usually from an `IDomainEventSubscriber<T>` (docs/architecture/events-and-jobs.md).
 5. Map entities → DTOs with explicit code (no AutoMapper). Never return entities.
+6. Audited actions (`REQUIRED`/`REQUIRED_WITH_REASON`) are audited automatically: inject `AuditScope` and call
+   `Describe(entityType, entityId, reason, metadata)` before saving. Save once per command. Work that saves in its own
+   scope takes `audit.CreateRecord(...)` and calls `context.RecordAudit(record)`, then the handler calls
+   `audit.MarkRecorded()` (docs/architecture/events-and-jobs.md, "Audit as built").
 
 ## Domain
 - Aggregates enforce invariants through methods; no public setters for state that has rules.

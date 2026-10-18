@@ -78,6 +78,11 @@ so tests and exports can enforce it:
 Rules: public DTO tests assert no non-`PUBLIC` fields; redaction tests assert logs/analytics/audit metadata don't
 contain `PRIVATE`/`SENSITIVE` values; minors' public profiles follow ADR-0015.
 
+Properties of DTOs and audit metadata records are classified with `[PersonalData(PersonalDataClass.X)]`
+(`SportsPlatform.BuildingBlocks.Privacy`; on a positional record, `[property: PersonalData(...)]`). Audit metadata
+masks `PRIVATE` and `SENSITIVE` values as `"[REDACTED]"` (`AuditMetadata`). Unclassified members are written as they
+are, so anything personal goes in a record with classified properties, never in an anonymous type or dictionary.
+
 ## Duplicate prevention
 
 Registries (people, organisations, teams, venues, competitions) implement: normalised name fields, aliases,

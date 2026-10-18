@@ -42,7 +42,8 @@ For every admin request:
 ```
 
 Steps 1–3 run in the Host's authorization middleware (after routing, before the request body is bound) using the
-endpoint's declared action; quota checks that need a count run inside the
+endpoint's declared action. The audit middleware runs just before it, so a denied audited action is audited as
+`DENIED` (docs/architecture/events-and-jobs.md, "Audit as built"); quota checks that need a count run inside the
 handler via `IEntitlements.CheckQuota` in the same transaction as the create.
 
 ## Roles and scopes
