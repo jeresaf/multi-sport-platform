@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using SportsPlatform.BuildingBlocks.Domain;
 using SportsPlatform.BuildingBlocks.Messaging;
@@ -94,6 +95,29 @@ public sealed class FlakyConsumer(ConsumerLog log, ITenantContext tenant, Correl
     }
 }
 
+/// <summary>Writes a tenant-owned row: through EF (stamped with the envelope's tenant) or as another tenant (raw SQL).</summary>
+public sealed class NoteWriter(MessagingTestDbContext context, TimeProvider timeProvider) : IIntegrationEventConsumer<NoteRequested.V1>
+{
+    public const string Name = "messaging_test.note_writer";
+
+    public async Task HandleAsync(NoteRequested.V1 integrationEvent, IntegrationEventEnvelope envelope, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(integrationEvent);
+        if (integrationEvent.WriteAsTenantId is not { } tenantId)
+        {
+            context.ConsumedNotes.Add(new ConsumedNote(integrationEvent.NoteId));
+            return;
+        }
+
+        await context.Database.ExecuteSqlAsync(
+            $"""
+            INSERT INTO messaging_test.consumed_notes (id, tenant_id, created_at, created_by)
+            VALUES ({integrationEvent.NoteId}, {tenantId}, {timeProvider.GetUtcNow()}, {Guid.Empty})
+            """,
+            cancellationToken);
+    }
+}
+
 public static class MessagingTestServices
 {
     public static IServiceCollection AddMessagingTestHandlers(this IServiceCollection services, ConsumerLog log)
@@ -103,6 +127,7 @@ public static class MessagingTestServices
         services.AddDomainEventSubscriber<ProbeEchoed, EchoAgain>();
         services.AddIntegrationEventConsumer<ProbeCreated.V1, RecordingConsumer, MessagingTestDbContext>(RecordingConsumer.Name);
         services.AddIntegrationEventConsumer<ProbeCreated.V1, FlakyConsumer, MessagingTestDbContext>(FlakyConsumer.Name);
+        services.AddIntegrationEventConsumer<NoteRequested.V1, NoteWriter, MessagingTestDbContext>(NoteWriter.Name);
         return services;
     }
 }

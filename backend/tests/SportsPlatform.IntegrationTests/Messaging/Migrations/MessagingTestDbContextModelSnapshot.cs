@@ -169,6 +169,32 @@ namespace SportsPlatform.IntegrationTests.Messaging.Migrations
                         });
                 });
 
+            modelBuilder.Entity("SportsPlatform.IntegrationTests.Messaging.ConsumedNote", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_consumed_notes");
+
+                    b.ToTable("consumed_notes", "messaging_test");
+
+                    b.HasAnnotation("SportsPlatform:AppendOnly", true);
+                });
+
             modelBuilder.Entity("SportsPlatform.IntegrationTests.Messaging.MessagingProbe", b =>
                 {
                     b.Property<Guid>("Id")

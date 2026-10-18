@@ -4,6 +4,7 @@ using SportsPlatform.BuildingBlocks.Domain;
 using SportsPlatform.BuildingBlocks.Messaging;
 using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Results;
+using SportsPlatform.BuildingBlocks.Tenancy;
 
 namespace SportsPlatform.IntegrationTests.Messaging;
 
@@ -11,8 +12,8 @@ namespace SportsPlatform.IntegrationTests.Messaging;
 /// Test-only module (schema <c>messaging_test</c>) that both publishes and consumes, to exercise domain event
 /// dispatch, the outbox and the inbox.
 /// </summary>
-public sealed class MessagingTestDbContext(DbContextOptions<MessagingTestDbContext> options)
-    : ModuleDbContext(options, SchemaName)
+public sealed class MessagingTestDbContext(DbContextOptions<MessagingTestDbContext> options, ITenantContext tenantContext)
+    : ModuleDbContext(options, SchemaName, tenantContext)
 {
     public const string SchemaName = "messaging_test";
 
@@ -23,12 +24,19 @@ public sealed class MessagingTestDbContext(DbContextOptions<MessagingTestDbConte
 
     public DbSet<ReceivedProbe> ReceivedProbes => Set<ReceivedProbe>();
 
+    public DbSet<ConsumedNote> ConsumedNotes => Set<ConsumedNote>();
+
     protected override Error ConcurrencyConflictError => ConcurrencyConflict;
 
     protected override void ConfigureModel(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<MessagingProbe>(probe => probe.Property(p => p.Name).HasMaxLength(200));
         modelBuilder.Entity<ReceivedProbe>();
+        modelBuilder.Entity<ConsumedNote>(note =>
+        {
+            note.ToTable(ConsumedNote.Table);
+            note.IsAppendOnly();
+        });
     }
 }
 
@@ -75,6 +83,23 @@ public sealed class ReceivedProbe : Entity
     public Guid MessageId { get; private set; }
 }
 
+/// <summary>A tenant-owned row (RLS) written by <see cref="NoteWriter"/>, for consumers under RLS.</summary>
+public sealed class ConsumedNote : Entity, ITenantOwned
+{
+    public const string Table = "consumed_notes";
+
+    public ConsumedNote(Guid id)
+        : base(id)
+    {
+    }
+
+    private ConsumedNote()
+    {
+    }
+
+    public Guid TenantId { get; private set; }
+}
+
 public sealed record ProbeRegistered(Guid ProbeId, string Name) : IDomainEvent;
 
 /// <summary>Each handled echo raises the next one until <see cref="Remaining"/> is 0.</summary>
@@ -83,6 +108,15 @@ public sealed record ProbeEchoed(MessagingProbe Probe, int Remaining) : IDomainE
 public static class ProbeCreated
 {
     public sealed record V1(Guid ProbeId, string Name) : IIntegrationEvent;
+}
+
+/// <summary>
+/// Asks <see cref="NoteWriter"/> for a <see cref="ConsumedNote"/>; with <c>WriteAsTenantId</c> it inserts
+/// the row for that tenant with raw SQL, past the tenant interceptor, so only RLS can stop it.
+/// </summary>
+public static class NoteRequested
+{
+    public sealed record V1(Guid NoteId, Guid? WriteAsTenantId) : IIntegrationEvent;
 }
 
 /// <summary>An event nobody subscribes to.</summary>
@@ -95,5 +129,5 @@ public static class ProbeIgnored
 public sealed class MessagingTestDbContextFactory : IDesignTimeDbContextFactory<MessagingTestDbContext>
 {
     public MessagingTestDbContext CreateDbContext(string[] args) => new(
-        ModuleDbContextOptions.ForMigrations<MessagingTestDbContext>("Host=localhost", MessagingTestDbContext.SchemaName));
+        ModuleDbContextOptions.ForMigrations<MessagingTestDbContext>("Host=localhost", MessagingTestDbContext.SchemaName), new TenantContext());
 }

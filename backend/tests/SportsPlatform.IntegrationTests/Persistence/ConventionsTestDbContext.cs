@@ -3,12 +3,13 @@ using Microsoft.EntityFrameworkCore.Design;
 using SportsPlatform.BuildingBlocks.Domain;
 using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Results;
+using SportsPlatform.BuildingBlocks.Tenancy;
 
 namespace SportsPlatform.IntegrationTests.Persistence;
 
 /// <summary>Test-only module context (schema <c>conventions_test</c>) that proves the ModuleDbContext conventions.</summary>
-public sealed class ConventionsTestDbContext(DbContextOptions<ConventionsTestDbContext> options)
-    : ModuleDbContext(options, SchemaName)
+public sealed class ConventionsTestDbContext(DbContextOptions<ConventionsTestDbContext> options, ITenantContext tenantContext)
+    : ModuleDbContext(options, SchemaName, tenantContext)
 {
     public const string SchemaName = "conventions_test";
 
@@ -21,6 +22,10 @@ public sealed class ConventionsTestDbContext(DbContextOptions<ConventionsTestDbC
 
     public DbSet<AppendOnlyProbe> AppendOnlyProbes => Set<AppendOnlyProbe>();
 
+    public DbSet<TenantProbe> TenantProbes => Set<TenantProbe>();
+
+    public DbSet<TenantProbeNote> TenantProbeNotes => Set<TenantProbeNote>();
+
     protected override Error ConcurrencyConflictError => ConcurrencyConflict;
 
     protected override void ConfigureModel(ModelBuilder modelBuilder)
@@ -31,6 +36,18 @@ public sealed class ConventionsTestDbContext(DbContextOptions<ConventionsTestDbC
         {
             probe.IsAppendOnly();
             probe.Property(p => p.Note).HasMaxLength(200);
+        });
+        modelBuilder.Entity<TenantProbe>(probe =>
+        {
+            probe.Property(p => p.Name).HasMaxLength(200);
+            probe.HasAlternateKey(p => new { p.TenantId, p.Id });
+        });
+        modelBuilder.Entity<TenantProbeNote>(note =>
+        {
+            note.Property(n => n.Text).HasMaxLength(200);
+            note.HasOne<TenantProbe>().WithMany()
+                .HasForeignKey(n => new { n.TenantId, n.ProbeId })
+                .HasPrincipalKey(p => new { p.TenantId, p.Id });
         });
     }
 }
@@ -84,9 +101,49 @@ public sealed class AppendOnlyProbe : Entity
     public string Note { get; private set; } = string.Empty;
 }
 
+/// <summary>Tenant-owned (query filter, stamping, RLS): the isolation harness's entity until T4 adds real ones.</summary>
+public sealed class TenantProbe : AggregateRoot, ITenantOwned
+{
+    public TenantProbe(string name)
+        : base(NewId()) => Name = name;
+
+    private TenantProbe()
+    {
+    }
+
+    public Guid TenantId { get; private set; }
+
+    public string Name { get; private set; } = string.Empty;
+
+    public void Rename(string name) => Name = name;
+}
+
+/// <summary>References a <see cref="TenantProbe"/> through the composite key <c>(tenant_id, probe_id)</c>.</summary>
+public sealed class TenantProbeNote : Entity, ITenantOwned
+{
+    public TenantProbeNote(Guid probeId, string text)
+        : base(NewId())
+    {
+        ProbeId = probeId;
+        Text = text;
+    }
+
+    private TenantProbeNote()
+    {
+    }
+
+    public Guid TenantId { get; private set; }
+
+    public Guid ProbeId { get; private set; }
+
+    public string Text { get; private set; } = string.Empty;
+
+    public void Edit(string text) => Text = text;
+}
+
 /// <summary>Lets <c>dotnet ef migrations add</c> build the context without starting the Host.</summary>
 public sealed class ConventionsTestDbContextFactory : IDesignTimeDbContextFactory<ConventionsTestDbContext>
 {
     public ConventionsTestDbContext CreateDbContext(string[] args) => new(
-        ModuleDbContextOptions.ForMigrations<ConventionsTestDbContext>("Host=localhost", ConventionsTestDbContext.SchemaName));
+        ModuleDbContextOptions.ForMigrations<ConventionsTestDbContext>("Host=localhost", ConventionsTestDbContext.SchemaName), new TenantContext());
 }
