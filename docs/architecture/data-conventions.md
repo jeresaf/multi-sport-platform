@@ -124,6 +124,29 @@ creates (never TRUNCATE). Each table gets one policy, set in the migration that 
   `TableAccessPolicies` in the integration tests. A new table fails until its policy is declared there;
   exceptions for one role are declared there with a reason.
 
+## Seeding
+
+- Seeders implement `ISeeder` (`SportsPlatform.BuildingBlocks.Persistence.Seeding`) and are registered with
+  `services.AddSeeder<T>()` in the module. Each has a stable `Key` (`<module>.<category>.<set>`), a category, an
+  `Order` within the category and a `Checksum` that changes whenever what it writes changes (data + seeder version).
+- Categories: `REFERENCE` and `CONFIGURATION` write read-only global tables, so they run as the owner
+  (`SeedContext.CreateOwnerContext<T>()`, on the `Migrator` connection) in every environment. `DEMO` and `TEST` go
+  through application commands as `sp_app` (AR-22) and run only in Development, Staging and Testing. Running a
+  category runs `REFERENCE`, then `CONFIGURATION`, then it.
+- Runs are idempotent: a seeder upserts by its natural key and changes nothing when the data is already there. Seeded
+  records get `DeterministicIds.Create("<module>.<entity>:<natural key>")` (UUIDv5), the same in every environment;
+  never change a key once records exist. Seeders never delete: a record dropped from the data is deactivated.
+- `platform.seed_runs` (append-only) records each completed run with its checksum, environment and counts. A seeder
+  whose last run has the same checksum is skipped; a seeder that throws stops the run and records nothing.
+- One seed run at a time per database: the runner holds a PostgreSQL advisory lock (`SeedRunner.LockKey`) for the whole
+  run, and a second run is refused.
+- `seed --reset` drops every module schema as the owner and applies the migrations again before seeding (append-only
+  tables can't be truncated, even by the owner). It needs Development **and** a local `Migrator` host (localhost,
+  loopback, a Unix socket or the compose service `postgres`); a non-local Development database must be named in
+  `Seeding:AllowResetOf`.
+- DEMO and TEST seeders call application commands outside HTTP: no tenant is set and no audit scope is begun yet (see
+  PROGRESS follow-ups; needed before the first DEMO seeder).
+
 ## CI checks (automate as they become relevant)
 
 Tenant column + RLS presence · table grants match the declared access policy · forbidden cross-module references · public DTO field classification ·

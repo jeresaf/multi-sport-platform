@@ -31,6 +31,9 @@ public static class TableAccessPolicies
         // Audit entries (S01-T6, AR-19).
         ["audit.audit_entries"] = TableAccess.AppendOnly,
 
+        // Seed bookkeeping (S01-T7): written by the seed runner as the owner, never changed.
+        ["platform.seed_runs"] = TableAccess.AppendOnly,
+
         ["platform.outbox_messages"] = TableAccess.ReadWrite,
         ["platform.inbox_messages"] = TableAccess.ReadWrite,
         ["conventions_test.outbox_messages"] = TableAccess.ReadWrite,

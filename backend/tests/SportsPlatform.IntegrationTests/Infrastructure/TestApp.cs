@@ -10,12 +10,13 @@ using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.IntegrationTests.Messaging;
 using SportsPlatform.IntegrationTests.Persistence;
+using SportsPlatform.IntegrationTests.Seeding;
 
 namespace SportsPlatform.IntegrationTests.Infrastructure;
 
 /// <summary>
 /// The Host under test: <c>Testing</c> environment, the container's role connections, a fake clock, a configurable
-/// authorization evaluator and the messaging test module.
+/// authorization evaluator, the messaging test module and test seeders.
 /// </summary>
 public sealed class TestApp(IReadOnlyDictionary<string, string?> settings) : WebApplicationFactory<Program>
 {
@@ -28,6 +29,8 @@ public sealed class TestApp(IReadOnlyDictionary<string, string?> settings) : Web
     public TestAuthorizationEvaluator Authorization { get; } = new();
 
     public ConsumerLog Consumers { get; } = new();
+
+    public SeedLog Seeds { get; } = new();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -51,6 +54,9 @@ public sealed class TestApp(IReadOnlyDictionary<string, string?> settings) : Web
             // A test-only module that publishes and consumes, for the outbox and inbox.
             services.AddModuleDbContext<MessagingTestDbContext>(configuration, MessagingTestDbContext.SchemaName);
             services.AddMessagingTestHandlers(Consumers);
+
+            // Test-only seeders, one or two per category, for the seed runner.
+            services.AddTestSeeders(Seeds);
         });
     }
 }

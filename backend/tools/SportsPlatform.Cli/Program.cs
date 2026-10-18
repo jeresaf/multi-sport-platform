@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Persistence.Messaging;
+using SportsPlatform.BuildingBlocks.Persistence.Seeding;
 using SportsPlatform.Host;
 using SportsPlatform.Host.Catalogues;
 using SportsPlatform.Host.Modules;
@@ -15,7 +16,7 @@ using SportsPlatform.Host.OpenApi;
 (string Name, string Description, Func<string[], Task<int>>? Run)[] commands =
 [
     ("migrate", "Apply database migrations for every module (as sp_migrator)", MigrateAsync),
-    ("seed", "Run seeders for a category", null),
+    ("seed", "Run seeders for a category and its prerequisites: " + SeedRequest.Usage, SeedAsync),
     ("export-catalogues", "Write the action, error and event catalogues to docs/generated and contracts", ExportCataloguesAsync),
     ("export-openapi", "Write contracts/openapi.json", ExportOpenApiAsync),
     ("create-platform-admin", "Create the first platform administrator", null),
@@ -47,6 +48,36 @@ static async Task<int> MigrateAsync(string[] args)
 {
     using var host = BuildHost(args);
     await host.Services.GetRequiredService<MigrationRunner>().RunAsync();
+    return 0;
+}
+
+// REFERENCE and CONFIGURATION run as sp_migrator, DEMO and TEST through application commands as sp_app.
+// DEMO and TEST are refused in Production; --reset (drop every module schema, migrate again) only in Development.
+static async Task<int> SeedAsync(string[] args)
+{
+    if (!SeedRequest.TryParse(args, out var request, out var error))
+    {
+        Console.Error.WriteLine(error);
+        return 1;
+    }
+
+    using var host = BuildHost([]);
+    var report = await host.Services.GetRequiredService<SeedRunner>().RunAsync(request!);
+    if (report.IsRefused)
+    {
+        Console.Error.WriteLine(report.Refusal);
+        return 1;
+    }
+
+    foreach (var seeder in report.Seeders)
+    {
+        var result = seeder.Skipped
+            ? "unchanged, skipped"
+            : $"{seeder.Outcome.Inserted} inserted, {seeder.Outcome.Updated} updated, {seeder.Outcome.Deactivated} deactivated";
+        Console.WriteLine($"{seeder.Category.Code(),-14}{seeder.Key}: {result}");
+    }
+
+    Console.WriteLine(report.Seeders.Count == 0 ? "No seeders for this category yet." : $"{report.Seeders.Count} seeder(s).");
     return 0;
 }
 

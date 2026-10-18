@@ -7,13 +7,13 @@ at the start of every review.
 
 - **Current slice:** S01 — Backend platform (docs/build/slices/S01-backend-platform.md). S00 is on `main`; its
   "new contributor in under 30 minutes" check is still with the owner
-- **Current task:** none. S01-T6b (audit query endpoint) is in review as #24
-- **Next:** S01-T7 (seed framework and reference data)
+- **Current task:** none. S01-T7a (seed framework) is in review as #25; T7 split in two (owner, 2026-10-18)
+- **Next:** S01-T7b (reference data and public endpoints)
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S01-T7 — Seed framework and reference data
+1. S01-T7b — Reference data (countries, currencies, time zones, languages) and public endpoints
 
 ## Log
 
@@ -37,6 +37,7 @@ at the start of every review.
 | 2026-10-18 | S01-T5b-2 | #22 | `OutboxDiagnostics` (BuildingBlocks, through each module's DbContext); Platform endpoints `GET /api/platform/v1/diagnostics/outbox` (`module`, `status`, `limit`, `cursor`; newest first across modules; no payload; `heldBackBy`) and `POST …/{module}/{messageId}/redrive` (`reason` 1–500, `FAILED` → `PENDING`, attempts 0); `PLATFORM_OUTBOX_MESSAGE_NOT_FOUND`/`_NOT_FAILED`, `VALIDATION_INVALID_QUERY`/`_REASON_REQUIRED`; HTTP JSON enums as UPPER_SNAKE strings; allowed/denied tests for both outbox actions; T5 acceptance complete | FluentValidation 12.2.0 (Apache-2.0, owner on review) with `.ValidateRequest<T>()` and `errors: [{field, code}]`; `ToProblem(detail)`; `TestAuthorizationEvaluator.Reset` before each database test. ~940 changed lines without generated files, kept as one PR. Review: `limit` parsed by the request, so every bad value is `VALIDATION_INVALID_QUERY` (R1); T6 audits the re-drive in the target module's outbox (R2) |
 | 2026-10-18 | S01-T6a | #23 | `audit.audit_entries` (append-only, indexes for T6b's filters); `AuditScope` + `AuditMiddleware`: the first module save commits `AuditRecorded.V1` in that module's outbox (consumer `platform.audit`), denials/failures/no-save actions go directly through `IAuditLog`; error code recorded from Problem Details; `[PersonalData]` + `AuditMetadata` redaction; re-drive audited in the target module's outbox with its reason, the list with its filters | T6 split in two (owner). Defaults approved: no RLS until S02, direct `SUCCESS` for no-save actions, one unit of work per command, validation failures audited. Test reset now covers Platform's `audit` schema. Pre-review: cancelled saves discard their audit messages. Review: reasons are permanent, no personal data (R3); anonymous actor and denial rate limits are follow-ups (R1, R2) |
 | 2026-10-18 | S01-T6b | #24 | `GET /api/platform/v1/audit-entries` (`platform.audit.read`, audited with its filters): `tenantId`, `actorId`, `action` (format only), `entityType`/`entityId` (needs the type), `correlationId`, `outcome`, `from` (inclusive)/`to` (exclusive) instants with an offset, at most microseconds; newest first by `(occurred_at, id)` with `AuditCursor`; `ActionCode.IsValid`; T6 complete | `outcome` filter beyond the spec; no module or "no tenant" filter (owner, plan). No new errors, events or migrations. Pre-review: read's own entry has no target tenant (S02 follow-up), instants limited to microseconds |
+| 2026-10-18 | S01-T7a | #25 | Seed framework (`SportsPlatform.BuildingBlocks.Persistence.Seeding`): `ISeeder` (category, order, checksum), `SeedRunner` (prerequisite categories first, unchanged seeders skipped, a failure records nothing), `SeedEnvironmentPolicy`, owner contexts on `Migrator` for REFERENCE/CONFIGURATION only; `DeterministicIds` (UUIDv5); `platform.seed_runs` (append-only, Platform's `SeedRunLog`); `DatabaseReset` (drop every module schema, migrate); CLI `seed --category <c> [--reset]`; test-only seeders | T7 split in two (owner). DEMO/TEST also in Testing, reset by dropping schemas (owner, plan). No error codes: refusals are a `SeedReport`. Pre-review: the reset checks Development itself and never drops system schemas, keys and checksums checked before a seeder runs, derived test hosts must use the container's connections. ~1,250 changed lines without migrations, kept as one PR. Review: reset only of a local database or one named in `Seeding:AllowResetOf` (R1), advisory lock for one run at a time (R2), tenant and audit for DEMO seeders a follow-up (R3) |
 
 ## Deviations from spec (agreed)
 
@@ -85,6 +86,10 @@ at the start of every review.
   `VALIDATION_REASON_REQUIRED` live in `CommonErrors` so later endpoints reuse them; no `status` means all statuses.
   On the review (#22) the owner chose to add FluentValidation 12.2.0 (Apache-2.0) now: `.ValidateRequest<TRequest>(error)`
   runs the module's `IValidator<TRequest>`, and validation problems carry `errors: [{field, code}]`.
+- **S01-T7:** delivered as two PRs (T7a seed framework; T7b reference data and endpoints). Owner approved the plan
+  2026-10-18 with its defaults: `DEMO`/`TEST` also run in the `Testing` environment (the spec names Development and
+  Staging); a category runs `REFERENCE` and `CONFIGURATION` first; `--reset` drops every module schema as the owner and
+  migrates again (not a database re-create, which needs the superuser); languages are all of ISO 639-1 (T7b).
 - **S01-T6:** delivered as two PRs (T6a audit trail; T6b query endpoint). The spec's "command pipeline" didn't exist:
   T6a adds `AuditScope` and the Host's `AuditMiddleware` instead of a pipeline. Owner approved the plan 2026-10-18 with
   its defaults: `tenant_id` nullable without RLS until S02; audited actions that save nothing (reads) are written
@@ -108,12 +113,14 @@ Consolidated by the S00 slice review (2026-10-17). Each item names where it gets
   (reviewer guidance on #13).
 - The per-test reset will wipe reference data (countries, currencies…): exclude those tables from Respawn or
   re-run the reference seed after each reset (T7; reviewer note on #14).
-- `seed --reset` (Development, T7) can't TRUNCATE or DELETE append-only tables as `sp_migrator` (the triggers stop
-  the owner too): reset by recreating the database or skip append-only tables (T7; S01-T2b).
 - `audit.audit_entries` has a nullable `tenant_id` and no RLS: S02 adds the policy (tenant users see their tenant's
   entries; entries with no tenant only through platform services) and the isolation tests, and revisits the audit
   indexes (tenant first) with the policy (S01-T6a pre-review); then also make the entity index
   `(entity_type, entity_id, occurred_at)` so an entity's history needs no sort (#24 R2).
+- DEMO/TEST seeders run application commands outside HTTP (#25 R3): before the first DEMO seeder (S02 or later),
+  `SeedContext` gets a way to run commands as a tenant (set `TenantContext` in the seeder's scope, needed once S02's
+  RLS is on) and begins an audit scope so demo data is audited with source `SYSTEM` (reviewer's suggestion; owner to
+  confirm).
 - A failed direct audit write (denial, failure, read) is only logged: the response is already written. Alert on that
   Error with the `FAILED` outbox alert below (infrastructure task after M1; S01-T6a).
 - The audit middleware's exception path (`FAILURE` with `PLATFORM_UNEXPECTED_ERROR`) has no test: no audited endpoint
