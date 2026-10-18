@@ -233,6 +233,21 @@ public sealed class OutboxDiagnosticsTests : DatabaseTest
     }
 
     [Fact]
+    public async Task Redrive_without_a_body_is_malformed_not_an_error()
+    {
+        App.Authorization.Allow(PlatformActions.OutboxRedrive);
+        await CreateProbeAsync();
+        await FailFirstMessageAsync();
+        var failed = (await OutboxAsync()).ShouldHaveSingleItem();
+
+        using var client = App.CreateClient();
+        using var response = await client.PostAsync(RedrivePath(MessagingTestDbContext.SchemaName, failed.Id), null, Ct);
+
+        await response.ShouldBeProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_MALFORMED_REQUEST");
+        (await OutboxAsync()).ShouldHaveSingleItem().Status.ShouldBe(OutboxMessageStatus.Failed);
+    }
+
+    [Fact]
     public async Task List_is_denied_without_the_read_action()
     {
         App.Authorization.Allow(PlatformActions.OutboxRedrive);

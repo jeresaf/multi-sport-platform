@@ -32,7 +32,13 @@ public static class RequestValidationExtensions
 
         builder.AddEndpointFilter(async (context, next) =>
         {
-            var request = context.Arguments.OfType<TRequest>().Single();
+            // A required body that wasn't sent fails binding, but filters still run (with a null argument) before the
+            // pipeline answers 400 VALIDATION_MALFORMED_REQUEST: there is nothing to validate.
+            if (context.Arguments.OfType<TRequest>().SingleOrDefault() is not { } request)
+            {
+                return await next(context);
+            }
+
             var validator = context.HttpContext.RequestServices.GetRequiredService<IValidator<TRequest>>();
             var result = await validator.ValidateAsync(request, context.HttpContext.RequestAborted);
             return result.IsValid ? await next(context) : result.ToProblem(error);
