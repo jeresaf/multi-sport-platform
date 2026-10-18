@@ -1,9 +1,13 @@
+using System.Globalization;
 using SportsPlatform.BuildingBlocks.Persistence.Messaging;
 
 namespace SportsPlatform.Modules.Platform.Features.Outbox.ListOutboxMessages;
 
 /// <summary>The list's query parameters as sent; <see cref="Validate"/> turns them into an <see cref="OutboxQuery"/>.</summary>
-public sealed record ListOutboxMessagesRequest(string? Module, string? Status, int? Limit, string? Cursor)
+/// <remarks>
+/// <c>limit</c> is bound as text, so a non-number gets the same <c>VALIDATION_INVALID_QUERY</c> as an out-of-range one.
+/// </remarks>
+public sealed record ListOutboxMessagesRequest(string? Module, string? Status, string? Limit, string? Cursor)
 {
     public const int DefaultLimit = 25;
     public const int MaxLimit = 100;
@@ -32,9 +36,11 @@ public sealed record ListOutboxMessagesRequest(string? Module, string? Status, i
             status = parsed;
         }
 
-        if (Limit is < 1 or > MaxLimit)
+        var limit = DefaultLimit;
+        if (Limit is not null
+            && (!int.TryParse(Limit, NumberStyles.None, CultureInfo.InvariantCulture, out limit) || limit is < 1 or > MaxLimit))
         {
-            return (null, $"'limit' must be between 1 and {MaxLimit}.");
+            return (null, $"'limit' must be a whole number between 1 and {MaxLimit}.");
         }
 
         Guid? before = null;
@@ -48,6 +54,6 @@ public sealed record ListOutboxMessagesRequest(string? Module, string? Status, i
             before = lastId;
         }
 
-        return (new OutboxQuery(Module, status, before, Limit ?? DefaultLimit), null);
+        return (new OutboxQuery(Module, status, before, limit), null);
     }
 }

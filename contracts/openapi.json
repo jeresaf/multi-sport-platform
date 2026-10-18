@@ -33,8 +33,7 @@
             "name": "limit",
             "in": "query",
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string"
             }
           },
           {

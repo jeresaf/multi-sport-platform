@@ -24,7 +24,7 @@ internal static class ListOutboxMessagesEndpoint
     private static async Task<Results<Ok<ListOutboxMessagesResponse>, ProblemHttpResult>> HandleAsync(
         string? module,
         string? status,
-        int? limit,
+        string? limit,
         string? cursor,
         OutboxDiagnostics diagnostics,
         ListOutboxMessagesHandler handler,

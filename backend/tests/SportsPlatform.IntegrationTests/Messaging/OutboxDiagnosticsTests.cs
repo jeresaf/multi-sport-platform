@@ -131,6 +131,9 @@ public sealed class OutboxDiagnosticsTests : DatabaseTest
     [InlineData("?module=registry")]
     [InlineData("?limit=0")]
     [InlineData("?limit=101")]
+    [InlineData("?limit=abc")]
+    [InlineData("?limit=+5")]
+    [InlineData("?limit=")]
     [InlineData("?cursor=not-a-cursor")]
     public async Task Invalid_query_is_rejected(string query)
     {

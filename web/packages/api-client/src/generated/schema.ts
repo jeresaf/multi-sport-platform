@@ -127,7 +127,7 @@ export interface operations {
             query?: {
                 module?: string;
                 status?: string;
-                limit?: number;
+                limit?: string;
                 cursor?: string;
             };
             header?: never;
