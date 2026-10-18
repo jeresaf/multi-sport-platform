@@ -19,6 +19,12 @@ public static class CommonErrors
     public static readonly Error InvalidQuery = new(
         "VALIDATION_INVALID_QUERY", "A query parameter is not valid.", ErrorKind.Validation);
 
+    /// <summary>
+    /// A request body was read but a field has a value the endpoint doesn't accept; <c>errors</c> names each field.
+    /// </summary>
+    public static readonly Error InvalidRequest = new(
+        "VALIDATION_INVALID_REQUEST", "A field of the request is not valid.", ErrorKind.Validation);
+
     /// <summary>An action whose audit is <c>REQUIRED_WITH_REASON</c> was sent without a usable reason.</summary>
     public static readonly Error ReasonRequired = new(
         "VALIDATION_REASON_REQUIRED", "This action needs a reason.", ErrorKind.Validation);

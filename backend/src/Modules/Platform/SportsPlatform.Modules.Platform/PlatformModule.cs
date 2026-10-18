@@ -8,6 +8,7 @@ using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Persistence.Messaging;
 using SportsPlatform.BuildingBlocks.Persistence.Seeding;
 using SportsPlatform.Modules.Platform.Contracts.Audit;
+using SportsPlatform.Modules.Platform.Contracts.Reference;
 using SportsPlatform.Modules.Platform.Features.Audit.AppendAuditEntry;
 using SportsPlatform.Modules.Platform.Features.Audit.ListAuditEntries;
 using SportsPlatform.Modules.Platform.Features.Outbox.ListOutboxMessages;
@@ -65,6 +66,7 @@ public sealed class PlatformModule : IModule
         services.AddSeeder<CurrencySeeder>();
         services.AddSeeder<LanguageSeeder>();
         services.AddSeeder<TimeZoneSeeder>();
+        services.AddScoped<IReferenceData, ReferenceData>();
         services.AddScoped<ListCountriesHandler>();
         services.AddScoped<ListCurrenciesHandler>();
         services.AddScoped<ListLanguagesHandler>();
