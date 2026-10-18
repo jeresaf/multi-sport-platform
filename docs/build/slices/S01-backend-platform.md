@@ -380,4 +380,5 @@ Acceptance:
   `backend/tools/reference-data/build-reference-data.cs`. One `ReferenceSeeder<TItem, TEntry>` base upserts by code,
   deactivates dropped codes and reactivates returning ones; its checksum is `v<version>:<SHA-256 of the file>`. Tests
   seed the real data once per run and Respawn keeps the four tables; `SeedRunnerTests` assert on the `test.` seeders.
-  `XK` is left out (Q16).
+  `XK` is left out (Q16). Pre-review: `XTS` (testing) and `XXX` (no currency) are left out of the currencies, and
+  alpha-3/numeric codes are unique among active rows only (ISO can reuse a retired entry's number).
