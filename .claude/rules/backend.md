@@ -17,6 +17,11 @@ paths:
    endpoint mapping and response DTO. Register the validator as `IValidator<TRequest>` in the module and add
    `.ValidateRequest<TRequest>(<error>)` to the endpoint (query parameters: `[AsParameters]` record with
    `[FromQuery(Name = "camelCase")]`). Custom messages that never echo the value; no domain rules in validators.
+   The endpoint's error: `CommonErrors.InvalidRequest` for body fields, `CommonErrors.InvalidQuery` for query
+   parameters, `CommonErrors.ReasonRequired` for a reason. Use `WithErrorCode` only with a code declared in
+   `<Module>Errors` or `CommonErrors` (it appears in the catalogue); without it the entry carries the endpoint's code.
+   Body records reject unknown members (`[JsonUnmappedMemberHandling(Disallow)]` → `VALIDATION_MALFORMED_REQUEST`),
+   so a field that can't be set there (a status, a slug) is refused instead of silently ignored.
 2. Endpoint declares exactly one action: `.RequireAction(<Module>Actions.X)` (or `.AllowPublic()` for public reads).
 3. Handler loads the aggregate, calls a domain method, saves. Expected failures → `Result.Failure(<Module>Errors.X)`.
    The endpoint returns `result.ToHttpResult(...)` (Problem Details with the error's `code`).

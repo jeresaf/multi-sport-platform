@@ -1,5 +1,6 @@
 using SportsPlatform.BuildingBlocks.Modules;
 using SportsPlatform.Modules.Platform;
+using SportsPlatform.Modules.Tenancy;
 
 namespace SportsPlatform.Host.Modules;
 
@@ -9,5 +10,6 @@ public static class ModuleRegistry
     public static IReadOnlyList<IModule> All { get; } =
     [
         new PlatformModule(),
+        new TenancyModule(),
     ];
 }

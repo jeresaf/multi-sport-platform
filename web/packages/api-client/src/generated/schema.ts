@@ -144,6 +144,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/platform/v1/tenants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List tenants
+         * @description Every tenant, ordered by slug. Filter by `status` (PROVISIONING, ACTIVE, SUSPENDED or ARCHIVED); `limit` is 1–100 (25). Every page read is audited.
+         */
+        get: operations["ListTenants"];
+        put?: never;
+        /**
+         * Create a tenant
+         * @description Creates a tenant in PROVISIONING. `slug` (3–40 lower-case letters, digits and hyphens, not a reserved word) names its platform subdomain, never changes and is never reused, even after the tenant is archived. Country, time zone, locale (`en` or `en-UG`) and currency must be active reference data. `publicEnabled` defaults to false; the public site shows only while the tenant is ACTIVE.
+         */
+        post: operations["CreateTenant"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/v1/tenants/{tenantId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a tenant
+         * @description One tenant with its profile, status and `version` (also the `ETag`).
+         */
+        get: operations["GetTenant"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Change a tenant's profile
+         * @description Changes the fields sent; missing or null fields stay as they are. The slug never changes, and the status changes only through the status actions. Send `version` from the last read to get 409 TENANT_CONCURRENCY_CONFLICT instead of overwriting someone else's change. `If-Match` is not evaluated yet: send the version in the body.
+         */
+        patch: operations["UpdateTenantProfile"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -192,6 +240,20 @@ export interface components {
             numericCode: string;
             name: string;
         };
+        /**
+         * @description A new tenant. Every field but `publicEnabled` (default false) is required; unknown members are rejected,
+         *     so a status can't be sent (a new tenant is always `PROVISIONING`).
+         */
+        CreateTenantRequest: {
+            slug: null | string;
+            legalName: null | string;
+            displayName: null | string;
+            countryCode: null | string;
+            timeZone: null | string;
+            defaultLocale: null | string;
+            currencyCode: null | string;
+            publicEnabled: null | boolean;
+        };
         /** @description An ISO 4217 currency: alphabetic `code` (`UGX`), numeric code, English name, minor units (UGX 0). */
         CurrencyResponse: {
             code: string;
@@ -221,6 +283,10 @@ export interface components {
         };
         ListOutboxMessagesResponse: {
             items: components["schemas"]["OutboxMessageResponse"][];
+            page: components["schemas"]["PageInfo"];
+        };
+        ListTenantsResponse: {
+            items: components["schemas"]["TenantResponse"][];
             page: components["schemas"]["PageInfo"];
         };
         ListTimeZonesResponse: {
@@ -295,10 +361,53 @@ export interface components {
         RedriveOutboxMessageRequest: {
             reason: null | string;
         };
+        /**
+         * @description A tenant as the platform API shows it. `version` is the row version: send it back with a change to
+         *     make it fail with `409 TENANT_CONCURRENCY_CONFLICT` if someone else changed the tenant first.
+         */
+        TenantResponse: {
+            /** Format: uuid */
+            id: string;
+            slug: string;
+            legalName: string;
+            displayName: string;
+            countryCode: string;
+            timeZone: string;
+            defaultLocale: string;
+            currencyCode: string;
+            status: components["schemas"]["TenantStatus"];
+            publicEnabled: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: uint32 */
+            version: number;
+        };
+        /**
+         * @description A tenant's stored lifecycle status (docs/domain/state-machines.md, "Tenant").
+         * @enum {unknown}
+         */
+        TenantStatus: "PROVISIONING" | "ACTIVE" | "SUSPENDED" | "ARCHIVED";
         /** @description An IANA time zone: its ID as `code` (`Africa/Kampala`) and its country; no country for `Etc/UTC`. */
         TimeZoneResponse: {
             code: string;
             countryCode: null | string;
+        };
+        /**
+         * @description The profile fields to change; a missing or null field stays as it is. The slug and the status can't be changed here
+         *     (unknown members are rejected). `version`, when sent, must be the tenant's current version.
+         */
+        UpdateTenantProfileRequest: {
+            legalName: null | string;
+            displayName: null | string;
+            countryCode: null | string;
+            timeZone: null | string;
+            defaultLocale: null | string;
+            currencyCode: null | string;
+            publicEnabled: null | boolean;
+            /** Format: uint32 */
+            version: null | number;
         };
     };
     responses: never;
@@ -548,6 +657,165 @@ export interface operations {
             };
             /** @description Problem Details; `code`: `VALIDATION_INVALID_QUERY` */
             400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListTenants: {
+        parameters: {
+            query?: {
+                status?: string;
+                limit?: string;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListTenantsResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_QUERY` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    CreateTenant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateTenantRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TenantResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TENANT_SLUG_TAKEN` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetTenant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenantId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TenantResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `TENANT_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    UpdateTenantProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenantId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateTenantProfileRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TenantResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TENANT_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TENANT_CONCURRENCY_CONFLICT` */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

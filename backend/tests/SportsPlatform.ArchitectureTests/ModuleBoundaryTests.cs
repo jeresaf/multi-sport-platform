@@ -41,13 +41,15 @@ public sealed class ModuleBoundaryTests
     }
 
     [Fact]
-    public void Scan_finds_BuildingBlocks_and_the_Platform_module_with_its_Contracts()
+    public void Scan_finds_BuildingBlocks_and_every_module_with_its_Contracts()
     {
         var names = SolutionAssemblies.All.Select(SolutionAssemblies.Name).ToList();
 
         names.ShouldContain(SolutionAssemblies.BuildingBlocksName);
         names.ShouldContain("SportsPlatform.Modules.Platform");
         names.ShouldContain("SportsPlatform.Modules.Platform.Contracts");
+        names.ShouldContain("SportsPlatform.Modules.Tenancy");
+        names.ShouldContain("SportsPlatform.Modules.Tenancy.Contracts");
     }
 
     [Fact]

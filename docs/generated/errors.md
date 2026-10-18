@@ -13,7 +13,12 @@ the message is the default title and may change.
 | `PLATFORM_OUTBOX_MESSAGE_NOT_FOUND` | 404 | No outbox message with this ID in this module. | Platform |
 | `PLATFORM_ROUTE_NOT_FOUND` | 404 | No endpoint matches this path. | BuildingBlocks |
 | `PLATFORM_UNEXPECTED_ERROR` | 500 | An unexpected error occurred. Quote the correlation ID when reporting it. | BuildingBlocks |
+| `TENANT_CONCURRENCY_CONFLICT` | 409 | The tenant was changed by someone else. Reload and try again. | Tenancy |
+| `TENANT_INVALID_TRANSITION` | 409 | The tenant's status does not allow this change. | Tenancy |
+| `TENANT_NOT_FOUND` | 404 | No tenant with this ID. | Tenancy |
+| `TENANT_SLUG_TAKEN` | 409 | This slug belongs to another tenant, possibly an archived one. Slugs are never reused. | Tenancy |
 | `VALIDATION_INVALID_QUERY` | 400 | A query parameter is not valid. | BuildingBlocks |
+| `VALIDATION_INVALID_REQUEST` | 400 | A field of the request is not valid. | BuildingBlocks |
 | `VALIDATION_MALFORMED_REQUEST` | 400 | The request could not be read. | BuildingBlocks |
 | `VALIDATION_REASON_REQUIRED` | 400 | This action needs a reason. | BuildingBlocks |
 | `VALIDATION_REQUEST_TOO_LARGE` | 413 | The request body is too large. | BuildingBlocks |

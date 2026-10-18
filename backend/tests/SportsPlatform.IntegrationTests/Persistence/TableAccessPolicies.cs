@@ -40,8 +40,14 @@ public static class TableAccessPolicies
         ["platform.languages"] = TableAccess.ReadOnly,
         ["platform.time_zones"] = TableAccess.ReadOnly,
 
+        // Tenants (S02-T1): platform-managed; the status history is kept for ever.
+        ["tenancy.tenants"] = TableAccess.ReadWrite,
+        ["tenancy.tenant_status_history"] = TableAccess.AppendOnly,
+
         ["platform.outbox_messages"] = TableAccess.ReadWrite,
         ["platform.inbox_messages"] = TableAccess.ReadWrite,
+        ["tenancy.outbox_messages"] = TableAccess.ReadWrite,
+        ["tenancy.inbox_messages"] = TableAccess.ReadWrite,
         ["conventions_test.outbox_messages"] = TableAccess.ReadWrite,
         ["conventions_test.inbox_messages"] = TableAccess.ReadWrite,
         ["messaging_test.outbox_messages"] = TableAccess.ReadWrite,

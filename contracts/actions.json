@@ -32,6 +32,39 @@
       "entitlement": null,
       "idempotent": false,
       "since": "S01"
+    },
+    {
+      "code": "tenant.create",
+      "module": "Tenancy",
+      "description": "Create a tenant (status PROVISIONING).",
+      "scope": "PLATFORM",
+      "scopableBy": [],
+      "audit": "REQUIRED",
+      "entitlement": null,
+      "idempotent": false,
+      "since": "S02"
+    },
+    {
+      "code": "tenant.read",
+      "module": "Tenancy",
+      "description": "View tenants and their profiles.",
+      "scope": "PLATFORM",
+      "scopableBy": [],
+      "audit": "REQUIRED",
+      "entitlement": null,
+      "idempotent": false,
+      "since": "S02"
+    },
+    {
+      "code": "tenant.update",
+      "module": "Tenancy",
+      "description": "Change a tenant's profile: names, country, time zone, locale, currency, public site.",
+      "scope": "PLATFORM",
+      "scopableBy": [],
+      "audit": "REQUIRED",
+      "entitlement": null,
+      "idempotent": false,
+      "since": "S02"
     }
   ]
 }

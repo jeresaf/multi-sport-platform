@@ -8,3 +8,4 @@ additive, and a breaking change is a new version. An event without consumers is 
 | Event | Version | Producer | Payload | Consumers |
 |---|---|---|---|---|
 | `AuditRecorded` | 1 | Platform | `entryId: uuid`, `actionCode: string`, `outcome: string (enum AuditOutcome: SUCCESS \| FAILURE \| DENIED)`, `errorCode: string?`, `actorKind: string (enum ActorKind: USER \| SYSTEM)`, `actorId: uuid`, `tenantId: uuid?`, `entityType: string?`, `entityId: uuid?`, `occurredAt: instant`, `source: string (enum AuditSource: API \| SYSTEM)`, `correlationId: string?`, `reason: string?`, `metadata: string?` | `platform.audit` |
+| `TenantCreated` | 1 | Tenancy | `tenantId: uuid`, `slug: string`, `status: string (enum TenantStatus: PROVISIONING \| ACTIVE \| SUSPENDED \| ARCHIVED)` | — |

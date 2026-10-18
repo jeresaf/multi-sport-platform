@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\SportsPlatform.BuildingBlocks\SportsPlatform.BuildingBlocks.csproj" />
+    <ProjectReference Include="..\..\..\SportsPlatform.BuildingBlocks.Persistence\SportsPlatform.BuildingBlocks.Persistence.csproj" />
+    <ProjectReference Include="..\SportsPlatform.Modules.Tenancy.Contracts\SportsPlatform.Modules.Tenancy.Contracts.csproj" />
+    <ProjectReference Include="..\..\Platform\SportsPlatform.Modules.Platform.Contracts\SportsPlatform.Modules.Platform.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>
