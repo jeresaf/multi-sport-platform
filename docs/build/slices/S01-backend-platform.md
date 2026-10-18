@@ -184,11 +184,11 @@ Acceptance:
 
 ## Slice acceptance
 
-- [ ] API boots against compose PostgreSQL; migrations apply via CLI; `/health/ready` is healthy.
-- [ ] Generated catalogues (actions, errors, events), OpenAPI and TS client are current and checked in CI.
-- [ ] Architecture, integration and unit tests green in CI.
-- [ ] `.claude/rules/database.md` and CLAUDE.md commands updated with real commands.
-- [ ] The S00 carry-overs above are done and removed from PROGRESS.md "Tech debt / follow-ups".
+- [x] API boots against compose PostgreSQL; migrations apply via CLI; `/health/ready` is healthy.
+- [x] Generated catalogues (actions, errors, events), OpenAPI and TS client are current and checked in CI.
+- [x] Architecture, integration and unit tests green in CI.
+- [x] `.claude/rules/database.md` and CLAUDE.md commands updated with real commands.
+- [x] The S00 carry-overs above are done and removed from PROGRESS.md "Tech debt / follow-ups".
 
 ## Implementation notes
 
