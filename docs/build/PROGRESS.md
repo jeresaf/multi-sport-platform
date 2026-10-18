@@ -7,15 +7,14 @@ at the start of every review.
 
 - **Current slice:** S01 — Backend platform (docs/build/slices/S01-backend-platform.md). S00 is on `main`; its
   "new contributor in under 30 minutes" check is still with the owner
-- **Current task:** none. S01-T5b-1 (event catalogue) is in review as #21
-- **Next:** S01-T5b-2 (outbox diagnostics and re-drive)
+- **Current task:** S01-T5b-2 — outbox diagnostics and re-drive (plan approved 2026-10-18)
+- **Next:** S01-T6 (audit)
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S01-T5b-2 — Outbox diagnostics and re-drive
-2. S01-T6 — Audit
-3. S01-T7 — Seed framework and reference data
+1. S01-T6 — Audit
+2. S01-T7 — Seed framework and reference data
 
 ## Log
 
