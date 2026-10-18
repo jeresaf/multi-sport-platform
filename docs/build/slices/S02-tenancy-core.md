@@ -154,7 +154,7 @@ Deliver:
 - Docs: multi-tenancy.md (as built), `.claude/rules/testing.md` (how to add a sample builder to the harness).
 
 Acceptance:
-- [ ] All test groups pass. A temporary commit that drops one policy makes the RLS coverage test fail; link the
+- [x] All test groups pass. A temporary commit that drops one policy makes the RLS coverage test fail; link the
       failing CI run in the PR.
 - [x] `check-roles.sh` and the grants test still pass; nothing in feature code uses `IgnoreQueryFilters()`.
 
