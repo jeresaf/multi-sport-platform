@@ -356,3 +356,15 @@ Acceptance:
   `entityId` needs `entityType` (the `(entity_type, entity_id)` index); `action` is checked by format only
   (`ActionCode.IsValid`). Keyset paging by `(occurred_at DESC, id DESC)`, cursor `AuditCursor` (base64url of UTC ticks
   and ID). Bad parameters are `VALIDATION_INVALID_QUERY`; no new error codes, events or migrations.
+- **T7 (split in two, owner 2026-10-18):** T7a = the seed framework; T7b = reference tables, data files, REFERENCE
+  seeders and the public endpoints. The framework lives in `SportsPlatform.BuildingBlocks.Persistence.Seeding` (`ISeeder`,
+  `SeedContext`, `SeedRunner`, `SeedEnvironmentPolicy`, `SeedRequest`, `OwnerContextFactory`) next to `MigrationRunner`,
+  like the outbox processor; Platform owns the bookkeeping (`platform.seed_runs`, append-only, `ISeedRunLog` →
+  `SeedRunLog`, written as the owner) and registers the runner with the host's environment name. `DeterministicIds`
+  (BuildingBlocks `Domain`) makes UUIDv5s under a fixed MSP namespace (pinned by a unit test). Owner defaults (plan):
+  `DEMO`/`TEST` allowed in Development, Staging and Testing; a category runs its prerequisites first (`REFERENCE`,
+  `CONFIGURATION`); `--reset` (Development) is `DatabaseReset`: `DROP SCHEMA … CASCADE` for every module schema and
+  model schema as the owner, then `migrate`. A skipped seeder writes nothing; a failed one stops the run and records
+  nothing. Seed run IDs are `SequentialIds`, so the latest run of a key is the highest ID. Refusals are a
+  `SeedReport`, not an `Error`: seeding isn't HTTP, so no error codes. Integration tests use test-only seeders (one or
+  two per category; the REFERENCE one writes the read-only `conventions_test.reference_probes` as the owner).

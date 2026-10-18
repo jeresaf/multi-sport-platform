@@ -30,6 +30,10 @@ paths:
 - Apply: `dotnet run --project backend/tools/SportsPlatform.Cli -- migrate` (all modules in `ModuleRegistry`
   order, as `sp_migrator`), or let the API migrate on startup in Development (`Database:MigrateOnStartup`).
   Production always uses the CLI. The API itself always connects as `sp_app` (connection string `App`).
+- Seed: `dotnet run --project backend/tools/SportsPlatform.Cli -- seed --category <REFERENCE|CONFIGURATION|DEMO|TEST>
+  [--reset]`. Read-only global tables are written only by REFERENCE/CONFIGURATION seeders through
+  `SeedContext.CreateOwnerContext<T>()`; declare each new table in `TableAccessPolicies`. Rules: data-conventions.md
+  (Seeding).
 - **Never edit a migration that is on `main`** (the guard hook blocks it). Add a new migration.
 - Review generated SQL: names, types, nullability, defaults, indexes, constraints.
 - Semantic data changes need a data migration in the same PR; destructive steps need a backup/restore note.

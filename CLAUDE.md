@@ -68,6 +68,7 @@ dotnet format backend --verify-no-changes       # drop --verify-no-changes to fi
 dotnet run --project backend/src/SportsPlatform.Host     # API on http://localhost:5080 (GET /health/live)
 dotnet run --project backend/tools/SportsPlatform.Cli   # lists CLI commands
 dotnet run --project backend/tools/SportsPlatform.Cli -- migrate   # all module migrations, as sp_migrator
+dotnet run --project backend/tools/SportsPlatform.Cli -- seed --category REFERENCE   # also CONFIGURATION|DEMO|TEST; --reset (Development) drops and re-migrates first
 dotnet run --project backend/tools/SportsPlatform.Cli -- export-catalogues   # docs/generated/{actions,errors,events}.md, contracts/{actions,errors,events}.json
 dotnet run --project backend/tools/SportsPlatform.Cli -- export-openapi      # contracts/openapi.json (Scalar: http://localhost:5080/scalar)
 dotnet tool restore                             # once: dotnet-ef (pinned in .config/dotnet-tools.json)
@@ -117,7 +118,9 @@ cd web && pnpm --filter @msp/public dev         # or @msp/admin (port 3001)
 
 Use the fictional pilot customer in `docs/product/pilot-customer.md` (Kampala Metro Sports Association, its clubs,
 venues and people; second tenant ELSSC). Never use names of real clubs, federations, leagues, venues or people,
-and never "Team A", "Player 1" or lorem ipsum. Seeds go through application commands, not raw inserts.
+and never "Team A", "Player 1" or lorem ipsum. Seeds go through application commands, not raw inserts
+(reference and configuration seeds excepted: they write read-only global tables as the owner). Seeding rules:
+`docs/architecture/data-conventions.md` (Seeding).
 
 ## When compacting
 
