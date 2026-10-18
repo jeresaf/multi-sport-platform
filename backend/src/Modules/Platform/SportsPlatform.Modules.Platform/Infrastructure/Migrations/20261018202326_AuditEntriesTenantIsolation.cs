@@ -45,7 +45,8 @@ namespace SportsPlatform.Modules.Platform.Infrastructure.Migrations
                 columns: new[] { "tenant_id", "actor_id", "occurred_at" });
 
             // sp_app sees its tenant's entries only; entries without a tenant only through sp_platform (S02 D3).
-            migrationBuilder.EnableTenantRls("audit", "audit_entries");
+            // TEMPORARY (S02-T2b acceptance): no policy, so RlsCoverageTests must fail. Reverted next.
+            // migrationBuilder.EnableTenantRls("audit", "audit_entries");
         }
 
         /// <inheritdoc />
