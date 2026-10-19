@@ -7,17 +7,17 @@ at the start of every review.
 
 - **Current slice:** S02 — Tenancy core and isolation (docs/build/slices/S02-tenancy-core.md, as amended by the
   S01 slice review). S00 and S01 are done
-- **Current task:** S02-T4a — Settings move to `tenancy.tenant_settings` — in review, PR #36 (branch `s02/t4a-tenant-settings`). Owner (2026-10-19):
-  all six settings (time zone, locale, currency, public visibility, `starting_soon_minutes`, `minor_registration_consent`)
-  live only in `tenant_settings`; the platform PATCH keeps accepting the four moved fields; `starting_soon_minutes`
-  default 30, range 5–180; T4 split into T4a (table and move) and T4b (admin endpoints, field-named body errors)
-- **Next:** S02-T4b — Admin settings endpoints
+- **Current task:** S02-T4b — Admin settings endpoints — in progress (branch `s02/t4b-admin-settings`). Plan
+  approved by the owner (2026-10-19) with its defaults: unknown and wrongly typed keys are `VALIDATION_INVALID_REQUEST`
+  with field-named `errors` (settings PATCH only; platform bodies keep `VALIDATION_MALFORMED_REQUEST`); settings have
+  their own `version`/`ETag` (stale → `TENANT_CONCURRENCY_CONFLICT`); the admin PATCH covers all six keys; the platform
+  tenant `ETag` is documented as covering the tenant row only
+- **Next:** S02-T5 — Public web shell and demo tenants
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S02-T4b — Admin settings endpoints
-2. S02-T5 — Public web shell and demo tenants
+1. S02-T5 — Public web shell and demo tenants
 
 ## Log
 
