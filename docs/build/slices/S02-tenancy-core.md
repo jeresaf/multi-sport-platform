@@ -230,7 +230,7 @@ Deliver:
 - Playwright: both tenants render by host (or the dev override); an unknown host shows the not-found page.
 
 Acceptance:
-- [ ] `seed --category DEMO` twice: the second run changes nothing; each created tenant has audit entries with
+- [x] `seed --category DEMO` twice: the second run changes nothing; each created tenant has audit entries with
       source `SYSTEM`.
 - [ ] `pnpm e2e` covers the three cases; screenshots at phone, tablet and desktop widths in the PR.
 
@@ -332,3 +332,12 @@ keep `VALIDATION_MALFORMED_REQUEST` for unknown members (owner). The settings ro
 Audit entity `TenantSettings` (the settings row's ID) with the names of the keys sent; turning `publicEnabled` on or
 off clears the host cache. The Host documents the pipeline's 403s in OpenAPI on every admin and platform endpoint
 (`AUTH_FORBIDDEN`; tenant actions also `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`).
+
+**T5a.** T5 is two PRs (owner, 2026-10-19): T5a seeding and DEMO tenants, T5b the public web shell and e2e against the
+real API. `SeedContext.RunCommandAsync` runs each command in a new scope (tenant set once, system actor, audit begun as
+`SYSTEM`); a command that leaves its audit unwritten (saved nothing, or failed) throws. `QueryAsTenantAsync` reads under
+a tenant without auditing. `tenancy.demo.tenants` creates KMSA and ELSSC with `DeterministicIds.Create("tenancy.tenant:<slug>")`
+(`CreateTenantHandler` takes the ID; the API never sends one), activates a `PROVISIONING` one and changes settings that
+differ: `UG`, `Africa/Kampala`, `en-UG`, `UGX`, `publicEnabled`, consent `REQUIRED` (owner). A tenant in another status
+keeps it; a slug held by another ID stops the run. The CLI queues the audit entries; they reach `audit_entries` when the
+API's outbox processor runs (checked locally: six `SYSTEM` entries).
