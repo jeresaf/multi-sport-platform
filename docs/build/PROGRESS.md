@@ -7,13 +7,14 @@ at the start of every review.
 
 - **Current slice:** S03 — Identity and access (docs/build/slices/S03-identity-access.md, rewritten by the S02 slice
   review). S00, S01 and S02 are done
-- **Current task:** S03-T1b — Email transport (`IEmailSender`, SMTP adapter, Mailpit test) — in review (#42)
-- **Next:** S03-T2 — Account API, sessions and the anonymous actor
+- **Current task:** S03-T2a — Sessions and the pipeline (account family, anonymous actor, 401, cookie, CSRF,
+  login/logout/me, lockout) — in progress
+- **Next:** S03-T2b — Passwords and rate limits (forgot/reset/change, reset email, 429)
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S03-T2 — Account API, sessions and the anonymous actor
+1. S03-T2b — Passwords and rate limits (owner: T2 is two PRs, T2a and T2b)
 2. S03-T3 — Roles in code, platform roles and the evaluator
 3. S03-T4 — Memberships, invitations and tenant roles (likely two PRs: T4a, T4b)
 4. S03-T5 — Capabilities and the authorization matrix
