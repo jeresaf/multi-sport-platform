@@ -119,7 +119,7 @@ public sealed class PublicTenantResolutionTests(PostgresFixture fixture) : Datab
     public async Task Override_is_ignored_outside_Development(string environment)
     {
         await TenantTestData.SaveTenantAsync(App.Services, "kmsa", TenantStatus.Active, publicEnabled: true, withDomain: true, Ct);
-        await using var app = await PublicTestApp.StartAsync(Fixture, environment, Ct);
+        await using var app = await PublicTestApp.StartAsync(Fixture, environment, Ct, ("Platform:BaseDomain", "sports.test"));
 
         var byHeader = await app.Server.GetAsync(PublicRequests.SitePath, "localhost", headers: ("X-Tenant-Slug", "kmsa"));
         var byQuery = await app.Server.GetAsync($"{PublicRequests.SitePath}?tenant=kmsa", "localhost");

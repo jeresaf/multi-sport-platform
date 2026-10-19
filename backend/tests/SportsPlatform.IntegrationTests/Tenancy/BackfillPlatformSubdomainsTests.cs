@@ -1,6 +1,9 @@
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using SportsPlatform.BuildingBlocks.Persistence;
+using SportsPlatform.Host;
 using SportsPlatform.IntegrationTests.Infrastructure;
 using SportsPlatform.Modules.Tenancy.Contracts.Tenants;
 using SportsPlatform.Modules.Tenancy.Domain.Domains;
@@ -71,6 +74,43 @@ public sealed class BackfillPlatformSubdomainsTests(PostgresFixture fixture) : D
         {
             await using var app = await PublicTestApp.StartAsync(Fixture, TestEnvironment.Name, Ct, ("ForwardedHeaders:KnownProxies:1", "10.20.0.300"));
         });
+
+    // #35 R1: a missing base domain must not give tenants permanent <slug>.localhost domains outside development.
+    [Theory]
+    [InlineData("Staging", null)]
+    [InlineData("Production", null)]
+    [InlineData("Production", "localhost")]
+    [InlineData("Staging", "staging.localhost")]
+    public async Task Outside_development_the_base_domain_must_be_configured(string environment, string? baseDomain)
+    {
+        var settings = baseDomain is null ? [] : new[] { ("Platform:BaseDomain", baseDomain) };
+
+        await Should.ThrowAsync<OptionsValidationException>(async () =>
+        {
+            await using var app = await PublicTestApp.StartAsync(Fixture, environment, Ct, settings);
+        });
+    }
+
+    [Fact]
+    public async Task Outside_development_the_backfill_refuses_without_a_base_domain()
+    {
+        await TenantTestData.SaveTenantAsync(App.Services, "kmsa", TenantStatus.Active, publicEnabled: false, withDomain: false, Ct);
+        var builder = WebApplication.CreateBuilder(new WebApplicationOptions { EnvironmentName = "Production" });
+        builder.Configuration.AddInMemoryCollection(Fixture.AppSettings);
+        SportsPlatformApp.AddServices(builder);
+        await using var app = builder.Build(); // built, not started, like the CLI's migrate
+
+        await Should.ThrowAsync<OptionsValidationException>(() => StepAsync(app.Services));
+        (await TenantTestData.DomainsAsync(App.Services, Ct)).ShouldBeEmpty();
+    }
+
+    [Theory]
+    [InlineData("Staging", "staging.sports.test")]
+    [InlineData("Production", "sports.test")]
+    public async Task Outside_development_a_configured_base_domain_starts(string environment, string baseDomain)
+    {
+        await using var app = await PublicTestApp.StartAsync(Fixture, environment, Ct, ("Platform:BaseDomain", baseDomain));
+    }
 
     private static Task<int> StepAsync(IServiceProvider services) =>
         services.GetServices<IPostMigrationStep>().Single(s => s.Name == "tenancy.platform-subdomains").RunAsync(TestContext.Current.CancellationToken);

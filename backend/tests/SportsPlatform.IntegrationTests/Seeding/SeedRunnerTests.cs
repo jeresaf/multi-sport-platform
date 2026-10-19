@@ -255,6 +255,9 @@ public sealed class SeedRunnerTests(PostgresFixture fixture) : DatabaseTest(fixt
         {
             ["Outbox:Enabled"] = "false",
             [StartupMigration.SettingKey] = "false",
+
+            // Staging and Production refuse to start without a real base domain (#35 R1).
+            ["Platform:BaseDomain"] = "sports.test",
         };
         var app = App.WithWebHostBuilder(builder => builder
             .UseEnvironment(environment)

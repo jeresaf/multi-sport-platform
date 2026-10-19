@@ -1,6 +1,7 @@
 using FluentValidation;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using SportsPlatform.BuildingBlocks.Modules;
 using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Persistence.Messaging;
@@ -29,6 +30,9 @@ public sealed class TenancyModule : IModule
 {
     public const string SchemaName = "tenancy";
 
+    // The automated tests' environment (SeedEnvironmentPolicy.Testing).
+    private const string _testingEnvironment = "Testing";
+
     public string Name => "Tenancy";
 
     public string Schema => SchemaName;
@@ -42,6 +46,11 @@ public sealed class TenancyModule : IModule
             .Validate(
                 o => TenantHost.IsValid(o.BaseDomain) && o.BaseDomain.Length <= TenantHost.MaxLength - TenantSlug.MaxLength - 1,
                 "Platform:BaseDomain must be a lower-case host name without a port, short enough for '<slug>.' in front.")
+            // The default suits development only: elsewhere every new or backfilled tenant would get a permanent
+            // <slug>.localhost domain. Checked on first use too, so the CLI's migrate (backfill) refuses as well.
+            .Validate<IHostEnvironment>(
+                (o, environment) => environment.IsDevelopment() || environment.IsEnvironment(_testingEnvironment) || !PlatformDomainOptions.IsLocal(o.BaseDomain),
+                "Platform:BaseDomain must be configured (not localhost) outside Development and Testing.")
             .ValidateOnStart();
         services.AddSingleton<TenantHostCache>();
         services.AddPostMigrationStep<BackfillPlatformSubdomains>();

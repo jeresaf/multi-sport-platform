@@ -43,6 +43,8 @@ the scope's `TenantContext` once (D1), from the matched endpoint:
   coverage exception). `host` is unique; each tenant has at most one primary domain; status follows the tenant domain
   machine (docs/domain/state-machines.md). Creating a tenant creates `<slug>.<Platform:BaseDomain>` (default
   `localhost`, Q10), `ACTIVE` and primary; the post-migration step `tenancy.platform-subdomains` backfills older tenants.
+  Outside Development and Testing the base domain must be configured and not `localhost` (or `*.localhost`): the API
+  refuses to start and the CLI's backfill refuses to run, so no environment gets permanent `<slug>.localhost` rows.
 - **Forwarded host (D7):** `X-Forwarded-Host` counts only from `ForwardedHeaders:KnownProxies` (IP addresses) or
   `ForwardedHeaders:KnownNetworks` (CIDR); the framework's loopback defaults are removed. With neither configured,
   forwarding is off (the framework would otherwise trust every caller). Development lists loopback, where the Next.js
