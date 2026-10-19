@@ -25,13 +25,18 @@ paths:
   `ModuleDatabaseRegistrationTests` unless it is listed there with a reason.
 - **RLS coverage** (`Isolation/RlsCoverageTests`): every table with a `tenant_id` column needs `EnableTenantRls` in
   its migration (test schemas included). A table that must not have RLS goes in the test's exception list with a
-  reason, agreed with the owner; a stale exception fails the test.
+  reason, agreed with the owner; a stale exception fails the test. Exceptions: `outbox_messages` (Q15) and
+  `tenant_domains` (global host lookup, S02-T3b).
 - **Actor and tenant over HTTP:** `TestApp` and `HostOnlyApp` register the test authentication scheme
   (`Infrastructure/TestAuthentication`): `client.AsUser(userId, memberOf: tenantIds)` sends `X-Test-User` and
   `X-Test-Tenants`, so the request runs as that user and passes the membership check for `X-Tenant-Id`. Without it a
   request is the system actor. Outside HTTP, set `scope.ServiceProvider.GetRequiredService<ActorContext>().Set(new
   UserActor(id))`. The Host has no admin endpoint before S02-T4: `Tenancy/AdminTestApp` runs the Host's services and
   pipeline (`SportsPlatformApp.AddServices`/`UsePipeline`) with a test-only audited tenant action.
+- **Public requests by host:** `App.Server.GetAsync(path, host, from, headers)` (`Tenancy/PublicRequests`) sets the
+  host and remote address. `Tenancy/PublicTestApp` runs the whole Host in another environment (Development for the
+  override) and trusts `PublicRequests.Proxy` as a forwarding proxy. `TenantTestData.SaveTenantAsync` adds the
+  tenant's `<slug>.localhost` domain; `DatabaseTest` clears the host cache before each test.
 - **Tenant in tests:** set the scope's tenant with `scope.ServiceProvider.GetRequiredService<TenantContext>().Set(id)`
   before the first query or save; without one, tenant-owned queries return nothing and saves throw. Read across
   tenants only as `sp_platform` (`QueryAsync(DatabaseRoles.Platform, …)`). Audit entries are under RLS: read them

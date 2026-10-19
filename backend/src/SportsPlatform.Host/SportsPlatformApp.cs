@@ -50,18 +50,20 @@ public static class SportsPlatformApp
         builder.Services.AddHealthEndpoints();
         builder.Services.AddApiDocumentation();
         builder.Services.AddAuthentication();
+        builder.Services.AddForwardedHost(builder.Configuration);
         builder.Services.AddTenantResolution();
         builder.Services.AddActionAuthorization();
     }
 
     /// <summary>
-    /// The middleware, in order (docs/architecture/authorization.md, S02 D8): logging and correlation → routing → actor
+    /// The middleware, in order (docs/architecture/authorization.md, S02 D8): forwarded host → logging and correlation → routing → actor
     /// → audit → tenant resolution → authorization → endpoint. Tests that need their own endpoints run this too.
     /// </summary>
     public static void UsePipeline(WebApplication app)
     {
         ArgumentNullException.ThrowIfNull(app);
 
+        app.UseForwardedHost();
         app.UseRequestLogging();
         app.UseApiConventions();
         app.UseRouting();

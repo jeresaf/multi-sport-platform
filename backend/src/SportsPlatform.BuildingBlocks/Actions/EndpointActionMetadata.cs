@@ -18,3 +18,16 @@ public sealed record AllowPublicMetadata
 /// that tenant (S02 D2).
 /// </summary>
 public sealed record RunsUnderRouteTenantMetadata(string RouteValueName);
+
+/// <summary>
+/// Endpoint metadata: a public endpoint that serves one tenant's data; the Host resolves the tenant from the request
+/// host and refuses unknown, hidden and blocked tenants (S02 D6).
+/// </summary>
+public sealed record RequiresPublicTenantMetadata
+{
+    public static RequiresPublicTenantMetadata Instance { get; } = new();
+
+    private RequiresPublicTenantMetadata()
+    {
+    }
+}

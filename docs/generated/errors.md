@@ -17,8 +17,9 @@ the message is the default title and may change.
 | `TENANT_BLOCKED` | 403 | This tenant is suspended or archived. | Tenancy |
 | `TENANT_CONCURRENCY_CONFLICT` | 409 | The tenant was changed by someone else. Reload and try again. | Tenancy |
 | `TENANT_INVALID_TRANSITION` | 409 | The tenant's status does not allow this change. | Tenancy |
-| `TENANT_NOT_FOUND` | 404 | No tenant with this ID. | Tenancy |
+| `TENANT_NOT_FOUND` | 404 | No such tenant. | Tenancy |
 | `TENANT_SLUG_TAKEN` | 409 | This slug belongs to another tenant, possibly an archived one. Slugs are never reused. | Tenancy |
+| `TENANT_UNAVAILABLE` | 403 | This site is not available. | Tenancy |
 | `VALIDATION_INVALID_QUERY` | 400 | A query parameter is not valid. | BuildingBlocks |
 | `VALIDATION_INVALID_REQUEST` | 400 | A field of the request is not valid. | BuildingBlocks |
 | `VALIDATION_MALFORMED_REQUEST` | 400 | The request could not be read. | BuildingBlocks |

@@ -148,6 +148,23 @@ public sealed class EndpointActionRulesTests
         ]);
     }
 
+    // A public tenant comes from the host; admin and platform requests never take their tenant from it (D7).
+    [Fact]
+    public async Task Only_public_endpoints_under_the_public_api_require_a_public_tenant()
+    {
+        await using var app = WebApplication.CreateSlimBuilder().Build();
+        app.MapGet("/api/public/v1/site", () => Results.Ok()).AllowPublic().RequirePublicTenant();
+        app.MapGet("/api/admin/v1/fixtures", () => Results.Ok())
+            .RequireAction(AuthorizationTestActions.FixtureRead).RequirePublicTenant();
+        app.MapGet("/health/site", () => Results.Ok()).AllowPublic().RequirePublicTenant();
+
+        Validate(app).ShouldBe(
+        [
+            "GET /api/admin/v1/fixtures requires a public tenant, so it must be .AllowPublic() under /api/public.",
+            "GET /health/site requires a public tenant, so it must be .AllowPublic() under /api/public.",
+        ], ignoreOrder: true);
+    }
+
     private static IReadOnlyList<string> Validate(WebApplication app) => EndpointActionRules.Validate(Endpoints(app), _catalogue);
 
     private static IEnumerable<Endpoint> Endpoints(WebApplication app) =>

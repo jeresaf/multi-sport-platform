@@ -169,6 +169,77 @@ namespace SportsPlatform.Modules.Tenancy.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("SportsPlatform.Modules.Tenancy.Domain.Domains.TenantDomain", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("Host")
+                        .IsRequired()
+                        .HasMaxLength(253)
+                        .HasColumnType("character varying(253)")
+                        .HasColumnName("host")
+                        .UseCollation("C");
+
+                    b.Property<bool>("IsPrimary")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_primary");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("type");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_tenant_domains");
+
+                    b.HasIndex("Host")
+                        .IsUnique()
+                        .HasDatabaseName("ux_tenant_domains_host");
+
+                    b.HasIndex("TenantId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_tenant_domains_primary")
+                        .HasFilter("is_primary");
+
+                    b.ToTable("tenant_domains", "tenancy", t =>
+                        {
+                            t.HasCheckConstraint("ck_tenant_domains_host", "host ~ '^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$'");
+
+                            t.HasCheckConstraint("ck_tenant_domains_status", "status IN ('PENDING_VERIFICATION', 'ACTIVE', 'DISABLED')");
+
+                            t.HasCheckConstraint("ck_tenant_domains_type", "type IN ('PLATFORM_SUBDOMAIN', 'CUSTOM')");
+                        });
+                });
+
             modelBuilder.Entity("SportsPlatform.Modules.Tenancy.Domain.Tenants.Tenant", b =>
                 {
                     b.Property<Guid>("Id")
@@ -335,6 +406,16 @@ namespace SportsPlatform.Modules.Tenancy.Infrastructure.Migrations
                         });
 
                     b.HasAnnotation("SportsPlatform:AppendOnly", true);
+                });
+
+            modelBuilder.Entity("SportsPlatform.Modules.Tenancy.Domain.Domains.TenantDomain", b =>
+                {
+                    b.HasOne("SportsPlatform.Modules.Tenancy.Domain.Tenants.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_tenant_domains_tenants_tenant_id");
                 });
 
             modelBuilder.Entity("SportsPlatform.Modules.Tenancy.Domain.Tenants.TenantStatusChange", b =>

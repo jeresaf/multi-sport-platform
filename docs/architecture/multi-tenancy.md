@@ -30,8 +30,32 @@ the scope's `TenantContext` once (D1), from the matched endpoint:
 - **Platform endpoints marked `.RunsUnderRouteTenant()`** (`/tenants/{tenantId}/…`): the route's tenant through
   `ITenantDirectory.GetByIdAsync`, else `404 TENANT_NOT_FOUND`. The startup check requires a platform action and the
   route parameter. Other platform endpoints get no tenant, whatever headers are sent.
-- **Public endpoints:** host resolution arrives with S02-T3b; until then they run without a tenant.
+- **Public endpoints marked `.RequirePublicTenant()`** (S02-T3b, D6): the tenant of the request host through
+  `ITenantDirectory.GetByHostAsync`, which matches `ACTIVE` rows of `tenancy.tenant_domains` (host lower case, no port,
+  no trailing dot), else `404 TENANT_NOT_FOUND`; then `ITenantAccess.CheckPublicAccess`: only an `ACTIVE` tenant with
+  `publicEnabled` is shown, else `403 TENANT_UNAVAILABLE` (the body says nothing more). The startup check allows the
+  marker only on `.AllowPublic()` endpoints under `/api/public`. Other public endpoints (the reference lists) get no
+  tenant and answer on any host.
 - **Outbox consumers and seeds:** unchanged (envelope tenant; owner contexts have none).
+
+**Public resolution as built (S02-T3b).**
+- **Domains:** `tenancy.tenant_domains` is global (no RLS: hosts are looked up before a tenant is known; an RLS
+  coverage exception). `host` is unique; each tenant has at most one primary domain; status follows the tenant domain
+  machine (docs/domain/state-machines.md). Creating a tenant creates `<slug>.<Platform:BaseDomain>` (default
+  `localhost`, Q10), `ACTIVE` and primary; the post-migration step `tenancy.platform-subdomains` backfills older tenants.
+  Outside Development and Testing the base domain must be configured and not `localhost` (or `*.localhost`): the API
+  refuses to start and the CLI's backfill refuses to run, so no environment gets permanent `<slug>.localhost` rows.
+- **Forwarded host (D7):** `X-Forwarded-Host` counts only from `ForwardedHeaders:KnownProxies` (IP addresses) or
+  `ForwardedHeaders:KnownNetworks` (CIDR); the framework's loopback defaults are removed. With neither configured,
+  forwarding is off (the framework would otherwise trust every caller). Development lists loopback, where the Next.js
+  server runs. Only the host is forwarded, not the client address or scheme.
+- **Development override:** in Development only, `X-Tenant-Slug: <slug>` or `?tenant=<slug>` names the tenant instead
+  of the host; the visibility check still applies.
+- **Cache:** host → tenant (summary with status and `publicEnabled`) in an in-process `TenantHostCache` for 60 s,
+  unknown hosts included. Creating a tenant, changing its status and changing its profile clear the whole cache after
+  they commit; other API instances catch up when their entries expire.
+- **Shared caches:** tenant-public responses carry `Vary: X-Forwarded-Host` (and `X-Tenant-Slug` in Development).
+- Public refusals are not audited: public endpoints declare no action.
 
 The actor works the same way: `ActorContext` (scoped) is the system actor until the request's authenticated principal
 sets a user.

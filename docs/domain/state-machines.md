@@ -17,6 +17,21 @@ PROVISIONING ──activate──► ACTIVE ◄──restore── SUSPENDED
 ARCHIVED ──unarchive (platform, reason)──► SUSPENDED
 ```
 
+### Tenant domain (stored)
+
+Added by the owner, 2026-10-19 (S02-T3b). A host name that serves a tenant's public site (`tenancy.tenant_domains`).
+
+```text
+PENDING_VERIFICATION ──verify──► ACTIVE ──disable──► DISABLED
+                                   ▲                    │
+                                   └──────enable────────┘
+```
+
+- Only `ACTIVE` domains resolve a public request to their tenant.
+- A platform subdomain (`<slug>.<base domain>`) is created `ACTIVE` with its tenant: it needs no verification.
+- Custom domains start in `PENDING_VERIFICATION`. Verification arrives with Branding/PRO; until then no command
+  changes a domain's status.
+
 ### Subscription period (derived from stored dates)
 
 Stored: `plan_code, kind (PAID | TRIAL | COMPLIMENTARY), starts_on, ends_on, grace_days, expiring_window_days,

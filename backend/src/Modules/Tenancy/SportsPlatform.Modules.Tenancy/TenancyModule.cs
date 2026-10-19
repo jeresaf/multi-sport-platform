@@ -1,12 +1,16 @@
 using FluentValidation;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using SportsPlatform.BuildingBlocks.Modules;
 using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Persistence.Messaging;
 using SportsPlatform.Modules.Tenancy.Contracts.Access;
 using SportsPlatform.Modules.Tenancy.Contracts.Tenants;
+using SportsPlatform.Modules.Tenancy.Domain.Domains;
 using SportsPlatform.Modules.Tenancy.Domain.Tenants;
+using SportsPlatform.Modules.Tenancy.Features.Domains;
+using SportsPlatform.Modules.Tenancy.Features.Site.GetSite;
 using SportsPlatform.Modules.Tenancy.Features.Tenants;
 using SportsPlatform.Modules.Tenancy.Features.Tenants.ChangeTenantStatus;
 using SportsPlatform.Modules.Tenancy.Features.Tenants.CreateTenant;
@@ -19,12 +23,15 @@ using SportsPlatform.Modules.Tenancy.Infrastructure;
 namespace SportsPlatform.Modules.Tenancy;
 
 /// <summary>
-/// Tenancy &amp; Commercial: tenants and their lifecycle (S02); domains, settings, plans and entitlements follow
+/// Tenancy &amp; Commercial: tenants and their lifecycle, domains and the public site (S02); settings, plans and entitlements follow
 /// (docs/architecture/modules.md).
 /// </summary>
 public sealed class TenancyModule : IModule
 {
     public const string SchemaName = "tenancy";
+
+    // The automated tests' environment (SeedEnvironmentPolicy.Testing).
+    private const string _testingEnvironment = "Testing";
 
     public string Name => "Tenancy";
 
@@ -33,6 +40,20 @@ public sealed class TenancyModule : IModule
     public void AddServices(IServiceCollection services, IConfiguration configuration)
     {
         services.AddModuleDbContext<TenancyDbContext>(configuration, Schema);
+        services.AddOptions<PlatformDomainOptions>()
+            .Bind(configuration.GetSection(PlatformDomainOptions.SectionName))
+            // Room for "<longest slug>." in front: every platform subdomain must be a valid host too.
+            .Validate(
+                o => TenantHost.IsValid(o.BaseDomain) && o.BaseDomain.Length <= TenantHost.MaxLength - TenantSlug.MaxLength - 1,
+                "Platform:BaseDomain must be a lower-case host name without a port, short enough for '<slug>.' in front.")
+            // The default suits development only: elsewhere every new or backfilled tenant would get a permanent
+            // <slug>.localhost domain. Checked on first use too, so the CLI's migrate (backfill) refuses as well.
+            .Validate<IHostEnvironment>(
+                (o, environment) => environment.IsDevelopment() || environment.IsEnvironment(_testingEnvironment) || !PlatformDomainOptions.IsLocal(o.BaseDomain),
+                "Platform:BaseDomain must be configured (not localhost) outside Development and Testing.")
+            .ValidateOnStart();
+        services.AddSingleton<TenantHostCache>();
+        services.AddPostMigrationStep<BackfillPlatformSubdomains>();
 
         services.AddScoped<TenantDirectory>();
         services.AddScoped<ITenantDirectory>(provider => provider.GetRequiredService<TenantDirectory>());
@@ -45,6 +66,7 @@ public sealed class TenancyModule : IModule
         services.AddScoped<UpdateTenantProfileHandler>();
         services.AddScoped<IValidator<UpdateTenantProfileRequest>, UpdateTenantProfileRequestValidator>();
         services.AddScoped<ChangeTenantStatusHandler>();
+        services.AddScoped<GetSiteHandler>();
         services.AddSingleton<IValidator<ChangeTenantStatusWithReasonRequest>, ChangeTenantStatusWithReasonRequestValidator>();
         services.AddDomainEventSubscriber<TenantCreatedDomainEvent, PublishTenantCreated>();
         services.AddDomainEventSubscriber<TenantStatusChangedDomainEvent, PublishTenantStatusChanged>();
@@ -59,5 +81,6 @@ public sealed class TenancyModule : IModule
         CreateTenantEndpoint.Map(tenants);
         UpdateTenantProfileEndpoint.Map(tenants);
         ChangeTenantStatusEndpoints.Map(tenants);
+        GetSiteEndpoint.Map(groups.Public);
     }
 }

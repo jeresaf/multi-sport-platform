@@ -7,15 +7,16 @@ at the start of every review.
 
 - **Current slice:** S02 — Tenancy core and isolation (docs/build/slices/S02-tenancy-core.md, as amended by the
   S01 slice review). S00 and S01 are done
-- **Current task:** S02-T3a — Admin and platform tenant resolution, per-request actor, access mode, AR-21 — in review, PR #34
-  (branch `s02/t3a-tenant-resolution`). T3 is two PRs and `tenant_domains` moved from T4 to T3b (owner, Q17)
-- **Next:** S02-T3b — Public tenant resolution, domains and `/site`
+- **Current task:** S02-T3b — Public tenant resolution, domains and `/site` — in review, PR #35 (branch `s02/t3b-public-tenant-resolution`).
+  Owner (2026-10-19): tenant domains get a state machine (`PENDING_VERIFICATION → ACTIVE → DISABLED`), `tenant_domains`
+  is an RLS coverage exception, existing tenants get their subdomain from a post-migration step
+- **Next:** S02-T4 — Settings
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S02-T3b — Public tenant resolution, domains and `/site`
-2. S02-T4 — Settings
+1. S02-T4 — Settings
+2. S02-T5 — Public web shell and demo tenants
 
 ## Log
 
@@ -49,6 +50,7 @@ at the start of every review.
 | 2026-10-18 | S02-T2a | #32 | Tenant isolation in EF and PostgreSQL: named query filter `TenantIsolation` on every `ITenantOwned`; `TenantOwnershipInterceptor` stamps `TenantId` through the change tracker (#13) and throws on no/another tenant; `TenantConnectionInterceptor` sets `app.tenant_id` on every open; `EnableTenantRls`/`DisableTenantRls`; composite FKs required between tenant-owned entities (checked at model build); `TenantContext.Set` once per scope (D1); `tenant_status_history` tenant-owned with RLS; isolation harness (`IIsolationSample` per entity), pool leak, consumers under RLS, D1 timing tests | T2 split in two and composite FKs enforced (owner). No new actions, errors, events or dependencies |
 | 2026-10-19 | S02-T2b | #33 | Audit under RLS: `audit.audit_entries` gets `EnableTenantRls`; `AddPlatformServiceDbContext` (connection `Platform`, not migrated) and `PlatformAuditDbContext` for `AuditLog`, `AuditRecordedConsumer` (inbox row in the same transaction) and the platform audit query (D3); tenant-first action/actor indexes and `(entity_type, entity_id, occurred_at)` (#24 R2); `AuditScope.Describe(targetTenantId:)` (audit read with `?tenantId=` audited under that tenant); RLS coverage test (forced RLS, one permissive `tenant_isolation` policy, exceptions with reasons); audit-under-RLS tests; architecture tests for `IgnoreQueryFilters` and the audit context's users; T2 complete | Only `*.outbox_messages` is an exception (`inbox_messages` has no `tenant_id`). No new actions, errors, events or dependencies |
 | 2026-10-19 | S02-T3a | #34 | Admin and platform tenant resolution: pipeline routing → actor → audit → tenant resolution → authorization (D8). `X-Tenant-Id` with membership (`ITenantMembershipChecker`, Host default none) for tenant actions → `AUTH_TENANT_FORBIDDEN`; `.RunsUnderRouteTenant()` on `/tenants/{tenantId}` routes → `TENANT_NOT_FOUND`, handlers no longer set the tenant; access-mode step 1 (`ITenantAccess`, status-only) → `TENANT_BLOCKED`. Scoped `ActorContext` from the principal; test authentication scheme replaces `TestActor`; `TestTenantContext` retired. `ITenantDirectory` (ID, slug). AR-21 test | Owner (Q17): T3 split into T3a/T3b and `tenant_domains` moved from T4 to T3b (slice spec updated). Errors stay in `TenancyErrors`; Contracts return `Result`s carrying them, so the Host uses Contracts only. Seed owner contexts stamp the system actor (singleton factory can't take the scoped actor). `SportsPlatformApp` split into `AddServices`/`UsePipeline` so `AdminTestApp` reuses the pipeline |
+| 2026-10-19 | S02-T3b | #35 | Public tenant resolution: `tenancy.tenant_domains` (global; platform subdomain `<slug>.<Platform:BaseDomain>` created with each tenant, backfilled by the new post-migration step), `.RequirePublicTenant()` endpoints resolve the host through `ITenantDirectory.GetByHostAsync` and a 60 s cache cleared on changes → `TENANT_NOT_FOUND` / `TENANT_UNAVAILABLE`; trusted `X-Forwarded-Host` (configured proxies only); Development override `X-Tenant-Slug` / `?tenant=`; `GET /api/public/v1/site` | Owner: tenant domain state machine added; `tenant_domains` is an RLS coverage exception; backfill as a post-migration step, not SQL. Directory slug/host lookups return `Result`s. No proxies configured → forwarding off (framework trusts everyone with empty lists). `/site` max-age 1 min (plan said 5: kept no longer than the host cache). T2b follow-up (platform routes on a tenant host) done. #35 R1: a `localhost` base domain is refused outside Development and Testing |
 
 ## Deviations from spec (agreed)
 
@@ -131,6 +133,10 @@ at the start of every review.
   T2b (plan approved 2026-10-19): the RLS exception list has only `*.outbox_messages` (D4 also named `inbox_messages`,
   which has no `tenant_id`); platform-wide audit filters by action or actor alone use the `occurred_at` index (the
   action and actor indexes are tenant-first); the coverage test also refuses a second permissive policy.
+- **S02-T3b** (owner, 2026-10-19): `tenancy.tenant_domains` is a second RLS coverage exception (extends D4); its
+  `status` follows a new tenant domain state machine in state-machines.md; existing tenants are backfilled by a
+  post-migration step, not by SQL in the migration. In the plan the owner approved: `/site` has no "public flags" (a
+  200 always means visible; T4 adds public visibility settings).
 
 ## Tech debt / follow-ups
 
@@ -146,19 +152,27 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
 - **S02-T4:** the tenant row holds `time_zone`, `default_locale`, `currency_code` and `public_enabled`, which T4's
   `tenant_settings` also lists: T4's plan decides the single source. Reviewer's suggestion: the tenant row keeps
   identity (slug, names, country, status); the editable values move to `tenant_settings` (tenant-owned, RLS) with a
-  T4 migration, and platform edits write them under the target tenant (S02-T1a; #30 R4).
+  T4 migration, and platform edits write them under the target tenant (S02-T1a; #30 R4). If `public_enabled` moves,
+  public resolution must follow: `TenantDirectory`'s host lookup reads it, and its writer must clear `TenantHostCache`
+  after commit (S02-T3b).
 - **OpenAPI (with the first admin UI client, S03 or later):** optional request members (`version`, PATCH fields) are
   listed as `required` (nullable) in the schemas, so the TS client makes callers pass `null`; endpoints don't declare
   the `If-Match` request header or the `ETag` response header, and activate/restore list no 400 (pipeline errors).
   Fix with defaults on the request records or a schema/operation transformer (S02-T1b pre-review).
-- **S02-T3b:** `AuditScope.Describe(targetTenantId:)` throws when the scope already has another tenant (S02-T2b). Platform
-  routes get no scope tenant (T3a tests that `X-Tenant-Id` is ignored there); T3b's host resolution must not set one
-  on `/api/platform` either (or `GET /api/platform/v1/audit-entries?tenantId=<other>` from a tenant host would be a
-  500). Add the host variant of the test with T3b (S02-T2b pre-review).
-
 - **S02-T4 (first admin endpoint):** tenant actions can also fail in the pipeline with `403 AUTH_TENANT_FORBIDDEN` and
   `403 TENANT_BLOCKED`, which modules can't list in `.ProducesErrors(...)` (`TENANT_BLOCKED` is Tenancy's). Add a Host
   OpenAPI operation transformer that documents both on every TENANT-scope endpoint (S02-T3a pre-review).
+
+- **Branding/PRO (custom domains):** `GetSiteHandler` throws (500) if a tenant resolves through an `ACTIVE` domain but
+  has no `ACTIVE` primary one. Impossible today (the platform subdomain is always primary and `ACTIVE`); once a
+  platform subdomain can be `DISABLED`, keep one active primary per visible tenant or fall back to the resolved host
+  (S02-T3b pre-review).
+- **First deployment (ADR-0016 infrastructure task, with Q10):** set `Platform:BaseDomain` and
+  `ForwardedHeaders:KnownProxies`/`KnownNetworks` (the public web's server) in each environment. Without proxies,
+  forwarding is off and every public request through the web server resolves the API's own host → 404 (S02-T3b
+  pre-review). Outside Development and Testing a missing or `localhost` base domain stops the API and the CLI (#35 R1).
+  Changing the base domain later needs a data step that rewrites the existing platform subdomains (or adds new
+  primaries): the backfill never touches existing rows (#35 N1).
 
 **S03 — identity and access**
 - Anonymous actor for audit (#23 R1): `actor_kind` allows `USER`/`SYSTEM` and `actor_id` is NOT NULL, so once S03

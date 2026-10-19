@@ -5,6 +5,7 @@ using SportsPlatform.BuildingBlocks.Auditing;
 using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Results;
 using SportsPlatform.Modules.Tenancy.Domain.Tenants;
+using SportsPlatform.Modules.Tenancy.Features.Domains;
 using SportsPlatform.Modules.Tenancy.Infrastructure;
 
 namespace SportsPlatform.Modules.Tenancy.Features.Tenants.ChangeTenantStatus;
@@ -12,10 +13,11 @@ namespace SportsPlatform.Modules.Tenancy.Features.Tenants.ChangeTenantStatus;
 /// <summary>
 /// Moves a tenant along the state machine. The Host runs it under the route's tenant (S02 D2): the status-history row, the audit
 /// entry (with the reason) and <c>TenantStatusChanged.V1</c> commit together and carry the target tenant. A transition
-/// the state machine doesn't allow from the current status is <c>TENANT_INVALID_TRANSITION</c>.
+/// the state machine doesn't allow from the current status is <c>TENANT_INVALID_TRANSITION</c>. A change clears the
+/// public host cache.
 /// </summary>
 public sealed class ChangeTenantStatusHandler(
-    TenancyDbContext context, ICurrentActor actor, AuditScope audit, TimeProvider timeProvider)
+    TenancyDbContext context, ICurrentActor actor, AuditScope audit, TimeProvider timeProvider, TenantHostCache hostCache)
 {
     public async Task<Result<TenantResponse>> HandleAsync(
         Guid tenantId, TenantTransition transition, string? reason, uint? version, IfMatch ifMatch, CancellationToken cancellationToken)
@@ -51,6 +53,13 @@ public sealed class ChangeTenantStatusHandler(
         }
 
         var saved = await context.SaveChangesResultAsync(cancellationToken);
-        return saved.IsSuccess ? Result.Success(TenantResponse.From(entry)) : saved.Error;
+        if (saved.IsFailure)
+        {
+            return saved.Error;
+        }
+
+        // The status decides whether the public site is shown.
+        hostCache.Clear();
+        return Result.Success(TenantResponse.From(entry));
     }
 }

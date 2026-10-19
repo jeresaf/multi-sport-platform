@@ -194,5 +194,35 @@ public sealed class TenantResolutionTests(PostgresFixture fixture) : DatabaseTes
         (await SingleEntryAsync()).TenantId.ShouldBe(elssc);
     }
 
+    // D7: the admin API never takes its tenant from the host, even a tenant's own public host.
+    [Fact]
+    public async Task Admin_request_on_a_tenant_host_still_needs_the_tenant_header()
+    {
+        var kmsa = await TenantTestData.SaveTenantAsync(App.Services, "kmsa", TenantStatus.Active, publicEnabled: true, withDomain: true, Ct);
+        await using var admin = await AdminTestApp.StartAsync(Fixture, Ct);
+        using var client = admin.CreateClient().AsUser(_secretaryId, kmsa);
+        client.DefaultRequestHeaders.Host = "kmsa.localhost";
+
+        using var response = await client.PostAsync(AdminTestApp.FixturesPath, content: null, Ct);
+
+        await response.ShouldBeProblemAsync(HttpStatusCode.Forbidden, "AUTH_TENANT_FORBIDDEN");
+    }
+
+    // The host variant of the test above (S02-T2b follow-up): a tenant host gives a platform route no tenant either.
+    [Fact]
+    public async Task Platform_routes_ignore_a_tenant_host()
+    {
+        await TenantTestData.SaveTenantAsync(App.Services, "kmsa", TenantStatus.Active, publicEnabled: true, withDomain: true, Ct);
+        var elssc = await TenantTestData.SaveTenantAsync(App.Services, "elssc", TenantStatus.Active, Ct);
+        App.Authorization.Allow(PlatformActions.AuditRead);
+        using var client = App.CreateClient().AsUser(TenantTestData.StaffId);
+        client.DefaultRequestHeaders.Host = "kmsa.localhost";
+
+        using var response = await client.GetAsync(new Uri($"/api/platform/v1/audit-entries?tenantId={elssc}", UriKind.Relative), Ct);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await SingleEntryAsync()).TenantId.ShouldBe(elssc);
+    }
+
     private async Task<AuditEntry> SingleEntryAsync() => (await AuditTestData.EntriesAsync(App.Services, Ct)).ShouldHaveSingleItem();
 }

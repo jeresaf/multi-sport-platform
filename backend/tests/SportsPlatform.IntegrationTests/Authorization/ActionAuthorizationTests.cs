@@ -17,6 +17,7 @@ using SportsPlatform.Host.Authorization;
 using SportsPlatform.IntegrationTests.Api;
 using SportsPlatform.IntegrationTests.Infrastructure;
 using SportsPlatform.Modules.Tenancy.Contracts.Access;
+using SportsPlatform.Modules.Tenancy.Contracts.Tenants;
 
 namespace SportsPlatform.IntegrationTests.Authorization;
 
@@ -226,5 +227,7 @@ public sealed class ActionAuthorizationTests
             Task.FromResult<TenantAccessMode?>(TenantAccessMode.Full);
 
         public Task<Result> CheckAdminAccessAsync(Guid tenantId, CancellationToken cancellationToken) => Task.FromResult(Result.Success());
+
+        public Result CheckPublicAccess(TenantSummary tenant) => Result.Success();
     }
 }
