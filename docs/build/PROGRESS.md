@@ -194,6 +194,14 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
 - Logout deletes the cookie only (no server-side session store): a copied cookie lives until it expires or the
   security stamp changes. Identity's lockout uses the system clock (`UserManager` takes no `TimeProvider`). (Later,
   S03-T2a)
+- Per-IP rate-limit key behind the real proxy chain (#44 M2): it is per client only if every hop is trusted and forwards
+  the client's address (`ForwardLimit` defaults to 1). T6: check that the admin web's rewrite forwards
+  `X-Forwarded-For`. Infrastructure task: set `ForwardedHeaders:KnownNetworks` (Cloudflare and Azure ranges) and
+  `ForwardLimit`, or read `CF-Connecting-IP` from trusted edges only, and test that two clients behind the full chain
+  get separate limits; otherwise the 20-a-minute login limit becomes platform-wide. (T6, infrastructure)
+- Reset token in the link's query string (#44 M3): T6's `/reset-password` page sends `Referrer-Policy: no-referrer`,
+  removes the token from the URL after reading it (`history.replaceState`) and loads nothing from other origins; or
+  move the token to the fragment (`#token=`). Decide in T6. (T6)
 - Password reset email: a failed send is retried by the outbox with a new token (by design), but no test makes the
   sender fail and checks the retry (S03-T2b). The reset page `/reset-password` is the admin web's (T6). (Later)
 - The CLI's Serilog → `LogLevel` mapping (`UseHostLogLevels`, S03-T1a) has no test; move it into the Host and unit-test it
