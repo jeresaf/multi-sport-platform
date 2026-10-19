@@ -7,13 +7,14 @@ at the start of every review.
 
 - **Current slice:** S03 — Identity and access (docs/build/slices/S03-identity-access.md, rewritten by the S02 slice
   review). S00, S01 and S02 are done
-- **Current task:** S03-T1 — Identity module, users and email — not started; next is `/next-task`
-- **Next:** S03-T2 — Account API, sessions and the anonymous actor
-- **Blocked on:** the S02 slice-review PR (#40) merging
+- **Current task:** S03-T1a — Identity module, users, data protection keys, `create-platform-admin` — in progress
+  (T1 split in two, owner 2026-10-19: T1b is `IEmailSender`, the SMTP adapter and the Mailpit test)
+- **Next:** S03-T1b — Email transport
+- **Blocked on:** nothing
 
 ## Next up
 
-1. S03-T1 — Identity module, users and email
+1. S03-T1b — Email transport (`IEmailSender`, SMTP adapter, Mailpit test)
 2. S03-T2 — Account API, sessions and the anonymous actor
 3. S03-T3 — Roles in code, platform roles and the evaluator
 4. S03-T4 — Memberships, invitations and tenant roles (likely two PRs: T4a, T4b)
