@@ -74,6 +74,11 @@ Modules call each other in-process through Contracts, never over HTTP.
   messages as `detail` and `errors: [{ "field": "limit", "code": "VALIDATION_INVALID_QUERY" }]`, one entry per
   failure (camelCase field; a rule's `WithErrorCode` sets a finer code). Messages name the field and what is
   accepted, never echo the value sent. Domain rules stay in the aggregates (expected failures as `Result`).
+- Body records reject unknown members as `VALIDATION_MALFORMED_REQUEST`. Where unknown or wrongly typed keys must be
+  named (allow-listed keys such as tenant settings, S02-T4b), the endpoint reads the body with `StrictJsonBody`
+  (`SportsPlatform.BuildingBlocks.Api`): each unknown, wrongly typed or repeated key is an `errors` entry with the
+  endpoint's code (`VALIDATION_INVALID_REQUEST`), named as sent; a body that isn't one JSON object is still
+  `VALIDATION_MALFORMED_REQUEST`. Enum values are read case-insensitively.
 - Never leak stack traces or internal details; they go to logs with the correlation ID.
 
 ## Correlation ID
@@ -157,7 +162,8 @@ Modules call each other in-process through Contracts, never over HTTP.
 - Web and mobile clients are generated from it. A CI step fails if the committed document is stale.
 - Every endpoint has a summary, request/response schemas, and documented error codes: `.ProducesErrors(...)`
   (`SportsPlatform.BuildingBlocks.Api`) adds one Problem Details response per status and lists that status's codes
-  in the response description and in `x-error-codes`.
+  in the response description and in `x-error-codes`. The Host adds the pipeline's 403s: `AUTH_FORBIDDEN` on every admin and platform
+  endpoint, and `AUTH_TENANT_FORBIDDEN` and `TENANT_BLOCKED` on tenant actions.
 - One document, `v1`, OpenAPI 3.1, covering all three families. Health probes are infrastructure and are left
   out. The document is served (`/openapi/v1.json`, Scalar at `/scalar`) in Development only.
 - JSON numbers are strict: a number sent as a string (`"5"`) is a malformed request (400).

@@ -57,28 +57,28 @@ public sealed class ReadTenantTests(PostgresFixture fixture) : DatabaseTest(fixt
     {
         foreach (var (slug, status) in new[]
         {
-            ("nakawa-schools", TenantStatus.Archived),
+            ("acacia-schools", TenantStatus.Archived),
             ("kmsa", TenantStatus.Active),
             ("elssc", TenantStatus.Provisioning),
-            ("kawempe-league", TenantStatus.Suspended),
-            ("entebbe-juniors", TenantStatus.Active),
+            ("jacaranda-games", TenantStatus.Suspended),
+            ("sunbird-juniors", TenantStatus.Active),
         })
         {
             await TenantTestData.SaveTenantAsync(App.Services, slug, status, Ct);
         }
 
         var first = await ListAsync("?limit=2");
-        first.Items.Select(t => t.Slug).ShouldBe(["elssc", "entebbe-juniors"]);
+        first.Items.Select(t => t.Slug).ShouldBe(["acacia-schools", "elssc"]);
         first.Page.HasMore.ShouldBeTrue();
 
         var second = await ListAsync($"?limit=2&cursor={first.Page.NextCursor}");
-        second.Items.Select(t => t.Slug).ShouldBe(["kawempe-league", "kmsa"]);
+        second.Items.Select(t => t.Slug).ShouldBe(["jacaranda-games", "kmsa"]);
 
         var last = await ListAsync($"?limit=2&cursor={second.Page.NextCursor}");
-        last.Items.Select(t => t.Slug).ShouldBe(["nakawa-schools"]);
+        last.Items.Select(t => t.Slug).ShouldBe(["sunbird-juniors"]);
         last.Page.ShouldBe(new(null, false));
 
-        (await ListAsync("?status=ACTIVE")).Items.Select(t => t.Slug).ShouldBe(["entebbe-juniors", "kmsa"]);
+        (await ListAsync("?status=ACTIVE")).Items.Select(t => t.Slug).ShouldBe(["kmsa", "sunbird-juniors"]);
         (await ListAsync()).Items.Count.ShouldBe(5);
     }
 

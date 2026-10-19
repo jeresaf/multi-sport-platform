@@ -12,7 +12,9 @@ internal static class GetTenantEndpoint
         .MapGet("/{tenantId:guid}", HandleAsync)
         .WithName("GetTenant")
         .WithSummary("Get a tenant")
-        .WithDescription("One tenant with its profile, status and `version` (also the `ETag`).")
+        .WithDescription(
+            "One tenant with its profile, status, main settings and `version` (also the `ETag`). The version is the " +
+            "tenant row's only: a settings change doesn't change it.")
         .RequireAction(TenancyActions.TenantRead)
         .RunsUnderRouteTenant()
         .ProducesErrors(TenancyErrors.NotFound);

@@ -21,7 +21,10 @@ paths:
    parameters, `CommonErrors.ReasonRequired` for a reason. Use `WithErrorCode` only with a code declared in
    `<Module>Errors` or `CommonErrors` (it appears in the catalogue); without it the entry carries the endpoint's code.
    Body records reject unknown members (`[JsonUnmappedMemberHandling(Disallow)]` → `VALIDATION_MALFORMED_REQUEST`),
-   so a field that can't be set there (a status, a slug) is refused instead of silently ignored.
+   so a field that can't be set there (a status, a slug) is refused instead of silently ignored. Where a spec asks
+   for unknown or wrongly typed keys to be named (allow-listed settings, S02-T4b), bind the body as `[FromBody]
+   JsonElement`, read it with `StrictJsonBody.TryRead<T>(…, CommonErrors.InvalidRequest, …)`, validate with
+   `httpContext.ValidateRequestAsync(request, error)` and declare `.AcceptsStrictJson<T>()` so OpenAPI shows `T`.
 2. Endpoint declares exactly one action: `.RequireAction(<Module>Actions.X)` (or `.AllowPublic()` for public reads).
 3. Handler loads the aggregate, calls a domain method, saves. Expected failures → `Result.Failure(<Module>Errors.X)`.
    The endpoint returns `result.ToHttpResult(...)` (Problem Details with the error's `code`).

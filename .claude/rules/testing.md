@@ -31,8 +31,9 @@ paths:
   (`Infrastructure/TestAuthentication`): `client.AsUser(userId, memberOf: tenantIds)` sends `X-Test-User` and
   `X-Test-Tenants`, so the request runs as that user and passes the membership check for `X-Tenant-Id`. Without it a
   request is the system actor. Outside HTTP, set `scope.ServiceProvider.GetRequiredService<ActorContext>().Set(new
-  UserActor(id))`. The Host has no admin endpoint before S02-T4: `Tenancy/AdminTestApp` runs the Host's services and
-  pipeline (`SportsPlatformApp.AddServices`/`UsePipeline`) with a test-only audited tenant action.
+  UserActor(id))`. Admin requests also send `X-Tenant-Id` (pattern: `Tenancy/TenantSettingsTests`). For pipeline
+  tests, `Tenancy/AdminTestApp` runs the Host's services and pipeline (`SportsPlatformApp.AddServices`/`UsePipeline`)
+  with a test-only audited tenant action.
 - **Public requests by host:** `App.Server.GetAsync(path, host, from, headers)` (`Tenancy/PublicRequests`) sets the
   host and remote address. `Tenancy/PublicTestApp` runs the whole Host in another environment (Development for the
   override) and trusts `PublicRequests.Proxy` as a forwarding proxy. `TenantTestData.SaveTenantAsync` adds the

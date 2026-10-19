@@ -12,8 +12,10 @@ namespace SportsPlatform.Modules.Tenancy.Features.Tenants;
 
 /// <summary>
 /// A tenant as the platform API shows it: the tenant and its main settings. Read under the tenant (the settings are
-/// tenant-owned). <c>version</c>, <c>createdAt</c> and <c>updatedAt</c> are the tenant row's: send <c>version</c> back
-/// with a change to make it fail with <c>409 TENANT_CONCURRENCY_CONFLICT</c> if someone else changed the tenant first.
+/// tenant-owned). <c>version</c> (also the <c>ETag</c>), <c>createdAt</c> and <c>updatedAt</c> are the tenant row's
+/// only: a settings change doesn't change them, so the same <c>ETag</c> can come with different settings. Send
+/// <c>version</c> back with a change to make it fail with <c>409 TENANT_CONCURRENCY_CONFLICT</c> if someone else changed
+/// the tenant first. The settings have their own version at <c>/api/admin/v1/tenant/settings</c>.
 /// </summary>
 public sealed record TenantResponse(
     Guid Id,

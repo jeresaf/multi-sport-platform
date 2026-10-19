@@ -60,4 +60,20 @@ public static class TenancyActions
         ActionScope.Platform,
         AuditRequirement.RequiredWithReason,
         since: "S02");
+
+    public static readonly ActionDefinition TenantSettingsRead = new(
+        "tenant.settings.read",
+        "View the tenant's settings: time zone, locale, currency, public site, starting-soon window, minor consent policy.",
+        ActionScope.Tenant,
+        AuditRequirement.Required,
+        since: "S02",
+        scopableBy: [AssignmentScope.Tenant]);
+
+    public static readonly ActionDefinition TenantSettingsUpdate = new(
+        "tenant.settings.update",
+        "Change the tenant's settings: time zone, locale, currency, public site, starting-soon window, minor consent policy.",
+        ActionScope.Tenant,
+        AuditRequirement.Required,
+        since: "S02",
+        scopableBy: [AssignmentScope.Tenant]);
 }

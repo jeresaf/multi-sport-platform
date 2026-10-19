@@ -22,12 +22,15 @@ public sealed class TenantActionAuthorizationTests(PostgresFixture fixture) : Da
         Restore,
         Archive,
         Unarchive,
+        GetSettings,
+        UpdateSettings,
     }
 
     private static readonly ActionDefinition[] _actions =
     [
         TenancyActions.TenantCreate, TenancyActions.TenantRead, TenancyActions.TenantUpdate, TenancyActions.TenantActivate,
         TenancyActions.TenantSuspend, TenancyActions.TenantRestore, TenancyActions.TenantArchive, TenancyActions.TenantUnarchive,
+        TenancyActions.TenantSettingsRead, TenancyActions.TenantSettingsUpdate,
     ];
 
     [Fact]
@@ -45,6 +48,8 @@ public sealed class TenantActionAuthorizationTests(PostgresFixture fixture) : Da
     [InlineData(Endpoint.Restore, "tenant.restore", HttpStatusCode.OK)]
     [InlineData(Endpoint.Archive, "tenant.archive", HttpStatusCode.OK)]
     [InlineData(Endpoint.Unarchive, "tenant.unarchive", HttpStatusCode.OK)]
+    [InlineData(Endpoint.GetSettings, "tenant.settings.read", HttpStatusCode.OK)]
+    [InlineData(Endpoint.UpdateSettings, "tenant.settings.update", HttpStatusCode.OK)]
     public async Task Allowed(Endpoint endpoint, string action, HttpStatusCode expected)
     {
         var tenantId = await TenantTestData.SaveTenantAsync(App.Services, "elssc", StatusFor(endpoint), Ct);
@@ -66,6 +71,8 @@ public sealed class TenantActionAuthorizationTests(PostgresFixture fixture) : Da
     [InlineData(Endpoint.Restore, "tenant.activate")]
     [InlineData(Endpoint.Archive, "tenant.suspend")]
     [InlineData(Endpoint.Unarchive, "tenant.restore")]
+    [InlineData(Endpoint.GetSettings, "tenant.settings.update")]
+    [InlineData(Endpoint.UpdateSettings, "tenant.settings.read")]
     public async Task Denied_without_its_own_action(Endpoint endpoint, string otherAction)
     {
         var status = StatusFor(endpoint);
@@ -77,6 +84,7 @@ public sealed class TenantActionAuthorizationTests(PostgresFixture fixture) : Da
         await response.ShouldBeProblemAsync(HttpStatusCode.Forbidden, "AUTH_FORBIDDEN");
         (await TenantTestData.TenantCountAsync(App.Services, Ct)).ShouldBe(1);
         (await TenantTestData.TenantAsync(App.Services, tenantId, Ct)).Status.ShouldBe(status);
+        (await TenantTestData.SettingsAsync(App.Services, tenantId, Ct)).StartingSoonMinutes.ShouldBe(30);
     }
 
     private static ActionDefinition Action(string code) => _actions.Single(a => a.Code.Value == code);
@@ -93,6 +101,12 @@ public sealed class TenantActionAuthorizationTests(PostgresFixture fixture) : Da
     private async Task<HttpResponseMessage> SendAsync(Endpoint endpoint, Guid tenantId)
     {
         using var client = App.CreateClient();
+        if (endpoint is Endpoint.GetSettings or Endpoint.UpdateSettings)
+        {
+            // Tenant actions: a member of the tenant, named in X-Tenant-Id.
+            client.AsUser(TenantTestData.StaffId, tenantId).DefaultRequestHeaders.Add("X-Tenant-Id", tenantId.ToString());
+        }
+
         var tenant = $"{TenantTestData.TenantsPath}/{tenantId}";
         var reason = new { reason = "Council closed for the school holidays" };
         return endpoint switch
@@ -105,6 +119,9 @@ public sealed class TenantActionAuthorizationTests(PostgresFixture fixture) : Da
                 new Uri(tenant, UriKind.Relative), new { displayName = "Eastern Lakes Schools" }, Ct),
             Endpoint.Activate => await client.PostAsync(new Uri($"{tenant}/activate", UriKind.Relative), null, Ct),
             Endpoint.Restore => await client.PostAsync(new Uri($"{tenant}/restore", UriKind.Relative), null, Ct),
+            Endpoint.GetSettings => await client.GetAsync(new Uri(TenantSettingsTests.SettingsPath, UriKind.Relative), Ct),
+            Endpoint.UpdateSettings => await client.PatchAsJsonAsync(
+                new Uri(TenantSettingsTests.SettingsPath, UriKind.Relative), new { startingSoonMinutes = 45 }, Ct),
             _ => await client.PostAsJsonAsync(
                 new Uri($"{tenant}/{endpoint.ToString().ToLowerInvariant()}", UriKind.Relative), reason, Ct),
         };

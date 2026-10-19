@@ -7,17 +7,17 @@ at the start of every review.
 
 - **Current slice:** S02 — Tenancy core and isolation (docs/build/slices/S02-tenancy-core.md, as amended by the
   S01 slice review). S00 and S01 are done
-- **Current task:** S02-T4a — Settings move to `tenancy.tenant_settings` — in review, PR #36 (branch `s02/t4a-tenant-settings`). Owner (2026-10-19):
-  all six settings (time zone, locale, currency, public visibility, `starting_soon_minutes`, `minor_registration_consent`)
-  live only in `tenant_settings`; the platform PATCH keeps accepting the four moved fields; `starting_soon_minutes`
-  default 30, range 5–180; T4 split into T4a (table and move) and T4b (admin endpoints, field-named body errors)
-- **Next:** S02-T4b — Admin settings endpoints
+- **Current task:** S02-T4b — Admin settings endpoints — in review, PR #37 (branch `s02/t4b-admin-settings`). Plan
+  approved by the owner (2026-10-19) with its defaults: unknown and wrongly typed keys are `VALIDATION_INVALID_REQUEST`
+  with field-named `errors` (settings PATCH only; platform bodies keep `VALIDATION_MALFORMED_REQUEST`); settings have
+  their own `version`/`ETag` (stale → `TENANT_CONCURRENCY_CONFLICT`); the admin PATCH covers all six keys; the platform
+  tenant `ETag` is documented as covering the tenant row only
+- **Next:** S02-T5 — Public web shell and demo tenants
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S02-T4b — Admin settings endpoints
-2. S02-T5 — Public web shell and demo tenants
+1. S02-T5 — Public web shell and demo tenants
 
 ## Log
 
@@ -53,6 +53,7 @@ at the start of every review.
 | 2026-10-19 | S02-T3a | #34 | Admin and platform tenant resolution: pipeline routing → actor → audit → tenant resolution → authorization (D8). `X-Tenant-Id` with membership (`ITenantMembershipChecker`, Host default none) for tenant actions → `AUTH_TENANT_FORBIDDEN`; `.RunsUnderRouteTenant()` on `/tenants/{tenantId}` routes → `TENANT_NOT_FOUND`, handlers no longer set the tenant; access-mode step 1 (`ITenantAccess`, status-only) → `TENANT_BLOCKED`. Scoped `ActorContext` from the principal; test authentication scheme replaces `TestActor`; `TestTenantContext` retired. `ITenantDirectory` (ID, slug). AR-21 test | Owner (Q17): T3 split into T3a/T3b and `tenant_domains` moved from T4 to T3b (slice spec updated). Errors stay in `TenancyErrors`; Contracts return `Result`s carrying them, so the Host uses Contracts only. Seed owner contexts stamp the system actor (singleton factory can't take the scoped actor). `SportsPlatformApp` split into `AddServices`/`UsePipeline` so `AdminTestApp` reuses the pipeline |
 | 2026-10-19 | S02-T3b | #35 | Public tenant resolution: `tenancy.tenant_domains` (global; platform subdomain `<slug>.<Platform:BaseDomain>` created with each tenant, backfilled by the new post-migration step), `.RequirePublicTenant()` endpoints resolve the host through `ITenantDirectory.GetByHostAsync` and a 60 s cache cleared on changes → `TENANT_NOT_FOUND` / `TENANT_UNAVAILABLE`; trusted `X-Forwarded-Host` (configured proxies only); Development override `X-Tenant-Slug` / `?tenant=`; `GET /api/public/v1/site` | Owner: tenant domain state machine added; `tenant_domains` is an RLS coverage exception; backfill as a post-migration step, not SQL. Directory slug/host lookups return `Result`s. No proxies configured → forwarding off (framework trusts everyone with empty lists). `/site` max-age 1 min (plan said 5: kept no longer than the host cache). T2b follow-up (platform routes on a tenant host) done. #35 R1: a `localhost` base domain is refused outside Development and Testing |
 | 2026-10-19 | S02-T4a | #36 | `tenancy.tenant_settings` (first tenant-owned business table, RLS, one row per tenant created with it): time zone, locale, currency, `publicEnabled`, `starting_soon_minutes` (30, 5–180), `minor_registration_consent` (`RECOMMENDED`); migration copies existing tenants' values before RLS and drops the four `tenants` columns; platform create/PATCH write the settings row, detail and transitions return it, the list (`TenantListItem`) doesn't; public resolution sets the tenant, then `CheckPublicAccessAsync` reads `publicEnabled` under RLS (cached with the host); `TenantSummary` lost `PublicEnabled`; isolation sample, RLS coverage, migration down/up test | Owner: all six settings only in `tenant_settings`, T4 split in two, platform PATCH version guards the tenant row only. No new actions, errors, events or dependencies. Pre-review: settings conflict test, status-change response read before the save, Down drops temporary defaults; ETag over settings a T4b follow-up |
+| 2026-10-19 | S02-T4b | #37 | `GET`/`PATCH /api/admin/v1/tenant/settings` (`tenant.settings.read`, `tenant.settings.update`, TENANT, audit `REQUIRED`) for the tenant in `X-Tenant-Id`; all six keys, null = unchanged; settings row's own `version`/`ETag`; host cache cleared when `publicEnabled` changes; BuildingBlocks `StrictJsonBody` names unknown, wrongly typed or repeated keys (`VALIDATION_INVALID_REQUEST`); Host documents pipeline 403s in OpenAPI; platform tenant `ETag` documented as the tenant row's only | Owner: field-named errors on the settings PATCH only; enum values read case-insensitively (existing converter). Beyond the plan: `AUTH_FORBIDDEN` documented on every admin/platform endpoint. No new errors, events, migrations or dependencies. Pre-review: member checks honour property converters, required members refused, empty body and malformed `If-Match` tests. #37 R1: test tenants renamed to invented bodies listed in pilot-customer.md ("Other tenants (tests only)") |
 
 ## Deviations from spec (agreed)
 
@@ -140,6 +141,9 @@ at the start of every review.
   `tenant_settings`, the only home of all six settings; the platform PATCH keeps accepting the four moved fields and
   its version guards the tenant row only; the platform list no longer returns them. `starting_soon_minutes` default 30,
   range 5–180.
+  T4b (plan approved 2026-10-19): unknown or wrongly typed keys on the settings PATCH are `VALIDATION_INVALID_REQUEST`
+  with field-named `errors` through `StrictJsonBody`; platform tenant bodies keep `VALIDATION_MALFORMED_REQUEST` for
+  unknown members. The platform tenant `ETag` stays the tenant row's (documented), not derived from both versions.
 - **S02-T3b** (owner, 2026-10-19): `tenancy.tenant_domains` is a second RLS coverage exception (extends D4); its
   `status` follows a new tenant domain state machine in state-machines.md; existing tenants are backfilled by a
   post-migration step, not by SQL in the migration. In the plan the owner approved: `/site` has no "public flags" (a
@@ -156,17 +160,12 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
   `SeedContext` gets a way to run commands as a tenant (set `TenantContext` in the seeder's scope, needed once S02's
   RLS is on) and begins an audit scope so demo data is audited with source `SYSTEM` (reviewer's suggestion; owner: yes,
   2026-10-18).
-- **S02-T4b:** the platform tenant's `ETag`/`version` is the tenant row's, but its body also carries settings: a
-  settings-only change returns a different body with the same strong `ETag` and `updatedAt`. Harmless while nothing
-  honours `If-None-Match` on it; when settings get their own API, derive the platform ETag from both versions or say
-  in the description that it covers the tenant row only (S02-T4a pre-review).
 - **OpenAPI (with the first admin UI client, S03 or later):** optional request members (`version`, PATCH fields) are
   listed as `required` (nullable) in the schemas, so the TS client makes callers pass `null`; endpoints don't declare
   the `If-Match` request header or the `ETag` response header, and activate/restore list no 400 (pipeline errors).
-  Fix with defaults on the request records or a schema/operation transformer (S02-T1b pre-review).
-- **S02-T4 (first admin endpoint):** tenant actions can also fail in the pipeline with `403 AUTH_TENANT_FORBIDDEN` and
-  `403 TENANT_BLOCKED`, which modules can't list in `.ProducesErrors(...)` (`TENANT_BLOCKED` is Tenancy's). Add a Host
-  OpenAPI operation transformer that documents both on every TENANT-scope endpoint (S02-T3a pre-review).
+  Fix with defaults on the request records or a schema/operation transformer (S02-T1b pre-review). The admin settings
+  PATCH (`UpdateTenantSettingsRequest`) has the same `required` problem; strict-body requests are components named by
+  short type name, so two such types with one name would share a schema (S02-T4b pre-review).
 
 - **Branding/PRO (custom domains):** `GetSiteHandler` throws (500) if a tenant resolves through an `ACTIVE` domain but
   has no `ACTIVE` primary one. Impossible today (the platform subdomain is always primary and `ACTIVE`); once a

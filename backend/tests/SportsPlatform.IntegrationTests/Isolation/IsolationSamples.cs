@@ -54,8 +54,8 @@ public static class IsolationSamples
 
         public Entity Add(DbContext context)
         {
-            var profile = new TenantProfile("Wakiso District Sports Council", "Wakiso Sports", "UG");
-            var tenant = Tenant.Create("wakiso-sports", profile, SystemActor.Instance, new DateTimeOffset(2026, 10, 1, 8, 0, 0, TimeSpan.Zero));
+            var profile = new TenantProfile("Mvule Youth Football League", "Mvule Youth", "UG");
+            var tenant = Tenant.Create("mvule-youth", profile, SystemActor.Instance, new DateTimeOffset(2026, 10, 1, 8, 0, 0, TimeSpan.Zero));
             context.Add(tenant);
             return tenant.StatusHistory.Single();
         }

@@ -44,6 +44,9 @@ the scope's `TenantContext` once (D1), from the matched endpoint:
 created with the tenant, holding time zone, locale, currency, `publicEnabled`, `starting_soon_minutes` and
 `minor_registration_consent`. `tenancy.tenants` keeps only identity, names, country and status, so platform reads of
 one tenant (under the route tenant, D2) include the settings and the platform list (no tenant) doesn't.
+Tenant admins read and change them at `/api/admin/v1/tenant/settings` (S02-T4b) for the tenant in `X-Tenant-Id`: the
+query filter and RLS show only that tenant's row, so the handlers never take a tenant ID. The settings row has its own
+`version`/`ETag`; the platform tenant's `version` is the tenant row's only.
 
 **Public resolution as built (S02-T3b).**
 - **Domains:** `tenancy.tenant_domains` is global (no RLS: hosts are looked up before a tenant is known; an RLS

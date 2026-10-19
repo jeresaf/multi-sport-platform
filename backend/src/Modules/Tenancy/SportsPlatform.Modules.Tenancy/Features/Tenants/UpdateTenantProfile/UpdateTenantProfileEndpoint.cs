@@ -17,7 +17,8 @@ internal static class UpdateTenantProfileEndpoint
             "Changes the fields sent; missing or null fields stay as they are. The slug never changes, and the status " +
             "changes only through the status actions. Send `version` from the last read to get " +
             "409 TENANT_CONCURRENCY_CONFLICT instead of overwriting someone else's change; `If-Match` with the `ETag` " +
-            "works the same way (if both are sent, both must match).")
+            "works the same way (if both are sent, both must match). The version is the tenant row's only: a settings " +
+            "change made since your read (here or through the admin settings endpoint) is not detected.")
         .RequireAction(TenancyActions.TenantUpdate)
         .RunsUnderRouteTenant()
         .ValidateRequest<UpdateTenantProfileRequest>(CommonErrors.InvalidRequest)

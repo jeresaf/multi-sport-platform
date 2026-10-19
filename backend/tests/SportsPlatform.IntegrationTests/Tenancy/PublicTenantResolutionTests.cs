@@ -98,13 +98,13 @@ public sealed class PublicTenantResolutionTests(PostgresFixture fixture) : Datab
     {
         await TenantTestData.SaveTenantAsync(App.Services, "kmsa", TenantStatus.Active, publicEnabled: true, withDomain: true, Ct);
         await TenantTestData.SaveTenantAsync(App.Services, "elssc", TenantStatus.Active, publicEnabled: true, withDomain: true, Ct);
-        await TenantTestData.SaveTenantAsync(App.Services, "wakiso", TenantStatus.Provisioning, publicEnabled: true, withDomain: true, Ct);
+        await TenantTestData.SaveTenantAsync(App.Services, "mvule-youth", TenantStatus.Provisioning, publicEnabled: true, withDomain: true, Ct);
         await using var app = await PublicTestApp.StartAsync(Fixture, Environments.Development, Ct);
 
         var byHeader = await app.Server.GetAsync(PublicRequests.SitePath, "localhost:5080", headers: ("X-Tenant-Slug", "kmsa"));
         var byQuery = await app.Server.GetAsync($"{PublicRequests.SitePath}?tenant=elssc", "kmsa.localhost");
         var unknown = await app.Server.GetAsync(PublicRequests.SitePath, "kmsa.localhost", headers: ("X-Tenant-Slug", "nobody"));
-        var provisioning = await app.Server.GetAsync(PublicRequests.SitePath, "localhost", headers: ("X-Tenant-Slug", "wakiso"));
+        var provisioning = await app.Server.GetAsync(PublicRequests.SitePath, "localhost", headers: ("X-Tenant-Slug", "mvule-youth"));
 
         byHeader.ShouldBeSite("kmsa");
         byHeader.Headers.Vary.ToString().ShouldBe("X-Forwarded-Host, X-Tenant-Slug");
