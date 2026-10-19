@@ -6,7 +6,10 @@ using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Persistence.Messaging;
 using SportsPlatform.Modules.Tenancy.Contracts.Access;
 using SportsPlatform.Modules.Tenancy.Contracts.Tenants;
+using SportsPlatform.Modules.Tenancy.Domain.Domains;
 using SportsPlatform.Modules.Tenancy.Domain.Tenants;
+using SportsPlatform.Modules.Tenancy.Features.Domains;
+using SportsPlatform.Modules.Tenancy.Features.Site.GetSite;
 using SportsPlatform.Modules.Tenancy.Features.Tenants;
 using SportsPlatform.Modules.Tenancy.Features.Tenants.ChangeTenantStatus;
 using SportsPlatform.Modules.Tenancy.Features.Tenants.CreateTenant;
@@ -19,7 +22,7 @@ using SportsPlatform.Modules.Tenancy.Infrastructure;
 namespace SportsPlatform.Modules.Tenancy;
 
 /// <summary>
-/// Tenancy &amp; Commercial: tenants and their lifecycle (S02); domains, settings, plans and entitlements follow
+/// Tenancy &amp; Commercial: tenants and their lifecycle, domains and the public site (S02); settings, plans and entitlements follow
 /// (docs/architecture/modules.md).
 /// </summary>
 public sealed class TenancyModule : IModule
@@ -33,6 +36,12 @@ public sealed class TenancyModule : IModule
     public void AddServices(IServiceCollection services, IConfiguration configuration)
     {
         services.AddModuleDbContext<TenancyDbContext>(configuration, Schema);
+        services.AddOptions<PlatformDomainOptions>()
+            .Bind(configuration.GetSection(PlatformDomainOptions.SectionName))
+            .Validate(o => TenantHost.IsValid(o.BaseDomain), "Platform:BaseDomain must be a lower-case host name without a port.")
+            .ValidateOnStart();
+        services.AddSingleton<TenantHostCache>();
+        services.AddPostMigrationStep<BackfillPlatformSubdomains>();
 
         services.AddScoped<TenantDirectory>();
         services.AddScoped<ITenantDirectory>(provider => provider.GetRequiredService<TenantDirectory>());
@@ -45,6 +54,7 @@ public sealed class TenancyModule : IModule
         services.AddScoped<UpdateTenantProfileHandler>();
         services.AddScoped<IValidator<UpdateTenantProfileRequest>, UpdateTenantProfileRequestValidator>();
         services.AddScoped<ChangeTenantStatusHandler>();
+        services.AddScoped<GetSiteHandler>();
         services.AddSingleton<IValidator<ChangeTenantStatusWithReasonRequest>, ChangeTenantStatusWithReasonRequestValidator>();
         services.AddDomainEventSubscriber<TenantCreatedDomainEvent, PublishTenantCreated>();
         services.AddDomainEventSubscriber<TenantStatusChangedDomainEvent, PublishTenantStatusChanged>();
@@ -59,5 +69,6 @@ public sealed class TenancyModule : IModule
         CreateTenantEndpoint.Map(tenants);
         UpdateTenantProfileEndpoint.Map(tenants);
         ChangeTenantStatusEndpoints.Map(tenants);
+        GetSiteEndpoint.Map(groups.Public);
     }
 }

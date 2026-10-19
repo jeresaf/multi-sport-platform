@@ -1,10 +1,13 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Npgsql;
 using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.BuildingBlocks.Auditing;
 using SportsPlatform.BuildingBlocks.Results;
 using SportsPlatform.BuildingBlocks.Tenancy;
+using SportsPlatform.Modules.Tenancy.Domain.Domains;
 using SportsPlatform.Modules.Tenancy.Domain.Tenants;
+using SportsPlatform.Modules.Tenancy.Features.Domains;
 using SportsPlatform.Modules.Tenancy.Infrastructure;
 using SportsPlatform.Modules.Tenancy.Infrastructure.Configurations;
 
@@ -13,10 +16,17 @@ namespace SportsPlatform.Modules.Tenancy.Features.Tenants.CreateTenant;
 /// <summary>
 /// Creates a tenant in <c>PROVISIONING</c> with its first status-history row; <c>TenantCreated.V1</c> and the audit
 /// entry commit with it. The save runs under the new tenant (S02 D2), so the audit entry and the event's envelope carry
-/// it. A slug is taken if any tenant, archived ones included, has it; that failure is audited without a tenant.
+/// it. A slug is taken if any tenant, archived ones included, has it; that failure is audited without a tenant. The
+/// tenant's platform subdomain, <c>&lt;slug&gt;.&lt;Platform:BaseDomain&gt;</c>, is created in the same save.
 /// </summary>
 public sealed class CreateTenantHandler(
-    TenancyDbContext context, TenantContext tenantContext, ICurrentActor actor, AuditScope audit, TimeProvider timeProvider)
+    TenancyDbContext context,
+    TenantContext tenantContext,
+    ICurrentActor actor,
+    AuditScope audit,
+    TimeProvider timeProvider,
+    IOptions<PlatformDomainOptions> domainOptions,
+    TenantHostCache hostCache)
 {
     public async Task<Result<TenantResponse>> HandleAsync(CreateTenantRequest request, CancellationToken cancellationToken)
     {
@@ -42,11 +52,19 @@ public sealed class CreateTenantHandler(
         tenantContext.Set(tenant.Id);
         audit.Describe(TenantAudit.EntityType, tenant.Id);
         var entry = context.Add(tenant);
+        context.Add(TenantDomain.PlatformSubdomain(tenant.Id, tenant.Slug, domainOptions.Value.BaseDomain));
 
         try
         {
             var saved = await context.SaveChangesResultAsync(cancellationToken);
-            return saved.IsSuccess ? Result.Success(TenantResponse.From(entry)) : saved.Error;
+            if (saved.IsFailure)
+            {
+                return saved.Error;
+            }
+
+            // The new host may be cached as unknown.
+            hostCache.Clear();
+            return Result.Success(TenantResponse.From(entry));
         }
         catch (DbUpdateException exception) when (exception.InnerException is PostgresException
         {

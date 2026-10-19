@@ -16,6 +16,8 @@ public sealed class RlsCoverageTests(PostgresFixture fixture) : DatabaseTest(fix
     {
         ["outbox_messages"] =
             "the envelope's tenant, nullable for platform events; read across tenants by the outbox processor (Q15)",
+        ["tenant_domains"] =
+            "global: public requests look their host up before any tenant is known (S02-T3b, owner 2026-10-19)",
     };
 
     private const string _tablesSql =

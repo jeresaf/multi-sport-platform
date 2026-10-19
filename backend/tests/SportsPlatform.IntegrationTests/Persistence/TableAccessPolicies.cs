@@ -43,6 +43,7 @@ public static class TableAccessPolicies
         // Tenants (S02-T1): platform-managed; the status history is kept for ever.
         ["tenancy.tenants"] = TableAccess.ReadWrite,
         ["tenancy.tenant_status_history"] = TableAccess.AppendOnly,
+        ["tenancy.tenant_domains"] = TableAccess.ReadWrite,
 
         ["platform.outbox_messages"] = TableAccess.ReadWrite,
         ["platform.inbox_messages"] = TableAccess.ReadWrite,

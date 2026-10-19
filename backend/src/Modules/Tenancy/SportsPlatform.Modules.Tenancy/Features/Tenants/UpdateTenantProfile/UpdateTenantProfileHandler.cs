@@ -4,6 +4,7 @@ using SportsPlatform.BuildingBlocks.Auditing;
 using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Results;
 using SportsPlatform.Modules.Tenancy.Domain.Tenants;
+using SportsPlatform.Modules.Tenancy.Features.Domains;
 using SportsPlatform.Modules.Tenancy.Infrastructure;
 
 namespace SportsPlatform.Modules.Tenancy.Features.Tenants.UpdateTenantProfile;
@@ -14,7 +15,7 @@ namespace SportsPlatform.Modules.Tenancy.Features.Tenants.UpdateTenantProfile;
 /// <c>TENANT_CONCURRENCY_CONFLICT</c>. A request that
 /// changes nothing saves nothing (the Host still audits it).
 /// </summary>
-public sealed class UpdateTenantProfileHandler(TenancyDbContext context, AuditScope audit)
+public sealed class UpdateTenantProfileHandler(TenancyDbContext context, AuditScope audit, TenantHostCache hostCache)
 {
     public async Task<Result<TenantResponse>> HandleAsync(
         Guid tenantId, UpdateTenantProfileRequest request, IfMatch ifMatch, CancellationToken cancellationToken)
@@ -53,6 +54,9 @@ public sealed class UpdateTenantProfileHandler(TenancyDbContext context, AuditSc
             {
                 return saved.Error;
             }
+
+            // publicEnabled decides whether the public site is shown.
+            hostCache.Clear();
         }
 
         return Result.Success(TenantResponse.From(entry));

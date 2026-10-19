@@ -9,6 +9,12 @@ public interface ITenantDirectory
     Task<Result<TenantSummary>> GetByIdAsync(Guid tenantId, CancellationToken cancellationToken);
 
     Task<TenantSummary?> FindBySlugAsync(string slug, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// The tenant of an <c>ACTIVE</c> domain, for public requests. <paramref name="host"/> may carry a port and any case;
+    /// null for an unknown or malformed host. Cached for up to a minute.
+    /// </summary>
+    Task<TenantSummary?> FindByHostAsync(string host, CancellationToken cancellationToken);
 }
 
 /// <summary>A tenant's identity and visibility; no profile data.</summary>

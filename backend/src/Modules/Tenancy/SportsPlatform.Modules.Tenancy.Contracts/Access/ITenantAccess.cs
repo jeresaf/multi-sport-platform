@@ -1,4 +1,5 @@
 using SportsPlatform.BuildingBlocks.Results;
+using SportsPlatform.Modules.Tenancy.Contracts.Tenants;
 
 namespace SportsPlatform.Modules.Tenancy.Contracts.Access;
 
@@ -13,4 +14,10 @@ public interface ITenantAccess
     /// <c>BLOCKED</c>, <c>TENANT_NOT_FOUND</c> for an unknown tenant.
     /// </summary>
     Task<Result> CheckAdminAccessAsync(Guid tenantId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Whether the tenant's public site is shown: success for an <c>ACTIVE</c> tenant with <c>publicEnabled</c>, else
+    /// <c>TENANT_UNAVAILABLE</c> (hidden while <c>PROVISIONING</c> or not enabled, off while <c>BLOCKED</c>).
+    /// </summary>
+    Result CheckPublicAccess(TenantSummary tenant);
 }

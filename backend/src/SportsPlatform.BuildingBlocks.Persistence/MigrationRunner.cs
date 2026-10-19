@@ -4,9 +4,15 @@ using Microsoft.Extensions.Logging;
 
 namespace SportsPlatform.BuildingBlocks.Persistence;
 
-/// <summary>Applies every module's migrations as <c>sp_migrator</c>, in module registration order.</summary>
+/// <summary>
+/// Applies every module's migrations as <c>sp_migrator</c>, in module registration order, then the post-migration
+/// steps (<see cref="IPostMigrationStep"/>).
+/// </summary>
 public sealed partial class MigrationRunner(
-    IEnumerable<ModuleDatabase> databases, IConfiguration configuration, ILogger<MigrationRunner> logger)
+    IEnumerable<ModuleDatabase> databases,
+    IEnumerable<IPostMigrationStep> steps,
+    IConfiguration configuration,
+    ILogger<MigrationRunner> logger)
 {
     public async Task RunAsync(CancellationToken cancellationToken = default)
     {
@@ -27,6 +33,12 @@ public sealed partial class MigrationRunner(
             await RevokeHistoryTableAccessAsync(context, cancellationToken);
             LogMigrated(database.Schema, pending.Count);
         }
+
+        foreach (var step in steps)
+        {
+            var changed = await step.RunAsync(cancellationToken);
+            LogStepApplied(step.Name, changed);
+        }
     }
 
     // EF creates the history table outside the migrations, so the default grants from 01-roles.sh give the runtime
@@ -40,4 +52,7 @@ public sealed partial class MigrationRunner(
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Schema {Schema}: applied {Count} migration(s)")]
     private partial void LogMigrated(string schema, int count);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Post-migration step {Step}: changed {Count} row(s)")]
+    private partial void LogStepApplied(string step, int count);
 }

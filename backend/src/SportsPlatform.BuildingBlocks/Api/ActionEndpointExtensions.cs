@@ -36,4 +36,15 @@ public static class ActionEndpointExtensions
         ArgumentException.ThrowIfNullOrWhiteSpace(routeValueName);
         return builder.WithMetadata(new RunsUnderRouteTenantMetadata(routeValueName));
     }
+
+    /// <summary>
+    /// Public endpoints that serve one tenant's data (S02 D6): the Host resolves the tenant from the request host, or
+    /// answers <c>404 TENANT_NOT_FOUND</c> or <c>403 TENANT_UNAVAILABLE</c>. Only under <c>/api/public</c>.
+    /// </summary>
+    public static TBuilder RequirePublicTenant<TBuilder>(this TBuilder builder)
+        where TBuilder : IEndpointConventionBuilder
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        return builder.WithMetadata(RequiresPublicTenantMetadata.Instance);
+    }
 }
