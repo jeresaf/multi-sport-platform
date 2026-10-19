@@ -72,9 +72,10 @@ public sealed class PasswordResetTests(PostgresFixture fixture) : DatabaseTest(f
         (await client.LoginAsync(_email, newPassword, Ct)).StatusCode.ShouldBe(HttpStatusCode.NoContent);
         (await QueryAsync(DatabaseRoles.Migrator, "SELECT count(*) FROM identity.user_tokens", r => r.GetInt64(0))).ShouldBe([0L]);
         await AccountTestData.DeliverOutboxAsync(App.Services, Ct);
+        // Both entries carry the fake clock's instant, so their UUIDv7 IDs don't order them.
         (await AuditTestData.EntriesAsync(App.Services, Ct)).Where(e => e.ActionCode == "account.password.reset")
             .Select(e => (e.Outcome, e.ErrorCode, e.EntityId))
-            .ShouldBe([(AuditOutcome.Success, null, userId), (AuditOutcome.Failure, "AUTH_RESET_TOKEN_INVALID", userId)]);
+            .ShouldBe([(AuditOutcome.Success, null, userId), (AuditOutcome.Failure, "AUTH_RESET_TOKEN_INVALID", userId)], ignoreOrder: true);
     }
 
     [Fact]
