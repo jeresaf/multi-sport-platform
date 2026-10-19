@@ -128,6 +128,9 @@ OutboxProcessor (hosted service, polls ~500 ms, batches, FOR UPDATE SKIP LOCKED)
   Details customizer records the response's `code` (`error_code`). A denied request's body is never read, so it has no
   reason. If the direct write fails, the response is already written: the middleware logs an Error and the entry is
   lost.
+- **Actor.** `actor_kind` is `USER`, `SYSTEM` (CLI, seeds, consumers, jobs) or `ANONYMOUS` (a request from a caller
+  who is not signed in: sign-in, password reset, refused requests; fixed `actor_id` `00000000-0000-0000-0000-000000000000`,
+  S03 D3). Anonymous denials keep one row each; their volume is limited by rate limits and at the edge.
 - **Table.** `audit.audit_entries` (Platform's second schema): `id, tenant_id (nullable), actor_kind, actor_id,
   action_code, outcome (SUCCESS | FAILURE | DENIED), error_code, entity_type, entity_id, occurred_at, source (API |
   SYSTEM), correlation_id, reason, metadata jsonb` and `created_*`; `AppendOnly` (runtime roles SELECT and INSERT;
