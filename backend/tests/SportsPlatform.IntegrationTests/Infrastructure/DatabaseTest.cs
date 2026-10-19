@@ -25,6 +25,7 @@ public abstract class DatabaseTest(PostgresFixture fixture) : IAsyncLifetime
     {
         App.Authorization.Reset();
         App.Seeds.Reset();
+        App.Emails.Reset();
         await Fixture.ResetAsync();
 
         // The host cache outlives the reset: a host cached by an earlier test would resolve to a deleted tenant.

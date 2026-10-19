@@ -258,6 +258,10 @@ public sealed class SeedRunnerTests(PostgresFixture fixture) : DatabaseTest(fixt
 
             // Staging and Production refuse to start without a real base domain (#35 R1).
             ["Platform:BaseDomain"] = "sports.test",
+
+            // ...and without a mail server (S03-T1b); nothing sends here.
+            ["Email:From"] = "no-reply@sports.test",
+            ["Email:Smtp:Host"] = "smtp.sports.test",
         };
         var app = App.WithWebHostBuilder(builder => builder
             .UseEnvironment(environment)

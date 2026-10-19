@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using DotNet.Testcontainers.Builders;
 using DotNet.Testcontainers.Configurations;
 using DotNet.Testcontainers.Containers;
@@ -20,7 +19,7 @@ namespace SportsPlatform.IntegrationTests.Infrastructure;
 /// <c>01-roles.sh</c>. Migrations run as <c>sp_migrator</c>, the app runs as <c>sp_app</c>, and only the reset uses
 /// the superuser — the app under test never gets the superuser connection.
 /// </summary>
-public sealed partial class PostgresFixture : IAsyncLifetime
+public sealed class PostgresFixture : IAsyncLifetime
 {
     public const string Database = "sportsplatform";
 
@@ -38,10 +37,9 @@ public sealed partial class PostgresFixture : IAsyncLifetime
     private PostgreSqlContainer? _container;
     private Respawner? _respawner;
 
-    // Declared before ImageFromCompose: static initialisers run in declaration order.
-    private static string RepositoryRoot { get; } = FindRepositoryRoot();
+    private static string RepositoryRoot => ComposeFile.RepositoryRoot;
 
-    public static string ImageFromCompose { get; } = ReadComposeImage();
+    public static string ImageFromCompose { get; } = ComposeFile.Image("postgres");
 
     public TestApp App { get; private set; } = null!;
 
@@ -205,31 +203,6 @@ public sealed partial class PostgresFixture : IAsyncLifetime
         await connection.OpenAsync();
         return connection;
     }
-
-    private static string FindRepositoryRoot()
-    {
-        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
-        {
-            if (File.Exists(Path.Combine(directory.FullName, "docker-compose.yml")))
-            {
-                return directory.FullName;
-            }
-        }
-
-        throw new InvalidOperationException("docker-compose.yml not found above the test output folder.");
-    }
-
-    private static string ReadComposeImage()
-    {
-        var compose = File.ReadAllText(Path.Combine(RepositoryRoot, "docker-compose.yml"));
-        var match = ComposePostgresImage().Match(compose);
-        return match.Success
-            ? match.Groups["image"].Value
-            : throw new InvalidOperationException("No postgres image found in docker-compose.yml.");
-    }
-
-    [GeneratedRegex(@"^\s*image:\s*(?<image>postgres:\S+)\s*$", RegexOptions.Multiline)]
-    private static partial Regex ComposePostgresImage();
 
     private sealed class UntilMigratorCanConnect(PostgresFixture fixture) : IWaitUntil
     {

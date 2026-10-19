@@ -337,3 +337,15 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   save, every `UserManager`/`SignInManager` change (failed-attempt counts, lockout, security stamp) is lost unless the
   handler saves: T2's login must save after a failed attempt too. Identity's satellite tables keep its own keys
   (`int` claim IDs, composite login and token keys), as does `data_protection_keys` (`int`), not `id uuid`.
+- **T1b:** `IEmailSender` and `EmailMessage` (recipient `PRIVATE`) are in `Platform.Contracts/Email`; the MailKit
+  adapter `SmtpEmailSender` is in `Platform/Infrastructure/Email`: one connection per email; transport failures
+  throw `EmailDeliveryException` with only the failure type, SMTP codes and Message-ID (server replies often repeat
+  the address, and the outbox logs and stores the error), so the outbox retries the consumer; logs carry only the
+  Message-ID. Credentials over `Security=None` are refused. `Email:From`, `Email:FromName` (default
+  `SportsPlatform`) and `Email:Smtp:{Host, Port, Security (None|StartTls|SslOnConnect), UserName, Password,
+  TimeoutSeconds}` are validated on start (owner: fail fast), so the API refuses to start without them outside
+  Development and Testing; the CLI never starts its host and checks them only if something sends. Development and
+  Testing point at Mailpit with `From` `no-reply@sportsplatform.localhost` (domain waits for Q10); a different
+  `MAILPIT_SMTP_PORT` needs `Email__Smtp__Port`. `TestApp.Emails` (`RecordingEmailSender`) replaces the adapter in
+  tests; `Email/SmtpEmailSenderTests` run it against a Mailpit container. MimeKit's `System.Security.Cryptography.Pkcs`
+  10.0.0 has advisories: `Directory.Packages.props` pins 10.0.13.

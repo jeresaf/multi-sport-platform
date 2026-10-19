@@ -41,9 +41,9 @@ directly.
 
 **Purpose:** cross-cutting foundations that are not business domains.
 **Owns:** reference data (countries, currencies, languages, IANA time zones, units); `audit.audit_entries`
-(append-only, tenant RLS; written and read across tenants by `PlatformAuditDbContext` on `sp_platform`); media asset metadata (ADR-0014); product analytics events; seed runner bookkeeping.
+(append-only, tenant RLS; written and read across tenants by `PlatformAuditDbContext` on `sp_platform`); media asset metadata (ADR-0014); product analytics events; seed runner bookkeeping; transactional email transport (`IEmailSender` and its adapter).
 **Provides (Contracts):** `IReferenceData`, `IAuditLog` (also used automatically by AuditScope and the audit middleware),
-`IMediaAssets` (URLs, upload validation), analytics recording.
+`IEmailSender` (from integration event consumers only, S03 D13), `IMediaAssets` (URLs, upload validation), analytics recording.
 **Also lives here (code, not data):** action catalogue export, error catalogue export, outbox processor host,
 seed framework.
 **Does not own:** domain statuses, rules, permissions — those stay in their modules (no "constants" bucket).
