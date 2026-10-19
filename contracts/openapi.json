@@ -128,6 +128,57 @@
         }
       }
     },
+    "/api/public/v1/site": {
+      "get": {
+        "tags": [
+          "Site"
+        ],
+        "summary": "Get the public site",
+        "description": "The tenant whose site this host serves: slug, display name and primary domain. The tenant comes from the request host (`X-Forwarded-Host` from a trusted proxy). Responses differ per host. Cacheable for a minute; send the `ETag` back as `If-None-Match` to get 304.",
+        "operationId": "GetSite",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SiteResponse"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Not Modified"
+          },
+          "404": {
+            "description": "Problem Details; `code`: `TENANT_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "TENANT_NOT_FOUND"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `TENANT_UNAVAILABLE`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "TENANT_UNAVAILABLE"
+            ]
+          }
+        }
+      }
+    },
     "/api/platform/v1/diagnostics/outbox": {
       "get": {
         "tags": [
@@ -1644,6 +1695,26 @@
         },
         "description": "Why the message is re-driven; the audit entry records it (action audit `REQUIRED_WITH_REASON`). Kept permanently\nand not redacted, so it must not contain personal data."
       },
+      "SiteResponse": {
+        "required": [
+          "slug",
+          "displayName",
+          "primaryDomain"
+        ],
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "primaryDomain": {
+            "type": "string"
+          }
+        },
+        "description": "The public site's identity: `PUBLIC` fields only. PrimaryDomain is the host the site\nprefers, which may differ from the host the request came in on."
+      },
       "TenantResponse": {
         "required": [
           "id",
@@ -1807,6 +1878,9 @@
   "tags": [
     {
       "name": "Reference"
+    },
+    {
+      "name": "Site"
     },
     {
       "name": "Diagnostics"

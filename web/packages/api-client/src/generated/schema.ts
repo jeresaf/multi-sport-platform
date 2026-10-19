@@ -84,6 +84,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/public/v1/site": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the public site
+         * @description The tenant whose site this host serves: slug, display name and primary domain. The tenant comes from the request host (`X-Forwarded-Host` from a trusted proxy). Responses differ per host. Cacheable for a minute; send the `ETag` back as `If-None-Match` to get 304.
+         */
+        get: operations["GetSite"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/platform/v1/diagnostics/outbox": {
         parameters: {
             query?: never;
@@ -476,6 +496,15 @@ export interface components {
             reason: null | string;
         };
         /**
+         * @description The public site's identity: `PUBLIC` fields only. PrimaryDomain is the host the site
+         *     prefers, which may differ from the host the request came in on.
+         */
+        SiteResponse: {
+            slug: string;
+            displayName: string;
+            primaryDomain: string;
+        };
+        /**
          * @description A tenant as the platform API shows it. `version` is the row version: send it back with a change to
          *     make it fail with `409 TENANT_CONCURRENCY_CONFLICT` if someone else changed the tenant first.
          */
@@ -642,6 +671,51 @@ export interface operations {
             };
             /** @description Problem Details; `code`: `VALIDATION_INVALID_QUERY` */
             400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetSite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SiteResponse"];
+                };
+            };
+            /** @description Not Modified */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Problem Details; `code`: `TENANT_UNAVAILABLE` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TENANT_NOT_FOUND` */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

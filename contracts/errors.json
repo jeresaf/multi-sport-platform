@@ -69,13 +69,19 @@
     {
       "code": "TENANT_NOT_FOUND",
       "status": 404,
-      "message": "No tenant with this ID.",
+      "message": "No such tenant.",
       "owner": "Tenancy"
     },
     {
       "code": "TENANT_SLUG_TAKEN",
       "status": 409,
       "message": "This slug belongs to another tenant, possibly an archived one. Slugs are never reused.",
+      "owner": "Tenancy"
+    },
+    {
+      "code": "TENANT_UNAVAILABLE",
+      "status": 403,
+      "message": "This site is not available.",
       "owner": "Tenancy"
     },
     {
