@@ -70,8 +70,8 @@ public static class IsolationSamples
 
         public Entity Add(DbContext context)
         {
-            var profile = new TenantProfile("Entebbe Municipal Sports Council", "Entebbe Sports", "UG");
-            var tenant = Tenant.Create("entebbe-sports", profile, SystemActor.Instance, new DateTimeOffset(2026, 10, 1, 8, 0, 0, TimeSpan.Zero));
+            var profile = new TenantProfile("Eastern Lakes Schools Sports Council", "ELSSC", "UG");
+            var tenant = Tenant.Create("elssc", profile, SystemActor.Instance, new DateTimeOffset(2026, 10, 1, 8, 0, 0, TimeSpan.Zero));
             var settings = TenantSettings.Create(tenant.Id, TenantSettingsValues.Defaults("Africa/Kampala", "en-UG", "UGX", publicEnabled: true));
             context.AddRange(tenant, settings);
             return settings;
