@@ -7,15 +7,16 @@ at the start of every review.
 
 - **Current slice:** S02 — Tenancy core and isolation (docs/build/slices/S02-tenancy-core.md, as amended by the
   S01 slice review). S00 and S01 are done
-- **Current task:** S02-T3b — Public tenant resolution, domains and `/site` — in review, PR #35 (branch `s02/t3b-public-tenant-resolution`).
-  Owner (2026-10-19): tenant domains get a state machine (`PENDING_VERIFICATION → ACTIVE → DISABLED`), `tenant_domains`
-  is an RLS coverage exception, existing tenants get their subdomain from a post-migration step
-- **Next:** S02-T4 — Settings
+- **Current task:** S02-T4a — Settings move to `tenancy.tenant_settings` (branch `s02/t4a-tenant-settings`). Owner (2026-10-19):
+  all six settings (time zone, locale, currency, public visibility, `starting_soon_minutes`, `minor_registration_consent`)
+  live only in `tenant_settings`; the platform PATCH keeps accepting the four moved fields; `starting_soon_minutes`
+  default 30, range 5–180; T4 split into T4a (table and move) and T4b (admin endpoints, field-named body errors)
+- **Next:** S02-T4b — Admin settings endpoints
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S02-T4 — Settings
+1. S02-T4b — Admin settings endpoints
 2. S02-T5 — Public web shell and demo tenants
 
 ## Log
