@@ -7,12 +7,14 @@ namespace SportsPlatform.IntegrationTests.Infrastructure;
 
 /// <summary>
 /// Decides account actions as Identity's evaluator does (S03 D10) and denies everything else until a test allows it;
-/// records every request it is asked about.
+/// records every request it is asked about. <see cref="UseIdentityRoles"/> hands the app's requests to Identity's real
+/// evaluator instead (roles from the database), until <see cref="Reset"/>.
 /// </summary>
 public sealed class TestAuthorizationEvaluator : IAuthorizationEvaluator
 {
     private readonly ConcurrentDictionary<ActionCode, bool> _allowed = new();
     private volatile bool _allowAll;
+    private volatile bool _usesIdentityRoles;
 
     public ConcurrentQueue<AuthorizationRequest> Requests { get; } = new();
 
@@ -26,11 +28,17 @@ public sealed class TestAuthorizationEvaluator : IAuthorizationEvaluator
 
     public void AllowAll() => _allowAll = true;
 
+    /// <summary>Requests are decided by <c>IdentityAuthorizationEvaluator</c>, from the roles users hold.</summary>
+    public void UseIdentityRoles() => _usesIdentityRoles = true;
+
+    public bool UsesIdentityRoles => _usesIdentityRoles;
+
     /// <summary>Back to denying everything, with no recorded requests (each database test starts here).</summary>
     public void Reset()
     {
         _allowed.Clear();
         _allowAll = false;
+        _usesIdentityRoles = false;
         Requests.Clear();
     }
 

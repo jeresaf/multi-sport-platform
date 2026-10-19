@@ -3,8 +3,14 @@ using SportsPlatform.BuildingBlocks.Results;
 
 namespace SportsPlatform.BuildingBlocks.Actions;
 
-/// <summary>What is being authorized. The resource's scope chain is added with roles (S03).</summary>
-public sealed record AuthorizationRequest(ActionDefinition Action, ICurrentActor Actor);
+/// <summary>
+/// What is being authorized (S03 D10): the action, the actor, the request's resolved tenant (null when none is set) and,
+/// for a tenant action on a resource, that resource, whose scope chain can grant the action.
+/// </summary>
+public sealed record AuthorizationRequest(ActionDefinition Action, ICurrentActor Actor, Guid? TenantId = null, ScopeRef? Scope = null);
+
+/// <summary>A resource a role can be assigned at, such as a competition or a team: the start of its scope chain.</summary>
+public sealed record ScopeRef(AssignmentScope Type, Guid Id);
 
 /// <summary>
 /// Decides whether the actor may perform the action: access mode, entitlement, scoped permission

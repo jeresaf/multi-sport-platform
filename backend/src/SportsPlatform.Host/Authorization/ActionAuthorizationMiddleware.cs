@@ -60,7 +60,7 @@ internal sealed class ActionAuthorizationMiddleware(RequestDelegate next)
             return;
         }
 
-        var request = new AuthorizationRequest(action, actor);
+        var request = new AuthorizationRequest(action, actor, services.GetRequiredService<ITenantContext>().TenantId);
         var result = await services.GetRequiredService<IAuthorizationEvaluator>().AuthorizeAsync(request, context.RequestAborted);
         if (result.IsFailure)
         {

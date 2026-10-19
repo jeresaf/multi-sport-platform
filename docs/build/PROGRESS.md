@@ -7,16 +7,15 @@ at the start of every review.
 
 - **Current slice:** S03 — Identity and access (docs/build/slices/S03-identity-access.md, rewritten by the S02 slice
   review). S00, S01 and S02 are done
-- **Current task:** S03-T2b — Passwords and rate limits (forgot/reset/change, reset email, 429) — in review (#44)
-- **Next:** S03-T3 — Roles in code, platform roles and the evaluator
+- **Current task:** S03-T3 — Roles in code, platform roles and the evaluator — in progress
+- **Next:** S03-T4 — Memberships, invitations and tenant roles
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S03-T3 — Roles in code, platform roles and the evaluator
-2. S03-T4 — Memberships, invitations and tenant roles (likely two PRs: T4a, T4b)
-3. S03-T5 — Capabilities and the authorization matrix
-4. S03-T6 — Admin web: sign-in, shell, members, platform console (likely two PRs: T6a, T6b)
+1. S03-T4 — Memberships, invitations and tenant roles (likely two PRs: T4a, T4b)
+2. S03-T5 — Capabilities and the authorization matrix
+3. S03-T6 — Admin web: sign-in, shell, members, platform console (likely two PRs: T6a, T6b)
 
 ## Log
 
