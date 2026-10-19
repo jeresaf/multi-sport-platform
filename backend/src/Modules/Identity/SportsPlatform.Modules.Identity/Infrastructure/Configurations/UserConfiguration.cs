@@ -17,6 +17,8 @@ internal sealed class UserConfiguration :
 {
     public const string NormalizedEmailIndex = "ix_users_normalized_email";
 
+    public const string NormalizedUserNameIndex = "ix_users_normalized_user_name";
+
     // ADR-0015: contacts are PRIVATE (docs/architecture/data-conventions.md).
     private const string _pii = "pii";
     private const string _private = "PRIVATE";
@@ -37,7 +39,7 @@ internal sealed class UserConfiguration :
         builder.Property(u => u.NormalizedEmail).HasMaxLength(_maxLength).HasAnnotation(_pii, _private);
         builder.Property(u => u.PhoneNumber).HasMaxLength(_maxLength).HasAnnotation(_pii, _private);
 
-        builder.HasIndex(u => u.NormalizedUserName).IsUnique();
+        builder.HasIndex(u => u.NormalizedUserName).IsUnique().HasDatabaseName(NormalizedUserNameIndex);
         builder.HasIndex(u => u.NormalizedEmail).IsUnique().HasDatabaseName(NormalizedEmailIndex);
 
         builder.HasMany<IdentityUserClaim<Guid>>().WithOne().HasForeignKey(c => c.UserId).IsRequired();

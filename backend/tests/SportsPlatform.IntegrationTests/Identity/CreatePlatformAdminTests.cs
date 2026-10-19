@@ -127,10 +127,12 @@ public sealed class CreatePlatformAdminTests(PostgresFixture fixture) : Database
         (await AssignmentsAsync()).ShouldBeEmpty();
     }
 
-    [Fact]
-    public async Task Refuses_an_invalid_email()
+    [Theory]
+    [InlineData("ruth.akello")]
+    [InlineData("   ")]
+    public async Task Refuses_an_invalid_email(string email)
     {
-        var run = await RunAsync(["--email", "ruth.akello"], TestPasswords.New());
+        var run = await RunAsync(["--email", email], TestPasswords.New());
 
         run.ExitCode.ShouldBe(1);
         run.Error.ShouldStartWith("VALIDATION_INVALID_REQUEST:");

@@ -27,7 +27,11 @@ public sealed class CreatePlatformAdminHandler(
 
     public async Task<Result<Guid>> HandleAsync(string email, string? password, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(email);
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            return CommonErrors.InvalidRequest;
+        }
+
         if (string.IsNullOrEmpty(password))
         {
             return IdentityErrors.PasswordRejected;
@@ -68,10 +72,11 @@ public sealed class CreatePlatformAdminHandler(
         }
         catch (DbUpdateException exception) when (exception.InnerException is PostgresException
         {
-            SqlState: PostgresErrorCodes.UniqueViolation, ConstraintName: UserConfiguration.NormalizedEmailIndex,
+            SqlState: PostgresErrorCodes.UniqueViolation,
+            ConstraintName: UserConfiguration.NormalizedEmailIndex or UserConfiguration.NormalizedUserNameIndex,
         })
         {
-            // Another run created the email between the check and the insert.
+            // Another run created the email between the check and the insert (the user name is the email too).
             return IdentityErrors.UserExists;
         }
     }

@@ -201,6 +201,9 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
   PATCH (`UpdateTenantSettingsRequest`) has the same `required` problem; strict-body requests are components named by
   short type name, so two such types with one name would share a schema (S02-T4b pre-review). (T6)
 - shadcn/ui is not initialised yet (ADR-0011); do it with the first real admin UI (S03). `Button` is hand-written. (T6)
+- The CLI's Serilog → `LogLevel` mapping (`UseHostLogLevels`, S03-T1a) has no test; move it into the Host and unit-test it
+  if the CLI's logging grows (T1a pre-review N2). The `create-platform-admin` unique-index race path has no test (two
+  concurrent runs) (T1a pre-review M2). (Later)
 - Decided: anonymous denials keep one row each; volume limited at the edge and by login/forgot rate limits (S03 D3,
   decides #23 R2) (T2).
 
