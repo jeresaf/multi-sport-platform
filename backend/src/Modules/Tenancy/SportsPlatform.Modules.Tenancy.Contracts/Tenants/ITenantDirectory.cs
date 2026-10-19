@@ -18,5 +18,8 @@ public interface ITenantDirectory
     Task<Result<TenantSummary>> GetByHostAsync(string host, CancellationToken cancellationToken);
 }
 
-/// <summary>A tenant's identity and visibility; no profile data.</summary>
-public sealed record TenantSummary(Guid Id, string Slug, TenantStatus Status, bool PublicEnabled);
+/// <summary>
+/// A tenant's identity and status; no profile data. Whether its public site is enabled is a tenant-owned setting:
+/// <c>ITenantAccess.CheckPublicAccessAsync</c> reads it under the tenant.
+/// </summary>
+public sealed record TenantSummary(Guid Id, string Slug, TenantStatus Status);

@@ -21,8 +21,6 @@ internal sealed class TenantConfiguration : IEntityTypeConfiguration<Tenant>
             table.HasCheckConstraint("ck_tenants_status", $"status IN ({StatusValues.TenantStatuses})");
             table.HasCheckConstraint("ck_tenants_slug", $"slug ~ '{TenantSlug.Pattern}'");
             table.HasCheckConstraint("ck_tenants_country_code", "country_code ~ '^[A-Z]{2}$'");
-            table.HasCheckConstraint("ck_tenants_currency_code", "currency_code ~ '^[A-Z]{3}$'");
-            table.HasCheckConstraint("ck_tenants_default_locale", "default_locale ~ '^[a-z]{2}(-[A-Z]{2})?$'");
         });
 
         // "C": byte order, so the list (sorted by slug) pages the same way in every database.
@@ -30,9 +28,6 @@ internal sealed class TenantConfiguration : IEntityTypeConfiguration<Tenant>
         builder.Property(t => t.LegalName).HasMaxLength(TenantProfile.LegalNameMaxLength);
         builder.Property(t => t.DisplayName).HasMaxLength(TenantProfile.DisplayNameMaxLength);
         builder.Property(t => t.CountryCode).HasMaxLength(2);
-        builder.Property(t => t.TimeZone).HasMaxLength(64);
-        builder.Property(t => t.DefaultLocale).HasMaxLength(5);
-        builder.Property(t => t.CurrencyCode).HasMaxLength(3);
         builder.Property(t => t.Status).HasConversion(StatusValues.UpperSnake<TenantStatus>()).HasMaxLength(20);
 
         builder.Ignore(t => t.Profile);

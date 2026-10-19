@@ -3,6 +3,7 @@ using SportsPlatform.BuildingBlocks.Api;
 using SportsPlatform.BuildingBlocks.Auditing;
 using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Results;
+using SportsPlatform.Modules.Tenancy.Domain.Settings;
 using SportsPlatform.Modules.Tenancy.Domain.Tenants;
 using SportsPlatform.Modules.Tenancy.Features.Domains;
 using SportsPlatform.Modules.Tenancy.Infrastructure;
@@ -10,10 +11,13 @@ using SportsPlatform.Modules.Tenancy.Infrastructure;
 namespace SportsPlatform.Modules.Tenancy.Features.Tenants.UpdateTenantProfile;
 
 /// <summary>
-/// Changes the fields sent, in any status. The Host runs it under the route's tenant (S02 D2). A sent <c>version</c> or
-/// <c>If-Match</c> that is not the current version, or a change saved by someone else in between, is
-/// <c>TENANT_CONCURRENCY_CONFLICT</c>. A request that
-/// changes nothing saves nothing (the Host still audits it).
+/// Changes the fields sent, in any status: the tenant's profile and, for the time zone, locale, currency and public
+/// site, its settings row. The Host runs it under the route's tenant (S02 D2). A sent <c>version</c> or
+/// <c>If-Match</c> that is not the tenant's current version, or a change to either row saved by someone else in
+/// between, is <c>TENANT_CONCURRENCY_CONFLICT</c>. The version is the tenant row's, and a settings-only save doesn't
+/// change it: any settings change after the caller's read, including one through this endpoint, is not detected (last
+/// write wins; accepted by the owner, S02-T4 plan). A request that changes nothing saves nothing (the Host still audits
+/// it).
 /// </summary>
 public sealed class UpdateTenantProfileHandler(TenancyDbContext context, AuditScope audit, TenantHostCache hostCache)
 {
@@ -36,30 +40,37 @@ public sealed class UpdateTenantProfileHandler(TenancyDbContext context, AuditSc
             return TenancyErrors.ConcurrencyConflict;
         }
 
-        var current = tenant.Profile;
-        var changed = tenant.UpdateProfile(current with
+        // Settings are tenant-owned: visible because the Host runs this under the route's tenant.
+        var settings = await context.Set<TenantSettings>().SingleAsync(x => x.TenantId == tenantId, cancellationToken);
+        var currentProfile = tenant.Profile;
+        var profileChanged = tenant.UpdateProfile(new TenantProfile(
+            request.LegalName?.Trim() ?? currentProfile.LegalName,
+            request.DisplayName?.Trim() ?? currentProfile.DisplayName,
+            request.CountryCode ?? currentProfile.CountryCode));
+        var currentSettings = settings.Values;
+        var settingsChanged = settings.Update(currentSettings with
         {
-            LegalName = request.LegalName?.Trim() ?? current.LegalName,
-            DisplayName = request.DisplayName?.Trim() ?? current.DisplayName,
-            CountryCode = request.CountryCode ?? current.CountryCode,
-            TimeZone = request.TimeZone ?? current.TimeZone,
-            DefaultLocale = request.DefaultLocale ?? current.DefaultLocale,
-            CurrencyCode = request.CurrencyCode ?? current.CurrencyCode,
-            PublicEnabled = request.PublicEnabled ?? current.PublicEnabled,
+            TimeZone = request.TimeZone ?? currentSettings.TimeZone,
+            DefaultLocale = request.DefaultLocale ?? currentSettings.DefaultLocale,
+            CurrencyCode = request.CurrencyCode ?? currentSettings.CurrencyCode,
+            PublicEnabled = request.PublicEnabled ?? currentSettings.PublicEnabled,
         });
-        if (changed)
+        if (profileChanged || settingsChanged)
         {
             var saved = await context.SaveChangesResultAsync(cancellationToken);
             if (saved.IsFailure)
             {
                 return saved.Error;
             }
+        }
 
+        if (currentSettings.PublicEnabled != settings.PublicEnabled)
+        {
             // publicEnabled decides whether the public site is shown.
             hostCache.Clear();
         }
 
-        return Result.Success(TenantResponse.From(entry));
+        return Result.Success(TenantResponse.From(entry, settings));
     }
 
     private static string[] SentFields(UpdateTenantProfileRequest request) =>

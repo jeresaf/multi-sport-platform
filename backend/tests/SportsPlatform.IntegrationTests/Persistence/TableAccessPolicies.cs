@@ -44,6 +44,7 @@ public static class TableAccessPolicies
         ["tenancy.tenants"] = TableAccess.ReadWrite,
         ["tenancy.tenant_status_history"] = TableAccess.AppendOnly,
         ["tenancy.tenant_domains"] = TableAccess.ReadWrite,
+        ["tenancy.tenant_settings"] = TableAccess.ReadWrite,
 
         ["platform.outbox_messages"] = TableAccess.ReadWrite,
         ["platform.inbox_messages"] = TableAccess.ReadWrite,

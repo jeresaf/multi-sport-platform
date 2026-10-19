@@ -32,11 +32,18 @@ the scope's `TenantContext` once (D1), from the matched endpoint:
   route parameter. Other platform endpoints get no tenant, whatever headers are sent.
 - **Public endpoints marked `.RequirePublicTenant()`** (S02-T3b, D6): the tenant of the request host through
   `ITenantDirectory.GetByHostAsync`, which matches `ACTIVE` rows of `tenancy.tenant_domains` (host lower case, no port,
-  no trailing dot), else `404 TENANT_NOT_FOUND`; then `ITenantAccess.CheckPublicAccess`: only an `ACTIVE` tenant with
-  `publicEnabled` is shown, else `403 TENANT_UNAVAILABLE` (the body says nothing more). The startup check allows the
+  no trailing dot), else `404 TENANT_NOT_FOUND`; then the middleware sets the tenant and calls
+  `ITenantAccess.CheckPublicAccessAsync`: only an `ACTIVE` tenant whose settings have `publicEnabled` is shown, else
+  `403 TENANT_UNAVAILABLE` (the body says nothing more). The setting is tenant-owned, so it is read under the tenant
+  (S02-T4a); a refused request ends there, so the tenant it set reaches nothing else. The startup check allows the
   marker only on `.AllowPublic()` endpoints under `/api/public`. Other public endpoints (the reference lists) get no
   tenant and answer on any host.
 - **Outbox consumers and seeds:** unchanged (envelope tenant; owner contexts have none).
+
+**Tenant settings (S02-T4a).** `tenancy.tenant_settings` is the first tenant-owned business table: one row per tenant,
+created with the tenant, holding time zone, locale, currency, `publicEnabled`, `starting_soon_minutes` and
+`minor_registration_consent`. `tenancy.tenants` keeps only identity, names, country and status, so platform reads of
+one tenant (under the route tenant, D2) include the settings and the platform list (no tenant) doesn't.
 
 **Public resolution as built (S02-T3b).**
 - **Domains:** `tenancy.tenant_domains` is global (no RLS: hosts are looked up before a tenant is known; an RLS
@@ -51,9 +58,9 @@ the scope's `TenantContext` once (D1), from the matched endpoint:
   server runs. Only the host is forwarded, not the client address or scheme.
 - **Development override:** in Development only, `X-Tenant-Slug: <slug>` or `?tenant=<slug>` names the tenant instead
   of the host; the visibility check still applies.
-- **Cache:** host → tenant (summary with status and `publicEnabled`) in an in-process `TenantHostCache` for 60 s,
-  unknown hosts included. Creating a tenant, changing its status and changing its profile clear the whole cache after
-  they commit; other API instances catch up when their entries expire.
+- **Cache:** host → tenant (summary with status) and tenant → `publicEnabled` in an in-process `TenantHostCache` for
+  60 s, unknown hosts included. Creating a tenant, changing its status and changing `publicEnabled` clear the whole
+  cache after they commit; other API instances catch up when their entries expire.
 - **Shared caches:** tenant-public responses carry `Vary: X-Forwarded-Host` (and `X-Tenant-Slug` in Development).
 - Public refusals are not audited: public endpoints declare no action.
 

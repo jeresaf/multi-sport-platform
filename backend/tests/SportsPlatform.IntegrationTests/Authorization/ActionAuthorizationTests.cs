@@ -228,6 +228,7 @@ public sealed class ActionAuthorizationTests
 
         public Task<Result> CheckAdminAccessAsync(Guid tenantId, CancellationToken cancellationToken) => Task.FromResult(Result.Success());
 
-        public Result CheckPublicAccess(TenantSummary tenant) => Result.Success();
+        public Task<Result> CheckPublicAccessAsync(TenantSummary tenant, CancellationToken cancellationToken) =>
+            Task.FromResult(Result.Success());
     }
 }

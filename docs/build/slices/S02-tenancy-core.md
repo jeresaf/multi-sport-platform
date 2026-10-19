@@ -211,7 +211,7 @@ Deliver:
 
 Acceptance:
 - [ ] Unknown keys and wrongly typed values are rejected with `errors` entries naming the field.
-- [ ] The isolation harness covers `tenant_settings` (and fails if its builder is removed); the RLS coverage test
+- [x] The isolation harness covers `tenant_settings` (and fails if its builder is removed); the RLS coverage test
       sees its policy.
 - [ ] Cross-tenant API test: tenant B's admin can't read or change tenant A's settings (`403` for the header,
       no data either way).
@@ -311,3 +311,13 @@ proxies; with none configured forwarding is off, because the framework trusts ev
 `primaryDomain`, cacheable for one minute (no "public flags" yet: a 200 always means visible; T4 adds public
 visibility settings). Public refusals aren't audited (no action). `TENANT_NOT_FOUND`'s message is now "No such tenant."
 
+**T4a.** T4 is two PRs (owner, 2026-10-19): T4a the table and the move, T4b the admin endpoints. All six settings live
+only in `tenancy.tenant_settings` (owner): time zone, locale, currency and `publicEnabled` left `tenancy.tenants`, copied
+by the migration (SQL, before `EnableTenantRls`, since the migrator has no tenant; copied rows take the tenant's ID and
+audit columns). `starting_soon_minutes` defaults to 30 (5–180), `minor_registration_consent` to `RECOMMENDED`. Platform
+create and PATCH still take the four moved fields and write the settings row; the PATCH's `version`/`If-Match` guard
+the tenant row only (owner accepted: any settings change after the caller's read, platform or admin, isn't detected;
+last write wins). The platform list
+(`TenantListItem`) has no settings. Public resolution sets the tenant before `CheckPublicAccessAsync` reads
+`publicEnabled` under RLS; the value is cached with the host. `TenantSummary` lost `PublicEnabled`. Removing the
+settings sample fails `Every_tenant_owned_entity_has_a_sample` (checked locally).

@@ -6,6 +6,7 @@ using SportsPlatform.BuildingBlocks.Persistence.Messaging;
 using SportsPlatform.BuildingBlocks.Tenancy;
 using SportsPlatform.Modules.Tenancy.Contracts.Tenants;
 using SportsPlatform.Modules.Tenancy.Domain.Domains;
+using SportsPlatform.Modules.Tenancy.Domain.Settings;
 using SportsPlatform.Modules.Tenancy.Domain.Tenants;
 using SportsPlatform.Modules.Tenancy.Infrastructure;
 
@@ -48,8 +49,8 @@ internal static class TenantTestData
 
     /// <summary>
     /// A tenant saved straight through the module's DbContext, moved to <paramref name="status"/>, with its platform
-    /// subdomain <c>&lt;slug&gt;.localhost</c> (unless the overload says otherwise); under the new tenant, like
-    /// the handlers, because its status history is tenant-owned.
+    /// subdomain <c>&lt;slug&gt;.localhost</c> (unless the overload says otherwise) and default settings; under the new
+    /// tenant, like the handlers, because its status history and settings are tenant-owned.
     /// </summary>
     public static Task<Guid> SaveTenantAsync(IServiceProvider services, string slug, TenantStatus status, CancellationToken cancellationToken) =>
         SaveTenantAsync(services, slug, status, publicEnabled: false, withDomain: true, cancellationToken);
@@ -61,8 +62,7 @@ internal static class TenantTestData
         await using var scope = services.CreateAsyncScope();
         var context = scope.ServiceProvider.GetRequiredService<TenancyDbContext>();
         var now = new DateTimeOffset(2026, 10, 1, 8, 0, 0, TimeSpan.Zero);
-        var profile = new TenantProfile(
-            $"{slug} Sports Council", $"{slug} Sports", "UG", "Africa/Kampala", "en", "UGX", publicEnabled);
+        var profile = new TenantProfile($"{slug} Sports Council", $"{slug} Sports", "UG");
         var tenant = Tenant.Create(slug, profile, SystemActor.Instance, now);
         if (status != TenantStatus.Provisioning)
         {
@@ -80,6 +80,7 @@ internal static class TenantTestData
 
         scope.ServiceProvider.GetRequiredService<TenantContext>().Set(tenant.Id);
         context.Add(tenant);
+        context.Add(TenantSettings.Create(tenant.Id, TenantSettingsValues.Defaults("Africa/Kampala", "en", "UGX", publicEnabled)));
         if (withDomain)
         {
             context.Add(TenantDomain.PlatformSubdomain(tenant.Id, slug, "localhost"));
@@ -87,6 +88,15 @@ internal static class TenantTestData
 
         await context.SaveChangesAsync(cancellationToken);
         return tenant.Id;
+    }
+
+    /// <summary>A tenant's settings, read under that tenant (they are tenant-owned).</summary>
+    public static async Task<TenantSettings> SettingsAsync(IServiceProvider services, Guid tenantId, CancellationToken cancellationToken)
+    {
+        await using var scope = services.CreateAsyncScope();
+        scope.ServiceProvider.GetRequiredService<TenantContext>().Set(tenantId);
+        return await scope.ServiceProvider.GetRequiredService<TenancyDbContext>().Set<TenantSettings>().AsNoTracking()
+            .SingleAsync(s => s.TenantId == tenantId, cancellationToken);
     }
 
     /// <summary>A tenant's status history, read under that tenant (it is tenant-owned).</summary>

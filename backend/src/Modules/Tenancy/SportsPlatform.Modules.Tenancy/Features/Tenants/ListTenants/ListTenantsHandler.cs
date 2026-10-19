@@ -10,7 +10,7 @@ namespace SportsPlatform.Modules.Tenancy.Features.Tenants.ListTenants;
 /// <summary><paramref name="After"/> is the last slug of the previous page.</summary>
 public sealed record TenantQuery(TenantStatus? Status, int Limit, string? After);
 
-public sealed record ListTenantsResponse(IReadOnlyList<TenantResponse> Items, PageInfo Page);
+public sealed record ListTenantsResponse(IReadOnlyList<TenantListItem> Items, PageInfo Page);
 
 /// <summary>
 /// Every tenant, ordered by slug (ordinal, the slug's characters are ASCII). Saves nothing, so the Host writes this
@@ -38,7 +38,7 @@ public sealed class ListTenantsHandler(TenancyDbContext context, AuditScope audi
         var page = await tenants
             .OrderBy(t => t.Slug)
             .Take(query.Limit + 1)
-            .Select(TenantResponse.Projection)
+            .Select(TenantListItem.Projection)
             .ToListAsync(cancellationToken);
         var hasMore = page.Count > query.Limit;
         var items = page.Take(query.Limit).ToList();

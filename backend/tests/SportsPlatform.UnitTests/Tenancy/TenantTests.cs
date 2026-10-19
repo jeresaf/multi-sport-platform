@@ -12,7 +12,7 @@ public sealed class TenantTests
     private const string _reason = "Annual fee unpaid after three reminders";
     private static readonly DateTimeOffset _now = new(2026, 10, 18, 9, 0, 0, TimeSpan.Zero);
     private static readonly TenantProfile _profile = new(
-        "Kampala Metro Sports Association Limited", "Kampala Metro Sports Association", "UG", "Africa/Kampala", "en-UG", "UGX", false);
+        "Kampala Metro Sports Association Limited", "Kampala Metro Sports Association", "UG");
 
     public enum Transition
     {
@@ -140,11 +140,11 @@ public sealed class TenantTests
         var tenant = Tenant.Create("kmsa", _profile, SystemActor.Instance, _now);
 
         tenant.UpdateProfile(_profile).ShouldBeFalse();
-        tenant.UpdateProfile(_profile with { DisplayName = "KMSA", PublicEnabled = true }).ShouldBeTrue();
+        tenant.UpdateProfile(_profile with { DisplayName = "KMSA", CountryCode = "KE" }).ShouldBeTrue();
 
         tenant.ShouldSatisfyAllConditions(
             t => t.DisplayName.ShouldBe("KMSA"),
-            t => t.PublicEnabled.ShouldBeTrue(),
+            t => t.CountryCode.ShouldBe("KE"),
             t => t.LegalName.ShouldBe(_profile.LegalName),
             t => t.Status.ShouldBe(TenantStatus.Provisioning));
     }
