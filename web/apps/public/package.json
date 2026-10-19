@@ -8,9 +8,11 @@
     "build": "next build",
     "start": "next start --port 3000",
     "lint": "eslint . --max-warnings=0 && msp-check-css-colours app",
-    "typecheck": "next typegen && tsc --noEmit"
+    "typecheck": "next typegen && tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
+    "@msp/api-client": "workspace:*",
     "@msp/tokens": "workspace:*",
     "@msp/ui": "workspace:*",
     "next": "16.4.2",
@@ -26,6 +28,7 @@
     "eslint": "9.39.5",
     "eslint-config-next": "16.4.2",
     "tailwindcss": "4.3.3",
-    "typescript": "6.0.3"
+    "typescript": "6.0.3",
+    "vitest": "5.0.5"
   }
 }
