@@ -420,7 +420,7 @@ export interface components {
             page: components["schemas"]["PageInfo"];
         };
         ListTenantsResponse: {
-            items: components["schemas"]["TenantResponse"][];
+            items: components["schemas"]["TenantListItem"][];
             page: components["schemas"]["PageInfo"];
         };
         ListTimeZonesResponse: {
@@ -505,8 +505,28 @@ export interface components {
             primaryDomain: string;
         };
         /**
-         * @description A tenant as the platform API shows it. `version` is the row version: send it back with a change to
-         *     make it fail with `409 TENANT_CONCURRENCY_CONFLICT` if someone else changed the tenant first.
+         * @description A tenant in the platform list. No settings: the list runs under no tenant, and settings are tenant-owned (read one
+         *     tenant for them). `version` is the tenant row's, as in the detail.
+         */
+        TenantListItem: {
+            /** Format: uuid */
+            id: string;
+            slug: string;
+            legalName: string;
+            displayName: string;
+            countryCode: string;
+            status: components["schemas"]["TenantStatus"];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: uint32 */
+            version: number;
+        };
+        /**
+         * @description A tenant as the platform API shows it: the tenant and its main settings. Read under the tenant (the settings are
+         *     tenant-owned). `version`, `createdAt` and `updatedAt` are the tenant row's: send `version` back
+         *     with a change to make it fail with `409 TENANT_CONCURRENCY_CONFLICT` if someone else changed the tenant first.
          */
         TenantResponse: {
             /** Format: uuid */

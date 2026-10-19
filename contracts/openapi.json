@@ -1467,7 +1467,7 @@
           "items": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/TenantResponse"
+              "$ref": "#/components/schemas/TenantListItem"
             }
           },
           "page": {
@@ -1715,6 +1715,54 @@
         },
         "description": "The public site's identity: `PUBLIC` fields only. PrimaryDomain is the host the site\nprefers, which may differ from the host the request came in on."
       },
+      "TenantListItem": {
+        "required": [
+          "id",
+          "slug",
+          "legalName",
+          "displayName",
+          "countryCode",
+          "status",
+          "createdAt",
+          "updatedAt",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "legalName": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "countryCode": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TenantStatus"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "version": {
+            "type": "integer",
+            "format": "uint32"
+          }
+        },
+        "description": "A tenant in the platform list. No settings: the list runs under no tenant, and settings are tenant-owned (read one\ntenant for them). `version` is the tenant row's, as in the detail."
+      },
       "TenantResponse": {
         "required": [
           "id",
@@ -1777,7 +1825,7 @@
             "format": "uint32"
           }
         },
-        "description": "A tenant as the platform API shows it. `version` is the row version: send it back with a change to\nmake it fail with `409 TENANT_CONCURRENCY_CONFLICT` if someone else changed the tenant first."
+        "description": "A tenant as the platform API shows it: the tenant and its main settings. Read under the tenant (the settings are\ntenant-owned). `version`, `createdAt` and `updatedAt` are the tenant row's: send `version` back\nwith a change to make it fail with `409 TENANT_CONCURRENCY_CONFLICT` if someone else changed the tenant first."
       },
       "TenantStatus": {
         "enum": [
