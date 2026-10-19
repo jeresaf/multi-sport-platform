@@ -59,7 +59,8 @@ public sealed class DemoTenantSeeder : ISeeder
             var created = status is null;
             if (created)
             {
-                await context.RunCommandAsync(TenancyActions.TenantCreate, id, (services, ct) => CreateAsync(services, demo, id, ct), cancellationToken);
+                // No tenant yet: the handler checks the slug first and sets the new tenant before its save (S02 D1, #30 R2).
+                await context.RunCommandAsync(TenancyActions.TenantCreate, tenantId: null, (services, ct) => CreateAsync(services, demo, id, ct), cancellationToken);
                 status = TenantStatus.Provisioning;
             }
 

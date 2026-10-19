@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.BuildingBlocks.Auditing;
 using SportsPlatform.BuildingBlocks.Domain;
+using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Persistence.Messaging;
 using SportsPlatform.BuildingBlocks.Persistence.Seeding;
 using SportsPlatform.BuildingBlocks.Tenancy;
@@ -66,6 +67,39 @@ public sealed class SeedContextTests(PostgresFixture fixture) : DatabaseTest(fix
             () => App.Services.GetRequiredService<SeedRunner>().RunAsync(new SeedRequest(SeedCategory.Demo), Ct));
 
         exception.Message.ShouldContain("saved nothing");
+    }
+
+    [Fact]
+    public async Task A_command_that_fails_stops_the_run_and_records_nothing_for_its_seeder()
+    {
+        App.Seeds.DemoWork = (context, ct) => context.RunCommandAsync<bool>(
+            AuthorizationTestActions.FixtureCreate, _kmsaId, (_, _) => throw new InvalidOperationException("Fixture venue is closed (test)."), ct);
+
+        await Should.ThrowAsync<InvalidOperationException>(
+            () => App.Services.GetRequiredService<SeedRunner>().RunAsync(new SeedRequest(SeedCategory.Demo), Ct));
+
+        (await QueryAsync(DatabaseRoles.App, "SELECT count(*) FROM platform.seed_runs WHERE seeder_key = 'test.demo.probe'", reader => reader.GetInt64(0)))
+            .ShouldHaveSingleItem().ShouldBe(0);
+        (await ProcessedAuditEntriesAsync()).ShouldNotContain(e => e.ActionCode == "fixture.create");
+    }
+
+    [Fact]
+    public async Task A_command_without_a_tenant_leaves_the_scope_tenant_unset_for_the_command_to_set()
+    {
+        App.Seeds.DemoWork = (context, ct) => context.RunCommandAsync(AuthorizationTestActions.FixtureCreate, tenantId: null, async (services, token) =>
+        {
+            var tenant = services.GetRequiredService<TenantContext>();
+            tenant.TenantId.ShouldBeNull();
+            tenant.Set(_elsscId); // As tenant creation does, after its global slug check.
+            var db = services.GetRequiredService<MessagingTestDbContext>();
+            db.Probes.Add(new MessagingProbe("Lakeshore High School Pitch"));
+            await db.SaveChangesAsync(token);
+            return true;
+        }, ct);
+
+        await App.Services.GetRequiredService<SeedRunner>().RunAsync(new SeedRequest(SeedCategory.Demo), Ct);
+
+        (await ProcessedAuditEntriesAsync()).ShouldContain(e => e.ActionCode == "fixture.create" && e.TenantId == _elsscId);
     }
 
     [Fact]

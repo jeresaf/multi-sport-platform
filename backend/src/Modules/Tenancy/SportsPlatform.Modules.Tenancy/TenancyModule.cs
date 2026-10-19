@@ -75,9 +75,8 @@ public sealed class TenancyModule : IModule
         services.AddScoped<GetTenantSettingsHandler>();
         services.AddScoped<UpdateTenantSettingsHandler>();
         services.AddScoped<IValidator<UpdateTenantSettingsRequest>, UpdateTenantSettingsRequestValidator>();
-
-        services.AddSeeder<DemoTenantSeeder>();
         services.AddSingleton<IValidator<ChangeTenantStatusWithReasonRequest>, ChangeTenantStatusWithReasonRequestValidator>();
+        services.AddSeeder<DemoTenantSeeder>();
         services.AddDomainEventSubscriber<TenantCreatedDomainEvent, PublishTenantCreated>();
         services.AddDomainEventSubscriber<TenantStatusChangedDomainEvent, PublishTenantStatusChanged>();
     }

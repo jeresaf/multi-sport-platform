@@ -88,7 +88,7 @@ public sealed class DemoTenantSeederTests(PostgresFixture fixture) : DatabaseTes
         (await TenantTestData.OutboxAsync(App.Services, Ct)).ShouldAllBe(m => m.ProcessedAt != null); // Nothing new to publish.
         (await TenantTestData.HistoryAsync(App.Services, _kmsaId, Ct)).Count.ShouldBe(history.Count);
         (await TenantTestData.TenantAsync(App.Services, _kmsaId, Ct)).Version.ShouldBe(version);
-        (await AuditTestData.EntriesAsync(App.Services, Ct)).Count.ShouldBe(6);
+        (await ProcessedAuditEntriesAsync()).Count.ShouldBe(6);
     }
 
     [Fact]

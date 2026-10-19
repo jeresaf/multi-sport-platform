@@ -47,8 +47,8 @@ public sealed class SeedContext : IAsyncDisposable
 
     /// <summary>
     /// Runs one application command as it would run in a request, in a new scope of its own (DEMO and TEST only): the
-    /// scope runs under <paramref name="tenantId"/> (set once, before the command opens a connection, S02 D1; null for
-    /// none) as the system actor, and its audit begins with <paramref name="action"/> and source <c>SYSTEM</c>. The
+    /// scope runs under <paramref name="tenantId"/> (set once, before the command opens a connection, S02 D1; null
+    /// leaves it unset, for a command that sets its own, like tenant creation) as the system actor, and its audit begins with <paramref name="action"/> and source <c>SYSTEM</c>. The
     /// command's first save commits the audit entry with the change. A seeder calls a command only for a change: one
     /// that saves nothing, or fails, leaves its audit unwritten and throws, which stops the run.
     /// </summary>
@@ -113,7 +113,11 @@ public sealed class SeedContext : IAsyncDisposable
     private AsyncServiceScope CreateTenantScope(Guid? tenantId)
     {
         var scope = Services.GetRequiredService<IServiceScopeFactory>().CreateAsyncScope();
-        scope.ServiceProvider.GetRequiredService<TenantContext>().Set(tenantId);
+        if (tenantId is not null)
+        {
+            scope.ServiceProvider.GetRequiredService<TenantContext>().Set(tenantId);
+        }
+
         return scope;
     }
 }

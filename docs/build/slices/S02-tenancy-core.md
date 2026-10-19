@@ -335,7 +335,8 @@ off clears the host cache. The Host documents the pipeline's 403s in OpenAPI on 
 
 **T5a.** T5 is two PRs (owner, 2026-10-19): T5a seeding and DEMO tenants, T5b the public web shell and e2e against the
 real API. `SeedContext.RunCommandAsync` runs each command in a new scope (tenant set once, system actor, audit begun as
-`SYSTEM`); a command that leaves its audit unwritten (saved nothing, or failed) throws. `QueryAsTenantAsync` reads under
+`SYSTEM`; tenant creation runs with none and sets the new tenant itself, so a taken slug is still audited without one);
+a command that leaves its audit unwritten (saved nothing, or failed) throws. `QueryAsTenantAsync` reads under
 a tenant without auditing. `tenancy.demo.tenants` creates KMSA and ELSSC with `DeterministicIds.Create("tenancy.tenant:<slug>")`
 (`CreateTenantHandler` takes the ID; the API never sends one), activates a `PROVISIONING` one and changes settings that
 differ: `UG`, `Africa/Kampala`, `en-UG`, `UGX`, `publicEnabled`, consent `REQUIRED` (owner). A tenant in another status
