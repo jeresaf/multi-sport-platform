@@ -55,6 +55,8 @@ public sealed class LoginHandler(
             // retried rather than answered with a 409, which an unknown email could never get.
             if (!await SaveAsync(user, () => users.ResetAccessFailedCountAsync(user), cancellationToken))
             {
+                // Still conflicting after the retries: refused like any sign-in, on purpose; a 409 would tell the caller
+                // the account exists. The user tries again.
                 return Result.Failure(IdentityErrors.InvalidCredentials);
             }
 

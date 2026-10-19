@@ -187,6 +187,9 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
   Fix with defaults on the request records or a schema/operation transformer (S02-T1b pre-review). The admin settings
   PATCH (`UpdateTenantSettingsRequest`) has the same `required` problem; strict-body requests are components named by
   short type name, so two such types with one name would share a schema (S02-T4b pre-review). (T6)
+- Admin web sign-out (#43 N2): `POST /api/account/v1/logout` needs a session, so an idle-expired one answers 401; treat
+  401 from logout as "signed out". Audit screens (#43 N1): a successful sign-in is audited with actor `ANONYMOUS` and
+  entity = the user; if the screens filter by actor, consider recording it as the user. (T6)
 - shadcn/ui is not initialised yet (ADR-0011); do it with the first real admin UI (S03). `Button` is hand-written. (T6)
 - Logout deletes the cookie only (no server-side session store): a copied cookie lives until it expires or the
   security stamp changes. Identity's lockout uses the system clock (`UserManager` takes no `TimeProvider`). (Later,
