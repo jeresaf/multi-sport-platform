@@ -36,6 +36,7 @@ public static class SportsPlatformApp
 
         // Fail closed: the API (and the CLI's export) won't build with an endpoint that declares no action.
         app.EnsureEndpointsDeclareActions(ActionCatalogue.Build(ModuleRegistry.All));
+        app.EnsureRequestValidators();
 
         return app;
     }
@@ -49,15 +50,13 @@ public static class SportsPlatformApp
         builder.Services.AddApiConventions(builder.Configuration);
         builder.Services.AddHealthEndpoints();
         builder.Services.AddApiDocumentation();
-        builder.Services.AddAuthentication();
         builder.Services.AddForwardedHost(builder.Configuration);
         builder.Services.AddTenantResolution();
-        builder.Services.AddActionAuthorization();
     }
 
     /// <summary>
-    /// The middleware, in order (docs/architecture/authorization.md, S02 D8): forwarded host → logging and correlation → routing → actor
-    /// → audit → tenant resolution → authorization → endpoint. Tests that need their own endpoints run this too.
+    /// The middleware, in order (docs/architecture/authorization.md, S02 D8, S03 D7): forwarded host → logging and
+    /// correlation → routing → actor → audit → CSRF → tenant resolution → authorization → endpoint. Tests that need their own endpoints run this too.
     /// </summary>
     public static void UsePipeline(WebApplication app)
     {
@@ -69,6 +68,7 @@ public static class SportsPlatformApp
         app.UseRouting();
         app.UseCurrentActor();
         app.UseAudit();
+        app.UseCsrfProtection();
         app.UseTenantResolution();
         app.UseActionAuthorization();
     }

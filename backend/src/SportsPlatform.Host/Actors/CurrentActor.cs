@@ -5,7 +5,7 @@ namespace SportsPlatform.Host.Actors;
 public static class CurrentActor
 {
     /// <summary>The claim that carries an authenticated user's ID.</summary>
-    public const string UserIdClaim = "sub";
+    public const string UserIdClaim = ActorClaims.UserId;
 
     /// <summary>The scoped actor, the system actor unless a request sets it. Shared by the API and the CLI.</summary>
     public static IServiceCollection AddCurrentActor(this IServiceCollection services)
@@ -15,7 +15,7 @@ public static class CurrentActor
         return services;
     }
 
-    /// <summary>Authenticates (no scheme before S03; the Testing environment adds one) and sets the actor.</summary>
+    /// <summary>Authenticates (the session cookie, S03 D5) and sets the actor.</summary>
     public static IApplicationBuilder UseCurrentActor(this IApplicationBuilder app)
     {
         app.UseAuthentication();

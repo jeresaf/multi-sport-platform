@@ -25,8 +25,9 @@ status changes.
 
 **As built (S02-T3a).** The Host's `TenantResolutionMiddleware` runs after audit and before authorization and sets
 the scope's `TenantContext` once (D1), from the matched endpoint:
-- **Tenant actions (admin API):** `X-Tenant-Id` must be a GUID of a tenant the actor is a member of
-  (`ITenantMembershipChecker`; the Host default grants none until S03), else `403 AUTH_TENANT_FORBIDDEN`.
+- **Tenant actions (admin API):** a caller who is not signed in gets `401 AUTH_UNAUTHENTICATED` before the header is
+  looked at (S03 D4). `X-Tenant-Id` must be a GUID of a tenant the actor is a member of
+  (`ITenantMembershipChecker`; the Host default grants none until S03-T4), else `403 AUTH_TENANT_FORBIDDEN`.
 - **Platform endpoints marked `.RunsUnderRouteTenant()`** (`/tenants/{tenantId}/…`): the route's tenant through
   `ITenantDirectory.GetByIdAsync`, else `404 TENANT_NOT_FOUND`. The startup check requires a platform action and the
   route parameter. Other platform endpoints get no tenant, whatever headers are sent.

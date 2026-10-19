@@ -18,7 +18,15 @@ public sealed class HostOnlyApp : WebApplicationFactory<Program>
 {
     public const string ScopeTenantHeader = "X-Test-Scope-Tenant";
 
+    public HostOnlyApp() => TestAuthentication.UseHttps(ClientOptions);
+
     public TelemetryCapture Telemetry { get; } = new();
+
+    protected override void ConfigureClient(HttpClient client)
+    {
+        base.ConfigureClient(client);
+        TestAuthentication.ConfigureTestClient(client);
+    }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {

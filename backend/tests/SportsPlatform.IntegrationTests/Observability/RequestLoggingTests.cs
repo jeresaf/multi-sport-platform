@@ -25,8 +25,9 @@ public sealed class RequestLoggingTests(HostOnlyApp app) : IClassFixture<HostOnl
         var logEvent = await app.Telemetry.WaitForRequestLogAsync("/fixtures-board");
         logEvent.Level.ShouldBe(LogEventLevel.Information);
         Scalar(logEvent, RequestContextEnricher.CorrelationId).ShouldBe("kmsa-req-0001");
-        Scalar(logEvent, RequestContextEnricher.ActorKind).ShouldBe(nameof(ActorKind.System));
-        Scalar(logEvent, RequestContextEnricher.ActorId).ShouldBe(SystemActor.Id);
+        // A request from a caller who is not signed in is the anonymous actor's (S03 D3; S01 #17 R1).
+        Scalar(logEvent, RequestContextEnricher.ActorKind).ShouldBe(nameof(ActorKind.Anonymous));
+        Scalar(logEvent, RequestContextEnricher.ActorId).ShouldBe(AnonymousActor.Id);
         Scalar(logEvent, "StatusCode").ShouldBe(404);
         logEvent.Properties.ShouldNotContainKey(RequestContextEnricher.TenantId);
     }

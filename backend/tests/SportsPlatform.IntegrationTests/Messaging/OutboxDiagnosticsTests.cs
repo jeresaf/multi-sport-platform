@@ -10,6 +10,7 @@ using SportsPlatform.BuildingBlocks.Persistence.Messaging;
 using SportsPlatform.IntegrationTests.Api;
 using SportsPlatform.IntegrationTests.Infrastructure;
 using SportsPlatform.IntegrationTests.Persistence;
+using SportsPlatform.IntegrationTests.Tenancy;
 using SportsPlatform.Modules.Platform;
 using SportsPlatform.Modules.Platform.Features.Outbox;
 using SportsPlatform.Modules.Platform.Features.Outbox.ListOutboxMessages;
@@ -39,7 +40,7 @@ public sealed class OutboxDiagnosticsTests : DatabaseTest
         var failed = (await ListAsync("?status=FAILED")).Items.ShouldHaveSingleItem();
 
         App.Consumers.FlakyFailuresLeft = 0; // the fix
-        using var client = App.CreateClient();
+        using var client = App.CreateClient().AsUser(TenantTestData.StaffId);
         using var response = await RedriveAsync(client, MessagingTestDbContext.SchemaName, failed.Id);
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -61,7 +62,7 @@ public sealed class OutboxDiagnosticsTests : DatabaseTest
         App.Authorization.Allow(PlatformActions.OutboxRead);
         await CreateProbeAsync();
         await FailFirstMessageAsync();
-        using var client = App.CreateClient();
+        using var client = App.CreateClient().AsUser(TenantTestData.StaffId);
 
         using var response = await client.GetAsync(new Uri($"{_listPath}?status=FAILED", UriKind.Relative), Ct);
 
@@ -138,7 +139,7 @@ public sealed class OutboxDiagnosticsTests : DatabaseTest
     public async Task Invalid_query_is_rejected(string query, string field)
     {
         App.Authorization.Allow(PlatformActions.OutboxRead);
-        using var client = App.CreateClient();
+        using var client = App.CreateClient().AsUser(TenantTestData.StaffId);
 
         using var response = await client.GetAsync(new Uri(_listPath + query, UriKind.Relative), Ct);
 
@@ -151,7 +152,7 @@ public sealed class OutboxDiagnosticsTests : DatabaseTest
     public async Task Every_invalid_parameter_is_listed()
     {
         App.Authorization.Allow(PlatformActions.OutboxRead);
-        using var client = App.CreateClient();
+        using var client = App.CreateClient().AsUser(TenantTestData.StaffId);
 
         using var response = await client.GetAsync(new Uri($"{_listPath}?status=RETRYING&limit=0", UriKind.Relative), Ct);
 
@@ -165,7 +166,7 @@ public sealed class OutboxDiagnosticsTests : DatabaseTest
         App.Authorization.Allow(PlatformActions.OutboxRedrive);
         await CreateProbeAsync();
         var pending = (await OutboxAsync()).ShouldHaveSingleItem();
-        using var client = App.CreateClient();
+        using var client = App.CreateClient().AsUser(TenantTestData.StaffId);
 
         using var response = await RedriveAsync(client, MessagingTestDbContext.SchemaName, pending.Id);
 
@@ -179,7 +180,7 @@ public sealed class OutboxDiagnosticsTests : DatabaseTest
         await CreateProbeAsync();
         await FailFirstMessageAsync();
         var failed = (await OutboxAsync()).ShouldHaveSingleItem();
-        using var client = App.CreateClient();
+        using var client = App.CreateClient().AsUser(TenantTestData.StaffId);
 
         using (var first = await RedriveAsync(client, MessagingTestDbContext.SchemaName, failed.Id))
         {
@@ -197,7 +198,7 @@ public sealed class OutboxDiagnosticsTests : DatabaseTest
         await CreateProbeAsync();
         await FailFirstMessageAsync();
         var failed = (await OutboxAsync()).ShouldHaveSingleItem();
-        using var client = App.CreateClient();
+        using var client = App.CreateClient().AsUser(TenantTestData.StaffId);
 
         using var unknownId = await RedriveAsync(client, MessagingTestDbContext.SchemaName, Guid.CreateVersion7());
         await unknownId.ShouldBeProblemAsync(HttpStatusCode.NotFound, "PLATFORM_OUTBOX_MESSAGE_NOT_FOUND");
@@ -223,7 +224,7 @@ public sealed class OutboxDiagnosticsTests : DatabaseTest
             body = JsonSerializer.Serialize(new { reason = new string('x', 501) });
         }
 
-        using var client = App.CreateClient();
+        using var client = App.CreateClient().AsUser(TenantTestData.StaffId);
         using var content = new StringContent(body, Encoding.UTF8, "application/json");
         using var response = await client.PostAsync(RedrivePath(MessagingTestDbContext.SchemaName, failed.Id), content, Ct);
 
@@ -240,7 +241,7 @@ public sealed class OutboxDiagnosticsTests : DatabaseTest
         await FailFirstMessageAsync();
         var failed = (await OutboxAsync()).ShouldHaveSingleItem();
 
-        using var client = App.CreateClient();
+        using var client = App.CreateClient().AsUser(TenantTestData.StaffId);
         using var response = await client.PostAsync(RedrivePath(MessagingTestDbContext.SchemaName, failed.Id), null, Ct);
 
         await response.ShouldBeProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_MALFORMED_REQUEST");
@@ -251,7 +252,7 @@ public sealed class OutboxDiagnosticsTests : DatabaseTest
     public async Task List_is_denied_without_the_read_action()
     {
         App.Authorization.Allow(PlatformActions.OutboxRedrive);
-        using var client = App.CreateClient();
+        using var client = App.CreateClient().AsUser(TenantTestData.StaffId);
 
         using var response = await client.GetAsync(new Uri(_listPath, UriKind.Relative), Ct);
 
@@ -263,7 +264,7 @@ public sealed class OutboxDiagnosticsTests : DatabaseTest
     public async Task List_is_allowed_with_the_read_action()
     {
         App.Authorization.Allow(PlatformActions.OutboxRead);
-        using var client = App.CreateClient();
+        using var client = App.CreateClient().AsUser(TenantTestData.StaffId);
 
         using var response = await client.GetAsync(new Uri(_listPath, UriKind.Relative), Ct);
 
@@ -278,7 +279,7 @@ public sealed class OutboxDiagnosticsTests : DatabaseTest
         await CreateProbeAsync();
         await FailFirstMessageAsync();
         var failed = (await OutboxAsync()).ShouldHaveSingleItem();
-        using var client = App.CreateClient();
+        using var client = App.CreateClient().AsUser(TenantTestData.StaffId);
 
         using var response = await RedriveAsync(client, MessagingTestDbContext.SchemaName, failed.Id);
 
@@ -294,7 +295,7 @@ public sealed class OutboxDiagnosticsTests : DatabaseTest
         await CreateProbeAsync();
         await FailFirstMessageAsync();
         var failed = (await OutboxAsync()).ShouldHaveSingleItem();
-        using var client = App.CreateClient();
+        using var client = App.CreateClient().AsUser(TenantTestData.StaffId);
 
         using var response = await RedriveAsync(client, MessagingTestDbContext.SchemaName, failed.Id);
 
@@ -325,7 +326,7 @@ public sealed class OutboxDiagnosticsTests : DatabaseTest
 
     private async Task<ListOutboxMessagesResponse> ListAsync(string query = "")
     {
-        using var client = App.CreateClient();
+        using var client = App.CreateClient().AsUser(TenantTestData.StaffId);
         using var response = await client.GetAsync(new Uri(_listPath + query, UriKind.Relative), Ct);
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         return (await response.Content.ReadFromJsonAsync<ListOutboxMessagesResponse>(Json, Ct)).ShouldNotBeNull();

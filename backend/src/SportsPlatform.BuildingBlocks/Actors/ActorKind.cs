@@ -7,4 +7,7 @@ public enum ActorKind
 
     /// <summary>Work with no user: CLI, seeds, outbox processor, scheduled jobs.</summary>
     System,
+
+    /// <summary>A request from a caller who is not signed in (S03 D3).</summary>
+    Anonymous,
 }

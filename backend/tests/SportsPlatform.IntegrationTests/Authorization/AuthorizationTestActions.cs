@@ -10,4 +10,7 @@ public static class AuthorizationTestActions
 
     public static readonly ActionDefinition FixtureCreate = new(
         "fixture.create", "Create a fixture.", ActionScope.Tenant, AuditRequirement.Required, "S10", [AssignmentScope.Tenant, AssignmentScope.Competition]);
+
+    public static readonly ActionDefinition AccountPreferencesUpdate = new(
+        "account.preferences.update", "Change the signed-in user's preferences.", ActionScope.Account, AuditRequirement.None, "S03");
 }

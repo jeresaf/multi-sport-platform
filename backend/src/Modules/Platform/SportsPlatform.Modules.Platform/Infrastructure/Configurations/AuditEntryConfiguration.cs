@@ -22,7 +22,7 @@ internal sealed class AuditEntryConfiguration : IEntityTypeConfiguration<AuditEn
         builder.ToTable(Table, Schema, table =>
         {
             table.HasCheckConstraint("ck_audit_entries_outcome", "outcome IN ('SUCCESS', 'FAILURE', 'DENIED')");
-            table.HasCheckConstraint("ck_audit_entries_actor_kind", "actor_kind IN ('USER', 'SYSTEM')");
+            table.HasCheckConstraint("ck_audit_entries_actor_kind", "actor_kind IN ('USER', 'SYSTEM', 'ANONYMOUS')");
             table.HasCheckConstraint("ck_audit_entries_source", "source IN ('API', 'SYSTEM')");
         });
         builder.IsAppendOnly();

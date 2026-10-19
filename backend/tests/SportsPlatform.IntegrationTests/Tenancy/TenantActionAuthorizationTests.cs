@@ -100,11 +100,11 @@ public sealed class TenantActionAuthorizationTests(PostgresFixture fixture) : Da
 
     private async Task<HttpResponseMessage> SendAsync(Endpoint endpoint, Guid tenantId)
     {
-        using var client = App.CreateClient();
+        // A signed-in user (anonymous is 401, S03 D4); tenant actions: a member of the tenant, named in X-Tenant-Id.
+        using var client = App.CreateClient().AsUser(TenantTestData.StaffId, tenantId);
         if (endpoint is Endpoint.GetSettings or Endpoint.UpdateSettings)
         {
-            // Tenant actions: a member of the tenant, named in X-Tenant-Id.
-            client.AsUser(TenantTestData.StaffId, tenantId).DefaultRequestHeaders.Add("X-Tenant-Id", tenantId.ToString());
+            client.DefaultRequestHeaders.Add("X-Tenant-Id", tenantId.ToString());
         }
 
         var tenant = $"{TenantTestData.TenantsPath}/{tenantId}";

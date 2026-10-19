@@ -8,7 +8,8 @@ using SportsPlatform.Modules.Tenancy.Contracts.Access;
 namespace SportsPlatform.Host.Authorization;
 
 /// <summary>
-/// The decision formula (docs/architecture/authorization.md) for the matched endpoint's declared action: step 1, the
+/// The decision formula (docs/architecture/authorization.md) for the matched endpoint's declared action: an anonymous
+/// caller gets 401 unless the action allows anonymous callers (S03 D4); then step 1, the
 /// tenant's access mode, for a tenant action (status-only until S04; <c>READ_ONLY</c> is not produced yet), then the
 /// evaluator (steps 2–3). Runs after tenant resolution and before the endpoint, so request bodies are not read for a
 /// caller who is not allowed.
@@ -44,13 +45,22 @@ internal sealed class ActionAuthorizationMiddleware(RequestDelegate next)
 
         var services = context.RequestServices;
         var action = required[0].Action;
+        var actor = services.GetRequiredService<ICurrentActor>();
+
+        // Not signed in, and the action needs a user: 401, not 403 (S03 D4).
+        if (actor.Kind == ActorKind.Anonymous && !action.AllowsAnonymous)
+        {
+            await AuthorizationErrors.Unauthenticated.ToProblem().ExecuteAsync(context);
+            return;
+        }
+
         if (action.Scope == ActionScope.Tenant && await AccessModeAsync(services, context.RequestAborted) is { } refusal)
         {
             await refusal.ToProblem().ExecuteAsync(context);
             return;
         }
 
-        var request = new AuthorizationRequest(action, services.GetRequiredService<ICurrentActor>());
+        var request = new AuthorizationRequest(action, actor);
         var result = await services.GetRequiredService<IAuthorizationEvaluator>().AuthorizeAsync(request, context.RequestAborted);
         if (result.IsFailure)
         {

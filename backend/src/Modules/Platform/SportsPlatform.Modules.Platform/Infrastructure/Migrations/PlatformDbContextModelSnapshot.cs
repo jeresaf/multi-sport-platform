@@ -270,7 +270,7 @@ namespace SportsPlatform.Modules.Platform.Infrastructure.Migrations
 
                     b.ToTable("audit_entries", "audit", t =>
                         {
-                            t.HasCheckConstraint("ck_audit_entries_actor_kind", "actor_kind IN ('USER', 'SYSTEM')");
+                            t.HasCheckConstraint("ck_audit_entries_actor_kind", "actor_kind IN ('USER', 'SYSTEM', 'ANONYMOUS')");
 
                             t.HasCheckConstraint("ck_audit_entries_outcome", "outcome IN ('SUCCESS', 'FAILURE', 'DENIED')");
 

@@ -1,10 +1,14 @@
 using System.Collections.Concurrent;
 using SportsPlatform.BuildingBlocks.Actions;
+using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.BuildingBlocks.Results;
 
 namespace SportsPlatform.IntegrationTests.Infrastructure;
 
-/// <summary>Denies like the Host's default until a test allows actions; records every request it is asked about.</summary>
+/// <summary>
+/// Decides account actions as Identity's evaluator does (S03 D10) and denies everything else until a test allows it;
+/// records every request it is asked about.
+/// </summary>
 public sealed class TestAuthorizationEvaluator : IAuthorizationEvaluator
 {
     private readonly ConcurrentDictionary<ActionCode, bool> _allowed = new();
@@ -34,7 +38,9 @@ public sealed class TestAuthorizationEvaluator : IAuthorizationEvaluator
     {
         ArgumentNullException.ThrowIfNull(request);
         Requests.Enqueue(request);
-        return ValueTask.FromResult(_allowAll || _allowed.ContainsKey(request.Action.Code)
+        var account = request.Action.Scope == ActionScope.Account
+            && (request.Actor.Kind != ActorKind.Anonymous || request.Action.AllowsAnonymous);
+        return ValueTask.FromResult(_allowAll || account || _allowed.ContainsKey(request.Action.Code)
             ? Result.Success()
             : Result.Failure(AuthorizationErrors.Forbidden));
     }

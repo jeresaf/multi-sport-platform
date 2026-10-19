@@ -49,7 +49,13 @@ internal sealed class AdminTestApp : IAsyncDisposable
         return testApp;
     }
 
-    public HttpClient CreateClient() => _app.GetTestClient();
+    public HttpClient CreateClient()
+    {
+        var client = _app.GetTestClient();
+        client.BaseAddress = new Uri("https://localhost/");
+        TestAuthentication.ConfigureTestClient(client);
+        return client;
+    }
 
     public ValueTask DisposeAsync() => _app.DisposeAsync();
 }

@@ -1,6 +1,7 @@
 using SportsPlatform.BuildingBlocks.Actions;
 using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.BuildingBlocks.Messaging;
+using SportsPlatform.BuildingBlocks.Results;
 using SportsPlatform.BuildingBlocks.Tenancy;
 
 namespace SportsPlatform.BuildingBlocks.Auditing;
@@ -26,6 +27,12 @@ public sealed class AuditScope(ICurrentActor actor, ITenantContext tenant, Corre
 
     /// <summary>The error code of the response's Problem Details, if any.</summary>
     public string? ErrorCode { get; private set; }
+
+    /// <summary>
+    /// The outcome the next module save commits the entry with: <see cref="AuditOutcome.Success"/> unless the handler
+    /// saves while refusing (a failed sign-in saves the failed-attempt count; <see cref="RecordOnSave"/>).
+    /// </summary>
+    public AuditOutcome SaveOutcome { get; private set; } = AuditOutcome.Success;
 
     /// <summary>Whether the entry has been written or committed to an outbox.</summary>
     public bool IsRecorded { get; private set; }
@@ -74,6 +81,22 @@ public sealed class AuditScope(ICurrentActor actor, ITenantContext tenant, Corre
         _metadata = metadata is null ? _metadata : AuditMetadata.Serialize(metadata);
         _targetTenantId = targetTenantId ?? _targetTenantId;
         return this;
+    }
+
+    /// <summary>
+    /// The handler saves although the action is refused or failed: the save commits the entry with
+    /// <paramref name="outcome"/> and <paramref name="error"/>'s code, in the same transaction as what it saved.
+    /// </summary>
+    public void RecordOnSave(AuditOutcome outcome, Error error)
+    {
+        ArgumentNullException.ThrowIfNull(error);
+        if (outcome == AuditOutcome.Success)
+        {
+            throw new ArgumentException("A successful action is recorded on save already.", nameof(outcome));
+        }
+
+        SaveOutcome = outcome;
+        ErrorCode = error.Code;
     }
 
     /// <summary>Remembers the response's error code for a <see cref="AuditOutcome.Failure"/> or <see cref="AuditOutcome.Denied"/> entry.</summary>

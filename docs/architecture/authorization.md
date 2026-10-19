@@ -18,11 +18,12 @@ Each action is declared once in code (e.g. a static registry class per module wi
 | `code` | `person.create` |
 | `module` | Registry |
 | `description` | Human description shown in role editors and docs |
-| `scope` | `PLATFORM` or `TENANT` |
+| `scope` | `PLATFORM`, `TENANT` or `ACCOUNT` (the caller's own account, S03 D2) |
 | `scopable_by` | Which assignment scopes can grant it: `TENANT`, `COMPETITION`, `TEAM`, `CONTEST` |
 | `audit` | `NONE`, `REQUIRED`, `REQUIRED_WITH_REASON` |
 | `entitlement` | Optional entitlement code that must be enabled (or quota checked) |
 | `idempotent` | Whether an `Idempotency-Key` is required |
+| `allows_anonymous` | Account actions only: a caller who is not signed in may perform it (sign-in, password reset, invitations) |
 | `since` | Slice/version introduced |
 
 The catalogue is exported to `docs/generated/actions.md` and `contracts/actions.json` by the CLI; a CI test
@@ -45,14 +46,26 @@ Steps 1–3 run in the Host's authorization middleware (after routing, before th
 endpoint's declared action; quota checks that need a count run inside the handler via `IEntitlements.CheckQuota` in
 the same transaction as the create.
 
-**Pipeline as built (S02-T3a, D8):** forwarded host (S02-T3b, trusted proxies only) → request logging and
-correlation → routing → **actor** (authentication, then
-`ActorContext` from the principal's `sub`; the system actor otherwise) → **audit** → **tenant resolution**
-(docs/architecture/multi-tenancy.md) → **authorization** (step 1, then the evaluator) → endpoint. Audit runs before
+**Pipeline as built (S02-T3a, D8; S03-T2a):** forwarded host (S02-T3b, trusted proxies only) → request logging and
+correlation → routing → **actor** (authentication with the session cookie, then `ActorContext` from the principal's
+`sub`; the anonymous actor otherwise, including a principal without a GUID `sub`) → **audit** → **CSRF** (a
+state-changing request to `/api/account`, `/api/admin` or `/api/platform` without `X-CSRF: 1` → `403
+AUTH_CSRF_REQUIRED`) → **tenant resolution** (docs/architecture/multi-tenancy.md) → **authorization** (401, then step
+1, then the evaluator) → endpoint. Audit runs before
 tenant resolution and authorization, so a refused tenant (`AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`) or a denied
 action on an audited endpoint is audited as `DENIED`, with the tenant when one was resolved
 (docs/architecture/events-and-jobs.md, "Audit as built"). `SportsPlatformApp.UsePipeline` is the single place the
 order is written.
+
+**401 vs 403 (S03 D4).** A caller who is not signed in gets `401 AUTH_UNAUTHENTICATED` on any action that doesn't
+allow anonymous callers: tenant resolution answers it before looking at `X-Tenant-Id`, authorization for every other
+action. `403` means signed in but not allowed (`AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, access mode) or a missing
+CSRF header. Public endpoints are anonymous and need neither.
+
+**Account actions (S03 D1, D2).** Under `/api/account/v1` only, never public: the caller's own account (sign-in and
+sign-out, `me`, passwords, invitation acceptance). The evaluator (`IdentityAuthorizationEvaluator`, D10) allows them
+to every signed-in user; those marked `allowsAnonymous` also to anonymous callers. They have no tenant and no step 1.
+Until S03-T3 and T4 the evaluator refuses every platform and tenant action (fail closed).
 
 **Step 1 as built:** for a TENANT-scope action, `ITenantAccess.CheckAdminAccessAsync` on the resolved tenant:
 status-only until S04 (`PROVISIONING`, `ACTIVE` → `FULL`; `SUSPENDED`, `ARCHIVED` → `BLOCKED` → `TENANT_BLOCKED`). No

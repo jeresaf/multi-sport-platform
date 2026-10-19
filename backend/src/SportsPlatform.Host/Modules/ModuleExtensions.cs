@@ -9,6 +9,7 @@ public static class ModuleExtensions
     public const string PublicPrefix = "/api/public/v1";
     public const string AdminPrefix = "/api/admin/v1";
     public const string PlatformPrefix = "/api/platform/v1";
+    public const string AccountPrefix = "/api/account/v1";
 
     public static IServiceCollection AddModules(
         this IServiceCollection services, IConfiguration configuration, IEnumerable<IModule> modules)
@@ -22,15 +23,21 @@ public static class ModuleExtensions
     }
 
     /// <summary>
-    /// Maps each module's endpoints into the three API families. Public endpoints are <c>.AllowPublic()</c> as a group, so
-    /// one that also requires an action is rejected at startup. Admin and platform endpoints document the pipeline's 403s.
+    /// Maps each module's endpoints into the four API families. Public endpoints are <c>.AllowPublic()</c> as a group, so
+    /// one that also requires an action is rejected at startup. Admin, platform and account endpoints document the
+    /// pipeline's 401s and 403s; account responses are never stored by a cache (S03 D1).
     /// </summary>
     public static IEndpointRouteBuilder MapModules(this IEndpointRouteBuilder endpoints, IEnumerable<IModule> modules)
     {
         var groups = new ApiEndpointGroups(
             Public: endpoints.MapGroup(PublicPrefix).AllowPublic(),
             Admin: endpoints.MapGroup(AdminPrefix).DocumentPipelineErrors(),
-            Platform: endpoints.MapGroup(PlatformPrefix).DocumentPipelineErrors());
+            Platform: endpoints.MapGroup(PlatformPrefix).DocumentPipelineErrors(),
+            Account: endpoints.MapGroup(AccountPrefix).DocumentPipelineErrors().AddEndpointFilter(static (context, next) =>
+            {
+                context.HttpContext.Response.Headers.CacheControl = "no-store";
+                return next(context);
+            }));
 
         foreach (var module in modules)
         {

@@ -7,9 +7,12 @@ the message is the default title and may change.
 | Code | HTTP | Default message | Owner |
 |---|---|---|---|
 | `AUTH_CONCURRENCY_CONFLICT` | 409 | The account was changed by someone else. Reload and try again. | Identity |
+| `AUTH_CSRF_REQUIRED` | 403 | The request must carry the X-CSRF header. | BuildingBlocks |
 | `AUTH_FORBIDDEN` | 403 | You are not allowed to perform this action. | BuildingBlocks |
+| `AUTH_INVALID_CREDENTIALS` | 401 | The email or password is incorrect, or the account can't sign in right now. | Identity |
 | `AUTH_PASSWORD_REJECTED` | 400 | The password was rejected: use at least 12 characters. | Identity |
 | `AUTH_TENANT_FORBIDDEN` | 403 | You are not allowed to work in this tenant. | BuildingBlocks |
+| `AUTH_UNAUTHENTICATED` | 401 | Sign in to perform this action. | BuildingBlocks |
 | `AUTH_USER_EXISTS` | 409 | A user with this email already exists. | Identity |
 | `PLATFORM_CONCURRENCY_CONFLICT` | 409 | The record was changed by someone else. Reload and try again. | Platform |
 | `PLATFORM_METHOD_NOT_ALLOWED` | 405 | This endpoint does not support the HTTP method. | BuildingBlocks |

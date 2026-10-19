@@ -455,7 +455,7 @@ namespace SportsPlatform.Modules.Tenancy.Infrastructure.Migrations
 
                     b.ToTable("tenant_status_history", "tenancy", t =>
                         {
-                            t.HasCheckConstraint("ck_tenant_status_history_actor_kind", "actor_kind IN ('USER', 'SYSTEM')");
+                            t.HasCheckConstraint("ck_tenant_status_history_actor_kind", "actor_kind IN ('USER', 'SYSTEM', 'ANONYMOUS')");
 
                             t.HasCheckConstraint("ck_tenant_status_history_from_status", "from_status IN ('PROVISIONING', 'ACTIVE', 'SUSPENDED', 'ARCHIVED')");
 

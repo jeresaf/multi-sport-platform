@@ -8,6 +8,7 @@ using SportsPlatform.Host.Catalogues;
 using SportsPlatform.Host.Modules;
 using SportsPlatform.IntegrationTests.Api;
 using SportsPlatform.IntegrationTests.Infrastructure;
+using SportsPlatform.Modules.Identity.Features.Authorization;
 
 namespace SportsPlatform.IntegrationTests.Authorization;
 
@@ -54,13 +55,13 @@ public sealed class HostEndpointActionsTests
     }
 }
 
-/// <summary>The real Host's authorization registration; OutboxDiagnosticsTests checks allowed and denied end to end.</summary>
+/// <summary>The real Host's authorization registration (S03 D10); OutboxDiagnosticsTests checks allowed and denied end to end.</summary>
 public sealed class HostAuthorizationTests(HostOnlyApp factory) : IClassFixture<HostOnlyApp>
 {
     [Fact]
-    public void Host_denies_by_default()
+    public void Host_authorizes_with_the_Identity_evaluator()
     {
-        factory.Services.GetRequiredService<IAuthorizationEvaluator>().ShouldBeOfType<DenyAllAuthorizationEvaluator>();
+        factory.Services.GetRequiredService<IAuthorizationEvaluator>().ShouldBeOfType<IdentityAuthorizationEvaluator>();
     }
 
     [Fact]

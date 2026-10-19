@@ -7,10 +7,22 @@
       "owner": "Identity"
     },
     {
+      "code": "AUTH_CSRF_REQUIRED",
+      "status": 403,
+      "message": "The request must carry the X-CSRF header.",
+      "owner": "BuildingBlocks"
+    },
+    {
       "code": "AUTH_FORBIDDEN",
       "status": 403,
       "message": "You are not allowed to perform this action.",
       "owner": "BuildingBlocks"
+    },
+    {
+      "code": "AUTH_INVALID_CREDENTIALS",
+      "status": 401,
+      "message": "The email or password is incorrect, or the account can't sign in right now.",
+      "owner": "Identity"
     },
     {
       "code": "AUTH_PASSWORD_REJECTED",
@@ -22,6 +34,12 @@
       "code": "AUTH_TENANT_FORBIDDEN",
       "status": 403,
       "message": "You are not allowed to work in this tenant.",
+      "owner": "BuildingBlocks"
+    },
+    {
+      "code": "AUTH_UNAUTHENTICATED",
+      "status": 401,
+      "message": "Sign in to perform this action.",
       "owner": "BuildingBlocks"
     },
     {

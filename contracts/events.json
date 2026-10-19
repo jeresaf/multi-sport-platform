@@ -27,7 +27,7 @@
         },
         {
           "name": "actorKind",
-          "type": "string (enum ActorKind: USER | SYSTEM)",
+          "type": "string (enum ActorKind: USER | SYSTEM | ANONYMOUS)",
           "nullable": false
         },
         {

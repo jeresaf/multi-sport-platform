@@ -19,6 +19,7 @@ public sealed class EndpointActionRulesTests
     [
         new(AuthorizationTestActions.FixtureRead, "Fixtures"),
         new(AuthorizationTestActions.FixtureCreate, "Fixtures"),
+        new(AuthorizationTestActions.AccountPreferencesUpdate, "Accounts"),
     ];
 
     // S01-T4 acceptance: an endpoint without an action fails the startup check.
@@ -72,7 +73,8 @@ public sealed class EndpointActionRulesTests
     [InlineData("/api/platform/v1/diagnostics/outbox")]
     [InlineData("api/Admin")]
     [InlineData("~/api/admin/v1/fixtures")]
-    public async Task Admin_and_platform_endpoints_cannot_be_public(string path)
+    [InlineData("/api/account/v1/login")]
+    public async Task Admin_platform_and_account_endpoints_cannot_be_public(string path)
     {
         await using var app = WebApplication.CreateSlimBuilder().Build();
         app.MapGet(path, () => Results.Ok()).AllowPublic();
@@ -110,6 +112,7 @@ public sealed class EndpointActionRulesTests
         [
             "GET /api/public/v1/fixtures/{id} declares both .RequireAction(...) and .AllowPublic().",
             "GET /api/platform/v1/probes declares neither .RequireAction(...) nor .AllowPublic().",
+            "GET /api/account/v1/probes declares neither .RequireAction(...) nor .AllowPublic().",
         ], ignoreOrder: true);
     }
 
@@ -165,6 +168,22 @@ public sealed class EndpointActionRulesTests
         ], ignoreOrder: true);
     }
 
+    // S03 D1: the account family holds account actions only, and account actions live only there.
+    [Fact]
+    public async Task Account_endpoints_require_an_account_action_and_account_actions_stay_in_the_account_family()
+    {
+        await using var app = WebApplication.CreateSlimBuilder().Build();
+        app.MapPut("/api/account/v1/preferences", () => Results.Ok()).RequireAction(AuthorizationTestActions.AccountPreferencesUpdate);
+        app.MapPost("/api/account/v1/fixtures", () => Results.Ok()).RequireAction(AuthorizationTestActions.FixtureCreate);
+        app.MapPut("/api/admin/v1/preferences", () => Results.Ok()).RequireAction(AuthorizationTestActions.AccountPreferencesUpdate);
+
+        Validate(app).ShouldBe(
+        [
+            "POST /api/account/v1/fixtures is under /api/account, so it requires an account action.",
+            "PUT /api/admin/v1/preferences requires an account action, which is only allowed under /api/account.",
+        ], ignoreOrder: true);
+    }
+
     private static IReadOnlyList<string> Validate(WebApplication app) => EndpointActionRules.Validate(Endpoints(app), _catalogue);
 
     private static IEnumerable<Endpoint> Endpoints(WebApplication app) =>
@@ -186,6 +205,7 @@ public sealed class EndpointActionRulesTests
             groups.Public.MapGet("/fixtures/{id}", (Guid id) => Results.Ok(id)).RequireAction(AuthorizationTestActions.FixtureRead);
             groups.Admin.MapGet("/fixtures", () => Results.Ok()).RequireAction(AuthorizationTestActions.FixtureRead);
             groups.Platform.MapGet("/probes", () => Results.Ok());
+            groups.Account.MapGet("/probes", () => Results.Ok());
         }
     }
 }

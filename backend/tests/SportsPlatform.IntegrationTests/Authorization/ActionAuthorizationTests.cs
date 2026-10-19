@@ -177,12 +177,7 @@ public sealed class ActionAuthorizationTests
         builder.Services.AddScoped<TenantContext>();
         builder.Services.AddScoped<ITenantContext>(provider => provider.GetRequiredService<TenantContext>());
         builder.Services.AddSingleton<ITenantAccess>(new FullAccess());
-        if (evaluator is not null)
-        {
-            builder.Services.AddSingleton<IAuthorizationEvaluator>(evaluator);
-        }
-
-        builder.Services.AddActionAuthorization();
+        builder.Services.AddSingleton<IAuthorizationEvaluator>(evaluator ?? new TestAuthorizationEvaluator());
 
         var app = builder.Build();
         app.UseApiConventions();

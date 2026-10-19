@@ -349,3 +349,30 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   `MAILPIT_SMTP_PORT` needs `Email__Smtp__Port`. `TestApp.Emails` (`RecordingEmailSender`) replaces the adapter in
   tests; `Email/SmtpEmailSenderTests` run it against a Mailpit container. MimeKit's `System.Security.Cryptography.Pkcs`
   10.0.0 has advisories: `Directory.Packages.props` pins 10.0.13.
+- **T2 (owner, plan):** two PRs: T2a sessions and the pipeline (account family, anonymous actor, 401, cookie, CSRF,
+  login/logout/me, lockout); T2b passwords and rate limits. Q18 answered: cookies only in S03. Rate limits (T2b,
+  `Identity:RateLimits`): login 20 per minute per IP and 10 per 15 minutes per email; forgot-password 10 per hour per
+  IP and 3 per hour per email. The reset token lasts 1 hour, works once and only the newest one works (its SHA-256 in
+  `identity.user_tokens`). A wrong current password on password change is `400 AUTH_CURRENT_PASSWORD_INVALID` (a 401
+  would read as a lost session).
+- **T2a:** `ActionScope.Account` and `allowsAnonymous` (account actions only; account actions take no assignment
+  scopes); `/api/account/v1` sends `Cache-Control: no-store`, and `EndpointActionRules` keeps account actions there and
+  only there. `AnonymousActor` (ID `Guid.Empty`) for every request without a user, a principal without a GUID `sub`
+  included; `actor_kind` widened on `audit.audit_entries` and `tenancy.tenant_status_history`.
+  `AUTH_UNAUTHENTICATED` and `AUTH_CSRF_REQUIRED` live in `AuthorizationErrors` (BuildingBlocks) beside
+  `AUTH_FORBIDDEN`, because the Host pipeline raises them. CSRF is a middleware between audit and tenant resolution,
+  matched on the endpoint's family (an unknown route stays 404). The session is Identity's application cookie
+  (`SessionCookie`), with the app's `TimeProvider`; `issued_at` lives in the ticket's properties, so sliding renewals
+  and stamp refreshes keep it; `SessionClaimsFactory` issues only `sub` and the security stamp. Identity's lockout uses
+  the system clock (`UserManager` takes no `TimeProvider`). A failed sign-in saves the failed-attempt count and its
+  DENIED entry in one save: `AuditScope.RecordOnSave(outcome, error)` sets the outcome the next save records (it was
+  always SUCCESS); a lost race on the user row is retried (success too: a 409 would tell an account exists), so no
+  attempt goes uncounted. Every refusal hashes the password once: an unknown email, and a locked or unconfirmed account
+  (Identity skips the check), hash in its place (test with a counting hasher). Tenant resolution answers an anonymous
+  caller 401 before any tenant lookup, so a platform route's unknown tenant answers like a real one. The session
+  cookie has no `Expires` (closing the browser signs out). `IdentityAuthorizationEvaluator` replaces `DenyAllAuthorizationEvaluator`
+  (account actions for signed-in users, and for anonymous callers where allowed; platform and tenant actions refused
+  until T3/T4). Logout deletes the cookie only (no
+  server-side session store): a copied cookie lives until it expires or the security stamp changes. Tests: the test
+  scheme is a policy scheme (`X-Test-User`, else the session cookie); factory clients use https and send `X-CSRF: 1`.
+

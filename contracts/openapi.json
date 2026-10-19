@@ -198,6 +198,19 @@
               }
             }
           },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
           "403": {
             "description": "Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`",
             "content": {
@@ -269,8 +282,8 @@
               "TENANT_CONCURRENCY_CONFLICT"
             ]
           },
-          "403": {
-            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`",
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -279,6 +292,20 @@
               }
             },
             "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
               "AUTH_FORBIDDEN",
               "AUTH_TENANT_FORBIDDEN",
               "TENANT_BLOCKED"
@@ -347,6 +374,19 @@
             },
             "x-error-codes": [
               "VALIDATION_INVALID_QUERY"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
             ]
           },
           "403": {
@@ -452,8 +492,8 @@
               "PLATFORM_OUTBOX_MESSAGE_NOT_FAILED"
             ]
           },
-          "403": {
-            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`",
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -462,6 +502,20 @@
               }
             },
             "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
               "AUTH_FORBIDDEN"
             ]
           }
@@ -579,6 +633,19 @@
               "VALIDATION_INVALID_QUERY"
             ]
           },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
           "403": {
             "description": "Problem Details; `code`: `AUTH_FORBIDDEN`",
             "content": {
@@ -650,6 +717,19 @@
               "VALIDATION_INVALID_QUERY"
             ]
           },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
           "403": {
             "description": "Problem Details; `code`: `AUTH_FORBIDDEN`",
             "content": {
@@ -719,8 +799,8 @@
               "TENANT_SLUG_TAKEN"
             ]
           },
-          "403": {
-            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`",
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -729,6 +809,20 @@
               }
             },
             "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
               "AUTH_FORBIDDEN"
             ]
           }
@@ -776,6 +870,19 @@
             },
             "x-error-codes": [
               "TENANT_NOT_FOUND"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
             ]
           },
           "403": {
@@ -871,8 +978,8 @@
               "TENANT_CONCURRENCY_CONFLICT"
             ]
           },
-          "403": {
-            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`",
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -881,6 +988,20 @@
               }
             },
             "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
               "AUTH_FORBIDDEN"
             ]
           }
@@ -960,8 +1081,8 @@
               "TENANT_INVALID_TRANSITION"
             ]
           },
-          "403": {
-            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`",
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -970,6 +1091,20 @@
               }
             },
             "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
               "AUTH_FORBIDDEN"
             ]
           }
@@ -1056,8 +1191,8 @@
               "TENANT_INVALID_TRANSITION"
             ]
           },
-          "403": {
-            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`",
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1066,6 +1201,20 @@
               }
             },
             "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
               "AUTH_FORBIDDEN"
             ]
           }
@@ -1145,8 +1294,8 @@
               "TENANT_INVALID_TRANSITION"
             ]
           },
-          "403": {
-            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`",
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1155,6 +1304,20 @@
               }
             },
             "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
               "AUTH_FORBIDDEN"
             ]
           }
@@ -1241,8 +1404,8 @@
               "TENANT_INVALID_TRANSITION"
             ]
           },
-          "403": {
-            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`",
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1251,6 +1414,20 @@
               }
             },
             "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
               "AUTH_FORBIDDEN"
             ]
           }
@@ -1337,8 +1514,8 @@
               "TENANT_INVALID_TRANSITION"
             ]
           },
-          "403": {
-            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`",
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1347,7 +1524,161 @@
               }
             },
             "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
               "AUTH_FORBIDDEN"
+            ]
+          }
+        }
+      }
+    },
+    "/api/account/v1/login": {
+      "post": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Sign in",
+        "description": "Signs in with email and password and starts a session: the response sets the session cookie (HttpOnly, SameSite=Strict; 12 hours sliding, 7 days at most). An unknown email, a wrong password, a locked or unconfirmed account all answer `AUTH_INVALID_CREDENTIALS`. Five wrong passwords lock the account for 15 minutes. Needs `X-CSRF: 1` like every other change.",
+        "operationId": "Login",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_REQUEST`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_REQUEST"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_INVALID_CREDENTIALS`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_INVALID_CREDENTIALS"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED"
+            ]
+          }
+        }
+      }
+    },
+    "/api/account/v1/logout": {
+      "post": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Sign out",
+        "description": "Ends this session and deletes the session cookie.",
+        "operationId": "Logout",
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED"
+            ]
+          }
+        }
+      }
+    },
+    "/api/account/v1/me": {
+      "get": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Read the signed-in user",
+        "description": "The signed-in user: ID, email, active platform roles, and the tenants they are an active member of with their roles there (empty until memberships exist).",
+        "operationId": "GetMe",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
             ]
           }
         }
@@ -1359,7 +1690,8 @@
       "ActorKind": {
         "enum": [
           "USER",
-          "SYSTEM"
+          "SYSTEM",
+          "ANONYMOUS"
         ]
       },
       "AuditEntryResponse": {
@@ -1752,6 +2084,80 @@
             }
           }
         }
+      },
+      "LoginRequest": {
+        "required": [
+          "email",
+          "password"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "password": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "description": "Sign in with email and password."
+      },
+      "MeResponse": {
+        "required": [
+          "id",
+          "email",
+          "platformRoles",
+          "tenants"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string"
+          },
+          "platformRoles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "tenants": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MeTenantResponse"
+            }
+          }
+        },
+        "description": "The signed-in user: their own email, platform roles and tenants (memberships arrive in S03-T4)."
+      },
+      "MeTenantResponse": {
+        "required": [
+          "tenantId",
+          "roles"
+        ],
+        "type": "object",
+        "properties": {
+          "tenantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "A tenant the user is an active member of, with the user's role codes there."
       },
       "MinorRegistrationConsent": {
         "enum": [
@@ -2318,6 +2724,9 @@
     },
     {
       "name": "Tenants"
+    },
+    {
+      "name": "Account"
     }
   ]
 }
