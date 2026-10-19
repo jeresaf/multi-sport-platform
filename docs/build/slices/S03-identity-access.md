@@ -391,4 +391,5 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   `UserStore.UpdateAsync` attaches the user, which with a non-saving store reset the concurrency stamp's original
   value on a second change before the save (our `UserStore` overrides it); and the security stamp validator signs
   out `Identity.TwoFactorRememberMe`, so that cookie scheme is registered (sign-out only), else a changed stamp was a
-  500. `AUTH_PASSWORD_REJECTED` names the field in `errors` and Identity's rule in `detail`.
+  500. `AUTH_PASSWORD_REJECTED` names the field in `errors` and Identity's rule in `detail`. Pre-review: a password change
+  deletes a pending reset token; the per-IP key of an IPv6 client is its /64; a 429 is `no-store`.

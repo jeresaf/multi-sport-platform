@@ -3,6 +3,7 @@ using SportsPlatform.BuildingBlocks.Actions;
 using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.BuildingBlocks.Auditing;
 using SportsPlatform.Modules.Identity.Infrastructure;
+using SportsPlatform.Modules.Identity.Infrastructure.PasswordReset;
 using SportsPlatform.Modules.Identity.Infrastructure.Users;
 
 namespace SportsPlatform.Modules.Identity.Features.Account.ChangePassword;
@@ -10,7 +11,7 @@ namespace SportsPlatform.Modules.Identity.Features.Account.ChangePassword;
 /// <summary>
 /// Changes the signed-in user's password (S03 D5, D15). The new security stamp ends the user's other sessions at their
 /// next stamp check (within 5 minutes); this session gets a new cookie and stays. A wrong current password counts toward
-/// the lockout (owner, T2b) and is saved with its audit entry; while locked, every attempt answers the same without a
+/// the lockout (owner, T2b) and is saved with its audit entry; a pending reset token is deleted; while locked, every attempt answers the same without a
 /// check. A wrong current password is a 400, not a 401: the session is fine.
 /// </summary>
 public sealed class ChangePasswordHandler(
@@ -48,7 +49,10 @@ public sealed class ChangePasswordHandler(
         {
             if (!change.Errors.Any(e => e.Code == nameof(IdentityErrorDescriber.PasswordMismatch)))
             {
-                return PasswordFailure.Rejected(change.Errors);
+                return change.Errors.All(PasswordFailure.IsPolicyError)
+                    ? PasswordFailure.Rejected(change.Errors)
+                    : throw new InvalidOperationException(
+                        $"Changing the password failed: {string.Join(", ", change.Errors.Select(e => e.Code))}.");
             }
 
             _ = await users.AccessFailedAsync(user);
@@ -58,6 +62,9 @@ public sealed class ChangePasswordHandler(
         }
 
         _ = await users.ResetAccessFailedCountAsync(user);
+
+        // A pending reset link would set a password behind the new one: it ends with the change.
+        _ = await PasswordResetTokenProvider.ConsumeAsync(users, user);
         var saved = await context.SaveChangesResultAsync(cancellationToken);
         if (saved.IsFailure)
         {

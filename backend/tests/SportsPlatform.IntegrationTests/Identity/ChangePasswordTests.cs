@@ -91,6 +91,24 @@ public sealed class ChangePasswordTests(PostgresFixture fixture) : DatabaseTest(
         (await fresh.LoginAsync(_email, password, Ct)).StatusCode.ShouldBe(HttpStatusCode.NoContent);
     }
 
+    // Pre-review: a reset link sent before the change must not set a password behind the new one.
+    [Fact]
+    public async Task A_change_ends_a_pending_reset_link()
+    {
+        var password = TestPasswords.New();
+        await AccountTestData.CreateUserAsync(App.Services, _email, password, Ct);
+        using var client = App.CreateClient();
+        (await client.ForgotPasswordAsync(_email, Ct)).StatusCode.ShouldBe(HttpStatusCode.Accepted);
+        await AccountTestData.DeliverOutboxAsync(App.Services, Ct);
+        var token = AccountTestData.ResetToken(App.Emails.Sent.ShouldHaveSingleItem());
+        (await client.LoginAsync(_email, password, Ct)).EnsureSuccessStatusCode();
+
+        (await client.ChangePasswordAsync(password, TestPasswords.New(), Ct)).StatusCode.ShouldBe(HttpStatusCode.NoContent);
+        using var reset = await client.ResetPasswordAsync(token, TestPasswords.New(), Ct);
+
+        await reset.ShouldBeProblemAsync(HttpStatusCode.BadRequest, "AUTH_RESET_TOKEN_INVALID");
+    }
+
     [Fact]
     public async Task A_change_needs_a_session_and_the_CSRF_header()
     {

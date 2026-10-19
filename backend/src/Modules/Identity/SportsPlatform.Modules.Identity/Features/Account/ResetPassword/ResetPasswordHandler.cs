@@ -37,7 +37,10 @@ public sealed class ResetPasswordHandler(IdentityDbContext context, UserManager<
 
         await RequireAsync(PasswordResetTokenProvider.ConsumeAsync(users, user));
         await RequireAsync(users.ResetAccessFailedCountAsync(user));
-        await RequireAsync(users.SetLockoutEndDateAsync(user, null));
+        if (await users.GetLockoutEnabledAsync(user))
+        {
+            await RequireAsync(users.SetLockoutEndDateAsync(user, null));
+        }
 
         var saved = await context.SaveChangesResultAsync(cancellationToken);
         return saved.IsFailure ? (PasswordFailure)saved.Error! : null;

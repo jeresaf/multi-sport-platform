@@ -71,7 +71,10 @@ public static class AccountRateLimits
         _ => throw new ArgumentOutOfRangeException(nameof(limit), limit, null),
     };
 
-    /// <summary>The client's address: the connection's, or a trusted proxy's <c>X-Forwarded-For</c> (S02 D7).</summary>
+    /// <summary>
+    /// The client's address, the connection's or a trusted proxy's <c>X-Forwarded-For</c> (S02 D7), as the limit's key:
+    /// an IPv4 address, or an IPv6 address's /64 network, since one IPv6 client usually holds a whole /64.
+    /// </summary>
     public static string ClientIp(HttpContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
@@ -79,12 +82,22 @@ public static class AccountRateLimits
         {
             null => "unknown",
             { IsIPv4MappedToIPv6: true } address => address.MapToIPv4().ToString(),
+            { AddressFamily: System.Net.Sockets.AddressFamily.InterNetworkV6 } address => $"{Network64(address)}/64",
             IPAddress address => address.ToString(),
         };
     }
 
+    private static IPAddress Network64(IPAddress address)
+    {
+        var bytes = address.GetAddressBytes();
+        Array.Clear(bytes, 8, 8);
+        return new IPAddress(bytes);
+    }
+
     private static ProblemHttpResult Refuse(HttpResponse response, RateLimitLease lease)
     {
+        // The per-IP refusal answers before the account group's filters run: never cacheable (D1) either way.
+        response.Headers.CacheControl = "no-store";
         if (lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
         {
             var seconds = Math.Max(1, (int)Math.Ceiling(retryAfter.TotalSeconds));

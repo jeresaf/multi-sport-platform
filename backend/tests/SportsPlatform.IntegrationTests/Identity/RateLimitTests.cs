@@ -168,6 +168,7 @@ public sealed class RateLimitTests(PostgresFixture fixture) : DatabaseTest(fixtu
         {
             Status.ShouldBe(StatusCodes.Status429TooManyRequests, Body);
             Headers.ContentType.ToString().ShouldStartWith("application/problem+json");
+            Headers.CacheControl.ToString().ShouldBe("no-store");
             Json.GetProperty("code").GetString().ShouldBe("AUTH_RATE_LIMITED");
             int.Parse(Headers.RetryAfter.ToString(), System.Globalization.CultureInfo.InvariantCulture).ShouldBeInRange(1, 3600);
         }

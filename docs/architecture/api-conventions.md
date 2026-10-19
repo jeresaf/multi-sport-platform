@@ -28,7 +28,7 @@ the outbox) with a link to the admin web's `/reset-password?token=…` (`Identit
 `{userId}.{secret}`, lasts 1 hour, works once, and only the newest one works (`AUTH_RESET_TOKEN_INVALID`). `POST
 …/password/reset` sets the new password, signs out every session and clears a lockout; it doesn't sign in. `POST
 …/password/change` needs the current password (wrong: `400 AUTH_CURRENT_PASSWORD_INVALID`, counted toward the lockout)
-and ends the user's other sessions within 5 minutes; the caller's session gets a new cookie. A password under 12
+and ends the user's other sessions within 5 minutes and any pending reset link; the caller's session gets a new cookie. A password under 12
 characters is `400 AUTH_PASSWORD_REJECTED`, the rule in `detail` and `errors: [{ "field": "newPassword", … }]`.
 
 **Rate limits (S03 D15).** Sign-in: 20 a minute per client address and 10 per 15 minutes per email. Forgot-password:
@@ -36,7 +36,7 @@ characters is `400 AUTH_PASSWORD_REJECTED`, the rule in `detail` and `errors: [{
 with `Retry-After` (seconds). The per-address limit runs before the audit, so a flood writes no audit rows; the
 per-email limit runs after the request is read (emails are compared trimmed and case-insensitively, known and unknown
 alike) and its refusals are audited as `DENIED`. The client address is the connection's, or `X-Forwarded-For` from a
-trusted proxy (`ForwardedHeaders`, S02 D7). The limits are kept in memory, per API instance; limits at the edge are
+trusted proxy (`ForwardedHeaders`, S02 D7); an IPv6 client counts by its /64 network. The limits are kept in memory, per API instance; limits at the edge are
 the infrastructure task's.
 
 Modules call each other in-process through Contracts, never over HTTP.
