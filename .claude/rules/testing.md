@@ -36,7 +36,8 @@ paths:
 - **Public requests by host:** `App.Server.GetAsync(path, host, from, headers)` (`Tenancy/PublicRequests`) sets the
   host and remote address. `Tenancy/PublicTestApp` runs the whole Host in another environment (Development for the
   override) and trusts `PublicRequests.Proxy` as a forwarding proxy. `TenantTestData.SaveTenantAsync` adds the
-  tenant's `<slug>.localhost` domain; `DatabaseTest` clears the host cache before each test.
+  tenant's `<slug>.localhost` domain and default settings (`publicEnabled` as given); `DatabaseTest` clears the host
+  cache before each test.
 - **Tenant in tests:** set the scope's tenant with `scope.ServiceProvider.GetRequiredService<TenantContext>().Set(id)`
   before the first query or save; without one, tenant-owned queries return nothing and saves throw. Read across
   tenants only as `sp_platform` (`QueryAsync(DatabaseRoles.Platform, …)`). Audit entries are under RLS: read them

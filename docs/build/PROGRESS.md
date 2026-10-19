@@ -134,6 +134,11 @@ at the start of every review.
   T2b (plan approved 2026-10-19): the RLS exception list has only `*.outbox_messages` (D4 also named `inbox_messages`,
   which has no `tenant_id`); platform-wide audit filters by action or actor alone use the `occurred_at` index (the
   action and actor indexes are tenant-first); the coverage test also refuses a second permissive policy.
+- **S02-T4** (owner, 2026-10-19): two PRs (T4a table and move, T4b admin endpoints). The spec put time zone, locale,
+  currency and public visibility in `tenant_settings` while T1 had built them on `tenants`: they move to
+  `tenant_settings`, the only home of all six settings; the platform PATCH keeps accepting the four moved fields and
+  its version guards the tenant row only; the platform list no longer returns them. `starting_soon_minutes` default 30,
+  range 5–180.
 - **S02-T3b** (owner, 2026-10-19): `tenancy.tenant_domains` is a second RLS coverage exception (extends D4); its
   `status` follows a new tenant domain state machine in state-machines.md; existing tenants are backfilled by a
   post-migration step, not by SQL in the migration. In the plan the owner approved: `/site` has no "public flags" (a
