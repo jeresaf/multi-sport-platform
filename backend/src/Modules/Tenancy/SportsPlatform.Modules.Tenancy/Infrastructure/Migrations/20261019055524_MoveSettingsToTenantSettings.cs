@@ -140,7 +140,8 @@ namespace SportsPlatform.Modules.Tenancy.Infrastructure.Migrations
                 nullable: false,
                 defaultValue: "");
 
-            // Back onto the tenants, without RLS so the migrator sees every row; the check constraints come after.
+            // Back onto the tenants, without RLS so the migrator sees every row; the columns' temporary defaults go and the
+            // check constraints come after.
             migrationBuilder.DisableTenantRls("tenancy", "tenant_settings");
             migrationBuilder.Sql("""
                 UPDATE tenancy.tenants t
@@ -148,6 +149,13 @@ namespace SportsPlatform.Modules.Tenancy.Infrastructure.Migrations
                     public_enabled = s.public_enabled
                 FROM tenancy.tenant_settings s
                 WHERE s.tenant_id = t.id;
+                """);
+            migrationBuilder.Sql("""
+                ALTER TABLE tenancy.tenants
+                    ALTER COLUMN time_zone DROP DEFAULT,
+                    ALTER COLUMN default_locale DROP DEFAULT,
+                    ALTER COLUMN currency_code DROP DEFAULT,
+                    ALTER COLUMN public_enabled DROP DEFAULT;
                 """);
 
             migrationBuilder.AddCheckConstraint(

@@ -53,6 +53,8 @@ public sealed class ChangeTenantStatusHandler(
             return changed.Error;
         }
 
+        // For the response; read before the save, so nothing can fail after the change commits.
+        var settings = await context.Set<TenantSettings>().AsNoTracking().SingleAsync(s => s.TenantId == tenantId, cancellationToken);
         var saved = await context.SaveChangesResultAsync(cancellationToken);
         if (saved.IsFailure)
         {
@@ -61,7 +63,6 @@ public sealed class ChangeTenantStatusHandler(
 
         // The status decides whether the public site is shown.
         hostCache.Clear();
-        var settings = await context.Set<TenantSettings>().AsNoTracking().SingleAsync(s => s.TenantId == tenantId, cancellationToken);
         return Result.Success(TenantResponse.From(entry, settings));
     }
 }

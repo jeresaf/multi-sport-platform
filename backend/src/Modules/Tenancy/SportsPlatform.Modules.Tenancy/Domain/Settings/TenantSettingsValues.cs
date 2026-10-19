@@ -6,6 +6,7 @@ namespace SportsPlatform.Modules.Tenancy.Domain.Settings;
 /// <c>ll-CC</c>, <see cref="CurrencyCode"/> ISO 4217. <see cref="PublicEnabled"/>: whether the tenant wants a public
 /// site; it is shown only while the tenant is <c>ACTIVE</c>. <see cref="StartingSoonMinutes"/>: how long before its
 /// start a contest counts as "starting soon" (an edition's ruleset may override it).
+/// <see cref="MinorRegistrationConsent"/>: whether registering a minor needs a guardian's consent (Q11).
 /// </summary>
 public sealed record TenantSettingsValues(
     string TimeZone,

@@ -316,7 +316,8 @@ only in `tenancy.tenant_settings` (owner): time zone, locale, currency and `publ
 by the migration (SQL, before `EnableTenantRls`, since the migrator has no tenant; copied rows take the tenant's ID and
 audit columns). `starting_soon_minutes` defaults to 30 (5–180), `minor_registration_consent` to `RECOMMENDED`. Platform
 create and PATCH still take the four moved fields and write the settings row; the PATCH's `version`/`If-Match` guard
-the tenant row only (owner accepted: a later settings change by a tenant admin isn't detected). The platform list
+the tenant row only (owner accepted: any settings change after the caller's read, platform or admin, isn't detected;
+last write wins). The platform list
 (`TenantListItem`) has no settings. Public resolution sets the tenant before `CheckPublicAccessAsync` reads
 `publicEnabled` under RLS; the value is cached with the host. `TenantSummary` lost `PublicEnabled`. Removing the
 settings sample fails `Every_tenant_owned_entity_has_a_sample` (checked locally).

@@ -14,9 +14,10 @@ namespace SportsPlatform.Modules.Tenancy.Features.Tenants.UpdateTenantProfile;
 /// Changes the fields sent, in any status: the tenant's profile and, for the time zone, locale, currency and public
 /// site, its settings row. The Host runs it under the route's tenant (S02 D2). A sent <c>version</c> or
 /// <c>If-Match</c> that is not the tenant's current version, or a change to either row saved by someone else in
-/// between, is <c>TENANT_CONCURRENCY_CONFLICT</c>. The version is the tenant row's: a settings change made through the
-/// admin API after the caller's read is not detected (accepted by the owner, S02-T4 plan). A request that changes
-/// nothing saves nothing (the Host still audits it).
+/// between, is <c>TENANT_CONCURRENCY_CONFLICT</c>. The version is the tenant row's, and a settings-only save doesn't
+/// change it: any settings change after the caller's read, including one through this endpoint, is not detected (last
+/// write wins; accepted by the owner, S02-T4 plan). A request that changes nothing saves nothing (the Host still audits
+/// it).
 /// </summary>
 public sealed class UpdateTenantProfileHandler(TenancyDbContext context, AuditScope audit, TenantHostCache hostCache)
 {
