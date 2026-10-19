@@ -3,6 +3,7 @@ using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
@@ -46,15 +47,21 @@ public static class TestAuthentication
         return client;
     }
 
-    /// <summary>
-    /// Every test client sends <c>X-CSRF: 1</c>, as the web client does, and uses https, so the <c>Secure</c> session
-    /// cookie is sent back.
-    /// </summary>
+    /// <summary>Every test client sends <c>X-CSRF: 1</c>, as the web client does.</summary>
     public static void ConfigureTestClient(HttpClient client)
     {
         ArgumentNullException.ThrowIfNull(client);
-        client.BaseAddress = new Uri("https://localhost/");
         client.DefaultRequestHeaders.Add(CsrfProtection.HeaderName, CsrfProtection.HeaderValue);
+    }
+
+    /// <summary>
+    /// The factory's clients use https, so the <c>Secure</c> session cookie is sent back (the factory sets the base
+    /// address after <c>ConfigureClient</c>, so it is set here).
+    /// </summary>
+    public static void UseHttps(WebApplicationFactoryClientOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        options.BaseAddress = new Uri("https://localhost/");
     }
 
     /// <summary>Requests from this client are the user's, a member of <paramref name="memberOf"/>.</summary>

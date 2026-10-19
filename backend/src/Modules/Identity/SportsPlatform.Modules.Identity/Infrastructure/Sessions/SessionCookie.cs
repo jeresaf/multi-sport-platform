@@ -37,14 +37,14 @@ public static class SessionCookie
     {
         services.AddAuthentication(Scheme).AddCookie(Scheme);
         services.AddSingleton<IConfigureOptions<CookieAuthenticationOptions>, ConfigureCookie>();
-        services.Configure<SecurityStampValidatorOptions>(options => options.ValidationInterval = SecurityStampInterval);
+        services.AddSingleton<IConfigureOptions<SecurityStampValidatorOptions>, ConfigureSecurityStamp>();
         return services;
     }
 
     /// <summary>Past the absolute lifetime, or without a start: signed out, then the security stamp check.</summary>
     private static async Task ValidatePrincipalAsync(CookieValidatePrincipalContext context)
     {
-        var now = context.HttpContext.RequestServices.GetRequiredService<TimeProvider>().GetUtcNow();
+        var now = (context.Options.TimeProvider ?? TimeProvider.System).GetUtcNow();
         if (!context.Properties.Items.TryGetValue(IssuedAtItem, out var value)
             || !long.TryParse(value, System.Globalization.CultureInfo.InvariantCulture, out var seconds)
             || now - DateTimeOffset.FromUnixTimeSeconds(seconds) >= AbsoluteLifetime)
@@ -57,7 +57,17 @@ public static class SessionCookie
         await SecurityStampValidator.ValidatePrincipalAsync(context);
     }
 
-    private sealed class ConfigureCookie(IHostEnvironment environment) : IConfigureNamedOptions<CookieAuthenticationOptions>
+    // The application's clock (a fake one in tests), not the framework's default system clock.
+    private sealed class ConfigureSecurityStamp(TimeProvider timeProvider) : IConfigureOptions<SecurityStampValidatorOptions>
+    {
+        public void Configure(SecurityStampValidatorOptions options)
+        {
+            options.ValidationInterval = SecurityStampInterval;
+            options.TimeProvider = timeProvider;
+        }
+    }
+
+    private sealed class ConfigureCookie(IHostEnvironment environment, TimeProvider timeProvider) : IConfigureNamedOptions<CookieAuthenticationOptions>
     {
         public void Configure(CookieAuthenticationOptions options) => Configure(Options.DefaultName, options);
 
@@ -75,6 +85,7 @@ public static class SessionCookie
             options.Cookie.SameSite = SameSiteMode.Strict;
             options.Cookie.Path = "/";
             options.Cookie.IsEssential = true;
+            options.TimeProvider = timeProvider;
             options.ExpireTimeSpan = IdleTimeout;
             options.SlidingExpiration = true;
 

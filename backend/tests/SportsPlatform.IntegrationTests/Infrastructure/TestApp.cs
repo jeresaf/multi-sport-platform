@@ -19,8 +19,16 @@ namespace SportsPlatform.IntegrationTests.Infrastructure;
 /// authentication scheme (<see cref="TestAuthentication"/>), a configurable authorization evaluator, a recording
 /// email sender (<see cref="RecordingEmailSender"/>), the messaging test module and test seeders.
 /// </summary>
-public sealed class TestApp(IReadOnlyDictionary<string, string?> settings) : WebApplicationFactory<Program>
+public sealed class TestApp : WebApplicationFactory<Program>
 {
+    private readonly IReadOnlyDictionary<string, string?> _settings;
+
+    public TestApp(IReadOnlyDictionary<string, string?> settings)
+    {
+        _settings = settings;
+        TestAuthentication.UseHttps(ClientOptions);
+    }
+
     public FakeTimeProvider Clock { get; } = new(new DateTimeOffset(2026, 10, 17, 9, 0, 0, TimeSpan.Zero));
 
     public TelemetryCapture Telemetry { get; } = new();
@@ -41,10 +49,10 @@ public sealed class TestApp(IReadOnlyDictionary<string, string?> settings) : Web
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        var configuration = new ConfigurationBuilder().AddInMemoryCollection(settings).Build();
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(_settings).Build();
 
         builder.UseEnvironment(TestEnvironment.Name);
-        builder.ConfigureAppConfiguration(config => config.AddInMemoryCollection(settings));
+        builder.ConfigureAppConfiguration(config => config.AddInMemoryCollection(_settings));
         builder.ConfigureTestServices(services =>
         {
             services.RemoveAll<TimeProvider>();

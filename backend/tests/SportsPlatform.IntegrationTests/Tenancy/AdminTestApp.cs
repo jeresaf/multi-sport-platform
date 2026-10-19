@@ -52,6 +52,7 @@ internal sealed class AdminTestApp : IAsyncDisposable
     public HttpClient CreateClient()
     {
         var client = _app.GetTestClient();
+        client.BaseAddress = new Uri("https://localhost/");
         TestAuthentication.ConfigureTestClient(client);
         return client;
     }

@@ -55,10 +55,10 @@ public sealed class ActionDefinition
         Code = new ActionCode(code);
         ScopableBy = [.. (scopableBy ?? []).Distinct().Order()];
 
-        // Platform roles are not scoped; every tenant action can at least be granted tenant-wide (TENANT_ADMIN).
-        if (scope == ActionScope.Platform && ScopableBy.Count > 0)
+        // Platform roles and accounts are not scoped; every tenant action can at least be granted tenant-wide (TENANT_ADMIN).
+        if (scope != ActionScope.Tenant && ScopableBy.Count > 0)
         {
-            throw new ArgumentException($"Platform action '{code}' cannot be scopable by tenant assignment scopes.", nameof(scopableBy));
+            throw new ArgumentException($"{scope} action '{code}' cannot be scopable by tenant assignment scopes.", nameof(scopableBy));
         }
 
         if (scope == ActionScope.Tenant && !ScopableBy.Contains(AssignmentScope.Tenant))
@@ -88,7 +88,7 @@ public sealed class ActionDefinition
 
     public ActionScope Scope { get; }
 
-    /// <summary>Assignment scopes that can grant the action; empty for platform actions.</summary>
+    /// <summary>Assignment scopes that can grant the action; empty for platform and account actions.</summary>
     public IReadOnlyList<AssignmentScope> ScopableBy { get; }
 
     public AuditRequirement Audit { get; }

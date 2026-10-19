@@ -2,6 +2,7 @@ using SportsPlatform.BuildingBlocks.Actions;
 using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.BuildingBlocks.Auditing;
 using SportsPlatform.BuildingBlocks.Messaging;
+using SportsPlatform.BuildingBlocks.Results;
 using SportsPlatform.BuildingBlocks.Tenancy;
 
 namespace SportsPlatform.UnitTests.BuildingBlocks;
@@ -16,6 +17,24 @@ public sealed class AuditScopeTests
 
     private static readonly ActionDefinition _read = new(
         "fixture.read", "View fixtures.", ActionScope.Tenant, AuditRequirement.None, "S10", [AssignmentScope.Tenant]);
+
+    [Fact]
+    public void A_save_records_success_unless_the_handler_records_a_refusal()
+    {
+        var scope = new AuditScope(AnonymousActor.Instance, new TenantContext(), new CorrelationContext(), new FixedClock(_now));
+        scope.Begin(_redrive, AuditSource.Api);
+        scope.SaveOutcome.ShouldBe(AuditOutcome.Success);
+
+        scope.RecordOnSave(AuditOutcome.Denied, new Error("AUTH_INVALID_CREDENTIALS", "Refused.", ErrorKind.Unauthorized));
+
+        scope.SaveOutcome.ShouldBe(AuditOutcome.Denied);
+        scope.CreateRecord(scope.SaveOutcome).ShouldSatisfyAllConditions(
+            r => r.Outcome.ShouldBe(AuditOutcome.Denied),
+            r => r.ErrorCode.ShouldBe("AUTH_INVALID_CREDENTIALS"),
+            r => r.ActorKind.ShouldBe(ActorKind.Anonymous),
+            r => r.ActorId.ShouldBe(AnonymousActor.Id));
+        Should.Throw<ArgumentException>(() => scope.RecordOnSave(AuditOutcome.Success, CommonErrors.UnexpectedError));
+    }
 
     [Fact]
     public void Record_carries_the_action_actor_correlation_and_description()

@@ -62,4 +62,41 @@ public sealed class ActionDefinitionTests
         Should.Throw<ArgumentException>(() => new ActionDefinition(
             code, description, ActionScope.Tenant, AuditRequirement.None, since, [AssignmentScope.Tenant], entitlement));
     }
+
+    [Fact]
+    public void Account_action_may_allow_anonymous_callers()
+    {
+        var action = new ActionDefinition(
+            "account.login", "Sign in.", ActionScope.Account, AuditRequirement.Required, "S03", allowsAnonymous: true);
+
+        action.Scope.ShouldBe(ActionScope.Account);
+        action.AllowsAnonymous.ShouldBeTrue();
+        action.ScopableBy.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Actions_need_a_user_unless_they_allow_anonymous_callers()
+    {
+        new ActionDefinition("account.read", "Read the account.", ActionScope.Account, AuditRequirement.None, "S03")
+            .AllowsAnonymous.ShouldBeFalse();
+    }
+
+    // S03 D2: only the caller's own account can be worked on before signing in.
+    [Theory]
+    [InlineData(ActionScope.Platform)]
+    [InlineData(ActionScope.Tenant)]
+    public void Only_account_actions_may_allow_anonymous_callers(ActionScope scope)
+    {
+        AssignmentScope[] scopes = scope == ActionScope.Tenant ? [AssignmentScope.Tenant] : [];
+
+        Should.Throw<ArgumentException>(() => new ActionDefinition(
+            "tenant.read", "Read tenants.", scope, AuditRequirement.None, "S03", scopes, allowsAnonymous: true));
+    }
+
+    [Fact]
+    public void Account_action_scopable_by_a_tenant_scope_is_rejected()
+    {
+        Should.Throw<ArgumentException>(() => new ActionDefinition(
+            "account.read", "Read the account.", ActionScope.Account, AuditRequirement.None, "S03", [AssignmentScope.Tenant]));
+    }
 }
