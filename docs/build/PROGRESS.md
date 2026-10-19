@@ -7,19 +7,17 @@ at the start of every review.
 
 - **Current slice:** S03 — Identity and access (docs/build/slices/S03-identity-access.md, rewritten by the S02 slice
   review). S00, S01 and S02 are done
-- **Current task:** S03-T1a — Identity module, users, data protection keys, `create-platform-admin` — in review (#41)
-  (T1 split in two, owner 2026-10-19: T1b is `IEmailSender`, the SMTP adapter and the Mailpit test)
-- **Next:** S03-T1b — Email transport
+- **Current task:** S03-T1b — Email transport (`IEmailSender`, SMTP adapter, Mailpit test) — in progress
+- **Next:** S03-T2 — Account API, sessions and the anonymous actor
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S03-T1b — Email transport (`IEmailSender`, SMTP adapter, Mailpit test)
-2. S03-T2 — Account API, sessions and the anonymous actor
-3. S03-T3 — Roles in code, platform roles and the evaluator
-4. S03-T4 — Memberships, invitations and tenant roles (likely two PRs: T4a, T4b)
-5. S03-T5 — Capabilities and the authorization matrix
-6. S03-T6 — Admin web: sign-in, shell, members, platform console (likely two PRs: T6a, T6b)
+1. S03-T2 — Account API, sessions and the anonymous actor
+2. S03-T3 — Roles in code, platform roles and the evaluator
+3. S03-T4 — Memberships, invitations and tenant roles (likely two PRs: T4a, T4b)
+4. S03-T5 — Capabilities and the authorization matrix
+5. S03-T6 — Admin web: sign-in, shell, members, platform console (likely two PRs: T6a, T6b)
 
 ## Log
 
