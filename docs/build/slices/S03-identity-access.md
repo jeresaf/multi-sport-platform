@@ -203,10 +203,10 @@ Deliver:
   authenticates; the actor context stays in BuildingBlocks).
 
 Acceptance:
-- [ ] A mutation without `X-CSRF` → `403 AUTH_CSRF_REQUIRED`; with it and a valid session → allowed by the evaluator.
-- [ ] Lockout after 5 failures; the rate limit answers 429; a locked account and an unknown email answer the same.
-- [ ] An anonymous denial on an audited endpoint writes a `DENIED` entry with actor kind `ANONYMOUS`.
-- [ ] A password change signs out the user's other sessions (security stamp).
+- [x] A mutation without `X-CSRF` → `403 AUTH_CSRF_REQUIRED`; with it and a valid session → allowed by the evaluator.
+- [x] Lockout after 5 failures; the rate limit answers 429; a locked account and an unknown email answer the same.
+- [x] An anonymous denial on an audited endpoint writes a `DENIED` entry with actor kind `ANONYMOUS`.
+- [x] A password change signs out the user's other sessions (security stamp).
 
 ### T3 — Roles in code, platform roles and the evaluator
 Deliver:
@@ -375,4 +375,21 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   until T3/T4). Logout deletes the cookie only (no
   server-side session store): a copied cookie lives until it expires or the security stamp changes. Tests: the test
   scheme is a policy scheme (`X-Test-User`, else the session cookie); factory clients use https and send `X-CSRF: 1`.
-
+- **T2b (owner, plan):** one PR. A wrong current password on password change counts toward the lockout. A successful
+  reset clears the lockout. The reset link's token is `{userId}.{secret}` (no email in URLs) and the reset request is
+  `{token, newPassword}`. Requests refused by the per-IP limit stop before the audit middleware (logged, not audited);
+  per-email refusals are in the handler and audited as `DENIED`. Owner: `X-Forwarded-For` is trusted from the same
+  proxies as `X-Forwarded-Host` (S02 D7), so behind a proxy each client has its own limit.
+- **T2b:** `account.password.forgot`, `account.password.reset` (both anonymous) and `account.password.change`.
+  Forgot publishes `PasswordResetRequested.V1(UserId)` for a confirmed user; Identity's consumer
+  `identity.password_reset_email` creates the token and sends the email (link `{Identity:AdminAppUrl}/reset-password?token=…`,
+  checked on start; the page is T6's). `PasswordResetTokenProvider` stores `{expiresAt}.{SHA-256}` in
+  `identity.user_tokens` under one name (newest wins) and the reset deletes it. Rate limits: per-IP policies run by
+  `UseRateLimiter` between the actor and the audit; per-email checks are an endpoint filter after validation
+  (`.RateLimited<T>(...)`). The limiters' windows use the system clock (no `TimeProvider`), and Testing sets them out
+  of reach: `RateLimitTests` start their own app. A 429 is audited as `DENIED`. Two fixes found on the way: Identity's
+  `UserStore.UpdateAsync` attaches the user, which with a non-saving store reset the concurrency stamp's original
+  value on a second change before the save (our `UserStore` overrides it); and the security stamp validator signs
+  out `Identity.TwoFactorRememberMe`, so that cookie scheme is registered (sign-out only), else a changed stamp was a
+  500. `AUTH_PASSWORD_REJECTED` names the field in `errors` and Identity's rule in `detail`. Pre-review: a password change
+  deletes a pending reset token; the per-IP key of an IPv6 client is its /64; a 429 is `no-store`.

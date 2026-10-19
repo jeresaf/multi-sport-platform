@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 
 namespace SportsPlatform.Modules.Identity.Infrastructure.Users;
 
@@ -13,5 +14,27 @@ public sealed class UserStore : UserOnlyStore<User, IdentityDbContext, Guid>
         : base(context, describer)
     {
         AutoSaveChanges = false;
+    }
+
+    /// <summary>
+    /// Marks the user changed, with a new concurrency stamp. Identity's own version attaches the user first, which sets a
+    /// tracked, already changed user back to unchanged and takes its pending values as the originals: a second change
+    /// before the save (a password reset that also deletes its token) would then check the wrong concurrency stamp and
+    /// fail. Here a tracked user keeps the stamp it was loaded with until the save.
+    /// </summary>
+    public override Task<IdentityResult> UpdateAsync(User user, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        ThrowIfDisposed();
+        ArgumentNullException.ThrowIfNull(user);
+
+        if (Context.Entry(user).State == EntityState.Detached)
+        {
+            Context.Attach(user);
+        }
+
+        user.ConcurrencyStamp = Guid.NewGuid().ToString();
+        Context.Update(user);
+        return Task.FromResult(IdentityResult.Success);
     }
 }

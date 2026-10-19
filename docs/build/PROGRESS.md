@@ -7,18 +7,16 @@ at the start of every review.
 
 - **Current slice:** S03 — Identity and access (docs/build/slices/S03-identity-access.md, rewritten by the S02 slice
   review). S00, S01 and S02 are done
-- **Current task:** S03-T2a — Sessions and the pipeline (account family, anonymous actor, 401, cookie, CSRF,
-  login/logout/me, lockout) — in review (#43)
-- **Next:** S03-T2b — Passwords and rate limits (forgot/reset/change, reset email, 429)
+- **Current task:** S03-T2b — Passwords and rate limits (forgot/reset/change, reset email, 429) — in review (#44)
+- **Next:** S03-T3 — Roles in code, platform roles and the evaluator
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S03-T2b — Passwords and rate limits (owner: T2 is two PRs, T2a and T2b)
-2. S03-T3 — Roles in code, platform roles and the evaluator
-3. S03-T4 — Memberships, invitations and tenant roles (likely two PRs: T4a, T4b)
-4. S03-T5 — Capabilities and the authorization matrix
-5. S03-T6 — Admin web: sign-in, shell, members, platform console (likely two PRs: T6a, T6b)
+1. S03-T3 — Roles in code, platform roles and the evaluator
+2. S03-T4 — Memberships, invitations and tenant roles (likely two PRs: T4a, T4b)
+3. S03-T5 — Capabilities and the authorization matrix
+4. S03-T6 — Admin web: sign-in, shell, members, platform console (likely two PRs: T6a, T6b)
 
 ## Log
 
@@ -61,6 +59,7 @@ at the start of every review.
 | 2026-10-19 | S03-T1a | #41 | New module `Identity` (schema `identity`): ASP.NET Core Identity core with `UserOnlyStore` (no roles tables, store never saves by itself), `users` (+ `user_claims`, `user_logins`, `user_tokens`; unique `normalized_email`; contacts tagged `pii` `PRIVATE`), D15 password/lockout options; `platform_role_assignments` shipped early; data protection key ring in `identity.data_protection_keys` (append-only, application name `msp`); CLI `create-platform-admin --email` (password from `MSP_ADMIN_PASSWORD`, audited `platform.admin.create` as `SYSTEM`, prints the ID not the email); CLI applies the Host's `Serilog:MinimumLevel` (no EF SQL); default-credential scan test | T1 split in two; role table early; CLI action audited; existing user refused (owner, plan). `User` lives in `Infrastructure/Users` (Identity's base class is ASP.NET Core, which `Domain/` may not use). Errors beyond the plan: `AUTH_CONCURRENCY_CONFLICT` (every module context needs one), `AUTH_PASSWORD_REJECTED` (T2's, early), `AUTH_USER_EXISTS`. Refusals are not audited (operator console). New packages (MIT): `Microsoft.AspNetCore.Identity.EntityFrameworkCore`, `Microsoft.AspNetCore.DataProtection.EntityFrameworkCore` 10.0.13 |
 | 2026-10-19 | S03-T1b | #42 | `IEmailSender` + `EmailMessage` (recipient `PRIVATE`) in Platform Contracts; MailKit `SmtpEmailSender` (one connection per email, logs only the Message-ID; transport failures become `EmailDeliveryException` without the server's text or inner exception, so no address reaches the outbox log or `last_error`); `Email:From`/`FromName`/`Smtp:*` validated on start (credentials over `Security=None` refused); Development and Testing → Mailpit; `TestApp.Emails` records instead of sending; adapter tested against a Mailpit container (accepts one recipient, rejects others) | Fail fast on missing `Email:*` (owner, plan): test hosts started as Staging/Production get mail settings. `System.Security.Cryptography.Pkcs` pinned to 10.0.13 (MimeKit's 10.0.0 has advisories). Compose image lookup moved to `IntegrationTests/Infrastructure/ComposeFile`. New packages (MIT): `MailKit` 4.18.1, with `MimeKit` 4.18.1 and `BouncyCastle.Cryptography` 2.7.0 |
 | 2026-10-19 | S03-T2a | #43 | Account family `/api/account/v1` (`ACCOUNT` actions, `allowsAnonymous`, no-store, startup rules); `AnonymousActor` for requests without a user (a principal without a GUID `sub` too) with `actor_kind` widened in audit and tenancy; `401 AUTH_UNAUTHENTICATED` before any tenant lookup and in authorization; CSRF middleware (`X-CSRF: 1`, `403 AUTH_CSRF_REQUIRED`, audited); Identity's cookie as the only scheme (`__Host-msp_session`, 12 h sliding, 7 d absolute, stamp every 5 min, app clock; claims `sub` + stamp); `login` (lockout, same answer and same hashing for every refusal, DENIED entry saved with the count via `AuditScope.RecordOnSave`, race retried), `logout`, `me`; `IdentityAuthorizationEvaluator` replaces deny-all (account step); startup check for missing validators; test scheme falls back to the cookie, test clients https + `X-CSRF` | T2 split in T2a/T2b; Q18 answered (cookies only); T2b rate limits, reset token and `AUTH_CURRENT_PASSWORD_INVALID` agreed (owner, plan). `AUTH_UNAUTHENTICATED`/`AUTH_CSRF_REQUIRED` in BuildingBlocks `AuthorizationErrors` (pipeline errors). Session cookie without `Expires`. No new packages |
+| 2026-10-19 | S03-T2b | #44 | `account.password.forgot` (always 202; `PasswordResetRequested.V1` through the outbox, consumer `identity.password_reset_email` creates the token and sends the link to `{Identity:AdminAppUrl}/reset-password`), `account.password.reset` (token `{userId}.{secret}`, SHA-256 in `identity.user_tokens`, 1 h, once, newest wins; signs out every session, clears the lockout), `account.password.change` (wrong current password = `400 AUTH_CURRENT_PASSWORD_INVALID`, counted toward the lockout; other sessions end, this cookie renewed); rate limits on login and forgot-password (per IP before the audit, per normalised email after validation; `429 AUTH_RATE_LIMITED` + `Retry-After`, audited DENIED); `X-Forwarded-For` from trusted proxies; `Identity:*` validated on start; fixes: `UserStore.UpdateAsync` keeps the loaded concurrency stamp, `Identity.TwoFactorRememberMe` registered so a stale stamp signs out instead of 500 | Owner (plan): one PR; change failures lock; reset unlocks; user ID in the token; per-IP 429s not audited; `X-Forwarded-For` trusted (S02 D7 widened). `AUTH_PASSWORD_REJECTED`: rule in `detail`, field in `errors`. No new packages |
 
 ## Deviations from spec (agreed)
 
@@ -172,7 +171,8 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
 **S03 — identity and access**
 - Denials cost a permanent row each (#23 R2): rate-limit `/api/admin`, `/api/platform` and `/api/account` at the edge
   (Cloudflare), with the `/health/*` item below (infrastructure task after M1). Decided (S03 D3): anonymous denials
-  keep one row each; login and forgot-password are also rate-limited in the API (T2b).
+  keep one row each; login and forgot-password are also rate-limited in the API (done, S03-T2b: in memory, per API
+  instance, so N instances allow N times the limit until the edge limits exist).
 - `PROVISIONING` is `FULL` for every member in S02-T3a (no roles yet); state-machines.md gives it only to tenant
   owners/admins (setup). S03: limit it to them, with a test (#34 R1).
 - `BLOCKED` access mode lets the tenant owner view the tenant's status (state-machines.md); S02-T3a refuses every
@@ -194,6 +194,16 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
 - Logout deletes the cookie only (no server-side session store): a copied cookie lives until it expires or the
   security stamp changes. Identity's lockout uses the system clock (`UserManager` takes no `TimeProvider`). (Later,
   S03-T2a)
+- Per-IP rate-limit key behind the real proxy chain (#44 M2): it is per client only if every hop is trusted and forwards
+  the client's address (`ForwardLimit` defaults to 1). T6: check that the admin web's rewrite forwards
+  `X-Forwarded-For`. Infrastructure task: set `ForwardedHeaders:KnownNetworks` (Cloudflare and Azure ranges) and
+  `ForwardLimit`, or read `CF-Connecting-IP` from trusted edges only, and test that two clients behind the full chain
+  get separate limits; otherwise the 20-a-minute login limit becomes platform-wide. (T6, infrastructure)
+- Reset token in the link's query string (#44 M3): T6's `/reset-password` page sends `Referrer-Policy: no-referrer`,
+  removes the token from the URL after reading it (`history.replaceState`) and loads nothing from other origins; or
+  move the token to the fragment (`#token=`). Decide in T6. (T6)
+- Password reset email: a failed send is retried by the outbox with a new token (by design), but no test makes the
+  sender fail and checks the retry (S03-T2b). The reset page `/reset-password` is the admin web's (T6). (Later)
 - The CLI's Serilog → `LogLevel` mapping (`UseHostLogLevels`, S03-T1a) has no test; move it into the Host and unit-test it
   if the CLI's logging grows (T1a pre-review N2). The `create-platform-admin` unique-index race path has no test (two
   concurrent runs) (T1a pre-review M2). (Later)

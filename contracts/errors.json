@@ -13,6 +13,12 @@
       "owner": "BuildingBlocks"
     },
     {
+      "code": "AUTH_CURRENT_PASSWORD_INVALID",
+      "status": 400,
+      "message": "The current password is incorrect.",
+      "owner": "Identity"
+    },
+    {
       "code": "AUTH_FORBIDDEN",
       "status": 403,
       "message": "You are not allowed to perform this action.",
@@ -28,6 +34,18 @@
       "code": "AUTH_PASSWORD_REJECTED",
       "status": 400,
       "message": "The password was rejected: use at least 12 characters.",
+      "owner": "Identity"
+    },
+    {
+      "code": "AUTH_RATE_LIMITED",
+      "status": 429,
+      "message": "Too many attempts. Wait a while and try again.",
+      "owner": "Identity"
+    },
+    {
+      "code": "AUTH_RESET_TOKEN_INVALID",
+      "status": 400,
+      "message": "The reset link is invalid or has expired. Ask for a new one.",
       "owner": "Identity"
     },
     {

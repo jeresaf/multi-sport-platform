@@ -347,7 +347,7 @@ export interface paths {
         put?: never;
         /**
          * Sign in
-         * @description Signs in with email and password and starts a session: the response sets the session cookie (HttpOnly, SameSite=Strict; 12 hours sliding, 7 days at most). An unknown email, a wrong password, a locked or unconfirmed account all answer `AUTH_INVALID_CREDENTIALS`. Five wrong passwords lock the account for 15 minutes. Needs `X-CSRF: 1` like every other change.
+         * @description Signs in with email and password and starts a session: the response sets the session cookie (HttpOnly, SameSite=Strict; 12 hours sliding, 7 days at most). An unknown email, a wrong password, a locked or unconfirmed account all answer `AUTH_INVALID_CREDENTIALS`. Five wrong passwords lock the account for 15 minutes. Limited to 20 attempts a minute per client address and 10 per 15 minutes per email (`AUTH_RATE_LIMITED`, with `Retry-After`). Needs `X-CSRF: 1` like every other change.
          */
         post: operations["Login"];
         delete?: never;
@@ -396,6 +396,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/account/v1/password/forgot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ask for a password reset email
+         * @description Sends a password reset link to the email if it belongs to an account. Always answers 202, whether or not it does. The link works once, for 1 hour, and only the newest link works. Limited to 10 requests an hour per client address and 3 an hour per email (`AUTH_RATE_LIMITED`, with `Retry-After`). Needs `X-CSRF: 1`.
+         */
+        post: operations["ForgotPassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/account/v1/password/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Set a new password with a reset token
+         * @description Sets a new password with the token from a reset email's link. The token works once, for 1 hour, and only the newest one works; otherwise `AUTH_RESET_TOKEN_INVALID`. The new password needs at least 12 characters (`AUTH_PASSWORD_REJECTED`, the rule in `detail`). Signs out every session of the user and clears a lockout; it does not sign in. Needs `X-CSRF: 1`.
+         */
+        post: operations["ResetPassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/account/v1/password/change": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Change the password
+         * @description Changes the signed-in user's password. A wrong current password answers `AUTH_CURRENT_PASSWORD_INVALID` and counts toward the lockout (five lock the account for 15 minutes). The new password needs at least 12 characters (`AUTH_PASSWORD_REJECTED`, the rule in `detail`). The user's other sessions end within 5 minutes; this one stays (the response renews its cookie). Needs `X-CSRF: 1`.
+         */
+        post: operations["ChangePassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -437,6 +497,11 @@ export interface components {
          * @enum {unknown}
          */
         AuditSource: "API" | "SYSTEM";
+        /** @description Change the signed-in user's password. */
+        ChangePasswordRequest: {
+            currentPassword: null | string;
+            newPassword: null | string;
+        };
         /** @description The optional body of `activate` and `restore`: `version`, when sent, must be the tenant's current one. */
         ChangeTenantStatusRequest: {
             /** Format: uint32 */
@@ -479,6 +544,10 @@ export interface components {
             name: string;
             /** Format: int32 */
             minorUnits: number;
+        };
+        /** @description Ask for a password reset email. */
+        ForgotPasswordRequest: {
+            email: null | string;
         };
         JsonElement: unknown;
         /** @description An ISO 639-1 language: two-letter `code` (`sw`) and English name. */
@@ -603,6 +672,11 @@ export interface components {
          */
         RedriveOutboxMessageRequest: {
             reason: null | string;
+        };
+        /** @description Set a new password with the token from a reset email's link. */
+        ResetPasswordRequest: {
+            token: null | string;
+            newPassword: null | string;
         };
         /**
          * @description The public site's identity: `PUBLIC` fields only. PrimaryDomain is the host the site
@@ -1786,6 +1860,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Problem Details; `code`: `AUTH_RATE_LIMITED` */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
         };
     };
     Logout: {
@@ -1844,6 +1927,162 @@ export interface operations {
             };
             /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ForgotPassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ForgotPasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_RATE_LIMITED` */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ResetPassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResetPasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Problem Details; `code`: `AUTH_PASSWORD_REJECTED`, `AUTH_RESET_TOKEN_INVALID`, `VALIDATION_INVALID_REQUEST` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CONCURRENCY_CONFLICT` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ChangePassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangePasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Problem Details; `code`: `AUTH_CURRENT_PASSWORD_INVALID`, `AUTH_PASSWORD_REJECTED`, `VALIDATION_INVALID_REQUEST` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CONCURRENCY_CONFLICT` */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

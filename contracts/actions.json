@@ -25,6 +25,42 @@
       "since": "S03"
     },
     {
+      "code": "account.password.change",
+      "module": "Identity",
+      "description": "Change the signed-in user's password; signs out their other sessions.",
+      "scope": "ACCOUNT",
+      "scopableBy": [],
+      "audit": "REQUIRED",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "since": "S03"
+    },
+    {
+      "code": "account.password.forgot",
+      "module": "Identity",
+      "description": "Ask for a password reset email. Always accepted, whether or not the email has an account; the audit never records the email.",
+      "scope": "ACCOUNT",
+      "scopableBy": [],
+      "audit": "REQUIRED",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": true,
+      "since": "S03"
+    },
+    {
+      "code": "account.password.reset",
+      "module": "Identity",
+      "description": "Set a new password with the token from a reset email; signs out every session of the user and clears a lockout.",
+      "scope": "ACCOUNT",
+      "scopableBy": [],
+      "audit": "REQUIRED",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": true,
+      "since": "S03"
+    },
+    {
       "code": "account.read",
       "module": "Identity",
       "description": "Read the signed-in user: email, platform roles and tenants with their roles.",

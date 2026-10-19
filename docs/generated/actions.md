@@ -8,6 +8,9 @@ admin endpoint requires one of these; the code is stable and is what roles grant
 |---|---|---|---|---|---|---|---|---|---|
 | `account.login` | Identity | ACCOUNT | — | REQUIRED | — | no | yes | S03 | Sign in with email and password; starts a session (cookie). Failures are audited with the reason, never the email. |
 | `account.logout` | Identity | ACCOUNT | — | REQUIRED | — | no | no | S03 | Sign out: ends this session. |
+| `account.password.change` | Identity | ACCOUNT | — | REQUIRED | — | no | no | S03 | Change the signed-in user's password; signs out their other sessions. |
+| `account.password.forgot` | Identity | ACCOUNT | — | REQUIRED | — | no | yes | S03 | Ask for a password reset email. Always accepted, whether or not the email has an account; the audit never records the email. |
+| `account.password.reset` | Identity | ACCOUNT | — | REQUIRED | — | no | yes | S03 | Set a new password with the token from a reset email; signs out every session of the user and clears a lockout. |
 | `account.read` | Identity | ACCOUNT | — | NONE | — | no | no | S03 | Read the signed-in user: email, platform roles and tenants with their roles. |
 | `platform.admin.create` | Identity | PLATFORM | — | REQUIRED | — | no | no | S03 | Create a platform administrator: a new user with PLATFORM_ADMIN (CLI create-platform-admin only; no endpoint). |
 | `platform.audit.read` | Platform | PLATFORM | — | REQUIRED | — | no | no | S01 | View audit entries of every tenant. |

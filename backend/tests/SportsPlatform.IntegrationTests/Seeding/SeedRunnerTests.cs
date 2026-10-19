@@ -262,6 +262,9 @@ public sealed class SeedRunnerTests(PostgresFixture fixture) : DatabaseTest(fixt
             // ...and without a mail server (S03-T1b); nothing sends here.
             ["Email:From"] = "no-reply@sports.test",
             ["Email:Smtp:Host"] = "smtp.sports.test",
+
+            // ...and without the admin web's address for emailed links (S03-T2b).
+            ["Identity:AdminAppUrl"] = "https://admin.sports.test",
         };
         var app = App.WithWebHostBuilder(builder => builder
             .UseEnvironment(environment)

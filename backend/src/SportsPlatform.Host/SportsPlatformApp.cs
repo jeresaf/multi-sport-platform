@@ -56,7 +56,7 @@ public static class SportsPlatformApp
 
     /// <summary>
     /// The middleware, in order (docs/architecture/authorization.md, S02 D8, S03 D7): forwarded host → logging and
-    /// correlation → routing → actor → audit → CSRF → tenant resolution → authorization → endpoint. Tests that need their own endpoints run this too.
+    /// correlation → routing → actor → rate limits (S03 D15; before audit, so a flood writes no audit rows) → audit → CSRF → tenant resolution → authorization → endpoint. Tests that need their own endpoints run this too.
     /// </summary>
     public static void UsePipeline(WebApplication app)
     {
@@ -67,6 +67,7 @@ public static class SportsPlatformApp
         app.UseApiConventions();
         app.UseRouting();
         app.UseCurrentActor();
+        app.UseRateLimiter();
         app.UseAudit();
         app.UseCsrfProtection();
         app.UseTenantResolution();

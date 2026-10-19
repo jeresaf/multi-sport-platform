@@ -28,6 +28,29 @@ public static class IdentityActions
         AuditRequirement.None,
         since: "S03");
 
+    public static readonly ActionDefinition PasswordForgot = new(
+        "account.password.forgot",
+        "Ask for a password reset email. Always accepted, whether or not the email has an account; the audit never records the email.",
+        ActionScope.Account,
+        AuditRequirement.Required,
+        since: "S03",
+        allowsAnonymous: true);
+
+    public static readonly ActionDefinition PasswordReset = new(
+        "account.password.reset",
+        "Set a new password with the token from a reset email; signs out every session of the user and clears a lockout.",
+        ActionScope.Account,
+        AuditRequirement.Required,
+        since: "S03",
+        allowsAnonymous: true);
+
+    public static readonly ActionDefinition PasswordChange = new(
+        "account.password.change",
+        "Change the signed-in user's password; signs out their other sessions.",
+        ActionScope.Account,
+        AuditRequirement.Required,
+        since: "S03");
+
     public static readonly ActionDefinition PlatformAdminCreate = new(
         "platform.admin.create",
         "Create a platform administrator: a new user with PLATFORM_ADMIN (CLI create-platform-admin only; no endpoint).",

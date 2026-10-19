@@ -81,6 +81,21 @@
       ]
     },
     {
+      "name": "PasswordResetRequested",
+      "version": 1,
+      "module": "Identity",
+      "payload": [
+        {
+          "name": "userId",
+          "type": "uuid",
+          "nullable": false
+        }
+      ],
+      "consumers": [
+        "identity.password_reset_email"
+      ]
+    },
+    {
       "name": "TenantCreated",
       "version": 1,
       "module": "Tenancy",
