@@ -67,16 +67,30 @@ jobs:
       - run: pnpm test
       - run: pnpm build
 
+  # The public app runs against the real API (web/e2e/start-api.sh migrates, seeds DEMO and starts it).
   e2e:
     name: E2E (Playwright)
     needs: web
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 25
     defaults:
       run:
         working-directory: web
     steps:
       - uses: actions/checkout@v7
+      - name: Start PostgreSQL
+        working-directory: .
+        run: |
+          cp .env.example .env
+          docker compose up -d --wait --wait-timeout 120 postgres
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('global.json', 'backend/Directory.Packages.props', 'backend/**/*.csproj', 'backend/**/Directory.Build.props') }}
+          restore-keys: nuget-${{ runner.os }}-
       - uses: pnpm/action-setup@v6
         with:
           package_json_file: web/package.json
@@ -97,6 +111,15 @@ jobs:
           name: playwright-report
           path: web/e2e/playwright-report
           retention-days: 7
+      # Phone, tablet and desktop screenshots of the public pages, linked from UI pull requests.
+      - name: Upload screenshots
+        if: success() || failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: screenshots
+          path: web/e2e/screenshots
+          if-no-files-found: ignore
+          retention-days: 14
 
   # Generated files are committed so their diffs get reviewed; regenerate them all and fail if anything changed.
   contracts:
