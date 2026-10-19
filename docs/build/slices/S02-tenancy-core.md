@@ -351,4 +351,4 @@ whose error page shows the Next.js digest and the server log has the API's corre
 the Host in Development), seeding before the API starts so no stale host cache is hit (#38 follow-up). The apps' web
 servers are awaited by port, since `localhost:3000` serves no tenant. CI's e2e job starts compose's PostgreSQL, sets
 up .NET and uploads `web/e2e/screenshots` (phone, tablet, desktop for both tenants and the not-found page) as the
-`screenshots` artifact. The unavailable and error pages are covered by unit tests and a manual check, not e2e.
+`screenshots` artifact (light and dark). The unavailable and error pages are covered by unit tests and a manual check, not e2e.
