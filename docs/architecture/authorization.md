@@ -65,7 +65,10 @@ CSRF header. Public endpoints are anonymous and need neither.
 **Account actions (S03 D1, D2).** Under `/api/account/v1` only, never public: the caller's own account (sign-in and
 sign-out, `me`, passwords, invitation acceptance). The evaluator (`IdentityAuthorizationEvaluator`, D10) allows them
 to every signed-in user; those marked `allowsAnonymous` also to anonymous callers. They have no tenant and no step 1.
-Until S03-T3 and T4 the evaluator refuses every platform and tenant action (fail closed).
+
+**Platform actions (S03-T3).** The evaluator allows a platform action when the user holds an unrevoked platform role
+(`identity.platform_role_assignments`) that includes it, read per request (no claims cache). Platform roles grant no
+tenant actions. Until S03-T4 the evaluator refuses every tenant action (fail closed).
 
 **Ending sessions (S03 D5, T2b).** Sessions are not stored on the server; a password change or reset changes the
 user's security stamp, and every other session fails its next stamp check (at most 5 minutes later) with `401`. A
@@ -92,7 +95,15 @@ Owning modules implement `IScopeChainProvider` in their Contracts: given a resou
 its chain (`contest → edition → competition → tenant`, and the participating team IDs). The evaluator grants an
 action if any assignment's scope appears in the chain and the role includes the action.
 
-### System roles (seeded; tenant-custom roles later)
+### System roles (defined in code; tenant-custom roles later)
+
+**As built (S03-T3, D9):** Identity's `IdentityRoles` defines each role: its code, the scopes it can be assigned at
+("typical scope" below) and its action codes. The Host refuses to start if a role grants an undeclared action, an
+action of the other scope (tenant roles only `TENANT` actions, platform roles only `PLATFORM` actions), or a tenant
+action that none of the role's assignment scopes can grant (an action's `scopable_by`). Each slice that adds actions
+adds them to the roles. `export-catalogues` writes the result to `docs/generated/roles.md`, the authority on who can
+do what; the table below is the intent. Owner (S03-T3): every role assigned tenant-wide reads the tenant settings,
+only `TENANT_OWNER` and `TENANT_ADMIN` change them; `TEAM_MANAGER` (team scope only) gets no tenant-wide actions.
 
 | Role | Typical scope | Includes (summary) |
 |---|---|---|
@@ -107,7 +118,8 @@ action if any assignment's scope appears in the chain and the role includes the 
 | `VIEWER` | TENANT | read-only admin |
 
 Platform roles: `PLATFORM_ADMIN` (tenants, plans, subscriptions, platform config view), `PLATFORM_SUPPORT`
-(read-only platform views, audited).
+(read-only platform views, audited). As built: `PLATFORM_ADMIN` holds every platform action; `PLATFORM_SUPPORT` holds
+the platform `*.read` actions. Platform roles are granted through the CLI in S03 (`create-platform-admin`).
 
 Rules: merges of people (`person.merge`) and entitlement overrides require explicit roles; reasons are
 mandatory where the action says `REQUIRED_WITH_REASON`.

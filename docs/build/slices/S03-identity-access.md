@@ -393,3 +393,14 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   out `Identity.TwoFactorRememberMe`, so that cookie scheme is registered (sign-out only), else a changed stamp was a
   500. `AUTH_PASSWORD_REJECTED` names the field in `errors` and Identity's rule in `detail`. Pre-review: a password change
   deletes a pending reset token; the per-IP key of an IPv6 client is its /64; a 429 is `no-store`.
+- **T3 (owner, plan):** one PR. All nine tenant roles are defined now (roles without actions yet have empty lists).
+  Every role assigned tenant-wide reads the tenant settings; only `TENANT_OWNER` and `TENANT_ADMIN` change them.
+  `TEAM_MANAGER` is assigned at `TEAM` only and gets no tenant-wide actions; the startup check refuses a tenant role
+  holding an action that none of its assignment scopes can grant.
+- **T3:** `RoleDefinition` and `IdentityRoles` live in Identity's `Domain/Roles`; `RoleCatalogue` is a singleton the
+  evaluator and the Host's startup check (`RoleRules`) read, so tests replace it. `PLATFORM_ADMIN` holds every platform
+  action (`platform.admin.create` included, which has no endpoint); `PLATFORM_SUPPORT` the platform `*.read` actions.
+  `IdentityAuthorizationEvaluator` is scoped and reads the user's unrevoked platform roles per request through
+  `IdentityDbContext` (global table, no platform service). The middleware passes the resolved tenant in
+  `AuthorizationRequest`; nothing fills `ScopeRef` yet. Tests hand requests to the real evaluator with
+  `App.Authorization.UseIdentityRoles()`. No migration: T1a shipped the table.
