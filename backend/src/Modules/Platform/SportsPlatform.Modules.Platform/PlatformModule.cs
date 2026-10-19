@@ -2,12 +2,14 @@ using FluentValidation;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using SportsPlatform.BuildingBlocks.Auditing;
 using SportsPlatform.BuildingBlocks.Modules;
 using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Persistence.Messaging;
 using SportsPlatform.BuildingBlocks.Persistence.Seeding;
 using SportsPlatform.Modules.Platform.Contracts.Audit;
+using SportsPlatform.Modules.Platform.Contracts.Email;
 using SportsPlatform.Modules.Platform.Contracts.Reference;
 using SportsPlatform.Modules.Platform.Features.Audit.AppendAuditEntry;
 using SportsPlatform.Modules.Platform.Features.Audit.ListAuditEntries;
@@ -20,13 +22,14 @@ using SportsPlatform.Modules.Platform.Features.Reference.ListLanguages;
 using SportsPlatform.Modules.Platform.Features.Reference.ListTimeZones;
 using SportsPlatform.Modules.Platform.Features.Seeding;
 using SportsPlatform.Modules.Platform.Infrastructure;
+using SportsPlatform.Modules.Platform.Infrastructure.Email;
 using SportsPlatform.Modules.Platform.Infrastructure.Messaging;
 using SportsPlatform.Modules.Platform.Seed.Reference;
 
 namespace SportsPlatform.Modules.Platform;
 
 /// <summary>
-/// Cross-cutting foundations: reference data, audit, seed bookkeeping, and the host of the outbox processor that
+/// Cross-cutting foundations: reference data, audit, seed bookkeeping, transactional email transport, and the host of the outbox processor that
 /// delivers every module's integration events (docs/architecture/modules.md).
 /// </summary>
 public sealed class PlatformModule : IModule
@@ -74,6 +77,11 @@ public sealed class PlatformModule : IModule
         services.AddScoped<ListLanguagesHandler>();
         services.AddScoped<ListTimeZonesHandler>();
         services.AddSingleton<IValidator<ListTimeZonesRequest>, ListTimeZonesRequestValidator>();
+
+        // Transactional email transport (S03 D13): consumers send through IEmailSender, never inside a request.
+        services.AddOptions<EmailOptions>().Bind(configuration.GetSection(EmailOptions.SectionName)).ValidateOnStart();
+        services.AddSingleton<IValidateOptions<EmailOptions>, EmailOptionsValidator>();
+        services.AddSingleton<IEmailSender, SmtpEmailSender>();
     }
 
     public void MapEndpoints(ApiEndpointGroups groups)
