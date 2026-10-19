@@ -34,8 +34,11 @@ public static class SportsPlatformApp
         // the document from an app it builds but never starts.
         app.UseEndpoints(static _ => { });
 
-        // Fail closed: the API (and the CLI's export) won't build with an endpoint that declares no action.
-        app.EnsureEndpointsDeclareActions(ActionCatalogue.Build(ModuleRegistry.All));
+        // Fail closed: the API (and the CLI's export) won't build with an endpoint that declares no action, or a role
+        // that grants an undeclared action or one of another scope.
+        var actions = ActionCatalogue.Build(ModuleRegistry.All);
+        app.EnsureEndpointsDeclareActions(actions);
+        app.EnsureRolesGrantDeclaredActions(actions);
         app.EnsureRequestValidators();
 
         return app;

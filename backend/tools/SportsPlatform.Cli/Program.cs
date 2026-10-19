@@ -15,12 +15,13 @@ using SportsPlatform.Host.Administration;
 using SportsPlatform.Host.Catalogues;
 using SportsPlatform.Host.Modules;
 using SportsPlatform.Host.OpenApi;
+using SportsPlatform.Modules.Identity.Domain.Roles;
 
 (string Name, string Description, Func<string[], Task<int>>? Run)[] commands =
 [
     ("migrate", "Apply database migrations for every module (as sp_migrator)", MigrateAsync),
     ("seed", "Run seeders for a category and its prerequisites: " + SeedRequest.Usage, SeedAsync),
-    ("export-catalogues", "Write the action, error and event catalogues to docs/generated and contracts", ExportCataloguesAsync),
+    ("export-catalogues", "Write the action, role, error and event catalogues to docs/generated and contracts", ExportCataloguesAsync),
     ("export-openapi", "Write contracts/openapi.json", ExportOpenApiAsync),
     ("create-platform-admin", "Create a platform administrator: " + CreatePlatformAdminCommand.Usage, CreatePlatformAdminAsync),
 ];
@@ -153,8 +154,12 @@ static async Task<int> ExportCataloguesAsync(string[] args)
     await WriteGeneratedAsync(Path.Combine(root, "docs", "generated", "errors.md"), ErrorCatalogue.ToMarkdown(errors));
     await WriteGeneratedAsync(Path.Combine(root, "contracts", "errors.json"), ErrorCatalogue.ToJson(errors));
 
-    // Consumers are what the modules register; building the services doesn't touch the database.
+    // Roles and consumers are what the modules register; building the services doesn't touch the database.
     using var host = BuildHost(args);
+    var roles = host.Services.GetRequiredService<RoleCatalogue>();
+    await WriteGeneratedAsync(Path.Combine(root, "docs", "generated", "roles.md"), RoleCatalogueExport.ToMarkdown(roles));
+    await WriteGeneratedAsync(Path.Combine(root, "contracts", "roles.json"), RoleCatalogueExport.ToJson(roles));
+
     var events = EventCatalogue.Build(ModuleRegistry.All, host.Services.GetServices<IntegrationEventSubscription>());
     await WriteGeneratedAsync(Path.Combine(root, "docs", "generated", "events.md"), EventCatalogue.ToMarkdown(events));
     await WriteGeneratedAsync(Path.Combine(root, "contracts", "events.json"), EventCatalogue.ToJson(events));
