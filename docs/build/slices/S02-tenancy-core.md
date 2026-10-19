@@ -248,12 +248,12 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
 
 ## Slice acceptance
 
-- [ ] Two tenants with isolated data, proven at the application and database levels (harness, RLS coverage, pool
+- [x] Two tenants with isolated data, proven at the application and database levels (harness, RLS coverage, pool
       leak, API tests green in CI).
-- [ ] Tenant lifecycle with status history and audit; public shell per host.
-- [ ] The isolation harness and the RLS exception list are documented in `.claude/rules/testing.md` so later slices
+- [x] Tenant lifecycle with status history and audit; public shell per host.
+- [x] The isolation harness and the RLS exception list are documented in `.claude/rules/testing.md` so later slices
       extend them.
-- [ ] The S01 carry-overs above are done and removed from PROGRESS.md "Tech debt / follow-ups".
+- [x] The S01 carry-overs above are done and removed from PROGRESS.md "Tech debt / follow-ups".
 
 ## Implementation notes
 
@@ -352,3 +352,6 @@ the Host in Development), seeding before the API starts so no stale host cache i
 servers are awaited by port, since `localhost:3000` serves no tenant. CI's e2e job starts compose's PostgreSQL, sets
 up .NET and uploads `web/e2e/screenshots` (phone, tablet, desktop for both tenants and the not-found page) as the
 `screenshots` artifact (light and dark). The unavailable and error pages are covered by unit tests and a manual check, not e2e.
+
+**Slice review (2026-10-19).** All acceptance items met on main (109b9c9); owner demo done 2026-10-19. No ADR drift;
+modules.md (actor) and api-conventions.md (account family) are updated by S03-T2.
