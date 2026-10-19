@@ -10,6 +10,7 @@ using SportsPlatform.IntegrationTests.Audit;
 using SportsPlatform.IntegrationTests.Infrastructure;
 using SportsPlatform.Modules.Tenancy;
 using SportsPlatform.Modules.Tenancy.Contracts.Tenants;
+using SportsPlatform.Modules.Tenancy.Domain.Domains;
 using SportsPlatform.Modules.Tenancy.Features.Tenants;
 
 namespace SportsPlatform.IntegrationTests.Tenancy;
@@ -41,6 +42,21 @@ public sealed class CreateTenantTests(PostgresFixture fixture) : DatabaseTest(fi
         response.Headers.Location.ShouldNotBeNull().OriginalString.ShouldBe($"{TenantTestData.TenantsPath}/{tenant.Id}");
         response.Headers.ETag.ShouldNotBeNull().Tag.ShouldBe($"\"{tenant.Version}\"");
         (await response.Content.ReadAsStringAsync(Ct)).ShouldContain("\"status\":\"PROVISIONING\"");
+    }
+
+    [Fact]
+    public async Task Creates_the_platform_subdomain_with_the_tenant()
+    {
+        using var response = await CreateAsync(TenantTestData.CreateBody());
+
+        var tenant = (await response.Content.ReadFromJsonAsync<TenantResponse>(Json, Ct)).ShouldNotBeNull();
+        var domain = (await TenantTestData.DomainsAsync(App.Services, Ct)).ShouldHaveSingleItem();
+        domain.ShouldSatisfyAllConditions(
+            d => d.TenantId.ShouldBe(tenant.Id),
+            d => d.Host.ShouldBe("kmsa.localhost"),
+            d => d.Type.ShouldBe(TenantDomainType.PlatformSubdomain),
+            d => d.IsPrimary.ShouldBeTrue(),
+            d => d.Status.ShouldBe(TenantDomainStatus.Active));
     }
 
     [Fact]
@@ -95,6 +111,7 @@ public sealed class CreateTenantTests(PostgresFixture fixture) : DatabaseTest(fi
 
         await response.ShouldBeProblemAsync(HttpStatusCode.Conflict, "TENANT_SLUG_TAKEN");
         (await TenantTestData.TenantCountAsync(App.Services, Ct)).ShouldBe(1);
+        (await TenantTestData.DomainsAsync(App.Services, Ct)).ShouldHaveSingleItem().Host.ShouldBe("kmsa.localhost");
         var entry = (await AuditTestData.EntriesAsync(App.Services, Ct)).ShouldHaveSingleItem();
         entry.ShouldSatisfyAllConditions(
             e => e.Outcome.ShouldBe(AuditOutcome.Failure),

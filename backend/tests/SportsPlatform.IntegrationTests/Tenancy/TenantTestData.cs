@@ -5,6 +5,7 @@ using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Persistence.Messaging;
 using SportsPlatform.BuildingBlocks.Tenancy;
 using SportsPlatform.Modules.Tenancy.Contracts.Tenants;
+using SportsPlatform.Modules.Tenancy.Domain.Domains;
 using SportsPlatform.Modules.Tenancy.Domain.Tenants;
 using SportsPlatform.Modules.Tenancy.Infrastructure;
 
@@ -46,16 +47,22 @@ internal static class TenantTestData
     }
 
     /// <summary>
-    /// A tenant saved straight through the module's DbContext, moved to <paramref name="status"/>; under the new tenant,
-    /// like the handlers, because its status history is tenant-owned.
+    /// A tenant saved straight through the module's DbContext, moved to <paramref name="status"/>, with its platform
+    /// subdomain <c>&lt;slug&gt;.localhost</c> (unless the overload says otherwise); under the new tenant, like
+    /// the handlers, because its status history is tenant-owned.
     /// </summary>
-    public static async Task<Guid> SaveTenantAsync(IServiceProvider services, string slug, TenantStatus status, CancellationToken cancellationToken)
+    public static Task<Guid> SaveTenantAsync(IServiceProvider services, string slug, TenantStatus status, CancellationToken cancellationToken) =>
+        SaveTenantAsync(services, slug, status, publicEnabled: false, withDomain: true, cancellationToken);
+
+    /// <summary>As the other overload; <paramref name="withDomain"/> false leaves the tenant without a domain.</summary>
+    public static async Task<Guid> SaveTenantAsync(
+        IServiceProvider services, string slug, TenantStatus status, bool publicEnabled, bool withDomain, CancellationToken cancellationToken)
     {
         await using var scope = services.CreateAsyncScope();
         var context = scope.ServiceProvider.GetRequiredService<TenancyDbContext>();
         var now = new DateTimeOffset(2026, 10, 1, 8, 0, 0, TimeSpan.Zero);
         var profile = new TenantProfile(
-            $"{slug} Sports Council", $"{slug} Sports", "UG", "Africa/Kampala", "en", "UGX", PublicEnabled: false);
+            $"{slug} Sports Council", $"{slug} Sports", "UG", "Africa/Kampala", "en", "UGX", publicEnabled);
         var tenant = Tenant.Create(slug, profile, SystemActor.Instance, now);
         if (status != TenantStatus.Provisioning)
         {
@@ -73,6 +80,11 @@ internal static class TenantTestData
 
         scope.ServiceProvider.GetRequiredService<TenantContext>().Set(tenant.Id);
         context.Add(tenant);
+        if (withDomain)
+        {
+            context.Add(TenantDomain.PlatformSubdomain(tenant.Id, slug, "localhost"));
+        }
+
         await context.SaveChangesAsync(cancellationToken);
         return tenant.Id;
     }
@@ -102,6 +114,13 @@ internal static class TenantTestData
         var version = await context.Set<Tenant>().AsNoTracking().Where(t => t.Id == tenantId)
             .Select(t => EF.Property<uint>(t, AuditColumns.Version)).SingleAsync(cancellationToken);
         return new(tenant.Status, version);
+    }
+
+    public static async Task<List<TenantDomain>> DomainsAsync(IServiceProvider services, CancellationToken cancellationToken)
+    {
+        await using var scope = services.CreateAsyncScope();
+        return await scope.ServiceProvider.GetRequiredService<TenancyDbContext>().Set<TenantDomain>().AsNoTracking()
+            .OrderBy(d => d.Host).ToListAsync(cancellationToken);
     }
 
     public static async Task<int> TenantCountAsync(IServiceProvider services, CancellationToken cancellationToken)
