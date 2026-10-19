@@ -55,7 +55,8 @@ conventions/tests), Reference Data. Owner's managers: **Constant, Seed, Audit, D
 
 **Purpose:** who you are and what you may do.
 **Owns:** users and credentials (ASP.NET Core Identity), tenant memberships, invitations, roles,
-role → action-code sets, scoped role assignments (`TENANT | COMPETITION | TEAM | CONTEST`), platform staff roles.
+role → action-code sets, scoped role assignments (`TENANT | COMPETITION | TEAM | CONTEST`), platform staff roles,
+the data protection key ring (`identity.data_protection_keys`: cookies and Identity's tokens, S03 D14).
 Later: public fan accounts.
 **Provides:** current actor, `IPermissionQueries`, the authorization evaluator implementation, membership
 queries (e.g. "users with role X in scope Y" for notifications).

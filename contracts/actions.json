@@ -1,6 +1,17 @@
 {
   "actions": [
     {
+      "code": "platform.admin.create",
+      "module": "Identity",
+      "description": "Create a platform administrator: a new user with PLATFORM_ADMIN (CLI create-platform-admin only; no endpoint).",
+      "scope": "PLATFORM",
+      "scopableBy": [],
+      "audit": "REQUIRED",
+      "entitlement": null,
+      "idempotent": false,
+      "since": "S03"
+    },
+    {
       "code": "platform.audit.read",
       "module": "Platform",
       "description": "View audit entries of every tenant.",

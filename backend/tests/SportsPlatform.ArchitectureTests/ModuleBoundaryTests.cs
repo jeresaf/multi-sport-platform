@@ -46,6 +46,8 @@ public sealed class ModuleBoundaryTests
         var names = SolutionAssemblies.All.Select(SolutionAssemblies.Name).ToList();
 
         names.ShouldContain(SolutionAssemblies.BuildingBlocksName);
+        names.ShouldContain("SportsPlatform.Modules.Identity");
+        names.ShouldContain("SportsPlatform.Modules.Identity.Contracts");
         names.ShouldContain("SportsPlatform.Modules.Platform");
         names.ShouldContain("SportsPlatform.Modules.Platform.Contracts");
         names.ShouldContain("SportsPlatform.Modules.Tenancy");

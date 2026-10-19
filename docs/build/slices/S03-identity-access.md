@@ -179,9 +179,9 @@ Deliver:
   log levels (`Microsoft.EntityFrameworkCore` at `Warning`).
 
 Acceptance:
-- [ ] No default credentials anywhere in code, seeds, tests or docs (a test scans for the obvious ones; the reviewer
+- [x] No default credentials anywhere in code, seeds, tests or docs (a test scans for the obvious ones; the reviewer
       checks the PR).
-- [ ] `create-platform-admin` refuses a missing or short password and an existing platform admin (tests).
+- [x] `create-platform-admin` refuses a missing or short password and an existing platform admin (tests).
 
 ### T2 — Account API, sessions and the anonymous actor
 Deliver:
@@ -324,3 +324,16 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
 ## Implementation notes
 
 (The builder adds notes here as tasks merge.)
+
+- **T1 (two PRs, owner):** T1a Identity module, users, key ring and `create-platform-admin`; T1b `IEmailSender` and
+  the SMTP adapter.
+- **T1a:** `User : IdentityUser<Guid>` lives in `Infrastructure/Users` (Identity's base type is ASP.NET Core, which
+  `Domain/` may not use); IDs are UUIDv7. `UserStore` (`UserOnlyStore`) never saves by itself: a handler's user
+  changes, role assignments and audit entry commit in its one save. The user name is the email.
+  `identity.platform_role_assignments` ships here (T3 adds the role definitions and the evaluator); `PlatformRoles`
+  holds the two codes. `create-platform-admin` lives in the Host (`Administration/CreatePlatformAdminCommand`, so tests
+  run it), is audited as `platform.admin.create` (Platform scope, no endpoint) by `SYSTEM`, and refuses any email a
+  user already has. The CLI applies the Host's `Serilog:MinimumLevel` to its console logger. Because the store doesn't
+  save, every `UserManager`/`SignInManager` change (failed-attempt counts, lockout, security stamp) is lost unless the
+  handler saves: T2's login must save after a failed attempt too. Identity's satellite tables keep its own keys
+  (`int` claim IDs, composite login and token keys), as does `data_protection_keys` (`int`), not `id uuid`.

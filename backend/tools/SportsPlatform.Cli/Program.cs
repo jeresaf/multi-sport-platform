@@ -3,12 +3,15 @@
 // (e.g. ConnectionStrings__Migrator); `dotnet run` uses the Development environment (launchSettings.json),
 // a published build defaults to Production.
 using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Persistence.Messaging;
 using SportsPlatform.BuildingBlocks.Persistence.Seeding;
 using SportsPlatform.Host;
+using SportsPlatform.Host.Administration;
 using SportsPlatform.Host.Catalogues;
 using SportsPlatform.Host.Modules;
 using SportsPlatform.Host.OpenApi;
@@ -19,7 +22,7 @@ using SportsPlatform.Host.OpenApi;
     ("seed", "Run seeders for a category and its prerequisites: " + SeedRequest.Usage, SeedAsync),
     ("export-catalogues", "Write the action, error and event catalogues to docs/generated and contracts", ExportCataloguesAsync),
     ("export-openapi", "Write contracts/openapi.json", ExportOpenApiAsync),
-    ("create-platform-admin", "Create the first platform administrator", null),
+    ("create-platform-admin", "Create a platform administrator: " + CreatePlatformAdminCommand.Usage, CreatePlatformAdminAsync),
 ];
 
 if (args.Length == 0 || args[0] is "help" or "--help" or "-h")
@@ -81,6 +84,13 @@ static async Task<int> SeedAsync(string[] args)
     return 0;
 }
 
+static async Task<int> CreatePlatformAdminAsync(string[] args)
+{
+    using var host = BuildHost([]);
+    return await CreatePlatformAdminCommand.RunAsync(
+        host.Services, args, Environment.GetEnvironmentVariable, Console.Out, Console.Error);
+}
+
 // The Host's services and configuration, without the web app; nothing runs until a service is used.
 static IHost BuildHost(string[] args)
 {
@@ -90,9 +100,40 @@ static IHost BuildHost(string[] args)
         Args = args,
         ContentRootPath = AppContext.BaseDirectory,
     });
+    UseHostLogLevels(builder.Logging, builder.Configuration);
     builder.Services.AddSportsPlatform(builder.Configuration);
     return builder.Build();
 }
+
+// The API logs through Serilog, the CLI through the default console logger: the CLI applies the API's
+// Serilog:MinimumLevel settings, so EF Core's SQL stays at Warning here too.
+static void UseHostLogLevels(ILoggingBuilder logging, IConfiguration configuration)
+{
+    var levels = configuration.GetSection("Serilog:MinimumLevel");
+    if (ToLogLevel(levels["Default"]) is { } minimum)
+    {
+        logging.SetMinimumLevel(minimum);
+    }
+
+    foreach (var category in levels.GetSection("Override").GetChildren())
+    {
+        if (ToLogLevel(category.Value) is { } level)
+        {
+            logging.AddFilter(category.Key, level);
+        }
+    }
+}
+
+static LogLevel? ToLogLevel(string? serilogLevel) => serilogLevel switch
+{
+    "Verbose" => LogLevel.Trace,
+    "Debug" => LogLevel.Debug,
+    "Information" => LogLevel.Information,
+    "Warning" => LogLevel.Warning,
+    "Error" => LogLevel.Error,
+    "Fatal" => LogLevel.Critical,
+    _ => null,
+};
 
 // Generated files are written from code only; CI (S01-T3c) regenerates them and fails when they are stale.
 static async Task<int> ExportCataloguesAsync(string[] args)
