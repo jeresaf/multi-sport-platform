@@ -19,6 +19,7 @@ internal static class UpdateTenantProfileEndpoint
             "409 TENANT_CONCURRENCY_CONFLICT instead of overwriting someone else's change; `If-Match` with the `ETag` " +
             "works the same way (if both are sent, both must match).")
         .RequireAction(TenancyActions.TenantUpdate)
+        .RunsUnderRouteTenant()
         .ValidateRequest<UpdateTenantProfileRequest>(CommonErrors.InvalidRequest)
         .ProducesErrors(TenancyErrors.NotFound, TenancyErrors.ConcurrencyConflict);
 

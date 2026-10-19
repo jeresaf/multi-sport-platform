@@ -1,4 +1,4 @@
-using SportsPlatform.BuildingBlocks.Actors;
+using SportsPlatform.Host.Actors;
 using SportsPlatform.Host.Modules;
 
 namespace SportsPlatform.Host;
@@ -9,8 +9,7 @@ public static class HostServices
     public static IServiceCollection AddSportsPlatform(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddSingleton(TimeProvider.System);
-        // No users yet (S03 adds the authenticated actor); all work is attributed to the system actor.
-        services.AddSingleton<ICurrentActor>(SystemActor.Instance);
+        services.AddCurrentActor();
         services.AddModules(configuration, ModuleRegistry.All);
         return services;
     }

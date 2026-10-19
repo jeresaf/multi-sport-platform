@@ -4,6 +4,8 @@ using Microsoft.Extensions.DependencyInjection;
 using SportsPlatform.BuildingBlocks.Modules;
 using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Persistence.Messaging;
+using SportsPlatform.Modules.Tenancy.Contracts.Access;
+using SportsPlatform.Modules.Tenancy.Contracts.Tenants;
 using SportsPlatform.Modules.Tenancy.Domain.Tenants;
 using SportsPlatform.Modules.Tenancy.Features.Tenants;
 using SportsPlatform.Modules.Tenancy.Features.Tenants.ChangeTenantStatus;
@@ -32,6 +34,9 @@ public sealed class TenancyModule : IModule
     {
         services.AddModuleDbContext<TenancyDbContext>(configuration, Schema);
 
+        services.AddScoped<TenantDirectory>();
+        services.AddScoped<ITenantDirectory>(provider => provider.GetRequiredService<TenantDirectory>());
+        services.AddScoped<ITenantAccess>(provider => provider.GetRequiredService<TenantDirectory>());
         services.AddScoped<CreateTenantHandler>();
         services.AddScoped<IValidator<CreateTenantRequest>, CreateTenantRequestValidator>();
         services.AddScoped<ListTenantsHandler>();

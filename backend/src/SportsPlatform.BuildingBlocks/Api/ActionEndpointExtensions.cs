@@ -24,4 +24,16 @@ public static class ActionEndpointExtensions
         ArgumentNullException.ThrowIfNull(builder);
         return builder.WithMetadata(AllowPublicMetadata.Instance);
     }
+
+    /// <summary>
+    /// Platform endpoints under <c>/tenants/{tenantId}</c>: the Host sets the tenant context to the route's tenant
+    /// before authorization, or answers 404 for an unknown tenant.
+    /// </summary>
+    public static TBuilder RunsUnderRouteTenant<TBuilder>(this TBuilder builder, string routeValueName = "tenantId")
+        where TBuilder : IEndpointConventionBuilder
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrWhiteSpace(routeValueName);
+        return builder.WithMetadata(new RunsUnderRouteTenantMetadata(routeValueName));
+    }
 }

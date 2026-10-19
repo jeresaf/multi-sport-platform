@@ -21,7 +21,6 @@ public abstract class DatabaseTest(PostgresFixture fixture) : IAsyncLifetime
 
     public async ValueTask InitializeAsync()
     {
-        App.Actor.ActAsSystem();
         App.Authorization.Reset();
         App.Seeds.Reset();
         await Fixture.ResetAsync();

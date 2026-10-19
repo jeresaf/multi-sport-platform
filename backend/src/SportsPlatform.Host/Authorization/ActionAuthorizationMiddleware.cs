@@ -1,12 +1,17 @@
 using SportsPlatform.BuildingBlocks.Actions;
 using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.BuildingBlocks.Api;
+using SportsPlatform.BuildingBlocks.Results;
+using SportsPlatform.BuildingBlocks.Tenancy;
+using SportsPlatform.Modules.Tenancy.Contracts.Access;
 
 namespace SportsPlatform.Host.Authorization;
 
 /// <summary>
-/// Steps 1–3 of the decision formula (docs/architecture/authorization.md) for the matched endpoint's declared action.
-/// Runs after routing and before the endpoint, so request bodies are not read for a caller who is not allowed.
+/// The decision formula (docs/architecture/authorization.md) for the matched endpoint's declared action: step 1, the
+/// tenant's access mode, for a tenant action (status-only until S04; <c>READ_ONLY</c> is not produced yet), then the
+/// evaluator (steps 2–3). Runs after tenant resolution and before the endpoint, so request bodies are not read for a
+/// caller who is not allowed.
 /// </summary>
 internal sealed class ActionAuthorizationMiddleware(RequestDelegate next)
 {
@@ -38,7 +43,14 @@ internal sealed class ActionAuthorizationMiddleware(RequestDelegate next)
         }
 
         var services = context.RequestServices;
-        var request = new AuthorizationRequest(required[0].Action, services.GetRequiredService<ICurrentActor>());
+        var action = required[0].Action;
+        if (action.Scope == ActionScope.Tenant && await AccessModeAsync(services, context.RequestAborted) is { } refusal)
+        {
+            await refusal.ToProblem().ExecuteAsync(context);
+            return;
+        }
+
+        var request = new AuthorizationRequest(action, services.GetRequiredService<ICurrentActor>());
         var result = await services.GetRequiredService<IAuthorizationEvaluator>().AuthorizeAsync(request, context.RequestAborted);
         if (result.IsFailure)
         {
@@ -47,5 +59,19 @@ internal sealed class ActionAuthorizationMiddleware(RequestDelegate next)
         }
 
         await next(context);
+    }
+
+    /// <summary>
+    /// Step 1. Tenant resolution has set a tenant the actor is a member of; without one it fails closed.
+    /// </summary>
+    private static async Task<Error?> AccessModeAsync(IServiceProvider services, CancellationToken cancellationToken)
+    {
+        if (services.GetRequiredService<ITenantContext>().TenantId is not { } tenantId)
+        {
+            return AuthorizationErrors.TenantForbidden;
+        }
+
+        var access = await services.GetRequiredService<ITenantAccess>().CheckAdminAccessAsync(tenantId, cancellationToken);
+        return access.IsFailure ? access.Error : null;
     }
 }

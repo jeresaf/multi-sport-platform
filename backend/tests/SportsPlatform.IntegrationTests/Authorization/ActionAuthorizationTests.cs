@@ -9,10 +9,14 @@ using Microsoft.Extensions.DependencyInjection;
 using SportsPlatform.BuildingBlocks.Actions;
 using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.BuildingBlocks.Api;
+using SportsPlatform.BuildingBlocks.Results;
+using SportsPlatform.BuildingBlocks.Tenancy;
+using SportsPlatform.Host.Actors;
 using SportsPlatform.Host.Api;
 using SportsPlatform.Host.Authorization;
 using SportsPlatform.IntegrationTests.Api;
 using SportsPlatform.IntegrationTests.Infrastructure;
+using SportsPlatform.Modules.Tenancy.Contracts.Access;
 
 namespace SportsPlatform.IntegrationTests.Authorization;
 
@@ -48,7 +52,7 @@ public sealed class ActionAuthorizationTests
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var request = evaluator.Requests.ShouldHaveSingleItem();
         request.Action.ShouldBeSameAs(AuthorizationTestActions.FixtureRead);
-        request.Actor.ShouldBeSameAs(app.Services.GetRequiredService<ICurrentActor>());
+        request.Actor.ActorId.ShouldBe(SystemActor.Id);
     }
 
     [Fact]
@@ -154,6 +158,8 @@ public sealed class ActionAuthorizationTests
 
     private const string _customEndpointPath = "/custom-endpoint";
 
+    private static readonly Guid _tenantId = Guid.CreateVersion7();
+
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     /// <summary>The Host's error pipeline and authorization, in <c>SportsPlatformApp</c>'s order.</summary>
@@ -166,7 +172,10 @@ public sealed class ActionAuthorizationTests
             [ApiConventions.TypeBaseUriSetting] = "https://errors.sportsplatform.invalid/",
         });
         builder.Services.AddApiConventions(builder.Configuration);
-        builder.Services.AddSingleton<ICurrentActor>(new TestActor());
+        builder.Services.AddCurrentActor();
+        builder.Services.AddScoped<TenantContext>();
+        builder.Services.AddScoped<ITenantContext>(provider => provider.GetRequiredService<TenantContext>());
+        builder.Services.AddSingleton<ITenantAccess>(new FullAccess());
         if (evaluator is not null)
         {
             builder.Services.AddSingleton<IAuthorizationEvaluator>(evaluator);
@@ -177,6 +186,13 @@ public sealed class ActionAuthorizationTests
         var app = builder.Build();
         app.UseApiConventions();
         app.UseRouting();
+
+        // Stands in for tenant resolution: the fixture actions are tenant actions (TenantResolutionTests covers it).
+        app.Use((context, next) =>
+        {
+            context.RequestServices.GetRequiredService<TenantContext>().Set(_tenantId);
+            return next(context);
+        });
         app.Use((context, next) =>
         {
             if (context.Request.Path == _customEndpointPath)
@@ -203,4 +219,12 @@ public sealed class ActionAuthorizationTests
     }
 
     public sealed record FixtureRequest(string HomeTeam, DateTimeOffset KickOff);
+
+    private sealed class FullAccess : ITenantAccess
+    {
+        public Task<TenantAccessMode?> GetAccessModeAsync(Guid tenantId, CancellationToken cancellationToken) =>
+            Task.FromResult<TenantAccessMode?>(TenantAccessMode.Full);
+
+        public Task<Result> CheckAdminAccessAsync(Guid tenantId, CancellationToken cancellationToken) => Task.FromResult(Result.Success());
+    }
 }

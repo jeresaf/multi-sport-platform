@@ -8,10 +8,10 @@ namespace SportsPlatform.BuildingBlocks.Persistence.Seeding;
 /// <summary>
 /// Module DbContexts on the <c>Migrator</c> connection, for seeds of read-only global tables and the seed bookkeeping.
 /// They stamp audit columns like the runtime contexts, but have no messaging: seeds publish no events. They have no
-/// tenant, so they can't write tenant-owned rows.
+/// tenant, so they can't write tenant-owned rows, and they stamp the system actor: seeding is system work.
 /// </summary>
 public sealed class OwnerContextFactory(
-    IEnumerable<ModuleDatabase> databases, IConfiguration configuration, ICurrentActor actor, TimeProvider timeProvider)
+    IEnumerable<ModuleDatabase> databases, IConfiguration configuration, TimeProvider timeProvider)
 {
     public TContext Create<TContext>()
         where TContext : ModuleDbContext
@@ -26,7 +26,7 @@ public sealed class OwnerContextFactory(
             .UseModuleDefaults<TContext>(connectionString, database.Schema)
             .AddInterceptors(
                 new TenantOwnershipInterceptor(noTenant),
-                new AuditColumnsInterceptor(actor, timeProvider),
+                new AuditColumnsInterceptor(SystemActor.Instance, timeProvider),
                 new TenantConnectionInterceptor(noTenant))
             .Options;
         return (TContext)Activator.CreateInstance(typeof(TContext), options, noTenant)!;

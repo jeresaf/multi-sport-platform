@@ -174,7 +174,6 @@ public sealed class UpdateTenantProfileTests(PostgresFixture fixture) : Database
     private HttpClient CreateClient()
     {
         App.Authorization.Allow(TenancyActions.TenantRead, TenancyActions.TenantUpdate);
-        App.Actor.ActAsUser(TenantTestData.StaffId);
-        return App.CreateClient();
+        return App.CreateClient().AsUser(TenantTestData.StaffId);
     }
 }

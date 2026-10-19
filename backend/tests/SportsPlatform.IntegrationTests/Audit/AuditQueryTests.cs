@@ -169,8 +169,7 @@ public sealed class AuditQueryTests(PostgresFixture fixture) : DatabaseTest(fixt
     public async Task List_is_denied_without_the_read_action_and_the_denial_is_audited()
     {
         App.Authorization.Allow(PlatformActions.OutboxRead);
-        App.Actor.ActAsUser(_staffId);
-        using var client = App.CreateClient();
+        using var client = App.CreateClient().AsUser(_staffId);
 
         using var response = await client.GetAsync(new Uri(_listPath, UriKind.Relative), Ct);
 
@@ -186,8 +185,7 @@ public sealed class AuditQueryTests(PostgresFixture fixture) : DatabaseTest(fixt
     public async Task List_is_allowed_with_the_read_action_and_audited_with_its_filters()
     {
         App.Authorization.Allow(PlatformActions.AuditRead);
-        App.Actor.ActAsUser(_staffId);
-        using var client = App.CreateClient();
+        using var client = App.CreateClient().AsUser(_staffId);
 
         using var response = await client.GetAsync(
             new Uri($"{_listPath}?tenantId={_kmsa}&outcome=DENIED&from=2026-10-17T09:00:00Z", UriKind.Relative), Ct);

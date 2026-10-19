@@ -164,7 +164,6 @@ public sealed class CreateTenantTests(PostgresFixture fixture) : DatabaseTest(fi
     private HttpClient CreateClient()
     {
         App.Authorization.Allow(TenancyActions.TenantCreate);
-        App.Actor.ActAsUser(TenantTestData.StaffId);
-        return App.CreateClient();
+        return App.CreateClient().AsUser(TenantTestData.StaffId);
     }
 }

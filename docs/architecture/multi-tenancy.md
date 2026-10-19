@@ -23,6 +23,19 @@ Decision: ADR-0004. This document is the implementation guide.
 Tenant resolution results are cached briefly (domain → tenant ID); cache entries are invalidated on domain or
 status changes.
 
+**As built (S02-T3a).** The Host's `TenantResolutionMiddleware` runs after audit and before authorization and sets
+the scope's `TenantContext` once (D1), from the matched endpoint:
+- **Tenant actions (admin API):** `X-Tenant-Id` must be a GUID of a tenant the actor is a member of
+  (`ITenantMembershipChecker`; the Host default grants none until S03), else `403 AUTH_TENANT_FORBIDDEN`.
+- **Platform endpoints marked `.RunsUnderRouteTenant()`** (`/tenants/{tenantId}/…`): the route's tenant through
+  `ITenantDirectory.GetByIdAsync`, else `404 TENANT_NOT_FOUND`. The startup check requires a platform action and the
+  route parameter. Other platform endpoints get no tenant, whatever headers are sent.
+- **Public endpoints:** host resolution arrives with S02-T3b; until then they run without a tenant.
+- **Outbox consumers and seeds:** unchanged (envelope tenant; owner contexts have none).
+
+The actor works the same way: `ActorContext` (scoped) is the system actor until the request's authenticated principal
+sets a user.
+
 ## Enforcement layers
 
 ### Layer 1 — application (EF Core)

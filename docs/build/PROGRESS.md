@@ -7,15 +7,15 @@ at the start of every review.
 
 - **Current slice:** S02 — Tenancy core and isolation (docs/build/slices/S02-tenancy-core.md, as amended by the
   S01 slice review). S00 and S01 are done
-- **Current task:** S02-T2b — Audit on the `Platform` connection, audit RLS and indexes, `AuditScope` target tenant,
-  RLS coverage test — in review, PR #33 (branch `s02/t2b-audit-rls`)
-- **Next:** S02-T3 — Tenant context and resolution
+- **Current task:** S02-T3a — Admin and platform tenant resolution, per-request actor, access mode, AR-21 — in review, PR #34
+  (branch `s02/t3a-tenant-resolution`). T3 is two PRs and `tenant_domains` moved from T4 to T3b (owner, Q17)
+- **Next:** S02-T3b — Public tenant resolution, domains and `/site`
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S02-T3 — Tenant context and resolution
-2. S02-T4 — Domains and settings
+1. S02-T3b — Public tenant resolution, domains and `/site`
+2. S02-T4 — Settings
 
 ## Log
 
@@ -48,6 +48,7 @@ at the start of every review.
 | 2026-10-18 | S02-T1b | #31 | `POST /api/platform/v1/tenants/{id}/{activate\|suspend\|restore\|archive\|unarchive}` (`tenant.activate`, `tenant.suspend`, `tenant.restore`, `tenant.archive`, `tenant.unarchive`; reason 1–500 for suspend, archive, unarchive) through one `ChangeTenantStatusHandler`; `TenantStatusChanged.V1`; `IfMatch` (BuildingBlocks `Api`) on PATCH and the transitions; slug check before the tenant is set; tests for both T1a races; T1 complete | Owner on #30: R1 evaluate `If-Match`, R2 amend D1. No migrations, new errors or dependencies. Pre-review found `ValidateRequest` threw (500) when a required body was missing (filters run with a null argument): now 400 `VALIDATION_MALFORMED_REQUEST`, also for the outbox re-drive |
 | 2026-10-18 | S02-T2a | #32 | Tenant isolation in EF and PostgreSQL: named query filter `TenantIsolation` on every `ITenantOwned`; `TenantOwnershipInterceptor` stamps `TenantId` through the change tracker (#13) and throws on no/another tenant; `TenantConnectionInterceptor` sets `app.tenant_id` on every open; `EnableTenantRls`/`DisableTenantRls`; composite FKs required between tenant-owned entities (checked at model build); `TenantContext.Set` once per scope (D1); `tenant_status_history` tenant-owned with RLS; isolation harness (`IIsolationSample` per entity), pool leak, consumers under RLS, D1 timing tests | T2 split in two and composite FKs enforced (owner). No new actions, errors, events or dependencies |
 | 2026-10-19 | S02-T2b | #33 | Audit under RLS: `audit.audit_entries` gets `EnableTenantRls`; `AddPlatformServiceDbContext` (connection `Platform`, not migrated) and `PlatformAuditDbContext` for `AuditLog`, `AuditRecordedConsumer` (inbox row in the same transaction) and the platform audit query (D3); tenant-first action/actor indexes and `(entity_type, entity_id, occurred_at)` (#24 R2); `AuditScope.Describe(targetTenantId:)` (audit read with `?tenantId=` audited under that tenant); RLS coverage test (forced RLS, one permissive `tenant_isolation` policy, exceptions with reasons); audit-under-RLS tests; architecture tests for `IgnoreQueryFilters` and the audit context's users; T2 complete | Only `*.outbox_messages` is an exception (`inbox_messages` has no `tenant_id`). No new actions, errors, events or dependencies |
+| 2026-10-19 | S02-T3a | #34 | Admin and platform tenant resolution: pipeline routing → actor → audit → tenant resolution → authorization (D8). `X-Tenant-Id` with membership (`ITenantMembershipChecker`, Host default none) for tenant actions → `AUTH_TENANT_FORBIDDEN`; `.RunsUnderRouteTenant()` on `/tenants/{tenantId}` routes → `TENANT_NOT_FOUND`, handlers no longer set the tenant; access-mode step 1 (`ITenantAccess`, status-only) → `TENANT_BLOCKED`. Scoped `ActorContext` from the principal; test authentication scheme replaces `TestActor`; `TestTenantContext` retired. `ITenantDirectory` (ID, slug). AR-21 test | Owner (Q17): T3 split into T3a/T3b and `tenant_domains` moved from T4 to T3b (slice spec updated). Errors stay in `TenancyErrors`; Contracts return `Result`s carrying them, so the Host uses Contracts only. Seed owner contexts stamp the system actor (singleton factory can't take the scoped actor). `SportsPlatformApp` split into `AddServices`/`UsePipeline` so `AdminTestApp` reuses the pipeline |
 
 ## Deviations from spec (agreed)
 
@@ -150,15 +151,14 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
   listed as `required` (nullable) in the schemas, so the TS client makes callers pass `null`; endpoints don't declare
   the `If-Match` request header or the `ETag` response header, and activate/restore list no 400 (pipeline errors).
   Fix with defaults on the request records or a schema/operation transformer (S02-T1b pre-review).
-- **S02-T3:** D2 is done in the Tenancy handlers, after authorization and validation, so on `/tenants/{tenantId}` a
-  DENIED (403) or validation FAILURE (400) is audited with `tenant_id` NULL, and a 404 with the unknown ID. T3's route
-  middleware sets the tenant before authorization (404 for an unknown tenant); then drop `Set` from the handlers and
-  test that those entries carry the target tenant (S02-T1a pre-review).
+- **S02-T3b:** `AuditScope.Describe(targetTenantId:)` throws when the scope already has another tenant (S02-T2b). Platform
+  routes get no scope tenant (T3a tests that `X-Tenant-Id` is ignored there); T3b's host resolution must not set one
+  on `/api/platform` either (or `GET /api/platform/v1/audit-entries?tenantId=<other>` from a tenant host would be a
+  500). Add the host variant of the test with T3b (S02-T2b pre-review).
 
-- **S02-T3:** `AuditScope.Describe(targetTenantId:)` throws when the scope already has another tenant (S02-T2b). Platform
-  routes have no scope tenant today; T3's host resolution must not set one on `/api/platform` (or
-  `GET /api/platform/v1/audit-entries?tenantId=<other>` from a tenant host would be a 500). Add a test with T3 (S02-T2b
-  pre-review).
+- **S02-T4 (first admin endpoint):** tenant actions can also fail in the pipeline with `403 AUTH_TENANT_FORBIDDEN` and
+  `403 TENANT_BLOCKED`, which modules can't list in `.ProducesErrors(...)` (`TENANT_BLOCKED` is Tenancy's). Add a Host
+  OpenAPI operation transformer that documents both on every TENANT-scope endpoint (S02-T3a pre-review).
 
 **S03 — identity and access**
 - Anonymous actor for audit (#23 R1): `actor_kind` allows `USER`/`SYSTEM` and `actor_id` is NOT NULL, so once S03
@@ -170,9 +170,15 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
   minute instead of one row each.
 - 401 still produces Problem Details without a `code` (no authentication yet); comes with S03. 403 from the
   authorization middleware is `AUTH_FORBIDDEN` (T4) (S01-T3a pre-review).
-- `ICurrentActor` is still the singleton `SystemActor`, so every HTTP request (anonymous ones included) is logged as
-  `ActorKind=System`. Add a per-request actor with an anonymous kind for unauthenticated requests and update
-  `RequestLoggingTests.Request_is_logged_with_correlation_ID_and_actor` (S03, or T4 if it needs one; #17 R1).
+- `ICurrentActor` is per request since S02-T3a (`ActorContext` from the authenticated principal), but an
+  unauthenticated request is still the system actor, logged as `ActorKind=System`. S03: an anonymous kind for
+  unauthenticated requests, and update `RequestLoggingTests.Request_is_logged_with_correlation_ID_and_actor` (#17 R1).
+- An authenticated principal without a GUID `sub` is treated as the system actor (S02-T3a: only the test scheme
+  authenticates). S03: refuse it with 401 instead, with a test, before any real scheme lands (S02-T3a pre-review).
+- `PROVISIONING` is `FULL` for every member in S02-T3a (no roles yet); state-machines.md gives it only to tenant
+  owners/admins (setup). S03: limit it to them, with a test (#34 R1).
+- `BLOCKED` access mode lets the tenant owner view the tenant's status (state-machines.md); S02-T3a refuses every
+  admin request on a blocked tenant because there are no roles yet. S03: the exception for the owner (S02-T3a).
 
 **Infrastructure task after M1**
 - The API needs `ConnectionStrings:Platform` (`sp_platform`) at runtime for the audit trail (S02-T2b): provision that

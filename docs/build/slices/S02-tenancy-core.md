@@ -159,6 +159,10 @@ Acceptance:
 - [x] `check-roles.sh` and the grants test still pass; nothing in feature code uses `IgnoreQueryFilters()`.
 
 ### T3 — Tenant context and resolution
+> Two PRs (owner, 2026-10-19, Q17): **T3a** admin and platform resolution, `ICurrentActor`, access mode, AR-21;
+> **T3b** `tenancy.tenant_domains` (moved here from T4), forwarded headers, public resolution and its cache, the dev
+> override and `GET /api/public/v1/site`.
+
 Deliver:
 - Tenancy Contracts: `ITenantDirectory` (by ID, slug, host), `ITenantAccess` (status-only access mode, D9).
 - Host tenant-resolution middleware in the D8 position:
@@ -166,8 +170,10 @@ Deliver:
     (BuildingBlocks `Tenancy` interface; Host default: no memberships; tests: reads membership claims; S03
     replaces it). Missing or not a member → `403 AUTH_TENANT_FORBIDDEN`.
   - **Platform:** tenant routes set the route's tenant (D2); unknown tenant → `404 TENANT_NOT_FOUND`.
-  - **Public:** host → `tenancy.tenant_domains` (D6, D7) through `ITenantDirectory`, with a short-lived in-memory
-    cache (at most 60 s) invalidated in-process on domain or status change. Unknown host → `404 TENANT_NOT_FOUND`;
+  - **Public:** host → `tenancy.tenant_domains` (T3b creates it: global, no RLS; `host` unique, type
+    `PLATFORM_SUBDOMAIN | CUSTOM`, `is_primary`, status; creating a tenant creates `<slug>.<Platform:BaseDomain>`, dev
+    default `localhost`, Q10 sets the real one; existing tenants are backfilled) (D6, D7) through `ITenantDirectory`,
+    with a short-lived in-memory cache (at most 60 s) invalidated in-process on domain or status change. Unknown host → `404 TENANT_NOT_FOUND`;
     a known host whose tenant is hidden (`PROVISIONING`, `public_enabled = false`) or `BLOCKED` →
     `403 TENANT_UNAVAILABLE` (the host is public knowledge; the body says nothing more), so the public web can show
     "not found" and "unavailable" as different pages.
@@ -191,10 +197,10 @@ Acceptance:
 - [ ] The reference lists still answer on any host (D6).
 - [ ] A forwarded host from an unknown proxy is ignored (D7); the dev override works only in Development.
 
-### T4 — Domains and settings
+### T4 — Settings
+> `tenancy.tenant_domains` moved to T3b (owner, 2026-10-19, Q17).
+
 Deliver:
-- `tenancy.tenant_domains` (global, no RLS): `host` unique, type `PLATFORM_SUBDOMAIN | CUSTOM`, `is_primary`,
-  status. Creating a tenant creates `<slug>.<Platform:BaseDomain>` (dev default `localhost`; Q10 sets the real one).
 - `tenancy.tenant_settings` — the **first tenant-owned business table** (`ITenantOwned`, `EnableTenantRls`):
   typed, allow-listed keys: time zone, locale, currency, public visibility, `starting_soon_minutes`,
   `minor_registration_consent` (`REQUIRED | RECOMMENDED | OFF`, default `RECOMMENDED`, Q11). Created with defaults
@@ -277,3 +283,17 @@ global). `AuditScope.Describe(targetTenantId:)`: the scope's tenant wins, a diff
 test also refuses a second permissive policy and stale exceptions; its only exception is `*.outbox_messages`
 (`inbox_messages` has no `tenant_id`, D4 named it). `IgnoreQueryFilters(` is refused under `backend/src` by an
 architecture test. Under `FORCE` RLS the owner sees an audit entry only with `app.tenant_id` set.
+
+**T3a.** Tenant actions (the admin API) resolve `X-Tenant-Id` with membership; platform endpoints opt in with
+`.RunsUnderRouteTenant()` (a platform action and the route parameter, checked at startup) and every other platform
+endpoint runs without a tenant. Step 1 calls `ITenantAccess.CheckAdminAccessAsync`, which returns `TENANT_BLOCKED` or
+`TENANT_NOT_FOUND` from `TenancyErrors` (errors are declared in module assemblies, not Contracts); no resolved tenant
+is `AUTH_TENANT_FORBIDDEN`. `ITenantDirectory` has `GetByIdAsync` (a `Result`) and `FindBySlugAsync`; T3b adds the
+host lookup. The actor is a scoped `ActorContext` set from the principal's `sub`; seeds stamp the system actor. A
+404 for an unknown route tenant is audited without a tenant or entity (the handler never runs). Acceptance items
+for the admin header and `TENANT_BLOCKED` are covered by `TenantResolutionTests`; the host items are T3b's. The
+startup check also requires `.RunsUnderRouteTenant()` on any platform route with `{tenantId}`. Known trade-off of D8:
+the route tenant is looked up before authorization, so a caller without the action gets 404 for an unknown tenant and
+403 for a known one (tenant IDs are UUIDv7, and the 404 is audited as `FAILURE`).
+Without roles, `PROVISIONING` is `FULL` for every member, not only owners/admins as state-machines.md says, and
+`BLOCKED` refuses the owner too; S03 narrows both (#34 R1).

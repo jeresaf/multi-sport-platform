@@ -42,9 +42,21 @@ For every admin request:
 ```
 
 Steps 1–3 run in the Host's authorization middleware (after routing, before the request body is bound) using the
-endpoint's declared action. The audit middleware runs just before it, so a denied audited action is audited as
-`DENIED` (docs/architecture/events-and-jobs.md, "Audit as built"); quota checks that need a count run inside the
-handler via `IEntitlements.CheckQuota` in the same transaction as the create.
+endpoint's declared action; quota checks that need a count run inside the handler via `IEntitlements.CheckQuota` in
+the same transaction as the create.
+
+**Pipeline as built (S02-T3a, D8):** request logging and correlation → routing → **actor** (authentication, then
+`ActorContext` from the principal's `sub`; the system actor otherwise) → **audit** → **tenant resolution**
+(docs/architecture/multi-tenancy.md) → **authorization** (step 1, then the evaluator) → endpoint. Audit runs before
+tenant resolution and authorization, so a refused tenant (`AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`) or a denied
+action on an audited endpoint is audited as `DENIED`, with the tenant when one was resolved
+(docs/architecture/events-and-jobs.md, "Audit as built"). `SportsPlatformApp.UsePipeline` is the single place the
+order is written.
+
+**Step 1 as built:** for a TENANT-scope action, `ITenantAccess.CheckAdminAccessAsync` on the resolved tenant:
+status-only until S04 (`PROVISIONING`, `ACTIVE` → `FULL`; `SUSPENDED`, `ARCHIVED` → `BLOCKED` → `TENANT_BLOCKED`). No
+resolved tenant fails closed with `AUTH_TENANT_FORBIDDEN`. The `BLOCKED` exception for the tenant owner viewing status
+needs roles (S03). Platform actions have no step 1: platform staff work on blocked tenants (restore, unarchive).
 
 ## Roles and scopes
 

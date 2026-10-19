@@ -12,7 +12,7 @@ using SportsPlatform.IntegrationTests.Infrastructure;
 namespace SportsPlatform.IntegrationTests.Observability;
 
 /// <summary>The real Host's logging and tracing (no database).</summary>
-public sealed class RequestLoggingTests(HostOnlyApp app) : IClassFixture<HostOnlyApp>, IDisposable
+public sealed class RequestLoggingTests(HostOnlyApp app) : IClassFixture<HostOnlyApp>
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
@@ -35,9 +35,7 @@ public sealed class RequestLoggingTests(HostOnlyApp app) : IClassFixture<HostOnl
     public async Task Request_with_a_tenant_is_logged_with_the_tenant()
     {
         var tenantId = Guid.CreateVersion7();
-        app.Tenant.TenantId = tenantId;
-
-        using var response = await GetAsync("/standings-board");
+        using var response = await GetAsync("/standings-board", headers: (HostOnlyApp.ScopeTenantHeader, tenantId.ToString()));
 
         var logEvent = await app.Telemetry.WaitForRequestLogAsync("/standings-board");
         Scalar(logEvent, RequestContextEnricher.TenantId).ShouldBe(tenantId);
@@ -76,15 +74,31 @@ public sealed class RequestLoggingTests(HostOnlyApp app) : IClassFixture<HostOnl
     public void Health_probes_are_logged_below_information_unless_they_fail(string path, int status, LogEventLevel level) =>
         ObservabilitySetup.RequestLogLevel(Request(path, status), exception: null).ShouldBe(level);
 
-    public void Dispose() => app.Tenant.TenantId = null;
+    [Fact]
+    public async Task Authenticated_request_is_logged_with_its_user()
+    {
+        var userId = Guid.CreateVersion7();
 
-    private async Task<HttpResponseMessage> GetAsync(string path, string? correlationId = null)
+        using var response = await GetAsync("/results-board", headers: (TestAuthentication.UserHeader, userId.ToString()));
+
+        var logEvent = await app.Telemetry.WaitForRequestLogAsync("/results-board");
+        Scalar(logEvent, RequestContextEnricher.ActorKind).ShouldBe(nameof(ActorKind.User));
+        Scalar(logEvent, RequestContextEnricher.ActorId).ShouldBe(userId);
+    }
+
+    private async Task<HttpResponseMessage> GetAsync(
+        string path, string? correlationId = null, params (string Name, string Value)[] headers)
     {
         using var client = app.CreateClient();
         using var request = new HttpRequestMessage(HttpMethod.Get, new Uri(path, UriKind.Relative));
         if (correlationId is not null)
         {
             request.Headers.Add(CorrelationIdMiddleware.HeaderName, correlationId);
+        }
+
+        foreach (var (name, value) in headers)
+        {
+            request.Headers.Add(name, value);
         }
 
         return await client.SendAsync(request, Ct);

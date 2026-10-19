@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
+using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Persistence.Seeding;
 using SportsPlatform.Host;
@@ -145,8 +146,6 @@ public sealed class SeedRunnerTests(PostgresFixture fixture) : DatabaseTest(fixt
     [Fact]
     public async Task A_reference_seeder_writes_its_read_only_table_as_the_owner_and_the_run_is_recorded()
     {
-        App.Actor.ActAsUser(Guid.CreateVersion7()); // The seed connection stamps the current actor.
-
         var report = await Runner(App).RunAsync(new SeedRequest(SeedCategory.Reference), Ct);
 
         TestSeeders(report)[0].Outcome.ShouldBe(new SeedOutcome(2, 0, 0));
@@ -156,12 +155,12 @@ public sealed class SeedRunnerTests(PostgresFixture fixture) : DatabaseTest(fixt
             reader => (Id: reader.GetGuid(0), Code: reader.GetString(1), CreatedAt: reader.GetFieldValue<DateTimeOffset>(2), CreatedBy: reader.GetGuid(3)));
         probes.Select(p => p.Code).ShouldBe(["KE", "UG"]);
         probes.Select(p => p.Id).ShouldBe([ProbeReferenceSeeder.IdFor("KE"), ProbeReferenceSeeder.IdFor("UG")]);
-        probes.ShouldAllBe(p => p.CreatedAt == App.Clock.GetUtcNow() && p.CreatedBy == App.Actor.ActorId);
+        probes.ShouldAllBe(p => p.CreatedAt == App.Clock.GetUtcNow() && p.CreatedBy == SystemActor.Id); // Seeding is system work.
 
         var run = (await SeedRunsAsync()).First();
         run.ShouldBe(new SeedRunRow(
             ProbeReferenceSeeder.SeederKey, "REFERENCE", "UG,KE", "Testing", 2, 0, 0,
-            App.Clock.GetUtcNow(), App.Clock.GetUtcNow(), App.Actor.ActorId));
+            App.Clock.GetUtcNow(), App.Clock.GetUtcNow(), SystemActor.Id));
     }
 
     [Fact]

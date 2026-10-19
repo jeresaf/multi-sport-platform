@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.BuildingBlocks.Messaging;
 using SportsPlatform.BuildingBlocks.Persistence.Messaging;
 using SportsPlatform.BuildingBlocks.Tenancy;
@@ -16,12 +17,11 @@ public sealed class OutboxWriteTests(PostgresFixture fixture) : DatabaseTest(fix
     {
         var tenantId = Guid.CreateVersion7();
         var userId = Guid.CreateVersion7();
-        App.Actor.ActAsUser(userId);
-
         Guid probeId;
         await using (var scope = App.Services.CreateAsyncScope())
         {
             scope.ServiceProvider.GetRequiredService<TenantContext>().Set(tenantId);
+            scope.ServiceProvider.GetRequiredService<ActorContext>().Set(new UserActor(userId));
             scope.ServiceProvider.GetRequiredService<CorrelationContext>().Set("req-42", causationId: null);
             var context = scope.ServiceProvider.GetRequiredService<MessagingTestDbContext>();
             var probe = new MessagingProbe("Bukoto Community Stadium");

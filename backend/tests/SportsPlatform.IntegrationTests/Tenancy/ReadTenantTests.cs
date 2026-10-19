@@ -124,7 +124,6 @@ public sealed class ReadTenantTests(PostgresFixture fixture) : DatabaseTest(fixt
     private HttpClient CreateClient()
     {
         App.Authorization.Allow(TenancyActions.TenantRead);
-        App.Actor.ActAsUser(TenantTestData.StaffId);
-        return App.CreateClient();
+        return App.CreateClient().AsUser(TenantTestData.StaffId);
     }
 }

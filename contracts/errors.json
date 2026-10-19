@@ -7,6 +7,12 @@
       "owner": "BuildingBlocks"
     },
     {
+      "code": "AUTH_TENANT_FORBIDDEN",
+      "status": 403,
+      "message": "You are not allowed to work in this tenant.",
+      "owner": "BuildingBlocks"
+    },
+    {
       "code": "PLATFORM_CONCURRENCY_CONFLICT",
       "status": 409,
       "message": "The record was changed by someone else. Reload and try again.",
@@ -41,6 +47,12 @@
       "status": 500,
       "message": "An unexpected error occurred. Quote the correlation ID when reporting it.",
       "owner": "BuildingBlocks"
+    },
+    {
+      "code": "TENANT_BLOCKED",
+      "status": 403,
+      "message": "This tenant is suspended or archived.",
+      "owner": "Tenancy"
     },
     {
       "code": "TENANT_CONCURRENCY_CONFLICT",

@@ -283,8 +283,7 @@ public sealed class ChangeTenantStatusTests(PostgresFixture fixture) : DatabaseT
     private async Task<HttpResponseMessage> PostJsonAsync(Guid tenantId, string transition, string? json, string? ifMatch = null)
     {
         App.Authorization.AllowAll();
-        App.Actor.ActAsUser(TenantTestData.StaffId);
-        using var client = App.CreateClient();
+        using var client = App.CreateClient().AsUser(TenantTestData.StaffId);
         using var request = new HttpRequestMessage(
             HttpMethod.Post, new Uri($"{TenantTestData.TenantsPath}/{tenantId}/{transition}", UriKind.Relative));
         if (json is not null)
