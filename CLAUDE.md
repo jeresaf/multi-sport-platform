@@ -80,7 +80,7 @@ docker compose down -v                          # stop and delete local data
 cd web && pnpm install --frozen-lockfile && pnpm lint && pnpm typecheck && pnpm test && pnpm build
 cd web && pnpm --filter @msp/api-client generate   # TS client from contracts/openapi.json (after export-openapi)
 cd web && pnpm --filter @msp/e2e exec playwright install chromium   # once per machine
-cd web && pnpm e2e                              # builds both apps, smoke tests on ports 3000/3001
+cd web && pnpm e2e                              # builds both apps; starts the API (migrate, seed DEMO; needs docker compose up); smoke tests on 3000/3001
 cd web && pnpm --filter @msp/public dev         # or @msp/admin (port 3001)
 ```
 

@@ -232,7 +232,7 @@ Deliver:
 Acceptance:
 - [x] `seed --category DEMO` twice: the second run changes nothing; each created tenant has audit entries with
       source `SYSTEM`.
-- [ ] `pnpm e2e` covers the three cases; screenshots at phone, tablet and desktop widths in the PR.
+- [x] `pnpm e2e` covers the three cases; screenshots at phone, tablet and desktop widths in the PR.
 
 ## Carried over from S01 (slice review 2026-10-18)
 
@@ -342,3 +342,13 @@ a tenant without auditing. `tenancy.demo.tenants` creates KMSA and ELSSC with `D
 differ: `UG`, `Africa/Kampala`, `en-UG`, `UGX`, `publicEnabled`, consent `REQUIRED` (owner). A tenant in another status
 keeps it; a slug held by another ID stops the run. The CLI queues the audit entries; they reach `audit_entries` when the
 API's outbox processor runs (checked locally: six `SYSTEM` entries).
+
+**T5b.** The public app finds the site per request (`lib/site.ts`, unit-tested with a stubbed fetch; `getCurrentSite`
+shares one lookup between metadata and layout) and the `(site)` route group's layout renders the shell, so later
+public pages get it for free. An unknown host (or path) is a `404` via `notFound()`; an unavailable tenant a `200` page
+with `noindex` and the footer "<tenant name> · Runs on MSP" (both owner); an API failure is thrown, so it is a `500`
+whose error page shows the Next.js digest and the server log has the API's correlation ID (pre-review). `pnpm e2e` starts the real API through `web/e2e/start-api.sh` (build, `migrate`, `seed --category DEMO`, then
+the Host in Development), seeding before the API starts so no stale host cache is hit (#38 follow-up). The apps' web
+servers are awaited by port, since `localhost:3000` serves no tenant. CI's e2e job starts compose's PostgreSQL, sets
+up .NET and uploads `web/e2e/screenshots` (phone, tablet, desktop for both tenants and the not-found page) as the
+`screenshots` artifact (light and dark). The unavailable and error pages are covered by unit tests and a manual check, not e2e.

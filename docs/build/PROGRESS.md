@@ -7,16 +7,17 @@ at the start of every review.
 
 - **Current slice:** S02 — Tenancy core and isolation (docs/build/slices/S02-tenancy-core.md, as amended by the
   S01 slice review). S00 and S01 are done
-- **Current task:** S02-T5a — Seeding support and DEMO tenants — in review, PR #38 (branch `s02/t5a-demo-tenants`). Plan approved by
-  the owner (2026-10-19): T5 is two PRs (T5a seeding and DEMO tenants, T5b public web shell and e2e); `SeedContext` runs
-  each command in its own scope (tenant set once, audit begun with source `SYSTEM`); demo tenants also get
-  `minor_registration_consent = REQUIRED` and `publicEnabled`; e2e runs against the real API (T5b)
-- **Next:** S02-T5b — Public web shell and e2e against the real API
+- **Current task:** S02-T5b — Public web shell and e2e against the real API — in review, PR #39 (branch
+  `s02/t5b-public-web-shell`). Plan
+  approved by the owner (2026-10-19): the public app reads the request host and calls `/site` with `X-Forwarded-Host`;
+  an unavailable tenant gets a `200` page with `noindex`; the footer reads "<tenant name> · Runs on MSP"; Playwright
+  starts the real API (migrate and seed DEMO first) and CI uploads phone, tablet and desktop screenshots as an artifact
+- **Next:** S02 slice review
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S02-T5b — Public web shell and e2e against the real API
+1. S02 slice review
 
 ## Log
 
@@ -54,6 +55,7 @@ at the start of every review.
 | 2026-10-19 | S02-T4a | #36 | `tenancy.tenant_settings` (first tenant-owned business table, RLS, one row per tenant created with it): time zone, locale, currency, `publicEnabled`, `starting_soon_minutes` (30, 5–180), `minor_registration_consent` (`RECOMMENDED`); migration copies existing tenants' values before RLS and drops the four `tenants` columns; platform create/PATCH write the settings row, detail and transitions return it, the list (`TenantListItem`) doesn't; public resolution sets the tenant, then `CheckPublicAccessAsync` reads `publicEnabled` under RLS (cached with the host); `TenantSummary` lost `PublicEnabled`; isolation sample, RLS coverage, migration down/up test | Owner: all six settings only in `tenant_settings`, T4 split in two, platform PATCH version guards the tenant row only. No new actions, errors, events or dependencies. Pre-review: settings conflict test, status-change response read before the save, Down drops temporary defaults; ETag over settings a T4b follow-up |
 | 2026-10-19 | S02-T4b | #37 | `GET`/`PATCH /api/admin/v1/tenant/settings` (`tenant.settings.read`, `tenant.settings.update`, TENANT, audit `REQUIRED`) for the tenant in `X-Tenant-Id`; all six keys, null = unchanged; settings row's own `version`/`ETag`; host cache cleared when `publicEnabled` changes; BuildingBlocks `StrictJsonBody` names unknown, wrongly typed or repeated keys (`VALIDATION_INVALID_REQUEST`); Host documents pipeline 403s in OpenAPI; platform tenant `ETag` documented as the tenant row's only | Owner: field-named errors on the settings PATCH only; enum values read case-insensitively (existing converter). Beyond the plan: `AUTH_FORBIDDEN` documented on every admin/platform endpoint. No new errors, events, migrations or dependencies. Pre-review: member checks honour property converters, required members refused, empty body and malformed `If-Match` tests. #37 R1: test tenants renamed to invented bodies listed in pilot-customer.md ("Other tenants (tests only)") |
 | 2026-10-19 | S02-T5a | #38 | `SeedContext.RunCommandAsync` (DEMO/TEST: a new scope per command, tenant set once, audit begun with source `SYSTEM`; a command that saves nothing throws) and `QueryAsTenantAsync` (reads under a tenant, unaudited); `CreateTenantHandler`/`Tenant.Create` take an optional ID for seeds; DEMO seeder `tenancy.demo.tenants`: KMSA and ELSSC through create → activate → settings update, deterministic IDs, idempotent by slug | Owner (plan): T5 split in two; a scope per command; consent `REQUIRED` and `publicEnabled` beyond the spec's fields. A tenant in another status than `PROVISIONING` keeps it; a changed profile is left alone. Audit entries reach `audit_entries` when the API's outbox processor runs (the CLI only queues them). No new actions, errors, events, migrations or dependencies. Pre-review: create runs without a tenant (#30 R2). #38 N1: the seeded-ID create overload is internal |
+| 2026-10-19 | S02-T5b | #39 | Public app resolves its tenant per request (`lib/site.ts`: host without port → `/site` as `X-Forwarded-Host`, `MSP_API_URL`); `(site)` layout with the tenant's name and footer "<name> · Runs on MSP", "Coming soon"; not-found page (404, unknown host or path), unavailable page (200, `noindex`), API failure thrown (500, digest shown, correlation ID logged); Vitest for the lookup; `pnpm e2e` runs against the real API (`web/e2e/start-api.sh`: build, migrate, seed DEMO, Host in Development) and covers both tenants by host and an unknown host; CI e2e job starts PostgreSQL and .NET and uploads phone/tablet/desktop screenshots, light and dark | Unavailable page 200 + `noindex`, footer wording, screenshots as a CI artifact (owner). Pre-review: API failures are 500s, not-found wording fits unknown paths |
 
 ## Deviations from spec (agreed)
 
@@ -160,8 +162,11 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
 
 **S02 — tenancy**
 - Moving `BuildingBlocks/Modules` to a `BuildingBlocks.Web` project is optional, not planned (reviewer guidance on #13).
-- **S02-T5b (#38 review):** the demo script and the e2e setup say to seed before starting the API, or to wait up to 60 s:
-  a running API keeps its cached "unknown host" answer for a demo host after the CLI seeds it (another process).
+- **Before the first public deployment (S02-T5b):** the public app forwards the `Host` header it receives to `/site`;
+  behind a production proxy it must read that proxy's forwarded host instead (and the API must list the app's address
+  in `ForwardedHeaders`). Set `MSP_API_URL` for the public app (default `http://localhost:5080`); without it every
+  public page is a 500. After `seed --category DEMO` against a running API, a demo host may stay "unknown" for up to
+  60 s (host cache); `pnpm e2e` seeds before it starts the API.
 - **OpenAPI (with the first admin UI client, S03 or later):** optional request members (`version`, PATCH fields) are
   listed as `required` (nullable) in the schemas, so the TS client makes callers pass `null`; endpoints don't declare
   the `If-Match` request header or the `ETag` response header, and activate/restore list no 400 (pipeline errors).
