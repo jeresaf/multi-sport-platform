@@ -160,6 +160,8 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
 
 **S02 — tenancy**
 - Moving `BuildingBlocks/Modules` to a `BuildingBlocks.Web` project is optional, not planned (reviewer guidance on #13).
+- **S02-T5b (#38 review):** the demo script and the e2e setup say to seed before starting the API, or to wait up to 60 s:
+  a running API keeps its cached "unknown host" answer for a demo host after the CLI seeds it (another process).
 - **OpenAPI (with the first admin UI client, S03 or later):** optional request members (`version`, PATCH fields) are
   listed as `required` (nullable) in the schemas, so the TS client makes callers pass `null`; endpoints don't declare
   the `If-Match` request header or the `ETag` response header, and activate/restore list no 400 (pipeline errors).

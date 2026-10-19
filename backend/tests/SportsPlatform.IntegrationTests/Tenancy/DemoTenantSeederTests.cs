@@ -12,8 +12,10 @@ using SportsPlatform.IntegrationTests.Audit;
 using SportsPlatform.IntegrationTests.Infrastructure;
 using SportsPlatform.Modules.Platform.Domain.Audit;
 using SportsPlatform.Modules.Tenancy.Contracts.Tenants;
+using SportsPlatform.Modules.Tenancy.Domain.Domains;
 using SportsPlatform.Modules.Tenancy.Domain.Settings;
-using SportsPlatform.Modules.Tenancy.Features.Tenants.CreateTenant;
+using SportsPlatform.Modules.Tenancy.Domain.Tenants;
+using SportsPlatform.Modules.Tenancy.Infrastructure;
 using SportsPlatform.Modules.Tenancy.Seed.Demo;
 
 namespace SportsPlatform.IntegrationTests.Tenancy;
@@ -98,12 +100,12 @@ public sealed class DemoTenantSeederTests(PostgresFixture fixture) : DatabaseTes
         await using (var scope = App.Services.CreateAsyncScope())
         {
             scope.ServiceProvider.GetRequiredService<TenantContext>().Set(_elsscId);
-            var result = await scope.ServiceProvider.GetRequiredService<CreateTenantHandler>()
-                .HandleAsync(
-                    new("elssc", "Eastern Lakes Schools Sports Council", "Eastern Lakes Schools Sports Council", "UG", "Africa/Kampala", "en-UG", "UGX", true),
-                    _elsscId,
-                    Ct);
-            result.IsSuccess.ShouldBeTrue();
+            var context = scope.ServiceProvider.GetRequiredService<TenancyDbContext>();
+            const string name = "Eastern Lakes Schools Sports Council";
+            context.Add(Tenant.Create("elssc", new TenantProfile(name, name, "UG"), SystemActor.Instance, App.Clock.GetUtcNow(), _elsscId));
+            context.Add(TenantSettings.Create(_elsscId, TenantSettingsValues.Defaults("Africa/Kampala", "en-UG", "UGX", publicEnabled: true)));
+            context.Add(TenantDomain.PlatformSubdomain(_elsscId, "elssc", "localhost"));
+            await context.SaveChangesAsync(Ct);
         }
 
         var report = await SeedDemoAsync(App);

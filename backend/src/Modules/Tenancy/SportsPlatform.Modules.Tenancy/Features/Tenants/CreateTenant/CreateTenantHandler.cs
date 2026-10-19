@@ -33,7 +33,8 @@ public sealed class CreateTenantHandler(
     public Task<Result<TenantResponse>> HandleAsync(CreateTenantRequest request, CancellationToken cancellationToken) =>
         HandleAsync(request, tenantId: null, cancellationToken);
 
-    public async Task<Result<TenantResponse>> HandleAsync(CreateTenantRequest request, Guid? tenantId, CancellationToken cancellationToken)
+    /// <summary>For the module's seeders only: <paramref name="tenantId"/> is the seeded tenant's deterministic ID (#38 N1).</summary>
+    internal async Task<Result<TenantResponse>> HandleAsync(CreateTenantRequest request, Guid? tenantId, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
         var profile = new TenantProfile(request.LegalName!.Trim(), request.DisplayName!.Trim(), request.CountryCode!);
