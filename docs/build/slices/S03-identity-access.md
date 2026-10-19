@@ -366,9 +366,13 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   and stamp refreshes keep it; `SessionClaimsFactory` issues only `sub` and the security stamp. Identity's lockout uses
   the system clock (`UserManager` takes no `TimeProvider`). A failed sign-in saves the failed-attempt count and its
   DENIED entry in one save: `AuditScope.RecordOnSave(outcome, error)` sets the outcome the next save records (it was
-  always SUCCESS); a lost race on the user row is retried, so no attempt goes uncounted. An unknown email hashes the
-  password anyway, so the answer takes as long. `IdentityAuthorizationEvaluator` replaces `DenyAllAuthorizationEvaluator`
-  (account actions allowed; platform and tenant actions refused until T3/T4). Logout deletes the cookie only (no
+  always SUCCESS); a lost race on the user row is retried (success too: a 409 would tell an account exists), so no
+  attempt goes uncounted. Every refusal hashes the password once: an unknown email, and a locked or unconfirmed account
+  (Identity skips the check), hash in its place (test with a counting hasher). Tenant resolution answers an anonymous
+  caller 401 before any tenant lookup, so a platform route's unknown tenant answers like a real one. The session
+  cookie has no `Expires` (closing the browser signs out). `IdentityAuthorizationEvaluator` replaces `DenyAllAuthorizationEvaluator`
+  (account actions for signed-in users, and for anonymous callers where allowed; platform and tenant actions refused
+  until T3/T4). Logout deletes the cookie only (no
   server-side session store): a copied cookie lives until it expires or the security stamp changes. Tests: the test
   scheme is a policy scheme (`X-Test-User`, else the session cookie); factory clients use https and send `X-CSRF: 1`.
 

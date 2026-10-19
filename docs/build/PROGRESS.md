@@ -8,7 +8,7 @@ at the start of every review.
 - **Current slice:** S03 — Identity and access (docs/build/slices/S03-identity-access.md, rewritten by the S02 slice
   review). S00, S01 and S02 are done
 - **Current task:** S03-T2a — Sessions and the pipeline (account family, anonymous actor, 401, cookie, CSRF,
-  login/logout/me, lockout) — in progress
+  login/logout/me, lockout) — in review
 - **Next:** S03-T2b — Passwords and rate limits (forgot/reset/change, reset email, 429)
 - **Blocked on:** nothing
 
@@ -60,6 +60,7 @@ at the start of every review.
 | 2026-10-19 | S02 slice review | #40 | Docs only: S03 spec rewritten by the reviewer (D1–D18, T1–T6); S02 slice acceptance ticked and slice review note; roadmap S02 ☑; tech debt regrouped (first deployment section, S03 carry-overs with their tasks); open questions Q18 (bearer tokens) and Q19 (multi-factor sign-in) | All S02 acceptance items met on main (109b9c9); owner demo done 2026-10-19 |
 | 2026-10-19 | S03-T1a | #41 | New module `Identity` (schema `identity`): ASP.NET Core Identity core with `UserOnlyStore` (no roles tables, store never saves by itself), `users` (+ `user_claims`, `user_logins`, `user_tokens`; unique `normalized_email`; contacts tagged `pii` `PRIVATE`), D15 password/lockout options; `platform_role_assignments` shipped early; data protection key ring in `identity.data_protection_keys` (append-only, application name `msp`); CLI `create-platform-admin --email` (password from `MSP_ADMIN_PASSWORD`, audited `platform.admin.create` as `SYSTEM`, prints the ID not the email); CLI applies the Host's `Serilog:MinimumLevel` (no EF SQL); default-credential scan test | T1 split in two; role table early; CLI action audited; existing user refused (owner, plan). `User` lives in `Infrastructure/Users` (Identity's base class is ASP.NET Core, which `Domain/` may not use). Errors beyond the plan: `AUTH_CONCURRENCY_CONFLICT` (every module context needs one), `AUTH_PASSWORD_REJECTED` (T2's, early), `AUTH_USER_EXISTS`. Refusals are not audited (operator console). New packages (MIT): `Microsoft.AspNetCore.Identity.EntityFrameworkCore`, `Microsoft.AspNetCore.DataProtection.EntityFrameworkCore` 10.0.13 |
 | 2026-10-19 | S03-T1b | #42 | `IEmailSender` + `EmailMessage` (recipient `PRIVATE`) in Platform Contracts; MailKit `SmtpEmailSender` (one connection per email, logs only the Message-ID; transport failures become `EmailDeliveryException` without the server's text or inner exception, so no address reaches the outbox log or `last_error`); `Email:From`/`FromName`/`Smtp:*` validated on start (credentials over `Security=None` refused); Development and Testing → Mailpit; `TestApp.Emails` records instead of sending; adapter tested against a Mailpit container (accepts one recipient, rejects others) | Fail fast on missing `Email:*` (owner, plan): test hosts started as Staging/Production get mail settings. `System.Security.Cryptography.Pkcs` pinned to 10.0.13 (MimeKit's 10.0.0 has advisories). Compose image lookup moved to `IntegrationTests/Infrastructure/ComposeFile`. New packages (MIT): `MailKit` 4.18.1, with `MimeKit` 4.18.1 and `BouncyCastle.Cryptography` 2.7.0 |
+| 2026-10-19 | S03-T2a | #PR | Account family `/api/account/v1` (`ACCOUNT` actions, `allowsAnonymous`, no-store, startup rules); `AnonymousActor` for requests without a user (a principal without a GUID `sub` too) with `actor_kind` widened in audit and tenancy; `401 AUTH_UNAUTHENTICATED` before any tenant lookup and in authorization; CSRF middleware (`X-CSRF: 1`, `403 AUTH_CSRF_REQUIRED`, audited); Identity's cookie as the only scheme (`__Host-msp_session`, 12 h sliding, 7 d absolute, stamp every 5 min, app clock; claims `sub` + stamp); `login` (lockout, same answer and same hashing for every refusal, DENIED entry saved with the count via `AuditScope.RecordOnSave`, race retried), `logout`, `me`; `IdentityAuthorizationEvaluator` replaces deny-all (account step); startup check for missing validators; test scheme falls back to the cookie, test clients https + `X-CSRF` | T2 split in T2a/T2b; Q18 answered (cookies only); T2b rate limits, reset token and `AUTH_CURRENT_PASSWORD_INVALID` agreed (owner, plan). `AUTH_UNAUTHENTICATED`/`AUTH_CSRF_REQUIRED` in BuildingBlocks `AuthorizationErrors` (pipeline errors). Session cookie without `Expires`. No new packages |
 
 ## Deviations from spec (agreed)
 
@@ -169,20 +170,9 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
 (2026-10-18). The S00 carry-overs assigned to S01 are done. Each item names where it gets done.
 
 **S03 — identity and access**
-- Anonymous actor for audit (#23 R1): `actor_kind` allows `USER`/`SYSTEM` and `actor_id` is NOT NULL, so once S03
-  has real sign-in an anonymous 401 on an audited endpoint would fail the direct insert and the denial would only be
-  logged. S03: add an anonymous actor kind (nullable or fixed `actor_id`) with the check-constraint migration, and a test
-  that an anonymous 401 on an audited endpoint writes a `DENIED` entry.
-- Denials cost a permanent row each (#23 R2): rate-limit `/api/admin` and `/api/platform` at the edge (Cloudflare),
-  with the `/health/*` item below (infrastructure task after M1). S03 decides whether anonymous denials are counted per
-  minute instead of one row each.
-- 401 still produces Problem Details without a `code` (no authentication yet); comes with S03. 403 from the
-  authorization middleware is `AUTH_FORBIDDEN` (T4) (S01-T3a pre-review).
-- `ICurrentActor` is per request since S02-T3a (`ActorContext` from the authenticated principal), but an
-  unauthenticated request is still the system actor, logged as `ActorKind=System`. S03: an anonymous kind for
-  unauthenticated requests, and update `RequestLoggingTests.Request_is_logged_with_correlation_ID_and_actor` (#17 R1).
-- An authenticated principal without a GUID `sub` is treated as the system actor (S02-T3a: only the test scheme
-  authenticates). S03: refuse it with 401 instead, with a test, before any real scheme lands (S02-T3a pre-review).
+- Denials cost a permanent row each (#23 R2): rate-limit `/api/admin`, `/api/platform` and `/api/account` at the edge
+  (Cloudflare), with the `/health/*` item below (infrastructure task after M1). Decided (S03 D3): anonymous denials
+  keep one row each; login and forgot-password are also rate-limited in the API (T2b).
 - `PROVISIONING` is `FULL` for every member in S02-T3a (no roles yet); state-machines.md gives it only to tenant
   owners/admins (setup). S03: limit it to them, with a test (#34 R1).
 - `BLOCKED` access mode lets the tenant owner view the tenant's status (state-machines.md); S02-T3a refuses every
@@ -191,9 +181,6 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
 - With the second `AddPlatformServiceDbContext<T>` (e.g. `PlatformTenantStatistics`): make
   `TenantIsolationRulesTests.Only_the_audit_features_use_the_platform_audit_context` generic: discover the contexts
   registered that way and require an allowed-users entry for each (#33 N2). (T4)
-- A missing `IValidator<T>` for an endpoint with `.ValidateRequest<T>()` only fails at the first request (500 from
-  `GetRequiredService`): have the Host check this at startup like action markers, or add a test that walks the
-  endpoints. With the next endpoint that has a validator (#22 re-review N1). (T2)
 - **OpenAPI (with the first admin UI client, S03 or later):** optional request members (`version`, PATCH fields) are
   listed as `required` (nullable) in the schemas, so the TS client makes callers pass `null`; endpoints don't declare
   the `If-Match` request header or the `ETag` response header, and activate/restore list no 400 (pipeline errors).
@@ -201,11 +188,12 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
   PATCH (`UpdateTenantSettingsRequest`) has the same `required` problem; strict-body requests are components named by
   short type name, so two such types with one name would share a schema (S02-T4b pre-review). (T6)
 - shadcn/ui is not initialised yet (ADR-0011); do it with the first real admin UI (S03). `Button` is hand-written. (T6)
+- Logout deletes the cookie only (no server-side session store): a copied cookie lives until it expires or the
+  security stamp changes. Identity's lockout uses the system clock (`UserManager` takes no `TimeProvider`). (Later,
+  S03-T2a)
 - The CLI's Serilog → `LogLevel` mapping (`UseHostLogLevels`, S03-T1a) has no test; move it into the Host and unit-test it
   if the CLI's logging grows (T1a pre-review N2). The `create-platform-admin` unique-index race path has no test (two
   concurrent runs) (T1a pre-review M2). (Later)
-- Decided: anonymous denials keep one row each; volume limited at the edge and by login/forgot rate limits (S03 D3,
-  decides #23 R2) (T2).
 
 **First deployment (infrastructure task after M1, with Q10)**
 - **Before the first public deployment (S02-T5b):** the public app forwards the `Host` header it receives to `/site`;

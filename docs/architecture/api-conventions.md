@@ -16,8 +16,8 @@
 
 **Sessions (S03 D5).** The admin web signs in with `POST /api/account/v1/login` and gets ASP.NET Core Identity's
 cookie: `__Host-msp_session` (`msp_session` over http in Development), HttpOnly, Secure, `SameSite=Strict`, path `/`;
-12 hours sliding, 7 days at most; the security stamp is checked every 5 minutes. The cookie carries only the user ID
-and the security stamp. Bearer tokens are deferred (D6, Q18).
+12 hours sliding, 7 days at most; the security stamp is checked every 5 minutes. It is a session cookie (no
+`Expires`): closing the browser signs out. The cookie carries only the user ID and the security stamp. Bearer tokens are deferred (D6, Q18).
 
 **CSRF (S03 D7).** Every request to `/api/account`, `/api/admin` or `/api/platform` other than GET, HEAD, OPTIONS
 and TRACE carries `X-CSRF: 1`, sign-in included, else `403 AUTH_CSRF_REQUIRED` (audited like any denial). Cross-site

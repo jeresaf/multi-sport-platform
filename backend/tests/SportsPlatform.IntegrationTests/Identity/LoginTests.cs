@@ -108,6 +108,31 @@ public sealed class LoginTests(PostgresFixture fixture) : DatabaseTest(fixture)
         Reason((await AuditTestData.EntriesAsync(App.Services, Ct)).ShouldHaveSingleItem()).ShouldBe("NOT_ALLOWED");
     }
 
+    // D15: no account enumeration by timing. Identity skips the password check for a locked or unconfirmed account, and
+    // there is no hash for an unknown email: each refusal still hashes once.
+    [Fact]
+    public async Task Every_refusal_hashes_the_password_once()
+    {
+        var password = TestPasswords.New();
+        await AccountTestData.CreateUserAsync(App.Services, _email, password, Ct);
+        await AccountTestData.CreateUserAsync(App.Services, "esther.nabirye@kmsa.example", password, Ct, emailConfirmed: false);
+        using var client = App.CreateClient();
+
+        var hashes = new List<int>
+        {
+            await HashesAsync(client, "brian.ssemakula@kmsa.example", password),
+            await HashesAsync(client, "esther.nabirye@kmsa.example", password),
+        };
+        for (var attempt = 1; attempt <= 5; attempt++)
+        {
+            hashes.Add(await HashesAsync(client, _email, TestPasswords.New()));
+        }
+
+        hashes.Add(await HashesAsync(client, _email, password)); // locked
+
+        hashes.ShouldAllBe(count => count == 1);
+    }
+
     [Theory]
     [InlineData("{}", "email")]
     [InlineData("""{"email":"grace.nakato@kmsa.example"}""", "password")]
@@ -131,6 +156,13 @@ public sealed class LoginTests(PostgresFixture fixture) : DatabaseTest(fixture)
         return string.Join("|", problem.EnumerateObject()
             .Where(property => property.Name != "correlationId")
             .Select(property => $"{property.Name}={property.Value}"));
+    }
+
+    private async Task<int> HashesAsync(HttpClient client, string email, string password)
+    {
+        var before = App.PasswordHashes.Count;
+        _ = await RefusalAsync(client, email, password);
+        return App.PasswordHashes.Count - before;
     }
 
     private static string? Reason(AuditEntry entry) =>

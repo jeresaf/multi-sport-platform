@@ -15,8 +15,8 @@ namespace SportsPlatform.Host.Tenancy;
 /// after audit and before authorization (S02 D8), so a refused tenant on an audited action is audited as DENIED and
 /// RLS applies to everything the endpoint reads or writes.
 /// <list type="bullet">
-/// <item>A tenant action (the admin API): <c>X-Tenant-Id</c>, which the actor must be a member of; an anonymous caller
-/// gets 401 first (S03 D4).</item>
+/// <item>An action that needs a user, from a caller who is not signed in: 401 first, whatever the tenant (S03 D4).</item>
+/// <item>A tenant action (the admin API): <c>X-Tenant-Id</c>, which the actor must be a member of.</item>
 /// <item>A platform endpoint marked <c>.RunsUnderRouteTenant()</c>: the route's tenant, which must exist (D2).</item>
 /// <item>A public endpoint marked <c>.RequirePublicTenant()</c>: the tenant of the request host (D6, D7), which must
 /// show its public site. In Development only, <c>X-Tenant-Slug</c> or <c>?tenant=</c> names the tenant instead.</item>
@@ -37,8 +37,13 @@ internal sealed class TenantResolutionMiddleware(RequestDelegate next, IHostEnvi
         var publicTenant = endpoint?.Metadata.GetMetadata<RequiresPublicTenantMetadata>() is not null;
 
         // Exactly one action, as the authorization middleware requires; anything else it refuses. The startup rules
-        // allow .RequirePublicTenant() only on public endpoints, which declare no action.
-        var error = publicTenant && required.Count == 0 ? await FromHostAsync(context)
+        // allow .RequirePublicTenant() only on public endpoints, which declare no action. An anonymous caller on an
+        // action that needs a user gets 401 before any tenant is looked up (S03 D4), so neither the header nor a
+        // route's tenant tells them anything.
+        var error = required.Count == 1 && !required[0].Action.AllowsAnonymous
+                && context.RequestServices.GetRequiredService<ICurrentActor>().Kind == ActorKind.Anonymous
+                ? AuthorizationErrors.Unauthenticated
+            : publicTenant && required.Count == 0 ? await FromHostAsync(context)
             : required.Count != 1 ? null
             : required[0].Action.Scope == ActionScope.Tenant ? await FromHeaderAsync(context)
             : routeTenant is not null ? await FromRouteAsync(context, routeTenant.RouteValueName)
@@ -55,12 +60,6 @@ internal sealed class TenantResolutionMiddleware(RequestDelegate next, IHostEnvi
 
     private static async Task<Error?> FromHeaderAsync(HttpContext context)
     {
-        // Not signed in: 401 before the header is looked at (S03 D4).
-        if (context.RequestServices.GetRequiredService<ICurrentActor>().Kind == ActorKind.Anonymous)
-        {
-            return AuthorizationErrors.Unauthenticated;
-        }
-
         if (context.Request.Headers[TenantHeader] is not [{ } value] || !Guid.TryParse(value, out var tenantId))
         {
             return AuthorizationErrors.TenantForbidden;

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
@@ -10,6 +11,7 @@ using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.IntegrationTests.Messaging;
 using SportsPlatform.IntegrationTests.Persistence;
 using SportsPlatform.IntegrationTests.Seeding;
+using SportsPlatform.Modules.Identity.Infrastructure.Users;
 using SportsPlatform.Modules.Platform.Contracts.Email;
 
 namespace SportsPlatform.IntegrationTests.Infrastructure;
@@ -41,6 +43,8 @@ public sealed class TestApp : WebApplicationFactory<Program>
 
     public RecordingEmailSender Emails { get; } = new();
 
+    public CountingPasswordHasher PasswordHashes { get; } = new();
+
     protected override void ConfigureClient(HttpClient client)
     {
         base.ConfigureClient(client);
@@ -63,6 +67,8 @@ public sealed class TestApp : WebApplicationFactory<Program>
             Telemetry.AddTo(services);
             services.RemoveAll<IEmailSender>();
             services.AddSingleton<IEmailSender>(Emails);
+            services.RemoveAll<IPasswordHasher<User>>();
+            services.AddSingleton<IPasswordHasher<User>>(PasswordHashes);
 
             // A test-only module context that exercises the persistence conventions.
             services.AddModuleDbContext<ConventionsTestDbContext>(configuration, ConventionsTestDbContext.SchemaName);

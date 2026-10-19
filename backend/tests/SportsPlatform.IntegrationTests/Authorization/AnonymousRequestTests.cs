@@ -6,6 +6,7 @@ using SportsPlatform.IntegrationTests.Api;
 using SportsPlatform.IntegrationTests.Audit;
 using SportsPlatform.IntegrationTests.Infrastructure;
 using SportsPlatform.IntegrationTests.Tenancy;
+using SportsPlatform.Modules.Tenancy.Contracts.Tenants;
 
 namespace SportsPlatform.IntegrationTests.Authorization;
 
@@ -48,6 +49,28 @@ public sealed class AnonymousRequestTests(PostgresFixture fixture) : DatabaseTes
         using var response = await client.GetAsync(new Uri(path, UriKind.Relative), Ct);
 
         await response.ShouldBeProblemAsync(HttpStatusCode.Unauthorized, "AUTH_UNAUTHENTICATED");
+    }
+
+    // D4: 401 before the route's tenant is looked up, so an unknown tenant answers like a real one.
+    [Fact]
+    public async Task Anonymous_request_on_a_route_tenant_is_unauthenticated_whether_or_not_the_tenant_exists()
+    {
+        App.Authorization.AllowAll();
+        var kmsa = await TenantTestData.SaveTenantAsync(App.Services, "kmsa", TenantStatus.Active, Ct);
+        using var client = App.CreateClient();
+        var reason = new { reason = "Council closed for the school holidays" };
+
+        using var known = await client.GetAsync(new Uri($"{TenantTestData.TenantsPath}/{kmsa}", UriKind.Relative), Ct);
+        using var unknown = await client.GetAsync(new Uri($"{TenantTestData.TenantsPath}/{Guid.CreateVersion7()}", UriKind.Relative), Ct);
+        using var suspend = await client.PostAsJsonAsync(
+            new Uri($"{TenantTestData.TenantsPath}/{Guid.CreateVersion7()}/suspend", UriKind.Relative), reason, Ct);
+
+        await known.ShouldBeProblemAsync(HttpStatusCode.Unauthorized, "AUTH_UNAUTHENTICATED");
+        await unknown.ShouldBeProblemAsync(HttpStatusCode.Unauthorized, "AUTH_UNAUTHENTICATED");
+        await suspend.ShouldBeProblemAsync(HttpStatusCode.Unauthorized, "AUTH_UNAUTHENTICATED");
+        var entries = await AuditTestData.EntriesAsync(App.Services, Ct);
+        entries.Select(e => e.ActionCode).ShouldBe(["tenant.read", "tenant.read", "tenant.suspend"], ignoreOrder: true);
+        entries.ShouldAllBe(e => e.Outcome == AuditOutcome.Denied && e.ErrorCode == "AUTH_UNAUTHENTICATED" && e.TenantId == null);
     }
 
     [Fact]

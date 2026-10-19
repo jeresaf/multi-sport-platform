@@ -22,7 +22,8 @@ public sealed class LoginHandler(
     // A save that loses a race with another sign-in of the same user is retried, so no failed attempt goes uncounted.
     private const int _saveAttempts = 3;
 
-    // Hashed in place of an unknown user's password, so the answer takes as long as for a real account.
+    // Hashed in place of a check Identity skips (unknown email, locked or unconfirmed account), so every refusal takes as
+    // long as a wrong password.
     private static readonly User _nobody = User.Create("nobody@invalid.example", emailConfirmed: false);
 
     public async Task<Result> HandleAsync(LoginRequest request, CancellationToken cancellationToken)
@@ -39,14 +40,22 @@ public sealed class LoginHandler(
         }
 
         audit.Describe(AccountEndpoints.UserEntityType, user.Id);
+
+        // Identity refuses a locked or unconfirmed account before it checks the password: hash anyway, so those answers
+        // take as long as a wrong password or an unknown email.
+        if (!await signIn.CanSignInAsync(user) || (users.SupportsUserLockout && await users.IsLockedOutAsync(user)))
+        {
+            _ = users.PasswordHasher.HashPassword(_nobody, password);
+        }
+
         var result = await signIn.CheckPasswordSignInAsync(user, password, lockoutOnFailure: true);
         if (result.Succeeded)
         {
-            // Saves the reset failed-attempt count (and commits the entry) before the cookie is issued.
-            var saved = await context.SaveChangesResultAsync(cancellationToken);
-            if (saved.IsFailure)
+            // Saves the reset failed-attempt count (and commits the entry) before the cookie is issued. A lost race is
+            // retried rather than answered with a 409, which an unknown email could never get.
+            if (!await SaveAsync(user, () => users.ResetAccessFailedCountAsync(user), cancellationToken))
             {
-                return saved;
+                return Result.Failure(IdentityErrors.InvalidCredentials);
             }
 
             await signIn.SignInAsync(user, SessionCookie.NewSession(timeProvider.GetUtcNow()), authenticationMethod: null);
@@ -58,27 +67,41 @@ public sealed class LoginHandler(
             : LoginFailureReason.WrongPassword;
         audit.Describe(metadata: new LoginFailure(reason));
         audit.RecordOnSave(AuditOutcome.Denied, IdentityErrors.InvalidCredentials);
-        await SaveFailedAttemptAsync(user, reason, cancellationToken);
+        // A save that still fails leaves the entry to the audit middleware (DENIED, from the 401).
+        _ = await SaveAsync(
+            user,
+            async () =>
+            {
+                if (reason == LoginFailureReason.WrongPassword)
+                {
+                    _ = await users.AccessFailedAsync(user);
+                }
+            },
+            cancellationToken);
         return Result.Failure(IdentityErrors.InvalidCredentials);
     }
 
-    private async Task SaveFailedAttemptAsync(User user, LoginFailureReason reason, CancellationToken cancellationToken)
+    /// <summary>
+    /// Saves; when another request changed the user first, reloads it, applies <paramref name="reapply"/> to the current
+    /// row and saves again.
+    /// </summary>
+    private async Task<bool> SaveAsync(User user, Func<Task> reapply, CancellationToken cancellationToken)
     {
         for (var attempt = 1; ; attempt++)
         {
             var saved = await context.SaveChangesResultAsync(cancellationToken);
-            if (saved.IsSuccess || saved.Error != IdentityErrors.ConcurrencyConflict || attempt == _saveAttempts)
+            if (saved.IsSuccess)
             {
-                // A save that still fails leaves the entry to the audit middleware (DENIED, from the 401).
-                return;
+                return true;
             }
 
-            // Another request changed the user: count this attempt again on the current row.
-            await context.Entry(user).ReloadAsync(cancellationToken);
-            if (reason == LoginFailureReason.WrongPassword)
+            if (saved.Error != IdentityErrors.ConcurrencyConflict || attempt == _saveAttempts)
             {
-                _ = await users.AccessFailedAsync(user);
+                return false;
             }
+
+            await context.Entry(user).ReloadAsync(cancellationToken);
+            await reapply();
         }
     }
 }
