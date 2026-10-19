@@ -4,6 +4,7 @@ using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.BuildingBlocks.Domain;
 using SportsPlatform.IntegrationTests.Messaging;
 using SportsPlatform.IntegrationTests.Persistence;
+using SportsPlatform.Modules.Tenancy.Domain.Settings;
 using SportsPlatform.Modules.Tenancy.Domain.Tenants;
 
 namespace SportsPlatform.IntegrationTests.Isolation;
@@ -36,6 +37,7 @@ public static class IsolationSamples
     public static IReadOnlyList<IIsolationSample> All { get; } =
     [
         new TenantStatusChangeSample(),
+        new TenantSettingsSample(),
         new TenantProbeSample(),
         new TenantProbeNoteSample(),
         new ConsumedNoteSample(),
@@ -52,11 +54,27 @@ public static class IsolationSamples
 
         public Entity Add(DbContext context)
         {
-            var profile = new TenantProfile(
-                "Wakiso District Sports Council", "Wakiso Sports", "UG", "Africa/Kampala", "en", "UGX", PublicEnabled: false);
+            var profile = new TenantProfile("Wakiso District Sports Council", "Wakiso Sports", "UG");
             var tenant = Tenant.Create("wakiso-sports", profile, SystemActor.Instance, new DateTimeOffset(2026, 10, 1, 8, 0, 0, TimeSpan.Zero));
             context.Add(tenant);
             return tenant.StatusHistory.Single();
+        }
+
+        public Entity? Referencing(IForeignKey foreignKey, Guid principalId) => null;
+    }
+
+    /// <summary>Tenancy: a new tenant's settings; they carry that tenant's ID, which the tenants table must have.</summary>
+    private sealed class TenantSettingsSample : IIsolationSample
+    {
+        public Type EntityType => typeof(TenantSettings);
+
+        public Entity Add(DbContext context)
+        {
+            var profile = new TenantProfile("Entebbe Municipal Sports Council", "Entebbe Sports", "UG");
+            var tenant = Tenant.Create("entebbe-sports", profile, SystemActor.Instance, new DateTimeOffset(2026, 10, 1, 8, 0, 0, TimeSpan.Zero));
+            var settings = TenantSettings.Create(tenant.Id, TenantSettingsValues.Defaults("Africa/Kampala", "en-UG", "UGX", publicEnabled: true));
+            context.AddRange(tenant, settings);
+            return settings;
         }
 
         public Entity? Referencing(IForeignKey foreignKey, Guid principalId) => null;

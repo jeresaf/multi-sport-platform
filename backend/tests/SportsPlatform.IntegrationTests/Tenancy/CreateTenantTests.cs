@@ -11,6 +11,7 @@ using SportsPlatform.IntegrationTests.Infrastructure;
 using SportsPlatform.Modules.Tenancy;
 using SportsPlatform.Modules.Tenancy.Contracts.Tenants;
 using SportsPlatform.Modules.Tenancy.Domain.Domains;
+using SportsPlatform.Modules.Tenancy.Domain.Settings;
 using SportsPlatform.Modules.Tenancy.Features.Tenants;
 
 namespace SportsPlatform.IntegrationTests.Tenancy;
@@ -57,6 +58,17 @@ public sealed class CreateTenantTests(PostgresFixture fixture) : DatabaseTest(fi
             d => d.Type.ShouldBe(TenantDomainType.PlatformSubdomain),
             d => d.IsPrimary.ShouldBeTrue(),
             d => d.Status.ShouldBe(TenantDomainStatus.Active));
+    }
+
+    [Fact]
+    public async Task Creates_the_settings_with_the_values_sent_and_the_defaults()
+    {
+        using var response = await CreateAsync(TenantTestData.CreateBody("kmsa", ("publicEnabled", true)));
+
+        var tenant = (await response.Content.ReadFromJsonAsync<TenantResponse>(Json, Ct)).ShouldNotBeNull();
+        var settings = await TenantTestData.SettingsAsync(App.Services, tenant.Id, Ct);
+        settings.Values.ShouldBe(new TenantSettingsValues(
+            "Africa/Kampala", "en-UG", "UGX", PublicEnabled: true, StartingSoonMinutes: 30, MinorRegistrationConsent.Recommended));
     }
 
     [Fact]

@@ -79,7 +79,7 @@ public sealed class TenantOwnershipTests(PostgresFixture fixture) : DatabaseTest
         await using var scope = App.Services.CreateAsyncScope();
         scope.ServiceProvider.GetRequiredService<TenantContext>().Set(_tenantB);
         var context = scope.ServiceProvider.GetRequiredService<TenancyDbContext>();
-        var profile = new TenantProfile("Mukono Sports Council", "Mukono Sports", "UG", "Africa/Kampala", "en", "UGX", PublicEnabled: false);
+        var profile = new TenantProfile("Mukono Sports Council", "Mukono Sports", "UG");
         context.Add(Tenant.Create("mukono-sports", profile, SystemActor.Instance, App.Clock.GetUtcNow())); // history carries the new tenant's ID
 
         (await Should.ThrowAsync<TenantIsolationViolationException>(() => context.SaveChangesAsync(Ct)))

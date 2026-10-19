@@ -83,6 +83,22 @@ public sealed class ReadTenantTests(PostgresFixture fixture) : DatabaseTest(fixt
     }
 
     [Fact]
+    public async Task List_items_have_no_settings()
+    {
+        await TenantTestData.SaveTenantAsync(App.Services, "kmsa", TenantStatus.Active, Ct);
+
+        using var client = CreateClient();
+        using var response = await client.GetAsync(new Uri(TenantTestData.TenantsPath, UriKind.Relative), Ct);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        // The list runs under no tenant, and settings are tenant-owned (S02-T4).
+        using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync(Ct));
+        body.RootElement.GetProperty("items").EnumerateArray().ShouldHaveSingleItem()
+            .EnumerateObject().Select(p => p.Name)
+            .ShouldBe(["id", "slug", "legalName", "displayName", "countryCode", "status", "createdAt", "updatedAt", "version"]);
+    }
+
+    [Fact]
     public async Task List_is_audited_with_its_filter_and_no_tenant()
     {
         await ListAsync("?status=SUSPENDED");

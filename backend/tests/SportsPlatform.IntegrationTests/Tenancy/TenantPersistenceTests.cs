@@ -43,7 +43,7 @@ public sealed class TenantPersistenceTests(PostgresFixture fixture) : DatabaseTe
         await TenantTestData.SaveTenantAsync(App.Services, "kmsa", TenantStatus.Archived, Ct);
         await using var scope = App.Services.CreateAsyncScope();
         var context = scope.ServiceProvider.GetRequiredService<TenancyDbContext>();
-        var profile = new TenantProfile("Kampala Metro Sports", "KMSA", "UG", "Africa/Kampala", "en", "UGX", PublicEnabled: false);
+        var profile = new TenantProfile("Kampala Metro Sports", "KMSA", "UG");
         var tenant = Tenant.Create("kmsa", profile, SystemActor.Instance, App.Clock.GetUtcNow());
         scope.ServiceProvider.GetRequiredService<TenantContext>().Set(tenant.Id); // as the create handler does (D2)
         context.Add(tenant);

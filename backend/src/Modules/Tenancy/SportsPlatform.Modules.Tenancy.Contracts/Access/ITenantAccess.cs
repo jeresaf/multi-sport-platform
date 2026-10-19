@@ -16,8 +16,10 @@ public interface ITenantAccess
     Task<Result> CheckAdminAccessAsync(Guid tenantId, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Whether the tenant's public site is shown: success for an <c>ACTIVE</c> tenant with <c>publicEnabled</c>, else
-    /// <c>TENANT_UNAVAILABLE</c> (hidden while <c>PROVISIONING</c> or not enabled, off while <c>BLOCKED</c>).
+    /// Whether the tenant's public site is shown: success for an <c>ACTIVE</c> tenant whose settings enable it, else
+    /// <c>TENANT_UNAVAILABLE</c> (hidden while <c>PROVISIONING</c> or not enabled, off while <c>BLOCKED</c>). The setting
+    /// is tenant-owned, so call this after setting the scope's tenant to <paramref name="tenant"/>. Cached for up to a
+    /// minute.
     /// </summary>
-    Result CheckPublicAccess(TenantSummary tenant);
+    Task<Result> CheckPublicAccessAsync(TenantSummary tenant, CancellationToken cancellationToken);
 }

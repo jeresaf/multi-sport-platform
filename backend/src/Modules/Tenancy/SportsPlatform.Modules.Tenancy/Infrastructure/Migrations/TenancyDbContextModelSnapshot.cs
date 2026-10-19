@@ -240,17 +240,11 @@ namespace SportsPlatform.Modules.Tenancy.Infrastructure.Migrations
                         });
                 });
 
-            modelBuilder.Entity("SportsPlatform.Modules.Tenancy.Domain.Tenants.Tenant", b =>
+            modelBuilder.Entity("SportsPlatform.Modules.Tenancy.Domain.Settings.TenantSettings", b =>
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid")
                         .HasColumnName("id");
-
-                    b.Property<string>("CountryCode")
-                        .IsRequired()
-                        .HasMaxLength(2)
-                        .HasColumnType("character varying(2)")
-                        .HasColumnName("country_code");
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -272,6 +266,83 @@ namespace SportsPlatform.Modules.Tenancy.Infrastructure.Migrations
                         .HasColumnType("character varying(5)")
                         .HasColumnName("default_locale");
 
+                    b.Property<string>("MinorRegistrationConsent")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("minor_registration_consent");
+
+                    b.Property<bool>("PublicEnabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("public_enabled");
+
+                    b.Property<int>("StartingSoonMinutes")
+                        .HasColumnType("integer")
+                        .HasColumnName("starting_soon_minutes");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("TimeZone")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("time_zone");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_tenant_settings");
+
+                    b.HasIndex("TenantId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_tenant_settings_tenant_id");
+
+                    b.ToTable("tenant_settings", "tenancy", t =>
+                        {
+                            t.HasCheckConstraint("ck_tenant_settings_currency_code", "currency_code ~ '^[A-Z]{3}$'");
+
+                            t.HasCheckConstraint("ck_tenant_settings_default_locale", "default_locale ~ '^[a-z]{2}(-[A-Z]{2})?$'");
+
+                            t.HasCheckConstraint("ck_tenant_settings_minor_registration_consent", "minor_registration_consent IN ('REQUIRED', 'RECOMMENDED', 'OFF')");
+
+                            t.HasCheckConstraint("ck_tenant_settings_starting_soon_minutes", "starting_soon_minutes BETWEEN 5 AND 180");
+                        });
+                });
+
+            modelBuilder.Entity("SportsPlatform.Modules.Tenancy.Domain.Tenants.Tenant", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("CountryCode")
+                        .IsRequired()
+                        .HasMaxLength(2)
+                        .HasColumnType("character varying(2)")
+                        .HasColumnName("country_code");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
                     b.Property<string>("DisplayName")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -283,10 +354,6 @@ namespace SportsPlatform.Modules.Tenancy.Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)")
                         .HasColumnName("legal_name");
-
-                    b.Property<bool>("PublicEnabled")
-                        .HasColumnType("boolean")
-                        .HasColumnName("public_enabled");
 
                     b.Property<string>("Slug")
                         .IsRequired()
@@ -300,12 +367,6 @@ namespace SportsPlatform.Modules.Tenancy.Infrastructure.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)")
                         .HasColumnName("status");
-
-                    b.Property<string>("TimeZone")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
-                        .HasColumnName("time_zone");
 
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -331,10 +392,6 @@ namespace SportsPlatform.Modules.Tenancy.Infrastructure.Migrations
                     b.ToTable("tenants", "tenancy", t =>
                         {
                             t.HasCheckConstraint("ck_tenants_country_code", "country_code ~ '^[A-Z]{2}$'");
-
-                            t.HasCheckConstraint("ck_tenants_currency_code", "currency_code ~ '^[A-Z]{3}$'");
-
-                            t.HasCheckConstraint("ck_tenants_default_locale", "default_locale ~ '^[a-z]{2}(-[A-Z]{2})?$'");
 
                             t.HasCheckConstraint("ck_tenants_slug", "slug ~ '^[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])$'");
 
@@ -416,6 +473,16 @@ namespace SportsPlatform.Modules.Tenancy.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_tenant_domains_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("SportsPlatform.Modules.Tenancy.Domain.Settings.TenantSettings", b =>
+                {
+                    b.HasOne("SportsPlatform.Modules.Tenancy.Domain.Tenants.Tenant", null)
+                        .WithOne()
+                        .HasForeignKey("SportsPlatform.Modules.Tenancy.Domain.Settings.TenantSettings", "TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_tenant_settings_tenants_tenant_id");
                 });
 
             modelBuilder.Entity("SportsPlatform.Modules.Tenancy.Domain.Tenants.TenantStatusChange", b =>

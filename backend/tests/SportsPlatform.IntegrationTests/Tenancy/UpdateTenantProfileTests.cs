@@ -45,6 +45,23 @@ public sealed class UpdateTenantProfileTests(PostgresFixture fixture) : Database
     }
 
     [Fact]
+    public async Task Settings_fields_change_the_settings_row_only()
+    {
+        var tenantId = await TenantTestData.SaveTenantAsync(App.Services, "kmsa", TenantStatus.Active, Ct);
+        var before = await GetAsync(tenantId);
+
+        using var response = await PatchAsync(tenantId, new { timeZone = "Africa/Nairobi", currencyCode = "KES" });
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var after = (await response.Content.ReadFromJsonAsync<TenantResponse>(Json, Ct)).ShouldNotBeNull();
+        after.ShouldBe(before with { TimeZone = "Africa/Nairobi", CurrencyCode = "KES" }, "the version is the tenant row's");
+        (await TenantTestData.SettingsAsync(App.Services, tenantId, Ct)).ShouldSatisfyAllConditions(
+            s => s.TimeZone.ShouldBe("Africa/Nairobi"),
+            s => s.CurrencyCode.ShouldBe("KES"),
+            s => s.StartingSoonMinutes.ShouldBe(30));
+    }
+
+    [Fact]
     public async Task Is_audited_under_the_tenant_with_the_names_of_the_fields_sent()
     {
         var tenantId = await TenantTestData.SaveTenantAsync(App.Services, "kmsa", TenantStatus.Active, Ct);

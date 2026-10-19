@@ -4,6 +4,7 @@ using SportsPlatform.BuildingBlocks.Api;
 using SportsPlatform.BuildingBlocks.Auditing;
 using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Results;
+using SportsPlatform.Modules.Tenancy.Domain.Settings;
 using SportsPlatform.Modules.Tenancy.Domain.Tenants;
 using SportsPlatform.Modules.Tenancy.Features.Domains;
 using SportsPlatform.Modules.Tenancy.Infrastructure;
@@ -60,6 +61,7 @@ public sealed class ChangeTenantStatusHandler(
 
         // The status decides whether the public site is shown.
         hostCache.Clear();
-        return Result.Success(TenantResponse.From(entry));
+        var settings = await context.Set<TenantSettings>().AsNoTracking().SingleAsync(s => s.TenantId == tenantId, cancellationToken);
+        return Result.Success(TenantResponse.From(entry, settings));
     }
 }

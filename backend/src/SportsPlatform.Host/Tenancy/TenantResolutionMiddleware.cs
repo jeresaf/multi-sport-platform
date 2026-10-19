@@ -85,14 +85,12 @@ internal sealed class TenantResolutionMiddleware(RequestDelegate next, IHostEnvi
             return tenant.Error;
         }
 
-        var access = context.RequestServices.GetRequiredService<ITenantAccess>().CheckPublicAccess(tenant.Value);
-        if (access.IsFailure)
-        {
-            return access.Error;
-        }
-
+        // Whether the site is enabled is a tenant-owned setting, read under the tenant (RLS): set it first. A refused
+        // request ends here, so the tenant it set reaches nothing else.
         context.RequestServices.GetRequiredService<TenantContext>().Set(tenant.Value.Id);
-        return null;
+        var access = await context.RequestServices.GetRequiredService<ITenantAccess>()
+            .CheckPublicAccessAsync(tenant.Value, context.RequestAborted);
+        return access.IsFailure ? access.Error : null;
     }
 
     private static string? DevelopmentSlug(HttpRequest request) =>

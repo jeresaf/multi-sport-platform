@@ -7,7 +7,8 @@ namespace SportsPlatform.Modules.Tenancy.Domain.Tenants;
 
 /// <summary>
 /// A customer of the platform (platform-managed, global). Its status follows the tenant state machine
-/// (docs/domain/state-machines.md); every change, and the creation, adds a row to its status history.
+/// (docs/domain/state-machines.md); every change, and the creation, adds a row to its status history. Its settings
+/// (time zone, locale, currency, public site, policies) are a separate, tenant-owned aggregate: <c>TenantSettings</c>.
 /// </summary>
 public sealed class Tenant : AggregateRoot
 {
@@ -33,16 +34,7 @@ public sealed class Tenant : AggregateRoot
 
     public string CountryCode { get; private set; } = string.Empty;
 
-    public string TimeZone { get; private set; } = string.Empty;
-
-    public string DefaultLocale { get; private set; } = string.Empty;
-
-    public string CurrencyCode { get; private set; } = string.Empty;
-
     public TenantStatus Status { get; private set; }
-
-    /// <summary>Whether the tenant wants a public site; it is shown only while the tenant is <c>ACTIVE</c>.</summary>
-    public bool PublicEnabled { get; private set; }
 
     /// <summary>
     /// The rows added in this unit of work: the history is never loaded with the tenant. Read history with
@@ -50,7 +42,7 @@ public sealed class Tenant : AggregateRoot
     /// </summary>
     public IReadOnlyList<TenantStatusChange> StatusHistory => _statusHistory;
 
-    public TenantProfile Profile => new(LegalName, DisplayName, CountryCode, TimeZone, DefaultLocale, CurrencyCode, PublicEnabled);
+    public TenantProfile Profile => new(LegalName, DisplayName, CountryCode);
 
     /// <summary>A new tenant in <c>PROVISIONING</c>; <paramref name="slug"/> must be valid and not reserved.</summary>
     public static Tenant Create(string slug, TenantProfile profile, ICurrentActor actor, DateTimeOffset now)
@@ -132,16 +124,9 @@ public sealed class Tenant : AggregateRoot
         ArgumentException.ThrowIfNullOrWhiteSpace(profile.LegalName);
         ArgumentException.ThrowIfNullOrWhiteSpace(profile.DisplayName);
         ArgumentException.ThrowIfNullOrWhiteSpace(profile.CountryCode);
-        ArgumentException.ThrowIfNullOrWhiteSpace(profile.TimeZone);
-        ArgumentException.ThrowIfNullOrWhiteSpace(profile.DefaultLocale);
-        ArgumentException.ThrowIfNullOrWhiteSpace(profile.CurrencyCode);
 
         LegalName = profile.LegalName;
         DisplayName = profile.DisplayName;
         CountryCode = profile.CountryCode;
-        TimeZone = profile.TimeZone;
-        DefaultLocale = profile.DefaultLocale;
-        CurrencyCode = profile.CurrencyCode;
-        PublicEnabled = profile.PublicEnabled;
     }
 }

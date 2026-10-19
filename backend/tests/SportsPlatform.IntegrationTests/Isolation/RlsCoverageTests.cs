@@ -49,6 +49,7 @@ public sealed class RlsCoverageTests(PostgresFixture fixture) : DatabaseTest(fix
 
         tables.ShouldContain(t => t.Name == "audit.audit_entries");
         tables.ShouldContain(t => t.Name == "tenancy.tenant_status_history");
+        tables.ShouldContain(t => t.Name == "tenancy.tenant_settings");
         tables.Where(t => !_exceptions.ContainsKey(t.Table))
             .Where(t => !t.Enabled || !t.Forced || !t.HasPolicy || t.PermissivePolicies != 1)
             .Select(t => $"{t.Name} (enabled: {t.Enabled}, forced: {t.Forced}, tenant_isolation: {t.HasPolicy}, " +
