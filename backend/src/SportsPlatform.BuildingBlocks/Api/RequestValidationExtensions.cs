@@ -39,11 +39,23 @@ public static class RequestValidationExtensions
                 return await next(context);
             }
 
-            var validator = context.HttpContext.RequestServices.GetRequiredService<IValidator<TRequest>>();
-            var result = await validator.ValidateAsync(request, context.HttpContext.RequestAborted);
-            return result.IsValid ? await next(context) : result.ToProblem(error);
+            return await context.HttpContext.ValidateRequestAsync(request, error) ?? await next(context);
         });
         return builder.ProducesErrors(error);
+    }
+
+    /// <summary>
+    /// What <see cref="ValidateRequest{TRequest}"/> does, for a request the endpoint reads itself (e.g. through
+    /// <see cref="StrictJsonBody"/>): null when valid, otherwise <paramref name="error"/> as Problem Details.
+    /// </summary>
+    public static async Task<ProblemHttpResult?> ValidateRequestAsync<TRequest>(this HttpContext context, TRequest request, Error error)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(error);
+
+        var validator = context.RequestServices.GetRequiredService<IValidator<TRequest>>();
+        var result = await validator.ValidateAsync(request, context.RequestAborted);
+        return result.IsValid ? null : result.ToProblem(error);
     }
 
     public static ProblemHttpResult ToProblem(this ValidationResult result, Error error)
