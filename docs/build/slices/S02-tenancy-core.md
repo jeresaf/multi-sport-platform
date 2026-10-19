@@ -210,10 +210,10 @@ Deliver:
 - Sample builder for `TenantSettings` in the isolation harness.
 
 Acceptance:
-- [ ] Unknown keys and wrongly typed values are rejected with `errors` entries naming the field.
+- [x] Unknown keys and wrongly typed values are rejected with `errors` entries naming the field.
 - [x] The isolation harness covers `tenant_settings` (and fails if its builder is removed); the RLS coverage test
       sees its policy.
-- [ ] Cross-tenant API test: tenant B's admin can't read or change tenant A's settings (`403` for the header,
+- [x] Cross-tenant API test: tenant B's admin can't read or change tenant A's settings (`403` for the header,
       no data either way).
 
 ### T5 — Public web shell and demo tenants
@@ -321,3 +321,14 @@ last write wins). The platform list
 (`TenantListItem`) has no settings. Public resolution sets the tenant before `CheckPublicAccessAsync` reads
 `publicEnabled` under RLS; the value is cached with the host. `TenantSummary` lost `PublicEnabled`. Removing the
 settings sample fails `Every_tenant_owned_entity_has_a_sample` (checked locally).
+
+**T4b.** `GET`/`PATCH /api/admin/v1/tenant/settings` work on the tenant in `X-Tenant-Id` (membership checked; the
+handlers take no tenant ID: the query filter and RLS show one row). The PATCH covers all six keys; a missing or null
+key stays as it is. Its body is read by `StrictJsonBody` (BuildingBlocks `Api`): an unknown, wrongly typed or
+repeated key is `400 VALIDATION_INVALID_REQUEST` with an `errors` entry naming it; a body that isn't one JSON object
+stays `VALIDATION_MALFORMED_REQUEST`; enum values are read case-insensitively, as everywhere. Platform tenant bodies
+keep `VALIDATION_MALFORMED_REQUEST` for unknown members (owner). The settings row has its own `version`/`ETag`
+(stale → `TENANT_CONCURRENCY_CONFLICT`); the platform tenant's `ETag` is documented as the tenant row's only (owner).
+Audit entity `TenantSettings` (the settings row's ID) with the names of the keys sent; turning `publicEnabled` on or
+off clears the host cache. The Host documents the pipeline's 403s in OpenAPI on every admin and platform endpoint
+(`AUTH_FORBIDDEN`; tenant actions also `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`).
