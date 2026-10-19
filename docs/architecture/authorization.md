@@ -67,6 +67,11 @@ sign-out, `me`, passwords, invitation acceptance). The evaluator (`IdentityAutho
 to every signed-in user; those marked `allowsAnonymous` also to anonymous callers. They have no tenant and no step 1.
 Until S03-T3 and T4 the evaluator refuses every platform and tenant action (fail closed).
 
+**Ending sessions (S03 D5, T2b).** Sessions are not stored on the server; a password change or reset changes the
+user's security stamp, and every other session fails its next stamp check (at most 5 minutes later) with `401`. A
+change renews the caller's own cookie; a reset ends every session. Wrong current passwords on a change count toward
+the sign-in lockout (owner, T2b); a reset clears the lockout.
+
 **Step 1 as built:** for a TENANT-scope action, `ITenantAccess.CheckAdminAccessAsync` on the resolved tenant:
 status-only until S04 (`PROVISIONING`, `ACTIVE` → `FULL`; `SUSPENDED`, `ARCHIVED` → `BLOCKED` → `TENANT_BLOCKED`). No
 resolved tenant fails closed with `AUTH_TENANT_FORBIDDEN`. The `BLOCKED` exception for the tenant owner viewing status

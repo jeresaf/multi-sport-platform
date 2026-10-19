@@ -59,7 +59,8 @@ query filter and RLS show only that tenant's row, so the handlers never take a t
 - **Forwarded host (D7):** `X-Forwarded-Host` counts only from `ForwardedHeaders:KnownProxies` (IP addresses) or
   `ForwardedHeaders:KnownNetworks` (CIDR); the framework's loopback defaults are removed. With neither configured,
   forwarding is off (the framework would otherwise trust every caller). Development lists loopback, where the Next.js
-  server runs. Only the host is forwarded, not the client address or scheme.
+  server runs. The host and, since S03-T2b (owner), the client address (`X-Forwarded-For`, for the sign-in rate limits
+  and the logs) are forwarded from the same trusted proxies; the scheme is not.
 - **Development override:** in Development only, `X-Tenant-Slug: <slug>` or `?tenant=<slug>` names the tenant instead
   of the host; the visibility check still applies.
 - **Cache:** host → tenant (summary with status) and tenant → `publicEnabled` in an in-process `TenantHostCache` for

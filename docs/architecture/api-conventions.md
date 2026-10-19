@@ -23,6 +23,22 @@ cookie: `__Host-msp_session` (`msp_session` over http in Development), HttpOnly,
 and TRACE carries `X-CSRF: 1`, sign-in included, else `403 AUTH_CSRF_REQUIRED` (audited like any denial). Cross-site
 requests can't set the header, and `SameSite=Strict` keeps the cookie off them anyway.
 
+**Passwords (S03 D15, T2b).** `POST …/password/forgot` always answers `202`; a confirmed account gets an email (through
+the outbox) with a link to the admin web's `/reset-password?token=…` (`Identity:AdminAppUrl`). The token is
+`{userId}.{secret}`, lasts 1 hour, works once, and only the newest one works (`AUTH_RESET_TOKEN_INVALID`). `POST
+…/password/reset` sets the new password, signs out every session and clears a lockout; it doesn't sign in. `POST
+…/password/change` needs the current password (wrong: `400 AUTH_CURRENT_PASSWORD_INVALID`, counted toward the lockout)
+and ends the user's other sessions within 5 minutes; the caller's session gets a new cookie. A password under 12
+characters is `400 AUTH_PASSWORD_REJECTED`, the rule in `detail` and `errors: [{ "field": "newPassword", … }]`.
+
+**Rate limits (S03 D15).** Sign-in: 20 a minute per client address and 10 per 15 minutes per email. Forgot-password:
+10 an hour per client address and 3 an hour per email (`Identity:RateLimits`). Over a limit: `429 AUTH_RATE_LIMITED`
+with `Retry-After` (seconds). The per-address limit runs before the audit, so a flood writes no audit rows; the
+per-email limit runs after the request is read (emails are compared trimmed and case-insensitively, known and unknown
+alike) and its refusals are audited as `DENIED`. The client address is the connection's, or `X-Forwarded-For` from a
+trusted proxy (`ForwardedHeaders`, S02 D7). The limits are kept in memory, per API instance; limits at the edge are
+the infrastructure task's.
+
 Modules call each other in-process through Contracts, never over HTTP.
 
 ## Resources and actions
@@ -69,7 +85,7 @@ Modules call each other in-process through Contracts, never over HTTP.
   signed in; `AUTH_INVALID_CREDENTIALS`: sign-in refused) · 403
   permission/entitlement/access mode · 404 not found (also for other tenants' IDs) · 405 method not allowed ·
   409 state or concurrency conflict · 415 body is not JSON · 422 semantically invalid domain request · 429
-  rate/quota · 500 unexpected · 503 dependency unavailable.
+  rate/quota (with `Retry-After`) · 500 unexpected · 503 dependency unavailable.
 - Endpoints turn failures into Problem Details with `result.ToHttpResult(...)` / `error.ToProblem()`
   (`SportsPlatform.BuildingBlocks.Api`); the Host adds `type` and `correlationId`. `title` is the error's
   default message.
