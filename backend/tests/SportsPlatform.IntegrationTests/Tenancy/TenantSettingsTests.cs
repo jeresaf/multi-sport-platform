@@ -149,6 +149,24 @@ public sealed class TenantSettingsTests(PostgresFixture fixture) : DatabaseTest(
     }
 
     [Fact]
+    public async Task A_malformed_if_match_is_refused()
+    {
+        var kmsa = await TenantTestData.SaveTenantAsync(App.Services, "kmsa", TenantStatus.Active, Ct);
+        var before = await ReadAsync(kmsa, _kmsaSecretaryId);
+        using var client = CreateClient(kmsa, _kmsaSecretaryId, kmsa);
+        using var request = new HttpRequestMessage(HttpMethod.Patch, new Uri(SettingsPath, UriKind.Relative))
+        {
+            Content = new StringContent("""{"startingSoonMinutes":60}""", Encoding.UTF8, "application/json"),
+        };
+        request.Headers.TryAddWithoutValidation("If-Match", "version-7");
+
+        using var response = await client.SendAsync(request, Ct);
+
+        await response.ShouldBeProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_MALFORMED_REQUEST");
+        (await ReadAsync(kmsa, _kmsaSecretaryId)).ShouldBe(before);
+    }
+
+    [Fact]
     public async Task Turning_the_public_site_on_shows_it_at_once()
     {
         var kmsa = await TenantTestData.SaveTenantAsync(App.Services, "kmsa", TenantStatus.Active, Ct);
@@ -221,6 +239,7 @@ public sealed class TenantSettingsTests(PostgresFixture fixture) : DatabaseTest(
     [InlineData("""[{"publicEnabled":true}]""")]
     [InlineData("null")]
     [InlineData("""{"publicEnabled":true""")]
+    [InlineData("")]
     public async Task A_body_that_is_not_a_JSON_object_is_malformed(string body)
     {
         var kmsa = await TenantTestData.SaveTenantAsync(App.Services, "kmsa", TenantStatus.Active, Ct);

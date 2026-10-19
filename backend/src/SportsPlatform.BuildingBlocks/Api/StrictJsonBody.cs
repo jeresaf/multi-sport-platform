@@ -1,6 +1,6 @@
+using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
-using System.Text.Json.Serialization.Metadata;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http.HttpResults;
 using SportsPlatform.BuildingBlocks.Results;
@@ -15,7 +15,8 @@ public sealed record StrictJsonBodyMetadata(Type RequestType);
 /// a field error (<c>errors: [{field, code}]</c>) rather than an unreadable request. The endpoint takes the body as a
 /// <see cref="JsonElement"/> (<c>[FromBody]</c>) and declares <c>.AcceptsStrictJson&lt;TRequest&gt;()</c>, so OpenAPI
 /// shows <c>TRequest</c> rather than any JSON.
-/// A body that is not a JSON object is <c>VALIDATION_MALFORMED_REQUEST</c>, like one that is not JSON at all.
+/// A body that is not a JSON object is <c>VALIDATION_MALFORMED_REQUEST</c>, like one that is not JSON at all. Every
+/// member of <c>TRequest</c> must be optional (a missing one is null); a <c>required</c> member is a bug (it throws).
 /// </summary>
 public static class StrictJsonBody
 {
@@ -48,7 +49,15 @@ public static class StrictJsonBody
         }
 
         var comparer = options.PropertyNameCaseInsensitive ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
-        var members = options.GetTypeInfo(typeof(TRequest)).Properties.ToDictionary(p => p.Name, comparer);
+        var typeInfo = options.GetTypeInfo(typeof(TRequest));
+        if (typeInfo.Properties.FirstOrDefault(p => p.IsRequired) is { } required)
+        {
+            // Every member is optional here (a missing one is null); a required one would fail unnamed below.
+            throw new InvalidOperationException(
+                $"{typeof(TRequest).Name}.{required.Name} is required; StrictJsonBody reads requests whose members are all optional.");
+        }
+
+        var members = typeInfo.Properties.ToDictionary(p => p.Name, comparer);
         var failures = new List<(FieldError Error, string Message)>();
         var seen = new HashSet<string>(comparer);
         foreach (var property in body.EnumerateObject())
@@ -62,7 +71,7 @@ public static class StrictJsonBody
                 // The serializer would keep the last value without a word.
                 failures.Add((new FieldError(member.Name, error.Code), $"'{member.Name}' is sent more than once."));
             }
-            else if (!HasType(property.Value, member, options))
+            else if (!HasType<TRequest>(property, options))
             {
                 failures.Add((new FieldError(member.Name, error.Code), $"'{member.Name}' must be {Describe(member.PropertyType)}."));
             }
@@ -81,18 +90,27 @@ public static class StrictJsonBody
         }
         catch (JsonException)
         {
-            // Every member was readable on its own: what's left is a request type the serializer can't build.
+            // Unreachable while every member reads on its own and none is required; answer as unreadable.
         }
 
         problem = request is null ? CommonErrors.MalformedRequest.ToProblem() : null;
         return request is not null;
     }
 
-    private static bool HasType(JsonElement value, JsonPropertyInfo member, JsonSerializerOptions options)
+    // The member alone, read as the request: the property's own converter or number handling applies.
+    private static bool HasType<TRequest>(JsonProperty property, JsonSerializerOptions options)
     {
+        var buffer = new ArrayBufferWriter<byte>();
+        using (var writer = new Utf8JsonWriter(buffer))
+        {
+            writer.WriteStartObject();
+            property.WriteTo(writer);
+            writer.WriteEndObject();
+        }
+
         try
         {
-            _ = value.Deserialize(member.PropertyType, options);
+            _ = JsonSerializer.Deserialize<TRequest>(buffer.WrittenSpan, options);
             return true;
         }
         catch (JsonException)

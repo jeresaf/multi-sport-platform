@@ -84,7 +84,28 @@ public sealed class StrictJsonBodyTests
     public void A_body_that_is_not_one_object_is_malformed(string body) =>
         Read(body, out _).ShouldNotBeNull().ProblemDetails.Extensions["code"].ShouldBe("VALIDATION_MALFORMED_REQUEST");
 
-    private static ProblemHttpResult? Read(string body, out VenueRequest? request)
+    [Fact]
+    public void A_property_converter_applies_to_its_member()
+    {
+        Read<OpeningRequest>("""{"opensAt":"0800"}""", out var request).ShouldBeNull();
+        request.ShouldBe(new OpeningRequest(800));
+
+        Read<OpeningRequest>("""{"opensAt":800}""", out _).ShouldNotBeNull().ProblemDetails.ShouldSatisfyAllConditions(
+            p => Errors(p).ShouldBe([new FieldError("opensAt", "VALIDATION_INVALID_REQUEST")]));
+    }
+
+    [Fact]
+    public void A_request_with_a_required_member_is_refused_as_a_bug()
+    {
+        using var document = JsonDocument.Parse("{}");
+
+        Should.Throw<InvalidOperationException>(() =>
+            StrictJsonBody.TryRead<RequiredRequest>(document.RootElement, _options, CommonErrors.InvalidRequest, out _, out _));
+    }
+
+    private static ProblemHttpResult? Read(string body, out VenueRequest? request) => Read<VenueRequest>(body, out request);
+
+    private static ProblemHttpResult? Read<TRequest>(string body, out TRequest? request)
     {
         using var document = JsonDocument.Parse(body);
         var read = StrictJsonBody.TryRead(document.RootElement, _options, CommonErrors.InvalidRequest, out request, out var problem);
@@ -97,4 +118,24 @@ public sealed class StrictJsonBodyTests
 
     [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
     private sealed record VenueRequest(string? Name, int? Capacity, bool? Floodlit, Surface? Surface);
+
+    // Opening time as a four-digit string ("0800"), read by its own converter.
+    private sealed record OpeningRequest([property: JsonConverter(typeof(HhmmConverter))] int? OpensAt);
+
+    private sealed record RequiredRequest(string? Name)
+    {
+        [JsonRequired]
+        public string? Code { get; init; }
+    }
+
+    private sealed class HhmmConverter : JsonConverter<int?>
+    {
+        public override int? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
+            reader.TokenType == JsonTokenType.String && reader.GetString() is { Length: 4 } text && int.TryParse(text, out var value)
+                ? value
+                : throw new JsonException("Expected HHMM.");
+
+        public override void Write(Utf8JsonWriter writer, int? value, JsonSerializerOptions options) =>
+            writer.WriteStringValue(value?.ToString("D4", System.Globalization.CultureInfo.InvariantCulture));
+    }
 }
