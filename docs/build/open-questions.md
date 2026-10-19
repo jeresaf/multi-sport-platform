@@ -17,6 +17,8 @@ the date and where the decision is recorded.
 | Q13 | Which legal entity signs customer contracts and registers with Uganda's PDPO? | Required before real personal data (ADR-0016 pilot gate) | Owner's company registers with the PDPO; a lawyer reviews the processing agreement template, privacy notice and transfer register | Before pilot |
 | Q14 | Do the indicative prices survive conversations with about five prospects? | Revenue, plan limits | Use the prices in docs/product/pricing-and-plans.md; revisit after the first three paying customers | Before the first invoice |
 | Q16 | Should the country list include Kosovo (`XK`) or other codes that aren't ISO 3166-1 but that sports bodies use (e.g. England, Scotland, Wales for FIFA)? | Nationality and team country fields, eligibility | ISO 3166-1 only (S01-T7b-1); sporting "nations" become a separate list if a sport definition needs them | S06 (people) |
+| Q18 | Bearer tokens for mobile and API clients in S03, or later? | One authentication scheme to secure in S03 vs. ADR-0005's bearer flow | Deferred: cookies only in S03; bearer tokens with the first non-browser client (Flutter scorer, Phase 8, or tenant API keys, PRO) | S03-T2 |
+| Q19 | When is multi-factor sign-in required? | Platform admins can change every tenant | Not in S03; required for platform admins and offered to tenant owners before the first pilot (ADR-0016 compliance gate) | Before the first pilot |
 
 ## Answered
 

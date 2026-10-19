@@ -5,19 +5,20 @@ at the start of every review.
 
 ## Now
 
-- **Current slice:** S02 — Tenancy core and isolation (docs/build/slices/S02-tenancy-core.md, as amended by the
-  S01 slice review). S00 and S01 are done
-- **Current task:** S02-T5b — Public web shell and e2e against the real API — in review, PR #39 (branch
-  `s02/t5b-public-web-shell`). Plan
-  approved by the owner (2026-10-19): the public app reads the request host and calls `/site` with `X-Forwarded-Host`;
-  an unavailable tenant gets a `200` page with `noindex`; the footer reads "<tenant name> · Runs on MSP"; Playwright
-  starts the real API (migrate and seed DEMO first) and CI uploads phone, tablet and desktop screenshots as an artifact
-- **Next:** S02 slice review
-- **Blocked on:** nothing
+- **Current slice:** S03 — Identity and access (docs/build/slices/S03-identity-access.md, rewritten by the S02 slice
+  review). S00, S01 and S02 are done
+- **Current task:** S03-T1 — Identity module, users and email — not started; next is `/next-task`
+- **Next:** S03-T2 — Account API, sessions and the anonymous actor
+- **Blocked on:** the S02 slice-review PR (#40) merging
 
 ## Next up
 
-1. S02 slice review
+1. S03-T1 — Identity module, users and email
+2. S03-T2 — Account API, sessions and the anonymous actor
+3. S03-T3 — Roles in code, platform roles and the evaluator
+4. S03-T4 — Memberships, invitations and tenant roles (likely two PRs: T4a, T4b)
+5. S03-T5 — Capabilities and the authorization matrix
+6. S03-T6 — Admin web: sign-in, shell, members, platform console (likely two PRs: T6a, T6b)
 
 ## Log
 
@@ -56,6 +57,7 @@ at the start of every review.
 | 2026-10-19 | S02-T4b | #37 | `GET`/`PATCH /api/admin/v1/tenant/settings` (`tenant.settings.read`, `tenant.settings.update`, TENANT, audit `REQUIRED`) for the tenant in `X-Tenant-Id`; all six keys, null = unchanged; settings row's own `version`/`ETag`; host cache cleared when `publicEnabled` changes; BuildingBlocks `StrictJsonBody` names unknown, wrongly typed or repeated keys (`VALIDATION_INVALID_REQUEST`); Host documents pipeline 403s in OpenAPI; platform tenant `ETag` documented as the tenant row's only | Owner: field-named errors on the settings PATCH only; enum values read case-insensitively (existing converter). Beyond the plan: `AUTH_FORBIDDEN` documented on every admin/platform endpoint. No new errors, events, migrations or dependencies. Pre-review: member checks honour property converters, required members refused, empty body and malformed `If-Match` tests. #37 R1: test tenants renamed to invented bodies listed in pilot-customer.md ("Other tenants (tests only)") |
 | 2026-10-19 | S02-T5a | #38 | `SeedContext.RunCommandAsync` (DEMO/TEST: a new scope per command, tenant set once, audit begun with source `SYSTEM`; a command that saves nothing throws) and `QueryAsTenantAsync` (reads under a tenant, unaudited); `CreateTenantHandler`/`Tenant.Create` take an optional ID for seeds; DEMO seeder `tenancy.demo.tenants`: KMSA and ELSSC through create → activate → settings update, deterministic IDs, idempotent by slug | Owner (plan): T5 split in two; a scope per command; consent `REQUIRED` and `publicEnabled` beyond the spec's fields. A tenant in another status than `PROVISIONING` keeps it; a changed profile is left alone. Audit entries reach `audit_entries` when the API's outbox processor runs (the CLI only queues them). No new actions, errors, events, migrations or dependencies. Pre-review: create runs without a tenant (#30 R2). #38 N1: the seeded-ID create overload is internal |
 | 2026-10-19 | S02-T5b | #39 | Public app resolves its tenant per request (`lib/site.ts`: host without port → `/site` as `X-Forwarded-Host`, `MSP_API_URL`); `(site)` layout with the tenant's name and footer "<name> · Runs on MSP", "Coming soon"; not-found page (404, unknown host or path), unavailable page (200, `noindex`), API failure thrown (500, digest shown, correlation ID logged); Vitest for the lookup; `pnpm e2e` runs against the real API (`web/e2e/start-api.sh`: build, migrate, seed DEMO, Host in Development) and covers both tenants by host and an unknown host; CI e2e job starts PostgreSQL and .NET and uploads phone/tablet/desktop screenshots, light and dark | Unavailable page 200 + `noindex`, footer wording, screenshots as a CI artifact (owner). Pre-review: API failures are 500s, not-found wording fits unknown paths |
+| 2026-10-19 | S02 slice review | #40 | Docs only: S03 spec rewritten by the reviewer (D1–D18, T1–T6); S02 slice acceptance ticked and slice review note; roadmap S02 ☑; tech debt regrouped (first deployment section, S03 carry-overs with their tasks); open questions Q18 (bearer tokens) and Q19 (multi-factor sign-in) | All S02 acceptance items met on main (109b9c9); owner demo done 2026-10-19 |
 
 ## Deviations from spec (agreed)
 
@@ -160,31 +162,6 @@ at the start of every review.
 Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or trigger) at S01 acceptance
 (2026-10-18). The S00 carry-overs assigned to S01 are done. Each item names where it gets done.
 
-**S02 — tenancy**
-- Moving `BuildingBlocks/Modules` to a `BuildingBlocks.Web` project is optional, not planned (reviewer guidance on #13).
-- **Before the first public deployment (S02-T5b):** the public app forwards the `Host` header it receives to `/site`;
-  behind a production proxy it must read that proxy's forwarded host instead (and the API must list the app's address
-  in `ForwardedHeaders`). Set `MSP_API_URL` for the public app (default `http://localhost:5080`); without it every
-  public page is a 500. After `seed --category DEMO` against a running API, a demo host may stay "unknown" for up to
-  60 s (host cache); `pnpm e2e` seeds before it starts the API.
-- **OpenAPI (with the first admin UI client, S03 or later):** optional request members (`version`, PATCH fields) are
-  listed as `required` (nullable) in the schemas, so the TS client makes callers pass `null`; endpoints don't declare
-  the `If-Match` request header or the `ETag` response header, and activate/restore list no 400 (pipeline errors).
-  Fix with defaults on the request records or a schema/operation transformer (S02-T1b pre-review). The admin settings
-  PATCH (`UpdateTenantSettingsRequest`) has the same `required` problem; strict-body requests are components named by
-  short type name, so two such types with one name would share a schema (S02-T4b pre-review).
-
-- **Branding/PRO (custom domains):** `GetSiteHandler` throws (500) if a tenant resolves through an `ACTIVE` domain but
-  has no `ACTIVE` primary one. Impossible today (the platform subdomain is always primary and `ACTIVE`); once a
-  platform subdomain can be `DISABLED`, keep one active primary per visible tenant or fall back to the resolved host
-  (S02-T3b pre-review).
-- **First deployment (ADR-0016 infrastructure task, with Q10):** set `Platform:BaseDomain` and
-  `ForwardedHeaders:KnownProxies`/`KnownNetworks` (the public web's server) in each environment. Without proxies,
-  forwarding is off and every public request through the web server resolves the API's own host → 404 (S02-T3b
-  pre-review). Outside Development and Testing a missing or `localhost` base domain stops the API and the CLI (#35 R1).
-  Changing the base domain later needs a data step that rewrites the existing platform subdomains (or adds new
-  primaries): the backfill never touches existing rows (#35 N1).
-
 **S03 — identity and access**
 - Anonymous actor for audit (#23 R1): `actor_kind` allows `USER`/`SYSTEM` and `actor_id` is NOT NULL, so once S03
   has real sign-in an anonymous 401 on an audited endpoint would fail the direct insert and the denial would only be
@@ -204,10 +181,43 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
   owners/admins (setup). S03: limit it to them, with a test (#34 R1).
 - `BLOCKED` access mode lets the tenant owner view the tenant's status (state-machines.md); S02-T3a refuses every
   admin request on a blocked tenant because there are no roles yet. S03: the exception for the owner (S02-T3a).
+- Real `ITenantMembershipChecker` replacing `NoTenantMemberships` (T4).
+- With the second `AddPlatformServiceDbContext<T>` (e.g. `PlatformTenantStatistics`): make
+  `TenantIsolationRulesTests.Only_the_audit_features_use_the_platform_audit_context` generic: discover the contexts
+  registered that way and require an allowed-users entry for each (#33 N2). (T4)
+- A missing `IValidator<T>` for an endpoint with `.ValidateRequest<T>()` only fails at the first request (500 from
+  `GetRequiredService`): have the Host check this at startup like action markers, or add a test that walks the
+  endpoints. With the next endpoint that has a validator (#22 re-review N1). (T2)
+- **OpenAPI (with the first admin UI client, S03 or later):** optional request members (`version`, PATCH fields) are
+  listed as `required` (nullable) in the schemas, so the TS client makes callers pass `null`; endpoints don't declare
+  the `If-Match` request header or the `ETag` response header, and activate/restore list no 400 (pipeline errors).
+  Fix with defaults on the request records or a schema/operation transformer (S02-T1b pre-review). The admin settings
+  PATCH (`UpdateTenantSettingsRequest`) has the same `required` problem; strict-body requests are components named by
+  short type name, so two such types with one name would share a schema (S02-T4b pre-review). (T6)
+- shadcn/ui is not initialised yet (ADR-0011); do it with the first real admin UI (S03). `Button` is hand-written. (T6)
+- The CLI logs EF Core commands at Information, so DEMO seeding prints every SQL statement; give the CLI the Host's
+  log levels (S02 owner demo) (T1).
+- Decided: anonymous denials keep one row each; volume limited at the edge and by login/forgot rate limits (S03 D3,
+  decides #23 R2) (T2).
 
-**Infrastructure task after M1**
+**First deployment (infrastructure task after M1, with Q10)**
+- **Before the first public deployment (S02-T5b):** the public app forwards the `Host` header it receives to `/site`;
+  behind a production proxy it must read that proxy's forwarded host instead (and the API must list the app's address
+  in `ForwardedHeaders`). Set `MSP_API_URL` for the public app (default `http://localhost:5080`); without it every
+  public page is a 500. After `seed --category DEMO` against a running API, a demo host may stay "unknown" for up to
+  60 s (host cache); `pnpm e2e` seeds before it starts the API.
+- **First deployment (ADR-0016 infrastructure task, with Q10):** set `Platform:BaseDomain` and
+  `ForwardedHeaders:KnownProxies`/`KnownNetworks` (the public web's server) in each environment. Without proxies,
+  forwarding is off and every public request through the web server resolves the API's own host → 404 (S02-T3b
+  pre-review). Outside Development and Testing a missing or `localhost` base domain stops the API and the CLI (#35 R1).
+  Changing the base domain later needs a data step that rewrites the existing platform subdomains (or adds new
+  primaries): the backfill never touches existing rows (#35 N1).
 - The API needs `ConnectionStrings:Platform` (`sp_platform`) at runtime for the audit trail (S02-T2b): provision that
   secret for the API in Key Vault with the staging setup, or every audited request fails there (#33 N1).
+- SMTP provider for `IEmailSender`, `Email:From` on the real domain, and encryption at rest of the data-protection
+  key ring (Key Vault) — S03 D13/D14.
+
+**Infrastructure task after M1**
 - A failed direct audit write (denial, failure, read) is only logged: the response is already written. Alert on that
   Error with the `FAILED` outbox alert below (infrastructure task after M1; S01-T6a).
 - Alert on any `FAILED` outbox message (OpenTelemetry counter or gauge): with strict ordering one holds back its
@@ -228,9 +238,11 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
 - Country `PS` keeps the CLDR name (owner, 2026-10-18).
 
 **Later** (each item names its trigger)
-- With the second `AddPlatformServiceDbContext<T>` (e.g. `PlatformTenantStatistics`): make
-  `TenantIsolationRulesTests.Only_the_audit_features_use_the_platform_audit_context` generic: discover the contexts
-  registered that way and require an allowed-users entry for each (#33 N2).
+- Moving `BuildingBlocks/Modules` to a `BuildingBlocks.Web` project is optional, not planned (reviewer guidance on #13).
+- **Branding/PRO (custom domains):** `GetSiteHandler` throws (500) if a tenant resolves through an `ACTIVE` domain but
+  has no `ACTIVE` primary one. Impossible today (the platform subdomain is always primary and `ACTIVE`); once a
+  platform subdomain can be `DISABLED`, keep one active primary per visible tenant or fall back to the resolved host
+  (S02-T3b pre-review).
 - `xmin`/`updated_*` cover only the aggregate root's row: a change to only a child entity or owned type doesn't
   bump the root's version, so two edits to different children both succeed. Mark the root `Modified` when a
   dependent changes, with a test, before the first aggregate with child tables (S06 at the latest) (S01-T2a
@@ -247,9 +259,6 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
   first slice that adds scheduled jobs; S01-T5a).
 - Human-readable console logs in Development (owner, #17 re-review): a readable console formatter behind a
   setting, used by the Development launch profile; JSON stays everywhere else. Can ride the next PR.
-- A missing `IValidator<T>` for an endpoint with `.ValidateRequest<T>()` only fails at the first request (500 from
-  `GetRequiredService`): have the Host check this at startup like action markers, or add a test that walks the
-  endpoints. With the next endpoint that has a validator (#22 re-review N1).
 - Validation field names are camelCased by their first letter only (`JsonNamingPolicy.CamelCase.ConvertName` on the
   whole path), so `Address.Street` becomes `address.Street`: convert each path segment. With the first nested request
   body (#22 re-review N2).
@@ -265,7 +274,6 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
   dark palette is written twice in that file; keep both blocks in sync.
 - ESLint stays on 9.x until eslint-config-next's plugins support ESLint 10; TypeScript stays below 6.1 until
   typescript-eslint supports it.
-- shadcn/ui is not initialised yet (ADR-0011); do it with the first real admin UI (S03). `Button` is hand-written.
 - Colour-literal checks have known gaps and false positives (S00 Implementation notes, T2).
 - pnpm 12's minimum-release-age policy is on: new package versions are installable about a day after release.
 - The AR-33 test exempts the whole Host. When the first infrastructure adapter project lands (file storage, from
