@@ -96,6 +96,13 @@ player is a minor. It buys an **event pass** for its two-day Inter-Schools Footb
 girls, knockout). ELSSC proves that two tenants never see each other's data, brand or users, and it exercises
 consent-first registration (tenant setting: guardian consent required before registration).
 
+## Other tenants (tests only)
+
+Tests that need more than two tenants (paging, status filters, a provisioning tenant) use these invented bodies,
+named after trees and birds so they don't read as a real district, council or league: **Acacia Schools Netball
+Circle** (`acacia-schools`), **Jacaranda Corporate Games** (`jacaranda-games`), **Mvule Youth Football League**
+(`mvule-youth`), **Sunbird Junior Sports Club** (`sunbird-juniors`). They are never seeded.
+
 ## Privacy notes for this persona
 
 - Under-17 players: public profiles off by default; display name, team and age group only when consent allows;
