@@ -44,8 +44,11 @@ public sealed class Tenant : AggregateRoot
 
     public TenantProfile Profile => new(LegalName, DisplayName, CountryCode);
 
-    /// <summary>A new tenant in <c>PROVISIONING</c>; <paramref name="slug"/> must be valid and not reserved.</summary>
-    public static Tenant Create(string slug, TenantProfile profile, ICurrentActor actor, DateTimeOffset now)
+    /// <summary>
+    /// A new tenant in <c>PROVISIONING</c>; <paramref name="slug"/> must be valid and not reserved. <paramref name="id"/>
+    /// is for seeded tenants (a deterministic ID); otherwise a new UUIDv7.
+    /// </summary>
+    public static Tenant Create(string slug, TenantProfile profile, ICurrentActor actor, DateTimeOffset now, Guid? id = null)
     {
         if (!TenantSlug.HasValidFormat(slug) || TenantSlug.IsReserved(slug))
         {
@@ -53,7 +56,12 @@ public sealed class Tenant : AggregateRoot
         }
 
         ArgumentNullException.ThrowIfNull(actor);
-        var tenant = new Tenant(NewId(), slug, profile);
+        if (id == Guid.Empty)
+        {
+            throw new ArgumentException("A tenant ID can't be empty.", nameof(id));
+        }
+
+        var tenant = new Tenant(id ?? NewId(), slug, profile);
         tenant._statusHistory.Add(new TenantStatusChange(tenant.Id, null, tenant.Status, null, actor, now));
         tenant.Raise(new TenantCreatedDomainEvent(tenant.Id, tenant.Slug, tenant.Status));
         return tenant;

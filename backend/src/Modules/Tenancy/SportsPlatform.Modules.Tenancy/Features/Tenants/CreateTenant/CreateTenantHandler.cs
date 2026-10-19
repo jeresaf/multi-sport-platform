@@ -19,7 +19,7 @@ namespace SportsPlatform.Modules.Tenancy.Features.Tenants.CreateTenant;
 /// entry commit with it. The save runs under the new tenant (S02 D2), so the audit entry and the event's envelope carry
 /// it. A slug is taken if any tenant, archived ones included, has it; that failure is audited without a tenant. The
 /// tenant's platform subdomain, <c>&lt;slug&gt;.&lt;Platform:BaseDomain&gt;</c>, and its settings (the values sent, defaults
-/// for the rest) are created in the same save.
+/// for the rest) are created in the same save. Seeders pass the tenant's deterministic ID; the API never does.
 /// </summary>
 public sealed class CreateTenantHandler(
     TenancyDbContext context,
@@ -30,11 +30,15 @@ public sealed class CreateTenantHandler(
     IOptions<PlatformDomainOptions> domainOptions,
     TenantHostCache hostCache)
 {
-    public async Task<Result<TenantResponse>> HandleAsync(CreateTenantRequest request, CancellationToken cancellationToken)
+    public Task<Result<TenantResponse>> HandleAsync(CreateTenantRequest request, CancellationToken cancellationToken) =>
+        HandleAsync(request, tenantId: null, cancellationToken);
+
+    /// <summary>For the module's seeders only: <paramref name="tenantId"/> is the seeded tenant's deterministic ID (#38 N1).</summary>
+    internal async Task<Result<TenantResponse>> HandleAsync(CreateTenantRequest request, Guid? tenantId, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
         var profile = new TenantProfile(request.LegalName!.Trim(), request.DisplayName!.Trim(), request.CountryCode!);
-        var tenant = Tenant.Create(request.Slug!, profile, actor, timeProvider.GetUtcNow());
+        var tenant = Tenant.Create(request.Slug!, profile, actor, timeProvider.GetUtcNow(), tenantId);
         var settings = TenantSettings.Create(tenant.Id, TenantSettingsValues.Defaults(
             request.TimeZone!, request.DefaultLocale!, request.CurrencyCode!, request.PublicEnabled ?? false));
 

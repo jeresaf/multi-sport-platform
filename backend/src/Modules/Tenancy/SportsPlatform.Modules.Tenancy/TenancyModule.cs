@@ -5,6 +5,7 @@ using Microsoft.Extensions.Hosting;
 using SportsPlatform.BuildingBlocks.Modules;
 using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Persistence.Messaging;
+using SportsPlatform.BuildingBlocks.Persistence.Seeding;
 using SportsPlatform.Modules.Tenancy.Contracts.Access;
 using SportsPlatform.Modules.Tenancy.Contracts.Tenants;
 using SportsPlatform.Modules.Tenancy.Domain.Domains;
@@ -22,6 +23,7 @@ using SportsPlatform.Modules.Tenancy.Features.Tenants.ListTenants;
 using SportsPlatform.Modules.Tenancy.Features.Tenants.PublishTenantEvents;
 using SportsPlatform.Modules.Tenancy.Features.Tenants.UpdateTenantProfile;
 using SportsPlatform.Modules.Tenancy.Infrastructure;
+using SportsPlatform.Modules.Tenancy.Seed.Demo;
 
 namespace SportsPlatform.Modules.Tenancy;
 
@@ -74,6 +76,7 @@ public sealed class TenancyModule : IModule
         services.AddScoped<UpdateTenantSettingsHandler>();
         services.AddScoped<IValidator<UpdateTenantSettingsRequest>, UpdateTenantSettingsRequestValidator>();
         services.AddSingleton<IValidator<ChangeTenantStatusWithReasonRequest>, ChangeTenantStatusWithReasonRequestValidator>();
+        services.AddSeeder<DemoTenantSeeder>();
         services.AddDomainEventSubscriber<TenantCreatedDomainEvent, PublishTenantCreated>();
         services.AddDomainEventSubscriber<TenantStatusChangedDomainEvent, PublishTenantStatusChanged>();
     }
