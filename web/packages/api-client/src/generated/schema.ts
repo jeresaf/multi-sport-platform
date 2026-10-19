@@ -221,7 +221,7 @@ export interface paths {
         };
         /**
          * Get a tenant
-         * @description One tenant with its profile, status and `version` (also the `ETag`).
+         * @description One tenant with its profile, status, main settings and `version` (also the `ETag`). The version is the tenant row's only: a settings change doesn't change it.
          */
         get: operations["GetTenant"];
         put?: never;
@@ -231,7 +231,7 @@ export interface paths {
         head?: never;
         /**
          * Change a tenant's profile
-         * @description Changes the fields sent; missing or null fields stay as they are. The slug never changes, and the status changes only through the status actions. Send `version` from the last read to get 409 TENANT_CONCURRENCY_CONFLICT instead of overwriting someone else's change; `If-Match` with the `ETag` works the same way (if both are sent, both must match).
+         * @description Changes the fields sent; missing or null fields stay as they are. The slug never changes, and the status changes only through the status actions. Send `version` from the last read to get 409 TENANT_CONCURRENCY_CONFLICT instead of overwriting someone else's change; `If-Match` with the `ETag` works the same way (if both are sent, both must match). The version is the tenant row's only: a settings change made since your read (here or through the admin settings endpoint) is not detected.
          */
         patch: operations["UpdateTenantProfile"];
         trace?: never;
@@ -555,8 +555,10 @@ export interface components {
         };
         /**
          * @description A tenant as the platform API shows it: the tenant and its main settings. Read under the tenant (the settings are
-         *     tenant-owned). `version`, `createdAt` and `updatedAt` are the tenant row's: send `version` back
-         *     with a change to make it fail with `409 TENANT_CONCURRENCY_CONFLICT` if someone else changed the tenant first.
+         *     tenant-owned). `version` (also the `ETag`), `createdAt` and `updatedAt` are the tenant row's
+         *     only: a settings change doesn't change them, so the same `ETag` can come with different settings. Send
+         *     `version` back with a change to make it fail with `409 TENANT_CONCURRENCY_CONFLICT` if someone else changed
+         *     the tenant first. The settings have their own version at `/api/admin/v1/tenant/settings`.
          */
         TenantResponse: {
             /** Format: uuid */
