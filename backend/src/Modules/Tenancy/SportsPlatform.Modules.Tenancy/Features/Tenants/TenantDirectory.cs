@@ -17,17 +17,15 @@ namespace SportsPlatform.Modules.Tenancy.Features.Tenants;
 internal sealed class TenantDirectory(TenancyDbContext context, TenantHostCache hostCache) : ITenantDirectory, ITenantAccess
 {
     public async Task<Result<TenantSummary>> GetByIdAsync(Guid tenantId, CancellationToken cancellationToken) =>
-        await FindAsync(t => t.Id == tenantId, cancellationToken) is { } tenant
-            ? Result.Success(tenant)
-            : Result.Failure<TenantSummary>(TenancyErrors.NotFound);
+        Found(await FindAsync(t => t.Id == tenantId, cancellationToken));
 
-    public Task<TenantSummary?> FindBySlugAsync(string slug, CancellationToken cancellationToken) =>
-        FindAsync(t => t.Slug == slug, cancellationToken);
+    public async Task<Result<TenantSummary>> GetBySlugAsync(string slug, CancellationToken cancellationToken) =>
+        Found(await FindAsync(t => t.Slug == slug, cancellationToken));
 
-    public Task<TenantSummary?> FindByHostAsync(string host, CancellationToken cancellationToken) =>
-        TenantHost.Normalize(host) is { } normalized
-            ? hostCache.GetOrLoadAsync(normalized, () => FindByNormalizedHostAsync(normalized, cancellationToken))
-            : Task.FromResult<TenantSummary?>(null);
+    public async Task<Result<TenantSummary>> GetByHostAsync(string host, CancellationToken cancellationToken) =>
+        Found(TenantHost.Normalize(host) is { } normalized
+            ? await hostCache.GetOrLoadAsync(normalized, () => FindByNormalizedHostAsync(normalized, cancellationToken))
+            : null);
 
     public async Task<TenantAccessMode?> GetAccessModeAsync(Guid tenantId, CancellationToken cancellationToken) =>
         await FindAsync(t => t.Id == tenantId, cancellationToken) is { } tenant ? AccessModeOf(tenant.Status) : null;
@@ -58,6 +56,9 @@ internal sealed class TenantDirectory(TenancyDbContext context, TenantHostCache 
         TenantStatus.Suspended or TenantStatus.Archived => TenantAccessMode.Blocked,
         _ => throw new ArgumentOutOfRangeException(nameof(status), status, null),
     };
+
+    private static Result<TenantSummary> Found(TenantSummary? tenant) =>
+        tenant is not null ? Result.Success(tenant) : Result.Failure<TenantSummary>(TenancyErrors.NotFound);
 
     private Task<TenantSummary?> FindByNormalizedHostAsync(string host, CancellationToken cancellationToken) =>
         context.Set<TenantDomain>().AsNoTracking()
