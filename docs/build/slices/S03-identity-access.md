@@ -375,4 +375,7 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   until T3/T4). Logout deletes the cookie only (no
   server-side session store): a copied cookie lives until it expires or the security stamp changes. Tests: the test
   scheme is a policy scheme (`X-Test-User`, else the session cookie); factory clients use https and send `X-CSRF: 1`.
-
+- **T2b (owner, plan):** one PR. A wrong current password on password change counts toward the lockout. A successful
+  reset clears the lockout. The reset link's token is `{userId}.{secret}` (no email in URLs) and the reset request is
+  `{token, newPassword}`. Requests refused by the per-IP limit stop before the audit middleware (logged, not audited);
+  per-email refusals are in the handler and audited as `DENIED`.
