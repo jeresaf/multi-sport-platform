@@ -29,8 +29,11 @@ internal sealed class TenantDirectory(TenancyDbContext context) : ITenantDirecto
         await GetAccessModeAsync(tenantId, cancellationToken) switch
         {
             TenantAccessMode.Full => Result.Success(),
+            TenantAccessMode.Blocked => Result.Failure(TenancyErrors.Blocked),
+            // Not produced before subscriptions (S04), which add TENANT_READ_ONLY for writes and let reads through.
+            TenantAccessMode.ReadOnly => throw new NotSupportedException("READ_ONLY access arrives with subscriptions (S04)."),
             null => Result.Failure(TenancyErrors.NotFound),
-            _ => Result.Failure(TenancyErrors.Blocked),
+            _ => throw new ArgumentOutOfRangeException(nameof(tenantId)),
         };
 
     /// <summary>Status-only until subscriptions arrive (S02 D9, state-machines.md "Access mode").</summary>

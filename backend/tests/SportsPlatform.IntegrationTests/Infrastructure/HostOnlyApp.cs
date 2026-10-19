@@ -11,7 +11,8 @@ namespace SportsPlatform.IntegrationTests.Infrastructure;
 /// The Host without a database, for tests that never touch one. Like every factory here it runs in the
 /// <c>Testing</c> environment: WebApplicationFactory defaults to Development, which would load the developer
 /// connection strings and migrate the local database on startup. With no database there is no tenant resolution to
-/// reach, so <c>X-Test-Scope-Tenant</c> sets the request's tenant directly.
+/// reach, so <c>X-Test-Scope-Tenant</c> sets the request's tenant directly, before routing: don't combine it with
+/// <c>X-Tenant-Id</c> on a tenant action (a second, different tenant in one scope throws, D1).
 /// </summary>
 public sealed class HostOnlyApp : WebApplicationFactory<Program>
 {

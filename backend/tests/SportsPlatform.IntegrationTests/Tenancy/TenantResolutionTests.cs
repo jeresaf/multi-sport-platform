@@ -45,12 +45,13 @@ public sealed class TenantResolutionTests(PostgresFixture fixture) : DatabaseTes
     [Theory]
     [InlineData("kmsa")]
     [InlineData("0192a1b2-0000-7000-8000-00000000e999")] // a tenant the user is not a member of
+    [InlineData("{kmsa},{kmsa}")] // two values, even the same member tenant twice
     public async Task Admin_request_for_a_tenant_the_user_is_not_a_member_of_is_refused(string header)
     {
         var kmsa = await TenantTestData.SaveTenantAsync(App.Services, "kmsa", TenantStatus.Active, Ct);
         await using var admin = await AdminTestApp.StartAsync(Fixture, Ct);
         using var client = admin.CreateClient().AsUser(_secretaryId, kmsa);
-        client.DefaultRequestHeaders.Add(_tenantHeader, header);
+        client.DefaultRequestHeaders.Add(_tenantHeader, header.Replace("{kmsa}", kmsa.ToString(), StringComparison.Ordinal).Split(','));
 
         using var response = await client.PostAsync(AdminTestApp.FixturesPath, content: null, Ct);
 

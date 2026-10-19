@@ -291,5 +291,7 @@ endpoint runs without a tenant. Step 1 calls `ITenantAccess.CheckAdminAccessAsyn
 is `AUTH_TENANT_FORBIDDEN`. `ITenantDirectory` has `GetByIdAsync` (a `Result`) and `FindBySlugAsync`; T3b adds the
 host lookup. The actor is a scoped `ActorContext` set from the principal's `sub`; seeds stamp the system actor. A
 404 for an unknown route tenant is audited without a tenant or entity (the handler never runs). Acceptance items
-for the admin header and `TENANT_BLOCKED` are covered by `TenantResolutionTests`; the host items are T3b's.
-
+for the admin header and `TENANT_BLOCKED` are covered by `TenantResolutionTests`; the host items are T3b's. The
+startup check also requires `.RunsUnderRouteTenant()` on any platform route with `{tenantId}`. Known trade-off of D8:
+the route tenant is looked up before authorization, so a caller without the action gets 404 for an unknown tenant and
+403 for a known one (tenant IDs are UUIDv7, and the 404 is audited as `FAILURE`).

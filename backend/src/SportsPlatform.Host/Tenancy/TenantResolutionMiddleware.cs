@@ -61,8 +61,9 @@ internal sealed class TenantResolutionMiddleware(RequestDelegate next)
 
     private static async Task<Error?> FromRouteAsync(HttpContext context, string routeValueName)
     {
-        // The route constraint ({tenantId:guid}) has matched; the startup rules require the parameter.
-        var tenantId = Guid.Parse(context.GetRouteValue(routeValueName)!.ToString()!, CultureInfo.InvariantCulture);
+        // The startup rules require the parameter; a route without a :guid constraint can still carry a non-GUID,
+        // which no tenant has (Guid.Empty), so the directory answers TENANT_NOT_FOUND.
+        _ = Guid.TryParse(context.GetRouteValue(routeValueName)?.ToString(), CultureInfo.InvariantCulture, out var tenantId);
         var tenant = await context.RequestServices.GetRequiredService<ITenantDirectory>().GetByIdAsync(tenantId, context.RequestAborted);
         if (tenant.IsFailure)
         {

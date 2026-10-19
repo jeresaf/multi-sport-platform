@@ -156,6 +156,10 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
   on `/api/platform` either (or `GET /api/platform/v1/audit-entries?tenantId=<other>` from a tenant host would be a
   500). Add the host variant of the test with T3b (S02-T2b pre-review).
 
+- **S02-T4 (first admin endpoint):** tenant actions can also fail in the pipeline with `403 AUTH_TENANT_FORBIDDEN` and
+  `403 TENANT_BLOCKED`, which modules can't list in `.ProducesErrors(...)` (`TENANT_BLOCKED` is Tenancy's). Add a Host
+  OpenAPI operation transformer that documents both on every TENANT-scope endpoint (S02-T3a pre-review).
+
 **S03 — identity and access**
 - Anonymous actor for audit (#23 R1): `actor_kind` allows `USER`/`SYSTEM` and `actor_id` is NOT NULL, so once S03
   has real sign-in an anonymous 401 on an audited endpoint would fail the direct insert and the denial would only be
@@ -169,6 +173,8 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
 - `ICurrentActor` is per request since S02-T3a (`ActorContext` from the authenticated principal), but an
   unauthenticated request is still the system actor, logged as `ActorKind=System`. S03: an anonymous kind for
   unauthenticated requests, and update `RequestLoggingTests.Request_is_logged_with_correlation_ID_and_actor` (#17 R1).
+- An authenticated principal without a GUID `sub` is treated as the system actor (S02-T3a: only the test scheme
+  authenticates). S03: refuse it with 401 instead, with a test, before any real scheme lands (S02-T3a pre-review).
 - `BLOCKED` access mode lets the tenant owner view the tenant's status (state-machines.md); S02-T3a refuses every
   admin request on a blocked tenant because there are no roles yet. S03: the exception for the owner (S02-T3a).
 

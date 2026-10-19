@@ -132,6 +132,22 @@ public sealed class EndpointActionRulesTests
         ], ignoreOrder: true);
     }
 
+    // Forgetting the marker would run a tenant route without its tenant (no tenant on its audit entries, D2).
+    [Fact]
+    public async Task Platform_route_naming_a_tenant_must_run_under_it()
+    {
+        await using var app = WebApplication.CreateSlimBuilder().Build();
+        app.MapGet("/api/platform/v1/tenants/{tenantId:guid}/history", (Guid tenantId) => Results.Ok(tenantId))
+            .RequireAction(TenancyActions.TenantRead);
+        app.MapGet("/api/platform/v1/tenants/{tenantId:guid}", (Guid tenantId) => Results.Ok(tenantId))
+            .RequireAction(TenancyActions.TenantRead).RunsUnderRouteTenant();
+
+        EndpointActionRules.Validate(Endpoints(app), [new(TenancyActions.TenantRead, "Tenancy")]).ShouldBe(
+        [
+            "GET /api/platform/v1/tenants/{tenantId:guid}/history names a tenant in its route, so it must declare .RunsUnderRouteTenant().",
+        ]);
+    }
+
     private static IReadOnlyList<string> Validate(WebApplication app) => EndpointActionRules.Validate(Endpoints(app), _catalogue);
 
     private static IEnumerable<Endpoint> Endpoints(WebApplication app) =>
