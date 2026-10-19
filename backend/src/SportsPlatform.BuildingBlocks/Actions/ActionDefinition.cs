@@ -5,6 +5,9 @@ public enum ActionScope
 {
     Platform,
     Tenant,
+
+    /// <summary>The caller's own account (S03 D2): granted to every authenticated user, under <c>/api/account</c> only.</summary>
+    Account,
 }
 
 /// <summary>A role assignment scope that can grant a tenant action.</summary>
@@ -39,7 +42,8 @@ public sealed class ActionDefinition
         string since,
         IReadOnlyList<AssignmentScope>? scopableBy = null,
         string? entitlement = null,
-        bool idempotent = false)
+        bool idempotent = false,
+        bool allowsAnonymous = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(description);
         ArgumentException.ThrowIfNullOrWhiteSpace(since);
@@ -62,12 +66,19 @@ public sealed class ActionDefinition
             throw new ArgumentException($"Tenant action '{code}' must be scopable by {nameof(AssignmentScope.Tenant)}.", nameof(scopableBy));
         }
 
+        // Only the caller's own account can be worked on before signing in (S03 D2): sign-in, password reset, invitations.
+        if (allowsAnonymous && scope != ActionScope.Account)
+        {
+            throw new ArgumentException($"Only account actions can allow anonymous callers ('{code}' is {scope}).", nameof(allowsAnonymous));
+        }
+
         Description = description;
         Scope = scope;
         Audit = audit;
         Since = since;
         Entitlement = entitlement;
         Idempotent = idempotent;
+        AllowsAnonymous = allowsAnonymous;
     }
 
     public ActionCode Code { get; }
@@ -87,6 +98,9 @@ public sealed class ActionDefinition
 
     /// <summary>Whether the request must carry an <c>Idempotency-Key</c>.</summary>
     public bool Idempotent { get; }
+
+    /// <summary>Whether a caller who is not signed in may perform it (account actions only); otherwise anonymous is 401.</summary>
+    public bool AllowsAnonymous { get; }
 
     /// <summary>The slice that introduced the action, e.g. <c>S01</c>.</summary>
     public string Since { get; }

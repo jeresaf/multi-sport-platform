@@ -63,7 +63,7 @@ public sealed class AuditQueryTests(PostgresFixture fixture) : DatabaseTest(fixt
         };
         await AppendAsync(record);
         App.Authorization.Allow(PlatformActions.AuditRead);
-        using var client = App.CreateClient();
+        using var client = App.CreateClient().AsUser(_staffId);
 
         using var response = await client.GetAsync(new Uri($"{_listPath}?tenantId={_kmsa}", UriKind.Relative), Ct);
 
@@ -141,7 +141,7 @@ public sealed class AuditQueryTests(PostgresFixture fixture) : DatabaseTest(fixt
     public async Task Invalid_query_is_rejected(string query, string field)
     {
         App.Authorization.Allow(PlatformActions.AuditRead);
-        using var client = App.CreateClient();
+        using var client = App.CreateClient().AsUser(_staffId);
 
         using var response = await client.GetAsync(new Uri(_listPath + query, UriKind.Relative), Ct);
 
@@ -156,7 +156,7 @@ public sealed class AuditQueryTests(PostgresFixture fixture) : DatabaseTest(fixt
     public async Task Every_invalid_parameter_is_listed()
     {
         App.Authorization.Allow(PlatformActions.AuditRead);
-        using var client = App.CreateClient();
+        using var client = App.CreateClient().AsUser(_staffId);
 
         using var response = await client.GetAsync(new Uri($"{_listPath}?tenantId=kmsa&outcome=ERROR&limit=0", UriKind.Relative), Ct);
 
@@ -209,7 +209,7 @@ public sealed class AuditQueryTests(PostgresFixture fixture) : DatabaseTest(fixt
     public async Task A_list_across_tenants_is_audited_without_a_tenant()
     {
         App.Authorization.Allow(PlatformActions.AuditRead);
-        using var client = App.CreateClient();
+        using var client = App.CreateClient().AsUser(_staffId);
 
         using var response = await client.GetAsync(new Uri($"{_listPath}?outcome=DENIED", UriKind.Relative), Ct);
 
@@ -251,7 +251,7 @@ public sealed class AuditQueryTests(PostgresFixture fixture) : DatabaseTest(fixt
 
     private async Task<ListAuditEntriesResponse> ListAsync(string query)
     {
-        using var client = App.CreateClient();
+        using var client = App.CreateClient().AsUser(_staffId);
         using var response = await client.GetAsync(new Uri(_listPath + query, UriKind.Relative), Ct);
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         return (await response.Content.ReadFromJsonAsync<ListAuditEntriesResponse>(Json, Ct)).ShouldNotBeNull();

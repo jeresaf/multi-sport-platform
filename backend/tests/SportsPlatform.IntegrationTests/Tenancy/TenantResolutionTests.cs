@@ -77,7 +77,7 @@ public sealed class TenantResolutionTests(PostgresFixture fixture) : DatabaseTes
     }
 
     [Fact]
-    public async Task Anonymous_admin_request_is_refused_as_the_system_actor()
+    public async Task Anonymous_admin_request_is_unauthenticated_and_audited_as_anonymous()
     {
         var kmsa = await TenantTestData.SaveTenantAsync(App.Services, "kmsa", TenantStatus.Active, Ct);
         await using var admin = await AdminTestApp.StartAsync(Fixture, Ct);
@@ -86,10 +86,14 @@ public sealed class TenantResolutionTests(PostgresFixture fixture) : DatabaseTes
 
         using var response = await client.PostAsync(AdminTestApp.FixturesPath, content: null, Ct);
 
-        await response.ShouldBeProblemAsync(HttpStatusCode.Forbidden, "AUTH_TENANT_FORBIDDEN");
+        // S03 D3, D4: 401 before the header is looked at; the denial is audited with the anonymous actor and no tenant.
+        await response.ShouldBeProblemAsync(HttpStatusCode.Unauthorized, "AUTH_UNAUTHENTICATED");
         (await SingleEntryAsync()).ShouldSatisfyAllConditions(
-            e => e.ActorKind.ShouldBe(ActorKind.System),
-            e => e.ActorId.ShouldBe(SystemActor.Id));
+            e => e.Outcome.ShouldBe(AuditOutcome.Denied),
+            e => e.ErrorCode.ShouldBe("AUTH_UNAUTHENTICATED"),
+            e => e.ActorKind.ShouldBe(ActorKind.Anonymous),
+            e => e.ActorId.ShouldBe(AnonymousActor.Id),
+            e => e.TenantId.ShouldBeNull());
     }
 
     [Theory]

@@ -33,6 +33,12 @@ public sealed class TestApp(IReadOnlyDictionary<string, string?> settings) : Web
 
     public RecordingEmailSender Emails { get; } = new();
 
+    protected override void ConfigureClient(HttpClient client)
+    {
+        base.ConfigureClient(client);
+        TestAuthentication.ConfigureTestClient(client);
+    }
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(settings).Build();

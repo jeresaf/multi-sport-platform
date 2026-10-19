@@ -11,6 +11,7 @@ using SportsPlatform.IntegrationTests.Audit;
 using SportsPlatform.IntegrationTests.Authorization;
 using SportsPlatform.IntegrationTests.Infrastructure;
 using SportsPlatform.IntegrationTests.Messaging;
+using SportsPlatform.IntegrationTests.Tenancy;
 using SportsPlatform.Modules.Platform;
 using SportsPlatform.Modules.Platform.Contracts.Audit;
 using SportsPlatform.Modules.Platform.Domain.Audit;
@@ -63,7 +64,7 @@ public sealed class AuditRlsTests : DatabaseTest
     {
         await AppendAsync(_kmsa, _elssc, null);
         App.Authorization.Allow(PlatformActions.AuditRead);
-        using var client = App.CreateClient();
+        using var client = App.CreateClient().AsUser(TenantTestData.StaffId);
 
         using var response = await client.GetAsync(
             new Uri("/api/platform/v1/audit-entries?action=platform.outbox.redrive", UriKind.Relative), Ct);

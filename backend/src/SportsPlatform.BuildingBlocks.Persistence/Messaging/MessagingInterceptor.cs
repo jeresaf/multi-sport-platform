@@ -106,7 +106,7 @@ public sealed class MessagingInterceptor(
         var fromScope = audit.IsPending && _inFlight is null;
         if (fromScope)
         {
-            records.Add(audit.CreateRecord(AuditOutcome.Success));
+            records.Add(audit.CreateRecord(audit.SaveOutcome));
         }
 
         if (records.Count == 0)

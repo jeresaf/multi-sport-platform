@@ -4,7 +4,10 @@ using SportsPlatform.BuildingBlocks.Results;
 
 namespace SportsPlatform.IntegrationTests.Infrastructure;
 
-/// <summary>Denies like the Host's default until a test allows actions; records every request it is asked about.</summary>
+/// <summary>
+/// Allows account actions as Identity's evaluator does (the pipeline has already refused anonymous callers) and denies
+/// everything else until a test allows it; records every request it is asked about.
+/// </summary>
 public sealed class TestAuthorizationEvaluator : IAuthorizationEvaluator
 {
     private readonly ConcurrentDictionary<ActionCode, bool> _allowed = new();
@@ -34,7 +37,7 @@ public sealed class TestAuthorizationEvaluator : IAuthorizationEvaluator
     {
         ArgumentNullException.ThrowIfNull(request);
         Requests.Enqueue(request);
-        return ValueTask.FromResult(_allowAll || _allowed.ContainsKey(request.Action.Code)
+        return ValueTask.FromResult(_allowAll || request.Action.Scope == ActionScope.Account || _allowed.ContainsKey(request.Action.Code)
             ? Result.Success()
             : Result.Failure(AuthorizationErrors.Forbidden));
     }

@@ -20,6 +20,12 @@ public sealed class HostOnlyApp : WebApplicationFactory<Program>
 
     public TelemetryCapture Telemetry { get; } = new();
 
+    protected override void ConfigureClient(HttpClient client)
+    {
+        base.ConfigureClient(client);
+        TestAuthentication.ConfigureTestClient(client);
+    }
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment(TestEnvironment.Name);

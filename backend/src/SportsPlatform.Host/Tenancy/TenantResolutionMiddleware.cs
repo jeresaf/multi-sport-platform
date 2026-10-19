@@ -1,6 +1,7 @@
 using System.Globalization;
 using Microsoft.Net.Http.Headers;
 using SportsPlatform.BuildingBlocks.Actions;
+using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.BuildingBlocks.Api;
 using SportsPlatform.BuildingBlocks.Results;
 using SportsPlatform.BuildingBlocks.Tenancy;
@@ -14,7 +15,8 @@ namespace SportsPlatform.Host.Tenancy;
 /// after audit and before authorization (S02 D8), so a refused tenant on an audited action is audited as DENIED and
 /// RLS applies to everything the endpoint reads or writes.
 /// <list type="bullet">
-/// <item>A tenant action (the admin API): <c>X-Tenant-Id</c>, which the actor must be a member of.</item>
+/// <item>A tenant action (the admin API): <c>X-Tenant-Id</c>, which the actor must be a member of; an anonymous caller
+/// gets 401 first (S03 D4).</item>
 /// <item>A platform endpoint marked <c>.RunsUnderRouteTenant()</c>: the route's tenant, which must exist (D2).</item>
 /// <item>A public endpoint marked <c>.RequirePublicTenant()</c>: the tenant of the request host (D6, D7), which must
 /// show its public site. In Development only, <c>X-Tenant-Slug</c> or <c>?tenant=</c> names the tenant instead.</item>
@@ -53,6 +55,12 @@ internal sealed class TenantResolutionMiddleware(RequestDelegate next, IHostEnvi
 
     private static async Task<Error?> FromHeaderAsync(HttpContext context)
     {
+        // Not signed in: 401 before the header is looked at (S03 D4).
+        if (context.RequestServices.GetRequiredService<ICurrentActor>().Kind == ActorKind.Anonymous)
+        {
+            return AuthorizationErrors.Unauthenticated;
+        }
+
         if (context.Request.Headers[TenantHeader] is not [{ } value] || !Guid.TryParse(value, out var tenantId))
         {
             return AuthorizationErrors.TenantForbidden;

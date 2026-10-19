@@ -29,9 +29,11 @@ paths:
   `tenant_domains` (global host lookup, S02-T3b).
 - **Actor and tenant over HTTP:** `TestApp` and `HostOnlyApp` register the test authentication scheme
   (`Infrastructure/TestAuthentication`): `client.AsUser(userId, memberOf: tenantIds)` sends `X-Test-User` and
-  `X-Test-Tenants`, so the request runs as that user and passes the membership check for `X-Tenant-Id`. Without it a
-  request is the system actor. Outside HTTP, set `scope.ServiceProvider.GetRequiredService<ActorContext>().Set(new
-  UserActor(id))`. Admin requests also send `X-Tenant-Id` (pattern: `Tenancy/TenantSettingsTests`). For pipeline
+  `X-Test-Tenants`, so the request runs as that user and passes the membership check for `X-Tenant-Id`. Without it the
+  real session cookie authenticates (account tests sign in through `/api/account/v1/login`), else the request is the
+  anonymous actor and gets `401 AUTH_UNAUTHENTICATED` on any action that needs a user (S03 D4). Test clients send
+  `X-CSRF: 1` and use https (the cookie is `Secure`); `client.WithoutCsrfHeader()` drops the header. Outside HTTP,
+  set `scope.ServiceProvider.GetRequiredService<ActorContext>().Set(new UserActor(id))`. Admin requests also send `X-Tenant-Id` (pattern: `Tenancy/TenantSettingsTests`). For pipeline
   tests, `Tenancy/AdminTestApp` runs the Host's services and pipeline (`SportsPlatformApp.AddServices`/`UsePipeline`)
   with a test-only audited tenant action.
 - **Public requests by host:** `App.Server.GetAsync(path, host, from, headers)` (`Tenancy/PublicRequests`) sets the

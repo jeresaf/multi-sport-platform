@@ -13,6 +13,12 @@ namespace SportsPlatform.BuildingBlocks.Api;
 public sealed record FieldError(string Field, string Code);
 
 /// <summary>
+/// Marks an endpoint that validates <paramref name="RequestType"/> (<c>.ValidateRequest&lt;T&gt;()</c>), so the Host can
+/// check at startup that an <c>IValidator&lt;T&gt;</c> is registered for it.
+/// </summary>
+public sealed record ValidatesRequestMetadata(Type RequestType);
+
+/// <summary>
 /// Checks a request's shape with its FluentValidation validator (<c>IValidator&lt;TRequest&gt;</c>, registered by the
 /// module) before the handler runs. Authorization runs earlier, so a caller without the action never learns how a
 /// request is validated.
@@ -30,6 +36,7 @@ public static class RequestValidationExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(error);
 
+        builder.WithMetadata(new ValidatesRequestMetadata(typeof(TRequest)));
         builder.AddEndpointFilter(async (context, next) =>
         {
             // A required body that wasn't sent fails binding, but filters still run (with a null argument) before the

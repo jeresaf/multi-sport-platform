@@ -8,13 +8,16 @@ namespace SportsPlatform.Host.Authorization;
 /// Fail closed: every endpoint declares exactly one of <c>.RequireAction(...)</c> or <c>.AllowPublic()</c>; admin and
 /// platform endpoints are never public; a required action is in the catalogue; an endpoint that runs under the route's
 /// tenant has a platform action and that route parameter, and a platform route with <c>{tenantId}</c> runs under it; an
-/// endpoint that requires a public tenant is public and under <c>/api/public</c>. The Host checks this when it is built.
+/// endpoint that requires a public tenant is public and under <c>/api/public</c>; account endpoints (<c>/api/account</c>)
+/// require an account action, and account actions are used there only (S03 D1). The Host checks this when it is built.
 /// </summary>
 public static class EndpointActionRules
 {
     private const string _tenantRouteValue = "tenantId";
 
-    private static readonly string[] _protectedFamilies = ["admin", "platform"];
+    private const string _accountFamily = "account";
+
+    private static readonly string[] _protectedFamilies = ["admin", "platform", _accountFamily];
 
     public static IReadOnlyList<string> Validate(IEnumerable<Endpoint> endpoints, IReadOnlyList<ActionCatalogueEntry> catalogue)
     {
@@ -44,7 +47,17 @@ public static class EndpointActionRules
 
             if (isPublic && IsProtectedFamily(endpoint))
             {
-                violations.Add($"{name} is under /api/admin or /api/platform and cannot be .AllowPublic().");
+                violations.Add($"{name} is under /api/admin, /api/platform or /api/account and cannot be .AllowPublic().");
+            }
+
+            var isAccountFamily = Family(endpoint) is _accountFamily;
+            if (isAccountFamily && required.Any(r => r.Action.Scope != ActionScope.Account))
+            {
+                violations.Add($"{name} is under /api/account, so it requires an account action.");
+            }
+            else if (!isAccountFamily && required.Any(r => r.Action.Scope == ActionScope.Account))
+            {
+                violations.Add($"{name} requires an account action, which is only allowed under /api/account.");
             }
 
             if (endpoint.Metadata.GetMetadata<RunsUnderRouteTenantMetadata>() is { } routeTenant
@@ -95,7 +108,7 @@ public static class EndpointActionRules
         Family(endpoint) is { } family && _protectedFamilies.Contains(family);
 
     /// <summary>"admin", "platform", "public", … for <c>/api/{family}/…</c> (lower case); otherwise null.</summary>
-    private static string? Family(Endpoint endpoint)
+    internal static string? Family(Endpoint endpoint)
     {
         if (endpoint is not RouteEndpoint route)
         {
