@@ -45,7 +45,8 @@ Steps 1–3 run in the Host's authorization middleware (after routing, before th
 endpoint's declared action; quota checks that need a count run inside the handler via `IEntitlements.CheckQuota` in
 the same transaction as the create.
 
-**Pipeline as built (S02-T3a, D8):** request logging and correlation → routing → **actor** (authentication, then
+**Pipeline as built (S02-T3a, D8):** forwarded host (S02-T3b, trusted proxies only) → request logging and
+correlation → routing → **actor** (authentication, then
 `ActorContext` from the principal's `sub`; the system actor otherwise) → **audit** → **tenant resolution**
 (docs/architecture/multi-tenancy.md) → **authorization** (step 1, then the evaluator) → endpoint. Audit runs before
 tenant resolution and authorization, so a refused tenant (`AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`) or a denied

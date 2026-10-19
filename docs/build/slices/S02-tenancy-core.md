@@ -191,11 +191,11 @@ Deliver:
   (the first tenant DTO arrives here).
 
 Acceptance:
-- [ ] Wrong or missing tenant header → `403 AUTH_TENANT_FORBIDDEN`; unknown host → `404 TENANT_NOT_FOUND`;
+- [x] Wrong or missing tenant header → `403 AUTH_TENANT_FORBIDDEN`; unknown host → `404 TENANT_NOT_FOUND`;
       blocked tenant → `403 TENANT_BLOCKED` (admin); hidden or blocked tenant on its host → `403 TENANT_UNAVAILABLE`
       (public); each audited when the action is audited.
-- [ ] The reference lists still answer on any host (D6).
-- [ ] A forwarded host from an unknown proxy is ignored (D7); the dev override works only in Development.
+- [x] The reference lists still answer on any host (D6).
+- [x] A forwarded host from an unknown proxy is ignored (D7); the dev override works only in Development.
 
 ### T4 — Settings
 > `tenancy.tenant_domains` moved to T3b (owner, 2026-10-19, Q17).
@@ -297,3 +297,17 @@ the route tenant is looked up before authorization, so a caller without the acti
 403 for a known one (tenant IDs are UUIDv7, and the 404 is audited as `FAILURE`).
 Without roles, `PROVISIONING` is `FULL` for every member, not only owners/admins as state-machines.md says, and
 `BLOCKED` refuses the owner too; S03 narrows both (#34 R1).
+
+**T3b.** `tenancy.tenant_domains` (global, read-write, no RLS) is the second RLS coverage exception (owner, extends D4);
+its status follows a new tenant domain machine in state-machines.md (owner): `PENDING_VERIFICATION → ACTIVE ⇄
+DISABLED`, only `ACTIVE` resolves, platform subdomains start `ACTIVE`. Tenants created before T3b get
+`<slug>.<Platform:BaseDomain>` from a post-migration step (`IPostMigrationStep`, owner: not SQL, since the base domain
+is configuration). Public endpoints opt in with `.RequirePublicTenant()` (public, under `/api/public` only, checked at
+startup). `ITenantDirectory` has `GetById/GetBySlug/GetByHostAsync`, all `Result`s (`FindBySlugAsync` had no
+callers); `ITenantAccess.CheckPublicAccess` shows only `ACTIVE` with `publicEnabled`. The host cache (60 s, misses
+included) is cleared after create, status change and profile change commit. `X-Forwarded-Host` only from configured
+proxies; with none configured forwarding is off, because the framework trusts every caller when its lists are empty
+(and still keeps 127.0.0.0/8 in the obsolete `KnownNetworks`). `/site` returns `slug`, `displayName`,
+`primaryDomain`, cacheable for one minute (no "public flags" yet: a 200 always means visible; T4 adds public
+visibility settings). Public refusals aren't audited (no action). `TENANT_NOT_FOUND`'s message is now "No such tenant."
+

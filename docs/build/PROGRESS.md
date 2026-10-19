@@ -132,6 +132,7 @@ at the start of every review.
   T2b (plan approved 2026-10-19): the RLS exception list has only `*.outbox_messages` (D4 also named `inbox_messages`,
   which has no `tenant_id`); platform-wide audit filters by action or actor alone use the `occurred_at` index (the
   action and actor indexes are tenant-first); the coverage test also refuses a second permissive policy.
+| 2026-10-19 | S02-T3b | — | Public tenant resolution: `tenancy.tenant_domains` (global; platform subdomain `<slug>.<Platform:BaseDomain>` created with each tenant, backfilled by the new post-migration step), `.RequirePublicTenant()` endpoints resolve the host through `ITenantDirectory.GetByHostAsync` and a 60 s cache cleared on changes → `TENANT_NOT_FOUND` / `TENANT_UNAVAILABLE`; trusted `X-Forwarded-Host` (configured proxies only); Development override `X-Tenant-Slug` / `?tenant=`; `GET /api/public/v1/site` | Owner: tenant domain state machine added; `tenant_domains` is an RLS coverage exception; backfill as a post-migration step, not SQL. Directory slug/host lookups return `Result`s. No proxies configured → forwarding off (framework trusts everyone with empty lists). `/site` max-age 1 min (plan said 5: kept no longer than the host cache). T2b follow-up (platform routes on a tenant host) done |
 
 ## Tech debt / follow-ups
 
@@ -147,16 +148,13 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
 - **S02-T4:** the tenant row holds `time_zone`, `default_locale`, `currency_code` and `public_enabled`, which T4's
   `tenant_settings` also lists: T4's plan decides the single source. Reviewer's suggestion: the tenant row keeps
   identity (slug, names, country, status); the editable values move to `tenant_settings` (tenant-owned, RLS) with a
-  T4 migration, and platform edits write them under the target tenant (S02-T1a; #30 R4).
+  T4 migration, and platform edits write them under the target tenant (S02-T1a; #30 R4). If `public_enabled` moves,
+  public resolution must follow: `TenantDirectory`'s host lookup reads it, and its writer must clear `TenantHostCache`
+  after commit (S02-T3b).
 - **OpenAPI (with the first admin UI client, S03 or later):** optional request members (`version`, PATCH fields) are
   listed as `required` (nullable) in the schemas, so the TS client makes callers pass `null`; endpoints don't declare
   the `If-Match` request header or the `ETag` response header, and activate/restore list no 400 (pipeline errors).
   Fix with defaults on the request records or a schema/operation transformer (S02-T1b pre-review).
-- **S02-T3b:** `AuditScope.Describe(targetTenantId:)` throws when the scope already has another tenant (S02-T2b). Platform
-  routes get no scope tenant (T3a tests that `X-Tenant-Id` is ignored there); T3b's host resolution must not set one
-  on `/api/platform` either (or `GET /api/platform/v1/audit-entries?tenantId=<other>` from a tenant host would be a
-  500). Add the host variant of the test with T3b (S02-T2b pre-review).
-
 - **S02-T4 (first admin endpoint):** tenant actions can also fail in the pipeline with `403 AUTH_TENANT_FORBIDDEN` and
   `403 TENANT_BLOCKED`, which modules can't list in `.ProducesErrors(...)` (`TENANT_BLOCKED` is Tenancy's). Add a Host
   OpenAPI operation transformer that documents both on every TENANT-scope endpoint (S02-T3a pre-review).

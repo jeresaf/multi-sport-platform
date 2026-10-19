@@ -100,6 +100,11 @@ auto-merge. Person rules are specified in docs/build/slices/S06-people-registry.
 - Data migrations accompany semantic changes; reversible where practical; destructive steps need a reviewed
   backup/restore note in the PR.
 - Production applies migrations with the CLI (`migrate`) as `sp_migrator`, never automatically at app start.
+- **Post-migration steps** (`IPostMigrationStep`, registered with `services.AddPostMigrationStep<T>()`): data work a
+  migration can't do because it needs configuration. `MigrationRunner` runs every step after all migrations, on each
+  run, so a step must be idempotent; it writes as the owner through `OwnerContextFactory` (no tenant, so never
+  tenant-owned rows). First one: `tenancy.platform-subdomains` gives each tenant without a domain
+  `<slug>.<Platform:BaseDomain>` (S02-T3b).
 
 ## Table access
 

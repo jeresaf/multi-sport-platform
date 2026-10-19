@@ -129,6 +129,10 @@ Modules call each other in-process through Contracts, never over HTTP.
   strip or replace it when it serves from cache.
 - The reference lists (`/api/public/v1/reference/{countries|currencies|languages|time-zones}`) use one hour.
   Responses are `{ "items": [...] }` with active entries only, ordered by code (ordinal), not paginated.
+- Tenant-public endpoints (`.RequirePublicTenant()`, docs/architecture/multi-tenancy.md) answer per host: the same URL
+  gives each tenant's data on its own host. They send `Vary: X-Forwarded-Host`, because the public web's server sends
+  the browser's host in that header, not in the URL. `GET /api/public/v1/site` (`slug`, `displayName`,
+  `primaryDomain`) uses one minute, no longer than the API's own host cache, so a hidden site leaves caches as fast.
 
 ## Idempotency
 
