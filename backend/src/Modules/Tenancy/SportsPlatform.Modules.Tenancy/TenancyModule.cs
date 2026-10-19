@@ -10,6 +10,9 @@ using SportsPlatform.Modules.Tenancy.Contracts.Tenants;
 using SportsPlatform.Modules.Tenancy.Domain.Domains;
 using SportsPlatform.Modules.Tenancy.Domain.Tenants;
 using SportsPlatform.Modules.Tenancy.Features.Domains;
+using SportsPlatform.Modules.Tenancy.Features.Settings;
+using SportsPlatform.Modules.Tenancy.Features.Settings.GetTenantSettings;
+using SportsPlatform.Modules.Tenancy.Features.Settings.UpdateTenantSettings;
 using SportsPlatform.Modules.Tenancy.Features.Site.GetSite;
 using SportsPlatform.Modules.Tenancy.Features.Tenants;
 using SportsPlatform.Modules.Tenancy.Features.Tenants.ChangeTenantStatus;
@@ -23,7 +26,7 @@ using SportsPlatform.Modules.Tenancy.Infrastructure;
 namespace SportsPlatform.Modules.Tenancy;
 
 /// <summary>
-/// Tenancy &amp; Commercial: tenants and their lifecycle, domains and the public site (S02); settings, plans and entitlements follow
+/// Tenancy &amp; Commercial: tenants and their lifecycle, domains, settings and the public site (S02); plans and entitlements follow
 /// (docs/architecture/modules.md).
 /// </summary>
 public sealed class TenancyModule : IModule
@@ -67,6 +70,9 @@ public sealed class TenancyModule : IModule
         services.AddScoped<IValidator<UpdateTenantProfileRequest>, UpdateTenantProfileRequestValidator>();
         services.AddScoped<ChangeTenantStatusHandler>();
         services.AddScoped<GetSiteHandler>();
+        services.AddScoped<GetTenantSettingsHandler>();
+        services.AddScoped<UpdateTenantSettingsHandler>();
+        services.AddScoped<IValidator<UpdateTenantSettingsRequest>, UpdateTenantSettingsRequestValidator>();
         services.AddSingleton<IValidator<ChangeTenantStatusWithReasonRequest>, ChangeTenantStatusWithReasonRequestValidator>();
         services.AddDomainEventSubscriber<TenantCreatedDomainEvent, PublishTenantCreated>();
         services.AddDomainEventSubscriber<TenantStatusChangedDomainEvent, PublishTenantStatusChanged>();
@@ -82,5 +88,8 @@ public sealed class TenancyModule : IModule
         UpdateTenantProfileEndpoint.Map(tenants);
         ChangeTenantStatusEndpoints.Map(tenants);
         GetSiteEndpoint.Map(groups.Public);
+        var settings = TenantSettingsEndpoints.Group(groups.Admin);
+        GetTenantSettingsEndpoint.Map(settings);
+        UpdateTenantSettingsEndpoint.Map(settings);
     }
 }
