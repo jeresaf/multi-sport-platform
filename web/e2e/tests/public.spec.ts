@@ -28,8 +28,8 @@ test("an unknown host shows the not-found page", async ({ page }) => {
   const response = await page.goto(siteUrl("no-such-site"));
 
   expect(response?.status()).toBe(404);
-  await expect(page).toHaveTitle("Site not found");
-  await expect(page.getByRole("heading", { level: 1, name: "We can't find this site" })).toBeVisible();
+  await expect(page).toHaveTitle("Page not found");
+  await expect(page.getByRole("heading", { level: 1, name: "We can't find this page" })).toBeVisible();
   await expect(page.getByText("Kampala Metro Sports Association")).toHaveCount(0);
 });
 
@@ -51,7 +51,7 @@ for (const size of widths) {
     }
 
     await page.goto(siteUrl("no-such-site"));
-    await expect(page.getByRole("heading", { level: 1, name: "We can't find this site" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "We can't find this page" })).toBeVisible();
     await page.screenshot({ path: `screenshots/not-found-${size.name}.png`, fullPage: true });
   });
 }

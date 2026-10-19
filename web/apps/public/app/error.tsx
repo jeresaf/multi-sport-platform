@@ -2,10 +2,10 @@
 
 import { StatusPage } from "@/components/status-page";
 
-// A bug while rendering. Expected API failures are handled by the site layout, which shows the correlation ID.
+// A failed site lookup (the layout throws) or a bug while rendering. Next.js logs the error with its digest.
 export default function ErrorPage({ error }: { error: Error & { digest?: string } }) {
   return (
-    <StatusPage title="Something went wrong" correlationId={error.digest}>
+    <StatusPage title="Something went wrong" reference={error.digest}>
       <p>Please try again in a moment.</p>
     </StatusPage>
   );

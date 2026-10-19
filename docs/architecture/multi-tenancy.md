@@ -70,8 +70,9 @@ query filter and RLS show only that tenant's row, so the handlers never take a t
 **Public web as built (S02-T5b).** The public app (`web/apps/public`) reads the request's `Host`, drops the port and
 calls `GET /api/public/v1/site` with it as `X-Forwarded-Host` (server-side, `MSP_API_URL`, no caching in the app). The
 `(site)` layout renders the tenant's name and footer for a `200`; `TENANT_NOT_FOUND` (or no host) is the app's 404
-not-found page; `TENANT_UNAVAILABLE` is a `200` page with `noindex` (owner); any other failure shows "Something went
-wrong" with the correlation ID. The app forwards the `Host` it receives; behind a production proxy it must read that
+not-found page ("We can't find this page", also used for unknown paths); `TENANT_UNAVAILABLE` is a `200` page with
+`noindex` (owner); any other failure is a `500` "Something went wrong" page showing the Next.js error digest, logged
+with the API's correlation ID. The app forwards the `Host` it receives; behind a production proxy it must read that
 proxy's forwarded host instead (follow-up). Locally, `kmsa.localhost:3000` and `elssc.localhost:3000` work after
 `seed --category DEMO` (browsers resolve `*.localhost` to loopback).
 

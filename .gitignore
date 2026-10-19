@@ -22,7 +22,7 @@ coverage/
 next-env.d.ts
 playwright-report/
 test-results/
-screenshots/
+web/e2e/screenshots/
 blob-report/
 playwright/.cache/
 

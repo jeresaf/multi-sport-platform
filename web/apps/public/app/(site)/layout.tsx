@@ -12,10 +12,11 @@ export async function generateMetadata(): Promise<Metadata> {
     case "found":
       return { title: result.site.displayName };
     case "not-found":
-      return { title: "Site not found", robots: { index: false } };
+      return { title: "Page not found", robots: { index: false } };
     case "unavailable":
       return { title: "Site unavailable", robots: { index: false } };
     case "error":
+      // The layout throws, so the error page renders with a 500.
       return { title: "Something went wrong", robots: { index: false } };
   }
 }
@@ -34,11 +35,9 @@ export default async function SiteLayout({ children }: Readonly<{ children: Reac
           <p>Please check back later.</p>
         </StatusPage>
       );
+    // A 500, not a 200 page, so crawlers retry instead of dropping the site. The message reaches the server log with
+    // the error's digest, which the error page shows, so support can find the API's correlation ID.
     case "error":
-      return (
-        <StatusPage title="Something went wrong" correlationId={result.correlationId}>
-          <p>{"We couldn't load this site. Please try again in a moment."}</p>
-        </StatusPage>
-      );
+      throw new Error(`The site lookup failed (correlation ID: ${result.correlationId ?? "none, no API response"}).`);
   }
 }
