@@ -36,6 +36,9 @@ internal sealed class PublicTestApp : IAsyncDisposable
             // Only Development and Testing name a mail server; nothing sends here (the outbox is off).
             ["Email:From"] = "no-reply@sports.test",
             ["Email:Smtp:Host"] = "smtp.sports.test",
+
+            // ...and the admin web's address (S03-T2b).
+            ["Identity:AdminAppUrl"] = "https://admin.sports.test",
         });
         builder.Configuration.AddInMemoryCollection(settings.Select(s => KeyValuePair.Create(s.Key, (string?)s.Value)));
 

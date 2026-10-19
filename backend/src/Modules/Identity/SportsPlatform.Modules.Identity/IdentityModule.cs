@@ -3,17 +3,25 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using SportsPlatform.BuildingBlocks.Actions;
 using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.BuildingBlocks.Modules;
 using SportsPlatform.BuildingBlocks.Persistence;
+using SportsPlatform.BuildingBlocks.Persistence.Messaging;
+using SportsPlatform.Modules.Identity.Contracts.Account;
 using SportsPlatform.Modules.Identity.Features.Account;
+using SportsPlatform.Modules.Identity.Features.Account.ChangePassword;
+using SportsPlatform.Modules.Identity.Features.Account.ForgotPassword;
 using SportsPlatform.Modules.Identity.Features.Account.GetMe;
 using SportsPlatform.Modules.Identity.Features.Account.Login;
 using SportsPlatform.Modules.Identity.Features.Account.Logout;
+using SportsPlatform.Modules.Identity.Features.Account.ResetPassword;
 using SportsPlatform.Modules.Identity.Features.Authorization;
 using SportsPlatform.Modules.Identity.Features.PlatformAdmins.CreatePlatformAdmin;
 using SportsPlatform.Modules.Identity.Infrastructure;
+using SportsPlatform.Modules.Identity.Infrastructure.PasswordReset;
+using SportsPlatform.Modules.Identity.Infrastructure.RateLimiting;
 using SportsPlatform.Modules.Identity.Infrastructure.Sessions;
 using SportsPlatform.Modules.Identity.Infrastructure.Users;
 
@@ -21,7 +29,7 @@ namespace SportsPlatform.Modules.Identity;
 
 /// <summary>
 /// Identity &amp; Access: users, platform roles and the data protection key ring (S03-T1); the session cookie, the
-/// account API and the authorization evaluator (T2); memberships and roles follow in S03 (docs/architecture/modules.md).
+/// account API, password reset and change, sign-in rate limits and the authorization evaluator (T2); memberships and roles follow in S03 (docs/architecture/modules.md).
 /// </summary>
 public sealed class IdentityModule : IModule
 {
@@ -48,7 +56,13 @@ public sealed class IdentityModule : IModule
             .AddUserStore<UserStore>()
             .AddSignInManager()
             .AddClaimsPrincipalFactory<SessionClaimsFactory>()
-            .AddDefaultTokenProviders();
+            .AddDefaultTokenProviders()
+            .AddTokenProvider<PasswordResetTokenProvider>(PasswordResetTokenProvider.ProviderName);
+
+        // Emailed links and the sign-in and password-reset rate limits (D15), checked on start.
+        services.AddOptions<AccountOptions>().Bind(configuration.GetSection(AccountOptions.SectionName)).ValidateOnStart();
+        services.AddSingleton<IValidateOptions<AccountOptions>, AccountOptionsValidator>();
+        services.AddAccountRateLimits();
 
         // S03 D5: the API's only authentication scheme. D10: the evaluator replaces the Host's deny-all default.
         services.AddSessionCookie();
@@ -57,7 +71,17 @@ public sealed class IdentityModule : IModule
         services.AddScoped<CreatePlatformAdminHandler>();
         services.AddScoped<LoginHandler>();
         services.AddScoped<GetMeHandler>();
+        services.AddScoped<ForgotPasswordHandler>();
+        services.AddScoped<ResetPasswordHandler>();
+        services.AddScoped<ChangePasswordHandler>();
         services.AddSingleton<IValidator<LoginRequest>, LoginRequestValidator>();
+        services.AddSingleton<IValidator<ForgotPasswordRequest>, ForgotPasswordRequestValidator>();
+        services.AddSingleton<IValidator<ResetPasswordRequest>, ResetPasswordRequestValidator>();
+        services.AddSingleton<IValidator<ChangePasswordRequest>, ChangePasswordRequestValidator>();
+
+        // D13: the reset email is sent by Identity's own consumer, never inside the request.
+        services.AddIntegrationEventConsumer<PasswordResetRequested.V1, PasswordResetEmailConsumer, IdentityDbContext>(
+            PasswordResetEmailConsumer.Name);
     }
 
     public void MapEndpoints(ApiEndpointGroups groups)
@@ -67,6 +91,9 @@ public sealed class IdentityModule : IModule
         LoginEndpoint.Map(account);
         LogoutEndpoint.Map(account);
         GetMeEndpoint.Map(account);
+        ForgotPasswordEndpoint.Map(account);
+        ResetPasswordEndpoint.Map(account);
+        ChangePasswordEndpoint.Map(account);
     }
 
     // S03 D15.
@@ -91,5 +118,8 @@ public sealed class IdentityModule : IModule
         // The user name is the email, which Identity validates as an email; any character an address may hold is allowed.
         options.User.AllowedUserNameCharacters = string.Empty;
         options.SignIn.RequireConfirmedEmail = true;
+
+        // D15: a random token whose hash is stored; 1 hour, works once, the newest wins.
+        options.Tokens.PasswordResetTokenProvider = PasswordResetTokenProvider.ProviderName;
     }
 }

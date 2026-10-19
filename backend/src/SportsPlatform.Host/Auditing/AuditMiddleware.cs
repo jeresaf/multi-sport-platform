@@ -44,7 +44,7 @@ internal sealed partial class AuditMiddleware(RequestDelegate next, ILogger<Audi
     private static AuditOutcome Outcome(int status) => status switch
     {
         < 400 => AuditOutcome.Success,
-        StatusCodes.Status401Unauthorized or StatusCodes.Status403Forbidden => AuditOutcome.Denied,
+        StatusCodes.Status401Unauthorized or StatusCodes.Status403Forbidden or StatusCodes.Status429TooManyRequests => AuditOutcome.Denied,
         _ => AuditOutcome.Failure,
     };
 

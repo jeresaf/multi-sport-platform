@@ -39,6 +39,7 @@ public sealed class EmailSenderRegistrationTests
             builder.UseEnvironment("Staging");
             // Tenancy refuses Staging without a real platform domain; give it one so the email check is reached.
             builder.UseSetting("Platform:BaseDomain", "sportsplatform.example");
+            builder.UseSetting("Identity:AdminAppUrl", "https://admin.sportsplatform.example");
         }
     }
 }
