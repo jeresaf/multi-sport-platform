@@ -38,7 +38,10 @@ public sealed class TenancyModule : IModule
         services.AddModuleDbContext<TenancyDbContext>(configuration, Schema);
         services.AddOptions<PlatformDomainOptions>()
             .Bind(configuration.GetSection(PlatformDomainOptions.SectionName))
-            .Validate(o => TenantHost.IsValid(o.BaseDomain), "Platform:BaseDomain must be a lower-case host name without a port.")
+            // Room for "<longest slug>." in front: every platform subdomain must be a valid host too.
+            .Validate(
+                o => TenantHost.IsValid(o.BaseDomain) && o.BaseDomain.Length <= TenantHost.MaxLength - TenantSlug.MaxLength - 1,
+                "Platform:BaseDomain must be a lower-case host name without a port, short enough for '<slug>.' in front.")
             .ValidateOnStart();
         services.AddSingleton<TenantHostCache>();
         services.AddPostMigrationStep<BackfillPlatformSubdomains>();

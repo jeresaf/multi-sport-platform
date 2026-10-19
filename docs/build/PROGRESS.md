@@ -135,7 +135,8 @@ at the start of every review.
   action and actor indexes are tenant-first); the coverage test also refuses a second permissive policy.
 - **S02-T3b** (owner, 2026-10-19): `tenancy.tenant_domains` is a second RLS coverage exception (extends D4); its
   `status` follows a new tenant domain state machine in state-machines.md; existing tenants are backfilled by a
-  post-migration step, not by SQL in the migration. `/site` has no "public flags" (a 200 always means visible).
+  post-migration step, not by SQL in the migration. In the plan the owner approved: `/site` has no "public flags" (a
+  200 always means visible; T4 adds public visibility settings).
 
 ## Tech debt / follow-ups
 
@@ -161,6 +162,15 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
 - **S02-T4 (first admin endpoint):** tenant actions can also fail in the pipeline with `403 AUTH_TENANT_FORBIDDEN` and
   `403 TENANT_BLOCKED`, which modules can't list in `.ProducesErrors(...)` (`TENANT_BLOCKED` is Tenancy's). Add a Host
   OpenAPI operation transformer that documents both on every TENANT-scope endpoint (S02-T3a pre-review).
+
+- **Branding/PRO (custom domains):** `GetSiteHandler` throws (500) if a tenant resolves through an `ACTIVE` domain but
+  has no `ACTIVE` primary one. Impossible today (the platform subdomain is always primary and `ACTIVE`); once a
+  platform subdomain can be `DISABLED`, keep one active primary per visible tenant or fall back to the resolved host
+  (S02-T3b pre-review).
+- **First deployment (ADR-0016 infrastructure task, with Q10):** set `Platform:BaseDomain` and
+  `ForwardedHeaders:KnownProxies`/`KnownNetworks` (the public web's server) in each environment. Without proxies,
+  forwarding is off and every public request through the web server resolves the API's own host → 404 (S02-T3b
+  pre-review).
 
 **S03 — identity and access**
 - Anonymous actor for audit (#23 R1): `actor_kind` allows `USER`/`SYSTEM` and `actor_id` is NOT NULL, so once S03

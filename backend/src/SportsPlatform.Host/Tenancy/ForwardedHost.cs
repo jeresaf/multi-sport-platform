@@ -17,13 +17,14 @@ public static class ForwardedHost
     {
         ArgumentNullException.ThrowIfNull(configuration);
         var section = configuration.GetSection(SectionName);
-        var proxies = section.GetSection("KnownProxies").Get<string[]>() ?? [];
-        var networks = section.GetSection("KnownNetworks").Get<string[]>() ?? [];
+        // Parsed now, so a bad value stops startup rather than failing requests.
+        var proxies = (section.GetSection("KnownProxies").Get<string[]>() ?? []).Select(IPAddress.Parse).ToList();
+        var networks = (section.GetSection("KnownNetworks").Get<string[]>() ?? []).Select(n => System.Net.IPNetwork.Parse(n)).ToList();
 
         services.Configure<ForwardedHeadersOptions>(options =>
         {
             // With both lists empty the middleware trusts every caller, so no proxy configured means no forwarding.
-            options.ForwardedHeaders = proxies.Length + networks.Length > 0 ? ForwardedHeaders.XForwardedHost : ForwardedHeaders.None;
+            options.ForwardedHeaders = proxies.Count + networks.Count > 0 ? ForwardedHeaders.XForwardedHost : ForwardedHeaders.None;
             options.KnownProxies.Clear();
             options.KnownIPNetworks.Clear();
 #pragma warning disable ASPDEPR005 // Obsolete, but still holds the 127.0.0.0/8 default, which the middleware still trusts.
@@ -31,12 +32,12 @@ public static class ForwardedHost
 #pragma warning restore ASPDEPR005
             foreach (var proxy in proxies)
             {
-                options.KnownProxies.Add(IPAddress.Parse(proxy));
+                options.KnownProxies.Add(proxy);
             }
 
             foreach (var network in networks)
             {
-                options.KnownIPNetworks.Add(System.Net.IPNetwork.Parse(network));
+                options.KnownIPNetworks.Add(network);
             }
         });
         return services;

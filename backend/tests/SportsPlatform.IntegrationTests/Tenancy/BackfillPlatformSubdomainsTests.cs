@@ -56,6 +56,7 @@ public sealed class BackfillPlatformSubdomainsTests(PostgresFixture fixture) : D
     [InlineData("Sports.Test")]
     [InlineData("localhost:3000")]
     [InlineData("sports..test")]
+    [InlineData("a234567890123456789012345678901234567890123456789012345678901.b234567890123456789012345678901234567890123456789012345678901.c234567890123456789012345678901234567890123456789012345678901.d2345678901234567890123456789012345678901234567890123456")]
     public async Task An_invalid_base_domain_stops_the_app(string baseDomain)
     {
         await Should.ThrowAsync<OptionsValidationException>(async () =>
@@ -63,6 +64,13 @@ public sealed class BackfillPlatformSubdomainsTests(PostgresFixture fixture) : D
             await using var app = await PublicTestApp.StartAsync(Fixture, TestEnvironment.Name, Ct, ("Platform:BaseDomain", baseDomain));
         });
     }
+
+    [Fact]
+    public async Task A_malformed_proxy_address_stops_the_app() =>
+        await Should.ThrowAsync<FormatException>(async () =>
+        {
+            await using var app = await PublicTestApp.StartAsync(Fixture, TestEnvironment.Name, Ct, ("ForwardedHeaders:KnownProxies:1", "10.20.0.300"));
+        });
 
     private static Task<int> StepAsync(IServiceProvider services) =>
         services.GetServices<IPostMigrationStep>().Single(s => s.Name == "tenancy.platform-subdomains").RunAsync(TestContext.Current.CancellationToken);
