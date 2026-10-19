@@ -32,6 +32,10 @@ internal sealed class PublicTestApp : IAsyncDisposable
             // Development's appsettings would start the outbox processor on the shared test database.
             ["Outbox:Enabled"] = "false",
             ["ForwardedHeaders:KnownProxies:0"] = PublicRequests.Proxy.ToString(),
+
+            // Only Development and Testing name a mail server; nothing sends here (the outbox is off).
+            ["Email:From"] = "no-reply@sports.test",
+            ["Email:Smtp:Host"] = "smtp.sports.test",
         });
         builder.Configuration.AddInMemoryCollection(settings.Select(s => KeyValuePair.Create(s.Key, (string?)s.Value)));
 
