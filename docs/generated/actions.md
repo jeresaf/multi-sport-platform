@@ -14,6 +14,8 @@ admin endpoint requires one of these; the code is stable and is what roles grant
 | `tenant.create` | Tenancy | PLATFORM | — | REQUIRED | — | no | S02 | Create a tenant (status PROVISIONING). |
 | `tenant.read` | Tenancy | PLATFORM | — | REQUIRED | — | no | S02 | View tenants and their profiles. |
 | `tenant.restore` | Tenancy | PLATFORM | — | REQUIRED | — | no | S02 | Restore a suspended tenant (SUSPENDED → ACTIVE). |
+| `tenant.settings.read` | Tenancy | TENANT | TENANT | REQUIRED | — | no | S02 | View the tenant's settings: time zone, locale, currency, public site, starting-soon window, minor consent policy. |
+| `tenant.settings.update` | Tenancy | TENANT | TENANT | REQUIRED | — | no | S02 | Change the tenant's settings: time zone, locale, currency, public site, starting-soon window, minor consent policy. |
 | `tenant.suspend` | Tenancy | PLATFORM | — | REQUIRED_WITH_REASON | — | no | S02 | Suspend an active tenant, with a reason (ACTIVE → SUSPENDED). |
 | `tenant.unarchive` | Tenancy | PLATFORM | — | REQUIRED_WITH_REASON | — | no | S02 | Bring an archived tenant back, with a reason (ARCHIVED → SUSPENDED). |
 | `tenant.update` | Tenancy | PLATFORM | — | REQUIRED | — | no | S02 | Change a tenant's profile: names, country, time zone, locale, currency, public site. |

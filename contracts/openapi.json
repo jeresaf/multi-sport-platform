@@ -179,6 +179,114 @@
         }
       }
     },
+    "/api/admin/v1/tenant/settings": {
+      "get": {
+        "tags": [
+          "Tenant settings"
+        ],
+        "summary": "Get the tenant's settings",
+        "description": "The settings of the tenant named by `X-Tenant-Id`, with their `version` (also the `ETag`).",
+        "operationId": "GetTenantSettings",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TenantSettingsResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED"
+            ]
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Tenant settings"
+        ],
+        "summary": "Change the tenant's settings",
+        "description": "Changes the keys sent of the settings of the tenant named by `X-Tenant-Id`; missing or null keys stay as they are. Any other key, or a value of the wrong type, is 400 VALIDATION_INVALID_REQUEST with an `errors` entry naming it. Send `version` from the last read to get 409 TENANT_CONCURRENCY_CONFLICT instead of overwriting someone else's change; `If-Match` with the `ETag` works the same way (if both are sent, both must match).",
+        "operationId": "UpdateTenantSettings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTenantSettingsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TenantSettingsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_REQUEST`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_REQUEST"
+            ]
+          },
+          "409": {
+            "description": "Problem Details; `code`: `TENANT_CONCURRENCY_CONFLICT`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "TENANT_CONCURRENCY_CONFLICT"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED"
+            ]
+          }
+        }
+      }
+    },
     "/api/platform/v1/diagnostics/outbox": {
       "get": {
         "tags": [
@@ -239,6 +347,19 @@
             },
             "x-error-codes": [
               "VALIDATION_INVALID_QUERY"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_FORBIDDEN"
             ]
           }
         }
@@ -329,6 +450,19 @@
             },
             "x-error-codes": [
               "PLATFORM_OUTBOX_MESSAGE_NOT_FAILED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_FORBIDDEN"
             ]
           }
         }
@@ -444,6 +578,19 @@
             "x-error-codes": [
               "VALIDATION_INVALID_QUERY"
             ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_FORBIDDEN"
+            ]
           }
         }
       }
@@ -502,6 +649,19 @@
             "x-error-codes": [
               "VALIDATION_INVALID_QUERY"
             ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_FORBIDDEN"
+            ]
           }
         }
       },
@@ -558,6 +718,19 @@
             "x-error-codes": [
               "TENANT_SLUG_TAKEN"
             ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_FORBIDDEN"
+            ]
           }
         }
       }
@@ -603,6 +776,19 @@
             },
             "x-error-codes": [
               "TENANT_NOT_FOUND"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_FORBIDDEN"
             ]
           }
         }
@@ -684,6 +870,19 @@
             "x-error-codes": [
               "TENANT_CONCURRENCY_CONFLICT"
             ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_FORBIDDEN"
+            ]
           }
         }
       }
@@ -759,6 +958,19 @@
             "x-error-codes": [
               "TENANT_CONCURRENCY_CONFLICT",
               "TENANT_INVALID_TRANSITION"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_FORBIDDEN"
             ]
           }
         }
@@ -843,6 +1055,19 @@
               "TENANT_CONCURRENCY_CONFLICT",
               "TENANT_INVALID_TRANSITION"
             ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_FORBIDDEN"
+            ]
           }
         }
       }
@@ -918,6 +1143,19 @@
             "x-error-codes": [
               "TENANT_CONCURRENCY_CONFLICT",
               "TENANT_INVALID_TRANSITION"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_FORBIDDEN"
             ]
           }
         }
@@ -1002,6 +1240,19 @@
               "TENANT_CONCURRENCY_CONFLICT",
               "TENANT_INVALID_TRANSITION"
             ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_FORBIDDEN"
+            ]
           }
         }
       }
@@ -1084,6 +1335,19 @@
             "x-error-codes": [
               "TENANT_CONCURRENCY_CONFLICT",
               "TENANT_INVALID_TRANSITION"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_FORBIDDEN"
             ]
           }
         }
@@ -1489,6 +1753,14 @@
           }
         }
       },
+      "MinorRegistrationConsent": {
+        "enum": [
+          "REQUIRED",
+          "RECOMMENDED",
+          "OFF"
+        ],
+        "description": "Whether a guardian's consent is needed before a minor is registered for a competition (Q11). Consent before public\nexposure is always required, whatever this says."
+      },
       "OutboxMessageResponse": {
         "required": [
           "module",
@@ -1827,6 +2099,49 @@
         },
         "description": "A tenant as the platform API shows it: the tenant and its main settings. Read under the tenant (the settings are\ntenant-owned). `version`, `createdAt` and `updatedAt` are the tenant row's: send `version` back\nwith a change to make it fail with `409 TENANT_CONCURRENCY_CONFLICT` if someone else changed the tenant first."
       },
+      "TenantSettingsResponse": {
+        "required": [
+          "timeZone",
+          "defaultLocale",
+          "currencyCode",
+          "publicEnabled",
+          "startingSoonMinutes",
+          "minorRegistrationConsent",
+          "updatedAt",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "timeZone": {
+            "type": "string"
+          },
+          "defaultLocale": {
+            "type": "string"
+          },
+          "currencyCode": {
+            "type": "string"
+          },
+          "publicEnabled": {
+            "type": "boolean"
+          },
+          "startingSoonMinutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "minorRegistrationConsent": {
+            "$ref": "#/components/schemas/MinorRegistrationConsent"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "version": {
+            "type": "integer",
+            "format": "uint32"
+          }
+        },
+        "description": "A tenant's settings as the admin API shows them. `version` (also the `ETag`) and `updatedAt` are the\nsettings row's, not the tenant's: send `version` back with a change to make it fail with\n`409 TENANT_CONCURRENCY_CONFLICT` if someone else changed the settings first."
+      },
       "TenantStatus": {
         "enum": [
           "PROVISIONING",
@@ -1920,6 +2235,68 @@
         },
         "additionalProperties": false,
         "description": "The profile fields to change; a missing or null field stays as it is. The slug and the status can't be changed here\n(unknown members are rejected). `version`, when sent, must be the tenant's current version."
+      },
+      "UpdateTenantSettingsRequest": {
+        "required": [
+          "timeZone",
+          "defaultLocale",
+          "currencyCode",
+          "publicEnabled",
+          "startingSoonMinutes",
+          "minorRegistrationConsent",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "timeZone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "defaultLocale": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "currencyCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "publicEnabled": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "startingSoonMinutes": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "minorRegistrationConsent": {
+            "enum": [
+              "REQUIRED",
+              "RECOMMENDED",
+              "OFF",
+              null
+            ]
+          },
+          "version": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "uint32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "The settings to change; a missing or null key stays as it is. Only these keys exist: any other key, or a value of\nthe wrong type, is named in `errors`. `version`, when sent, must be the settings' current version."
       }
     }
   },
@@ -1929,6 +2306,9 @@
     },
     {
       "name": "Site"
+    },
+    {
+      "name": "Tenant settings"
     },
     {
       "name": "Diagnostics"

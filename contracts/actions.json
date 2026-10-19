@@ -89,6 +89,32 @@
       "since": "S02"
     },
     {
+      "code": "tenant.settings.read",
+      "module": "Tenancy",
+      "description": "View the tenant's settings: time zone, locale, currency, public site, starting-soon window, minor consent policy.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED",
+      "entitlement": null,
+      "idempotent": false,
+      "since": "S02"
+    },
+    {
+      "code": "tenant.settings.update",
+      "module": "Tenancy",
+      "description": "Change the tenant's settings: time zone, locale, currency, public site, starting-soon window, minor consent policy.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED",
+      "entitlement": null,
+      "idempotent": false,
+      "since": "S02"
+    },
+    {
       "code": "tenant.suspend",
       "module": "Tenancy",
       "description": "Suspend an active tenant, with a reason (ACTIVE → SUSPENDED).",

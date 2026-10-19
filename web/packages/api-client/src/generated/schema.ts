@@ -104,6 +104,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/v1/tenant/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the tenant's settings
+         * @description The settings of the tenant named by `X-Tenant-Id`, with their `version` (also the `ETag`).
+         */
+        get: operations["GetTenantSettings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Change the tenant's settings
+         * @description Changes the keys sent of the settings of the tenant named by `X-Tenant-Id`; missing or null keys stay as they are. Any other key, or a value of the wrong type, is 400 VALIDATION_INVALID_REQUEST with an `errors` entry naming it. Send `version` from the last read to get 409 TENANT_CONCURRENCY_CONFLICT instead of overwriting someone else's change; `If-Match` with the `ETag` works the same way (if both are sent, both must match).
+         */
+        patch: operations["UpdateTenantSettings"];
+        trace?: never;
+    };
     "/api/platform/v1/diagnostics/outbox": {
         parameters: {
             query?: never;
@@ -427,6 +451,12 @@ export interface components {
             items: components["schemas"]["TimeZoneResponse"][];
         };
         /**
+         * @description Whether a guardian's consent is needed before a minor is registered for a competition (Q11). Consent before public
+         *     exposure is always required, whatever this says.
+         * @enum {unknown}
+         */
+        MinorRegistrationConsent: "REQUIRED" | "RECOMMENDED" | "OFF";
+        /**
          * @description One outbox message in the platform diagnostics: envelope and delivery state, no payload. `heldBackBy` is set on
          *     a `PENDING` message that waits for an earlier, not yet processed message of its aggregate.
          */
@@ -548,6 +578,24 @@ export interface components {
             version: number;
         };
         /**
+         * @description A tenant's settings as the admin API shows them. `version` (also the `ETag`) and `updatedAt` are the
+         *     settings row's, not the tenant's: send `version` back with a change to make it fail with
+         *     `409 TENANT_CONCURRENCY_CONFLICT` if someone else changed the settings first.
+         */
+        TenantSettingsResponse: {
+            timeZone: string;
+            defaultLocale: string;
+            currencyCode: string;
+            publicEnabled: boolean;
+            /** Format: int32 */
+            startingSoonMinutes: number;
+            minorRegistrationConsent: components["schemas"]["MinorRegistrationConsent"];
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: uint32 */
+            version: number;
+        };
+        /**
          * @description A tenant's stored lifecycle status (docs/domain/state-machines.md, "Tenant").
          * @enum {unknown}
          */
@@ -569,6 +617,22 @@ export interface components {
             defaultLocale: null | string;
             currencyCode: null | string;
             publicEnabled: null | boolean;
+            /** Format: uint32 */
+            version: null | number;
+        };
+        /**
+         * @description The settings to change; a missing or null key stays as it is. Only these keys exist: any other key, or a value of
+         *     the wrong type, is named in `errors`. `version`, when sent, must be the settings' current version.
+         */
+        UpdateTenantSettingsRequest: {
+            timeZone: null | string;
+            defaultLocale: null | string;
+            currencyCode: null | string;
+            publicEnabled: null | boolean;
+            /** Format: int32 */
+            startingSoonMinutes: null | number;
+            /** @enum {unknown} */
+            minorRegistrationConsent: "REQUIRED" | "RECOMMENDED" | "OFF" | null;
             /** Format: uint32 */
             version: null | number;
         };
@@ -745,6 +809,86 @@ export interface operations {
             };
         };
     };
+    GetTenantSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TenantSettingsResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    UpdateTenantSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateTenantSettingsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TenantSettingsResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TENANT_CONCURRENCY_CONFLICT` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     ListOutboxMessages: {
         parameters: {
             query?: {
@@ -770,6 +914,15 @@ export interface operations {
             };
             /** @description Problem Details; `code`: `VALIDATION_INVALID_QUERY` */
             400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_FORBIDDEN` */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -806,6 +959,15 @@ export interface operations {
             };
             /** @description Problem Details; `code`: `VALIDATION_REASON_REQUIRED` */
             400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_FORBIDDEN` */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -872,6 +1034,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Problem Details; `code`: `AUTH_FORBIDDEN` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
         };
     };
     ListTenants: {
@@ -898,6 +1069,15 @@ export interface operations {
             };
             /** @description Problem Details; `code`: `VALIDATION_INVALID_QUERY` */
             400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_FORBIDDEN` */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -938,6 +1118,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Problem Details; `code`: `AUTH_FORBIDDEN` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
             /** @description Problem Details; `code`: `TENANT_SLUG_TAKEN` */
             409: {
                 headers: {
@@ -967,6 +1156,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TenantResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_FORBIDDEN` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
             /** @description Problem Details; `code`: `TENANT_NOT_FOUND` */
@@ -1006,6 +1204,15 @@ export interface operations {
             };
             /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST` */
             400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_FORBIDDEN` */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1055,6 +1262,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TenantResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_FORBIDDEN` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
             /** @description Problem Details; `code`: `TENANT_NOT_FOUND` */
@@ -1110,6 +1326,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Problem Details; `code`: `AUTH_FORBIDDEN` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
             /** @description Problem Details; `code`: `TENANT_NOT_FOUND` */
             404: {
                 headers: {
@@ -1152,6 +1377,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TenantResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_FORBIDDEN` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
             /** @description Problem Details; `code`: `TENANT_NOT_FOUND` */
@@ -1207,6 +1441,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Problem Details; `code`: `AUTH_FORBIDDEN` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
             /** @description Problem Details; `code`: `TENANT_NOT_FOUND` */
             404: {
                 headers: {
@@ -1253,6 +1496,15 @@ export interface operations {
             };
             /** @description Problem Details; `code`: `VALIDATION_REASON_REQUIRED` */
             400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_FORBIDDEN` */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
