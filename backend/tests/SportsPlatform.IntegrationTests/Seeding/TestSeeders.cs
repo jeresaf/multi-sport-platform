@@ -23,12 +23,20 @@ public sealed class SeedLog
     /// <summary>Makes the DEMO seeder ask for an owner context.</summary>
     public bool DemoAsksForOwnerContext { get; set; }
 
+    /// <summary>What the DEMO probe seeder does with its context, e.g. run a command.</summary>
+    public Func<SeedContext, CancellationToken, Task>? DemoWork { get; set; }
+
+    /// <summary>What the second REFERENCE seeder does with its context.</summary>
+    public Func<SeedContext, CancellationToken, Task>? ReferenceWork { get; set; }
+
     public void Reset()
     {
         _runs.Clear();
         ProbeCodes = ["UG", "KE"];
         FailingKey = null;
         DemoAsksForOwnerContext = false;
+        DemoWork = null;
+        ReferenceWork = null;
     }
 
     internal void Ran(string key)
@@ -105,7 +113,18 @@ internal abstract class RecordingSeeder(SeedLog log, string key, SeedCategory ca
     }
 }
 
-internal sealed class SecondReferenceSeeder(SeedLog log) : RecordingSeeder(log, "test.reference.second", SeedCategory.Reference, order: 1);
+internal sealed class SecondReferenceSeeder(SeedLog log) : RecordingSeeder(log, "test.reference.second", SeedCategory.Reference, order: 1)
+{
+    public override async Task<SeedOutcome> RunAsync(SeedContext context, CancellationToken cancellationToken)
+    {
+        if (Log.ReferenceWork is { } work)
+        {
+            await work(context, cancellationToken);
+        }
+
+        return await base.RunAsync(context, cancellationToken);
+    }
+}
 
 internal sealed class ConfigurationProbeSeeder(SeedLog log) : RecordingSeeder(log, "test.configuration.probe", SeedCategory.Configuration);
 
@@ -113,13 +132,18 @@ internal sealed class TestProbeSeeder(SeedLog log) : RecordingSeeder(log, "test.
 
 internal sealed class DemoProbeSeeder(SeedLog log) : RecordingSeeder(log, "test.demo.probe", SeedCategory.Demo)
 {
-    public override Task<SeedOutcome> RunAsync(SeedContext context, CancellationToken cancellationToken)
+    public override async Task<SeedOutcome> RunAsync(SeedContext context, CancellationToken cancellationToken)
     {
         if (Log.DemoAsksForOwnerContext)
         {
             context.CreateOwnerContext<ConventionsTestDbContext>();
         }
 
-        return base.RunAsync(context, cancellationToken);
+        if (Log.DemoWork is { } work)
+        {
+            await work(context, cancellationToken);
+        }
+
+        return await base.RunAsync(context, cancellationToken);
     }
 }
