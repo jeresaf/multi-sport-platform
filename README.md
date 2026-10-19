@@ -47,6 +47,9 @@ infrastructure/local/postgres/check-roles.sh      # proves the database roles (s
   `CONFIGURATION`, `DEMO`, `TEST`; lower categories run first, unchanged seeders are skipped). Add `--reset` to drop
   every module schema and migrate again first (Development only, and only a local database). `DEMO` and `TEST` run only in Development,
   Staging and Testing.
+- First platform administrator: `MSP_ADMIN_PASSWORD='<choose one>' dotnet run --project backend/tools/SportsPlatform.Cli --
+  create-platform-admin --email <address>`. The password is read from the environment only (at least 12 characters);
+  there are no default credentials. The command refuses an email that any user already has.
 - CLI environment: `dotnet run` applies the CLI's launch profile, which sets `DOTNET_ENVIRONMENT=Development` and
   overrides the shell's value. To run the CLI as another environment, add `--no-launch-profile`, for example
   `DOTNET_ENVIRONMENT=Staging dotnet run --no-launch-profile --project backend/tools/SportsPlatform.Cli -- migrate`.

@@ -70,6 +70,7 @@ dotnet run --project backend/tools/SportsPlatform.Cli   # lists CLI commands; ru
 DOTNET_ENVIRONMENT=Staging dotnet run --no-launch-profile --project backend/tools/SportsPlatform.Cli -- migrate   # another environment needs --no-launch-profile
 dotnet run --project backend/tools/SportsPlatform.Cli -- migrate   # all module migrations, as sp_migrator
 dotnet run --project backend/tools/SportsPlatform.Cli -- seed --category REFERENCE   # also CONFIGURATION|DEMO|TEST; --reset (Development) drops and re-migrates first
+MSP_ADMIN_PASSWORD='<choose one>' dotnet run --project backend/tools/SportsPlatform.Cli -- create-platform-admin --email <address>   # never a default
 dotnet run backend/tools/reference-data/build-reference-data.cs   # regenerate Platform's reference data files (then seed REFERENCE)
 dotnet run --project backend/tools/SportsPlatform.Cli -- export-catalogues   # docs/generated/{actions,errors,events}.md, contracts/{actions,errors,events}.json
 dotnet run --project backend/tools/SportsPlatform.Cli -- export-openapi      # contracts/openapi.json (Scalar: http://localhost:5080/scalar)

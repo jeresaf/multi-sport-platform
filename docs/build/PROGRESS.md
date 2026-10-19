@@ -7,7 +7,7 @@ at the start of every review.
 
 - **Current slice:** S03 — Identity and access (docs/build/slices/S03-identity-access.md, rewritten by the S02 slice
   review). S00, S01 and S02 are done
-- **Current task:** S03-T1a — Identity module, users, data protection keys, `create-platform-admin` — in progress
+- **Current task:** S03-T1a — Identity module, users, data protection keys, `create-platform-admin` — implemented; next is `/finish-task`
   (T1 split in two, owner 2026-10-19: T1b is `IEmailSender`, the SMTP adapter and the Mailpit test)
 - **Next:** S03-T1b — Email transport
 - **Blocked on:** nothing
@@ -59,6 +59,7 @@ at the start of every review.
 | 2026-10-19 | S02-T5a | #38 | `SeedContext.RunCommandAsync` (DEMO/TEST: a new scope per command, tenant set once, audit begun with source `SYSTEM`; a command that saves nothing throws) and `QueryAsTenantAsync` (reads under a tenant, unaudited); `CreateTenantHandler`/`Tenant.Create` take an optional ID for seeds; DEMO seeder `tenancy.demo.tenants`: KMSA and ELSSC through create → activate → settings update, deterministic IDs, idempotent by slug | Owner (plan): T5 split in two; a scope per command; consent `REQUIRED` and `publicEnabled` beyond the spec's fields. A tenant in another status than `PROVISIONING` keeps it; a changed profile is left alone. Audit entries reach `audit_entries` when the API's outbox processor runs (the CLI only queues them). No new actions, errors, events, migrations or dependencies. Pre-review: create runs without a tenant (#30 R2). #38 N1: the seeded-ID create overload is internal |
 | 2026-10-19 | S02-T5b | #39 | Public app resolves its tenant per request (`lib/site.ts`: host without port → `/site` as `X-Forwarded-Host`, `MSP_API_URL`); `(site)` layout with the tenant's name and footer "<name> · Runs on MSP", "Coming soon"; not-found page (404, unknown host or path), unavailable page (200, `noindex`), API failure thrown (500, digest shown, correlation ID logged); Vitest for the lookup; `pnpm e2e` runs against the real API (`web/e2e/start-api.sh`: build, migrate, seed DEMO, Host in Development) and covers both tenants by host and an unknown host; CI e2e job starts PostgreSQL and .NET and uploads phone/tablet/desktop screenshots, light and dark | Unavailable page 200 + `noindex`, footer wording, screenshots as a CI artifact (owner). Pre-review: API failures are 500s, not-found wording fits unknown paths |
 | 2026-10-19 | S02 slice review | #40 | Docs only: S03 spec rewritten by the reviewer (D1–D18, T1–T6); S02 slice acceptance ticked and slice review note; roadmap S02 ☑; tech debt regrouped (first deployment section, S03 carry-overs with their tasks); open questions Q18 (bearer tokens) and Q19 (multi-factor sign-in) | All S02 acceptance items met on main (109b9c9); owner demo done 2026-10-19 |
+| 2026-10-19 | S03-T1a | — | New module `Identity` (schema `identity`): ASP.NET Core Identity core with `UserOnlyStore` (no roles tables, store never saves by itself), `users` (+ `user_claims`, `user_logins`, `user_tokens`; unique `normalized_email`; contacts tagged `pii` `PRIVATE`), D15 password/lockout options; `platform_role_assignments` shipped early; data protection key ring in `identity.data_protection_keys` (append-only, application name `msp`); CLI `create-platform-admin --email` (password from `MSP_ADMIN_PASSWORD`, audited `platform.admin.create` as `SYSTEM`, prints the ID not the email); CLI applies the Host's `Serilog:MinimumLevel` (no EF SQL); default-credential scan test | T1 split in two; role table early; CLI action audited; existing user refused (owner, plan). `User` lives in `Infrastructure/Users` (Identity's base class is ASP.NET Core, which `Domain/` may not use). Errors beyond the plan: `AUTH_CONCURRENCY_CONFLICT` (every module context needs one), `AUTH_PASSWORD_REJECTED` (T2's, early), `AUTH_USER_EXISTS`. Refusals are not audited (operator console). New packages (MIT): `Microsoft.AspNetCore.Identity.EntityFrameworkCore`, `Microsoft.AspNetCore.DataProtection.EntityFrameworkCore` 10.0.13 |
 
 ## Deviations from spec (agreed)
 
@@ -153,6 +154,10 @@ at the start of every review.
   `status` follows a new tenant domain state machine in state-machines.md; existing tenants are backfilled by a
   post-migration step, not by SQL in the migration. In the plan the owner approved: `/site` has no "public flags" (a
   200 always means visible; T4 adds public visibility settings).
+- **S03-T1** (owner, 2026-10-19): two PRs (T1a Identity module, users, key ring, `create-platform-admin`; T1b email
+  transport). `identity.platform_role_assignments` ships in T1a so the command is complete; the command is audited as
+  the new CLI-only action `platform.admin.create`; an email that any user already has is refused (no role granted to
+  an existing user).
 - **S02-T5:** two PRs (owner, 2026-10-19): T5a seeding and DEMO tenants, T5b public web shell and e2e against the real
   API. `SeedContext` runs each command in its own scope rather than "once in the seeder's scope" (D1 and `AuditScope`
   allow one tenant and one action per scope). The demo tenants also get `minor_registration_consent = REQUIRED`
@@ -196,8 +201,6 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
   PATCH (`UpdateTenantSettingsRequest`) has the same `required` problem; strict-body requests are components named by
   short type name, so two such types with one name would share a schema (S02-T4b pre-review). (T6)
 - shadcn/ui is not initialised yet (ADR-0011); do it with the first real admin UI (S03). `Button` is hand-written. (T6)
-- The CLI logs EF Core commands at Information, so DEMO seeding prints every SQL statement; give the CLI the Host's
-  log levels (S02 owner demo) (T1).
 - Decided: anonymous denials keep one row each; volume limited at the edge and by login/forgot rate limits (S03 D3,
   decides #23 R2) (T2).
 
@@ -207,6 +210,8 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
   in `ForwardedHeaders`). Set `MSP_API_URL` for the public app (default `http://localhost:5080`); without it every
   public page is a 500. After `seed --category DEMO` against a running API, a demo host may stay "unknown" for up to
   60 s (host cache); `pnpm e2e` seeds before it starts the API.
+- **First deployment (S03 D14):** the data protection key ring (`identity.data_protection_keys`) is stored
+  unencrypted; protect it at rest (`ProtectKeysWithAzureKeyVault`) in every deployed environment.
 - **First deployment (ADR-0016 infrastructure task, with Q10):** set `Platform:BaseDomain` and
   `ForwardedHeaders:KnownProxies`/`KnownNetworks` (the public web's server) in each environment. Without proxies,
   forwarding is off and every public request through the web server resolves the API's own host → 404 (S02-T3b
