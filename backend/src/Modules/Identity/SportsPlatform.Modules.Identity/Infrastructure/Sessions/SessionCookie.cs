@@ -35,10 +35,28 @@ public static class SessionCookie
 
     public static IServiceCollection AddSessionCookie(this IServiceCollection services)
     {
-        services.AddAuthentication(Scheme).AddCookie(Scheme);
+        // Identity's security stamp validator also signs out the two-factor "remember me" cookie when a stamp no longer
+        // matches; without a handler for it that sign-out throws. Nothing signs in with it, and it is never the default.
+        services.AddAuthentication(Scheme).AddCookie(Scheme).AddCookie(IdentityConstants.TwoFactorRememberMeScheme, ConfigureUnused);
         services.AddSingleton<IConfigureOptions<CookieAuthenticationOptions>, ConfigureCookie>();
         services.AddSingleton<IConfigureOptions<SecurityStampValidatorOptions>, ConfigureSecurityStamp>();
         return services;
+    }
+
+    // Only ever deleted (see AddSessionCookie): the same cookie rules as the session, so its deletion is too.
+    private static void ConfigureUnused(CookieAuthenticationOptions options)
+    {
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+        options.Cookie.SameSite = SameSiteMode.Strict;
+        options.Events.OnRedirectToLogin = static context => SetStatus(context.Response, StatusCodes.Status401Unauthorized);
+        options.Events.OnRedirectToAccessDenied = static context => SetStatus(context.Response, StatusCodes.Status403Forbidden);
+    }
+
+    private static Task SetStatus(HttpResponse response, int status)
+    {
+        response.StatusCode = status;
+        return Task.CompletedTask;
     }
 
     /// <summary>Past the absolute lifetime, or without a start: signed out, then the security stamp check.</summary>
@@ -95,12 +113,6 @@ public static class SessionCookie
             options.Events.OnRedirectToLogout = static _ => Task.CompletedTask;
             options.Events.OnRedirectToReturnUrl = static _ => Task.CompletedTask;
             options.Events.OnValidatePrincipal = ValidatePrincipalAsync;
-        }
-
-        private static Task SetStatus(HttpResponse response, int status)
-        {
-            response.StatusCode = status;
-            return Task.CompletedTask;
         }
     }
 }
