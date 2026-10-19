@@ -24,7 +24,7 @@ and TRACE carries `X-CSRF: 1`, sign-in included, else `403 AUTH_CSRF_REQUIRED` (
 requests can't set the header, and `SameSite=Strict` keeps the cookie off them anyway.
 
 **Passwords (S03 D15, T2b).** `POST …/password/forgot` always answers `202`; a confirmed account gets an email (through
-the outbox) with a link to the admin web's `/reset-password?token=…` (`Identity:AdminAppUrl`). The token is
+the outbox) with a link to the admin web's `/reset-password?token=…` (`Identity:AdminAppUrl`, https outside Development and Testing). The token is
 `{userId}.{secret}`, lasts 1 hour, works once, and only the newest one works (`AUTH_RESET_TOKEN_INVALID`). `POST
 …/password/reset` sets the new password, signs out every session and clears a lockout; it doesn't sign in. `POST
 …/password/change` needs the current password (wrong: `400 AUTH_CURRENT_PASSWORD_INVALID`, counted toward the lockout)

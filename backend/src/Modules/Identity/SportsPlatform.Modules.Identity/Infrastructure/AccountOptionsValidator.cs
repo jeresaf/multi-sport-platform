@@ -1,10 +1,16 @@
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
 namespace SportsPlatform.Modules.Identity.Infrastructure;
 
-/// <summary>Refuses to start without a usable admin web address or with a rate limit that can't work.</summary>
-public sealed class AccountOptionsValidator : IValidateOptions<AccountOptions>
+/// <summary>
+/// Refuses to start without a usable admin web address or with a rate limit that can't work. Outside Development and
+/// Testing the address must be https: reset links carry the token.
+/// </summary>
+public sealed class AccountOptionsValidator(IHostEnvironment environment) : IValidateOptions<AccountOptions>
 {
+    private const string _testingEnvironment = "Testing";
+
     public ValidateOptionsResult Validate(string? name, AccountOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
@@ -15,6 +21,10 @@ public sealed class AccountOptionsValidator : IValidateOptions<AccountOptions>
             || !string.IsNullOrEmpty(url.Query) || !string.IsNullOrEmpty(url.Fragment))
         {
             failures.Add("Identity:AdminAppUrl must be an absolute http or https address without a query, e.g. https://admin.example.org.");
+        }
+        else if (url.Scheme != Uri.UriSchemeHttps && !environment.IsDevelopment() && !environment.IsEnvironment(_testingEnvironment))
+        {
+            failures.Add("Identity:AdminAppUrl must be https outside Development and Testing: reset links carry the token.");
         }
 
         var limits = options.RateLimits;

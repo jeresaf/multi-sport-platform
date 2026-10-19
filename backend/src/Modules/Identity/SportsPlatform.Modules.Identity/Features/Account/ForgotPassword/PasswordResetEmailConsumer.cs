@@ -11,8 +11,8 @@ namespace SportsPlatform.Modules.Identity.Features.Account.ForgotPassword;
 /// <summary>
 /// Sends the reset email for a <c>PasswordResetRequested</c> (S03 D13). The token's hash is stored through the
 /// consumer's DbContext, which the outbox processor saves after the send: a failed send stores nothing and is retried
-/// with a new token, and a send whose save fails leaves a link that doesn't work, replaced by the retry's. The newest
-/// token wins either way.
+/// with a new token, and a send whose save fails (a sign-in that changed the user meanwhile makes it conflict) leaves a
+/// link that doesn't work: the retry sends a second email, and its token wins. The newest token wins either way.
 /// </summary>
 internal sealed class PasswordResetEmailConsumer(UserManager<User> users, IEmailSender emails, IOptions<AccountOptions> options)
     : IIntegrationEventConsumer<PasswordResetRequested.V1>
