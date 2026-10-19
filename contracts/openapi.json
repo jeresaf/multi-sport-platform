@@ -1550,7 +1550,7 @@
           "Account"
         ],
         "summary": "Sign in",
-        "description": "Signs in with email and password and starts a session: the response sets the session cookie (HttpOnly, SameSite=Strict; 12 hours sliding, 7 days at most). An unknown email, a wrong password, a locked or unconfirmed account all answer `AUTH_INVALID_CREDENTIALS`. Five wrong passwords lock the account for 15 minutes. Needs `X-CSRF: 1` like every other change.",
+        "description": "Signs in with email and password and starts a session: the response sets the session cookie (HttpOnly, SameSite=Strict; 12 hours sliding, 7 days at most). An unknown email, a wrong password, a locked or unconfirmed account all answer `AUTH_INVALID_CREDENTIALS`. Five wrong passwords lock the account for 15 minutes. Limited to 20 attempts a minute per client address and 10 per 15 minutes per email (`AUTH_RATE_LIMITED`, with `Retry-After`). Needs `X-CSRF: 1` like every other change.",
         "operationId": "Login",
         "requestBody": {
           "content": {
@@ -1577,6 +1577,19 @@
             },
             "x-error-codes": [
               "VALIDATION_INVALID_REQUEST"
+            ]
+          },
+          "429": {
+            "description": "Problem Details; `code`: `AUTH_RATE_LIMITED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_RATE_LIMITED"
             ]
           },
           "401": {
@@ -1679,6 +1692,215 @@
             },
             "x-error-codes": [
               "AUTH_UNAUTHENTICATED"
+            ]
+          }
+        }
+      }
+    },
+    "/api/account/v1/password/forgot": {
+      "post": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Ask for a password reset email",
+        "description": "Sends a password reset link to the email if it belongs to an account. Always answers 202, whether or not it does. The link works once, for 1 hour, and only the newest link works. Limited to 10 requests an hour per client address and 3 an hour per email (`AUTH_RATE_LIMITED`, with `Retry-After`). Needs `X-CSRF: 1`.",
+        "operationId": "ForgotPassword",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotPasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted"
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_REQUEST`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_REQUEST"
+            ]
+          },
+          "429": {
+            "description": "Problem Details; `code`: `AUTH_RATE_LIMITED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_RATE_LIMITED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED"
+            ]
+          }
+        }
+      }
+    },
+    "/api/account/v1/password/reset": {
+      "post": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Set a new password with a reset token",
+        "description": "Sets a new password with the token from a reset email's link. The token works once, for 1 hour, and only the newest one works; otherwise `AUTH_RESET_TOKEN_INVALID`. The new password needs at least 12 characters (`AUTH_PASSWORD_REJECTED`, the rule in `detail`). Signs out every session of the user and clears a lockout; it does not sign in. Needs `X-CSRF: 1`.",
+        "operationId": "ResetPassword",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Problem Details; `code`: `AUTH_PASSWORD_REJECTED`, `AUTH_RESET_TOKEN_INVALID`, `VALIDATION_INVALID_REQUEST`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_PASSWORD_REJECTED",
+              "AUTH_RESET_TOKEN_INVALID",
+              "VALIDATION_INVALID_REQUEST"
+            ]
+          },
+          "409": {
+            "description": "Problem Details; `code`: `AUTH_CONCURRENCY_CONFLICT`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CONCURRENCY_CONFLICT"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED"
+            ]
+          }
+        }
+      }
+    },
+    "/api/account/v1/password/change": {
+      "post": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Change the password",
+        "description": "Changes the signed-in user's password. A wrong current password answers `AUTH_CURRENT_PASSWORD_INVALID` and counts toward the lockout (five lock the account for 15 minutes). The new password needs at least 12 characters (`AUTH_PASSWORD_REJECTED`, the rule in `detail`). The user's other sessions end within 5 minutes; this one stays (the response renews its cookie). Needs `X-CSRF: 1`.",
+        "operationId": "ChangePassword",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Problem Details; `code`: `AUTH_CURRENT_PASSWORD_INVALID`, `AUTH_PASSWORD_REJECTED`, `VALIDATION_INVALID_REQUEST`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CURRENT_PASSWORD_INVALID",
+              "AUTH_PASSWORD_REJECTED",
+              "VALIDATION_INVALID_REQUEST"
+            ]
+          },
+          "409": {
+            "description": "Problem Details; `code`: `AUTH_CONCURRENCY_CONFLICT`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CONCURRENCY_CONFLICT"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED"
             ]
           }
         }
@@ -1802,6 +2024,29 @@
           "SYSTEM"
         ],
         "description": "Where the action came from."
+      },
+      "ChangePasswordRequest": {
+        "required": [
+          "currentPassword",
+          "newPassword"
+        ],
+        "type": "object",
+        "properties": {
+          "currentPassword": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "newPassword": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "description": "Change the signed-in user's password."
       },
       "ChangeTenantStatusRequest": {
         "required": [
@@ -1957,6 +2202,22 @@
           }
         },
         "description": "An ISO 4217 currency: alphabetic `code` (`UGX`), numeric code, English name, minor units (UGX 0)."
+      },
+      "ForgotPasswordRequest": {
+        "required": [
+          "email"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "description": "Ask for a password reset email."
       },
       "JsonElement": { },
       "LanguageResponse": {
@@ -2372,6 +2633,29 @@
           }
         },
         "description": "Why the message is re-driven; the audit entry records it (action audit `REQUIRED_WITH_REASON`). Kept permanently\nand not redacted, so it must not contain personal data."
+      },
+      "ResetPasswordRequest": {
+        "required": [
+          "token",
+          "newPassword"
+        ],
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "newPassword": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "description": "Set a new password with the token from a reset email's link."
       },
       "SiteResponse": {
         "required": [
