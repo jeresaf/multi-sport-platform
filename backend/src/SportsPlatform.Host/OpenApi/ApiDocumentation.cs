@@ -31,6 +31,7 @@ public static class ApiDocumentation
             options.AddDocumentTransformer(DescribeDocumentAsync);
             options.AddSchemaTransformer(DescribeProblemDetails);
             options.AddOperationTransformer(ListErrorCodes);
+            options.AddOperationTransformer(DescribeStrictJsonBodyAsync);
         });
         return services;
     }
@@ -151,5 +152,33 @@ public static class ApiDocumentation
         }
 
         return Task.CompletedTask;
+    }
+
+    // The endpoint binds a JsonElement and reads it with StrictJsonBody: show the request it accepts, as a component
+    // like any other body, rather than any JSON.
+    private static async Task DescribeStrictJsonBodyAsync(
+        OpenApiOperation operation, OpenApiOperationTransformerContext context, CancellationToken cancellationToken)
+    {
+        if (context.Description.ActionDescriptor.EndpointMetadata.OfType<StrictJsonBodyMetadata>().SingleOrDefault() is not { } strict
+            || context.Document is not { } document)
+        {
+            return;
+        }
+
+        var name = strict.RequestType.Name;
+        if (document.Components?.Schemas?.ContainsKey(name) != true)
+        {
+            var schema = await context.GetOrCreateSchemaAsync(strict.RequestType, cancellationToken: cancellationToken);
+            document.AddComponent(name, schema);
+        }
+
+        operation.RequestBody = new OpenApiRequestBody
+        {
+            Required = true,
+            Content = new Dictionary<string, OpenApiMediaType>
+            {
+                ["application/json"] = new() { Schema = new OpenApiSchemaReference(name, document) },
+            },
+        };
     }
 }
