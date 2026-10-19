@@ -52,7 +52,12 @@ public sealed class EmailOptionsValidatorTests
     [InlineData("msp", null)]
     [InlineData(null, "from-a-secret-store")]
     public void Refuses_half_a_credential(string? userName, string? password) =>
-        FailureFor(Valid(o => (o.Smtp.UserName, o.Smtp.Password) = (userName, password))).ShouldStartWith("Email:Smtp:UserName");
+        FailureFor(Valid(o => (o.Smtp.UserName, o.Smtp.Password, o.Smtp.Security) = (userName, password, SmtpSecurity.StartTls)))
+            .ShouldStartWith("Email:Smtp:UserName");
+
+    [Fact]
+    public void Refuses_credentials_over_plain_text() =>
+        FailureFor(Valid(o => (o.Smtp.UserName, o.Smtp.Password) = ("msp", "from-a-secret-store"))).ShouldStartWith("Email:Smtp:Security");
 
     [Fact]
     public void Never_echoes_the_configured_values()

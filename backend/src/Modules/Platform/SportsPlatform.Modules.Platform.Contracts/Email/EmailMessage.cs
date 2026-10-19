@@ -10,7 +10,7 @@ namespace SportsPlatform.Modules.Platform.Contracts.Email;
 /// <param name="ToName">The recipient's display name, if known.</param>
 /// <param name="Subject">One line, without personal data beyond what the recipient already knows.</param>
 /// <param name="TextBody">The plain-text body, always sent.</param>
-/// <param name="HtmlBody">An HTML alternative of the same text, if any.</param>
+/// <param name="HtmlBody">An HTML alternative of the same text, if any. HTML-encode every value it interpolates.</param>
 public sealed record EmailMessage(
     [property: PersonalData(PersonalDataClass.Private)] string To,
     [property: PersonalData(PersonalDataClass.Internal)] string? ToName,

@@ -50,6 +50,11 @@ public sealed class EmailOptionsValidator : IValidateOptions<EmailOptions>
             failures.Add("Email:Smtp:UserName and Email:Smtp:Password must be set together.");
         }
 
+        if (!string.IsNullOrEmpty(smtp.UserName) && smtp.Security == SmtpSecurity.None)
+        {
+            failures.Add("Email:Smtp:Security must not be None when credentials are set: they would cross the network in plain text.");
+        }
+
         return failures.Count == 0 ? ValidateOptionsResult.Success : ValidateOptionsResult.Fail(failures);
     }
 }

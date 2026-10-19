@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using DotNet.Testcontainers.Builders;
 using DotNet.Testcontainers.Containers;
 using SportsPlatform.IntegrationTests.Infrastructure;
@@ -9,6 +10,9 @@ public sealed class MailpitFixture : IAsyncLifetime
 {
     private const ushort _smtpPort = 1025;
     private const ushort _apiPort = 8025;
+
+    /// <summary>The only recipient Mailpit accepts; it answers any other with a 550, as a real server would.</summary>
+    public const string AcceptedRecipient = "grace.nakato@kmsa.example";
 
     private IContainer? _container;
 
@@ -26,6 +30,7 @@ public sealed class MailpitFixture : IAsyncLifetime
         _container = new ContainerBuilder(ComposeFile.Image("axllent/mailpit"))
             .WithPortBinding(_smtpPort, assignRandomHostPort: true)
             .WithPortBinding(_apiPort, assignRandomHostPort: true)
+            .WithEnvironment("MP_SMTP_ALLOWED_RECIPIENTS", $"^{Regex.Escape(AcceptedRecipient)}$")
             .WithWaitStrategy(Wait.ForUnixContainer().UntilHttpRequestIsSucceeded(request => request.ForPort(_apiPort).ForPath("/readyz")))
             .Build();
         await _container.StartAsync();

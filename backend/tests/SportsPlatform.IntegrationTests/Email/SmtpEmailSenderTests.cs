@@ -11,7 +11,7 @@ namespace SportsPlatform.IntegrationTests.Email;
 public sealed class SmtpEmailSenderTests(MailpitFixture mailpit) : IClassFixture<MailpitFixture>, IAsyncLifetime
 {
     private static readonly EmailMessage _invitation = new(
-        To: "grace.nakato@kmsa.example",
+        To: MailpitFixture.AcceptedRecipient,
         ToName: "Grace Nakato",
         Subject: "You're invited to Kampala Metro Sports Association",
         TextBody: "Daniel Kato invited you to join Kampala Metro Sports Association as Tenant owner.",
@@ -60,6 +60,22 @@ public sealed class SmtpEmailSenderTests(MailpitFixture mailpit) : IClassFixture
         // Mailpit's SMTP port offers no TLS here: the adapter must not fall back to plain text.
         await Should.ThrowAsync<NotSupportedException>(() => Sender(SmtpSecurity.StartTls).SendAsync(_invitation, Ct));
 
+        (await MessagesAsync()).ShouldBeEmpty();
+        _logger.Entries.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task A_rejected_recipient_fails_without_the_address_in_the_error()
+    {
+        var rejected = _invitation with { To = "brian.ssemakula@kmsa.example", ToName = "Brian Ssemakula" };
+
+        var exception = await Should.ThrowAsync<EmailDeliveryException>(() => Sender(SmtpSecurity.None).SendAsync(rejected, Ct));
+
+        // The outbox logs this exception and stores its message (outbox_messages.last_error).
+        exception.Message.ShouldContain("SmtpCommandException");
+        exception.Message.ShouldNotContain("brian.ssemakula", Case.Insensitive);
+        exception.InnerException.ShouldBeNull();
+        exception.ToString().ShouldNotContain("brian.ssemakula", Case.Insensitive);
         (await MessagesAsync()).ShouldBeEmpty();
         _logger.Entries.ShouldBeEmpty();
     }

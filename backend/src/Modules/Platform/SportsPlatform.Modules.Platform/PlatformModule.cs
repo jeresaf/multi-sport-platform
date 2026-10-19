@@ -29,8 +29,8 @@ using SportsPlatform.Modules.Platform.Seed.Reference;
 namespace SportsPlatform.Modules.Platform;
 
 /// <summary>
-/// Cross-cutting foundations: reference data, audit, seed bookkeeping, transactional email transport, and the host of the outbox processor that
-/// delivers every module's integration events (docs/architecture/modules.md).
+/// Cross-cutting foundations: reference data, audit, seed bookkeeping, transactional email transport, and the host
+/// of the outbox processor that delivers every module's integration events (docs/architecture/modules.md).
 /// </summary>
 public sealed class PlatformModule : IModule
 {
