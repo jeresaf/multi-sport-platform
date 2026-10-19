@@ -1,16 +1,34 @@
 {
   "errors": [
     {
+      "code": "AUTH_CONCURRENCY_CONFLICT",
+      "status": 409,
+      "message": "The account was changed by someone else. Reload and try again.",
+      "owner": "Identity"
+    },
+    {
       "code": "AUTH_FORBIDDEN",
       "status": 403,
       "message": "You are not allowed to perform this action.",
       "owner": "BuildingBlocks"
     },
     {
+      "code": "AUTH_PASSWORD_REJECTED",
+      "status": 400,
+      "message": "The password was rejected: use at least 12 characters.",
+      "owner": "Identity"
+    },
+    {
       "code": "AUTH_TENANT_FORBIDDEN",
       "status": 403,
       "message": "You are not allowed to work in this tenant.",
       "owner": "BuildingBlocks"
+    },
+    {
+      "code": "AUTH_USER_EXISTS",
+      "status": 409,
+      "message": "A user with this email already exists.",
+      "owner": "Identity"
     },
     {
       "code": "PLATFORM_CONCURRENCY_CONFLICT",

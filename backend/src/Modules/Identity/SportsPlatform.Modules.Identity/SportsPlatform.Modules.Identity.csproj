@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\SportsPlatform.BuildingBlocks\SportsPlatform.BuildingBlocks.csproj" />
+    <ProjectReference Include="..\..\..\SportsPlatform.BuildingBlocks.Persistence\SportsPlatform.BuildingBlocks.Persistence.csproj" />
+    <ProjectReference Include="..\SportsPlatform.Modules.Identity.Contracts\SportsPlatform.Modules.Identity.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>

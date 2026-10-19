@@ -46,6 +46,17 @@ public static class TableAccessPolicies
         ["tenancy.tenant_domains"] = TableAccess.ReadWrite,
         ["tenancy.tenant_settings"] = TableAccess.ReadWrite,
 
+        // Identity (S03-T1): global users with Identity's satellite tables, platform roles (revoked rows are kept), and the
+        // data protection key ring (the repository only inserts).
+        ["identity.users"] = TableAccess.ReadWrite,
+        ["identity.user_claims"] = TableAccess.ReadWrite,
+        ["identity.user_logins"] = TableAccess.ReadWrite,
+        ["identity.user_tokens"] = TableAccess.ReadWrite,
+        ["identity.platform_role_assignments"] = TableAccess.ReadWrite,
+        ["identity.data_protection_keys"] = TableAccess.AppendOnly,
+
+        ["identity.outbox_messages"] = TableAccess.ReadWrite,
+        ["identity.inbox_messages"] = TableAccess.ReadWrite,
         ["platform.outbox_messages"] = TableAccess.ReadWrite,
         ["platform.inbox_messages"] = TableAccess.ReadWrite,
         ["tenancy.outbox_messages"] = TableAccess.ReadWrite,
