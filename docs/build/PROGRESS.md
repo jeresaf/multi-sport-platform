@@ -7,16 +7,16 @@ at the start of every review.
 
 - **Current slice:** S02 — Tenancy core and isolation (docs/build/slices/S02-tenancy-core.md, as amended by the
   S01 slice review). S00 and S01 are done
-- **Current task:** S02-T5a — Seeding support and DEMO tenants — in review, PR #38 (branch `s02/t5a-demo-tenants`). Plan approved by
-  the owner (2026-10-19): T5 is two PRs (T5a seeding and DEMO tenants, T5b public web shell and e2e); `SeedContext` runs
-  each command in its own scope (tenant set once, audit begun with source `SYSTEM`); demo tenants also get
-  `minor_registration_consent = REQUIRED` and `publicEnabled`; e2e runs against the real API (T5b)
-- **Next:** S02-T5b — Public web shell and e2e against the real API
+- **Current task:** S02-T5b — Public web shell and e2e against the real API (branch `s02/t5b-public-web-shell`). Plan
+  approved by the owner (2026-10-19): the public app reads the request host and calls `/site` with `X-Forwarded-Host`;
+  an unavailable tenant gets a `200` page with `noindex`; the footer reads "<tenant name> · Runs on MSP"; Playwright
+  starts the real API (migrate and seed DEMO first) and CI uploads phone, tablet and desktop screenshots as an artifact
+- **Next:** S02 slice review
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S02-T5b — Public web shell and e2e against the real API
+1. S02 slice review
 
 ## Log
 
