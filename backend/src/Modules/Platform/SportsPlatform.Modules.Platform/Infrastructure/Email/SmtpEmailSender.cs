@@ -2,6 +2,7 @@ using MailKit.Net.Smtp;
 using MailKit.Security;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using MimeKit;
 using SportsPlatform.Modules.Platform.Contracts.Email;
 
 namespace SportsPlatform.Modules.Platform.Infrastructure.Email;
@@ -17,7 +18,7 @@ public sealed partial class SmtpEmailSender(IOptions<EmailOptions> options, ILog
     public async Task SendAsync(EmailMessage message, CancellationToken cancellationToken)
     {
         var settings = options.Value;
-        using var mime = EmailMimeBuilder.Build(message, settings);
+        using var mime = Build(message, settings);
 
         try
         {
@@ -37,6 +38,20 @@ public sealed partial class SmtpEmailSender(IOptions<EmailOptions> options, ILog
         }
 
         LogSent(mime.MessageId);
+    }
+
+    // Callers pass addresses Identity has validated; if one still doesn't parse, MimeKit's error must not reach the
+    // outbox's log or last_error either.
+    private static MimeMessage Build(EmailMessage message, EmailOptions settings)
+    {
+        try
+        {
+            return EmailMimeBuilder.Build(message, settings);
+        }
+        catch (ParseException exception)
+        {
+            throw EmailDeliveryException.From(exception, messageId: null);
+        }
     }
 
     private static SecureSocketOptions ToSocketOptions(SmtpSecurity security) => security switch

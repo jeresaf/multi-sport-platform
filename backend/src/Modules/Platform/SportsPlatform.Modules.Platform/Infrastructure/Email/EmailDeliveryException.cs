@@ -39,6 +39,7 @@ public sealed class EmailDeliveryException : Exception
         var smtp = exception is SmtpCommandException command
             ? $" (SMTP {(int)command.StatusCode} {command.StatusCode}, {command.ErrorCode})"
             : exception is SocketException socket ? $" ({socket.SocketErrorCode})" : "";
-        return new EmailDeliveryException($"Email {messageId} not delivered: {exception.GetType().Name}{smtp}.");
+        var email = messageId is null ? "Email" : $"Email {messageId}";
+        return new EmailDeliveryException($"{email} not delivered: {exception.GetType().Name}{smtp}.");
     }
 }

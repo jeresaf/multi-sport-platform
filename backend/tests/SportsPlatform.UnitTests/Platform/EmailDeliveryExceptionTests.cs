@@ -1,7 +1,10 @@
 using System.Net.Sockets;
 using MailKit.Net.Smtp;
 using MailKit.Security;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using MimeKit;
+using SportsPlatform.Modules.Platform.Contracts.Email;
 using SportsPlatform.Modules.Platform.Infrastructure.Email;
 
 namespace SportsPlatform.UnitTests.Platform;
@@ -34,6 +37,20 @@ public sealed class EmailDeliveryExceptionTests
         var exception = EmailDeliveryException.From(new SocketException((int)SocketError.ConnectionRefused), _messageId);
 
         exception.Message.ShouldContain(nameof(SocketError.ConnectionRefused));
+    }
+
+    [Fact]
+    public async Task An_address_that_does_not_parse_fails_before_connecting_without_the_address_in_the_error()
+    {
+        var sender = new SmtpEmailSender(
+            Options.Create(new EmailOptions { From = "no-reply@sportsplatform.localhost", Smtp = new SmtpOptions { Host = "smtp.invalid" } }),
+            NullLogger<SmtpEmailSender>.Instance);
+        var message = new EmailMessage("daniel.kato at kmsa.example", "Daniel Kato", "Your KMSA invitation", "Welcome.");
+
+        var exception = await Should.ThrowAsync<EmailDeliveryException>(() => sender.SendAsync(message, TestContext.Current.CancellationToken));
+
+        exception.Message.ShouldBe("Email not delivered: ParseException.");
+        exception.InnerException.ShouldBeNull();
     }
 
     [Fact]
