@@ -76,7 +76,9 @@ personal data), docs/product/pilot-customer.md (people and roles).
 - **D6 — Bearer tokens are deferred (owner to confirm, Q18).** ADR-0005 gives bearer tokens to mobile and API clients;
   the first one is the Flutter scorer (Phase 8) or tenant API keys (PRO, `API_ACCESS`). S03 builds cookies only, so
   the API has one authentication scheme to secure and test. `MapIdentityApi` is not used (its endpoints declare no
-  actions).
+  actions). When bearer tokens arrive, the account endpoints issue them through Identity's bearer scheme
+  (`IdentityConstants.BearerScheme`), not `MapIdentityApi`; that keeps ADR-0005's decision. If the design changes in
+  substance, supersede the ADR then.
 - **D7 — CSRF.** Every non-GET request to `/api/account`, `/api/admin` and `/api/platform` must carry `X-CSRF: 1`,
   else `403 AUTH_CSRF_REQUIRED` — including sign-in (login CSRF). `SameSite=Strict` already blocks cross-site cookies;
   the header is defence in depth and costs one line in the web client.
@@ -98,7 +100,9 @@ personal data), docs/product/pilot-customer.md (people and roles).
   Identity may not reference (AR-02). The Host checks at startup that every code exists in the catalogue and that a role's actions fit its scope (tenant
   roles only `Tenant` actions, platform roles only `Platform` actions); `export-catalogues` writes
   `docs/generated/roles.md` and `contracts/roles.json`, so the catalogue shows who can do what. Assignments store the
-  role code. Custom roles come later.
+  role code. Custom roles come later. ADR-0005's "system roles are seeded" means predefined: defining them in code
+  meets it (the kit's S03 spec said the same). T3 changes authorization.md's heading to "System roles (defined in
+  code; tenant-custom roles later)".
 - **D10 — The evaluator lives in Identity.** `IdentityAuthorizationEvaluator : IAuthorizationEvaluator` replaces
   `DenyAllAuthorizationEvaluator` in the Host (tests keep their own). `AuthorizationRequest` gains the resolved tenant
   and an optional resource scope (`ScopeRef(type, id)`) for the scope-chain step:
@@ -125,7 +129,9 @@ personal data), docs/product/pilot-customer.md (people and roles).
   event with IDs only (S02 D10) and its own consumer loads what it needs, creates the token (invitation token or
   Identity's reset token) and sends. A rolled-back request sends nothing; a failed send is retried by the outbox; a
   retry creates a new token and the newest wins. Plain text plus simple HTML, English (Q7). `Email:From` is
-  configuration (Q10 sets the domain).
+  configuration (Q10 sets the domain). T1 adds to modules.md, Platform **Owns**: "transactional email transport
+  (`IEmailSender` and its adapter)"; Engagement (S21) keeps notification definitions, templates and delivery tracking
+  and sends through it.
 - **D14 — Data protection keys** persist in `identity.data_protection_keys`
   (`Microsoft.AspNetCore.DataProtection.EntityFrameworkCore`, MIT), so cookies and reset tokens survive restarts and
   work on several API instances. Encrypting the key ring at rest (Key Vault) is the infrastructure task's.
