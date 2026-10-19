@@ -164,7 +164,8 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
 - Moving `BuildingBlocks/Modules` to a `BuildingBlocks.Web` project is optional, not planned (reviewer guidance on #13).
 - **Before the first public deployment (S02-T5b):** the public app forwards the `Host` header it receives to `/site`;
   behind a production proxy it must read that proxy's forwarded host instead (and the API must list the app's address
-  in `ForwardedHeaders`). After `seed --category DEMO` against a running API, a demo host may stay "unknown" for up to
+  in `ForwardedHeaders`). Set `MSP_API_URL` for the public app (default `http://localhost:5080`); without it every
+  public page is a 500. After `seed --category DEMO` against a running API, a demo host may stay "unknown" for up to
   60 s (host cache); `pnpm e2e` seeds before it starts the API.
 - **OpenAPI (with the first admin UI client, S03 or later):** optional request members (`version`, PATCH fields) are
   listed as `required` (nullable) in the schemas, so the TS client makes callers pass `null`; endpoints don't declare
