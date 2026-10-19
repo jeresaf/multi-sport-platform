@@ -175,6 +175,8 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
   unauthenticated requests, and update `RequestLoggingTests.Request_is_logged_with_correlation_ID_and_actor` (#17 R1).
 - An authenticated principal without a GUID `sub` is treated as the system actor (S02-T3a: only the test scheme
   authenticates). S03: refuse it with 401 instead, with a test, before any real scheme lands (S02-T3a pre-review).
+- `PROVISIONING` is `FULL` for every member in S02-T3a (no roles yet); state-machines.md gives it only to tenant
+  owners/admins (setup). S03: limit it to them, with a test (#34 R1).
 - `BLOCKED` access mode lets the tenant owner view the tenant's status (state-machines.md); S02-T3a refuses every
   admin request on a blocked tenant because there are no roles yet. S03: the exception for the owner (S02-T3a).
 

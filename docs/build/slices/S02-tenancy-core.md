@@ -295,3 +295,5 @@ for the admin header and `TENANT_BLOCKED` are covered by `TenantResolutionTests`
 startup check also requires `.RunsUnderRouteTenant()` on any platform route with `{tenantId}`. Known trade-off of D8:
 the route tenant is looked up before authorization, so a caller without the action gets 404 for an unknown tenant and
 403 for a known one (tenant IDs are UUIDv7, and the 404 is audited as `FAILURE`).
+Without roles, `PROVISIONING` is `FULL` for every member, not only owners/admins as state-machines.md says, and
+`BLOCKED` refuses the owner too; S03 narrows both (#34 R1).
