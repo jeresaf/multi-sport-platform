@@ -7,15 +7,16 @@ at the start of every review.
 
 - **Current slice:** S02 — Tenancy core and isolation (docs/build/slices/S02-tenancy-core.md, as amended by the
   S01 slice review). S00 and S01 are done
-- **Current task:** S02-T3a — Admin and platform tenant resolution, per-request actor, access mode, AR-21 — in review, PR #34
-  (branch `s02/t3a-tenant-resolution`). T3 is two PRs and `tenant_domains` moved from T4 to T3b (owner, Q17)
-- **Next:** S02-T3b — Public tenant resolution, domains and `/site`
+- **Current task:** S02-T3b — Public tenant resolution, domains and `/site` (branch `s02/t3b-public-tenant-resolution`).
+  Owner (2026-10-19): tenant domains get a state machine (`PENDING_VERIFICATION → ACTIVE → DISABLED`), `tenant_domains`
+  is an RLS coverage exception, existing tenants get their subdomain from a post-migration step
+- **Next:** S02-T4 — Settings
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S02-T3b — Public tenant resolution, domains and `/site`
-2. S02-T4 — Settings
+1. S02-T4 — Settings
+2. S02-T5 — Public web shell and demo tenants
 
 ## Log
 
