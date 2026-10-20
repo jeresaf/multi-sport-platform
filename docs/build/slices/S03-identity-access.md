@@ -418,7 +418,10 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   membership, role and scope (`NULLS NOT DISTINCT`). `ix_tenant_memberships_user_id` doesn't start with `tenant_id`:
   it serves the directory's cross-tenant read by user. `IdentityDirectoryDbContext` maps the two tables as plain row
   types (no tenant filter), refuses to save, and is used only by `Features.Directory`; `IdentityDirectory` is the
-  real `ITenantMembershipChecker` (the Host's `NoTenantMemberships` is gone). Platform service contexts derive from
+  real `ITenantMembershipChecker` (the Host's `NoTenantMemberships` is gone). It reads only the caller's own
+  memberships (no user-ID parameter), and those reads are not audited (owner, pre-review: an exemption from
+  multi-tenancy.md's "audited" for `sp_platform`). Assigning or revoking a role sets the membership's
+  `roles_changed_at`, so concurrent role changes conflict on the membership's `xmin`. Platform service contexts derive from
   `PlatformServiceDbContext`; the architecture test requires each to be listed with its allowed users, and the
   registration test that none is migrated or maps a tenant-owned entity. The evaluator's tenant step reads under the
   request's tenant through `IdentityDbContext`; `IScopeChainProvider` (BuildingBlocks) returns the scopes above a

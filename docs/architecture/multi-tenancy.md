@@ -134,8 +134,9 @@ CREATE POLICY tenant_isolation ON registry.persons
   `TenantIsolationRulesTests` with the namespaces allowed to use it (S03-T4a, #33 N2).
 - **Identity directory (S03-T4a, D8):** `IdentityDirectoryDbContext`, read-only, used only by Identity's
   `Features.Directory`: the membership check above (a request's tenant isn't set yet) and the user's tenants and roles
-  for `GET /api/account/v1/me`. Every query names one user, the caller, so it isn't audited by itself; the request's
-  entry covers it.
+  for `GET /api/account/v1/me`. Every read is of the caller's own memberships (the current actor; no method takes a
+  user ID), so these reads are **not audited**: an exemption from the rule above, agreed by the owner (S03-T4a),
+  because the membership check runs on every admin request.
 - **Audit under RLS (as built, S02-T2b):** `audit.audit_entries` has the `tenant_isolation` policy, so `sp_app` reads
   and inserts its tenant's entries only, and entries without a tenant not at all (they would be a future tenant-facing
   audit view's rows). The writers (`AuditLog` for direct entries, `AuditRecordedConsumer` for entries through a
