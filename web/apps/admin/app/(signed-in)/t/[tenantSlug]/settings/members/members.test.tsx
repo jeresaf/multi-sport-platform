@@ -271,6 +271,79 @@ describe("members & roles", () => {
   });
 });
 
+describe("members & roles: refusals and the owner's own rules", () => {
+  const suspendPath = "POST /api/admin/v1/members/0199a3f0-0000-7000-8000-000000000101/suspend";
+
+  async function suspendBrian() {
+    await screen.findByText(brian.email);
+    openMenu(`Change ${brian.email}`);
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Suspend" }));
+    const dialog = within(await screen.findByRole("dialog"));
+    fireEvent.change(dialog.getByLabelText("Reason"), { target: { value: "Season break" } });
+    fireEvent.click(dialog.getByRole("button", { name: "Suspend" }));
+    return dialog;
+  }
+
+  it("says the member changed since the list was read, and Reload reads it again", async () => {
+    const requests = open(["TENANT_OWNER"], ownerActions, {
+      [suspendPath]: { status: 409, body: problem("AUTH_CONCURRENCY_CONFLICT", 409) },
+    });
+
+    const dialog = await suspendBrian();
+    fireEvent.click(await dialog.findByRole("button", { name: "Reload" }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    await waitFor(() =>
+      expect(requests.filter((request) => request.path === "/api/admin/v1/members").length).toBe(2),
+    );
+  });
+
+  it("reads the list again when the member's status changed meanwhile", async () => {
+    const requests = open(["TENANT_OWNER"], ownerActions, {
+      [suspendPath]: { status: 409, body: problem("AUTH_MEMBERSHIP_TRANSITION_INVALID", 409) },
+    });
+
+    const dialog = await suspendBrian();
+
+    expect(await dialog.findByText(errorMessage("AUTH_MEMBERSHIP_TRANSITION_INVALID")!)).toBeTruthy();
+    await waitFor(() =>
+      expect(requests.filter((request) => request.path === "/api/admin/v1/members").length).toBe(2),
+    );
+  });
+
+  it("offers an owner every change on another owner, the owner role included", async () => {
+    const owner = { ...brian, roles: [role("TENANT_OWNER", 4)] };
+    open(["TENANT_OWNER"], ownerActions, { "GET /api/admin/v1/members": members([owner]) });
+
+    await screen.findByText(brian.email);
+    openMenu(`Change ${brian.email}`);
+    expect(await screen.findByRole("menuitem", { name: "Suspend" })).toBeTruthy();
+    expect(screen.getByRole("menuitem", { name: "Remove" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("menuitem", { name: "Change roles" }));
+    const roles = within(await screen.findByRole("dialog"));
+    expect(roles.getByRole("checkbox", { name: "Tenant owner" }).hasAttribute("disabled")).toBe(false);
+  });
+
+  it("marks the user's own row and says so before they change their own access", async () => {
+    const self = { ...brian, userId: "0199a3f0-0000-7000-8000-000000000001", email: "grace.nakato@kmsa.example" };
+    open(["TENANT_OWNER"], ownerActions, { "GET /api/admin/v1/members": members([self]) });
+
+    const row = (await screen.findByText("You")).closest("tr")!;
+    expect(within(row).getByText(self.email)).toBeTruthy();
+    openMenu(`Change ${self.email}`);
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Remove" }));
+    expect(within(await screen.findByRole("dialog")).getByText("This is you:")).toBeTruthy();
+  });
+
+  it("says when an invitation's email hasn't gone out yet", async () => {
+    open(["TENANT_OWNER"], ownerActions, {
+      "GET /api/admin/v1/invitations": members([{ ...viewerInvitation, emailSentAt: null }]),
+    });
+
+    expect((await screen.findAllByText("Not sent yet")).length).toBe(1);
+  });
+});
+
 describe("revoking an invitation", () => {
   it("sends no If-Match: sending the email changes the version the list read", async () => {
     const requests = open(["TENANT_OWNER"], ownerActions, {

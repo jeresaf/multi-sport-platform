@@ -45,8 +45,9 @@ export function roleChanges(member: Member, chosen: ReadonlySet<string>): RoleCh
 export function RolesDialog({
   member,
   isOwner,
+  isSelf,
   onOpenChange,
-}: Readonly<{ member: Member; isOwner: boolean; onOpenChange: (open: boolean) => void }>) {
+}: Readonly<{ member: Member; isOwner: boolean; isSelf: boolean; onOpenChange: (open: boolean) => void }>) {
   const { client } = useTenantWorkspace();
   const refresh = useRefreshMembership();
   const [chosen, setChosen] = useState(
@@ -117,7 +118,15 @@ export function RolesDialog({
         >
           <DialogHeader>
             <DialogTitle>Roles of {member.email}</DialogTitle>
-            <DialogDescription>Roles given here apply across the whole organisation.</DialogDescription>
+            <DialogDescription>
+              Roles given here apply across the whole organisation.
+              {isSelf ? (
+                <>
+                  {" "}
+                  <strong>These are your own roles:</strong> taking one away takes away what it lets you do here.
+                </>
+              ) : null}
+            </DialogDescription>
           </DialogHeader>
           {isConcurrencyConflict(save.error) ? (
             <ConflictAlert onReload={() => onOpenChange(false)}>{alreadySaved}</ConflictAlert>

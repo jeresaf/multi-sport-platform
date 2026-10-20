@@ -29,6 +29,7 @@ type Filter = "OPEN" | InvitationStatus;
 const filters: readonly { value: Filter; label: string }[] = [
   { value: "OPEN", label: "Pending and expired" },
   { value: "PENDING", label: "Pending" },
+  { value: "EXPIRED", label: "Expired" },
   { value: "ACCEPTED", label: "Accepted" },
   { value: "REVOKED", label: "Revoked" },
 ];
@@ -123,7 +124,7 @@ export function InvitationsSection({ isOwner }: Readonly<{ isOwner: boolean }>) 
               <TableHead>Email</TableHead>
               <TableHead className={wide}>Roles</TableHead>
               <TableHead className={wide}>Status</TableHead>
-              <TableHead className={wide}>Sent</TableHead>
+              <TableHead className={wide}>Email sent</TableHead>
               <TableHead className={wide}>Expires</TableHead>
               <TableHead>
                 <span className="sr-only">Actions</span>
@@ -154,7 +155,10 @@ export function InvitationsSection({ isOwner }: Readonly<{ isOwner: boolean }>) 
                 <TableCell className={wide}>
                   <StatusBadge status={invitation.status} />
                 </TableCell>
-                <TableCell className={wide}>{formatDate(invitation.invitedAt, timeZone)}</TableCell>
+                <TableCell className={wide}>
+                  {/* Set by the outbox once the email has gone out; until then nothing was sent. */}
+                  {invitation.emailSentAt ? formatDate(invitation.emailSentAt, timeZone) : "Not sent yet"}
+                </TableCell>
                 <TableCell className={wide}>
                   {invitation.status === "PENDING" ? formatDate(invitation.expiresAt, timeZone) : "—"}
                 </TableCell>

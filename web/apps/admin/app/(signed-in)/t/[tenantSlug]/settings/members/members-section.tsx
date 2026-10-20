@@ -18,6 +18,7 @@ import { Loading } from "@/components/loading";
 import { ProblemAlert } from "@/components/problem-alert";
 import { SelectField } from "@/components/select-field";
 import { StatusBadge } from "@/components/status-badge";
+import { useMe } from "@/lib/account";
 import { call, isApiProblem } from "@/lib/api";
 import { humanizeCode } from "@/lib/codes";
 import { ifMatch } from "@/lib/concurrency";
@@ -40,6 +41,8 @@ const changes: Readonly<
       description: string;
       withReason: boolean;
       destructive: boolean;
+      /** Said when the member is the user themself. */
+      self: string;
     }
   >
 > = {
@@ -52,6 +55,7 @@ const changes: Readonly<
       "They can't open this organisation until they are restored. They keep their roles, and the invitations they sent and that are still pending are revoked.",
     withReason: true,
     destructive: true,
+    self: "you lose access to this organisation as soon as you confirm, until someone restores you.",
   },
   restore: {
     action: "membership.restore",
@@ -61,6 +65,7 @@ const changes: Readonly<
     description: "They can open this organisation again with the roles they had.",
     withReason: false,
     destructive: false,
+    self: "you get your access back.",
   },
   remove: {
     action: "membership.remove",
@@ -71,6 +76,7 @@ const changes: Readonly<
       "They lose access to this organisation for good; to come back they need a new invitation. The invitations they sent and that are still pending are revoked.",
     withReason: true,
     destructive: true,
+    self: "you lose access to this organisation for good as soon as you confirm.",
   },
 };
 
@@ -81,7 +87,7 @@ const wide = "hidden tablet:table-cell";
 
 function StatusReason({ member }: Readonly<{ member: Member }>) {
   return member.statusReason ? (
-    <p className="mt-1 max-w-56 truncate text-sm text-muted-foreground" title={member.statusReason}>
+    <p className="mt-1 max-w-64 text-sm break-words whitespace-normal text-muted-foreground">
       {member.statusReason}
     </p>
   ) : null;
@@ -107,6 +113,7 @@ function RoleBadges({ member }: Readonly<{ member: Member }>) {
 export function MembersSection({ isOwner }: Readonly<{ isOwner: boolean }>) {
   const { client, can } = useTenantWorkspace();
   const refresh = useRefreshMembership();
+  const myUserId = useMe().data?.id;
   const timeZone = useTenantTimeZone();
   const [status, setStatus] = useState<MembershipStatus>("ACTIVE");
   const members = useMembers(status);
@@ -205,8 +212,11 @@ export function MembersSection({ isOwner }: Readonly<{ isOwner: boolean }>) {
               return (
                 <TableRow key={member.membershipId}>
                   <TableCell className="max-w-56 tablet:max-w-64">
-                    <p className="truncate font-medium" title={member.email}>
-                      {member.email}
+                    <p className="flex min-w-0 items-center gap-2 font-medium">
+                      <span className="truncate" title={member.email}>
+                        {member.email}
+                      </span>
+                      {member.userId === myUserId ? <Badge variant="secondary">You</Badge> : null}
                     </p>
                     {/* On a phone the roles and status sit under the email instead of in their own columns. */}
                     <div className="mt-2 grid gap-2 tablet:hidden">
@@ -268,13 +278,28 @@ export function MembersSection({ isOwner }: Readonly<{ isOwner: boolean }>) {
         </Button>
       ) : null}
 
-      {rolesOf ? <RolesDialog member={rolesOf} isOwner={isOwner} onOpenChange={() => setRolesOf(null)} /> : null}
+      {rolesOf ? (
+        <RolesDialog
+          member={rolesOf}
+          isOwner={isOwner}
+          isSelf={rolesOf.userId === myUserId}
+          onOpenChange={() => setRolesOf(null)}
+        />
+      ) : null}
       {pending && open ? (
         <ActionDialog
           open
           onOpenChange={(next) => (next ? null : setPending(null))}
           title={open.title(pending.member.email)}
-          description={open.description}
+          description={
+            pending.member.userId === myUserId ? (
+              <>
+                {open.description} <strong>This is you:</strong> {open.self}
+              </>
+            ) : (
+              open.description
+            )
+          }
           confirmLabel={open.label}
           destructive={open.destructive}
           withReason={open.withReason}
