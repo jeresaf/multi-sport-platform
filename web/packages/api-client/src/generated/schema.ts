@@ -288,6 +288,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/v1/invitations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the tenant's invitations
+         * @description The invitations of the tenant named by `X-Tenant-Id`, oldest first, with their email, roles and status. Filter by `status` (PENDING, EXPIRED, ACCEPTED or REVOKED); without it, the ones still pending, expired ones included. `limit` is 1–100 (25). Every page read is audited.
+         */
+        get: operations["ListInvitations"];
+        put?: never;
+        /**
+         * Invite a person to the tenant
+         * @description Invites `email` to join the tenant named by `X-Tenant-Id` with `roleCodes` (tenant roles, tenant-wide). Only an owner invites with TENANT_OWNER. A person who is already a member (active or suspended) can't be invited. The invitation lasts 7 days; the email with its link goes out shortly after (one link at a time: a resent email's link replaces the earlier one). A pending invitation to the same email is revoked and replaced.
+         */
+        post: operations["InviteMember"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/invitations/{invitationId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get an invitation
+         * @description An invitation of the tenant named by `X-Tenant-Id`, with its email, roles, status and `version` (also the `ETag`).
+         */
+        get: operations["GetInvitation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/invitations/{invitationId}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revoke an invitation
+         * @description PENDING → REVOKED: the invitation's link stops working. An accepted, revoked or expired invitation can't be revoked. The body is optional. Returns the invitation. Send `version` or `If-Match` from the last read to get 409 AUTH_CONCURRENCY_CONFLICT if the invitation changed since.
+         */
+        post: operations["RevokeInvitation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/platform/v1/diagnostics/outbox": {
         parameters: {
             query?: never;
@@ -342,6 +406,26 @@ export interface paths {
         get: operations["ListAuditEntries"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/v1/tenants/{tenantId}/owner-invitations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Invite a tenant's owner
+         * @description Invites `email` to join the tenant as TENANT_OWNER, in any status (usually PROVISIONING, before it is activated). A person who is already a member can't be invited. The invitation lasts 7 days; the email with its link goes out shortly after (one link at a time: a resent email's link replaces the earlier one). A pending invitation to the same email is revoked and replaced.
+         */
+        post: operations["InviteTenantOwner"];
         delete?: never;
         options?: never;
         head?: never;
@@ -740,6 +824,45 @@ export interface components {
         ForgotPasswordRequest: {
             email: null | string;
         };
+        /**
+         * @description An invitation as the admin API shows it. `status` is `EXPIRED` for a pending one past `expiresAt`. The
+         *     email is shown to every holder of `membership.read`, like a member's (owner, S03-T4b), and never logged or
+         *     audited. `version` (also the `ETag`) changes whenever the invitation does, a resent email included.
+         */
+        InvitationResponse: {
+            /** Format: uuid */
+            invitationId: string;
+            email: string;
+            roleCodes: string[];
+            status: components["schemas"]["InvitationState"];
+            /** Format: uuid */
+            invitedBy: string;
+            /** Format: date-time */
+            invitedAt: string;
+            /** Format: date-time */
+            expiresAt: string;
+            /** Format: date-time */
+            emailSentAt: null | string;
+            /** Format: date-time */
+            revokedAt: null | string;
+            /** Format: uint32 */
+            version: number;
+        };
+        /**
+         * @description An invitation as people see it: the stored status, with InvitationState.Expired derived from a pending invitation's
+         *     `expires_at` (S03 D12). Never stored.
+         * @enum {unknown}
+         */
+        InvitationState: "PENDING" | "EXPIRED" | "ACCEPTED" | "REVOKED";
+        /** @description Invite a person to the tenant: their email and the tenant roles they get, tenant-wide. */
+        InviteMemberRequest: {
+            email: null | string;
+            roleCodes: null | string[];
+        };
+        /** @description Invite a tenant's owner (platform console). */
+        InviteOwnerRequest: {
+            email: null | string;
+        };
         JsonElement: unknown;
         /** @description An ISO 639-1 language: two-letter `code` (`sw`) and English name. */
         LanguageResponse: {
@@ -755,6 +878,10 @@ export interface components {
         };
         ListCurrenciesResponse: {
             items: components["schemas"]["CurrencyResponse"][];
+        };
+        ListInvitationsResponse: {
+            items: components["schemas"]["InvitationResponse"][];
+            page: components["schemas"]["PageInfo"];
         };
         ListLanguagesResponse: {
             items: components["schemas"]["LanguageResponse"][];
@@ -911,6 +1038,11 @@ export interface components {
         ResetPasswordRequest: {
             token: null | string;
             newPassword: null | string;
+        };
+        /** @description The optional body of `revoke`: `version`, when sent, must be the invitation's current one. */
+        RevokeInvitationRequest: {
+            /** Format: uint32 */
+            version: null | number;
         };
         /** @description The optional body of `revoke`: `version`, when sent, must be the membership's current one. */
         RevokeRoleRequest: {
@@ -1794,6 +1926,228 @@ export interface operations {
             };
         };
     };
+    ListInvitations: {
+        parameters: {
+            query?: {
+                status?: string;
+                limit?: string;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListInvitationsResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_QUERY` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    InviteMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InviteMemberRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitationResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_ROLE_NOT_ASSIGNABLE`, `VALIDATION_INVALID_REQUEST` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_OWNER_REQUIRED`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_ALREADY_MEMBER`, `AUTH_CONCURRENCY_CONFLICT` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetInvitation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invitationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitationResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_INVITATION_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    RevokeInvitation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invitationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["RevokeInvitationRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitationResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_INVITATION_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CONCURRENCY_CONFLICT`, `AUTH_INVITATION_TRANSITION_INVALID` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     ListOutboxMessages: {
         parameters: {
             query?: {
@@ -1968,6 +2322,77 @@ export interface operations {
             };
             /** @description Problem Details; `code`: `AUTH_FORBIDDEN` */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    InviteTenantOwner: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenantId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InviteOwnerRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitationResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TENANT_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_ALREADY_MEMBER`, `AUTH_CONCURRENCY_CONFLICT` */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

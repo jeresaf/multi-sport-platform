@@ -81,6 +81,21 @@
       ]
     },
     {
+      "name": "InvitationIssued",
+      "version": 1,
+      "module": "Identity",
+      "payload": [
+        {
+          "name": "invitationId",
+          "type": "uuid",
+          "nullable": false
+        }
+      ],
+      "consumers": [
+        "identity.invitation_email"
+      ]
+    },
+    {
       "name": "PasswordResetRequested",
       "version": 1,
       "module": "Identity",
