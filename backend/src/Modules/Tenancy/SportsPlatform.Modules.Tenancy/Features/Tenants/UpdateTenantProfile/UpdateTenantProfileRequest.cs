@@ -8,11 +8,11 @@ namespace SportsPlatform.Modules.Tenancy.Features.Tenants.UpdateTenantProfile;
 /// </summary>
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record UpdateTenantProfileRequest(
-    string? LegalName,
-    string? DisplayName,
-    string? CountryCode,
-    string? TimeZone,
-    string? DefaultLocale,
-    string? CurrencyCode,
-    bool? PublicEnabled,
-    uint? Version);
+    string? LegalName = null,
+    string? DisplayName = null,
+    string? CountryCode = null,
+    string? TimeZone = null,
+    string? DefaultLocale = null,
+    string? CurrencyCode = null,
+    bool? PublicEnabled = null,
+    uint? Version = null);

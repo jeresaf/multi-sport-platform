@@ -18,6 +18,8 @@ internal static class AssignRoleEndpoint
             "is TENANT (the default) until competitions, teams and contests exist. Only an owner grants TENANT_OWNER. " +
             $"Returns the member. {MemberEndpoints.VersionNote}")
         .RequireAction(IdentityActions.RoleAssign)
+        .AcceptsIfMatch()
+        .ReturnsETag()
         .ValidateRequest<AssignRoleRequest>(CommonErrors.InvalidRequest)
         .ProducesErrors(
             IdentityErrors.MembershipNotFound, IdentityErrors.RoleNotAssignable, IdentityErrors.RoleAlreadyAssigned,

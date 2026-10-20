@@ -9,10 +9,10 @@ namespace SportsPlatform.Modules.Tenancy.Features.Settings.UpdateTenantSettings;
 /// </summary>
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record UpdateTenantSettingsRequest(
-    string? TimeZone,
-    string? DefaultLocale,
-    string? CurrencyCode,
-    bool? PublicEnabled,
-    int? StartingSoonMinutes,
-    MinorRegistrationConsent? MinorRegistrationConsent,
-    uint? Version);
+    string? TimeZone = null,
+    string? DefaultLocale = null,
+    string? CurrencyCode = null,
+    bool? PublicEnabled = null,
+    int? StartingSoonMinutes = null,
+    MinorRegistrationConsent? MinorRegistrationConsent = null,
+    uint? Version = null);

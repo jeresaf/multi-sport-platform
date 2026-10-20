@@ -17,6 +17,8 @@ internal static class RevokeInvitationEndpoint
             "revoked; only an owner revokes one with TENANT_OWNER. Sending its email changes its version, so a revoke " +
             $"may get 409 once while the email goes out. The body is optional. Returns the invitation. {InvitationEndpoints.VersionNote}")
         .RequireAction(IdentityActions.InvitationRevoke)
+        .AcceptsIfMatch()
+        .ReturnsETag()
         .ProducesErrors(IdentityErrors.InvitationNotFound, IdentityErrors.InvitationTransitionInvalid, IdentityErrors.OwnerRequired,
             IdentityErrors.ConcurrencyConflict);
 

@@ -24,6 +24,8 @@ internal static class UpdateTenantSettingsEndpoint
             "overwriting someone else's change; `If-Match` with the `ETag` works the same way (if both are sent, both " +
             "must match).")
         .RequireAction(TenancyActions.TenantSettingsUpdate)
+        .AcceptsIfMatch()
+        .ReturnsETag()
         .AcceptsStrictJson<UpdateTenantSettingsRequest>()
         .ProducesErrors(CommonErrors.InvalidRequest, TenancyErrors.ConcurrencyConflict);
 

@@ -16,6 +16,8 @@ internal static class RevokeRoleEndpoint
             "Revokes an active role assignment of the member; it is kept as history. Only an owner revokes TENANT_OWNER, " +
             $"and the last active owner keeps it. The body is optional. Returns the member. {MemberEndpoints.VersionNote}")
         .RequireAction(IdentityActions.RoleRevoke)
+        .AcceptsIfMatch()
+        .ReturnsETag()
         .ProducesErrors(
             IdentityErrors.MembershipNotFound, IdentityErrors.RoleAssignmentNotFound, IdentityErrors.MembershipTransitionInvalid,
             IdentityErrors.OwnerRequired, IdentityErrors.LastOwner, IdentityErrors.ConcurrencyConflict);

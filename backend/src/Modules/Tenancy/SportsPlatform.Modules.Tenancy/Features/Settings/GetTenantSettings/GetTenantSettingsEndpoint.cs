@@ -13,7 +13,8 @@ internal static class GetTenantSettingsEndpoint
         .WithName("GetTenantSettings")
         .WithSummary("Get the tenant's settings")
         .WithDescription("The settings of the tenant named by `X-Tenant-Id`, with their `version` (also the `ETag`).")
-        .RequireAction(TenancyActions.TenantSettingsRead);
+        .RequireAction(TenancyActions.TenantSettingsRead)
+        .ReturnsETag();
 
     private static async Task<Ok<TenantSettingsResponse>> HandleAsync(
         GetTenantSettingsHandler handler,

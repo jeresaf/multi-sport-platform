@@ -14,6 +14,7 @@ internal static class GetInvitationEndpoint
         .WithSummary("Get an invitation")
         .WithDescription("An invitation of the tenant named by `X-Tenant-Id`, with its email, roles, status and `version` (also the `ETag`).")
         .RequireAction(IdentityActions.MembershipRead)
+        .ReturnsETag()
         .ProducesErrors(IdentityErrors.InvitationNotFound);
 
     private static async Task<Results<Ok<InvitationResponse>, ProblemHttpResult>> HandleAsync(

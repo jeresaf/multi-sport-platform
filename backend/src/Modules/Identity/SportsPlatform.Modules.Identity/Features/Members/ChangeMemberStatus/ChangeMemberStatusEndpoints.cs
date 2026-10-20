@@ -36,6 +36,8 @@ internal static class ChangeMemberStatusEndpoints
             .WithSummary("Restore a suspended member")
             .WithDescription($"SUSPENDED → ACTIVE, with the roles the member held. The body is optional. {MemberEndpoints.VersionNote}")
             .RequireAction(IdentityActions.MembershipRestore)
+            .AcceptsIfMatch()
+            .ReturnsETag()
             .ProducesErrors(_errors);
         MapWithReason(members, "remove", MemberTransition.Remove, IdentityActions.MembershipRemove, "RemoveMember",
             "Remove a member", "ACTIVE or SUSPENDED → REMOVED, with a reason. Final: rejoining needs a new invitation.");
@@ -56,6 +58,8 @@ internal static class ChangeMemberStatusEndpoints
         .WithDescription($"{description} Only an owner changes an owner, and the last active owner can't be suspended or removed. " +
             $"The body `{{ \"reason\": … }}` is required. {_reasonNote} {MemberEndpoints.VersionNote}")
         .RequireAction(action)
+        .AcceptsIfMatch()
+        .ReturnsETag()
         .ValidateRequest<ChangeMemberStatusWithReasonRequest>(CommonErrors.ReasonRequired)
         .ProducesErrors(_errors);
 

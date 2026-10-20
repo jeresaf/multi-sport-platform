@@ -20,6 +20,8 @@ internal static class UpdateTenantProfileEndpoint
             "works the same way (if both are sent, both must match). The version is the tenant row's only: a settings " +
             "change made since your read (here or through the admin settings endpoint) is not detected.")
         .RequireAction(TenancyActions.TenantUpdate)
+        .AcceptsIfMatch()
+        .ReturnsETag()
         .RunsUnderRouteTenant()
         .ValidateRequest<UpdateTenantProfileRequest>(CommonErrors.InvalidRequest)
         .ProducesErrors(TenancyErrors.NotFound, TenancyErrors.ConcurrencyConflict);

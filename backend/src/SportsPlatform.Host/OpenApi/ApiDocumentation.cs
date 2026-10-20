@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OpenApi;
+using Microsoft.Net.Http.Headers;
 using Microsoft.OpenApi;
 using Scalar.AspNetCore;
 using SportsPlatform.BuildingBlocks.Api;
@@ -32,6 +33,7 @@ public static class ApiDocumentation
             options.AddSchemaTransformer(DescribeProblemDetails);
             options.AddOperationTransformer(ListErrorCodes);
             options.AddOperationTransformer(DescribeStrictJsonBodyAsync);
+            options.AddOperationTransformer(DescribeRowVersionHeaders);
         });
         return services;
     }
@@ -180,5 +182,43 @@ public static class ApiDocumentation
                 ["application/json"] = new() { Schema = new OpenApiSchemaReference(name, document) },
             },
         };
+    }
+
+    // RowVersionEndpointExtensions: the precondition a change takes and the tag a read or change returns.
+    private static Task DescribeRowVersionHeaders(
+        OpenApiOperation operation, OpenApiOperationTransformerContext context, CancellationToken cancellationToken)
+    {
+        var metadata = context.Description.ActionDescriptor.EndpointMetadata;
+        if (metadata.OfType<AcceptsIfMatchMetadata>().Any())
+        {
+            operation.Parameters ??= [];
+            operation.Parameters.Add(new OpenApiParameter
+            {
+                Name = HeaderNames.IfMatch,
+                In = ParameterLocation.Header,
+                Required = false,
+                Description = "The `ETag` of the last read (or `*`). If the resource changed since, the change fails with " +
+                    "409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too.",
+                Schema = new OpenApiSchema { Type = JsonSchemaType.String },
+            });
+        }
+
+        if (metadata.OfType<ReturnsETagMetadata>().Any() && operation.Responses is not null)
+        {
+            foreach (var (_, response) in operation.Responses.Where(r => r.Key.StartsWith('2')))
+            {
+                if (response is OpenApiResponse openApiResponse)
+                {
+                    openApiResponse.Headers ??= new Dictionary<string, IOpenApiHeader>();
+                    openApiResponse.Headers[HeaderNames.ETag] = new OpenApiHeader
+                    {
+                        Description = "The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`.",
+                        Schema = new OpenApiSchema { Type = JsonSchemaType.String },
+                    };
+                }
+            }
+        }
+
+        return Task.CompletedTask;
     }
 }

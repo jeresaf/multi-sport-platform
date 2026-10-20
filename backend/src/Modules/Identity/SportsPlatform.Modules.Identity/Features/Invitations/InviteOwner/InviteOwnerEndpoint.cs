@@ -19,6 +19,7 @@ internal static class InviteOwnerEndpoint
             "Invites `email` to join the tenant as TENANT_OWNER, usually while it is PROVISIONING; an ARCHIVED tenant is refused. " +
             $"A person who is already a member can't be invited. {InvitationEndpoints.InviteNote}")
         .RequireAction(IdentityActions.TenantOwnerInvite)
+        .ReturnsETag()
         .RunsUnderRouteTenant()
         .ValidateRequest<InviteOwnerRequest>(CommonErrors.InvalidRequest)
         .ProducesErrors(IdentityErrors.TenantArchived, IdentityErrors.AlreadyMember, IdentityErrors.ConcurrencyConflict);
