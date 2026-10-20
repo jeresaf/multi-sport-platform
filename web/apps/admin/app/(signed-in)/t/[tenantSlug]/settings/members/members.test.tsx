@@ -103,7 +103,7 @@ describe("members & roles", () => {
     open(["VIEWER"], ["membership.read"]);
 
     expect(await screen.findByText(brian.email)).toBeTruthy();
-    expect(screen.getByText("Registrar")).toBeTruthy();
+    expect(screen.getAllByText("Registrar").length).toBeGreaterThan(0);
     expect(await screen.findByText(viewerInvitation.email)).toBeTruthy();
     expect(screen.queryByRole("button", { name: `Change ${brian.email}` })).toBeNull();
     expect(screen.queryByRole("button", { name: "Invite someone" })).toBeNull();
@@ -228,6 +228,25 @@ describe("members & roles", () => {
       roleCodes: ["VIEWER"],
     });
     expect(dialog.queryByText("That didn't work")).toBeNull();
+  });
+});
+
+describe("revoking an invitation", () => {
+  it("sends no If-Match: sending the email changes the version the list read", async () => {
+    const requests = open(["TENANT_OWNER"], ownerActions, {
+      [`POST /api/admin/v1/invitations/${viewerInvitation.invitationId}/revoke`]: {
+        status: 200,
+        body: { ...viewerInvitation, status: "REVOKED", version: 3 },
+      },
+    });
+
+    fireEvent.click(await screen.findByRole("button", { name: `Revoke the invitation to ${viewerInvitation.email}` }));
+    fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Revoke" }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    const revoke = requests.find((request) => request.path.endsWith("/revoke"))!;
+    expect(revoke.headers.get("If-Match")).toBeNull();
+    expect(revoke.headers.get("X-CSRF")).toBe("1");
   });
 });
 

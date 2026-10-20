@@ -76,6 +76,25 @@ const changes: Readonly<
 
 const statusFilters: readonly MembershipStatus[] = ["ACTIVE", "SUSPENDED", "REMOVED"];
 
+/** Columns shown from tablet width up. */
+const wide = "hidden tablet:table-cell";
+
+function RoleBadges({ member }: Readonly<{ member: Member }>) {
+  if (member.roles.length === 0) {
+    return <span className="text-muted-foreground">No roles</span>;
+  }
+  return (
+    <div className="flex flex-wrap gap-1">
+      {member.roles.map((role) => (
+        <Badge key={role.assignmentId} variant="outline">
+          {humanizeCode(role.roleCode)}
+          {role.scopeType === "TENANT" ? null : ` (${humanizeCode(role.scopeType).toLowerCase()})`}
+        </Badge>
+      ))}
+    </div>
+  );
+}
+
 /** The tenant's members: their tenant-wide roles and status, and the changes the user's capabilities allow. */
 export function MembersSection({ isOwner }: Readonly<{ isOwner: boolean }>) {
   const { client, can } = useTenantWorkspace();
@@ -125,7 +144,7 @@ export function MembersSection({ isOwner }: Readonly<{ isOwner: boolean }>) {
         <div className="w-48">
           <SelectField
             id="member-status"
-            label="Show"
+            label="Members to show"
             value={status}
             onChange={(event) => setStatus(event.target.value as MembershipStatus)}
           >
@@ -150,9 +169,9 @@ export function MembersSection({ isOwner }: Readonly<{ isOwner: boolean }>) {
           <TableHeader>
             <TableRow>
               <TableHead>Email</TableHead>
-              <TableHead>Roles</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Joined</TableHead>
+              <TableHead className={wide}>Roles</TableHead>
+              <TableHead className={wide}>Status</TableHead>
+              <TableHead className={wide}>Joined</TableHead>
               <TableHead>
                 <span className="sr-only">Actions</span>
               </TableHead>
@@ -164,24 +183,20 @@ export function MembersSection({ isOwner }: Readonly<{ isOwner: boolean }>) {
               const rolesEditable = canChangeRoles && member.status !== "REMOVED";
               return (
                 <TableRow key={member.membershipId}>
-                  <TableCell className="max-w-64 truncate font-medium" title={member.email}>
-                    {member.email}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      {member.roles.length === 0 ? (
-                        <span className="text-muted-foreground">No roles</span>
-                      ) : (
-                        member.roles.map((role) => (
-                          <Badge key={role.assignmentId} variant="outline">
-                            {humanizeCode(role.roleCode)}
-                            {role.scopeType === "TENANT" ? null : ` (${humanizeCode(role.scopeType).toLowerCase()})`}
-                          </Badge>
-                        ))
-                      )}
+                  <TableCell className="max-w-56 tablet:max-w-64">
+                    <p className="truncate font-medium" title={member.email}>
+                      {member.email}
+                    </p>
+                    {/* On a phone the roles and status sit under the email instead of in their own columns. */}
+                    <div className="mt-2 grid gap-2 tablet:hidden">
+                      <RoleBadges member={member} />
+                      <StatusBadge status={member.status} />
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className={wide}>
+                    <RoleBadges member={member} />
+                  </TableCell>
+                  <TableCell className={wide}>
                     <StatusBadge status={member.status} />
                     {member.statusReason ? (
                       <p className="mt-1 max-w-56 truncate text-sm text-muted-foreground" title={member.statusReason}>
@@ -189,7 +204,7 @@ export function MembersSection({ isOwner }: Readonly<{ isOwner: boolean }>) {
                       </p>
                     ) : null}
                   </TableCell>
-                  <TableCell>{formatDate(member.joinedAt, timeZone)}</TableCell>
+                  <TableCell className={wide}>{formatDate(member.joinedAt, timeZone)}</TableCell>
                   <TableCell className="text-right">
                     {actions.length > 0 || rolesEditable ? (
                       <DropdownMenu>

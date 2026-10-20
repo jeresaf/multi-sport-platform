@@ -13,7 +13,6 @@ import { SelectField } from "@/components/select-field";
 import { StatusBadge } from "@/components/status-badge";
 import { call } from "@/lib/api";
 import { humanizeCode } from "@/lib/codes";
-import { ifMatch } from "@/lib/concurrency";
 import { formatDate, useTenantTimeZone } from "@/lib/tenant-settings";
 import { useTenantWorkspace } from "@/lib/tenant-workspace";
 import { InviteDialog } from "./invite-dialog";
@@ -34,6 +33,9 @@ const filters: readonly { value: Filter; label: string }[] = [
   { value: "REVOKED", label: "Revoked" },
 ];
 
+/** Columns shown from tablet width up. */
+const wide = "hidden tablet:table-cell";
+
 /** Invitations: who was asked to join with which roles, inviting someone, and revoking a pending invitation. */
 export function InvitationsSection({ isOwner }: Readonly<{ isOwner: boolean }>) {
   const { client, can } = useTenantWorkspace();
@@ -45,10 +47,13 @@ export function InvitationsSection({ isOwner }: Readonly<{ isOwner: boolean }>) 
   const [revoking, setRevoking] = useState<Invitation | null>(null);
 
   const revoke = useMutation({
+    // No If-Match: sending the email (the outbox, moments after the invitation) changes its version, so a version
+    // read with the list would refuse the revoke as if someone had changed it. The state machine still refuses an
+    // invitation that was accepted or revoked meanwhile (409 AUTH_INVITATION_TRANSITION_INVALID).
     mutationFn: (invitation: Invitation) =>
       call(
         client.POST("/api/admin/v1/invitations/{invitationId}/revoke", {
-          params: { path: { invitationId: invitation.invitationId }, header: ifMatch(invitation.version) },
+          params: { path: { invitationId: invitation.invitationId } },
         }),
       ),
     onSuccess: async () => {
@@ -74,7 +79,7 @@ export function InvitationsSection({ isOwner }: Readonly<{ isOwner: boolean }>) 
           <div className="w-56">
             <SelectField
               id="invitation-status"
-              label="Show"
+              label="Invitations to show"
               value={filter}
               onChange={(event) => setFilter(event.target.value as Filter)}
             >
@@ -106,10 +111,10 @@ export function InvitationsSection({ isOwner }: Readonly<{ isOwner: boolean }>) 
           <TableHeader>
             <TableRow>
               <TableHead>Email</TableHead>
-              <TableHead>Roles</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Sent</TableHead>
-              <TableHead>Expires</TableHead>
+              <TableHead className={wide}>Roles</TableHead>
+              <TableHead className={wide}>Status</TableHead>
+              <TableHead className={wide}>Sent</TableHead>
+              <TableHead className={wide}>Expires</TableHead>
               <TableHead>
                 <span className="sr-only">Actions</span>
               </TableHead>
@@ -118,15 +123,24 @@ export function InvitationsSection({ isOwner }: Readonly<{ isOwner: boolean }>) 
           <TableBody>
             {rows.map((invitation) => (
               <TableRow key={invitation.invitationId}>
-                <TableCell className="max-w-64 truncate font-medium" title={invitation.email}>
-                  {invitation.email}
+                <TableCell className="max-w-56 tablet:max-w-64">
+                  <p className="truncate font-medium" title={invitation.email}>
+                    {invitation.email}
+                  </p>
+                  {/* On a phone the roles and status sit under the email instead of in their own columns. */}
+                  <div className="mt-2 grid gap-2 whitespace-normal tablet:hidden">
+                    <span>{invitation.roleCodes.map(humanizeCode).join(", ")}</span>
+                    <StatusBadge status={invitation.status} />
+                  </div>
                 </TableCell>
-                <TableCell className="whitespace-normal">{invitation.roleCodes.map(humanizeCode).join(", ")}</TableCell>
-                <TableCell>
+                <TableCell className={`whitespace-normal ${wide}`}>
+                  {invitation.roleCodes.map(humanizeCode).join(", ")}
+                </TableCell>
+                <TableCell className={wide}>
                   <StatusBadge status={invitation.status} />
                 </TableCell>
-                <TableCell>{formatDate(invitation.invitedAt, timeZone)}</TableCell>
-                <TableCell>
+                <TableCell className={wide}>{formatDate(invitation.invitedAt, timeZone)}</TableCell>
+                <TableCell className={wide}>
                   {invitation.status === "PENDING" ? formatDate(invitation.expiresAt, timeZone) : "—"}
                 </TableCell>
                 <TableCell className="text-right">
