@@ -17,7 +17,8 @@ paths:
 - Admin app calls the API through same-origin rewrites with cookies (`createAdminClient` from
   `@msp/api-client/admin` adds `X-CSRF: 1` to mutations and `X-Tenant-Id` in a tenant workspace). Show errors with
   `describeProblem` (`@msp/api-client/errors`) and put `errors[]` under their fields.
-- Errors: branch on the Problem Details `code`; show a friendly message plus the correlation ID.
+- Errors: branch on the Problem Details `code`; show the friendly message for the code, and the server's message with
+  the correlation ID for an unknown code or a server error (`describeProblem`, admin-app.md).
 - Capabilities: show/hide/disable actions from the capabilities endpoint and say why (e.g. "Requires PRO").
 
 ## Live updates
@@ -29,7 +30,8 @@ paths:
 - Admin components are shadcn/ui in `web/packages/ui` (`@msp/ui/components/<name>`). Add one with the CLI from
   `web/packages/ui`: `pnpm dlx shadcn@4.21.5 add <name>`, then adapt it: `tablet:`/`desktop:` instead of `sm:`/`md:`,
   `rounded-sm|md|lg` only, `muted` (not `secondary`) for neutral fills, `text-destructive-foreground` and `bg-overlay`
-  instead of white and black, 44 px controls. shadcn's colour names map onto the tokens in `@msp/config/theme.css`.
+  instead of white and black, 44 px controls, solid focus rings (`ring-ring`, not `ring-ring/50` or a faint
+  `ring-destructive/20`) and opaque danger fills in dark mode (drop `dark:bg-destructive/60`); WCAG 2.2 AA (#56 R3). shadcn's colour names map onto the tokens in `@msp/config/theme.css`.
 - Semantic colours (live, success, warning, danger, info) only for their meaning; never colour alone for status.
 - Design phone (375 px), tablet (820 px) and desktop (1280 px) deliberately; attach screenshots to UI PRs.
 - Accessibility: labels, roles, visible focus, keyboard paths, `aria-live="polite"` for score changes, touch

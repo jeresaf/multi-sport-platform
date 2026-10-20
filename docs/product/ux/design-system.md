@@ -9,12 +9,12 @@ owner collected are **references only** — the product UI must be original.
 | Group | Contents |
 |---|---|
 | Colour — brand | `brand.primary`, `brand.primary-contrast`, `brand.secondary` — **tenant-overridable** (Branding module) |
-| Colour — neutral & surfaces | background, surface, surface-raised, border, text, text-muted (light + dark) |
-| Colour — semantic | `live`, `success`, `warning`, `danger`, `info` — **not tenant-overridable** (meaning must stay consistent and accessible) |
+| Colour — neutral & surfaces | background, surface, surface-raised, surface-muted (neutral fills), border, text, text-muted, focus (focus rings), overlay (behind dialogs and sheets) (light + dark) |
+| Colour — semantic | `live`, `success`, `warning`, `danger` (+ `danger-contrast`, its text colour), `info` — **not tenant-overridable** (meaning must stay consistent and accessible) |
 | Typography | System font stack by default; tenant may choose from an allowed list of web fonts; scale: 12/14/16/18/20/24/30/36 |
 | Spacing | 4 px base scale (4, 8, 12, 16, 20, 24, 32, 40, 48, 64) |
 | Radius | 4, 8, 12, full |
-| Elevation | 0–3 (shadows tuned for both themes) |
+| Elevation | 0–3 (shadows tuned for both themes): 0 none, 1 resting controls, 2 menus and popovers, 3 dialogs and sheets |
 | Motion | 150/250 ms standard easing; respect `prefers-reduced-motion` |
 | Breakpoints | phone < 768, tablet 768–1199, desktop ≥ 1200 |
 

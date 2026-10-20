@@ -67,7 +67,7 @@ jobs:
       - run: pnpm test
       - run: pnpm build
 
-  # The public app runs against the real API (web/e2e/start-api.sh migrates, seeds DEMO and starts it).
+  # Both apps run against the real API (web/e2e/start-api.sh migrates, seeds DEMO and starts it).
   e2e:
     name: E2E (Playwright)
     needs: web
