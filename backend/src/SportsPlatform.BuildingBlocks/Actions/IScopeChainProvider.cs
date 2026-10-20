@@ -8,8 +8,8 @@ namespace SportsPlatform.BuildingBlocks.Actions;
 public interface IScopeChainProvider
 {
     /// <summary>
-    /// The resource type this provider answers for; one provider per type (two for one type fail the request today; the
-    /// first provider, S06, adds a startup check).
+    /// The resource type this provider answers for; one provider per type (<see cref="ScopeChains"/>, checked when the
+    /// Host starts).
     /// </summary>
     AssignmentScope ResourceType { get; }
 

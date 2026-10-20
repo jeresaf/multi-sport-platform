@@ -1,4 +1,6 @@
+using SportsPlatform.BuildingBlocks.Actions;
 using SportsPlatform.Host.Actors;
+using SportsPlatform.Host.Catalogues;
 using SportsPlatform.Host.Modules;
 
 namespace SportsPlatform.Host;
@@ -11,6 +13,10 @@ public static class HostServices
         services.AddSingleton(TimeProvider.System);
         services.AddCurrentActor();
         services.AddModules(configuration, ModuleRegistry.All);
+
+        // What authorization reads besides the roles: the declared actions and the modules' scope chains (S03-T5).
+        services.AddSingleton<IActionCatalogue>(new DeclaredActions(ModuleRegistry.All));
+        services.AddScoped<ScopeChains>();
         return services;
     }
 }
