@@ -99,7 +99,14 @@ and admin invite and revoke, `VIEWER` reads. Only an owner (or the system actor)
 revokes or replaces a pending invitation that carries it, the platform's included (`AUTH_OWNER_REQUIRED`). The platform console invites a tenant's owner with `tenant.owner.invite` (`PLATFORM_ADMIN`,
 `POST /api/platform/v1/tenants/{tenantId}/owner-invitations`, under the route's tenant). A person who is already a
 member (active or suspended) is `409 AUTH_ALREADY_MEMBER`; a new invitation to an email with a pending one revokes the
-older one.
+older one. Suspending or removing a member revokes the pending, unexpired invitations they sent, in the same save (Q20,
+S03-T5b; docs/domain/state-machines.md).
+
+**Authorization matrix (S03-T5b).** `AuthorizationMatrixTests` reads the app's endpoints and, for every admin and
+platform endpoint with an action, checks that a user holding every other role of the action's scope gets
+`403 AUTH_FORBIDDEN` from the evaluator, and that a user holding a granting role passes authorization. A new endpoint is
+covered without editing the test; one whose action no role grants, or with a route parameter the test can't fill,
+fails it.
 
 **Ending sessions (S03 D5, T2b).** Sessions are not stored on the server; a password change or reset changes the
 user's security stamp, and every other session fails its next stamp check (at most 5 minutes later) with `401`. A

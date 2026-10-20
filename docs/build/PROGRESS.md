@@ -7,14 +7,13 @@ at the start of every review.
 
 - **Current slice:** S03 — Identity and access (docs/build/slices/S03-identity-access.md, rewritten by the S02 slice
   review). S00, S01 and S02 are done
-- **Current task:** S03-T5b — Authorization matrix test; an inviter's pending invitations revoked (Q20)
+- **Current task:** S03-T5b — Authorization matrix test; an inviter's pending invitations revoked (Q20) — in review
 - **Next:** S03-T6 — Admin web: sign-in, shell, members, platform console
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S03-T5b — Authorization matrix test; an inviter's pending invitations revoked (Q20)
-2. S03-T6 — Admin web: sign-in, shell, members, platform console (likely two PRs: T6a, T6b)
+1. S03-T6 — Admin web: sign-in, shell, members, platform console (likely two PRs: T6a, T6b)
 
 ## Log
 
@@ -66,6 +65,7 @@ at the start of every review.
 | 2026-10-20 | S03-T4c2a | #50 | `POST /api/account/v1/invitations/lookup` (`invitation.read`) and `…/accept` (`invitation.accept`), anonymous allowed, audited; the identity directory finds the invitation by its token's SHA-256, the request then runs under its tenant; accepting creates a confirmed user with the chosen password or needs the invited user signed in, and saves the membership, its roles (granted by the inviter) and the accepted invitation in one save; migration `AcceptInvitations` (`accepted_by`, `accepted_at`, `membership_id` → membership, composite key); per-IP limit `identity.invitation` (30 per 10 minutes, lookup and accept together); errors `AUTH_INVITATION_TOKEN_INVALID` (404), `AUTH_INVITATION_EXPIRED` (410, new `ErrorKind.Gone`), `AUTH_INVITATION_ALREADY_ACCEPTED` (409), `AUTH_INVITATION_SIGN_IN_REQUIRED` (403). Removes tech debt #49 N3 | Owner (plan): T4c2 in two PRs (T4c2b: DEMO seeder, ELSSC owner Agnes Namutebi); error codes and statuses; the rate limit. A password sent for an existing account is ignored. `AUTH_TENANT_ARCHIVED`'s message now covers joining too (code unchanged). The memberships alternate key is named explicitly (EF otherwise renamed it). Pre-review: multi-tenancy.md lists the directory's token read (audited by the endpoints); an unknown tenant is a bug (throws). No new packages |
 | 2026-10-20 | S03-T4c2b | #51 | DEMO seeder `identity.demo.invitations` (D18): Grace Nakato, Daniel Kato, Brian Ssemakula, Esther Nabirye (KMSA) and Agnes Namutebi (ELSSC, new in pilot-customer.md) invited with their roles through `membership.invite` as `SYSTEM`, emailed by the API's outbox (Mailpit); no passwords; skips pending/accepted invitations and current members, re-sends expired or revoked ones, seeds only `ACTIVE` tenants; demo sign-in documented; CI e2e starts Mailpit | Owner defaults: no deterministic IDs for invitations (data-conventions exception). An expired invitation is re-sent only when the checksum changes or after `--reset`. `DemoTenantSeederTests` audit counts scoped to `tenant.*` actions. Review: T4's acceptance ticked with evidence (T4 done); Q20 answered (revoke an inviter's pending invitations on suspend/remove), built in T5 |
 | 2026-10-20 | S03-T5a | #52 | `GET /api/admin/v1/me/capabilities` (`tenant.capabilities.read`, optional `scopeType`/`scopeId`) and `GET /api/platform/v1/me/capabilities` (`platform.capabilities.read`), audit `NONE`; the evaluator and both lists share one rule (`Permissions`/`HeldRoles.Allows`); `ScopeChains` registry with a startup check (one provider per resource type); `IActionCatalogue` in BuildingBlocks; table-driven tests against the evaluator for every system role | Owner (plan): T5 in two PRs (T5a capabilities; T5b matrix test and Q20); `TEAM_MANAGER` reads no capabilities until S06; no `EDITION` scope type (fake chain `CONTEST → COMPETITION`). Review: R1 (owner) a member with no tenant-wide role reads none until S06, documented and tested; R2 platform roles hold no assignment scope (`HeldRole.ScopeType` nullable); R3 `IActionCatalogue.Find` dropped |
+| 2026-10-20 | S03-T5b | — | `AuthorizationMatrixTests`: every admin and platform endpoint with an action, read from the app's endpoints, is `403 AUTH_FORBIDDEN` for a user holding every other role of the action's scope and passes authorization with a granting role (evaluator decisions recorded); Q20: suspending or removing a member revokes the pending, unexpired invitations they sent in the same save, listed in the member change's audit metadata. No contract changes. Review fixes for #52 merged as #53 | Owner (plan): only unexpired pending invitations; audit as metadata on the member entry; the same-instant invite race accepted (tech debt). Built and tested by CI only (no .NET SDK in the session) |
 
 ## Deviations from spec (agreed)
 
@@ -230,6 +230,9 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
   tenant: `TEAM_MANAGER` (team only), or `COMPETITION_MANAGER`, `RESULTS_OFFICER`, `DATA_ENTRY` or `SCORER` assigned
   at one competition or contest, even with `scopeType`/`scopeId` for their own resource. T6's shell must handle the
   403. Decide how such a member reads their capabilities when requests carry resource scopes. (S06)
+- An invitation a member sends at the same instant as their suspension or removal can commit after it and stay pending
+  (S03-T5b, Q20; owner: accepted). Close it if it matters: refuse lookup and accept when the inviter is no longer an
+  active member. (Later)
 - Tests that order audit entries by ID (`AuditTestData.EntriesAsync`) see entries written at one fake-clock instant
   in random order (UUIDv7 from `AuditScope`'s clock); compare such entries without order, or order by something
   stable (S03-T3, found in `PasswordResetTests`). (Any task touching audit tests)
