@@ -8,6 +8,4 @@ public interface IActionCatalogue
 {
     /// <summary>In ordinal order of their codes.</summary>
     IReadOnlyList<ActionDefinition> All { get; }
-
-    ActionDefinition? Find(string code);
 }

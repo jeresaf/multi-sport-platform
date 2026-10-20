@@ -260,7 +260,5 @@ public sealed class CapabilitiesTests(PostgresFixture fixture) : DatabaseTest(fi
     {
         public IReadOnlyList<ActionDefinition> All { get; } =
             [.. application.All.Append(AuthorizationTestActions.FixtureRead).OrderBy(action => action.Code.Value, StringComparer.Ordinal)];
-
-        public ActionDefinition? Find(string code) => All.SingleOrDefault(action => action.Code.Value == code);
     }
 }
