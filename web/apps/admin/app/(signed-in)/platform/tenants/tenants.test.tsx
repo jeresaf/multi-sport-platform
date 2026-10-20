@@ -245,22 +245,32 @@ describe("creating a tenant", () => {
       "GET /api/public/v1/reference/time-zones": page([
         { code: "Africa/Kampala", countryCode: "UG" },
         { code: "Africa/Nairobi", countryCode: "KE" },
+        { code: "Etc/UTC", countryCode: null },
       ]),
     });
 
     fireEvent.click(await screen.findByRole("button", { name: "New tenant" }));
     const dialog = within(await screen.findByRole("dialog"));
-    const zones = () => dialog.getAllByRole("option").map((option) => option.textContent).filter((name) => name?.startsWith("Africa/"));
+    const zones = () =>
+      within(dialog.getByLabelText("Time zone")).getAllByRole("option").map((option) => option.textContent).slice(1);
     await dialog.findByRole("option", { name: "Africa/Nairobi" });
-    expect(zones()).toEqual(["Africa/Kampala", "Africa/Nairobi"]);
+    expect(zones()).toEqual(["Africa/Kampala", "Africa/Nairobi", "Etc/UTC"]);
 
+    // A country's own zones, and those of no country.
     fireEvent.change(dialog.getByLabelText("Country"), { target: { value: "UG" } });
-    await waitFor(() => expect(zones()).toEqual(["Africa/Kampala"]));
+    await waitFor(() => expect(zones()).toEqual(["Africa/Kampala", "Etc/UTC"]));
     fireEvent.change(dialog.getByLabelText("Time zone"), { target: { value: "Africa/Kampala" } });
 
+    // Kampala doesn't fit Kenya: the form asks for a zone again rather than send it.
     fireEvent.change(dialog.getByLabelText("Country"), { target: { value: "KE" } });
-    await waitFor(() => expect(zones()).toEqual(["Africa/Nairobi"]));
-    expect((dialog.getByLabelText("Time zone") as HTMLSelectElement).value).toBe("");
+    await waitFor(() => expect(zones()).toEqual(["Africa/Nairobi", "Etc/UTC"]));
+    fireEvent.click(dialog.getByRole("button", { name: "Create tenant" }));
+    expect(await dialog.findByText("Choose a time zone.")).toBeTruthy();
+
+    // A zone of no country fits any country.
+    fireEvent.change(dialog.getByLabelText("Time zone"), { target: { value: "Etc/UTC" } });
+    fireEvent.change(dialog.getByLabelText("Country"), { target: { value: "UG" } });
+    expect((dialog.getByLabelText("Time zone") as HTMLSelectElement).value).toBe("Etc/UTC");
   });
 
   it("puts a taken slug and the server's field errors under their fields", async () => {
@@ -318,7 +328,7 @@ describe("a tenant's detail", () => {
 
     await screen.findByRole("heading", { level: 1, name: kmsa.displayName });
     expect(offered()).toEqual([]);
-    expect(screen.getByText("You can view this tenant. Changing its status needs a platform administrator.")).toBeTruthy();
+    expect(screen.getByText("You can view this tenant. Changing its status or inviting its owner needs a platform administrator.")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Invite an owner" })).toBeNull();
   });
 

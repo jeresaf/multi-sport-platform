@@ -86,11 +86,15 @@ export function CreateTenantDialog({ onOpenChange }: Readonly<{ onOpenChange: (o
   const timeZones = useTimeZones();
   const currencies = useCurrencies();
   const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues });
-  // The chosen country's zones first narrow the list; a country without zones (or none chosen) shows them all.
+  // The chosen country's zones narrow the list, with the zones of no country (Etc/UTC) that fit anywhere; a country
+  // without zones (or none chosen) shows them all.
   const countryCode = useWatch({ control: form.control, name: "countryCode" });
   const allZones = timeZones.data?.items ?? [];
-  const countryZones = allZones.filter((zone) => zone.countryCode === countryCode);
-  const zoneChoices = countryZones.length > 0 ? countryZones : allZones;
+  const zonesFor = (country: string) => {
+    const own = allZones.filter((zone) => zone.countryCode === country);
+    return own.length > 0 ? [...own, ...allZones.filter((zone) => zone.countryCode == null)] : allZones;
+  };
+  const zoneChoices = zonesFor(countryCode);
 
   const create = useMutation({
     mutationFn: (values: Values) => call(api.POST("/api/platform/v1/tenants", { body: values })),
@@ -156,10 +160,10 @@ export function CreateTenantDialog({ onOpenChange }: Readonly<{ onOpenChange: (o
             label="Country"
             error={errors.countryCode?.message}
             {...form.register("countryCode", {
-              // A zone chosen for another country no longer fits: choose again.
+              // A chosen zone the new country's list doesn't offer no longer fits: choose again.
               onChange: (event: { target: { value: string } }) => {
-                const zone = allZones.find((item) => item.code === form.getValues("timeZone"));
-                if (zone && zone.countryCode !== event.target.value) {
+                const zone = form.getValues("timeZone");
+                if (zone && !zonesFor(event.target.value).some((item) => item.code === zone)) {
                   form.setValue("timeZone", "");
                 }
               },

@@ -224,7 +224,7 @@ function TenantDetail({ tenant }: Readonly<{ tenant: Tenant }>) {
         ) : null}
         {changeOrder.every((name) => !can(changes[name].action)) ? (
           <p className="basis-full text-sm text-muted-foreground">
-            You can view this tenant. Changing its status needs a platform administrator.
+            You can view this tenant. Changing its status or inviting its owner needs a platform administrator.
           </p>
         ) : null}
       </header>
