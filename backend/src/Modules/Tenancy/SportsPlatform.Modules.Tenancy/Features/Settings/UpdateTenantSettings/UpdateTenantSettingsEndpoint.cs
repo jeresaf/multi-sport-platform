@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Options;
 using SportsPlatform.BuildingBlocks.Api;
 using SportsPlatform.BuildingBlocks.Results;
-using SportsPlatform.Modules.Tenancy.Features.Tenants;
 using HttpJsonOptions = Microsoft.AspNetCore.Http.Json.JsonOptions;
 
 namespace SportsPlatform.Modules.Tenancy.Features.Settings.UpdateTenantSettings;
@@ -35,7 +34,7 @@ internal static class UpdateTenantSettingsEndpoint
         HttpContext httpContext,
         CancellationToken cancellationToken)
     {
-        if (!TenantVersion.TryReadIfMatch(httpContext.Request, out var ifMatch, out var malformed))
+        if (!RowVersion.TryReadIfMatch(httpContext.Request, out var ifMatch, out var malformed))
         {
             return malformed;
         }

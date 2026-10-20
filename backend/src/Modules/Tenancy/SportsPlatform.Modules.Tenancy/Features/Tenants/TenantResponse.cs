@@ -2,6 +2,7 @@ using System.Linq.Expressions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using SportsPlatform.BuildingBlocks.Api;
 using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.Modules.Tenancy.Contracts.Tenants;
 using SportsPlatform.Modules.Tenancy.Domain.Settings;
@@ -68,6 +69,6 @@ public sealed record TenantResponse(
     public void SetETag(HttpResponse response)
     {
         ArgumentNullException.ThrowIfNull(response);
-        response.Headers.ETag = TenantVersion.EntityTag(Version).ToString();
+        response.Headers.ETag = RowVersion.EntityTag(Version).ToString();
     }
 }

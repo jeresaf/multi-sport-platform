@@ -5,7 +5,6 @@ using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Results;
 using SportsPlatform.Modules.Tenancy.Domain.Settings;
 using SportsPlatform.Modules.Tenancy.Features.Domains;
-using SportsPlatform.Modules.Tenancy.Features.Tenants;
 using SportsPlatform.Modules.Tenancy.Infrastructure;
 
 namespace SportsPlatform.Modules.Tenancy.Features.Settings.UpdateTenantSettings;
@@ -27,7 +26,7 @@ public sealed class UpdateTenantSettingsHandler(TenancyDbContext context, AuditS
 
         // A change saved by someone else after this read still conflicts on save: xmin is the concurrency token.
         var entry = context.Entry(settings);
-        if (!TenantVersion.IsSatisfied(entry.Property<uint>(AuditColumns.Version).CurrentValue, request.Version, ifMatch))
+        if (!RowVersion.IsSatisfied(entry.Property<uint>(AuditColumns.Version).CurrentValue, request.Version, ifMatch))
         {
             return TenancyErrors.ConcurrencyConflict;
         }

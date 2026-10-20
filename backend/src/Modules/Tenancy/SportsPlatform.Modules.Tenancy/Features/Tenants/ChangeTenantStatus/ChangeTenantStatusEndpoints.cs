@@ -79,7 +79,7 @@ internal static class ChangeTenantStatusEndpoints
         HttpResponse response,
         CancellationToken cancellationToken)
     {
-        if (!TenantVersion.TryReadIfMatch(httpRequest, out var ifMatch, out var malformed))
+        if (!RowVersion.TryReadIfMatch(httpRequest, out var ifMatch, out var malformed))
         {
             return malformed;
         }

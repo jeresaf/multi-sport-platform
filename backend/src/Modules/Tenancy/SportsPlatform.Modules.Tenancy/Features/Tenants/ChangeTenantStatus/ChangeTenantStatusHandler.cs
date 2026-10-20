@@ -33,7 +33,7 @@ public sealed class ChangeTenantStatusHandler(
         }
 
         var entry = context.Entry(tenant);
-        if (!TenantVersion.IsSatisfied(entry.Property<uint>(AuditColumns.Version).CurrentValue, version, ifMatch))
+        if (!RowVersion.IsSatisfied(entry.Property<uint>(AuditColumns.Version).CurrentValue, version, ifMatch))
         {
             return TenancyErrors.ConcurrencyConflict;
         }
