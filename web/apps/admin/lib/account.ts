@@ -24,6 +24,8 @@ export function useSignOut() {
         }
       }
     },
-    onSuccess: () => queryClient.clear(),
+    // Empties every cached query; the ones on screen ask again (as signed out), so a page can carry on, e.g. accepting
+    // an invitation after signing out of another account.
+    onSuccess: () => queryClient.resetQueries(),
   });
 }

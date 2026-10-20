@@ -7,7 +7,6 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { FormField } from "@/components/form-field";
 import { ProblemAlert } from "@/components/problem-alert";
-import { meQueryKey } from "@/lib/account";
 import { api, call } from "@/lib/api";
 import { applyFieldErrors, needsAlert } from "@/lib/form-errors";
 
@@ -31,7 +30,8 @@ export function SignInForm({ email, onSignedIn }: Readonly<{ email?: string; onS
   const signIn = useMutation({
     mutationFn: (values: SignInValues) => call(api.POST("/api/account/v1/login", { body: values })),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: meQueryKey });
+      // A new session may be another user's: forget what was cached for the previous one, as sign-out does.
+      await queryClient.resetQueries();
       onSignedIn();
     },
     onError: (error) => {

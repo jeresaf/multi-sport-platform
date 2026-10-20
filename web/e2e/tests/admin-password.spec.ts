@@ -27,7 +27,7 @@ test("a member who forgot their password resets it from the email", async ({ pag
   await expect(page.getByText(`Signed in as ${email}`)).toBeVisible();
 });
 
-test("a password the policy refuses is explained under the field", async ({ page }) => {
+test("a too-short password is refused before it is sent", async ({ page }) => {
   await page.goto("/reset-password?token=not-a-real-token");
   await page.getByLabel("New password").fill("short");
   await page.getByLabel("Type it again").fill("short");

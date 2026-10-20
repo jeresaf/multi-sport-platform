@@ -11,11 +11,15 @@ import { ProblemAlert } from "@/components/problem-alert";
 import { SignInForm } from "@/components/sign-in-form";
 import { useMe, useSignOut } from "@/lib/account";
 import { api, call, isApiProblem, isUnauthenticated } from "@/lib/api";
+import { needsAlert } from "@/lib/form-errors";
 import { humanizeCode } from "@/lib/codes";
 import { useLinkToken } from "@/lib/link-token";
 import { NewAccountForm } from "./new-account-form";
 
 type Invitation = components["schemas"]["LookupInvitationResponse"];
+
+// The new-account form shows these API fields under its inputs.
+const newAccountFields = { password: "password" } as const;
 
 const sameEmail = (a: string, b: string) => a.localeCompare(b, undefined, { sensitivity: "accent" }) === 0;
 
@@ -69,7 +73,7 @@ export function AcceptInvitation() {
 
   return (
     <PageCard title={`Join ${invitation.tenantDisplayName}`} description={<InvitationSummary invitation={invitation} />}>
-      {accept.isError && !(invitation.accountExists === false && isApiProblem(accept.error, "AUTH_PASSWORD_REJECTED")) ? (
+      {accept.isError && needsAlert(accept.error, invitation.accountExists ? {} : newAccountFields) ? (
         <ProblemAlert error={accept.error} />
       ) : null}
       {me.isError && !signedOut ? <ProblemAlert error={me.error} /> : null}

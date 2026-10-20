@@ -97,6 +97,49 @@ describe("AcceptInvitation", () => {
     expect(screen.getByLabelText("Choose a password")).toBeTruthy();
   });
 
+  it("signing out of another account keeps the invitation open for a new account", async () => {
+    let session: Answer = signedInAs("grace.nakato@kmsa.example");
+    const requests = fakeApi({
+      "POST /api/account/v1/invitations/lookup": invitation(false),
+      "GET /api/account/v1/me": () => session,
+      "POST /api/account/v1/logout": () => {
+        session = signedOut;
+        return { status: 204 };
+      },
+    });
+    openLink();
+
+    fireEvent.click(await screen.findByRole("button", { name: "Sign out" }));
+
+    await waitFor(() => expect(screen.queryByText(/You're signed in as/)).toBeNull());
+    expect(screen.getByLabelText("Choose a password")).toBeTruthy();
+    const lookups = requests.filter((r) => r.path.endsWith("/lookup"));
+    expect(lookups.length).toBeGreaterThan(1);
+    expect(lookups.every((r) => (r.body as { token: string }).token === "invite-secret")).toBe(true);
+  });
+
+  it("shows the API's refusal of the chosen password under the field", async () => {
+    fakeApi({
+      "POST /api/account/v1/invitations/lookup": invitation(false),
+      "GET /api/account/v1/me": signedOut,
+      "POST /api/account/v1/invitations/accept": {
+        status: 400,
+        body: problem("AUTH_PASSWORD_REJECTED", 400, {
+          detail: "Passwords must use at least 4 different characters.",
+          errors: [{ field: "password", code: "AUTH_PASSWORD_REJECTED" }],
+        }),
+      },
+    });
+    openLink();
+
+    fireEvent.change(await screen.findByLabelText("Choose a password"), { target: { value: "aaaaaaaaaaaaaaaa" } });
+    fireEvent.change(screen.getByLabelText("Type it again"), { target: { value: "aaaaaaaaaaaaaaaa" } });
+    fireEvent.click(screen.getByRole("button", { name: "Create account and accept" }));
+
+    expect(await screen.findByText("Passwords must use at least 4 different characters.")).toBeTruthy();
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
   it("offers no accept button to the wrong user when the invited email has an account", async () => {
     fakeApi({
       "POST /api/account/v1/invitations/lookup": invitation(true),

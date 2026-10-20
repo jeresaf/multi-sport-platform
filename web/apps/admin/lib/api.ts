@@ -29,6 +29,7 @@ export async function call<T>(request: Promise<FetchResult<T>>): Promise<T> {
   const problem: ProblemDetails = isProblemDetails(error)
     ? error
     : {
+        // Client-only code (never sent by the API): it isn't in the catalogue, so the screen shows the reference.
         code: "WEB_UNEXPECTED_RESPONSE",
         status: response.status,
         correlationId: response.headers.get("X-Correlation-Id") ?? "",
