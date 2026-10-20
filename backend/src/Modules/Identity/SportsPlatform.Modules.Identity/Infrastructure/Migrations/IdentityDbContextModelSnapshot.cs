@@ -341,6 +341,14 @@ namespace SportsPlatform.Modules.Identity.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<DateTimeOffset?>("AcceptedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("accepted_at");
+
+                    b.Property<Guid?>("AcceptedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("accepted_by");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -367,6 +375,10 @@ namespace SportsPlatform.Modules.Identity.Infrastructure.Migrations
                     b.Property<Guid>("InvitedBy")
                         .HasColumnType("uuid")
                         .HasColumnName("invited_by");
+
+                    b.Property<Guid?>("MembershipId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("membership_id");
 
                     b.Property<string>("NormalizedEmail")
                         .IsRequired()
@@ -427,6 +439,9 @@ namespace SportsPlatform.Modules.Identity.Infrastructure.Migrations
                         .IsUnique()
                         .HasDatabaseName("ux_invitations_token_hash");
 
+                    b.HasIndex("TenantId", "MembershipId")
+                        .HasDatabaseName("ix_invitations_tenant_id_membership_id");
+
                     b.HasIndex("TenantId", "NormalizedEmail", "Status")
                         .IsUnique()
                         .HasDatabaseName("ux_invitations_tenant_id_normalized_email_pending")
@@ -434,6 +449,8 @@ namespace SportsPlatform.Modules.Identity.Infrastructure.Migrations
 
                     b.ToTable("invitations", "identity", t =>
                         {
+                            t.HasCheckConstraint("ck_invitations_accepted", "(status = 'ACCEPTED') = (accepted_by IS NOT NULL AND accepted_at IS NOT NULL AND membership_id IS NOT NULL)");
+
                             t.HasCheckConstraint("ck_invitations_revoked", "(status = 'REVOKED') = (revoked_by IS NOT NULL AND revoked_at IS NOT NULL)");
 
                             t.HasCheckConstraint("ck_invitations_role_codes", "cardinality(role_codes) >= 1");
@@ -812,6 +829,16 @@ namespace SportsPlatform.Modules.Identity.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_user_tokens_users_user_id");
+                });
+
+            modelBuilder.Entity("SportsPlatform.Modules.Identity.Domain.Invitations.Invitation", b =>
+                {
+                    b.HasOne("SportsPlatform.Modules.Identity.Domain.Memberships.TenantMembership", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId", "MembershipId")
+                        .HasPrincipalKey("TenantId", "Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_invitations_tenant_membership_tenant_id_membership_id");
                 });
 
             modelBuilder.Entity("SportsPlatform.Modules.Identity.Domain.Memberships.RoleAssignment", b =>

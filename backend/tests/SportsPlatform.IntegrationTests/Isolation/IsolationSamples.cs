@@ -161,7 +161,10 @@ public static class IsolationSamples
                 : null;
     }
 
-    /// <summary>Identity: a pending invitation; nothing tenant-owned points at one.</summary>
+    /// <summary>
+    /// Identity: a pending invitation; nothing tenant-owned points at one. An accepted one points at the membership it
+    /// created.
+    /// </summary>
     private sealed class InvitationSample : IIsolationSample
     {
         public Type EntityType => typeof(Invitation);
@@ -174,7 +177,18 @@ public static class IsolationSamples
             return invitation;
         }
 
-        public Entity? Referencing(IForeignKey foreignKey, Guid principalId) => null;
+        public Entity? Referencing(IForeignKey foreignKey, Guid principalId)
+        {
+            if (foreignKey.PrincipalEntityType.ClrType != typeof(TenantMembership))
+            {
+                return null;
+            }
+
+            var invitation = Invitation.Create(
+                "daniel.kato@kmsa.example", "DANIEL.KATO@KMSA.EXAMPLE", [IdentitySamples.Admin], SystemActor.Instance, IdentitySamples.Now).Value;
+            invitation.Accept(Guid.CreateVersion7(), principalId, IdentitySamples.Now).IsSuccess.ShouldBeTrue();
+            return invitation;
+        }
     }
 
     private static class IdentitySamples

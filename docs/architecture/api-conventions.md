@@ -84,7 +84,7 @@ Modules call each other in-process through Contracts, never over HTTP.
 - HTTP mapping (`ErrorKind` → status): 400 malformed/validation · 401 unauthenticated (`AUTH_UNAUTHENTICATED`: not
   signed in; `AUTH_INVALID_CREDENTIALS`: sign-in refused) · 403
   permission/entitlement/access mode · 404 not found (also for other tenants' IDs) · 405 method not allowed ·
-  409 state or concurrency conflict · 415 body is not JSON · 422 semantically invalid domain request · 429
+  409 state or concurrency conflict · 410 gone for good (an expired invitation) · 415 body is not JSON · 422 semantically invalid domain request · 429
   rate/quota (with `Retry-After`) · 500 unexpected · 503 dependency unavailable.
 - Endpoints turn failures into Problem Details with `result.ToHttpResult(...)` / `error.ToProblem()`
   (`SportsPlatform.BuildingBlocks.Api`); the Host adds `type` and `correlationId`. `title` is the error's

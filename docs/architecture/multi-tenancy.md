@@ -136,7 +136,10 @@ CREATE POLICY tenant_isolation ON registry.persons
   `Features.Directory`: the membership check above (a request's tenant isn't set yet) and the user's tenants and roles
   for `GET /api/account/v1/me`. Every read is of the caller's own memberships (the current actor; no method takes a
   user ID), so these reads are **not audited**: an exemption from the rule above, agreed by the owner (S03-T4a),
-  because the membership check runs on every admin request.
+  because the membership check runs on every admin request. One more read (S03-T4c2): the invitation whose token
+  has a given SHA-256, returning its ID and tenant only, so the invitee's lookup and acceptance can then run under
+  that tenant. That read is covered by those endpoints' own audit entries (`invitation.read`, `invitation.accept`:
+  under the invitation's tenant, or without a tenant when the token is unknown).
 - **Audit under RLS (as built, S02-T2b):** `audit.audit_entries` has the `tenant_isolation` policy, so `sp_app` reads
   and inserts its tenant's entries only, and entries without a tenant not at all (they would be a future tenant-facing
   audit view's rows). The writers (`AuditLog` for direct entries, `AuditRecordedConsumer` for entries through a

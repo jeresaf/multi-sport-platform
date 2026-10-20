@@ -3160,10 +3160,277 @@
           }
         }
       }
+    },
+    "/api/account/v1/invitations/lookup": {
+      "post": {
+        "tags": [
+          "Invitations"
+        ],
+        "summary": "Look up an invitation by its token",
+        "description": "What an invitation link is for: the tenant, the invited email and roles, when it expires, and whether the email has an account (then sign in with it before accepting; otherwise choose a password when accepting). The token from the email's link goes in the body. An unknown, revoked or replaced token is `AUTH_INVITATION_TOKEN_INVALID`; an expired invitation `AUTH_INVITATION_EXPIRED`; an accepted one `AUTH_INVITATION_ALREADY_ACCEPTED`. Anonymous callers allowed; needs `X-CSRF: 1`.",
+        "operationId": "LookupInvitation",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LookupInvitationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LookupInvitationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_REQUEST`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_REQUEST"
+            ]
+          },
+          "429": {
+            "description": "Problem Details; `code`: `AUTH_RATE_LIMITED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_RATE_LIMITED"
+            ]
+          },
+          "404": {
+            "description": "Problem Details; `code`: `AUTH_INVITATION_TOKEN_INVALID`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_INVITATION_TOKEN_INVALID"
+            ]
+          },
+          "410": {
+            "description": "Problem Details; `code`: `AUTH_INVITATION_EXPIRED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_INVITATION_EXPIRED"
+            ]
+          },
+          "409": {
+            "description": "Problem Details; `code`: `AUTH_INVITATION_ALREADY_ACCEPTED`, `AUTH_TENANT_ARCHIVED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_INVITATION_ALREADY_ACCEPTED",
+              "AUTH_TENANT_ARCHIVED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED"
+            ]
+          }
+        }
+      }
+    },
+    "/api/account/v1/invitations/accept": {
+      "post": {
+        "tags": [
+          "Invitations"
+        ],
+        "summary": "Accept an invitation",
+        "description": "Joins the invitation's tenant with its roles. If the invited email has no account, send `password` (at least 12 characters, `AUTH_PASSWORD_REJECTED`): the account is created with that password. If it has one, sign in with it first (`AUTH_INVITATION_SIGN_IN_REQUIRED` otherwise); `password` is then ignored. The token works once and the same refusals as the lookup apply; a current member gets `AUTH_ALREADY_MEMBER`. Does not sign in. Anonymous callers allowed; needs `X-CSRF: 1`.",
+        "operationId": "AcceptInvitation",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcceptInvitationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcceptInvitationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `AUTH_PASSWORD_REJECTED`, `AUTH_ROLE_NOT_ASSIGNABLE`, `VALIDATION_INVALID_REQUEST`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_PASSWORD_REJECTED",
+              "AUTH_ROLE_NOT_ASSIGNABLE",
+              "VALIDATION_INVALID_REQUEST"
+            ]
+          },
+          "429": {
+            "description": "Problem Details; `code`: `AUTH_RATE_LIMITED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_RATE_LIMITED"
+            ]
+          },
+          "404": {
+            "description": "Problem Details; `code`: `AUTH_INVITATION_TOKEN_INVALID`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_INVITATION_TOKEN_INVALID"
+            ]
+          },
+          "410": {
+            "description": "Problem Details; `code`: `AUTH_INVITATION_EXPIRED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_INVITATION_EXPIRED"
+            ]
+          },
+          "409": {
+            "description": "Problem Details; `code`: `AUTH_ALREADY_MEMBER`, `AUTH_CONCURRENCY_CONFLICT`, `AUTH_INVITATION_ALREADY_ACCEPTED`, `AUTH_TENANT_ARCHIVED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_ALREADY_MEMBER",
+              "AUTH_CONCURRENCY_CONFLICT",
+              "AUTH_INVITATION_ALREADY_ACCEPTED",
+              "AUTH_TENANT_ARCHIVED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_INVITATION_SIGN_IN_REQUIRED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
+              "AUTH_INVITATION_SIGN_IN_REQUIRED"
+            ]
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "AcceptInvitationRequest": {
+        "required": [
+          "token"
+        ],
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "password": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "description": "The token from an invitation email's link, and the password to set when the invited email has no account yet\n(ignored when it has one: the invitee is signed in as that user instead)."
+      },
+      "AcceptInvitationResponse": {
+        "required": [
+          "tenantId",
+          "membershipId"
+        ],
+        "type": "object",
+        "properties": {
+          "tenantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "membershipId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "description": "The membership the invitee now holds; they sign in to use it (accepting doesn't sign in)."
+      },
       "ActorKind": {
         "enum": [
           "USER",
@@ -3867,6 +4134,54 @@
         },
         "additionalProperties": false,
         "description": "Sign in with email and password."
+      },
+      "LookupInvitationRequest": {
+        "required": [
+          "token"
+        ],
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "description": "The token from an invitation email's link, in the body so request logs and traces never hold it."
+      },
+      "LookupInvitationResponse": {
+        "required": [
+          "tenantDisplayName",
+          "email",
+          "roleCodes",
+          "expiresAt",
+          "accountExists"
+        ],
+        "type": "object",
+        "properties": {
+          "tenantDisplayName": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "roleCodes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "accountExists": {
+            "type": "boolean"
+          }
+        },
+        "description": "A pending invitation as its invitee sees it: the tenant's display name, the invited email (the token proves the\ninvitee holds it), the tenant-wide roles, when it expires, and whether the email has an account: if it does, the\ninvitee signs in with it before accepting; if not, they choose a password when accepting."
       },
       "MemberResponse": {
         "required": [

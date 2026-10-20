@@ -8,9 +8,10 @@ namespace SportsPlatform.Modules.Identity.Features.Directory;
 
 /// <summary>
 /// The cross-tenant reads a request needs before its tenant is set (S03 D8), on <see cref="IdentityDirectoryDbContext"/>.
-/// Every read is of the caller's own memberships (the current actor; no method takes a user ID), so they are not
-/// audited (owner, S03-T4a: an exemption from multi-tenancy.md's "audited" rule for sp_platform). Read per request (no
-/// cache, S03 D5): a removed or suspended membership is refused on the next request.
+/// The membership reads are of the caller's own memberships (the current actor; no method takes a user ID), so they are
+/// not audited (owner, S03-T4a: an exemption from multi-tenancy.md's "audited" rule for sp_platform). Read per request
+/// (no cache, S03 D5): a removed or suspended membership is refused on the next request. The invitation read by token
+/// hash (T4c2) returns IDs only, for the invitation endpoints, which are audited.
 /// </summary>
 public sealed class IdentityDirectory(IdentityDirectoryDbContext context, ICurrentActor actor) : ITenantMembershipChecker
 {
@@ -44,7 +45,23 @@ public sealed class IdentityDirectory(IdentityDirectoryDbContext context, ICurre
             .Select(row => new MemberTenant(row.TenantId, [.. row.Roles.Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)]))
             .OrderBy(tenant => tenant.TenantId)];
     }
+
+    /// <summary>
+    /// The invitation whose newest emailed token has this SHA-256, in any tenant (the hash is unique across tenants), or
+    /// null. Its status isn't checked here: the caller reads the invitation under its tenant.
+    /// </summary>
+    public async Task<InvitationKey?> FindInvitationAsync(byte[] tokenHash, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(tokenHash);
+        return await context.Invitations
+            .Where(i => i.TokenHash == tokenHash)
+            .Select(i => new InvitationKey(i.Id, i.TenantId))
+            .SingleOrDefaultAsync(cancellationToken);
+    }
 }
+
+/// <summary>An invitation found by its token, before its tenant is set: the caller then reads it under that tenant.</summary>
+public sealed record InvitationKey(Guid InvitationId, Guid TenantId);
 
 /// <summary>A tenant a user is an active member of, and the role codes they hold there.</summary>
 public sealed record MemberTenant(Guid TenantId, IReadOnlyList<string> Roles);

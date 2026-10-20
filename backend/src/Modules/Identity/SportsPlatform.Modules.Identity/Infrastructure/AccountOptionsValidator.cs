@@ -32,6 +32,7 @@ public sealed class AccountOptionsValidator(IHostEnvironment environment) : IVal
         Check(limits.LoginPerEmail, "LoginPerEmail");
         Check(limits.ForgotPasswordPerIp, "ForgotPasswordPerIp");
         Check(limits.ForgotPasswordPerEmail, "ForgotPasswordPerEmail");
+        Check(limits.InvitationPerIp, "InvitationPerIp");
 
         return failures.Count == 0 ? ValidateOptionsResult.Success : ValidateOptionsResult.Fail(failures);
 

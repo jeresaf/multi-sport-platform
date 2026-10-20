@@ -37,9 +37,33 @@
       "owner": "Identity"
     },
     {
+      "code": "AUTH_INVITATION_ALREADY_ACCEPTED",
+      "status": 409,
+      "message": "The invitation has been accepted already. Sign in instead.",
+      "owner": "Identity"
+    },
+    {
+      "code": "AUTH_INVITATION_EXPIRED",
+      "status": 410,
+      "message": "The invitation has expired. Ask for a new invitation.",
+      "owner": "Identity"
+    },
+    {
       "code": "AUTH_INVITATION_NOT_FOUND",
       "status": 404,
       "message": "No such invitation in this tenant.",
+      "owner": "Identity"
+    },
+    {
+      "code": "AUTH_INVITATION_SIGN_IN_REQUIRED",
+      "status": 403,
+      "message": "The invited email has an account: sign in with it to accept the invitation.",
+      "owner": "Identity"
+    },
+    {
+      "code": "AUTH_INVITATION_TOKEN_INVALID",
+      "status": 404,
+      "message": "The invitation link is invalid or no longer works. Ask for a new invitation.",
       "owner": "Identity"
     },
     {
@@ -111,7 +135,7 @@
     {
       "code": "AUTH_TENANT_ARCHIVED",
       "status": 409,
-      "message": "The tenant is archived: unarchive it before inviting its owner.",
+      "message": "The tenant is archived: no one can be invited to it or join it until it is unarchived.",
       "owner": "Identity"
     },
     {

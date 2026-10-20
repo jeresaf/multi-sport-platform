@@ -700,10 +700,65 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/account/v1/invitations/lookup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Look up an invitation by its token
+         * @description What an invitation link is for: the tenant, the invited email and roles, when it expires, and whether the email has an account (then sign in with it before accepting; otherwise choose a password when accepting). The token from the email's link goes in the body. An unknown, revoked or replaced token is `AUTH_INVITATION_TOKEN_INVALID`; an expired invitation `AUTH_INVITATION_EXPIRED`; an accepted one `AUTH_INVITATION_ALREADY_ACCEPTED`. Anonymous callers allowed; needs `X-CSRF: 1`.
+         */
+        post: operations["LookupInvitation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/account/v1/invitations/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Accept an invitation
+         * @description Joins the invitation's tenant with its roles. If the invited email has no account, send `password` (at least 12 characters, `AUTH_PASSWORD_REJECTED`): the account is created with that password. If it has one, sign in with it first (`AUTH_INVITATION_SIGN_IN_REQUIRED` otherwise); `password` is then ignored. The token works once and the same refusals as the lookup apply; a current member gets `AUTH_ALREADY_MEMBER`. Does not sign in. Anonymous callers allowed; needs `X-CSRF: 1`.
+         */
+        post: operations["AcceptInvitation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * @description The token from an invitation email's link, and the password to set when the invited email has no account yet
+         *     (ignored when it has one: the invitee is signed in as that user instead).
+         */
+        AcceptInvitationRequest: {
+            token: null | string;
+            password?: null | string;
+        };
+        /** @description The membership the invitee now holds; they sign in to use it (accepting doesn't sign in). */
+        AcceptInvitationResponse: {
+            /** Format: uuid */
+            tenantId: string;
+            /** Format: uuid */
+            membershipId: string;
+        };
         /** @enum {unknown} */
         ActorKind: "USER" | "SYSTEM" | "ANONYMOUS";
         /**
@@ -905,6 +960,23 @@ export interface components {
         LoginRequest: {
             email: null | string;
             password: null | string;
+        };
+        /** @description The token from an invitation email's link, in the body so request logs and traces never hold it. */
+        LookupInvitationRequest: {
+            token: null | string;
+        };
+        /**
+         * @description A pending invitation as its invitee sees it: the tenant's display name, the invited email (the token proves the
+         *     invitee holds it), the tenant-wide roles, when it expires, and whether the email has an account: if it does, the
+         *     invitee signs in with it before accepting; if not, they choose a password when accepting.
+         */
+        LookupInvitationResponse: {
+            tenantDisplayName: string;
+            email: string;
+            roleCodes: string[];
+            /** Format: date-time */
+            expiresAt: string;
+            accountExists: boolean;
         };
         /**
          * @description A member of the tenant as the admin API shows them, with their active roles. The email is the user's only
@@ -3240,6 +3312,162 @@ export interface operations {
             };
             /** @description Problem Details; `code`: `AUTH_CONCURRENCY_CONFLICT` */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    LookupInvitation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LookupInvitationRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LookupInvitationResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_INVITATION_TOKEN_INVALID` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_INVITATION_ALREADY_ACCEPTED`, `AUTH_TENANT_ARCHIVED` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_INVITATION_EXPIRED` */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_RATE_LIMITED` */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    AcceptInvitation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcceptInvitationRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcceptInvitationResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_PASSWORD_REJECTED`, `AUTH_ROLE_NOT_ASSIGNABLE`, `VALIDATION_INVALID_REQUEST` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_INVITATION_SIGN_IN_REQUIRED` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_INVITATION_TOKEN_INVALID` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_ALREADY_MEMBER`, `AUTH_CONCURRENCY_CONFLICT`, `AUTH_INVITATION_ALREADY_ACCEPTED`, `AUTH_TENANT_ARCHIVED` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_INVITATION_EXPIRED` */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_RATE_LIMITED` */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };

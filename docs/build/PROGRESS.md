@@ -7,13 +7,13 @@ at the start of every review.
 
 - **Current slice:** S03 — Identity and access (docs/build/slices/S03-identity-access.md, rewritten by the S02 slice
   review). S00, S01 and S02 are done
-- **Current task:** S03-T4c1 — Invitations: invite, list, revoke, platform owner invitation, invitation email — in review (#49)
-- **Next:** S03-T4c2 — Invitation lookup and acceptance, rate limit, DEMO seeder
+- **Current task:** S03-T4c2a — Invitation lookup and acceptance, rate limit — in review (#50)
+- **Next:** S03-T4c2b — DEMO seeder (`identity.demo.invitations`) and the ELSSC owner in pilot-customer.md
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S03-T4c2 — Invitation lookup and acceptance, rate limit, DEMO seeder (D12, D18)
+1. S03-T4c2b — DEMO seeder and the ELSSC owner (D18)
 2. S03-T5 — Capabilities and the authorization matrix
 3. S03-T6 — Admin web: sign-in, shell, members, platform console (likely two PRs: T6a, T6b)
 
@@ -64,6 +64,7 @@ at the start of every review.
 | 2026-10-20 | S03-T4b1 | #47 | `/api/admin/v1/members`: list (cursor over UUIDv7 membership IDs, `status` filter, removed hidden by default; email and active roles), read, suspend/restore/remove (reasons), assign role (201, tenant-wide only), revoke role; actions `membership.read` (audited), `membership.suspend`, `membership.restore`, `membership.remove`, `role.assign`, `role.revoke` (owner and admin; `VIEWER` reads); errors `AUTH_MEMBERSHIP_NOT_FOUND`, `AUTH_OWNER_REQUIRED`, `AUTH_LAST_OWNER`; `MemberChanges` (version, owner-only rule, last owner counted on `ACTIVE` memberships under `pg_advisory_xact_lock`, #46 N1); every change updates the membership row (fixes a same-instant role change keeping its version, T4a); BuildingBlocks `RowVersion` (was Tenancy `TenantVersion`) | Owner (plan): T4b in two PRs; emails shown to `membership.read` holders; tenant-wide roles only; `/me` and blocked tenants in T6. Beyond the plan: `membership.read` audited. No migrations, events or packages. Pre-review: owner check under the lock, commit not cancellable, more isolation, audit and revoke tests. #47 N2: changes to a removed owner are 409 for everyone |
 | 2026-10-20 | S03-T4b2 | #48 | Access mode with roles (D11): `PROVISIONING` is `FULL` only for `TENANT_OWNER`/`TENANT_ADMIN` held tenant-wide (BuildingBlocks `ITenantSetupAccess`, Identity's `TenantSetupAccess`, asked by Tenancy's step 1), others `403 TENANT_PROVISIONING`; `ActionDefinition.availableWhenBlocked` (tenant actions only; "When blocked" column in actions.md); `tenant.access.read` (`GET /api/admin/v1/tenant/access`: status, access mode, reason and time of the change into that status; audited; `TENANT_OWNER` only); `CheckAdminAccessAsync` takes the action; pipeline OpenAPI errors add `TENANT_PROVISIONING`, drop `TENANT_BLOCKED` where it can't happen. Removes tech debt #34 R1 and S02-T3a | Owner (plan): an admin or viewer asking for the access read gets `AUTH_FORBIDDEN`; the reason is shown to the owner; setup roles count only tenant-wide. Tests without `UseIdentityRoles()` let every `X-Test-Tenants` member set a tenant up; `TenantResolutionTests`' provisioning case split into an admin who works and a member refused. No migrations, events or packages. Pre-review: ties between changes at one instant broken by ID; a second suspension shows its own reason and time (test). Follow-up for T6: the platform console's suspend/archive/unarchive reason dialog should say the tenant owner sees the reason (after an unarchive the owner sees the unarchive reason, not the earlier suspension's) |
 | 2026-10-20 | S03-T4c1 | #49 | `identity.invitations` (tenant-owned, RLS; pending → revoked, `EXPIRED` derived, one pending per email, token hash unique); `/api/admin/v1/invitations` invite (`membership.invite`), list and get (`membership.read`), revoke (`invitation.revoke`, version/If-Match); platform owner invitation (`tenant.owner.invite`, archived refused); `InvitationIssued.V1` and consumer `identity.invitation_email` (token made at send, only its SHA-256 stored, newest wins); errors `AUTH_INVITATION_NOT_FOUND`, `AUTH_INVITATION_TRANSITION_INVALID`, `AUTH_ALREADY_MEMBER`, `AUTH_TENANT_ARCHIVED`; `TenantSummary.DisplayName`; Host documents `TENANT_NOT_FOUND` for route-tenant endpoints | Owner (plan): T4c in two PRs; state machine approved; no sign-in on accept; ELSSC owner proposed by the builder. Beyond the plan: `GET /invitations/{id}`; acceptance columns move to T4c2. Owner (finish): an archived tenant gets no owner invitation. Pre-review: only an owner revokes or replaces an owner's invitation; failed invites audited without an entity. No new packages |
+| 2026-10-20 | S03-T4c2a | #50 | `POST /api/account/v1/invitations/lookup` (`invitation.read`) and `…/accept` (`invitation.accept`), anonymous allowed, audited; the identity directory finds the invitation by its token's SHA-256, the request then runs under its tenant; accepting creates a confirmed user with the chosen password or needs the invited user signed in, and saves the membership, its roles (granted by the inviter) and the accepted invitation in one save; migration `AcceptInvitations` (`accepted_by`, `accepted_at`, `membership_id` → membership, composite key); per-IP limit `identity.invitation` (30 per 10 minutes, lookup and accept together); errors `AUTH_INVITATION_TOKEN_INVALID` (404), `AUTH_INVITATION_EXPIRED` (410, new `ErrorKind.Gone`), `AUTH_INVITATION_ALREADY_ACCEPTED` (409), `AUTH_INVITATION_SIGN_IN_REQUIRED` (403). Removes tech debt #49 N3 | Owner (plan): T4c2 in two PRs (T4c2b: DEMO seeder, ELSSC owner Agnes Namutebi); error codes and statuses; the rate limit. A password sent for an existing account is ignored. `AUTH_TENANT_ARCHIVED`'s message now covers joining too (code unchanged). The memberships alternate key is named explicitly (EF otherwise renamed it). Pre-review: multi-tenancy.md lists the directory's token read (audited by the endpoints); an unknown tenant is a bug (throws). No new packages |
 
 ## Deviations from spec (agreed)
 
@@ -207,9 +208,14 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
 - Invitation emails are kept for ever (#49 N1): `identity.invitations.email`/`normalized_email` (`PRIVATE`) stay on
   revoked, expired and accepted invitations, for people who never joined too. With the privacy work (ADR-0015): redact
   or purge them on invitations never accepted, some time after they were revoked or expired. (Privacy work)
-- Accepting an invitation (#49 N3, for S03-T4c2): check every stored role code still exists in the catalogue and the
-  email isn't already a current member; create the membership and mark the invitation accepted in one save that
-  conflicts on the invitation's version, so a link used twice at once gives one membership; test the double use. (T4c2)
+- Invitation acceptance, the double use (S03-T4c2a pre-review): `The_same_link_used_twice_at_once…` also passes when
+  the two requests run one after the other (the second gets `AUTH_INVITATION_ALREADY_ACCEPTED`), so the unique-index
+  catch and the `DuplicateEmail` branch of `AcceptInvitationHandler` aren't shown to run. A deterministic test would
+  create the user or membership between the handler's reads and its save. (Later, with the last-owner lock test)
+- A pending invitation outlives its inviter (S03-T4c2a pre-review, #50 N3): open question Q20. (Owner, T4c2b plan)
+- Accepting while signed in as someone else (#50 N2): when the invited email has no account, accepting creates it
+  and the caller stays signed in as the other user. The accept page says "You're signed in as X; this invitation is
+  for Y" and offers to sign out or continue. No API change. (T6)
 - Two `IScopeChainProvider`s for one resource type make the evaluator throw at request time; add a startup check with
   the first provider (S03-T4a pre-review). (S06)
 - Tests that order audit entries by ID (`AuditTestData.EntriesAsync`) see entries written at one fake-clock instant

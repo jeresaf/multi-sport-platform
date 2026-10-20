@@ -16,10 +16,13 @@ public enum AccountRateLimit
 {
     Login,
     ForgotPassword,
+
+    /// <summary>Invitation lookup and acceptance (S03-T4c2), per client IP only: the token is the key.</summary>
+    Invitation,
 }
 
 /// <summary>
-/// Sign-in and forgot-password rate limits (S03 D15), with ASP.NET Core's limiter: per client IP as a named policy, run
+/// Sign-in, forgot-password and invitation rate limits (S03 D15, T4c2), with ASP.NET Core's limiter: per client IP as a named policy, run
 /// by the Host's <c>UseRateLimiter</c> before the audit, so a flood from one address writes no audit rows; per
 /// normalised email as an endpoint filter after the request is validated, so a refusal is audited as DENIED. Either
 /// answers <c>429 AUTH_RATE_LIMITED</c> with <c>Retry-After</c>. Known and unknown emails are limited alike.
@@ -33,6 +36,7 @@ public static class AccountRateLimits
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
             options.AddPolicy<string, LoginClientIpPolicy>(PolicyName(AccountRateLimit.Login));
             options.AddPolicy<string, ForgotPasswordClientIpPolicy>(PolicyName(AccountRateLimit.ForgotPassword));
+            options.AddPolicy<string, InvitationClientIpPolicy>(PolicyName(AccountRateLimit.Invitation));
         });
         services.AddSingleton<EmailRateLimiter>();
         return services;
@@ -63,11 +67,22 @@ public static class AccountRateLimits
         return builder.ProducesErrors(IdentityErrors.RateLimited);
     }
 
+    /// <summary>
+    /// Limits the endpoint per client IP only, for requests that carry a token rather than an email (an invitation's 256
+    /// bits can't be guessed; the limit bounds the work, such as hashing a new password).
+    /// </summary>
+    public static RouteHandlerBuilder RateLimitedPerIp(this RouteHandlerBuilder builder, AccountRateLimit limit)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        return builder.RequireRateLimiting(PolicyName(limit)).ProducesErrors(IdentityErrors.RateLimited);
+    }
+
     /// <summary>The per-IP policy's name, e.g. <c>identity.login</c>.</summary>
     public static string PolicyName(AccountRateLimit limit) => limit switch
     {
         AccountRateLimit.Login => "identity.login",
         AccountRateLimit.ForgotPassword => "identity.password_forgot",
+        AccountRateLimit.Invitation => "identity.invitation",
         _ => throw new ArgumentOutOfRangeException(nameof(limit), limit, null),
     };
 
@@ -121,4 +136,7 @@ public static class AccountRateLimits
 
     private sealed class ForgotPasswordClientIpPolicy(IOptions<AccountOptions> options)
         : ClientIpPolicy(options.Value.RateLimits.ForgotPasswordPerIp);
+
+    private sealed class InvitationClientIpPolicy(IOptions<AccountOptions> options)
+        : ClientIpPolicy(options.Value.RateLimits.InvitationPerIp);
 }

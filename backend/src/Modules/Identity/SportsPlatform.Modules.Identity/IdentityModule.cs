@@ -23,10 +23,13 @@ using SportsPlatform.Modules.Identity.Features.Account.ResetPassword;
 using SportsPlatform.Modules.Identity.Features.Authorization;
 using SportsPlatform.Modules.Identity.Features.Directory;
 using SportsPlatform.Modules.Identity.Features.Invitations;
+using SportsPlatform.Modules.Identity.Features.Invitations.Acceptance;
+using SportsPlatform.Modules.Identity.Features.Invitations.AcceptInvitation;
 using SportsPlatform.Modules.Identity.Features.Invitations.GetInvitation;
 using SportsPlatform.Modules.Identity.Features.Invitations.InviteMember;
 using SportsPlatform.Modules.Identity.Features.Invitations.InviteOwner;
 using SportsPlatform.Modules.Identity.Features.Invitations.ListInvitations;
+using SportsPlatform.Modules.Identity.Features.Invitations.LookupInvitation;
 using SportsPlatform.Modules.Identity.Features.Invitations.RevokeInvitation;
 using SportsPlatform.Modules.Identity.Features.Invitations.SendInvitationEmail;
 using SportsPlatform.Modules.Identity.Features.Members;
@@ -49,7 +52,7 @@ namespace SportsPlatform.Modules.Identity;
 /// Identity &amp; Access: users, platform roles and the data protection key ring (S03-T1); the session cookie, the
 /// account API, password reset and change, sign-in rate limits (T2); roles in code and the authorization evaluator (T3);
 /// tenant memberships, their role assignments and the identity directory (T4a); the member and role endpoints (T4b);
-/// invitations and their email (T4c) (docs/architecture/modules.md).
+/// invitations, their email, lookup and acceptance (T4c) (docs/architecture/modules.md).
 /// </summary>
 public sealed class IdentityModule : IModule
 {
@@ -129,6 +132,13 @@ public sealed class IdentityModule : IModule
         services.AddSingleton<IValidator<InviteOwnerRequest>, InviteOwnerRequestValidator>();
         services.AddSingleton<IValidator<ListInvitationsRequest>, ListInvitationsRequestValidator>();
 
+        // T4c2: the invitee looks the invitation up and accepts it with the emailed token.
+        services.AddScoped<InvitationByToken>();
+        services.AddScoped<LookupInvitationHandler>();
+        services.AddScoped<AcceptInvitationHandler>();
+        services.AddSingleton<IValidator<LookupInvitationRequest>, LookupInvitationRequestValidator>();
+        services.AddSingleton<IValidator<AcceptInvitationRequest>, AcceptInvitationRequestValidator>();
+
         // D13: the reset and invitation emails are sent by Identity's own consumers, never inside the request.
         services.AddIntegrationEventConsumer<PasswordResetRequested.V1, PasswordResetEmailConsumer, IdentityDbContext>(
             PasswordResetEmailConsumer.Name);
@@ -160,6 +170,10 @@ public sealed class IdentityModule : IModule
         GetInvitationEndpoint.Map(invitations);
         RevokeInvitationEndpoint.Map(invitations);
         InviteOwnerEndpoint.Map(groups.Platform);
+
+        var invitee = InvitationEndpoints.AccountGroup(groups.Account);
+        LookupInvitationEndpoint.Map(invitee);
+        AcceptInvitationEndpoint.Map(invitee);
     }
 
     // S03 D15.

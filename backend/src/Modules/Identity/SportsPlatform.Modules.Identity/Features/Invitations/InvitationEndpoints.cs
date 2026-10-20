@@ -4,7 +4,10 @@ using Microsoft.AspNetCore.Routing;
 
 namespace SportsPlatform.Modules.Identity.Features.Invitations;
 
-/// <summary><c>/api/admin/v1/invitations</c> (S03-T4c): the invitations of the request's tenant (<c>X-Tenant-Id</c>).</summary>
+/// <summary>
+/// <c>/api/admin/v1/invitations</c> (S03-T4c): the invitations of the request's tenant (<c>X-Tenant-Id</c>); and the
+/// invitee's <c>/api/account/v1/invitations</c>.
+/// </summary>
 internal static class InvitationEndpoints
 {
     public const string Tag = "Invitations";
@@ -20,6 +23,9 @@ internal static class InvitationEndpoints
         "link replaces the earlier one). A pending invitation to the same email is revoked and replaced.";
 
     public static RouteGroupBuilder Group(IEndpointRouteBuilder admin) => admin.MapGroup("/invitations").WithTags(Tag);
+
+    /// <summary><c>/api/account/v1/invitations</c> (T4c2): the invitee's lookup and acceptance, with the emailed token.</summary>
+    public static RouteGroupBuilder AccountGroup(IEndpointRouteBuilder account) => account.MapGroup("/invitations").WithTags(Tag);
 
     public static string PathOf(Guid invitationId) => $"/api/admin/v1/invitations/{invitationId}";
 }
