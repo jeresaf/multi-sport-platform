@@ -153,15 +153,8 @@ public sealed class TenantRoleEvaluatorTests(PostgresFixture fixture) : Database
 
         // The application's roles, plus the test-only role that grants the test action fixture.read.
         var evaluator = new IdentityAuthorizationEvaluator(
-            services.GetRequiredService<IdentityDbContext>(), Roles, tenantContext, chains is null ? [] : [chains]);
+            new Permissions(services.GetRequiredService<IdentityDbContext>(), Roles, tenantContext),
+            new ScopeChains(chains is null ? [] : [chains]));
         return await evaluator.AuthorizeAsync(new AuthorizationRequest(action, actor, requestTenant, scope), Ct);
-    }
-
-    private sealed class FakeScopeChain(AssignmentScope type, Guid resourceId, params ScopeRef[] ancestors) : IScopeChainProvider
-    {
-        public AssignmentScope ResourceType => type;
-
-        public Task<IReadOnlyList<ScopeRef>> GetAncestorsAsync(Guid resourceId1, CancellationToken cancellationToken) =>
-            Task.FromResult<IReadOnlyList<ScopeRef>>(resourceId1 == resourceId ? ancestors : []);
     }
 }

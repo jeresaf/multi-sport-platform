@@ -35,10 +35,11 @@ public static class SportsPlatformApp
         app.UseEndpoints(static _ => { });
 
         // Fail closed: the API (and the CLI's export) won't build with an endpoint that declares no action, or a role
-        // that grants an undeclared action or one of another scope.
+        // that grants an undeclared action or one of another scope, or two scope chain providers for one resource type.
         var actions = ActionCatalogue.Build(ModuleRegistry.All);
         app.EnsureEndpointsDeclareActions(actions);
         app.EnsureRolesGrantDeclaredActions(actions);
+        app.EnsureOneScopeChainPerResourceType();
         app.EnsureRequestValidators();
 
         return app;

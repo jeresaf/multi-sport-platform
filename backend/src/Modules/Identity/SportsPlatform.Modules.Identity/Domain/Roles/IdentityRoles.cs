@@ -28,12 +28,15 @@ public static class IdentityRoles
     private const string _tenantSettingsRead = "tenant.settings.read";
     private const string _tenantSettingsUpdate = "tenant.settings.update";
 
-    // Every role assigned tenant-wide reads the settings (time zone, locale, currency) its screens need (owner, S03-T3).
     private const string _membershipRead = "membership.read";
+
+    // Every role assigned tenant-wide reads the settings (time zone, locale, currency) its screens need (owner, S03-T3)
+    // and what it may do there (S03-T5).
+    private const string _capabilitiesRead = "tenant.capabilities.read";
 
     private static readonly string[] _tenantAdministration =
     [
-        _tenantSettingsRead, _tenantSettingsUpdate,
+        _tenantSettingsRead, _tenantSettingsUpdate, _capabilitiesRead,
         _membershipRead, "membership.suspend", "membership.restore", "membership.remove", "role.assign", "role.revoke",
         "membership.invite", "invitation.revoke",
     ];
@@ -41,9 +44,9 @@ public static class IdentityRoles
     // Only the owner sees a blocked tenant's status and why (S03 D11): the actions available when blocked.
     private static readonly string[] _tenantOwnership = ["tenant.access.read"];
 
-    private static readonly string[] _tenantContext = [_tenantSettingsRead];
+    private static readonly string[] _tenantContext = [_tenantSettingsRead, _capabilitiesRead];
 
-    private static readonly string[] _platformReads = ["platform.audit.read", "platform.outbox.read", "tenant.read"];
+    private static readonly string[] _platformReads = ["platform.audit.read", "platform.capabilities.read", "platform.outbox.read", "tenant.read"];
 
     public static IReadOnlyList<RoleDefinition> All { get; } =
     [
@@ -63,7 +66,7 @@ public static class IdentityRoles
                 "tenant.update",
             ]),
         new(PlatformRoleCodes.Support, RoleScope.Platform,
-            "Platform staff, read-only: tenants, audit and outbox (every read is audited).",
+            "Platform staff, read-only: tenants, audit and outbox (every tenant, audit and outbox read is audited).",
             _platformReads),
 
         new(TenantOwner, RoleScope.Tenant,
@@ -85,7 +88,8 @@ public static class IdentityRoles
             "Contest check-in, start, periods and clock; timeline record and correct; result submit.",
             _tenantContext, [AssignmentScope.Tenant, AssignmentScope.Competition, AssignmentScope.Contest]),
 
-        // Assigned at a team only: tenant-wide actions such as the settings are not its to grant (owner, S03-T3).
+        // Assigned at a team only: tenant-wide actions such as the settings and the capabilities are not its to grant
+        // (owner, S03-T3, T5); it reads its capabilities once requests carry resource scopes (S06).
         new(TeamManager, RoleScope.Tenant,
             "Team profile, memberships, staff, roster and lineup drafts and submission, registration create and submit.",
             [], [AssignmentScope.Team]),

@@ -1458,6 +1458,86 @@
         }
       }
     },
+    "/api/admin/v1/me/capabilities": {
+      "get": {
+        "tags": [
+          "Capabilities"
+        ],
+        "summary": "List the tenant actions the signed-in user may perform",
+        "description": "The codes of the tenant actions (docs/generated/actions.md) the signed-in user's roles grant in the tenant named by `X-Tenant-Id`, in ordinal order. Without `scopeType`/`scopeId`, the actions granted tenant-wide; with them (COMPETITION, TEAM or CONTEST and its ID), also those granted on that resource or the scopes above it. The admin app shows only what this list allows; every request is still authorized. A tenant whose access is limited answers this request 403 with the reason (TENANT_BLOCKED, TENANT_PROVISIONING).",
+        "operationId": "GetTenantCapabilities",
+        "parameters": [
+          {
+            "name": "scopeType",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "scopeId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CapabilitiesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_QUERY`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_QUERY"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING"
+            ]
+          }
+        }
+      }
+    },
     "/api/platform/v1/diagnostics/outbox": {
       "get": {
         "tags": [
@@ -2799,6 +2879,54 @@
         }
       }
     },
+    "/api/platform/v1/me/capabilities": {
+      "get": {
+        "tags": [
+          "Capabilities"
+        ],
+        "summary": "List the platform actions the signed-in user may perform",
+        "description": "The codes of the platform actions (docs/generated/actions.md) the signed-in user's platform roles grant, in ordinal order. The platform console shows only what this list allows; every request is still authorized.",
+        "operationId": "GetPlatformCapabilities",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CapabilitiesResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_FORBIDDEN"
+            ]
+          }
+        }
+      }
+    },
     "/api/account/v1/login": {
       "post": {
         "tags": [
@@ -3598,6 +3726,48 @@
           "SYSTEM"
         ],
         "description": "Where the action came from."
+      },
+      "CapabilitiesResponse": {
+        "required": [
+          "actions",
+          "scope"
+        ],
+        "type": "object",
+        "properties": {
+          "actions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "scope": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CapabilityScopeResponse"
+              }
+            ]
+          }
+        },
+        "description": "The action codes the caller may perform, in ordinal order; Scope is the resource asked about, if any."
+      },
+      "CapabilityScopeResponse": {
+        "required": [
+          "type",
+          "id"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "$ref": "#/components/schemas/AssignmentScope"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
       },
       "ChangeMemberStatusRequest": {
         "required": [
@@ -5000,6 +5170,9 @@
     },
     {
       "name": "Invitations"
+    },
+    {
+      "name": "Capabilities"
     },
     {
       "name": "Diagnostics"

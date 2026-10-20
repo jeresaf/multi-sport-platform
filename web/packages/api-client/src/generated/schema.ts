@@ -352,6 +352,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/v1/me/capabilities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the tenant actions the signed-in user may perform
+         * @description The codes of the tenant actions (docs/generated/actions.md) the signed-in user's roles grant in the tenant named by `X-Tenant-Id`, in ordinal order. Without `scopeType`/`scopeId`, the actions granted tenant-wide; with them (COMPETITION, TEAM or CONTEST and its ID), also those granted on that resource or the scopes above it. The admin app shows only what this list allows; every request is still authorized. A tenant whose access is limited answers this request 403 with the reason (TENANT_BLOCKED, TENANT_PROVISIONING).
+         */
+        get: operations["GetTenantCapabilities"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/platform/v1/diagnostics/outbox": {
         parameters: {
             query?: never;
@@ -574,6 +594,26 @@ export interface paths {
          * @description ARCHIVED → SUSPENDED, with a reason; restore it as a separate step. The body `{ "reason": … }` is required (no body: VALIDATION_MALFORMED_REQUEST). The reason is kept permanently in the status history and the audit trail: don't include personal data. Send `version` or `If-Match` from the last read to get 409 TENANT_CONCURRENCY_CONFLICT if the tenant changed since.
          */
         post: operations["UnarchiveTenant"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/v1/me/capabilities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the platform actions the signed-in user may perform
+         * @description The codes of the platform actions (docs/generated/actions.md) the signed-in user's platform roles grant, in ordinal order. The platform console shows only what this list allows; every request is still authorized.
+         */
+        get: operations["GetPlatformCapabilities"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -813,6 +853,16 @@ export interface components {
          * @enum {unknown}
          */
         AuditSource: "API" | "SYSTEM";
+        /** @description The action codes the caller may perform, in ordinal order; Scope is the resource asked about, if any. */
+        CapabilitiesResponse: {
+            actions: string[];
+            scope: null | components["schemas"]["CapabilityScopeResponse"];
+        };
+        CapabilityScopeResponse: {
+            type: components["schemas"]["AssignmentScope"];
+            /** Format: uuid */
+            id: string;
+        };
         /** @description The optional body of `restore`: `version`, when sent, must be the membership's current one. */
         ChangeMemberStatusRequest: {
             /** Format: uint32 */
@@ -2220,6 +2270,56 @@ export interface operations {
             };
         };
     };
+    GetTenantCapabilities: {
+        parameters: {
+            query?: {
+                scopeType?: string;
+                scopeId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CapabilitiesResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_QUERY` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     ListOutboxMessages: {
         parameters: {
             query?: {
@@ -3033,6 +3133,44 @@ export interface operations {
             };
             /** @description Problem Details; `code`: `TENANT_CONCURRENCY_CONFLICT`, `TENANT_INVALID_TRANSITION` */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetPlatformCapabilities: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CapabilitiesResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_FORBIDDEN` */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

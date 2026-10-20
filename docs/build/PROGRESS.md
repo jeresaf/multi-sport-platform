@@ -7,13 +7,13 @@ at the start of every review.
 
 - **Current slice:** S03 — Identity and access (docs/build/slices/S03-identity-access.md, rewritten by the S02 slice
   review). S00, S01 and S02 are done
-- **Current task:** S03-T4c2b — DEMO seeder (`identity.demo.invitations`) and the ELSSC owner — in review (#51)
-- **Next:** S03-T5 — Capabilities and the authorization matrix
+- **Current task:** S03-T5a — Capabilities (`me/capabilities` for admin and platform) — in review (#52)
+- **Next:** S03-T5b — Authorization matrix test; an inviter's pending invitations revoked (Q20)
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S03-T5 — Capabilities and the authorization matrix
+1. S03-T5b — Authorization matrix test; an inviter's pending invitations revoked (Q20)
 2. S03-T6 — Admin web: sign-in, shell, members, platform console (likely two PRs: T6a, T6b)
 
 ## Log
@@ -65,6 +65,7 @@ at the start of every review.
 | 2026-10-20 | S03-T4c1 | #49 | `identity.invitations` (tenant-owned, RLS; pending → revoked, `EXPIRED` derived, one pending per email, token hash unique); `/api/admin/v1/invitations` invite (`membership.invite`), list and get (`membership.read`), revoke (`invitation.revoke`, version/If-Match); platform owner invitation (`tenant.owner.invite`, archived refused); `InvitationIssued.V1` and consumer `identity.invitation_email` (token made at send, only its SHA-256 stored, newest wins); errors `AUTH_INVITATION_NOT_FOUND`, `AUTH_INVITATION_TRANSITION_INVALID`, `AUTH_ALREADY_MEMBER`, `AUTH_TENANT_ARCHIVED`; `TenantSummary.DisplayName`; Host documents `TENANT_NOT_FOUND` for route-tenant endpoints | Owner (plan): T4c in two PRs; state machine approved; no sign-in on accept; ELSSC owner proposed by the builder. Beyond the plan: `GET /invitations/{id}`; acceptance columns move to T4c2. Owner (finish): an archived tenant gets no owner invitation. Pre-review: only an owner revokes or replaces an owner's invitation; failed invites audited without an entity. No new packages |
 | 2026-10-20 | S03-T4c2a | #50 | `POST /api/account/v1/invitations/lookup` (`invitation.read`) and `…/accept` (`invitation.accept`), anonymous allowed, audited; the identity directory finds the invitation by its token's SHA-256, the request then runs under its tenant; accepting creates a confirmed user with the chosen password or needs the invited user signed in, and saves the membership, its roles (granted by the inviter) and the accepted invitation in one save; migration `AcceptInvitations` (`accepted_by`, `accepted_at`, `membership_id` → membership, composite key); per-IP limit `identity.invitation` (30 per 10 minutes, lookup and accept together); errors `AUTH_INVITATION_TOKEN_INVALID` (404), `AUTH_INVITATION_EXPIRED` (410, new `ErrorKind.Gone`), `AUTH_INVITATION_ALREADY_ACCEPTED` (409), `AUTH_INVITATION_SIGN_IN_REQUIRED` (403). Removes tech debt #49 N3 | Owner (plan): T4c2 in two PRs (T4c2b: DEMO seeder, ELSSC owner Agnes Namutebi); error codes and statuses; the rate limit. A password sent for an existing account is ignored. `AUTH_TENANT_ARCHIVED`'s message now covers joining too (code unchanged). The memberships alternate key is named explicitly (EF otherwise renamed it). Pre-review: multi-tenancy.md lists the directory's token read (audited by the endpoints); an unknown tenant is a bug (throws). No new packages |
 | 2026-10-20 | S03-T4c2b | #51 | DEMO seeder `identity.demo.invitations` (D18): Grace Nakato, Daniel Kato, Brian Ssemakula, Esther Nabirye (KMSA) and Agnes Namutebi (ELSSC, new in pilot-customer.md) invited with their roles through `membership.invite` as `SYSTEM`, emailed by the API's outbox (Mailpit); no passwords; skips pending/accepted invitations and current members, re-sends expired or revoked ones, seeds only `ACTIVE` tenants; demo sign-in documented; CI e2e starts Mailpit | Owner defaults: no deterministic IDs for invitations (data-conventions exception). An expired invitation is re-sent only when the checksum changes or after `--reset`. `DemoTenantSeederTests` audit counts scoped to `tenant.*` actions. Review: T4's acceptance ticked with evidence (T4 done); Q20 answered (revoke an inviter's pending invitations on suspend/remove), built in T5 |
+| 2026-10-20 | S03-T5a | #52 | `GET /api/admin/v1/me/capabilities` (`tenant.capabilities.read`, optional `scopeType`/`scopeId`) and `GET /api/platform/v1/me/capabilities` (`platform.capabilities.read`), audit `NONE`; the evaluator and both lists share one rule (`Permissions`/`HeldRoles.Allows`); `ScopeChains` registry with a startup check (one provider per resource type); `IActionCatalogue` in BuildingBlocks; table-driven tests against the evaluator for every system role | Owner (plan): T5 in two PRs (T5a capabilities; T5b matrix test and Q20); `TEAM_MANAGER` reads no capabilities until S06; no `EDITION` scope type (fake chain `CONTEST → COMPETITION`) |
 
 ## Deviations from spec (agreed)
 
@@ -186,6 +187,10 @@ at the start of every review.
   `DisplayName`; the acceptance columns (`accepted_by`, `accepted_at`, `membership_id` → membership) ship with T4c2.
   Owner (finish-task): the platform owner invitation refuses an `ARCHIVED` tenant (`409 AUTH_TENANT_ARCHIVED`); other
   statuses are allowed. Pre-review: only an owner revokes or replaces an invitation carrying `TENANT_OWNER`.
+- **S03-T5 (owner, plan 2026-10-20):** two PRs, T5a (capabilities) and T5b (matrix test, Q20). `tenant.capabilities.read`
+  is held by every role assignable tenant-wide, not `TEAM_MANAGER` (spec: "in every tenant role"; a team-scoped role
+  can't be granted an action without a resource before S06). The fake chain test is `CONTEST → COMPETITION`: no
+  `EDITION` scope type is added.
 
 ## Tech debt / follow-ups
 
@@ -216,8 +221,12 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
 - Accepting while signed in as someone else (#50 N2): when the invited email has no account, accepting creates it
   and the caller stays signed in as the other user. The accept page says "You're signed in as X; this invitation is
   for Y" and offers to sign out or continue. No API change. (T6)
-- Two `IScopeChainProvider`s for one resource type make the evaluator throw at request time; add a startup check with
-  the first provider (S03-T4a pre-review). (S06)
+- Capabilities under `READ_ONLY` (S03-T5a pre-review): `tenant.capabilities.read` is a read, so a `READ_ONLY` tenant
+  will answer it, and the list (step 3 only) would include writes that step 1 refuses. Leave them out or give the
+  reason. Also: OpenAPI shows `scopeType` as a free string (values only in the description). (S04)
+- `TEAM_MANAGER` reads no capabilities (S03-T5a, owner): it is assigned at a team only, and an action without a
+  resource is granted only tenant-wide, so `GET /api/admin/v1/me/capabilities` is 403 for a member whose only roles are
+  team-scoped. Decide how such a member reads their capabilities when requests carry resource scopes. (S06)
 - Tests that order audit entries by ID (`AuditTestData.EntriesAsync`) see entries written at one fake-clock instant
   in random order (UUIDv7 from `AuditScope`'s clock); compare such entries without order, or order by something
   stable (S03-T3, found in `PasswordResetTests`). (Any task touching audit tests)

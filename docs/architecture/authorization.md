@@ -75,7 +75,8 @@ tenant actions.
 such that: the role includes the action; the assignment's scope type is in the action's `scopable_by` (so a
 competition-scoped `COMPETITION_MANAGER` gets no `TENANT`-only action, #45 N1); and the scope is the tenant
 (`TENANT`, no scope ID) or appears in the scope chain of the request's resource (`AuthorizationRequest.Scope`): the
-resource itself plus what its module's `IScopeChainProvider` returns above it (no module provides one before S06).
+resource itself plus what its module's `IScopeChainProvider` returns above it (no module provides one before S06;
+`ScopeChains` holds them, one per resource type, checked when the Host starts).
 Memberships and roles are read on every request under the request's tenant (RLS), so a removed or suspended
 membership, or a revoked last role, is refused on the next request. A request whose tenant isn't the scope's tenant
 is refused (fail closed). Only users hold roles; the system and anonymous actors get no tenant action.
@@ -208,6 +209,15 @@ This table is the source of truth for the values seeded in S04.
 
 - The admin app fetches `GET /api/admin/v1/me/capabilities` (actions allowed for the current user/tenant,
   optionally per scope) and hides or disables controls accordingly, showing why (e.g. "Requires PRO plan").
+- As built (S03-T5): `GET /api/admin/v1/me/capabilities` (`tenant.capabilities.read`, every role assignable
+  tenant-wide) answers `{ actions, scope }`: the tenant actions the caller's roles grant tenant-wide, plus, with
+  `scopeType` (`COMPETITION`, `TEAM`, `CONTEST`) and `scopeId`, those granted on that resource or the scopes above it.
+  `GET /api/platform/v1/me/capabilities` (`platform.capabilities.read`, both platform roles) lists the platform
+  actions. Both decide with the evaluator's own rule, so the list is exactly what the evaluator allows (step 3); the
+  tenant endpoint answers only when step 1 lets it through (in S03 that means `FULL`; otherwise its 403 says why). S04
+  adds entitlements, `READ_ONLY` (where this read still answers, so writes must be left out or marked) and the reason
+  for each unavailable action. `TEAM_MANAGER`, assigned at a team only, can't read them until requests
+  carry resource scopes (S06).
 - The server remains the only enforcement point.
 
 ## Audit and analytics reuse

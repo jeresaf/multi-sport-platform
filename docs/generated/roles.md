@@ -9,14 +9,14 @@ as they add actions.
 
 | Role | Scope | Assignable at | Actions | Description |
 |---|---|---|---|---|
-| `PLATFORM_ADMIN` | PLATFORM | — | `platform.admin.create`, `platform.audit.read`, `platform.outbox.read`, `platform.outbox.redrive`, `tenant.activate`, `tenant.archive`, `tenant.create`, `tenant.owner.invite`, `tenant.read`, `tenant.restore`, `tenant.suspend`, `tenant.unarchive`, `tenant.update` | Platform staff: tenants and their lifecycle, platform administrators, audit and outbox. |
-| `PLATFORM_SUPPORT` | PLATFORM | — | `platform.audit.read`, `platform.outbox.read`, `tenant.read` | Platform staff, read-only: tenants, audit and outbox (every read is audited). |
-| `TENANT_OWNER` | TENANT | TENANT | `invitation.revoke`, `membership.invite`, `membership.read`, `membership.remove`, `membership.restore`, `membership.suspend`, `role.assign`, `role.revoke`, `tenant.access.read`, `tenant.settings.read`, `tenant.settings.update` | All tenant actions, including members, roles, subscription view and tenant settings. |
-| `TENANT_ADMIN` | TENANT | TENANT | `invitation.revoke`, `membership.invite`, `membership.read`, `membership.remove`, `membership.restore`, `membership.suspend`, `role.assign`, `role.revoke`, `tenant.settings.read`, `tenant.settings.update` | All tenant actions except ownership transfer. |
-| `REGISTRAR` | TENANT | TENANT | `tenant.settings.read` | People, organisations, teams and venues: create, update, duplicate review; no merges. |
-| `COMPETITION_MANAGER` | TENANT | TENANT, COMPETITION | `tenant.settings.read` | Competitions, editions, registrations, roster approval, stages, fixtures, officials, contest admin, standings recalculation. |
-| `RESULTS_OFFICER` | TENANT | TENANT, COMPETITION | `tenant.settings.read` | Result approve, reject, reopen and correct; progression overrides with a reason. |
-| `SCORER` | TENANT | TENANT, COMPETITION, CONTEST | `tenant.settings.read` | Contest check-in, start, periods and clock; timeline record and correct; result submit. |
+| `PLATFORM_ADMIN` | PLATFORM | — | `platform.admin.create`, `platform.audit.read`, `platform.capabilities.read`, `platform.outbox.read`, `platform.outbox.redrive`, `tenant.activate`, `tenant.archive`, `tenant.create`, `tenant.owner.invite`, `tenant.read`, `tenant.restore`, `tenant.suspend`, `tenant.unarchive`, `tenant.update` | Platform staff: tenants and their lifecycle, platform administrators, audit and outbox. |
+| `PLATFORM_SUPPORT` | PLATFORM | — | `platform.audit.read`, `platform.capabilities.read`, `platform.outbox.read`, `tenant.read` | Platform staff, read-only: tenants, audit and outbox (every tenant, audit and outbox read is audited). |
+| `TENANT_OWNER` | TENANT | TENANT | `invitation.revoke`, `membership.invite`, `membership.read`, `membership.remove`, `membership.restore`, `membership.suspend`, `role.assign`, `role.revoke`, `tenant.access.read`, `tenant.capabilities.read`, `tenant.settings.read`, `tenant.settings.update` | All tenant actions, including members, roles, subscription view and tenant settings. |
+| `TENANT_ADMIN` | TENANT | TENANT | `invitation.revoke`, `membership.invite`, `membership.read`, `membership.remove`, `membership.restore`, `membership.suspend`, `role.assign`, `role.revoke`, `tenant.capabilities.read`, `tenant.settings.read`, `tenant.settings.update` | All tenant actions except ownership transfer. |
+| `REGISTRAR` | TENANT | TENANT | `tenant.capabilities.read`, `tenant.settings.read` | People, organisations, teams and venues: create, update, duplicate review; no merges. |
+| `COMPETITION_MANAGER` | TENANT | TENANT, COMPETITION | `tenant.capabilities.read`, `tenant.settings.read` | Competitions, editions, registrations, roster approval, stages, fixtures, officials, contest admin, standings recalculation. |
+| `RESULTS_OFFICER` | TENANT | TENANT, COMPETITION | `tenant.capabilities.read`, `tenant.settings.read` | Result approve, reject, reopen and correct; progression overrides with a reason. |
+| `SCORER` | TENANT | TENANT, COMPETITION, CONTEST | `tenant.capabilities.read`, `tenant.settings.read` | Contest check-in, start, periods and clock; timeline record and correct; result submit. |
 | `TEAM_MANAGER` | TENANT | TEAM | — | Team profile, memberships, staff, roster and lineup drafts and submission, registration create and submit. |
-| `DATA_ENTRY` | TENANT | TENANT, COMPETITION | `tenant.settings.read` | Historical results entry and import dry runs (running an import needs COMPETITION_MANAGER or TENANT_ADMIN). |
-| `VIEWER` | TENANT | TENANT | `membership.read`, `tenant.settings.read` | Read-only admin. |
+| `DATA_ENTRY` | TENANT | TENANT, COMPETITION | `tenant.capabilities.read`, `tenant.settings.read` | Historical results entry and import dry runs (running an import needs COMPETITION_MANAGER or TENANT_ADMIN). |
+| `VIEWER` | TENANT | TENANT | `membership.read`, `tenant.capabilities.read`, `tenant.settings.read` | Read-only admin. |

@@ -49,6 +49,17 @@ public sealed class RoleCatalogueTests
         _roles.Find(IdentityRoles.TeamManager).ShouldNotBeNull().Actions.ShouldBeEmpty();
     }
 
+    [Fact]
+    public void Every_role_assigned_tenant_wide_and_every_platform_role_reads_its_capabilities()
+    {
+        var tenantRoles = _roles.Roles.Where(role => role.Scope == RoleScope.Tenant).ToList();
+
+        tenantRoles.Where(role => role.Actions.Contains("tenant.capabilities.read")).Select(role => role.Code)
+            .ShouldBe(tenantRoles.Where(role => role.AssignableAt.Contains(AssignmentScope.Tenant)).Select(role => role.Code));
+        _roles.Roles.Where(role => role.Actions.Contains("platform.capabilities.read")).Select(role => role.Code)
+            .ShouldBe(_roles.Roles.Where(role => role.Scope == RoleScope.Platform).Select(role => role.Code));
+    }
+
     // S03 D11: what stays open on a suspended or archived tenant is the owner's alone.
     [Fact]
     public void Only_the_tenant_owner_holds_the_actions_available_when_blocked()
@@ -77,10 +88,10 @@ public sealed class RoleCatalogueTests
         var json = RoleCatalogueExport.ToJson(_roles);
 
         markdown.ShouldContain("**Actions** is what a role grants today; **Description** is the role's purpose");
-        markdown.ShouldContain("| `VIEWER` | TENANT | TENANT | `membership.read`, `tenant.settings.read` | Read-only admin. |\n");
-        markdown.ShouldContain("| `SCORER` | TENANT | TENANT, COMPETITION, CONTEST | `tenant.settings.read` |");
+        markdown.ShouldContain("| `VIEWER` | TENANT | TENANT | `membership.read`, `tenant.capabilities.read`, `tenant.settings.read` | Read-only admin. |\n");
+        markdown.ShouldContain("| `SCORER` | TENANT | TENANT, COMPETITION, CONTEST | `tenant.capabilities.read`, `tenant.settings.read` |");
         markdown.ShouldContain("| `TEAM_MANAGER` | TENANT | TEAM | — |");
-        markdown.ShouldContain("| `PLATFORM_SUPPORT` | PLATFORM | — | `platform.audit.read`, `platform.outbox.read`, `tenant.read` |");
+        markdown.ShouldContain("| `PLATFORM_SUPPORT` | PLATFORM | — | `platform.audit.read`, `platform.capabilities.read`, `platform.outbox.read`, `tenant.read` |");
         markdown.ShouldNotContain("\r");
         json.ShouldNotContain("\r");
         json.ShouldEndWith("}\n");
@@ -94,7 +105,8 @@ public sealed class RoleCatalogueTests
         owner.GetProperty("actions").EnumerateArray().Select(action => action.GetString()).ShouldBe(
         [
             "invitation.revoke", "membership.invite", "membership.read", "membership.remove", "membership.restore",
-            "membership.suspend", "role.assign", "role.revoke", "tenant.access.read", "tenant.settings.read", "tenant.settings.update",
+            "membership.suspend", "role.assign", "role.revoke", "tenant.access.read", "tenant.capabilities.read", "tenant.settings.read",
+            "tenant.settings.update",
         ]);
     }
 }
