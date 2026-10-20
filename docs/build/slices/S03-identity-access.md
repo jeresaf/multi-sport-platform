@@ -497,3 +497,12 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   missing one stops the run. The emails go out through the API's outbox (Mailpit; the CI e2e job starts it too).
   The runner skips a seeder whose checksum is unchanged, so an expired invitation is sent again only when the data or
   the seeder's version changes, or after `seed --reset` (pre-review; documented in pilot-customer.md).
+- **T5 (owner, plan 2026-10-20):** two PRs, T5a (capabilities) and T5b (matrix test, Q20). `tenant.capabilities.read`
+  is scopable by `TENANT` and held by every role assignable tenant-wide: `TEAM_MANAGER` (team scope only) can't be
+  granted an action without a resource until S06 brings resource scopes to requests (follow-up).
+  `platform.capabilities.read` is held by both platform roles. Both reads are audit `NONE`. The capability list is
+  step 3 only: the tenant endpoint answers only when the access mode is `FULL` (its 403 says why otherwise); S04 adds
+  entitlements and reasons. `AssignmentScope` gets no `EDITION`: the fake chain test is `CONTEST → COMPETITION`, the
+  tenant reached by tenant-wide assignments. Identity reads action definitions through `IActionCatalogue`
+  (BuildingBlocks); `ScopeChains` (BuildingBlocks) is the provider registry, one provider per resource type, checked
+  at startup.

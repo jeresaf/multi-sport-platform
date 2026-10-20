@@ -7,13 +7,13 @@ at the start of every review.
 
 - **Current slice:** S03 — Identity and access (docs/build/slices/S03-identity-access.md, rewritten by the S02 slice
   review). S00, S01 and S02 are done
-- **Current task:** S03-T4c2b — DEMO seeder (`identity.demo.invitations`) and the ELSSC owner — in review (#51)
-- **Next:** S03-T5 — Capabilities and the authorization matrix
+- **Current task:** S03-T5a — Capabilities (`me/capabilities` for admin and platform) — in progress
+- **Next:** S03-T5b — Authorization matrix test; an inviter's pending invitations revoked (Q20)
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S03-T5 — Capabilities and the authorization matrix
+1. S03-T5b — Authorization matrix test; an inviter's pending invitations revoked (Q20)
 2. S03-T6 — Admin web: sign-in, shell, members, platform console (likely two PRs: T6a, T6b)
 
 ## Log
