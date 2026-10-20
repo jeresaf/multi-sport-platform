@@ -96,7 +96,7 @@ test("screenshots of a suspended tenant", async ({ page, request }) => {
   const run = process.env.MSP_E2E_RUN!;
   const slug = `acacia-schools-${run}`;
   const id = await createTenant(request, slug, `Acacia Schools Netball Circle ${run}`);
-  const email = personEmail("agnes.namutebi", slug);
+  const email = personEmail("harriet.akello", slug);
   const password = newPassword();
   await acceptByApi(request, await inviteOwnerOf(request, id, email), password);
   await suspendTenant(request, id, "Subscription unpaid since September");
