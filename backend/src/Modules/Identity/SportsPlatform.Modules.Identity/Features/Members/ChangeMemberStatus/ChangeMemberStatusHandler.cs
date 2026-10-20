@@ -38,7 +38,9 @@ public sealed class ChangeMemberStatusHandler(MemberChanges changes, ICurrentAct
 
     private static OwnerImpact ImpactOf(TenantMembership membership, MemberTransition transition)
     {
-        if (!MemberChanges.IsOwner(membership))
+        // A removed membership keeps its role rows but is no one's owner any more: every change to it is the state
+        // machine's to refuse (AUTH_MEMBERSHIP_TRANSITION_INVALID), whoever asks.
+        if (membership.Status == MembershipStatus.Removed || !MemberChanges.IsOwner(membership))
         {
             return OwnerImpact.None;
         }

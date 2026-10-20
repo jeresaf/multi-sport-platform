@@ -124,6 +124,30 @@ public sealed class OwnerRulesTests(PostgresFixture fixture) : DatabaseTest(fixt
         (await owner.AssignAsync(daniel.MembershipId, IdentityRoles.TenantOwner, Ct)).StatusCode.ShouldBe(HttpStatusCode.Created);
     }
 
+    [Fact]
+    public async Task A_removed_owner_is_refused_by_the_state_machine_for_admins_and_owners_alike()
+    {
+        var (kmsa, grace) = await KmsaWithOwnerAsync();
+        var isaac = await CreateMemberAsync(App.Services, kmsa, "isaac.mugisha@kmsa.example", Ct, TenantWide(IdentityRoles.TenantOwner));
+        var daniel = await CreateMemberAsync(App.Services, kmsa, "daniel.kato@kmsa.example", Ct, TenantWide(IdentityRoles.TenantAdmin));
+        using var owner = App.ClientFor(grace.UserId, kmsa);
+        using var admin = App.ClientFor(daniel.UserId, kmsa);
+        var isaacsOwnerRole = await OwnerAssignmentAsync(owner, isaac);
+        using var removed = await owner.RemoveAsync(isaac.MembershipId, Ct);
+        removed.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        // Isaac's owner role row stays (history), but a removed member is no one's owner: 409 for both, not 403.
+        using var byAdmin = await admin.RestoreAsync(isaac.MembershipId, Ct);
+        using var byOwner = await owner.RestoreAsync(isaac.MembershipId, Ct);
+        using var removedByAdmin = await admin.RemoveAsync(isaac.MembershipId, Ct);
+        using var revokedByAdmin = await admin.RevokeAsync(isaac.MembershipId, isaacsOwnerRole, Ct);
+
+        await byAdmin.ShouldBeProblemAsync(HttpStatusCode.Conflict, "AUTH_MEMBERSHIP_TRANSITION_INVALID");
+        await byOwner.ShouldBeProblemAsync(HttpStatusCode.Conflict, "AUTH_MEMBERSHIP_TRANSITION_INVALID");
+        await removedByAdmin.ShouldBeProblemAsync(HttpStatusCode.Conflict, "AUTH_MEMBERSHIP_TRANSITION_INVALID");
+        await revokedByAdmin.ShouldBeProblemAsync(HttpStatusCode.Conflict, "AUTH_MEMBERSHIP_TRANSITION_INVALID");
+    }
+
     private async Task<(Guid Tenant, Member Owner)> KmsaWithOwnerAsync()
     {
         App.Authorization.UseIdentityRoles();

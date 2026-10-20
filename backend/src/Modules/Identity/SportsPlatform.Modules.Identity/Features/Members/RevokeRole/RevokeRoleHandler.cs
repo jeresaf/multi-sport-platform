@@ -25,7 +25,10 @@ public sealed class RevokeRoleHandler(MemberChanges changes, ICurrentActor actor
 
     private static OwnerImpact ImpactOf(TenantMembership membership, Guid assignmentId)
     {
-        if (membership.ActiveRoles.SingleOrDefault(a => a.Id == assignmentId) is not { } assignment || !MemberChanges.IsOwnerRole(assignment))
+        // A removed membership is no one's owner: the state machine refuses the change, whoever asks.
+        if (membership.Status == MembershipStatus.Removed
+            || membership.ActiveRoles.SingleOrDefault(a => a.Id == assignmentId) is not { } assignment
+            || !MemberChanges.IsOwnerRole(assignment))
         {
             return OwnerImpact.None;
         }
