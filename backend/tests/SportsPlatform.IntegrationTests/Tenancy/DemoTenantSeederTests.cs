@@ -57,7 +57,7 @@ public sealed class DemoTenantSeederTests(PostgresFixture fixture) : DatabaseTes
     {
         await SeedDemoAsync(App);
 
-        var entries = await ProcessedAuditEntriesAsync();
+        var entries = await TenancyAuditEntriesAsync();
 
         entries.ShouldAllBe(e => e.Source == AuditSource.System && e.ActorKind == ActorKind.System && e.ActorId == SystemActor.Id
             && e.Outcome == AuditOutcome.Success);
@@ -74,7 +74,7 @@ public sealed class DemoTenantSeederTests(PostgresFixture fixture) : DatabaseTes
     public async Task Seeding_again_changes_nothing()
     {
         await SeedDemoAsync(App);
-        await ProcessedAuditEntriesAsync();
+        await TenancyAuditEntriesAsync();
         var history = await TenantTestData.HistoryAsync(App.Services, _kmsaId, Ct);
         var version = (await TenantTestData.TenantAsync(App.Services, _kmsaId, Ct)).Version;
 
@@ -90,7 +90,7 @@ public sealed class DemoTenantSeederTests(PostgresFixture fixture) : DatabaseTes
         (await TenantTestData.OutboxAsync(App.Services, Ct)).ShouldAllBe(m => m.ProcessedAt != null); // Nothing new to publish.
         (await TenantTestData.HistoryAsync(App.Services, _kmsaId, Ct)).Count.ShouldBe(history.Count);
         (await TenantTestData.TenantAsync(App.Services, _kmsaId, Ct)).Version.ShouldBe(version);
-        (await ProcessedAuditEntriesAsync()).Count.ShouldBe(6);
+        (await TenancyAuditEntriesAsync()).Count.ShouldBe(6);
     }
 
     [Fact]
@@ -154,12 +154,13 @@ public sealed class DemoTenantSeederTests(PostgresFixture fixture) : DatabaseTes
     private WebApplicationFactory<Program> WithRerunSeeder() =>
         App.WithWebHostBuilder(builder => builder.ConfigureTestServices(services => services.AddSeeder<RerunDemoTenantSeeder>()));
 
-    private async Task<List<AuditEntry>> ProcessedAuditEntriesAsync()
+    /// <summary>The audit entries of Tenancy's commands; the DEMO run also seeds Identity's invitations (S03-T4c2b).</summary>
+    private async Task<List<AuditEntry>> TenancyAuditEntriesAsync()
     {
         var processor = App.Services.GetRequiredService<OutboxProcessor>();
         await processor.ProcessOnceAsync(Ct);
         await processor.ProcessOnceAsync(Ct);
-        return await AuditTestData.EntriesAsync(App.Services, Ct);
+        return [.. (await AuditTestData.EntriesAsync(App.Services, Ct)).Where(e => e.ActionCode.StartsWith("tenant.", StringComparison.Ordinal))];
     }
 
     private sealed class RerunDemoTenantSeeder : ISeeder
