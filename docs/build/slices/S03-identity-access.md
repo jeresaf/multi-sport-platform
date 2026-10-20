@@ -478,3 +478,10 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   the audit entry (user, membership, roles, account created; no email) in one save; a race is
   `409 AUTH_CONCURRENCY_CONFLICT`. Accepting doesn't sign in. Rate limit `identity.invitation` per IP only
   (`Identity:RateLimits:InvitationPerIp`, 30 per 10 minutes, both endpoints together): `RateLimitedPerIp`.
+- **T4c2b (owner, plan 2026-10-20):** `identity.demo.invitations` (DEMO, `Order` 10, after `tenancy.demo.tenants`)
+  invites Grace Nakato, Daniel Kato, Brian Ssemakula, Esther Nabirye (KMSA) and Agnes Namutebi (ELSSC) at
+  `first.last@kmsa.example` / `@elssc.example` through `InviteHandler.InviteMemberAsync` (`membership.invite`, also for
+  owners: the system actor passes the owner rule). Tenant IDs come from `ITenantDirectory.GetBySlugAsync`. Owner
+  defaults: no deterministic IDs (natural key tenant + normalised email); a pending unexpired or accepted invitation,
+  or a current membership, is skipped; an expired or revoked one is sent again; only an `ACTIVE` tenant is seeded, a
+  missing one stops the run. The emails go out through the API's outbox (Mailpit; the CI e2e job starts it too).
