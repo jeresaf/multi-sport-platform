@@ -32,6 +32,7 @@ public sealed class Permissions(IdentityDbContext context, RoleCatalogue roles, 
             .Select(roles.Find)
             .OfType<RoleDefinition>()
             .Where(role => role.Scope == RoleScope.Platform)
+            // A platform role has no assignment scope; Allows ignores ScopeType for platform roles.
             .Select(role => new HeldRole(role, AssignmentScope.Tenant, null))]);
     }
 
@@ -59,7 +60,10 @@ public sealed class Permissions(IdentityDbContext context, RoleCatalogue roles, 
     }
 }
 
-/// <summary>A role the actor holds and where: tenant-wide (<c>TENANT</c>, no scope ID) or at one resource; platform roles have no scope.</summary>
+/// <summary>
+/// A role the actor holds and where: tenant-wide (<c>TENANT</c>, no scope ID) or at one resource. Platform roles have no
+/// scope: they are held as <c>TENANT</c> with no ID, which <see cref="HeldRoles.Allows"/> doesn't read for them.
+/// </summary>
 public sealed record HeldRole(RoleDefinition Role, AssignmentScope ScopeType, Guid? ScopeId);
 
 /// <summary>The roles one actor holds in one place (the platform, or one tenant), and what they allow (S03 D10).</summary>

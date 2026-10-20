@@ -55,6 +55,9 @@ public sealed class CapabilitiesTests(PostgresFixture fixture) : DatabaseTest(fi
         var expected = await EvaluatorAllowsAsync(member.Actor, ActionScope.Tenant, kmsa);
         expected.ShouldContain(IdentityActions.TenantCapabilitiesRead.Code.Value);
         ActionsOf(body).ShouldBe(expected);
+
+        // And independently of the shared rule: the role's tenant actions that a tenant-wide assignment can grant.
+        ActionsOf(body).ShouldBe(await RoleGrantsAsync(role, action => action.Scope == ActionScope.Tenant && action.ScopableBy.Contains(AssignmentScope.Tenant)));
         body.GetProperty("scope").ValueKind.ShouldBe(JsonValueKind.Null);
     }
 
@@ -71,7 +74,9 @@ public sealed class CapabilitiesTests(PostgresFixture fixture) : DatabaseTest(fi
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var expected = await EvaluatorAllowsAsync(new UserActor(userId), ActionScope.Platform, tenantId: null);
         expected.ShouldContain(IdentityActions.PlatformCapabilitiesRead.Code.Value);
-        ActionsOf(await response.Content.ReadFromJsonAsync<JsonElement>(Ct)).ShouldBe(expected);
+        var actions = ActionsOf(await response.Content.ReadFromJsonAsync<JsonElement>(Ct));
+        actions.ShouldBe(expected);
+        actions.ShouldBe(await RoleGrantsAsync(role, action => action.Scope == ActionScope.Platform));
     }
 
     [Fact]
@@ -211,6 +216,16 @@ public sealed class CapabilitiesTests(PostgresFixture fixture) : DatabaseTest(fi
         }
 
         return allowed;
+    }
+
+    /// <summary>The catalogue's actions, in its ordinal order, that the role definition names and <paramref name="grantable"/> accepts.</summary>
+    private async Task<List<string>> RoleGrantsAsync(string role, Func<ActionDefinition, bool> grantable)
+    {
+        await using var serviceScope = App.Services.CreateAsyncScope();
+        var definition = IdentityRoles.All.Single(r => r.Code == role);
+        return [.. serviceScope.ServiceProvider.GetRequiredService<IActionCatalogue>().All
+            .Where(action => grantable(action) && definition.Actions.Contains(action.Code.Value))
+            .Select(action => action.Code.Value)];
     }
 
     /// <summary>The handler with the test role and test actions (<c>fixture.read</c>) and a module's chain.</summary>

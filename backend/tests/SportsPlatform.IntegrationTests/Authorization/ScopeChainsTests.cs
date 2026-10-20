@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using SportsPlatform.BuildingBlocks.Actions;
-using SportsPlatform.IntegrationTests.Identity;
 using SportsPlatform.IntegrationTests.Infrastructure;
 
 namespace SportsPlatform.IntegrationTests.Authorization;
@@ -51,6 +50,6 @@ public sealed class ScopeChainsTests
         var exception = Should.Throw<InvalidOperationException>(() => app.Services);
 
         exception.Message.ShouldBe(
-            "Each resource type has at most one scope chain provider:\nResource type Contest has 2 scope chain providers: FakeScopeChain, FakeScopeChain.");
+            "Each resource type has at most one scope chain provider:\nResource type CONTEST has 2 scope chain providers: FakeScopeChain, FakeScopeChain.");
     }
 }

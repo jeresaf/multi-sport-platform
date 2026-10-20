@@ -28,7 +28,10 @@ public sealed class ScopeChains(IEnumerable<IScopeChainProvider> providers)
         return [.. providers
             .GroupBy(provider => provider.ResourceType)
             .Where(group => group.Count() > 1)
-            .Select(group => $"Resource type {group.Key} has {group.Count()} scope chain providers: " +
+            .Select(group => $"Resource type {ToConstant(group.Key)} has {group.Count()} scope chain providers: " +
                 string.Join(", ", group.Select(provider => provider.GetType().Name)) + ".")];
     }
+
+    /// <summary><c>Contest</c> → <c>CONTEST</c>, as the catalogues write scope types.</summary>
+    private static string ToConstant(AssignmentScope type) => type.ToString().ToUpperInvariant();
 }

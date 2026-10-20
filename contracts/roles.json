@@ -25,7 +25,7 @@
     {
       "code": "PLATFORM_SUPPORT",
       "scope": "PLATFORM",
-      "description": "Platform staff, read-only: tenants, audit and outbox (every read is audited).",
+      "description": "Platform staff, read-only: tenants, audit and outbox (every tenant, audit and outbox read is audited).",
       "assignableAt": [],
       "actions": [
         "platform.audit.read",
