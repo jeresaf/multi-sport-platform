@@ -7,13 +7,14 @@ at the start of every review.
 
 - **Current slice:** S03 — Identity and access (docs/build/slices/S03-identity-access.md, rewritten by the S02 slice
   review). S00, S01 and S02 are done
-- **Current task:** S03-T3 — Roles in code, platform roles and the evaluator — in review (#45)
-- **Next:** S03-T4 — Memberships, invitations and tenant roles
+- **Current task:** S03-T4a — Memberships, role assignments, the identity directory and the evaluator's tenant step
+- **Next:** S03-T4b — Member and role endpoints, last owner, access-mode refinements
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S03-T4 — Memberships, invitations and tenant roles (likely two PRs: T4a, T4b)
+1. S03-T4 — Memberships, invitations and tenant roles (three PRs, owner: T4a data, directory and evaluator; T4b
+   member and role endpoints, last owner, access mode; T4c invitations, email, DEMO)
 2. S03-T5 — Capabilities and the authorization matrix
 3. S03-T6 — Admin web: sign-in, shell, members, platform console (likely two PRs: T6a, T6b)
 
@@ -169,10 +170,10 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
 (2026-10-18). The S00 carry-overs assigned to S01 are done. Each item names where it gets done.
 
 **S03 — identity and access**
-- Assignment scope vs action scope (#45 N1): `RoleRules` checks a tenant role per role, not per assignment. T4's
-  evaluator grants a tenant action only when the role includes it, the assignment's scope type is in the action's
-  `scopable_by`, and that scope is in the resource's chain; test a competition-scoped `COMPETITION_MANAGER` refused
-  `tenant.settings.read`. (T4)
+- Role assignment changes touch only `identity.role_assignments` rows, so the membership's `xmin` doesn't change and
+  two concurrent changes to one membership's roles aren't detected (database.md "Known gap"). T4b's assign and revoke
+  handlers must change the membership row too (or lock it), and the last-owner rule takes its per-tenant lock (S03-T4a).
+  (T4b)
 - Tests that order audit entries by ID (`AuditTestData.EntriesAsync`) see entries written at one fake-clock instant
   in random order (UUIDv7 from `AuditScope`'s clock); compare such entries without order, or order by something
   stable (S03-T3, found in `PasswordResetTests`). (Any task touching audit tests)
@@ -184,10 +185,6 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
   owners/admins (setup). S03: limit it to them, with a test (#34 R1).
 - `BLOCKED` access mode lets the tenant owner view the tenant's status (state-machines.md); S02-T3a refuses every
   admin request on a blocked tenant because there are no roles yet. S03: the exception for the owner (S02-T3a).
-- Real `ITenantMembershipChecker` replacing `NoTenantMemberships` (T4).
-- With the second `AddPlatformServiceDbContext<T>` (e.g. `PlatformTenantStatistics`): make
-  `TenantIsolationRulesTests.Only_the_audit_features_use_the_platform_audit_context` generic: discover the contexts
-  registered that way and require an allowed-users entry for each (#33 N2). (T4)
 - **OpenAPI (with the first admin UI client, S03 or later):** optional request members (`version`, PATCH fields) are
   listed as `required` (nullable) in the schemas, so the TS client makes callers pass `null`; endpoints don't declare
   the `If-Match` request header or the `ETag` response header, and activate/restore list no 400 (pipeline errors).

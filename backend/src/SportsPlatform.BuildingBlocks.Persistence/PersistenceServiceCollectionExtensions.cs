@@ -37,7 +37,7 @@ public static class PersistenceServiceCollectionExtensions
     /// </summary>
     public static IServiceCollection AddPlatformServiceDbContext<TContext>(
         this IServiceCollection services, IConfiguration configuration, string schema)
-        where TContext : ModuleDbContext
+        where TContext : PlatformServiceDbContext
     {
         AddContext<TContext>(services, configuration, schema, ConnectionStringNames.Platform);
         return services;
