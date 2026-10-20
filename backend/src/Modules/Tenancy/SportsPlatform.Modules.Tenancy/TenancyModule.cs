@@ -10,6 +10,7 @@ using SportsPlatform.Modules.Tenancy.Contracts.Access;
 using SportsPlatform.Modules.Tenancy.Contracts.Tenants;
 using SportsPlatform.Modules.Tenancy.Domain.Domains;
 using SportsPlatform.Modules.Tenancy.Domain.Tenants;
+using SportsPlatform.Modules.Tenancy.Features.Access.GetTenantAccess;
 using SportsPlatform.Modules.Tenancy.Features.Domains;
 using SportsPlatform.Modules.Tenancy.Features.Settings;
 using SportsPlatform.Modules.Tenancy.Features.Settings.GetTenantSettings;
@@ -72,6 +73,7 @@ public sealed class TenancyModule : IModule
         services.AddScoped<IValidator<UpdateTenantProfileRequest>, UpdateTenantProfileRequestValidator>();
         services.AddScoped<ChangeTenantStatusHandler>();
         services.AddScoped<GetSiteHandler>();
+        services.AddScoped<GetTenantAccessHandler>();
         services.AddScoped<GetTenantSettingsHandler>();
         services.AddScoped<UpdateTenantSettingsHandler>();
         services.AddScoped<IValidator<UpdateTenantSettingsRequest>, UpdateTenantSettingsRequestValidator>();
@@ -94,5 +96,6 @@ public sealed class TenancyModule : IModule
         var settings = TenantSettingsEndpoints.Group(groups.Admin);
         GetTenantSettingsEndpoint.Map(settings);
         UpdateTenantSettingsEndpoint.Map(settings);
+        GetTenantAccessEndpoint.Map(groups.Admin);
     }
 }

@@ -221,7 +221,8 @@ public sealed class ActionAuthorizationTests
         public Task<TenantAccessMode?> GetAccessModeAsync(Guid tenantId, CancellationToken cancellationToken) =>
             Task.FromResult<TenantAccessMode?>(TenantAccessMode.Full);
 
-        public Task<Result> CheckAdminAccessAsync(Guid tenantId, CancellationToken cancellationToken) => Task.FromResult(Result.Success());
+        public Task<Result> CheckAdminAccessAsync(Guid tenantId, ActionDefinition action, CancellationToken cancellationToken) =>
+            Task.FromResult(Result.Success());
 
         public Task<Result> CheckPublicAccessAsync(TenantSummary tenant, CancellationToken cancellationToken) =>
             Task.FromResult(Result.Success());

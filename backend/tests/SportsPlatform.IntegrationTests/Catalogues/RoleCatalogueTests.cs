@@ -49,6 +49,27 @@ public sealed class RoleCatalogueTests
         _roles.Find(IdentityRoles.TeamManager).ShouldNotBeNull().Actions.ShouldBeEmpty();
     }
 
+    // S03 D11: what stays open on a suspended or archived tenant is the owner's alone.
+    [Fact]
+    public void Only_the_tenant_owner_holds_the_actions_available_when_blocked()
+    {
+        var blockedActions = ActionCatalogue.Build(ModuleRegistry.All)
+            .Where(entry => entry.Action.AvailableWhenBlocked)
+            .Select(entry => entry.Action.Code.Value)
+            .ToList();
+
+        blockedActions.ShouldBe(["tenant.access.read"]);
+        _roles.Roles.Where(role => role.Actions.Intersect(blockedActions).Any()).Select(role => role.Code)
+            .ShouldBe([IdentityRoles.TenantOwner]);
+    }
+
+    [Fact]
+    public void The_setup_roles_are_the_tenant_owner_and_admin_assigned_tenant_wide()
+    {
+        IdentityRoles.SetupRoles.ShouldBe([IdentityRoles.TenantOwner, IdentityRoles.TenantAdmin]);
+        IdentityRoles.SetupRoles.ShouldAllBe(code => _roles.Find(code)!.AssignableAt.Contains(AssignmentScope.Tenant));
+    }
+
     [Fact]
     public void Markdown_and_JSON_carry_every_field()
     {
@@ -73,7 +94,7 @@ public sealed class RoleCatalogueTests
         owner.GetProperty("actions").EnumerateArray().Select(action => action.GetString()).ShouldBe(
         [
             "membership.read", "membership.remove", "membership.restore", "membership.suspend", "role.assign", "role.revoke",
-            "tenant.settings.read", "tenant.settings.update",
+            "tenant.access.read", "tenant.settings.read", "tenant.settings.update",
         ]);
     }
 }

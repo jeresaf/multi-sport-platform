@@ -1,3 +1,4 @@
+using SportsPlatform.BuildingBlocks.Actions;
 using SportsPlatform.BuildingBlocks.Results;
 using SportsPlatform.Modules.Tenancy.Contracts.Tenants;
 
@@ -10,10 +11,13 @@ public interface ITenantAccess
     Task<TenantAccessMode?> GetAccessModeAsync(Guid tenantId, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Step 1 of the decision formula for an admin request: success for <c>FULL</c>, <c>TENANT_BLOCKED</c> for
-    /// <c>BLOCKED</c>, <c>TENANT_NOT_FOUND</c> for an unknown tenant.
+    /// Step 1 of the decision formula for an admin request's tenant <paramref name="action"/> (S03 D11): success for an
+    /// <c>ACTIVE</c> tenant; for a <c>PROVISIONING</c> one, success when the actor may set it up
+    /// (<see cref="BuildingBlocks.Tenancy.ITenantSetupAccess"/>), else <c>TENANT_PROVISIONING</c>; for a <c>BLOCKED</c>
+    /// one, success only for an action available when blocked, else <c>TENANT_BLOCKED</c>; <c>TENANT_NOT_FOUND</c> for
+    /// an unknown tenant. Call after the scope's tenant is set to <paramref name="tenantId"/>.
     /// </summary>
-    Task<Result> CheckAdminAccessAsync(Guid tenantId, CancellationToken cancellationToken);
+    Task<Result> CheckAdminAccessAsync(Guid tenantId, ActionDefinition action, CancellationToken cancellationToken);
 
     /// <summary>
     /// Whether the tenant's public site is shown: success for an <c>ACTIVE</c> tenant whose settings enable it, else

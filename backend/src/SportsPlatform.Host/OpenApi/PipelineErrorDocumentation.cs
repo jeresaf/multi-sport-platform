@@ -11,7 +11,8 @@ namespace SportsPlatform.Host.OpenApi;
 /// Documents the 401s and 403s the pipeline answers before an endpoint runs, which a module can't declare itself: an
 /// action that needs a user can be <c>AUTH_UNAUTHENTICATED</c> (S03 D4); a state-changing request
 /// <c>AUTH_CSRF_REQUIRED</c> (D7); a platform or tenant action <c>AUTH_FORBIDDEN</c> (the evaluator), and a tenant action
-/// also <c>AUTH_TENANT_FORBIDDEN</c> (tenant resolution) and <c>TENANT_BLOCKED</c> (access mode, Tenancy's code).
+/// also <c>AUTH_TENANT_FORBIDDEN</c> (tenant resolution), <c>TENANT_PROVISIONING</c> and, unless the action is available
+/// when blocked, <c>TENANT_BLOCKED</c> (access mode, Tenancy's codes; S03 D11).
 /// </summary>
 internal static class PipelineErrorDocumentation
 {
@@ -58,7 +59,11 @@ internal static class PipelineErrorDocumentation
         if (action.Scope == ActionScope.Tenant)
         {
             yield return AuthorizationErrors.TenantForbidden;
-            yield return TenancyErrors.Blocked;
+            yield return TenancyErrors.Provisioning;
+            if (!action.AvailableWhenBlocked)
+            {
+                yield return TenancyErrors.Blocked;
+            }
         }
     }
 }

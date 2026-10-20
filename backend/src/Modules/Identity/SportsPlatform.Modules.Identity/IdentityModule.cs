@@ -62,6 +62,9 @@ public sealed class IdentityModule : IModule
         services.AddScoped<IdentityDirectory>();
         services.AddScoped<ITenantMembershipChecker>(provider => provider.GetRequiredService<IdentityDirectory>());
 
+        // S03 D11: who works in a PROVISIONING tenant (step 1 asks).
+        services.AddScoped<ITenantSetupAccess, TenantSetupAccess>();
+
         // S03 D14: the key ring in identity.data_protection_keys, shared by every API instance.
         services.AddDataProtection()
             .SetApplicationName(DataProtectionApplicationName)
