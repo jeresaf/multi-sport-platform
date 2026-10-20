@@ -54,7 +54,6 @@ public static class SportsPlatformApp
         builder.Services.AddHealthEndpoints();
         builder.Services.AddApiDocumentation();
         builder.Services.AddForwardedHost(builder.Configuration);
-        builder.Services.AddTenantResolution();
     }
 
     /// <summary>

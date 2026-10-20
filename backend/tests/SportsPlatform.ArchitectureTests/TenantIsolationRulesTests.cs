@@ -1,12 +1,11 @@
 using NetArchTest.Rules;
+using SportsPlatform.BuildingBlocks.Persistence;
 
 namespace SportsPlatform.ArchitectureTests;
 
 /// <summary>AR-04: code can't step around the tenant query filter or RLS except in named platform services.</summary>
 public sealed class TenantIsolationRulesTests
 {
-    private const string _platformAuditContext = "SportsPlatform.Modules.Platform.Infrastructure.PlatformAuditDbContext";
-
     /// <summary>Source files (relative to <c>backend/src</c>) of the reviewed platform services that may ignore the filter.</summary>
     private static readonly HashSet<string> _mayIgnoreQueryFilters = [];
 
@@ -25,20 +24,43 @@ public sealed class TenantIsolationRulesTests
             .ShouldBeEmpty();
     }
 
-    // The audit context runs as sp_platform (BYPASSRLS): only the audit features (and the module registering it) use it.
-    [Fact]
-    public void Only_the_audit_features_use_the_platform_audit_context()
+    // Platform service contexts run as sp_platform (BYPASSRLS): each is named here with the only namespaces (and the
+    // module class that registers it) that may use it (S03 D8, #33 N2).
+    private static readonly Dictionary<string, string[]> _platformServiceUsers = new(StringComparer.Ordinal)
     {
-        var users = Types.InAssemblies(SolutionAssemblies.All)
-            .That().HaveDependencyOn(_platformAuditContext)
+        ["SportsPlatform.Modules.Platform.Infrastructure.PlatformAuditDbContext"] =
+            ["SportsPlatform.Modules.Platform.Features.Audit.", "SportsPlatform.Modules.Platform.PlatformModule"],
+        ["SportsPlatform.Modules.Identity.Infrastructure.Directory.IdentityDirectoryDbContext"] =
+            ["SportsPlatform.Modules.Identity.Features.Directory.", "SportsPlatform.Modules.Identity.IdentityModule"],
+    };
+
+    public static TheoryData<string> PlatformServiceContexts { get; } = [.. _platformServiceUsers.Keys];
+
+    [Fact]
+    public void Every_platform_service_context_is_named_with_its_users()
+    {
+        var contexts = Types.InAssemblies(SolutionAssemblies.All)
+            .That().Inherit(typeof(PlatformServiceDbContext))
             .GetTypes()
-            .Where(type => !(type.FullName ?? string.Empty).StartsWith(_platformAuditContext, StringComparison.Ordinal))
+            .Select(type => type.FullName)
             .ToList();
 
-        users.ShouldContain(type => type.Name == "AuditLog");
-        users.Where(type => !(type.Namespace ?? string.Empty).StartsWith("SportsPlatform.Modules.Platform.Features.Audit", StringComparison.Ordinal)
-                && type.FullName != "SportsPlatform.Modules.Platform.PlatformModule")
-            .Select(type => type.FullName)
+        contexts.ShouldBe(_platformServiceUsers.Keys, ignoreOrder: true);
+    }
+
+    [Theory]
+    [MemberData(nameof(PlatformServiceContexts))]
+    public void Only_the_named_features_use_a_platform_service_context(string context)
+    {
+        var users = Types.InAssemblies(SolutionAssemblies.All)
+            .That().HaveDependencyOn(context)
+            .GetTypes()
+            .Select(type => type.FullName ?? string.Empty)
+            .Where(name => !name.StartsWith(context, StringComparison.Ordinal))
+            .ToList();
+
+        users.ShouldNotBeEmpty();
+        users.Where(name => !_platformServiceUsers[context].Any(allowed => name.StartsWith(allowed, StringComparison.Ordinal)))
             .ShouldBeEmpty();
     }
 

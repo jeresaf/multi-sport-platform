@@ -584,7 +584,7 @@ export interface components {
             email: null | string;
             password: null | string;
         };
-        /** @description The signed-in user: their own email, platform roles and tenants (memberships arrive in S03-T4). */
+        /** @description The signed-in user: their own email, platform roles and the tenants they are an active member of. */
         MeResponse: {
             /** Format: uuid */
             id: string;
@@ -592,7 +592,7 @@ export interface components {
             platformRoles: string[];
             tenants: components["schemas"]["MeTenantResponse"][];
         };
-        /** @description A tenant the user is an active member of, with the user's role codes there. */
+        /** @description A tenant the user is an active member of, with the codes of the roles they hold there (any scope). */
         MeTenantResponse: {
             /** Format: uuid */
             tenantId: string;
