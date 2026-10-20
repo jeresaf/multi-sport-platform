@@ -1,0 +1,274 @@
+{
+  "errors": [
+    {
+      "code": "AUTH_ALREADY_MEMBER",
+      "status": 409,
+      "message": "This person is already a member of the tenant.",
+      "owner": "Identity"
+    },
+    {
+      "code": "AUTH_CONCURRENCY_CONFLICT",
+      "status": 409,
+      "message": "The account or membership was changed by someone else. Reload and try again.",
+      "owner": "Identity"
+    },
+    {
+      "code": "AUTH_CSRF_REQUIRED",
+      "status": 403,
+      "message": "The request must carry the X-CSRF header.",
+      "owner": "BuildingBlocks"
+    },
+    {
+      "code": "AUTH_CURRENT_PASSWORD_INVALID",
+      "status": 400,
+      "message": "The current password is incorrect.",
+      "owner": "Identity"
+    },
+    {
+      "code": "AUTH_FORBIDDEN",
+      "status": 403,
+      "message": "You are not allowed to perform this action.",
+      "owner": "BuildingBlocks"
+    },
+    {
+      "code": "AUTH_INVALID_CREDENTIALS",
+      "status": 401,
+      "message": "The email or password is incorrect, or the account can't sign in right now.",
+      "owner": "Identity"
+    },
+    {
+      "code": "AUTH_INVITATION_ALREADY_ACCEPTED",
+      "status": 409,
+      "message": "The invitation has been accepted already. Sign in instead.",
+      "owner": "Identity"
+    },
+    {
+      "code": "AUTH_INVITATION_EXPIRED",
+      "status": 410,
+      "message": "The invitation has expired. Ask for a new invitation.",
+      "owner": "Identity"
+    },
+    {
+      "code": "AUTH_INVITATION_NOT_FOUND",
+      "status": 404,
+      "message": "No such invitation in this tenant.",
+      "owner": "Identity"
+    },
+    {
+      "code": "AUTH_INVITATION_SIGN_IN_REQUIRED",
+      "status": 403,
+      "message": "The invited email has an account: sign in with it to accept the invitation.",
+      "owner": "Identity"
+    },
+    {
+      "code": "AUTH_INVITATION_TOKEN_INVALID",
+      "status": 404,
+      "message": "The invitation link is invalid or no longer works. Ask for a new invitation.",
+      "owner": "Identity"
+    },
+    {
+      "code": "AUTH_INVITATION_TRANSITION_INVALID",
+      "status": 409,
+      "message": "The invitation is no longer pending.",
+      "owner": "Identity"
+    },
+    {
+      "code": "AUTH_LAST_OWNER",
+      "status": 409,
+      "message": "The tenant must keep at least one active owner. Make another member an owner first.",
+      "owner": "Identity"
+    },
+    {
+      "code": "AUTH_MEMBERSHIP_NOT_FOUND",
+      "status": 404,
+      "message": "No such member in this tenant.",
+      "owner": "Identity"
+    },
+    {
+      "code": "AUTH_MEMBERSHIP_TRANSITION_INVALID",
+      "status": 409,
+      "message": "The membership's status doesn't allow this change.",
+      "owner": "Identity"
+    },
+    {
+      "code": "AUTH_OWNER_REQUIRED",
+      "status": 403,
+      "message": "Only a tenant owner can change an owner or the owner role.",
+      "owner": "Identity"
+    },
+    {
+      "code": "AUTH_PASSWORD_REJECTED",
+      "status": 400,
+      "message": "The password was rejected: use at least 12 characters.",
+      "owner": "Identity"
+    },
+    {
+      "code": "AUTH_RATE_LIMITED",
+      "status": 429,
+      "message": "Too many attempts. Wait a while and try again.",
+      "owner": "Identity"
+    },
+    {
+      "code": "AUTH_RESET_TOKEN_INVALID",
+      "status": 400,
+      "message": "The reset link is invalid or has expired. Ask for a new one.",
+      "owner": "Identity"
+    },
+    {
+      "code": "AUTH_ROLE_ALREADY_ASSIGNED",
+      "status": 409,
+      "message": "The member already holds this role at this scope.",
+      "owner": "Identity"
+    },
+    {
+      "code": "AUTH_ROLE_ASSIGNMENT_NOT_FOUND",
+      "status": 404,
+      "message": "The role assignment was not found.",
+      "owner": "Identity"
+    },
+    {
+      "code": "AUTH_ROLE_NOT_ASSIGNABLE",
+      "status": 400,
+      "message": "This role can't be assigned at this scope.",
+      "owner": "Identity"
+    },
+    {
+      "code": "AUTH_TENANT_ARCHIVED",
+      "status": 409,
+      "message": "The tenant is archived: no one can be invited to it or join it until it is unarchived.",
+      "owner": "Identity"
+    },
+    {
+      "code": "AUTH_TENANT_FORBIDDEN",
+      "status": 403,
+      "message": "You are not allowed to work in this tenant.",
+      "owner": "BuildingBlocks"
+    },
+    {
+      "code": "AUTH_UNAUTHENTICATED",
+      "status": 401,
+      "message": "Sign in to perform this action.",
+      "owner": "BuildingBlocks"
+    },
+    {
+      "code": "AUTH_USER_EXISTS",
+      "status": 409,
+      "message": "A user with this email already exists.",
+      "owner": "Identity"
+    },
+    {
+      "code": "PLATFORM_CONCURRENCY_CONFLICT",
+      "status": 409,
+      "message": "The record was changed by someone else. Reload and try again.",
+      "owner": "Platform"
+    },
+    {
+      "code": "PLATFORM_METHOD_NOT_ALLOWED",
+      "status": 405,
+      "message": "This endpoint does not support the HTTP method.",
+      "owner": "BuildingBlocks"
+    },
+    {
+      "code": "PLATFORM_OUTBOX_MESSAGE_NOT_FAILED",
+      "status": 409,
+      "message": "Only a FAILED outbox message can be re-driven.",
+      "owner": "Platform"
+    },
+    {
+      "code": "PLATFORM_OUTBOX_MESSAGE_NOT_FOUND",
+      "status": 404,
+      "message": "No outbox message with this ID in this module.",
+      "owner": "Platform"
+    },
+    {
+      "code": "PLATFORM_ROUTE_NOT_FOUND",
+      "status": 404,
+      "message": "No endpoint matches this path.",
+      "owner": "BuildingBlocks"
+    },
+    {
+      "code": "PLATFORM_UNEXPECTED_ERROR",
+      "status": 500,
+      "message": "An unexpected error occurred. Quote the correlation ID when reporting it.",
+      "owner": "BuildingBlocks"
+    },
+    {
+      "code": "TENANT_BLOCKED",
+      "status": 403,
+      "message": "This tenant is suspended or archived.",
+      "owner": "Tenancy"
+    },
+    {
+      "code": "TENANT_CONCURRENCY_CONFLICT",
+      "status": 409,
+      "message": "The tenant was changed by someone else. Reload and try again.",
+      "owner": "Tenancy"
+    },
+    {
+      "code": "TENANT_INVALID_TRANSITION",
+      "status": 409,
+      "message": "The tenant's status does not allow this change.",
+      "owner": "Tenancy"
+    },
+    {
+      "code": "TENANT_NOT_FOUND",
+      "status": 404,
+      "message": "No such tenant.",
+      "owner": "Tenancy"
+    },
+    {
+      "code": "TENANT_PROVISIONING",
+      "status": 403,
+      "message": "This tenant is still being set up; only its owners and administrators can work in it.",
+      "owner": "Tenancy"
+    },
+    {
+      "code": "TENANT_SLUG_TAKEN",
+      "status": 409,
+      "message": "This slug belongs to another tenant, possibly an archived one. Slugs are never reused.",
+      "owner": "Tenancy"
+    },
+    {
+      "code": "TENANT_UNAVAILABLE",
+      "status": 403,
+      "message": "This site is not available.",
+      "owner": "Tenancy"
+    },
+    {
+      "code": "VALIDATION_INVALID_QUERY",
+      "status": 400,
+      "message": "A query parameter is not valid.",
+      "owner": "BuildingBlocks"
+    },
+    {
+      "code": "VALIDATION_INVALID_REQUEST",
+      "status": 400,
+      "message": "A field of the request is not valid.",
+      "owner": "BuildingBlocks"
+    },
+    {
+      "code": "VALIDATION_MALFORMED_REQUEST",
+      "status": 400,
+      "message": "The request could not be read.",
+      "owner": "BuildingBlocks"
+    },
+    {
+      "code": "VALIDATION_REASON_REQUIRED",
+      "status": 400,
+      "message": "This action needs a reason.",
+      "owner": "BuildingBlocks"
+    },
+    {
+      "code": "VALIDATION_REQUEST_TOO_LARGE",
+      "status": 413,
+      "message": "The request body is too large.",
+      "owner": "BuildingBlocks"
+    },
+    {
+      "code": "VALIDATION_UNSUPPORTED_MEDIA_TYPE",
+      "status": 415,
+      "message": "The request body must be JSON.",
+      "owner": "BuildingBlocks"
+    }
+  ]
+}
