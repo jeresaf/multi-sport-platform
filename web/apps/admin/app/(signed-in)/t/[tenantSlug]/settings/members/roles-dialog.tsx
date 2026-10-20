@@ -92,6 +92,7 @@ export function RolesDialog({
     onSuccess: () => onOpenChange(false),
   });
 
+  const alreadySaved = applied.length > 0 ? <p>Already saved: {applied.join(", ")}.</p> : null;
   const toggle = (code: string, on: boolean) =>
     setChosen((current) => {
       const next = new Set(current);
@@ -119,11 +120,9 @@ export function RolesDialog({
             <DialogDescription>Roles given here apply across the whole organisation.</DialogDescription>
           </DialogHeader>
           {isConcurrencyConflict(save.error) ? (
-            <ConflictAlert onReload={() => onOpenChange(false)} />
+            <ConflictAlert onReload={() => onOpenChange(false)}>{alreadySaved}</ConflictAlert>
           ) : save.isError ? (
-            <ProblemAlert error={save.error}>
-              {applied.length > 0 ? <p>Already saved: {applied.join(", ")}.</p> : null}
-            </ProblemAlert>
+            <ProblemAlert error={save.error}>{alreadySaved}</ProblemAlert>
           ) : null}
           <fieldset className="grid gap-1" disabled={save.isPending || save.isError}>
             <legend className="mb-2 text-sm font-medium">Organisation-wide roles</legend>

@@ -1,6 +1,7 @@
 // Tenant settings → Members & roles: controls follow the capabilities and the membership state machine, reasons
 // are asked for, role changes are chained with If-Match, owner-only choices are offered to owners only.
 import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { errorMessage } from "@msp/api-client/errors";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { fakeApi, problem, renderWithQuery, type Answer } from "@/test/render";
 import TenantWorkspaceLayout from "../../layout";
@@ -136,6 +137,8 @@ describe("members & roles", () => {
     expect(suspend.body).toEqual({ reason: "Left the association" });
     expect(suspend.headers.get("If-Match")).toBe('"5"');
     expect(suspend.headers.get("X-Tenant-Id")).toBe(tenantId);
+    // The member left the list with their menu button: focus goes to the section's heading.
+    await waitFor(() => expect(document.activeElement?.id).toBe("members-heading"));
   });
 
   it("keeps the last-owner refusal in the dialog", async () => {
@@ -153,7 +156,7 @@ describe("members & roles", () => {
     fireEvent.change(dialog.getByLabelText("Reason"), { target: { value: "Duplicate account" } });
     fireEvent.click(dialog.getByRole("button", { name: "Remove" }));
 
-    expect(await dialog.findByText("That didn't work")).toBeTruthy();
+    expect(await dialog.findByText(errorMessage("AUTH_LAST_OWNER")!)).toBeTruthy();
     expect(screen.getByRole("dialog")).toBeTruthy();
   });
 
@@ -162,7 +165,7 @@ describe("members & roles", () => {
       "GET /api/admin/v1/members": members([{ ...brian, status: "SUSPENDED", statusReason: "Unpaid fees" }]),
     });
 
-    expect(await screen.findByText("Unpaid fees")).toBeTruthy();
+    expect((await screen.findAllByText("Unpaid fees")).length).toBeGreaterThan(0);
     openMenu(`Change ${brian.email}`);
     expect(await screen.findByRole("menuitem", { name: "Restore" })).toBeTruthy();
     expect(screen.queryByRole("menuitem", { name: "Suspend" })).toBeNull();
@@ -193,8 +196,45 @@ describe("members & roles", () => {
     expect(changes[1]!.path.endsWith("/revoke")).toBe(true);
   });
 
-  it("doesn't let an administrator give the owner role or revoke an owner's invitation", async () => {
-    open(["TENANT_ADMIN"], ownerActions);
+  it("says which roles were already saved when a later one is refused", async () => {
+    open(["TENANT_OWNER"], ownerActions, {
+      "POST /api/admin/v1/members/0199a3f0-0000-7000-8000-000000000101/roles": {
+        status: 201,
+        body: { ...brian, roles: [role("REGISTRAR", 1), role("VIEWER", 2)], version: 6 },
+      },
+      [`POST /api/admin/v1/members/0199a3f0-0000-7000-8000-000000000101/roles/${role("REGISTRAR", 1).assignmentId}/revoke`]:
+        { status: 409, body: problem("AUTH_CONCURRENCY_CONFLICT", 409) },
+    });
+
+    await screen.findByText(brian.email);
+    openMenu(`Change ${brian.email}`);
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Change roles" }));
+    const dialog = within(await screen.findByRole("dialog"));
+    fireEvent.click(dialog.getByRole("checkbox", { name: "Viewer" }));
+    fireEvent.click(dialog.getByRole("checkbox", { name: "Registrar" }));
+    fireEvent.click(dialog.getByRole("button", { name: "Save roles" }));
+
+    expect(await dialog.findByText("This record changed since you opened it")).toBeTruthy();
+    expect(dialog.getByText("Already saved: Viewer granted.")).toBeTruthy();
+  });
+
+  it("doesn't offer an administrator the changes only an owner can make", async () => {
+    const owner = {
+      ...brian,
+      membershipId: "0199a3f0-0000-7000-8000-000000000102",
+      email: "daniel.kato@kmsa.example",
+      roles: [role("TENANT_OWNER", 4)],
+    };
+    open(["TENANT_ADMIN"], ownerActions, { "GET /api/admin/v1/members": members([brian, owner]) });
+
+    // An owner's membership: roles can still be looked at and changed (bar the owner role), nothing else.
+    await screen.findByText(owner.email);
+    openMenu(`Change ${owner.email}`);
+    expect(await screen.findByRole("menuitem", { name: "Change roles" })).toBeTruthy();
+    expect(screen.queryByRole("menuitem", { name: "Suspend" })).toBeNull();
+    expect(screen.queryByRole("menuitem", { name: "Remove" })).toBeNull();
+    fireEvent.keyDown(screen.getByRole("menu"), { key: "Escape" });
+    await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
 
     await screen.findByText(ownerInvitation.email);
     expect(screen.queryByRole("button", { name: `Revoke the invitation to ${ownerInvitation.email}` })).toBeNull();

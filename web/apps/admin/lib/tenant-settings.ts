@@ -17,7 +17,7 @@ export function useTenantSettings() {
   });
 }
 
-/** The tenant's IANA time zone; UTC (and said so) when the user can't read the settings or they haven't loaded. */
+/** The tenant's IANA time zone; UTC while the settings load, or when the user can't read them. */
 export function useTenantTimeZone(): string {
   return useTenantSettings().data?.timeZone ?? "UTC";
 }

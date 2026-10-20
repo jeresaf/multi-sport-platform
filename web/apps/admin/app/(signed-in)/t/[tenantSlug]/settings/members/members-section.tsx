@@ -11,19 +11,19 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@msp/ui/components/table";
 import { useMutation } from "@tanstack/react-query";
 import { MoreHorizontal } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ActionDialog } from "@/components/action-dialog";
 import { EmptyState } from "@/components/empty-state";
 import { Loading } from "@/components/loading";
 import { ProblemAlert } from "@/components/problem-alert";
 import { SelectField } from "@/components/select-field";
 import { StatusBadge } from "@/components/status-badge";
-import { call } from "@/lib/api";
+import { call, isApiProblem } from "@/lib/api";
 import { humanizeCode } from "@/lib/codes";
 import { ifMatch } from "@/lib/concurrency";
 import { formatDate, useTenantTimeZone } from "@/lib/tenant-settings";
 import { useTenantWorkspace } from "@/lib/tenant-workspace";
-import { useMembers, useRefreshMembership, type Member, type MembershipStatus } from "./members-data";
+import { ownerRole, useMembers, useRefreshMembership, type Member, type MembershipStatus } from "./members-data";
 import { RolesDialog } from "./roles-dialog";
 
 type StatusChange = "suspend" | "restore" | "remove";
@@ -79,6 +79,14 @@ const statusFilters: readonly MembershipStatus[] = ["ACTIVE", "SUSPENDED", "REMO
 /** Columns shown from tablet width up. */
 const wide = "hidden tablet:table-cell";
 
+function StatusReason({ member }: Readonly<{ member: Member }>) {
+  return member.statusReason ? (
+    <p className="mt-1 max-w-56 truncate text-sm text-muted-foreground" title={member.statusReason}>
+      {member.statusReason}
+    </p>
+  ) : null;
+}
+
 function RoleBadges({ member }: Readonly<{ member: Member }>) {
   if (member.roles.length === 0) {
     return <span className="text-muted-foreground">No roles</span>;
@@ -104,6 +112,9 @@ export function MembersSection({ isOwner }: Readonly<{ isOwner: boolean }>) {
   const members = useMembers(status);
   const [rolesOf, setRolesOf] = useState<Member | null>(null);
   const [pending, setPending] = useState<{ member: Member; change: StatusChange } | null>(null);
+  // After a change the member usually leaves the filtered list, menu button and all: focus goes to the heading.
+  const heading = useRef<HTMLHeadingElement>(null);
+  const changed = useRef(false);
 
   const changeStatus = useMutation({
     mutationFn: ({ member, change, reason }: { member: Member; change: StatusChange; reason?: string }) => {
@@ -123,22 +134,32 @@ export function MembersSection({ isOwner }: Readonly<{ isOwner: boolean }>) {
     },
     onSuccess: async () => {
       await refresh();
+      changed.current = true;
       setPending(null);
+    },
+    // Refused because the member changed meanwhile (suspended, removed): show them as they are now.
+    onError: (error) => {
+      if (isApiProblem(error, "AUTH_MEMBERSHIP_TRANSITION_INVALID")) {
+        void refresh();
+      }
     },
   });
 
   const canChangeRoles = can("role.assign") || can("role.revoke");
+  // Suspending, restoring or removing an owner is an owner's change (S03 D17): the server refuses anyone else.
   const allowedChanges = (member: Member) =>
-    (Object.keys(changes) as StatusChange[]).filter(
-      (change) => can(changes[change].action) && changes[change].from.includes(member.status),
-    );
+    !isOwner && member.roles.some((role) => role.roleCode === ownerRole && role.scopeType === "TENANT")
+      ? []
+      : (Object.keys(changes) as StatusChange[]).filter(
+          (change) => can(changes[change].action) && changes[change].from.includes(member.status),
+        );
   const rows = members.data?.pages.flatMap((page) => page.items) ?? [];
   const open = pending ? changes[pending.change] : null;
 
   return (
     <section className="grid gap-4" aria-labelledby="members-heading">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <h2 id="members-heading" className="text-xl font-semibold">
+        <h2 id="members-heading" ref={heading} tabIndex={-1} className="text-xl font-semibold outline-none">
           Members
         </h2>
         <div className="w-48">
@@ -191,6 +212,7 @@ export function MembersSection({ isOwner }: Readonly<{ isOwner: boolean }>) {
                     <div className="mt-2 grid gap-2 tablet:hidden">
                       <RoleBadges member={member} />
                       <StatusBadge status={member.status} />
+                      <StatusReason member={member} />
                     </div>
                   </TableCell>
                   <TableCell className={wide}>
@@ -198,11 +220,7 @@ export function MembersSection({ isOwner }: Readonly<{ isOwner: boolean }>) {
                   </TableCell>
                   <TableCell className={wide}>
                     <StatusBadge status={member.status} />
-                    {member.statusReason ? (
-                      <p className="mt-1 max-w-56 truncate text-sm text-muted-foreground" title={member.statusReason}>
-                        {member.statusReason}
-                      </p>
-                    ) : null}
+                    <StatusReason member={member} />
                   </TableCell>
                   <TableCell className={wide}>{formatDate(member.joinedAt, timeZone)}</TableCell>
                   <TableCell className="text-right">
@@ -266,6 +284,13 @@ export function MembersSection({ isOwner }: Readonly<{ isOwner: boolean }>) {
           onReload={() => {
             void refresh();
             setPending(null);
+          }}
+          onCloseAutoFocus={(event) => {
+            if (changed.current) {
+              changed.current = false;
+              event.preventDefault();
+              heading.current?.focus();
+            }
           }}
         />
       ) : null}

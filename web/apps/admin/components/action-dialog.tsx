@@ -48,6 +48,8 @@ type ActionDialogProps = {
   onConfirm: (reason: string | undefined) => void;
   /** After a concurrency conflict: read the record again and close the dialog. */
   onReload: () => void;
+  /** Where focus goes when the dialog closes (by default, back to what opened it). */
+  onCloseAutoFocus?: (event: Event) => void;
 };
 
 /** Confirms a change, asking for its reason when the action needs one; the API's refusal stays in the dialog. */
@@ -63,6 +65,7 @@ export function ActionDialog({
   error,
   onConfirm,
   onReload,
+  onCloseAutoFocus,
 }: Readonly<ActionDialogProps>) {
   const form = useForm<ReasonValues>({
     resolver: zodResolver(withReason ? reasonSchema : noReasonSchema),
@@ -84,7 +87,7 @@ export function ActionDialog({
 
   return (
     <Dialog open={open} onOpenChange={(next) => !pending && onOpenChange(next)}>
-      <DialogContent>
+      <DialogContent onCloseAutoFocus={onCloseAutoFocus}>
         <form
           className="grid gap-4"
           noValidate
@@ -115,7 +118,7 @@ export function ActionDialog({
                 </p>
               ) : (
                 <p id="action-reason-hint" className="text-sm text-muted-foreground">
-                  Kept in the audit trail with your name.
+                  Kept in the audit trail with your name. Don&apos;t include personal details.
                 </p>
               )}
             </div>

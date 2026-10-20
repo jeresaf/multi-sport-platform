@@ -4,14 +4,14 @@ import { Button } from "@msp/ui/components/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@msp/ui/components/table";
 import { useMutation } from "@tanstack/react-query";
 import { UserPlus } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ActionDialog } from "@/components/action-dialog";
 import { EmptyState } from "@/components/empty-state";
 import { Loading } from "@/components/loading";
 import { ProblemAlert } from "@/components/problem-alert";
 import { SelectField } from "@/components/select-field";
 import { StatusBadge } from "@/components/status-badge";
-import { call } from "@/lib/api";
+import { call, isApiProblem } from "@/lib/api";
 import { humanizeCode } from "@/lib/codes";
 import { formatDate, useTenantTimeZone } from "@/lib/tenant-settings";
 import { useTenantWorkspace } from "@/lib/tenant-workspace";
@@ -45,6 +45,9 @@ export function InvitationsSection({ isOwner }: Readonly<{ isOwner: boolean }>) 
   const invitations = useInvitations(filter === "OPEN" ? undefined : filter);
   const [inviting, setInviting] = useState(false);
   const [revoking, setRevoking] = useState<Invitation | null>(null);
+  // A revoked invitation leaves the default list with its button: focus goes to the heading.
+  const heading = useRef<HTMLHeadingElement>(null);
+  const revoked = useRef(false);
 
   const revoke = useMutation({
     // No If-Match: sending the email (the outbox, moments after the invitation) changes its version, so a version
@@ -58,7 +61,14 @@ export function InvitationsSection({ isOwner }: Readonly<{ isOwner: boolean }>) 
       ),
     onSuccess: async () => {
       await refresh();
+      revoked.current = true;
       setRevoking(null);
+    },
+    // Accepted or revoked meanwhile: show it as it is now.
+    onError: (error) => {
+      if (isApiProblem(error, "AUTH_INVITATION_TRANSITION_INVALID")) {
+        void refresh();
+      }
     },
   });
 
@@ -72,7 +82,7 @@ export function InvitationsSection({ isOwner }: Readonly<{ isOwner: boolean }>) 
   return (
     <section className="grid gap-4" aria-labelledby="invitations-heading">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <h2 id="invitations-heading" className="text-xl font-semibold">
+        <h2 id="invitations-heading" ref={heading} tabIndex={-1} className="text-xl font-semibold outline-none">
           Invitations
         </h2>
         <div className="flex flex-wrap items-end gap-3">
@@ -131,6 +141,11 @@ export function InvitationsSection({ isOwner }: Readonly<{ isOwner: boolean }>) 
                   <div className="mt-2 grid gap-2 whitespace-normal tablet:hidden">
                     <span>{invitation.roleCodes.map(humanizeCode).join(", ")}</span>
                     <StatusBadge status={invitation.status} />
+                    {invitation.status === "PENDING" ? (
+                      <span className="text-sm text-muted-foreground">
+                        Expires {formatDate(invitation.expiresAt, timeZone)}
+                      </span>
+                    ) : null}
                   </div>
                 </TableCell>
                 <TableCell className={`whitespace-normal ${wide}`}>
@@ -156,7 +171,7 @@ export function InvitationsSection({ isOwner }: Readonly<{ isOwner: boolean }>) 
                       Revoke
                     </Button>
                   ) : invitation.status === "EXPIRED" && can("membership.invite") ? (
-                    <span className="text-sm text-muted-foreground">Invite again to send a new link</span>
+                    <span className="text-sm whitespace-normal text-muted-foreground">Invite again for a new link</span>
                   ) : null}
                 </TableCell>
               </TableRow>
@@ -190,6 +205,13 @@ export function InvitationsSection({ isOwner }: Readonly<{ isOwner: boolean }>) 
           onReload={() => {
             void refresh();
             setRevoking(null);
+          }}
+          onCloseAutoFocus={(event) => {
+            if (revoked.current) {
+              revoked.current = false;
+              event.preventDefault();
+              heading.current?.focus();
+            }
           }}
         />
       ) : null}

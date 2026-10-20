@@ -73,6 +73,12 @@ export function changedSettings(before: Settings, values: Values): Partial<Value
   );
 }
 
+type Choice = { code: string; name?: string };
+
+function withSaved(options: readonly Choice[], saved: Choice): readonly Choice[] {
+  return options.some((option) => option.code === saved.code) ? options : [saved, ...options];
+}
+
 const consentHints: Readonly<Record<Consent, string>> = {
   REQUIRED: "A guardian's consent is needed before a minor is registered.",
   RECOMMENDED: "Registration asks for a guardian's consent but doesn't wait for it.",
@@ -108,9 +114,12 @@ export function OrganisationForm({
 
   const { errors, isDirty } = form.formState;
   const consent = useWatch({ control: form.control, name: "minorRegistrationConsent" });
-  // Until the lists load, each shows the saved value alone.
-  const zoneOptions = timeZones.data?.items ?? [{ code: settings.timeZone }];
-  const currencyOptions = currencies.data?.items ?? [{ code: settings.currencyCode, name: settings.currencyCode }];
+  // Until the lists load each shows the saved value alone; a saved value missing from its list (withdrawn since) stays.
+  const zoneOptions = withSaved(timeZones.data?.items ?? [], { code: settings.timeZone });
+  const currencyOptions = withSaved(currencies.data?.items ?? [], {
+    code: settings.currencyCode,
+    name: settings.currencyCode,
+  });
   const reload = () => {
     save.reset();
     onReload();
@@ -167,7 +176,7 @@ export function OrganisationForm({
         >
           {currencyOptions.map((currency) => (
             <option key={currency.code} value={currency.code}>
-              {currency.code === currency.name ? currency.code : `${currency.code} — ${currency.name}`}
+              {!currency.name || currency.code === currency.name ? currency.code : `${currency.code} — ${currency.name}`}
             </option>
           ))}
         </SelectField>

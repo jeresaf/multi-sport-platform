@@ -46,10 +46,11 @@ user's capabilities (docs/architecture/authorization.md); the server still enfor
 - **Members & roles** (`/t/{slug}/settings/members`): members (active by default; suspended or removed on request) with
   their roles and status, and invitations (pending and expired by default). A member's menu offers only what the
   capabilities and the membership state allow: change roles (tenant-wide), suspend and remove (each with a required
-  reason, kept in the audit trail), restore. Only an owner is offered the owner role and can revoke an invitation
-  carrying it; the server refuses the rest (`AUTH_OWNER_REQUIRED`, `AUTH_LAST_OWNER`) and the dialog shows why. Role
-  changes are one request per role, each with the version the previous one returned; if one is refused the dialog says
-  which were already saved. On a phone a member's roles and status sit under their email.
+  reason, kept in the audit trail), restore. Only an owner is offered the owner role, a change to an owner's membership
+  and the revoke of an invitation carrying the owner role; the server refuses the rest (`AUTH_OWNER_REQUIRED`,
+  `AUTH_LAST_OWNER`) and the dialog shows why. Role changes are one request per role, each with the version the previous
+  one returned; if one is refused the dialog says which were already saved. On a phone a member's roles and status sit
+  under their email. After a change that takes a row out of the list, focus goes to the section's heading.
 - **Concurrency.** A change sends the version it was based on (`If-Match`); `*_CONCURRENCY_CONFLICT` shows "This record
   changed since you opened it" with **Reload**. Revoking an invitation is the exception: sending its email changes its
   version moments after it is listed, so the revoke relies on the invitation's state instead.
