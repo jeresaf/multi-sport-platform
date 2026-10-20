@@ -11,6 +11,7 @@ using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.IntegrationTests.Messaging;
 using SportsPlatform.IntegrationTests.Persistence;
 using SportsPlatform.IntegrationTests.Seeding;
+using SportsPlatform.Modules.Identity.Features.Authorization;
 using SportsPlatform.Modules.Identity.Infrastructure.Users;
 using SportsPlatform.Modules.Platform.Contracts.Email;
 
@@ -18,8 +19,9 @@ namespace SportsPlatform.IntegrationTests.Infrastructure;
 
 /// <summary>
 /// The Host under test: <c>Testing</c> environment, the container's role connections, a fake clock, the test
-/// authentication scheme (<see cref="TestAuthentication"/>), a configurable authorization evaluator, a recording
-/// email sender (<see cref="RecordingEmailSender"/>), the messaging test module and test seeders.
+/// authentication scheme (<see cref="TestAuthentication"/>), a configurable authorization evaluator (or Identity's,
+/// <see cref="TestAuthorizationEvaluator.UseIdentityRoles"/>), a recording email sender
+/// (<see cref="RecordingEmailSender"/>), the messaging test module and test seeders.
 /// </summary>
 public sealed class TestApp : WebApplicationFactory<Program>
 {
@@ -63,7 +65,10 @@ public sealed class TestApp : WebApplicationFactory<Program>
             services.AddSingleton<TimeProvider>(Clock);
             services.AddTestAuthentication();
             services.RemoveAll<IAuthorizationEvaluator>();
-            services.AddSingleton<IAuthorizationEvaluator>(Authorization);
+            services.AddScoped<IdentityAuthorizationEvaluator>();
+            services.AddScoped<IAuthorizationEvaluator>(provider => Authorization.UsesIdentityRoles
+                ? provider.GetRequiredService<IdentityAuthorizationEvaluator>()
+                : Authorization);
             Telemetry.AddTo(services);
             services.RemoveAll<IEmailSender>();
             services.AddSingleton<IEmailSender>(Emails);

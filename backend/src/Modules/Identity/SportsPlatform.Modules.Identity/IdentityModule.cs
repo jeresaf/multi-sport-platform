@@ -10,6 +10,7 @@ using SportsPlatform.BuildingBlocks.Modules;
 using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Persistence.Messaging;
 using SportsPlatform.Modules.Identity.Contracts.Account;
+using SportsPlatform.Modules.Identity.Domain.Roles;
 using SportsPlatform.Modules.Identity.Features.Account;
 using SportsPlatform.Modules.Identity.Features.Account.ChangePassword;
 using SportsPlatform.Modules.Identity.Features.Account.ForgotPassword;
@@ -29,7 +30,7 @@ namespace SportsPlatform.Modules.Identity;
 
 /// <summary>
 /// Identity &amp; Access: users, platform roles and the data protection key ring (S03-T1); the session cookie, the
-/// account API, password reset and change, sign-in rate limits and the authorization evaluator (T2); memberships and roles follow in S03 (docs/architecture/modules.md).
+/// account API, password reset and change, sign-in rate limits (T2); roles in code and the authorization evaluator (T3); memberships follow in S03 (docs/architecture/modules.md).
 /// </summary>
 public sealed class IdentityModule : IModule
 {
@@ -64,9 +65,11 @@ public sealed class IdentityModule : IModule
         services.AddSingleton<IValidateOptions<AccountOptions>, AccountOptionsValidator>();
         services.AddAccountRateLimits();
 
-        // S03 D5: the API's only authentication scheme. D10: the evaluator replaces the Host's deny-all default.
+        // S03 D5: the API's only authentication scheme. D10: the evaluator replaces the Host's deny-all default; D9: it
+        // grants from the roles defined in code, which the Host checks against the action catalogue at startup.
         services.AddSessionCookie();
-        services.AddSingleton<IAuthorizationEvaluator, IdentityAuthorizationEvaluator>();
+        services.AddSingleton(new RoleCatalogue(IdentityRoles.All));
+        services.AddScoped<IAuthorizationEvaluator, IdentityAuthorizationEvaluator>();
 
         services.AddScoped<CreatePlatformAdminHandler>();
         services.AddScoped<LoginHandler>();

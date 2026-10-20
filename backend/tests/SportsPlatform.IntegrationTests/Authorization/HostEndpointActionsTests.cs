@@ -58,10 +58,16 @@ public sealed class HostEndpointActionsTests
 /// <summary>The real Host's authorization registration (S03 D10); OutboxDiagnosticsTests checks allowed and denied end to end.</summary>
 public sealed class HostAuthorizationTests(HostOnlyApp factory) : IClassFixture<HostOnlyApp>
 {
+    // Registered, not resolved: the evaluator is scoped and reads roles from the database, which this Host has none of.
     [Fact]
     public void Host_authorizes_with_the_Identity_evaluator()
     {
-        factory.Services.GetRequiredService<IAuthorizationEvaluator>().ShouldBeOfType<IdentityAuthorizationEvaluator>();
+        var builder = WebApplication.CreateBuilder(new WebApplicationOptions { EnvironmentName = TestEnvironment.Name });
+        SportsPlatformApp.AddServices(builder);
+
+        var registration = builder.Services.Last(service => service.ServiceType == typeof(IAuthorizationEvaluator));
+        registration.ImplementationType.ShouldBe(typeof(IdentityAuthorizationEvaluator));
+        registration.Lifetime.ShouldBe(ServiceLifetime.Scoped);
     }
 
     [Fact]
