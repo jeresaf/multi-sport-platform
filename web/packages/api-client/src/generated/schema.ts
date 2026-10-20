@@ -303,7 +303,7 @@ export interface paths {
         put?: never;
         /**
          * Invite a person to the tenant
-         * @description Invites `email` to join the tenant named by `X-Tenant-Id` with `roleCodes` (tenant roles, tenant-wide). Only an owner invites with TENANT_OWNER. A person who is already a member (active or suspended) can't be invited. The invitation lasts 7 days; the email with its link goes out shortly after (one link at a time: a resent email's link replaces the earlier one). A pending invitation to the same email is revoked and replaced.
+         * @description Invites `email` to join the tenant named by `X-Tenant-Id` with `roleCodes` (tenant roles, tenant-wide). Only an owner invites with TENANT_OWNER or replaces a pending invitation that has it. A person who is already a member (active or suspended) can't be invited. The invitation lasts 7 days; the email with its link goes out shortly after (one link at a time: a resent email's link replaces the earlier one). A pending invitation to the same email is revoked and replaced.
          */
         post: operations["InviteMember"];
         delete?: never;
@@ -343,7 +343,7 @@ export interface paths {
         put?: never;
         /**
          * Revoke an invitation
-         * @description PENDING → REVOKED: the invitation's link stops working. An accepted, revoked or expired invitation can't be revoked. The body is optional. Returns the invitation. Send `version` or `If-Match` from the last read to get 409 AUTH_CONCURRENCY_CONFLICT if the invitation changed since.
+         * @description PENDING → REVOKED: the invitation's link stops working. An accepted, revoked or expired invitation can't be revoked; only an owner revokes one with TENANT_OWNER. Sending its email changes its version, so a revoke may get 409 once while the email goes out. The body is optional. Returns the invitation. Send `version` or `If-Match` from the last read to get 409 AUTH_CONCURRENCY_CONFLICT if the invitation changed since.
          */
         post: operations["RevokeInvitation"];
         delete?: never;
@@ -423,7 +423,7 @@ export interface paths {
         put?: never;
         /**
          * Invite a tenant's owner
-         * @description Invites `email` to join the tenant as TENANT_OWNER, in any status (usually PROVISIONING, before it is activated). A person who is already a member can't be invited. The invitation lasts 7 days; the email with its link goes out shortly after (one link at a time: a resent email's link replaces the earlier one). A pending invitation to the same email is revoked and replaced.
+         * @description Invites `email` to join the tenant as TENANT_OWNER, usually while it is PROVISIONING; an ARCHIVED tenant is refused. A person who is already a member can't be invited. The invitation lasts 7 days; the email with its link goes out shortly after (one link at a time: a resent email's link replaces the earlier one). A pending invitation to the same email is revoked and replaced.
          */
         post: operations["InviteTenantOwner"];
         delete?: never;
@@ -2119,7 +2119,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING` */
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_OWNER_REQUIRED`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING` */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -2391,7 +2391,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description Problem Details; `code`: `AUTH_ALREADY_MEMBER`, `AUTH_CONCURRENCY_CONFLICT` */
+            /** @description Problem Details; `code`: `AUTH_ALREADY_MEMBER`, `AUTH_CONCURRENCY_CONFLICT`, `AUTH_TENANT_ARCHIVED` */
             409: {
                 headers: {
                     [name: string]: unknown;

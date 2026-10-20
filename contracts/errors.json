@@ -109,6 +109,12 @@
       "owner": "Identity"
     },
     {
+      "code": "AUTH_TENANT_ARCHIVED",
+      "status": 409,
+      "message": "The tenant is archived: unarchive it before inviting its owner.",
+      "owner": "Identity"
+    },
+    {
       "code": "AUTH_TENANT_FORBIDDEN",
       "status": 403,
       "message": "You are not allowed to work in this tenant.",

@@ -24,6 +24,7 @@ the message is the default title and may change.
 | `AUTH_ROLE_ALREADY_ASSIGNED` | 409 | The member already holds this role at this scope. | Identity |
 | `AUTH_ROLE_ASSIGNMENT_NOT_FOUND` | 404 | The role assignment was not found. | Identity |
 | `AUTH_ROLE_NOT_ASSIGNABLE` | 400 | This role can't be assigned at this scope. | Identity |
+| `AUTH_TENANT_ARCHIVED` | 409 | The tenant is archived: unarchive it before inviting its owner. | Identity |
 | `AUTH_TENANT_FORBIDDEN` | 403 | You are not allowed to work in this tenant. | BuildingBlocks |
 | `AUTH_UNAUTHENTICATED` | 401 | Sign in to perform this action. | BuildingBlocks |
 | `AUTH_USER_EXISTS` | 409 | A user with this email already exists. | Identity |

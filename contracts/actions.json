@@ -81,7 +81,7 @@
     {
       "code": "invitation.revoke",
       "module": "Identity",
-      "description": "Revoke a pending invitation: its link stops working.",
+      "description": "Revoke a pending invitation: its link stops working. Only an owner revokes an invitation with TENANT_OWNER.",
       "scope": "TENANT",
       "scopableBy": [
         "TENANT"
@@ -96,7 +96,7 @@
     {
       "code": "membership.invite",
       "module": "Identity",
-      "description": "Invite a person by email to join the tenant with tenant-wide roles; replaces a pending invitation to the same email. Only an owner invites an owner.",
+      "description": "Invite a person by email to join the tenant with tenant-wide roles; replaces a pending invitation to the same email. Only an owner invites an owner or replaces an owner's invitation.",
       "scope": "TENANT",
       "scopableBy": [
         "TENANT"
