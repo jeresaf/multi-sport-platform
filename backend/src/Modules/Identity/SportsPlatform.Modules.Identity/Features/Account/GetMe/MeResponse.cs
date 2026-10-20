@@ -1,4 +1,5 @@
 using SportsPlatform.BuildingBlocks.Privacy;
+using SportsPlatform.Modules.Tenancy.Contracts.Tenants;
 
 namespace SportsPlatform.Modules.Identity.Features.Account.GetMe;
 
@@ -9,5 +10,10 @@ public sealed record MeResponse(
     IReadOnlyList<string> PlatformRoles,
     IReadOnlyList<MeTenantResponse> Tenants);
 
-/// <summary>A tenant the user is an active member of, with the codes of the roles they hold there (any scope).</summary>
-public sealed record MeTenantResponse(Guid TenantId, IReadOnlyList<string> Roles);
+/// <summary>
+/// A tenant the user is an active member of: its slug (the workspace URL), display name and status, and the codes of the
+/// roles they hold there (any scope). A <c>SUSPENDED</c> or <c>ARCHIVED</c> tenant is listed too: its workspace is
+/// blocked, and its owner can read why.
+/// </summary>
+public sealed record MeTenantResponse(
+    Guid TenantId, string Slug, string DisplayName, TenantStatus Status, IReadOnlyList<string> Roles);

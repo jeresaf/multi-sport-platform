@@ -14,6 +14,7 @@ internal static class GetMemberEndpoint
         .WithSummary("Get a member")
         .WithDescription("A member of the tenant named by `X-Tenant-Id`, with their active roles and `version` (also the `ETag`).")
         .RequireAction(IdentityActions.MembershipRead)
+        .ReturnsETag()
         .ProducesErrors(IdentityErrors.MembershipNotFound);
 
     private static async Task<Results<Ok<MemberResponse>, ProblemHttpResult>> HandleAsync(
