@@ -503,8 +503,8 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   is scopable by `TENANT` and held by every role assignable tenant-wide: `TEAM_MANAGER` (team scope only) can't be
   granted an action without a resource until S06 brings resource scopes to requests (follow-up).
   `platform.capabilities.read` is held by both platform roles. Both reads are audit `NONE`. The capability list is
-  step 3 only: the tenant endpoint answers only when the access mode is `FULL` (its 403 says why otherwise); S04 adds
-  entitlements and reasons. `AssignmentScope` gets no `EDITION`: the fake chain test is `CONTEST → COMPETITION`, the
+  step 3 only: the tenant endpoint answers only when step 1 lets it through (`FULL` in S03; its 403 says why
+  otherwise); S04 adds entitlements, `READ_ONLY` and reasons. `AssignmentScope` gets no `EDITION`: the fake chain test is `CONTEST → COMPETITION`, the
   tenant reached by tenant-wide assignments. Identity reads action definitions through `IActionCatalogue`
   (BuildingBlocks); `ScopeChains` (BuildingBlocks) is the provider registry, one provider per resource type, checked
   at startup.

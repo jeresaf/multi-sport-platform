@@ -214,8 +214,9 @@ This table is the source of truth for the values seeded in S04.
   `scopeType` (`COMPETITION`, `TEAM`, `CONTEST`) and `scopeId`, those granted on that resource or the scopes above it.
   `GET /api/platform/v1/me/capabilities` (`platform.capabilities.read`, both platform roles) lists the platform
   actions. Both decide with the evaluator's own rule, so the list is exactly what the evaluator allows (step 3); the
-  tenant endpoint answers only when the access mode is `FULL` (its 403 says why otherwise), and S04 adds entitlements
-  and the reason for each unavailable action. `TEAM_MANAGER`, assigned at a team only, can't read them until requests
+  tenant endpoint answers only when step 1 lets it through (in S03 that means `FULL`; otherwise its 403 says why). S04
+  adds entitlements, `READ_ONLY` (where this read still answers, so writes must be left out or marked) and the reason
+  for each unavailable action. `TEAM_MANAGER`, assigned at a team only, can't read them until requests
   carry resource scopes (S06).
 - The server remains the only enforcement point.
 
