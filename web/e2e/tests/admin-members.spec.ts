@@ -136,8 +136,8 @@ test("an owner manages members and settings; a viewer only reads them, and the A
 });
 
 test("an administrator who suspends themselves loses the workspace at once", async ({ page, request }) => {
-  const slug = `kisaasi-runners-${run}`;
-  const tenantId = await createTenant(request, slug, `Kisaasi Road Runners ${run}`);
+  const slug = `weaver-athletics-${run}`;
+  const tenantId = await createTenant(request, slug, `Weaver Bird Athletics Club ${run}`);
   const owner = { email: personEmail("grace.nakato", slug), password: newPassword(), tenantId };
   await acceptByApi(request, await inviteOwnerOf(request, tenantId, owner.email), owner.password);
   const admin = { email: personEmail("daniel.kato", slug), password: newPassword() };

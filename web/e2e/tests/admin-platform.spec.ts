@@ -22,8 +22,8 @@ async function change(page: Page, label: string, announced: string, reason?: str
 test("the platform administrator creates a tenant and takes it through its lifecycle", async ({ page }) => {
   // The suspended list is ordered by slug, 25 a page, and a kept local database gathers other runs' suspended tenants:
   // a slug sorting first stays on the first page.
-  const slug = `abaana-netball-${run}`;
-  const name = `Abaana Netball Circle ${run}`;
+  const slug = `acacia-runners-${run}`;
+  const name = `Acacia Road Runners ${run}`;
   await signIn(page, platformAdmin.email, platformAdmin.password);
   await expect(page).toHaveURL("/platform");
   await open(page, "/platform/tenants");

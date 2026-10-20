@@ -24,8 +24,8 @@ async function join(page: Page, link: string, email: string, password: string, t
 }
 
 test("slice demo: platform admin → owner → viewer, with the audit trail", async ({ page, browser, request }) => {
-  const slug = `wakiso-schools-${run}`;
-  const name = `Wakiso Inter-Schools Games ${run}`;
+  const slug = `mvule-youth-${run}`;
+  const name = `Mvule Youth Football League ${run}`;
   const owner = { email: personEmail("grace.nakato", slug), password: newPassword() };
   const viewer = { email: personEmail("esther.nabirye", slug), password: newPassword() };
 
@@ -113,7 +113,8 @@ test("slice demo: platform admin → owner → viewer, with the audit trail", as
   const accepted = (userId: string) => (entry: AuditEntry) =>
     entry.actionCode === "invitation.accept" &&
     entry.outcome === "SUCCESS" &&
-    JSON.stringify(entry.metadata).includes(userId);
+    (entry.metadata as { userId?: string; accountCreated?: boolean } | null)?.userId === userId &&
+    (entry.metadata as { accountCreated?: boolean }).accountCreated === true;
   // One read per action: the tenant's own entries (every audited read in it, and these reads too) would crowd
   // a single page.
   const steps: [string, (entry: AuditEntry) => boolean][] = [
@@ -129,7 +130,7 @@ test("slice demo: platform admin → owner → viewer, with the audit trail", as
     await auditEntries(request, { tenantId, action }, [expected]);
   }
 
-  await auditEntries(request, { actorId: viewerId, action: "tenant.settings.update" }, [
+  await auditEntries(request, { tenantId, actorId: viewerId, action: "tenant.settings.update" }, [
     (entry) => entry.outcome === "DENIED" && entry.errorCode === "AUTH_FORBIDDEN",
   ]);
 

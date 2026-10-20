@@ -1,7 +1,7 @@
 "use client";
 
-// The tenant workspace on screen, for its pages: the tenant from `/me`, a client that sends its `X-Tenant-Id`, and
-// the actions the user holds there. The workspace layout renders pages only once all three are known.
+// The tenant workspace on screen, for its pages: the tenant the workspace layout rendered (from `/me`), a client that
+// sends its `X-Tenant-Id`, and the actions the user holds there. The layout renders pages only once all three are known.
 import { createContext, useContext, useMemo, type ReactNode } from "react";
 import { tenantApi } from "./api";
 import type { MeTenant } from "./workspace";
