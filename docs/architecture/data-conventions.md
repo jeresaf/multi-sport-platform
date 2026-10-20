@@ -169,6 +169,9 @@ creates (never TRUNCATE). Each table gets one policy, set in the migration that 
   audit begun as source `SYSTEM`, so its first save commits the audit entry with the change. A seeder runs a command
   only for a change; one that saves nothing or fails throws and stops the run. `SeedContext.QueryAsTenantAsync` reads
   tenant-owned data to decide what to run (not audited). Seeded tenants: `tenancy.demo.tenants` (KMSA and ELSSC).
+  Seeded invitations: `identity.demo.invitations` (S03 D18, after the tenants) invites the pilot people by email
+  through `membership.invite`; they get no deterministic IDs (a person may be invited several times; the natural key
+  is tenant + normalised email), and the emails go out when the API's outbox runs (the CLI doesn't send).
 
 ## CI checks (automate as they become relevant)
 
