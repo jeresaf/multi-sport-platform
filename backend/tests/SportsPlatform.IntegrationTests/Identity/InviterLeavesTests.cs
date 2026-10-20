@@ -1,5 +1,6 @@
 using System.Net;
 using SportsPlatform.BuildingBlocks.Auditing;
+using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.IntegrationTests.Api;
 using SportsPlatform.IntegrationTests.Audit;
 using SportsPlatform.IntegrationTests.Infrastructure;
