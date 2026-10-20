@@ -128,6 +128,146 @@ export interface paths {
         patch: operations["UpdateTenantSettings"];
         trace?: never;
     };
+    "/api/admin/v1/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the tenant's members
+         * @description The members of the tenant named by `X-Tenant-Id`, oldest first, with their email and active roles. Filter by `status` (ACTIVE, SUSPENDED or REMOVED); without it, removed members are left out. `limit` is 1–100 (25). Every page read is audited.
+         */
+        get: operations["ListMembers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/members/{membershipId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a member
+         * @description A member of the tenant named by `X-Tenant-Id`, with their active roles and `version` (also the `ETag`).
+         */
+        get: operations["GetMember"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/members/{membershipId}/suspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Suspend a member
+         * @description ACTIVE → SUSPENDED, with a reason: the member loses access to the tenant and keeps their roles. Only an owner changes an owner, and the last active owner can't be suspended or removed. The body `{ "reason": … }` is required. The reason is kept permanently on the membership and in the audit trail: don't include personal data. Send `version` or `If-Match` from the last read to get 409 AUTH_CONCURRENCY_CONFLICT if the member changed since.
+         */
+        post: operations["SuspendMember"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/members/{membershipId}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore a suspended member
+         * @description SUSPENDED → ACTIVE, with the roles the member held. The body is optional. Send `version` or `If-Match` from the last read to get 409 AUTH_CONCURRENCY_CONFLICT if the member changed since.
+         */
+        post: operations["RestoreMember"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/members/{membershipId}/remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Remove a member
+         * @description ACTIVE or SUSPENDED → REMOVED, with a reason. Final: rejoining needs a new invitation. Only an owner changes an owner, and the last active owner can't be suspended or removed. The body `{ "reason": … }` is required. The reason is kept permanently on the membership and in the audit trail: don't include personal data. Send `version` or `If-Match` from the last read to get 409 AUTH_CONCURRENCY_CONFLICT if the member changed since.
+         */
+        post: operations["RemoveMember"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/members/{membershipId}/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Give a member a role
+         * @description Assigns a tenant role (`roleCode`, e.g. REGISTRAR) to an active or suspended member, tenant-wide: `scopeType` is TENANT (the default) until competitions, teams and contests exist. Only an owner grants TENANT_OWNER. Returns the member. Send `version` or `If-Match` from the last read to get 409 AUTH_CONCURRENCY_CONFLICT if the member changed since.
+         */
+        post: operations["AssignRole"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/members/{membershipId}/roles/{assignmentId}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revoke a member's role
+         * @description Revokes an active role assignment of the member; it is kept as history. Only an owner revokes TENANT_OWNER, and the last active owner keeps it. The body is optional. Returns the member. Send `version` or `If-Match` from the last read to get 409 AUTH_CONCURRENCY_CONFLICT if the member changed since.
+         */
+        post: operations["RevokeRole"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/platform/v1/diagnostics/outbox": {
         parameters: {
             query?: never;
@@ -463,6 +603,23 @@ export interface components {
         /** @enum {unknown} */
         ActorKind: "USER" | "SYSTEM" | "ANONYMOUS";
         /**
+         * @description A role assignment scope that can grant a tenant action.
+         * @enum {unknown}
+         */
+        AssignmentScope: "TENANT" | "COMPETITION" | "TEAM" | "CONTEST";
+        /**
+         * @description A role to give a member: its code and scope (`TENANT` when not sent; the only scope S03 accepts, so
+         *     `scopeId` stays empty). `version`, when sent, must be the membership's current one.
+         */
+        AssignRoleRequest: {
+            roleCode: null | string;
+            scopeType: null | components["schemas"]["AssignmentScope"];
+            /** Format: uuid */
+            scopeId: null | string;
+            /** Format: uint32 */
+            version: null | number;
+        };
+        /**
          * @description One audit entry as platform staff see it: every column, with `metadata` as the JSON object it was stored as
          *     (personal data already masked when it was recorded).
          */
@@ -497,6 +654,20 @@ export interface components {
          * @enum {unknown}
          */
         AuditSource: "API" | "SYSTEM";
+        /** @description The optional body of `restore`: `version`, when sent, must be the membership's current one. */
+        ChangeMemberStatusRequest: {
+            /** Format: uint32 */
+            version: null | number;
+        };
+        /**
+         * @description The body of `suspend` and `remove` (audit `REQUIRED_WITH_REASON`). The reason is kept permanently on
+         *     the membership and in the audit trail and is not redacted: it must not contain personal data.
+         */
+        ChangeMemberStatusWithReasonRequest: {
+            reason: null | string;
+            /** Format: uint32 */
+            version: null | number;
+        };
         /** @description Change the signed-in user's password. */
         ChangePasswordRequest: {
             currentPassword: null | string;
@@ -568,6 +739,10 @@ export interface components {
         ListLanguagesResponse: {
             items: components["schemas"]["LanguageResponse"][];
         };
+        ListMembersResponse: {
+            items: components["schemas"]["MemberResponse"][];
+            page: components["schemas"]["PageInfo"];
+        };
         ListOutboxMessagesResponse: {
             items: components["schemas"]["OutboxMessageResponse"][];
             page: components["schemas"]["PageInfo"];
@@ -584,6 +759,45 @@ export interface components {
             email: null | string;
             password: null | string;
         };
+        /**
+         * @description A member of the tenant as the admin API shows them, with their active roles. The email is the user's only
+         *     identifier until people have profiles; shown to every holder of `membership.read` (owner, S03-T4b) and never
+         *     logged or audited. `version` (also the `ETag`) is the membership's; role changes change it too.
+         */
+        MemberResponse: {
+            /** Format: uuid */
+            membershipId: string;
+            /** Format: uuid */
+            userId: string;
+            email: string;
+            status: components["schemas"]["MembershipStatus"];
+            /** Format: date-time */
+            joinedAt: string;
+            /** Format: uuid */
+            invitedBy: null | string;
+            statusReason: null | string;
+            /** Format: date-time */
+            statusChangedAt: null | string;
+            roles: components["schemas"]["MemberRoleResponse"][];
+            /** Format: uint32 */
+            version: number;
+        };
+        /** @description An active role assignment: the role, where it applies (`scopeId` null tenant-wide) and when it was granted. */
+        MemberRoleResponse: {
+            /** Format: uuid */
+            assignmentId: string;
+            roleCode: string;
+            scopeType: components["schemas"]["AssignmentScope"];
+            /** Format: uuid */
+            scopeId: null | string;
+            /** Format: date-time */
+            grantedAt: string;
+        };
+        /**
+         * @description A tenant membership's status (docs/domain/state-machines.md, "Tenant membership").
+         * @enum {unknown}
+         */
+        MembershipStatus: "ACTIVE" | "SUSPENDED" | "REMOVED";
         /** @description The signed-in user: their own email, platform roles and the tenants they are an active member of. */
         MeResponse: {
             /** Format: uuid */
@@ -677,6 +891,11 @@ export interface components {
         ResetPasswordRequest: {
             token: null | string;
             newPassword: null | string;
+        };
+        /** @description The optional body of `revoke`: `version`, when sent, must be the membership's current one. */
+        RevokeRoleRequest: {
+            /** Format: uint32 */
+            version: null | number;
         };
         /**
          * @description The public site's identity: `PUBLIC` fields only. PrimaryDomain is the host the site
@@ -1052,6 +1271,444 @@ export interface operations {
                 };
             };
             /** @description Problem Details; `code`: `TENANT_CONCURRENCY_CONFLICT` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListMembers: {
+        parameters: {
+            query?: {
+                status?: string;
+                limit?: string;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListMembersResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_QUERY` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                membershipId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_MEMBERSHIP_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    SuspendMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                membershipId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeMemberStatusWithReasonRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_REASON_REQUIRED` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_OWNER_REQUIRED`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_MEMBERSHIP_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CONCURRENCY_CONFLICT`, `AUTH_LAST_OWNER`, `AUTH_MEMBERSHIP_TRANSITION_INVALID` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    RestoreMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                membershipId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["ChangeMemberStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_OWNER_REQUIRED`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_MEMBERSHIP_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CONCURRENCY_CONFLICT`, `AUTH_LAST_OWNER`, `AUTH_MEMBERSHIP_TRANSITION_INVALID` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    RemoveMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                membershipId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeMemberStatusWithReasonRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_REASON_REQUIRED` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_OWNER_REQUIRED`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_MEMBERSHIP_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CONCURRENCY_CONFLICT`, `AUTH_LAST_OWNER`, `AUTH_MEMBERSHIP_TRANSITION_INVALID` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    AssignRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                membershipId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignRoleRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_ROLE_NOT_ASSIGNABLE`, `VALIDATION_INVALID_REQUEST` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_OWNER_REQUIRED`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_MEMBERSHIP_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CONCURRENCY_CONFLICT`, `AUTH_MEMBERSHIP_TRANSITION_INVALID`, `AUTH_ROLE_ALREADY_ASSIGNED` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    RevokeRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                membershipId: string;
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["RevokeRoleRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_OWNER_REQUIRED`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_MEMBERSHIP_NOT_FOUND`, `AUTH_ROLE_ASSIGNMENT_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CONCURRENCY_CONFLICT`, `AUTH_LAST_OWNER`, `AUTH_MEMBERSHIP_TRANSITION_INVALID` */
             409: {
                 headers: {
                     [name: string]: unknown;

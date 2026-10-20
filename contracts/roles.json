@@ -39,6 +39,12 @@
         "TENANT"
       ],
       "actions": [
+        "membership.read",
+        "membership.remove",
+        "membership.restore",
+        "membership.suspend",
+        "role.assign",
+        "role.revoke",
         "tenant.settings.read",
         "tenant.settings.update"
       ]
@@ -51,6 +57,12 @@
         "TENANT"
       ],
       "actions": [
+        "membership.read",
+        "membership.remove",
+        "membership.restore",
+        "membership.suspend",
+        "role.assign",
+        "role.revoke",
         "tenant.settings.read",
         "tenant.settings.update"
       ]
@@ -132,6 +144,7 @@
         "TENANT"
       ],
       "actions": [
+        "membership.read",
         "tenant.settings.read"
       ]
     }

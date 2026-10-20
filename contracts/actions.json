@@ -73,6 +73,62 @@
       "since": "S03"
     },
     {
+      "code": "membership.read",
+      "module": "Identity",
+      "description": "View the tenant's members: email, status and roles (every read is audited; the email is never in the audit).",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "since": "S03"
+    },
+    {
+      "code": "membership.remove",
+      "module": "Identity",
+      "description": "Remove a member, with a reason (final; rejoining needs a new invitation). Only an owner removes an owner; never the last one.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED_WITH_REASON",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "since": "S03"
+    },
+    {
+      "code": "membership.restore",
+      "module": "Identity",
+      "description": "Restore a suspended member with the roles they held. Only an owner restores an owner.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "since": "S03"
+    },
+    {
+      "code": "membership.suspend",
+      "module": "Identity",
+      "description": "Suspend a member, with a reason: they lose access to the tenant and keep their roles until restored. Only an owner suspends an owner; never the last one.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED_WITH_REASON",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "since": "S03"
+    },
+    {
       "code": "platform.admin.create",
       "module": "Identity",
       "description": "Create a platform administrator: a new user with PLATFORM_ADMIN (CLI create-platform-admin only; no endpoint).",
@@ -119,6 +175,34 @@
       "idempotent": false,
       "allowsAnonymous": false,
       "since": "S01"
+    },
+    {
+      "code": "role.assign",
+      "module": "Identity",
+      "description": "Give a member a role, tenant-wide (other scopes later). Only an owner grants TENANT_OWNER.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "since": "S03"
+    },
+    {
+      "code": "role.revoke",
+      "module": "Identity",
+      "description": "Revoke a member's role (the assignment is kept as history). Only an owner revokes TENANT_OWNER; never the last owner's.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "since": "S03"
     },
     {
       "code": "tenant.activate",

@@ -314,6 +314,733 @@
         }
       }
     },
+    "/api/admin/v1/members": {
+      "get": {
+        "tags": [
+          "Members"
+        ],
+        "summary": "List the tenant's members",
+        "description": "The members of the tenant named by `X-Tenant-Id`, oldest first, with their email and active roles. Filter by `status` (ACTIVE, SUSPENDED or REMOVED); without it, removed members are left out. `limit` is 1–100 (25). Every page read is audited.",
+        "operationId": "ListMembers",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListMembersResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_QUERY`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_QUERY"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED"
+            ]
+          }
+        }
+      }
+    },
+    "/api/admin/v1/members/{membershipId}": {
+      "get": {
+        "tags": [
+          "Members"
+        ],
+        "summary": "Get a member",
+        "description": "A member of the tenant named by `X-Tenant-Id`, with their active roles and `version` (also the `ETag`).",
+        "operationId": "GetMember",
+        "parameters": [
+          {
+            "name": "membershipId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Problem Details; `code`: `AUTH_MEMBERSHIP_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_MEMBERSHIP_NOT_FOUND"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED"
+            ]
+          }
+        }
+      }
+    },
+    "/api/admin/v1/members/{membershipId}/suspend": {
+      "post": {
+        "tags": [
+          "Members"
+        ],
+        "summary": "Suspend a member",
+        "description": "ACTIVE → SUSPENDED, with a reason: the member loses access to the tenant and keeps their roles. Only an owner changes an owner, and the last active owner can't be suspended or removed. The body `{ \"reason\": … }` is required. The reason is kept permanently on the membership and in the audit trail: don't include personal data. Send `version` or `If-Match` from the last read to get 409 AUTH_CONCURRENCY_CONFLICT if the member changed since.",
+        "operationId": "SuspendMember",
+        "parameters": [
+          {
+            "name": "membershipId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeMemberStatusWithReasonRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_REASON_REQUIRED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_REASON_REQUIRED"
+            ]
+          },
+          "404": {
+            "description": "Problem Details; `code`: `AUTH_MEMBERSHIP_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_MEMBERSHIP_NOT_FOUND"
+            ]
+          },
+          "409": {
+            "description": "Problem Details; `code`: `AUTH_CONCURRENCY_CONFLICT`, `AUTH_LAST_OWNER`, `AUTH_MEMBERSHIP_TRANSITION_INVALID`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CONCURRENCY_CONFLICT",
+              "AUTH_LAST_OWNER",
+              "AUTH_MEMBERSHIP_TRANSITION_INVALID"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_OWNER_REQUIRED`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
+              "AUTH_FORBIDDEN",
+              "AUTH_OWNER_REQUIRED",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          }
+        }
+      }
+    },
+    "/api/admin/v1/members/{membershipId}/restore": {
+      "post": {
+        "tags": [
+          "Members"
+        ],
+        "summary": "Restore a suspended member",
+        "description": "SUSPENDED → ACTIVE, with the roles the member held. The body is optional. Send `version` or `If-Match` from the last read to get 409 AUTH_CONCURRENCY_CONFLICT if the member changed since.",
+        "operationId": "RestoreMember",
+        "parameters": [
+          {
+            "name": "membershipId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/ChangeMemberStatusRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Problem Details; `code`: `AUTH_MEMBERSHIP_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_MEMBERSHIP_NOT_FOUND"
+            ]
+          },
+          "409": {
+            "description": "Problem Details; `code`: `AUTH_CONCURRENCY_CONFLICT`, `AUTH_LAST_OWNER`, `AUTH_MEMBERSHIP_TRANSITION_INVALID`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CONCURRENCY_CONFLICT",
+              "AUTH_LAST_OWNER",
+              "AUTH_MEMBERSHIP_TRANSITION_INVALID"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_OWNER_REQUIRED`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
+              "AUTH_FORBIDDEN",
+              "AUTH_OWNER_REQUIRED",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          }
+        }
+      }
+    },
+    "/api/admin/v1/members/{membershipId}/remove": {
+      "post": {
+        "tags": [
+          "Members"
+        ],
+        "summary": "Remove a member",
+        "description": "ACTIVE or SUSPENDED → REMOVED, with a reason. Final: rejoining needs a new invitation. Only an owner changes an owner, and the last active owner can't be suspended or removed. The body `{ \"reason\": … }` is required. The reason is kept permanently on the membership and in the audit trail: don't include personal data. Send `version` or `If-Match` from the last read to get 409 AUTH_CONCURRENCY_CONFLICT if the member changed since.",
+        "operationId": "RemoveMember",
+        "parameters": [
+          {
+            "name": "membershipId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeMemberStatusWithReasonRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_REASON_REQUIRED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_REASON_REQUIRED"
+            ]
+          },
+          "404": {
+            "description": "Problem Details; `code`: `AUTH_MEMBERSHIP_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_MEMBERSHIP_NOT_FOUND"
+            ]
+          },
+          "409": {
+            "description": "Problem Details; `code`: `AUTH_CONCURRENCY_CONFLICT`, `AUTH_LAST_OWNER`, `AUTH_MEMBERSHIP_TRANSITION_INVALID`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CONCURRENCY_CONFLICT",
+              "AUTH_LAST_OWNER",
+              "AUTH_MEMBERSHIP_TRANSITION_INVALID"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_OWNER_REQUIRED`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
+              "AUTH_FORBIDDEN",
+              "AUTH_OWNER_REQUIRED",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          }
+        }
+      }
+    },
+    "/api/admin/v1/members/{membershipId}/roles": {
+      "post": {
+        "tags": [
+          "Members"
+        ],
+        "summary": "Give a member a role",
+        "description": "Assigns a tenant role (`roleCode`, e.g. REGISTRAR) to an active or suspended member, tenant-wide: `scopeType` is TENANT (the default) until competitions, teams and contests exist. Only an owner grants TENANT_OWNER. Returns the member. Send `version` or `If-Match` from the last read to get 409 AUTH_CONCURRENCY_CONFLICT if the member changed since.",
+        "operationId": "AssignRole",
+        "parameters": [
+          {
+            "name": "membershipId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignRoleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `AUTH_ROLE_NOT_ASSIGNABLE`, `VALIDATION_INVALID_REQUEST`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_ROLE_NOT_ASSIGNABLE",
+              "VALIDATION_INVALID_REQUEST"
+            ]
+          },
+          "404": {
+            "description": "Problem Details; `code`: `AUTH_MEMBERSHIP_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_MEMBERSHIP_NOT_FOUND"
+            ]
+          },
+          "409": {
+            "description": "Problem Details; `code`: `AUTH_CONCURRENCY_CONFLICT`, `AUTH_MEMBERSHIP_TRANSITION_INVALID`, `AUTH_ROLE_ALREADY_ASSIGNED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CONCURRENCY_CONFLICT",
+              "AUTH_MEMBERSHIP_TRANSITION_INVALID",
+              "AUTH_ROLE_ALREADY_ASSIGNED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_OWNER_REQUIRED`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
+              "AUTH_FORBIDDEN",
+              "AUTH_OWNER_REQUIRED",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          }
+        }
+      }
+    },
+    "/api/admin/v1/members/{membershipId}/roles/{assignmentId}/revoke": {
+      "post": {
+        "tags": [
+          "Members"
+        ],
+        "summary": "Revoke a member's role",
+        "description": "Revokes an active role assignment of the member; it is kept as history. Only an owner revokes TENANT_OWNER, and the last active owner keeps it. The body is optional. Returns the member. Send `version` or `If-Match` from the last read to get 409 AUTH_CONCURRENCY_CONFLICT if the member changed since.",
+        "operationId": "RevokeRole",
+        "parameters": [
+          {
+            "name": "membershipId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/RevokeRoleRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Problem Details; `code`: `AUTH_MEMBERSHIP_NOT_FOUND`, `AUTH_ROLE_ASSIGNMENT_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_MEMBERSHIP_NOT_FOUND",
+              "AUTH_ROLE_ASSIGNMENT_NOT_FOUND"
+            ]
+          },
+          "409": {
+            "description": "Problem Details; `code`: `AUTH_CONCURRENCY_CONFLICT`, `AUTH_LAST_OWNER`, `AUTH_MEMBERSHIP_TRANSITION_INVALID`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CONCURRENCY_CONFLICT",
+              "AUTH_LAST_OWNER",
+              "AUTH_MEMBERSHIP_TRANSITION_INVALID"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_OWNER_REQUIRED`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
+              "AUTH_FORBIDDEN",
+              "AUTH_OWNER_REQUIRED",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          }
+        }
+      }
+    },
     "/api/platform/v1/diagnostics/outbox": {
       "get": {
         "tags": [
@@ -1916,6 +2643,58 @@
           "ANONYMOUS"
         ]
       },
+      "AssignmentScope": {
+        "enum": [
+          "TENANT",
+          "COMPETITION",
+          "TEAM",
+          "CONTEST"
+        ],
+        "description": "A role assignment scope that can grant a tenant action."
+      },
+      "AssignRoleRequest": {
+        "required": [
+          "roleCode",
+          "scopeType",
+          "scopeId",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "roleCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "scopeType": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AssignmentScope"
+              }
+            ]
+          },
+          "scopeId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "version": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "uint32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A role to give a member: its code and scope (`TENANT` when not sent; the only scope S03 accepts, so\n`scopeId` stays empty). `version`, when sent, must be the membership's current one."
+      },
       "AuditEntryResponse": {
         "required": [
           "id",
@@ -2024,6 +2803,47 @@
           "SYSTEM"
         ],
         "description": "Where the action came from."
+      },
+      "ChangeMemberStatusRequest": {
+        "required": [
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "uint32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "The optional body of `restore`: `version`, when sent, must be the membership's current one."
+      },
+      "ChangeMemberStatusWithReasonRequest": {
+        "required": [
+          "reason",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "version": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "uint32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "The body of `suspend` and `remove` (audit `REQUIRED_WITH_REASON`). The reason is kept permanently on\nthe membership and in the audit trail and is not redacted: it must not contain personal data."
       },
       "ChangePasswordRequest": {
         "required": [
@@ -2296,6 +3116,24 @@
           }
         }
       },
+      "ListMembersResponse": {
+        "required": [
+          "items",
+          "page"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MemberResponse"
+            }
+          },
+          "page": {
+            "$ref": "#/components/schemas/PageInfo"
+          }
+        }
+      },
       "ListOutboxMessagesResponse": {
         "required": [
           "items",
@@ -2368,6 +3206,114 @@
         },
         "additionalProperties": false,
         "description": "Sign in with email and password."
+      },
+      "MemberResponse": {
+        "required": [
+          "membershipId",
+          "userId",
+          "email",
+          "status",
+          "joinedAt",
+          "invitedBy",
+          "statusReason",
+          "statusChangedAt",
+          "roles",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "membershipId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/MembershipStatus"
+          },
+          "joinedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "invitedBy": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "statusReason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "statusChangedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MemberRoleResponse"
+            }
+          },
+          "version": {
+            "type": "integer",
+            "format": "uint32"
+          }
+        },
+        "description": "A member of the tenant as the admin API shows them, with their active roles. The email is the user's only\nidentifier until people have profiles; shown to every holder of `membership.read` (owner, S03-T4b) and never\nlogged or audited. `version` (also the `ETag`) is the membership's; role changes change it too."
+      },
+      "MemberRoleResponse": {
+        "required": [
+          "assignmentId",
+          "roleCode",
+          "scopeType",
+          "scopeId",
+          "grantedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "assignmentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "roleCode": {
+            "type": "string"
+          },
+          "scopeType": {
+            "$ref": "#/components/schemas/AssignmentScope"
+          },
+          "scopeId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "grantedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "An active role assignment: the role, where it applies (`scopeId` null tenant-wide) and when it was granted."
+      },
+      "MembershipStatus": {
+        "enum": [
+          "ACTIVE",
+          "SUSPENDED",
+          "REMOVED"
+        ],
+        "description": "A tenant membership's status (docs/domain/state-machines.md, \"Tenant membership\")."
       },
       "MeResponse": {
         "required": [
@@ -2656,6 +3602,23 @@
         },
         "additionalProperties": false,
         "description": "Set a new password with the token from a reset email's link."
+      },
+      "RevokeRoleRequest": {
+        "required": [
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "uint32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "The optional body of `revoke`: `version`, when sent, must be the membership's current one."
       },
       "SiteResponse": {
         "required": [
@@ -2999,6 +3962,9 @@
     },
     {
       "name": "Tenant settings"
+    },
+    {
+      "name": "Members"
     },
     {
       "name": "Diagnostics"

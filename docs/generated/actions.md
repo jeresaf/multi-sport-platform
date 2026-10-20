@@ -12,10 +12,16 @@ admin endpoint requires one of these; the code is stable and is what roles grant
 | `account.password.forgot` | Identity | ACCOUNT | — | REQUIRED | — | no | yes | S03 | Ask for a password reset email. Always accepted, whether or not the email has an account; the audit never records the email. |
 | `account.password.reset` | Identity | ACCOUNT | — | REQUIRED | — | no | yes | S03 | Set a new password with the token from a reset email; signs out every session of the user and clears a lockout. |
 | `account.read` | Identity | ACCOUNT | — | NONE | — | no | no | S03 | Read the signed-in user: email, platform roles and tenants with their roles. |
+| `membership.read` | Identity | TENANT | TENANT | REQUIRED | — | no | no | S03 | View the tenant's members: email, status and roles (every read is audited; the email is never in the audit). |
+| `membership.remove` | Identity | TENANT | TENANT | REQUIRED_WITH_REASON | — | no | no | S03 | Remove a member, with a reason (final; rejoining needs a new invitation). Only an owner removes an owner; never the last one. |
+| `membership.restore` | Identity | TENANT | TENANT | REQUIRED | — | no | no | S03 | Restore a suspended member with the roles they held. Only an owner restores an owner. |
+| `membership.suspend` | Identity | TENANT | TENANT | REQUIRED_WITH_REASON | — | no | no | S03 | Suspend a member, with a reason: they lose access to the tenant and keep their roles until restored. Only an owner suspends an owner; never the last one. |
 | `platform.admin.create` | Identity | PLATFORM | — | REQUIRED | — | no | no | S03 | Create a platform administrator: a new user with PLATFORM_ADMIN (CLI create-platform-admin only; no endpoint). |
 | `platform.audit.read` | Platform | PLATFORM | — | REQUIRED | — | no | no | S01 | View audit entries of every tenant. |
 | `platform.outbox.read` | Platform | PLATFORM | — | REQUIRED | — | no | no | S01 | View outbox messages and their delivery status. |
 | `platform.outbox.redrive` | Platform | PLATFORM | — | REQUIRED_WITH_REASON | — | no | no | S01 | Re-deliver failed outbox messages. |
+| `role.assign` | Identity | TENANT | TENANT | REQUIRED | — | no | no | S03 | Give a member a role, tenant-wide (other scopes later). Only an owner grants TENANT_OWNER. |
+| `role.revoke` | Identity | TENANT | TENANT | REQUIRED | — | no | no | S03 | Revoke a member's role (the assignment is kept as history). Only an owner revokes TENANT_OWNER; never the last owner's. |
 | `tenant.activate` | Tenancy | PLATFORM | — | REQUIRED | — | no | no | S02 | Activate a provisioned tenant (PROVISIONING → ACTIVE). |
 | `tenant.archive` | Tenancy | PLATFORM | — | REQUIRED_WITH_REASON | — | no | no | S02 | Archive a tenant, with a reason (ACTIVE or SUSPENDED → ARCHIVED). |
 | `tenant.create` | Tenancy | PLATFORM | — | REQUIRED | — | no | no | S02 | Create a tenant (status PROVISIONING). |
