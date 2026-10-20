@@ -28,8 +28,9 @@ public enum OwnerImpact
 /// The steps every member change shares, in order: load the request's tenant's membership with its roles
 /// (<c>AUTH_MEMBERSHIP_NOT_FOUND</c>), check the version (<c>AUTH_CONCURRENCY_CONFLICT</c>), the owner rules (owner,
 /// S03-T4: <c>AUTH_OWNER_REQUIRED</c>; D17: <c>AUTH_LAST_OWNER</c>), apply the domain change and save once with its
-/// audit entry. A change that takes an owner away holds a per-tenant transaction lock while it counts the other active
-/// owners and saves, so two such changes in one tenant can't each leave the other as the last owner and both succeed.
+/// audit entry. A change that takes an owner away holds a per-tenant transaction lock while it checks the caller's
+/// ownership, counts the other active owners and saves, so two such changes in one tenant can't each leave the other
+/// as the last owner and both succeed.
 /// </summary>
 public sealed class MemberChanges(IdentityDbContext context, ICurrentActor actor, AuditScope audit)
 {
@@ -62,21 +63,28 @@ public sealed class MemberChanges(IdentityDbContext context, ICurrentActor actor
             return IdentityErrors.ConcurrencyConflict;
         }
 
+        // A change that takes an owner away takes the tenant's owner lock first, so the caller's ownership and the
+        // other owners are read after every owner change committed before it.
         var impact = impactOf(membership);
+        await using var transaction = impact == OwnerImpact.RemovesOwner
+            ? await context.Database.BeginTransactionAsync(cancellationToken)
+            : null;
+        if (transaction is not null)
+        {
+            await LockOwnersAsync(membership.TenantId, cancellationToken);
+        }
+
         if (impact != OwnerImpact.None && !await IsOwnerOrSystemAsync(cancellationToken))
         {
             return IdentityErrors.OwnerRequired;
         }
 
-        var email = await context.Set<User>().Where(u => u.Id == membership.UserId).Select(u => u.Email!).SingleAsync(cancellationToken);
-
-        await using var transaction = impact == OwnerImpact.RemovesOwner
-            ? await context.Database.BeginTransactionAsync(cancellationToken)
-            : null;
         if (transaction is not null && !await AnotherActiveOwnerAsync(membership, cancellationToken))
         {
             return IdentityErrors.LastOwner;
         }
+
+        var email = await context.Set<User>().Where(u => u.Id == membership.UserId).Select(u => u.Email!).SingleAsync(cancellationToken);
 
         var changed = change(membership);
         if (changed.IsFailure)
@@ -96,7 +104,8 @@ public sealed class MemberChanges(IdentityDbContext context, ICurrentActor actor
 
         if (transaction is not null)
         {
-            await transaction.CommitAsync(cancellationToken);
+            // The audit counts as recorded once saved: a client hanging up now must not roll the change back unaudited.
+            await transaction.CommitAsync(CancellationToken.None);
         }
 
         return Result.Success(MemberResponse.From(membership, entry.Property<uint>(AuditColumns.Version).CurrentValue, email));
@@ -127,16 +136,22 @@ public sealed class MemberChanges(IdentityDbContext context, ICurrentActor actor
             cancellationToken));
 
     /// <summary>
-    /// Takes the tenant's owner lock (released when the transaction ends), then counts the other active owners. The
-    /// count is a new statement after the lock, so in READ COMMITTED it sees every owner change committed before it.
+    /// The tenant's owner lock, held until the transaction ends. Key convention: <c>&lt;schema&gt;.&lt;purpose&gt;:&lt;id&gt;</c>,
+    /// hashed to PostgreSQL's 64-bit advisory lock space.
     /// </summary>
-    private async Task<bool> AnotherActiveOwnerAsync(TenantMembership membership, CancellationToken cancellationToken)
+    private async Task LockOwnersAsync(Guid tenantId, CancellationToken cancellationToken)
     {
-        var key = $"identity.tenant_owners:{membership.TenantId}";
+        var key = $"identity.tenant_owners:{tenantId}";
         await context.Database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock(hashtextextended({key}, 0))", cancellationToken);
-        return await context.Set<TenantMembership>().AnyAsync(
+    }
+
+    /// <summary>
+    /// Whether another active membership holds the owner role. Run under the owner lock: a new statement, so in READ
+    /// COMMITTED it sees every owner change committed before the lock was taken.
+    /// </summary>
+    private Task<bool> AnotherActiveOwnerAsync(TenantMembership membership, CancellationToken cancellationToken) =>
+        context.Set<TenantMembership>().AnyAsync(
             m => m.Id != membership.Id && m.Status == MembershipStatus.Active && m.Roles.Any(a =>
                 a.RoleCode == IdentityRoles.TenantOwner && a.ScopeType == AssignmentScope.Tenant && a.RevokedAt == null),
             cancellationToken);
-    }
 }

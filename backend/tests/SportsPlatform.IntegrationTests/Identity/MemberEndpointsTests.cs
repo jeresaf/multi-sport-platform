@@ -129,7 +129,7 @@ public sealed class MemberEndpointsTests(PostgresFixture fixture) : DatabaseTest
     }
 
     [Fact]
-    public async Task Suspending_and_removing_are_audited_with_the_reason()
+    public async Task Every_change_is_audited_and_suspend_and_remove_carry_the_reason()
     {
         var (kmsa, grace) = await KmsaWithOwnerAsync();
         var brian = await CreateMemberAsync(App.Services, kmsa, "brian.ssemakula@kmsa.example", Ct, TenantWide(IdentityRoles.Registrar));
@@ -137,6 +137,12 @@ public sealed class MemberEndpointsTests(PostgresFixture fixture) : DatabaseTest
 
         using var suspended = await client.SuspendAsync(brian.MembershipId, Ct);
         using var noReason = await client.PostAsJsonAsync($"{MemberPath(brian.MembershipId)}/remove", new { reason = " " }, Ct);
+        using var restored = await client.RestoreAsync(brian.MembershipId, Ct);
+        using var assigned = await client.AssignAsync(brian.MembershipId, IdentityRoles.Viewer, Ct);
+        var viewerRole = (await assigned.ReadMemberAsync(Ct)).Roles.Single(r => r.RoleCode == IdentityRoles.Viewer).AssignmentId;
+        using var revoked = await client.RevokeAsync(brian.MembershipId, viewerRole, Ct);
+        using var removed = await client.RemoveAsync(brian.MembershipId, Ct);
+        using var lastOwner = await client.SuspendAsync(grace.MembershipId, Ct);
 
         suspended.StatusCode.ShouldBe(HttpStatusCode.OK);
         var member = await suspended.ReadMemberAsync(Ct);
@@ -145,14 +151,46 @@ public sealed class MemberEndpointsTests(PostgresFixture fixture) : DatabaseTest
             m => m.StatusReason.ShouldBe("Membership fees unpaid"),
             m => m.StatusChangedAt.ShouldBe(App.Clock.GetUtcNow()));
         await noReason.ShouldBeProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_REASON_REQUIRED");
+        await lastOwner.ShouldBeProblemAsync(HttpStatusCode.Conflict, "AUTH_LAST_OWNER");
         await App.Services.GetRequiredService<OutboxProcessor>().ProcessOnceAsync(Ct);
-        (await AuditTestData.EntriesAsync(App.Services, Ct)).Single(e => e.ActionCode == "membership.suspend").ShouldSatisfyAllConditions(
-            e => e.Outcome.ShouldBe(AuditOutcome.Success),
-            e => e.ActorId.ShouldBe(grace.UserId),
-            e => e.TenantId.ShouldBe(kmsa),
-            e => e.EntityType.ShouldBe("TenantMembership"),
-            e => e.EntityId.ShouldBe(brian.MembershipId),
+        var entries = (await AuditTestData.EntriesAsync(App.Services, Ct))
+            .Where(e => e.ActionCode != "membership.read" && e.ActionCode != "tenant.settings.read").ToList();
+        entries.Where(e => e.Outcome == AuditOutcome.Success)
+            .Select(e => (e.ActionCode, e.EntityId, e.Reason))
+            .OrderBy(e => e.ActionCode, StringComparer.Ordinal)
+            .ShouldBe(
+            [
+                ("membership.remove", brian.MembershipId, "Left the association"),
+                ("membership.restore", brian.MembershipId, null),
+                ("membership.suspend", brian.MembershipId, "Membership fees unpaid"),
+                ("role.assign", brian.MembershipId, null),
+                ("role.revoke", brian.MembershipId, null),
+            ]);
+        entries.Where(e => e.Outcome == AuditOutcome.Success).ShouldAllBe(e =>
+            e.ActorId == grace.UserId && e.TenantId == kmsa && e.EntityType == "TenantMembership");
+        entries.Single(e => e.ErrorCode == "AUTH_LAST_OWNER").ShouldSatisfyAllConditions(
+            e => e.ActionCode.ShouldBe("membership.suspend"),
+            e => e.Outcome.ShouldNotBe(AuditOutcome.Success),
+            e => e.EntityId.ShouldBe(grace.MembershipId),
             e => e.Reason.ShouldBe("Membership fees unpaid"));
+    }
+
+    [Fact]
+    public async Task Revoking_an_unknown_or_revoked_assignment_is_not_found()
+    {
+        var (kmsa, grace) = await KmsaWithOwnerAsync();
+        var brian = await CreateMemberAsync(App.Services, kmsa, "brian.ssemakula@kmsa.example", Ct, TenantWide(IdentityRoles.Registrar));
+        using var client = App.ClientFor(grace.UserId, kmsa);
+        using var read = await client.GetAsync(MemberPath(brian.MembershipId), Ct);
+        var role = (await read.ReadMemberAsync(Ct)).Roles.Single().AssignmentId;
+
+        using var unknown = await client.RevokeAsync(brian.MembershipId, Guid.CreateVersion7(), Ct);
+        using var first = await client.RevokeAsync(brian.MembershipId, role, Ct);
+        using var again = await client.RevokeAsync(brian.MembershipId, role, Ct);
+
+        await unknown.ShouldBeProblemAsync(HttpStatusCode.NotFound, "AUTH_ROLE_ASSIGNMENT_NOT_FOUND");
+        first.StatusCode.ShouldBe(HttpStatusCode.OK);
+        await again.ShouldBeProblemAsync(HttpStatusCode.NotFound, "AUTH_ROLE_ASSIGNMENT_NOT_FOUND");
     }
 
     [Fact]
@@ -257,6 +295,9 @@ public sealed class MemberEndpointsTests(PostgresFixture fixture) : DatabaseTest
         var elsscViewer = await CreateMemberAsync(App.Services, elssc, "viewer@elssc.example", Ct, TenantWide(IdentityRoles.Viewer));
         using var underElssc = App.ClientFor(grace.UserId, elssc);
         using var underKmsa = App.ClientFor(grace.UserId, kmsa);
+        using var elsscClient = App.ClientFor(elsscOwner.UserId, elssc);
+        using var elsscViewerRead = await elsscClient.GetAsync(MemberPath(elsscViewer.MembershipId), Ct);
+        var elsscViewerRole = (await elsscViewerRead.ReadMemberAsync(Ct)).Roles.Single().AssignmentId;
 
         // B's header: refused before anything is read.
         foreach (var response in new[]
@@ -274,8 +315,10 @@ public sealed class MemberEndpointsTests(PostgresFixture fixture) : DatabaseTest
         await (await underKmsa.GetAsync(MemberPath(elsscViewer.MembershipId), Ct)).ShouldBeProblemAsync(HttpStatusCode.NotFound, "AUTH_MEMBERSHIP_NOT_FOUND");
         await (await underKmsa.SuspendAsync(elsscViewer.MembershipId, Ct)).ShouldBeProblemAsync(HttpStatusCode.NotFound, "AUTH_MEMBERSHIP_NOT_FOUND");
         await (await underKmsa.AssignAsync(elsscViewer.MembershipId, IdentityRoles.TenantAdmin, Ct)).ShouldBeProblemAsync(HttpStatusCode.NotFound, "AUTH_MEMBERSHIP_NOT_FOUND");
+        await (await underKmsa.RemoveAsync(elsscViewer.MembershipId, Ct)).ShouldBeProblemAsync(HttpStatusCode.NotFound, "AUTH_MEMBERSHIP_NOT_FOUND");
+        await (await underKmsa.RestoreAsync(elsscViewer.MembershipId, Ct)).ShouldBeProblemAsync(HttpStatusCode.NotFound, "AUTH_MEMBERSHIP_NOT_FOUND");
+        await (await underKmsa.RevokeAsync(elsscViewer.MembershipId, elsscViewerRole, Ct)).ShouldBeProblemAsync(HttpStatusCode.NotFound, "AUTH_MEMBERSHIP_NOT_FOUND");
         (await ListAsync(underKmsa, string.Empty)).Items.ShouldHaveSingleItem().MembershipId.ShouldBe(grace.MembershipId);
-        using var elsscClient = App.ClientFor(elsscOwner.UserId, elssc);
         var viewer = await (await elsscClient.GetAsync(MemberPath(elsscViewer.MembershipId), Ct)).ReadMemberAsync(Ct);
         viewer.Status.ShouldBe(MembershipStatus.Active);
         viewer.Roles.ShouldHaveSingleItem().RoleCode.ShouldBe(IdentityRoles.Viewer);
