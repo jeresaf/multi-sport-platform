@@ -25,7 +25,7 @@ export async function signInByApi(request: APIRequestContext, email: string, pas
 }
 
 /** The ID of the active tenant with `slug`, read by the platform administrator. */
-async function tenantId(request: APIRequestContext, slug: string): Promise<string> {
+export async function tenantId(request: APIRequestContext, slug: string): Promise<string> {
   const tenants = await request.get("/api/platform/v1/tenants", { params: { status: "ACTIVE", limit: 100 } });
   expect(tenants.status()).toBe(200);
   const { items } = (await tenants.json()) as { items: { id: string; slug: string }[] };
