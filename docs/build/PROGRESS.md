@@ -209,6 +209,9 @@ at the start of every review.
   support. Role changes are one request per role. The platform tenant detail shows what its API has; owner
   invitations sent earlier, the status reason and history, members summary, domains and subscription say "not
   available yet".
+  T6c1 (owner, #58): revoking an invitation is sent without `If-Match` (the email send changes its version; the
+  state machine guards the revoke). The user's own row is marked "You", and suspending, removing or changing their
+  own roles says "This is you" first.
 - **S03-T5 (owner, plan 2026-10-20):** two PRs, T5a (capabilities) and T5b (matrix test, Q20). `tenant.capabilities.read`
   is held by every role assignable tenant-wide, not `TEAM_MANAGER` (spec: "in every tenant role"; a team-scoped role
   can't be granted an action without a resource before S06). The fake chain test is `CONTEST → COMPETITION`: no
@@ -229,8 +232,14 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
   list are typed as strings, so the generated client can't send `limit` as a number (the admin app uses the default,
   25). Document them as their enum and integer. (Any task touching those endpoints)
 - An invitation's version changes when its email is sent (S03-T6c1): an admin who lists invitations and acts on one
-  right away sees a concurrency conflict. Revoke is sent without `If-Match`; decide whether sending the email should
-  bump the version. (Later)
+  right away sees a concurrency conflict (revoke is sent without `If-Match`, owner #58). The same send also makes
+  suspending or removing a member with pending invitations answer `AUTH_CONCURRENCY_CONFLICT` for a moment (their
+  invitations are revoked in the same save; `ChangeMemberStatusHandler`). Decide whether sending the email should
+  change the version. (Later)
+- The invitation email goes out before its token's hash is saved (`InvitationEmailConsumer`: the outbox saves after
+  the send), so a link opened within moments answers `404 AUTH_INVITATION_TOKEN_INVALID` (#58 R1, CI). e2e waits for
+  the token (`linkFromEmail`); a person who clicks that fast would see "link not valid". Save before sending, or
+  retry the lookup on the accept page. (Later)
 - Member changes (S03-T4b1 pre-review): the audit scope counts as recorded at `SavedChanges`, before an explicit
   transaction commits; `MemberChanges` commits with `CancellationToken.None`, but a failing commit would still roll back
   unaudited. Mark the scope recorded on commit when a transaction is open (BuildingBlocks `DbTransactionInterceptor`).
