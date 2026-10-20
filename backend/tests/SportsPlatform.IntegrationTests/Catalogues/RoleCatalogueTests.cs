@@ -1,6 +1,7 @@
 using System.Text.Json;
 using SportsPlatform.BuildingBlocks.Actions;
 using SportsPlatform.Host.Catalogues;
+using SportsPlatform.Host.Modules;
 using SportsPlatform.Modules.Identity.Domain.Roles;
 
 namespace SportsPlatform.IntegrationTests.Catalogues;
@@ -19,6 +20,20 @@ public sealed class RoleCatalogueTests
             "TENANT_OWNER", "TENANT_ADMIN", "REGISTRAR", "COMPETITION_MANAGER", "RESULTS_OFFICER", "SCORER", "TEAM_MANAGER",
             "DATA_ENTRY", "VIEWER",
         ]);
+    }
+
+    // Owner (S03-T3): admin holds every platform action, support exactly the reads; a new platform action fails here.
+    [Fact]
+    public void Platform_admin_holds_every_platform_action_and_support_the_reads()
+    {
+        var platformActions = ActionCatalogue.Build(ModuleRegistry.All)
+            .Where(entry => entry.Action.Scope == ActionScope.Platform)
+            .Select(entry => entry.Action.Code.Value)
+            .ToList();
+
+        _roles.Find("PLATFORM_ADMIN").ShouldNotBeNull().Actions.ShouldBe(platformActions, ignoreOrder: true);
+        _roles.Find("PLATFORM_SUPPORT").ShouldNotBeNull().Actions
+            .ShouldBe(platformActions.Where(code => code.EndsWith(".read", StringComparison.Ordinal)), ignoreOrder: true);
     }
 
     // Owner (S03-T3): every role assigned tenant-wide reads the settings; owners and admins change them.

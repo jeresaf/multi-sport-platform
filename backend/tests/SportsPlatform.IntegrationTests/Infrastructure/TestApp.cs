@@ -19,8 +19,9 @@ namespace SportsPlatform.IntegrationTests.Infrastructure;
 
 /// <summary>
 /// The Host under test: <c>Testing</c> environment, the container's role connections, a fake clock, the test
-/// authentication scheme (<see cref="TestAuthentication"/>), a configurable authorization evaluator (or Identity's, <see cref="TestAuthorizationEvaluator.UseIdentityRoles"/>), a recording
-/// email sender (<see cref="RecordingEmailSender"/>), the messaging test module and test seeders.
+/// authentication scheme (<see cref="TestAuthentication"/>), a configurable authorization evaluator (or Identity's,
+/// <see cref="TestAuthorizationEvaluator.UseIdentityRoles"/>), a recording email sender
+/// (<see cref="RecordingEmailSender"/>), the messaging test module and test seeders.
 /// </summary>
 public sealed class TestApp : WebApplicationFactory<Program>
 {
