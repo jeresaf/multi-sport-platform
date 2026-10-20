@@ -7,15 +7,16 @@ at the start of every review.
 
 - **Current slice:** S03 — Identity and access (docs/build/slices/S03-identity-access.md, rewritten by the S02 slice
   review). S00, S01 and S02 are done
-- **Current task:** S03-T6a — API prerequisites for the admin web (OpenAPI fixes; `/me` with tenant names, slugs and
-  status) — in review (#55)
-- **Next:** S03-T6b — Admin web foundation; then S03-T6c — members, settings, platform console, e2e
+- **Current task:** S03-T6b1 — Admin web: shadcn/ui, API client wrapper, rewrites, error display, signed-out pages
+  (sign in, forgot and reset password, accept invitation)
+- **Next:** S03-T6b2 — shell, guards, navigation, tenant switcher, user menu, 401/403/404; then S03-T6c — members,
+  settings, platform console, e2e
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S03-T6b — Web foundation: shadcn/ui (official CLI), rewrites, API client wrapper (`X-CSRF`, `X-Tenant-Id`), TanStack
-   Query, auth pages, 401/403/404 and error display, shell with capabilities-filtered nav, tenant switcher, user menu
+1. S03-T6b2 — Shell: guards, capabilities-filtered nav, tenant switcher, user menu, `/t/{tenantSlug}` and `/platform`
+   layouts, 401/403/404, screenshots
 2. S03-T6c — Members & roles, organisation settings, platform console, Playwright demo flow and screenshots
 
 ## Log
@@ -195,7 +196,11 @@ at the start of every review.
   members, settings, platform console and e2e. `/me` keeps suspended and archived tenants and returns their status; the
   switcher shows them as blocked (the owner can open one and read why, `tenant.access.read`). shadcn/ui is initialised
   with the official CLI (needs `ui.shadcn.com`). The environment's network now allows the .NET download hosts and
-  `ui.shadcn.com` (owner); a new session is needed for the change to apply.
+  `ui.shadcn.com` (owner); a new session is needed for the change to apply. T6b (plan 2026-10-20): two PRs, T6b1
+  (shadcn/ui, client wrapper, rewrites, error display, signed-out pages) and T6b2 (shell, guards, navigation, switcher,
+  user menu, 401/403/404, screenshots). Reset and invitation tokens stay in the link's query string (#44 M3): their pages
+  send `Referrer-Policy: no-referrer`, remove the token from the URL after reading it and load nothing from other
+  origins.
 - **S03-T5 (owner, plan 2026-10-20):** two PRs, T5a (capabilities) and T5b (matrix test, Q20). `tenant.capabilities.read`
   is held by every role assignable tenant-wide, not `TEAM_MANAGER` (spec: "in every tenant role"; a team-scoped role
   can't be granted an action without a resource before S06). The fake chain test is `CONTEST → COMPETITION`: no
