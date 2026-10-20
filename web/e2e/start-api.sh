@@ -15,4 +15,10 @@ if [[ -n "${MSP_E2E_ADMIN_EMAIL:-}" ]]; then
   MSP_ADMIN_PASSWORD="$MSP_E2E_ADMIN_PASSWORD" \
     dotnet run --no-build --project "$cli" -- create-platform-admin --email "$MSP_E2E_ADMIN_EMAIL"
 fi
+# Every e2e request comes from 127.0.0.1 and the suite signs the same people in again and again: the account rate
+# limits (Identity:RateLimits, 20 logins a minute per IP, 10 per email in 15 minutes) would answer 429 as tests are
+# added. They are raised for this API only; RateLimitTests covers the limits themselves. Lockout still applies.
+for limit in LoginPerIp LoginPerEmail ForgotPasswordPerIp ForgotPasswordPerEmail InvitationPerIp; do
+  export "Identity__RateLimits__${limit}__PermitLimit=1000"
+done
 exec dotnet run --no-build --project "$root/backend/src/SportsPlatform.Host"

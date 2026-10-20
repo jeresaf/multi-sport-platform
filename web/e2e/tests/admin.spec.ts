@@ -19,12 +19,13 @@ test("a wrong password is refused with the catalogue's message", async ({ page }
 });
 
 test("the platform administrator signs in through the rewrite and signs out", async ({ page, context }) => {
-  await page.goto("/sign-in?returnTo=%2F");
+  // A return path that isn't the fallback ("/"), so the test fails if sign-in ignores it.
+  await page.goto("/sign-in?returnTo=%2F%3Ffrom%3Dlink");
   await page.getByLabel("Email").fill(platformAdmin.email);
   await page.getByLabel("Password").fill(platformAdmin.password);
   await page.getByRole("button", { name: "Sign in" }).click();
 
-  await expect(page).toHaveURL("/");
+  await expect(page).toHaveURL("/?from=link");
   await expect(page.getByText(`Signed in as ${platformAdmin.email} (Platform admin)`)).toBeVisible();
   // The session cookie is the admin app's own (first-party, HttpOnly, SameSite=Strict; `msp_session` in Development).
   const session = (await context.cookies()).find((cookie) => cookie.name === "msp_session");
