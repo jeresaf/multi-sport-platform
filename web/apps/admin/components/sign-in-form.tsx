@@ -9,6 +9,7 @@ import { FormField } from "@/components/form-field";
 import { ProblemAlert } from "@/components/problem-alert";
 import { api, call } from "@/lib/api";
 import { applyFieldErrors, needsAlert } from "@/lib/form-errors";
+import { useHydrated } from "@/lib/hydrated";
 
 const schema = z.object({
   email: z.string().trim().min(1, "Enter your email address."),
@@ -21,6 +22,7 @@ const fields = { email: "email", password: "password" } as const;
 
 /** Email and password sign-in. With `email`, the address is fixed (accepting an invitation as an existing user). */
 export function SignInForm({ email, onSignedIn }: Readonly<{ email?: string; onSignedIn: () => void }>) {
+  const hydrated = useHydrated();
   const queryClient = useQueryClient();
   const form = useForm<SignInValues>({
     resolver: zodResolver(schema),
@@ -62,7 +64,7 @@ export function SignInForm({ email, onSignedIn }: Readonly<{ email?: string; onS
         error={errors.password?.message}
         {...form.register("password")}
       />
-      <Button type="submit" disabled={signIn.isPending}>
+      <Button type="submit" disabled={!hydrated || signIn.isPending}>
         {signIn.isPending ? "Signing in…" : "Sign in"}
       </Button>
     </form>

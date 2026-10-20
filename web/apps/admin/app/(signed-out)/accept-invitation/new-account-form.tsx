@@ -9,6 +9,7 @@ import { useForm } from "react-hook-form";
 import { FormField } from "@/components/form-field";
 import { applyFieldErrors } from "@/lib/form-errors";
 import { newPasswordSchema, passwordHint, type NewPasswordValues } from "@/lib/new-password";
+import { useHydrated } from "@/lib/hydrated";
 
 const fields = { password: "password" } as const;
 
@@ -19,6 +20,7 @@ export function NewAccountForm({
   error,
   onSubmit,
 }: Readonly<{ email: string; pending: boolean; error: unknown; onSubmit: (password: string) => void }>) {
+  const hydrated = useHydrated();
   const form = useForm<NewPasswordValues>({
     resolver: zodResolver(newPasswordSchema),
     defaultValues: { password: "", confirmPassword: "" },
@@ -54,7 +56,7 @@ export function NewAccountForm({
         error={errors.confirmPassword?.message}
         {...form.register("confirmPassword")}
       />
-      <Button type="submit" disabled={pending}>
+      <Button type="submit" disabled={!hydrated || pending}>
         {pending ? "Creating your account…" : "Create account and accept"}
       </Button>
     </form>

@@ -12,6 +12,7 @@ import { api, call, isApiProblem } from "@/lib/api";
 import { applyFieldErrors, needsAlert } from "@/lib/form-errors";
 import { useLinkToken } from "@/lib/link-token";
 import { newPasswordSchema, passwordHint, type NewPasswordValues } from "@/lib/new-password";
+import { useHydrated } from "@/lib/hydrated";
 
 // The API calls the password `newPassword`.
 const fields = { newPassword: "password" } as const;
@@ -23,6 +24,7 @@ const askAgain = (
 );
 
 export function ResetPasswordForm() {
+  const hydrated = useHydrated();
   const link = useLinkToken();
   const form = useForm<NewPasswordValues>({
     resolver: zodResolver(newPasswordSchema),
@@ -88,7 +90,7 @@ export function ResetPasswordForm() {
           error={errors.confirmPassword?.message}
           {...form.register("confirmPassword")}
         />
-        <Button type="submit" disabled={reset.isPending}>
+        <Button type="submit" disabled={!hydrated || reset.isPending}>
           {reset.isPending ? "Saving…" : "Save the new password"}
         </Button>
       </form>

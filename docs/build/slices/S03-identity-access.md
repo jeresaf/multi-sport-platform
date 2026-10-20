@@ -539,3 +539,24 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   `Referrer-Policy: no-referrer`. Accepting as an existing account signs in on the accept page (the token never goes
   back into a URL). e2e: `start-api.sh` creates the run's platform admin (`MSP_E2E_ADMIN_EMAIL`/`_PASSWORD`, generated
   by `playwright.config.ts`); people are invited with run-unique addresses and their emails read from Mailpit.
+- **T6b2:** the shell lives in `apps/admin/app/(signed-in)` (the guard layout: a 401 goes to `/sign-in?returnTo=<path>`;
+  a 401 on any other call makes the query client ask `me` again, `lib/query-client.ts`),
+  with `t/[tenantSlug]` and `platform` layouts that read the capabilities and render `components/shell/AppShell`.
+  Navigation is data (`lib/navigation.ts`: label, path, icon, the action its screen needs); a workspace's catch-all
+  `[...section]` page answers a planned screen with "not available yet" (or 403 when not allowed) and anything else
+  with 404, so T6c's pages simply take their paths. A tenant client per workspace (`tenantApi(tenantId)`) sends
+  `X-Tenant-Id`. Suspended and archived tenants skip the capabilities call and read `GET …/tenant/access`; a 403 on the
+  capabilities (`TENANT_PROVISIONING`, `AUTH_FORBIDDEN` for a member with no tenant-wide role) shows its reason. The
+  last workspace is kept in `localStorage` (`msp.admin.lastWorkspace`, a convenience; failures ignored; cleared on
+  sign-out; only a workspace that opens or says why it's closed is remembered, and one whose capabilities answer 403
+  is forgotten; `TENANT_BLOCKED` asks `me` again, so a tenant blocked since it was read shows the blocked page). The
+  403 page points to the workspace menu, not `/` (which could lead back to it, e.g. a first active tenant the member
+  has no tenant-wide role in). The blocked page's date is formatted in UTC (no tenant time zone reaches the app
+  yet). Signed-out forms keep their submit button disabled until hydration (`useHydrated`): before it, a submit was
+  a native GET that reloaded the page with the fields (an email) in the URL (CI failure on #57). e2e also waits for
+  `<html data-hydrated>` (set by `Providers`) before typing (`support/pages.ts` `open`); `linkFromEmail` never
+  returns a link twice, so a person's second email is waited for. Signing out
+  of the shell is a full load of `/sign-in` (`useSignOutAndLeave`): refetching `me` after the logout raced the
+  guard, which added a return path. e2e: `admin-shell.spec.ts` (console, owner, registrar refused by the API, a
+  suspended run-unique tenant from pilot-customer.md's test-only names); every shell page is shot at phone, tablet and
+  desktop, light and dark.

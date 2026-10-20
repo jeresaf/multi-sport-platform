@@ -22,9 +22,9 @@ test("an invited owner creates their account from the email and signs in", async
   await page.getByRole("link", { name: "Sign in" }).click();
   await signIn(page, email, password);
 
-  await expect(page.getByText(`Signed in as ${email}`)).toBeVisible();
-  const workspace = page.getByRole("listitem").filter({ hasText: "Kampala Metro Sports Association" });
-  await expect(workspace).toContainText("Tenant owner");
+  await expect(page).toHaveURL("/t/kmsa");
+  await expect(page.getByRole("heading", { level: 1, name: "Kampala Metro Sports Association" })).toBeVisible();
+  await expect(page.getByText("Your roles: Tenant owner")).toBeVisible();
 
   // The link works once.
   await page.goto(link);
@@ -41,7 +41,7 @@ test("a tenant owner's direct call to a platform endpoint is refused by the serv
   await page.getByRole("button", { name: "Create account and accept" }).click();
   await expect(page.getByRole("heading", { level: 1, name: /You've joined/ })).toBeVisible();
   await signIn(page, email, password);
-  await expect(page.getByText(`Signed in as ${email}`)).toBeVisible();
+  await expect(page).toHaveURL("/t/kmsa");
 
   // With the owner's own session cookie, through the admin app's rewrite.
   const tenants = await page.request.get("/api/platform/v1/tenants");

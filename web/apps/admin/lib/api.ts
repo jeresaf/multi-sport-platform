@@ -45,3 +45,8 @@ export function isApiProblem(error: unknown, code?: string): error is ApiProblem
 export function isUnauthenticated(error: unknown): boolean {
   return error instanceof ApiProblem && error.status === 401;
 }
+
+/** A client for one tenant workspace: every request carries the tenant's `X-Tenant-Id`. */
+export function tenantApi(tenantId: string) {
+  return createAdminClient({ tenantId, fetch: (request: Request) => globalThis.fetch(request) });
+}

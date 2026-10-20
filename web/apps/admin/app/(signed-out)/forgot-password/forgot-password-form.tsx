@@ -11,12 +11,14 @@ import { PageCard } from "@/components/page-card";
 import { ProblemAlert } from "@/components/problem-alert";
 import { api, call } from "@/lib/api";
 import { applyFieldErrors, needsAlert } from "@/lib/form-errors";
+import { useHydrated } from "@/lib/hydrated";
 
 const schema = z.object({ email: z.string().trim().min(1, "Enter your email address.") });
 type ForgotValues = z.infer<typeof schema>;
 const fields = { email: "email" } as const;
 
 export function ForgotPasswordForm() {
+  const hydrated = useHydrated();
   const form = useForm<ForgotValues>({ resolver: zodResolver(schema), defaultValues: { email: "" } });
   const forgot = useMutation({
     mutationFn: (values: ForgotValues) => call(api.POST("/api/account/v1/password/forgot", { body: values })),
@@ -50,7 +52,7 @@ export function ForgotPasswordForm() {
           error={form.formState.errors.email?.message}
           {...form.register("email")}
         />
-        <Button type="submit" disabled={forgot.isPending}>
+        <Button type="submit" disabled={!hydrated || forgot.isPending}>
           {forgot.isPending ? "Sending…" : "Send the link"}
         </Button>
       </form>

@@ -14,6 +14,29 @@ user's capabilities (docs/architecture/authorization.md); the server still enfor
 - Errors are mapped from error `code` to friendly messages; unknown codes show the message and correlation ID.
 - Actions that need a reason (postpone, override, reopen…) open a confirm dialog with a required reason field.
 
+### As built (S03-T6b2)
+
+- **Workspaces and addresses.** A tenant's workspace is `/t/{slug}` (the user's tenants come from `GET
+  /api/account/v1/me`); the platform console is `/platform` (platform staff only). `/` opens the last workspace used
+  in this browser, else the first active tenant, else the console; someone with neither is told they belong to no
+  organisation yet.
+- **Navigation follows the capabilities.** Each entry names the action its screen needs (tenant workspace: Organisation
+  `tenant.settings.read`, Members & roles `membership.read`; console: Tenants `tenant.read`, Diagnostics
+  `platform.outbox.read`, Audit `platform.audit.read`); entries the user's capabilities
+  (`GET /api/admin/v1/me/capabilities`, `GET /api/platform/v1/me/capabilities`) don't allow are hidden, and their
+  addresses answer "You can't open this page". Entries whose screens don't exist yet open "This screen isn't available
+  yet" (never a made-up screen).
+- **Widths.** Desktop (≥ 1200 px): a sidebar with labels. Tablet: an icon rail (the label is the tooltip and the
+  accessible name). Phone: the navigation is a sheet behind the menu button. The switcher and the user menu stay in
+  the top bar at every width.
+- **Switcher.** The user's tenants by name, suspended and archived ones with their status badge, and "Platform
+  console" for platform staff. A suspended or archived tenant opens a page saying so; whoever may read
+  `tenant.access.read` (the owner) also sees since when and why, the others are told to ask the owner.
+- **401, 403, 404.** Without a session every signed-in page goes to sign-in and back to the same address afterwards.
+  A refusal shows the code's message (for example `TENANT_PROVISIONING`) and points to the workspace menu; an unknown
+  tenant or address is "Page not found". Forms can't be sent until the page is interactive (their button is
+  disabled until then). Signing out reloads the sign-in page, so nothing the user saw stays in memory.
+
 ## Workspaces and screens
 
 ### Platform console (platform staff)
