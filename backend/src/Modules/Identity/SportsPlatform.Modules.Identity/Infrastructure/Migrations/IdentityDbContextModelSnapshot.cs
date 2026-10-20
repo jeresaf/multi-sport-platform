@@ -335,6 +335,171 @@ namespace SportsPlatform.Modules.Identity.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("SportsPlatform.Modules.Identity.Domain.Memberships.RoleAssignment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTimeOffset>("GrantedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("granted_at");
+
+                    b.Property<Guid>("GrantedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("granted_by");
+
+                    b.Property<Guid>("MembershipId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("membership_id");
+
+                    b.Property<DateTimeOffset?>("RevokedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("revoked_at");
+
+                    b.Property<Guid?>("RevokedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("revoked_by");
+
+                    b.Property<string>("RoleCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("role_code");
+
+                    b.Property<Guid?>("ScopeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("scope_id");
+
+                    b.Property<string>("ScopeType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("scope_type");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_role_assignments");
+
+                    b.HasIndex("TenantId", "MembershipId", "RoleCode", "ScopeType", "ScopeId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_role_assignments_membership_role_scope_active")
+                        .HasFilter("revoked_at IS NULL");
+
+                    NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("TenantId", "MembershipId", "RoleCode", "ScopeType", "ScopeId"), false);
+
+                    b.ToTable("role_assignments", "identity", t =>
+                        {
+                            t.HasCheckConstraint("ck_role_assignments_revoked", "(revoked_at IS NULL) = (revoked_by IS NULL)");
+
+                            t.HasCheckConstraint("ck_role_assignments_scope_id", "(scope_type = 'TENANT') = (scope_id IS NULL)");
+
+                            t.HasCheckConstraint("ck_role_assignments_scope_type", "scope_type IN ('TENANT', 'COMPETITION', 'TEAM', 'CONTEST')");
+                        });
+                });
+
+            modelBuilder.Entity("SportsPlatform.Modules.Identity.Domain.Memberships.TenantMembership", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<Guid?>("InvitedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("invited_by");
+
+                    b.Property<DateTimeOffset>("JoinedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("joined_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<DateTimeOffset?>("StatusChangedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("status_changed_at");
+
+                    b.Property<Guid?>("StatusChangedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("status_changed_by");
+
+                    b.Property<string>("StatusReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("status_reason");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_tenant_memberships");
+
+                    b.HasAlternateKey("TenantId", "Id")
+                        .HasName("ak_tenant_memberships_tenant_id_id");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_tenant_memberships_user_id");
+
+                    b.HasIndex("TenantId", "UserId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_tenant_memberships_tenant_id_user_id_current")
+                        .HasFilter("status <> 'REMOVED'");
+
+                    b.ToTable("tenant_memberships", "identity", t =>
+                        {
+                            t.HasCheckConstraint("ck_tenant_memberships_status", "status IN ('ACTIVE', 'SUSPENDED', 'REMOVED')");
+                        });
+                });
+
             modelBuilder.Entity("SportsPlatform.Modules.Identity.Domain.PlatformRoles.PlatformRoleAssignment", b =>
                 {
                     b.Property<Guid>("Id")
@@ -536,6 +701,27 @@ namespace SportsPlatform.Modules.Identity.Infrastructure.Migrations
                         .HasConstraintName("fk_user_tokens_users_user_id");
                 });
 
+            modelBuilder.Entity("SportsPlatform.Modules.Identity.Domain.Memberships.RoleAssignment", b =>
+                {
+                    b.HasOne("SportsPlatform.Modules.Identity.Domain.Memberships.TenantMembership", null)
+                        .WithMany("Roles")
+                        .HasForeignKey("TenantId", "MembershipId")
+                        .HasPrincipalKey("TenantId", "Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_role_assignments_tenant_memberships_tenant_id_membership_id");
+                });
+
+            modelBuilder.Entity("SportsPlatform.Modules.Identity.Domain.Memberships.TenantMembership", b =>
+                {
+                    b.HasOne("SportsPlatform.Modules.Identity.Infrastructure.Users.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_tenant_memberships_user_user_id");
+                });
+
             modelBuilder.Entity("SportsPlatform.Modules.Identity.Domain.PlatformRoles.PlatformRoleAssignment", b =>
                 {
                     b.HasOne("SportsPlatform.Modules.Identity.Infrastructure.Users.User", null)
@@ -544,6 +730,11 @@ namespace SportsPlatform.Modules.Identity.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_platform_role_assignments_user_user_id");
+                });
+
+            modelBuilder.Entity("SportsPlatform.Modules.Identity.Domain.Memberships.TenantMembership", b =>
+                {
+                    b.Navigation("Roles");
                 });
 #pragma warning restore 612, 618
         }

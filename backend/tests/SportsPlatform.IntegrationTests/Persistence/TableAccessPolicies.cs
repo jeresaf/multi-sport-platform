@@ -55,6 +55,10 @@ public static class TableAccessPolicies
         ["identity.platform_role_assignments"] = TableAccess.ReadWrite,
         ["identity.data_protection_keys"] = TableAccess.AppendOnly,
 
+        // Tenant memberships and their role assignments (S03-T4a, RLS): statuses change, revoked rows are kept.
+        ["identity.tenant_memberships"] = TableAccess.ReadWrite,
+        ["identity.role_assignments"] = TableAccess.ReadWrite,
+
         ["identity.outbox_messages"] = TableAccess.ReadWrite,
         ["identity.inbox_messages"] = TableAccess.ReadWrite,
         ["platform.outbox_messages"] = TableAccess.ReadWrite,

@@ -43,4 +43,25 @@ public static class IdentityErrors
     /// <summary>Creating a user whose email another user has (CLI <c>create-platform-admin</c>).</summary>
     public static readonly Error UserExists = new(
         "AUTH_USER_EXISTS", "A user with this email already exists.", ErrorKind.Conflict);
+
+    /// <summary>
+    /// A membership change its status doesn't allow (docs/domain/state-machines.md, "Tenant membership"), such as
+    /// restoring an active member, or any change to a removed one.
+    /// </summary>
+    public static readonly Error MembershipTransitionInvalid = new(
+        "AUTH_MEMBERSHIP_TRANSITION_INVALID", "The membership's status doesn't allow this change.", ErrorKind.Conflict);
+
+    /// <summary>
+    /// The role can't be held there: not a tenant role, not assignable at that scope (authorization.md, "typical
+    /// scope"), or a scope without its resource.
+    /// </summary>
+    public static readonly Error RoleNotAssignable = new(
+        "AUTH_ROLE_NOT_ASSIGNABLE", "This role can't be assigned at this scope.", ErrorKind.Validation);
+
+    public static readonly Error RoleAlreadyAssigned = new(
+        "AUTH_ROLE_ALREADY_ASSIGNED", "The member already holds this role at this scope.", ErrorKind.Conflict);
+
+    /// <summary>No active role assignment with this ID on the membership (unknown or already revoked).</summary>
+    public static readonly Error RoleAssignmentNotFound = new(
+        "AUTH_ROLE_ASSIGNMENT_NOT_FOUND", "The role assignment was not found.", ErrorKind.NotFound);
 }
