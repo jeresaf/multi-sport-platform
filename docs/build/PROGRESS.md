@@ -212,10 +212,10 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
   the two requests run one after the other (the second gets `AUTH_INVITATION_ALREADY_ACCEPTED`), so the unique-index
   catch and the `DuplicateEmail` branch of `AcceptInvitationHandler` aren't shown to run. A deterministic test would
   create the user or membership between the handler's reads and its save. (Later, with the last-owner lock test)
-- A pending invitation outlives its inviter (S03-T4c2a pre-review): the roles are granted on the inviter's authority
-  when the invitation was made; a `TENANT_ADMIN` who invited an admin and was then removed or suspended still gets
-  the invitee in. Options: check the inviter's standing at acceptance, or revoke an inviter's pending invitations when
-  they are removed. (Owner to decide)
+- A pending invitation outlives its inviter (S03-T4c2a pre-review, #50 N3): open question Q20. (Owner, T4c2b plan)
+- Accepting while signed in as someone else (#50 N2): when the invited email has no account, accepting creates it
+  and the caller stays signed in as the other user. The accept page says "You're signed in as X; this invitation is
+  for Y" and offers to sign out or continue. No API change. (T6)
 - Two `IScopeChainProvider`s for one resource type make the evaluator throw at request time; add a startup check with
   the first provider (S03-T4a pre-review). (S06)
 - Tests that order audit entries by ID (`AuditTestData.EntriesAsync`) see entries written at one fake-clock instant
