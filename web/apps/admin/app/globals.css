@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 @import "@msp/tokens/tokens.css";
 @import "@msp/config/theme.css";
 
@@ -6,6 +7,10 @@
 @source "../../../packages/ui/src";
 
 @layer base {
+  * {
+    @apply border-border;
+  }
+
   body {
     @apply bg-background font-sans text-text antialiased;
   }

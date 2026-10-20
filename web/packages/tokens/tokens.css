@@ -12,7 +12,9 @@
   --msp-color-border: #cbd5e1;
   --msp-color-text: #0f172a;
   --msp-color-text-muted: #475569;
+  --msp-color-surface-muted: #f1f5f9;
   --msp-color-focus: #2563eb;
+  --msp-color-overlay: rgb(15 23 42 / 0.5);
 
   /* Brand (tenant-overridable) */
   --msp-color-brand-primary: #1d4ed8;
@@ -25,6 +27,7 @@
   --msp-color-success: #15803d;
   --msp-color-warning: #b45309;
   --msp-color-danger: #b91c1c;
+  --msp-color-danger-contrast: #ffffff;
   --msp-color-info: #0369a1;
 
   /* Typography: system stack; scale 12/14/16/18/20/24/30/36 */
@@ -49,6 +52,11 @@
   --msp-radius-lg: 12px;
   --msp-radius-full: 9999px;
 
+  /* Elevation 1–3 (0 is none): resting controls, menus and popovers, dialogs and sheets */
+  --msp-elevation-1: 0 1px 2px rgb(15 23 42 / 0.08);
+  --msp-elevation-2: 0 4px 8px -2px rgb(15 23 42 / 0.12), 0 2px 4px -2px rgb(15 23 42 / 0.08);
+  --msp-elevation-3: 0 12px 24px -4px rgb(15 23 42 / 0.18), 0 4px 8px -4px rgb(15 23 42 / 0.1);
+
   /* Motion */
   --msp-duration-fast: 150ms;
   --msp-duration-standard: 250ms;
@@ -65,7 +73,9 @@
     --msp-color-border: #374151;
     --msp-color-text: #f1f5f9;
     --msp-color-text-muted: #94a3b8;
+    --msp-color-surface-muted: #243042;
     --msp-color-focus: #93c5fd;
+    --msp-color-overlay: rgb(0 0 0 / 0.6);
     --msp-color-brand-primary: #60a5fa;
     --msp-color-brand-primary-hover: #93c5fd;
     --msp-color-brand-primary-contrast: #0b1220;
@@ -74,7 +84,11 @@
     --msp-color-success: #4ade80;
     --msp-color-warning: #fbbf24;
     --msp-color-danger: #f87171;
+    --msp-color-danger-contrast: #0b1220;
     --msp-color-info: #38bdf8;
+    --msp-elevation-1: 0 1px 2px rgb(0 0 0 / 0.4);
+    --msp-elevation-2: 0 4px 8px -2px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.4);
+    --msp-elevation-3: 0 12px 24px -4px rgb(0 0 0 / 0.6), 0 4px 8px -4px rgb(0 0 0 / 0.5);
     color-scheme: dark;
   }
 }
@@ -86,7 +100,9 @@
   --msp-color-border: #374151;
   --msp-color-text: #f1f5f9;
   --msp-color-text-muted: #94a3b8;
+  --msp-color-surface-muted: #243042;
   --msp-color-focus: #93c5fd;
+  --msp-color-overlay: rgb(0 0 0 / 0.6);
   --msp-color-brand-primary: #60a5fa;
   --msp-color-brand-primary-hover: #93c5fd;
   --msp-color-brand-primary-contrast: #0b1220;
@@ -95,7 +111,11 @@
   --msp-color-success: #4ade80;
   --msp-color-warning: #fbbf24;
   --msp-color-danger: #f87171;
+  --msp-color-danger-contrast: #0b1220;
   --msp-color-info: #38bdf8;
+  --msp-elevation-1: 0 1px 2px rgb(0 0 0 / 0.4);
+  --msp-elevation-2: 0 4px 8px -2px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.4);
+  --msp-elevation-3: 0 12px 24px -4px rgb(0 0 0 / 0.6), 0 4px 8px -4px rgb(0 0 0 / 0.5);
   color-scheme: dark;
 }
 

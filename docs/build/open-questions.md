@@ -18,6 +18,7 @@ the date and where the decision is recorded.
 | Q14 | Do the indicative prices survive conversations with about five prospects? | Revenue, plan limits | Use the prices in docs/product/pricing-and-plans.md; revisit after the first three paying customers | Before the first invoice |
 | Q16 | Should the country list include Kosovo (`XK`) or other codes that aren't ISO 3166-1 but that sports bodies use (e.g. England, Scotland, Wales for FIFA)? | Nationality and team country fields, eligibility | ISO 3166-1 only (S01-T7b-1); sporting "nations" become a separate list if a sport definition needs them | S06 (people) |
 | Q19 | When is multi-factor sign-in required? | Platform admins can change every tenant | Not in S03; required for platform admins and offered to tenant owners before the first pilot (ADR-0016 compliance gate) | Before the first pilot |
+| Q21 | Should `pnpm e2e` run on its own database? Each local run adds a platform admin and tenant owners (run-unique `@msp-e2e.example` addresses) to the developer's database (#56 review Q2); CI starts fresh each run | Local data piles up; a developer's demo data mixes with test accounts | Keep the developer's database; `docker compose down -v` clears it. Revisit if it gets in the way | S03-T6c |
 
 ## Answered
 

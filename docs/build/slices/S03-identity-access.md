@@ -529,3 +529,13 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   the one save, and the `membership.suspend|remove` audit entry's metadata lists their IDs (owner). Expired and accepted
   ones stay; restoring brings none back. An invitation sent at the same instant as the suspension can stay pending
   (owner: accepted, tech debt).
+- **T6b1:** shadcn/ui lives in `web/packages/ui` (`@msp/ui/components/<name>`, added with the CLI; `components.json`
+  there). Its colour names map onto the tokens in `@msp/config/theme.css` (`muted` for neutral fills, since our
+  `secondary` is the brand colour); controls are 44 px. The admin app calls `/api/*` on its own origin, rewritten to
+  `MSP_API_URL` at build time; `createAdminClient` (`@msp/api-client/admin`) sends `X-CSRF: 1` on non-GET requests and
+  `X-Tenant-Id` when given a tenant; `describeProblem` (`@msp/api-client/errors`) takes a known code's message from
+  `contracts/errors.json` and otherwise shows the server's message and the correlation ID; `errors[]` go under their
+  fields. The reset and accept pages read `?token=` once, remove it with `history.replaceState` and send
+  `Referrer-Policy: no-referrer`. Accepting as an existing account signs in on the accept page (the token never goes
+  back into a URL). e2e: `start-api.sh` creates the run's platform admin (`MSP_E2E_ADMIN_EMAIL`/`_PASSWORD`, generated
+  by `playwright.config.ts`); people are invited with run-unique addresses and their emails read from Mailpit.

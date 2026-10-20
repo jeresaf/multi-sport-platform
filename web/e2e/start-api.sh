@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Starts the real API for the e2e tests (Development, http://localhost:5080) on a migrated database with the DEMO
-# tenants. Needs Docker's PostgreSQL (`docker compose up -d`) and the .NET SDK. Seeds before the API starts: a running
-# API would keep its cached "unknown host" answer for a newly seeded host for up to 60 s.
+# tenants and, when MSP_E2E_ADMIN_EMAIL is set (playwright.config.ts sets it), this run's platform administrator.
+# Needs Docker's PostgreSQL and Mailpit (`docker compose up -d`) and the .NET SDK. Seeds before the API starts: a
+# running API would keep its cached "unknown host" answer for a newly seeded host for up to 60 s.
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -10,4 +11,14 @@ cli="$root/backend/tools/SportsPlatform.Cli"
 dotnet build "$root/backend" --nologo --verbosity quiet
 dotnet run --no-build --project "$cli" -- migrate
 dotnet run --no-build --project "$cli" -- seed --category DEMO
+if [[ -n "${MSP_E2E_ADMIN_EMAIL:-}" ]]; then
+  MSP_ADMIN_PASSWORD="$MSP_E2E_ADMIN_PASSWORD" \
+    dotnet run --no-build --project "$cli" -- create-platform-admin --email "$MSP_E2E_ADMIN_EMAIL"
+fi
+# Every e2e request comes from 127.0.0.1 and the suite signs the same people in again and again: the account rate
+# limits (Identity:RateLimits, 20 logins a minute per IP, 10 per email in 15 minutes) would answer 429 as tests are
+# added. They are raised for this API only; RateLimitTests covers the limits themselves. Lockout still applies.
+for limit in LoginPerIp LoginPerEmail ForgotPasswordPerIp ForgotPasswordPerEmail InvitationPerIp; do
+  export "Identity__RateLimits__${limit}__PermitLimit=1000"
+done
 exec dotnet run --no-build --project "$root/backend/src/SportsPlatform.Host"

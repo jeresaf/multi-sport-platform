@@ -7,15 +7,16 @@ at the start of every review.
 
 - **Current slice:** S03 — Identity and access (docs/build/slices/S03-identity-access.md, rewritten by the S02 slice
   review). S00, S01 and S02 are done
-- **Current task:** S03-T6a — API prerequisites for the admin web (OpenAPI fixes; `/me` with tenant names, slugs and
-  status) — in review (#55)
-- **Next:** S03-T6b — Admin web foundation; then S03-T6c — members, settings, platform console, e2e
+- **Current task:** S03-T6b1 — Admin web: shadcn/ui, API client wrapper, rewrites, error display, signed-out pages
+  (sign in, forgot and reset password, accept invitation) — in review (#56)
+- **Next:** S03-T6b2 — shell, guards, navigation, tenant switcher, user menu, 401/403/404; then S03-T6c — members,
+  settings, platform console, e2e
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S03-T6b — Web foundation: shadcn/ui (official CLI), rewrites, API client wrapper (`X-CSRF`, `X-Tenant-Id`), TanStack
-   Query, auth pages, 401/403/404 and error display, shell with capabilities-filtered nav, tenant switcher, user menu
+1. S03-T6b2 — Shell: guards, capabilities-filtered nav, tenant switcher, user menu, `/t/{tenantSlug}` and `/platform`
+   layouts, 401/403/404, screenshots
 2. S03-T6c — Members & roles, organisation settings, platform console, Playwright demo flow and screenshots
 
 ## Log
@@ -70,6 +71,7 @@ at the start of every review.
 | 2026-10-20 | S03-T5a | #52 | `GET /api/admin/v1/me/capabilities` (`tenant.capabilities.read`, optional `scopeType`/`scopeId`) and `GET /api/platform/v1/me/capabilities` (`platform.capabilities.read`), audit `NONE`; the evaluator and both lists share one rule (`Permissions`/`HeldRoles.Allows`); `ScopeChains` registry with a startup check (one provider per resource type); `IActionCatalogue` in BuildingBlocks; table-driven tests against the evaluator for every system role | Owner (plan): T5 in two PRs (T5a capabilities; T5b matrix test and Q20); `TEAM_MANAGER` reads no capabilities until S06; no `EDITION` scope type (fake chain `CONTEST → COMPETITION`). Review: R1 (owner) a member with no tenant-wide role reads none until S06, documented and tested; R2 platform roles hold no assignment scope (`HeldRole.ScopeType` nullable); R3 `IActionCatalogue.Find` dropped |
 | 2026-10-20 | S03-T5b | #54 | `AuthorizationMatrixTests`: every admin and platform endpoint with an action, read from the app's endpoints, is `403 AUTH_FORBIDDEN` for a user holding every other role of the action's scope and passes authorization with a granting role (evaluator decisions recorded); Q20: suspending or removing a member revokes the pending, unexpired invitations they sent in the same save, listed in the member change's audit metadata. No contract changes. Review fixes for #52 merged as #53 | Owner (plan): only unexpired pending invitations; audit as metadata on the member entry; the same-instant invite race accepted (tech debt). Built and tested by CI only (no .NET SDK in the session). Review: R1 invitations matched by the inviting user, so a platform user who is also a member loses their owner invitations too (documented, tested); R2 the rare 409 documented |
 | 2026-10-20 | S03-T6a | #55 | OpenAPI for the generated client: optional request members (`version`, PATCH fields, `AssignRole` scope, `CreateTenant.publicEnabled`) default to null and leave `required`; `.AcceptsIfMatch()`/`.ReturnsETag()` (BuildingBlocks `RowVersionEndpointExtensions`) documented by a Host operation transformer; the Host documents `400 VALIDATION_MALFORMED_REQUEST` on every endpoint that reads a body or `If-Match` (activate/restore and three more had no 400); `RowVersionHeadersTests`, `StrictJsonBodySchemaTests`. `ITenantDirectory.GetManyAsync`; `/me` tenants carry `slug`, `displayName`, `status`, ordered by name, suspended and archived ones included. Contracts and web client regenerated | Owner (plan): `/me` keeps blocked tenants with their status. No new actions, errors, events, migrations or dependencies. Owner (review #55 R1): `/me` tenants ordered by display name (were by ID). #55 R2: `/me` documents provisioning tenants. Pre-review: `GetManyAsync` tested directly (`TenantDirectoryTests`) |
+| 2026-10-20 | S03-T6b1 | #56 | Admin web foundation: shadcn/ui (CLI 4.21.5) in `packages/ui` on the tokens (new tokens: muted surface, overlay, danger contrast, elevation 1–3; shadcn's names mapped in `theme.css`; `dark:` follows the tokens); `createAdminClient` (`X-CSRF` on non-GET, `X-Tenant-Id`) and `describeProblem` from `contracts/errors.json` (copied by `pnpm generate`); `/api/*` rewrite to `MSP_API_URL`; TanStack Query; sign in, forgot and reset password, accept invitation (new account, existing account signs in on the page, signed in as someone else #50 N2), a minimal signed-in home until T6b2; token pages send `Referrer-Policy: no-referrer` and drop the token from the URL (#44 M3); 401 on sign-out counts as signed out (#43 N2); Vitest in the admin app; Playwright: sign-in, owner invitation from Mailpit, reset, a tenant owner's 403 on a platform endpoint, screenshots (tablet, desktop, light, dark) | Owner (plan): T6b in two PRs; tokens stay in the query string with mitigations. `cn()` stays on clsx + tailwind-merge (the CLI's new `cn` package is 0.5.0, days old); lucide-react 1.56.0 (pnpm's release-age policy refused 1.60.0). Each e2e run creates its own platform admin with a generated password (`start-api.sh`). Finding (#44 M2): the rewrite doesn't forward the client's address. Review (independent, owner): R1 Button defaults to `type="button"` again (test restored); R2 owner accepted #44 M2 until deployment, now a blocking gate under "First deployment"; R3 solid focus rings and opaque dark danger fills; R4 unused dialog, sheet, dropdown-menu and separator removed (back with T6b2); R5 sign-in return path tested end to end; R6 e2e API rate limits raised; R7/R8 docs. Owner: signed-out pages also screenshotted at phone width (Q1); `components.json` `rsc: true` (Q3); e2e on the developer's database is Q21. New dependencies (licences in the PR). No backend change |
 
 ## Deviations from spec (agreed)
 
@@ -195,7 +197,11 @@ at the start of every review.
   members, settings, platform console and e2e. `/me` keeps suspended and archived tenants and returns their status; the
   switcher shows them as blocked (the owner can open one and read why, `tenant.access.read`). shadcn/ui is initialised
   with the official CLI (needs `ui.shadcn.com`). The environment's network now allows the .NET download hosts and
-  `ui.shadcn.com` (owner); a new session is needed for the change to apply.
+  `ui.shadcn.com` (owner); a new session is needed for the change to apply. T6b (plan 2026-10-20): two PRs, T6b1
+  (shadcn/ui, client wrapper, rewrites, error display, signed-out pages) and T6b2 (shell, guards, navigation, switcher,
+  user menu, 401/403/404, screenshots). Reset and invitation tokens stay in the link's query string (#44 M3): their pages
+  send `Referrer-Policy: no-referrer`, remove the token from the URL after reading it and load nothing from other
+  origins.
 - **S03-T5 (owner, plan 2026-10-20):** two PRs, T5a (capabilities) and T5b (matrix test, Q20). `tenant.capabilities.read`
   is held by every role assignable tenant-wide, not `TEAM_MANAGER` (spec: "in every tenant role"; a team-scoped role
   can't be granted an action without a resource before S06). The fake chain test is `CONTEST → COMPETITION`: no
@@ -228,9 +234,6 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
   catch and the `DuplicateEmail` branch of `AcceptInvitationHandler` aren't shown to run. A deterministic test would
   create the user or membership between the handler's reads and its save. (Later, with the last-owner lock test)
 - A pending invitation outlives its inviter (S03-T4c2a pre-review, #50 N3): open question Q20. (Owner, T4c2b plan)
-- Accepting while signed in as someone else (#50 N2): when the invited email has no account, accepting creates it
-  and the caller stays signed in as the other user. The accept page says "You're signed in as X; this invitation is
-  for Y" and offers to sign out or continue. No API change. (T6)
 - Capabilities under `READ_ONLY` (S03-T5a pre-review): `tenant.capabilities.read` is a read, so a `READ_ONLY` tenant
   will answer it, and the list (step 3 only) would include writes that step 1 refuses. Leave them out or give the
   reason. Also: OpenAPI shows `scopeType` as a free string (values only in the description). (S04)
@@ -249,24 +252,13 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
   (Cloudflare), with the `/health/*` item below (infrastructure task after M1). Decided (S03 D3): anonymous denials
   keep one row each; login and forgot-password are also rate-limited in the API (done, S03-T2b: in memory, per API
   instance, so N instances allow N times the limit until the edge limits exist).
-- Admin web sign-out (#43 N2): `POST /api/account/v1/logout` needs a session, so an idle-expired one answers 401; treat
-  401 from logout as "signed out". Audit screens (#43 N1): a successful sign-in is audited with actor `ANONYMOUS` and
+- Audit screens (#43 N1): a successful sign-in is audited with actor `ANONYMOUS` and
   entity = the user; if the screens filter by actor, consider recording it as the user. (T6)
-- shadcn/ui is not initialised yet (ADR-0011); do it with the first real admin UI (S03). `Button` is hand-written. (T6)
 - Logout deletes the cookie only (no server-side session store): a copied cookie lives until it expires or the
   security stamp changes. Identity's lockout uses the system clock (`UserManager` takes no `TimeProvider`). (Later,
   S03-T2a)
-- Per-IP rate-limit key behind the real proxy chain (#44 M2): it is per client only if every hop is trusted and forwards
-  the client's address (`ForwardLimit` defaults to 1). T6: check that the admin web's rewrite forwards
-  `X-Forwarded-For`. Infrastructure task: set `ForwardedHeaders:KnownNetworks` (Cloudflare and Azure ranges) and
-  `ForwardLimit`, or read `CF-Connecting-IP` from trusted edges only, and test that two clients behind the full chain
-  get separate limits; otherwise the 20-a-minute login limit becomes platform-wide. (T6, infrastructure)
-- Reset and invitation tokens in the link's query string (#44 M3; the invitation link `/accept-invitation?token=` is
-  S03-T4c1's and its page T6's, same treatment): T6's `/reset-password` page sends `Referrer-Policy: no-referrer`,
-  removes the token from the URL after reading it (`history.replaceState`) and loads nothing from other origins; or
-  move the token to the fragment (`#token=`). Decide in T6. (T6)
 - Password reset email: a failed send is retried by the outbox with a new token (by design), but no test makes the
-  sender fail and checks the retry (S03-T2b). The reset page `/reset-password` is the admin web's (T6). (Later)
+  sender fail and checks the retry (S03-T2b). (Later)
 - The CLI's Serilog → `LogLevel` mapping (`UseHostLogLevels`, S03-T1a) has no test; move it into the Host and unit-test it
   if the CLI's logging grows (T1a pre-review N2). The `create-platform-admin` unique-index race path has no test (two
   concurrent runs) (T1a pre-review M2). (Later)
@@ -285,6 +277,15 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
   pre-review). Outside Development and Testing a missing or `localhost` base domain stops the API and the CLI (#35 R1).
   Changing the base domain later needs a data step that rewrites the existing platform subdomains (or adds new
   primaries): the backfill never touches existing rows (#35 N1).
+- **Blocking gate, per-IP rate limits through the admin web (#44 M2, #56 R2; owner: accepted until then).** Next.js's
+  `/api/*` rewrite neither adds nor appends `X-Forwarded-For`: it passes on whatever the client sent (checked in
+  S03-T6b1). Two failure modes until this is done: (a) where the API trusts the Next server as a proxy (loopback in
+  Development), anyone who can reach the Next server picks their own per-IP key for login, forgot-password and
+  invitation; (b) where it doesn't, every admin sign-in shares the Next server's one bucket, so the login limit
+  (20 a minute) is platform-wide and one client can lock everyone else out. Before deploying: the admin web is
+  reachable only through the edge; the edge overwrites or appends `X-Forwarded-For` (or the API reads
+  `CF-Connecting-IP` from trusted edges only); the API lists the admin web's address in `ForwardedHeaders:KnownProxies`
+  with the right `ForwardLimit`; a test proves two clients behind the full chain get separate limits.
 - The API needs `ConnectionStrings:Platform` (`sp_platform`) at runtime for the audit trail (S02-T2b): provision that
   secret for the API in Key Vault with the staging setup, or every audited request fails there (#33 N1).
 - SMTP provider for `IEmailSender`, `Email:From` on the real domain, and encryption at rest of the data-protection
