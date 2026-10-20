@@ -204,6 +204,12 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
   deterministic test would hold the advisory lock on a test connection. Advisory lock keys follow
   `<schema>.<purpose>:<id>` (only `MemberChanges` today); write the convention into data-conventions.md with the
   second user. (Later)
+- Invitation emails are kept for ever (#49 N1): `identity.invitations.email`/`normalized_email` (`PRIVATE`) stay on
+  revoked, expired and accepted invitations, for people who never joined too. With the privacy work (ADR-0015): redact
+  or purge them on invitations never accepted, some time after they were revoked or expired. (Privacy work)
+- Accepting an invitation (#49 N3, for S03-T4c2): check every stored role code still exists in the catalogue and the
+  email isn't already a current member; create the membership and mark the invitation accepted in one save that
+  conflicts on the invitation's version, so a link used twice at once gives one membership; test the double use. (T4c2)
 - Two `IScopeChainProvider`s for one resource type make the evaluator throw at request time; add a startup check with
   the first provider (S03-T4a pre-review). (S06)
 - Tests that order audit entries by ID (`AuditTestData.EntriesAsync`) see entries written at one fake-clock instant
