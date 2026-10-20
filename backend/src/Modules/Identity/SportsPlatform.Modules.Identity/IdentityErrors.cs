@@ -99,4 +99,11 @@ public static class IdentityErrors
     /// </summary>
     public static readonly Error AlreadyMember = new(
         "AUTH_ALREADY_MEMBER", "This person is already a member of the tenant.", ErrorKind.Conflict);
+
+    /// <summary>
+    /// The platform console invites no owner into an <c>ARCHIVED</c> tenant (owner, S03-T4c1): unarchive it first. Other
+    /// statuses are allowed, so a suspended tenant can get a new owner.
+    /// </summary>
+    public static readonly Error TenantArchived = new(
+        "AUTH_TENANT_ARCHIVED", "The tenant is archived: unarchive it before inviting its owner.", ErrorKind.Conflict);
 }

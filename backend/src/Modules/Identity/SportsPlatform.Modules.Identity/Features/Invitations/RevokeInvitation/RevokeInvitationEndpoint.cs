@@ -14,9 +14,11 @@ internal static class RevokeInvitationEndpoint
         .WithSummary("Revoke an invitation")
         .WithDescription(
             "PENDING → REVOKED: the invitation's link stops working. An accepted, revoked or expired invitation can't be " +
-            $"revoked. The body is optional. Returns the invitation. {InvitationEndpoints.VersionNote}")
+            "revoked; only an owner revokes one with TENANT_OWNER. Sending its email changes its version, so a revoke " +
+            $"may get 409 once while the email goes out. The body is optional. Returns the invitation. {InvitationEndpoints.VersionNote}")
         .RequireAction(IdentityActions.InvitationRevoke)
-        .ProducesErrors(IdentityErrors.InvitationNotFound, IdentityErrors.InvitationTransitionInvalid, IdentityErrors.ConcurrencyConflict);
+        .ProducesErrors(IdentityErrors.InvitationNotFound, IdentityErrors.InvitationTransitionInvalid, IdentityErrors.OwnerRequired,
+            IdentityErrors.ConcurrencyConflict);
 
     private static async Task<Results<Ok<InvitationResponse>, ProblemHttpResult>> HandleAsync(
         Guid invitationId,

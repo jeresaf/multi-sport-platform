@@ -110,7 +110,7 @@ public static class IdentityActions
     // S03-T4c: invitations to the request's tenant (D12); the email goes out through the outbox (D13).
     public static readonly ActionDefinition MembershipInvite = new(
         "membership.invite",
-        "Invite a person by email to join the tenant with tenant-wide roles; replaces a pending invitation to the same email. Only an owner invites an owner.",
+        "Invite a person by email to join the tenant with tenant-wide roles; replaces a pending invitation to the same email. Only an owner invites an owner or replaces an owner's invitation.",
         ActionScope.Tenant,
         AuditRequirement.Required,
         since: "S03",
@@ -118,7 +118,7 @@ public static class IdentityActions
 
     public static readonly ActionDefinition InvitationRevoke = new(
         "invitation.revoke",
-        "Revoke a pending invitation: its link stops working.",
+        "Revoke a pending invitation: its link stops working. Only an owner revokes an invitation with TENANT_OWNER.",
         ActionScope.Tenant,
         AuditRequirement.Required,
         since: "S03",

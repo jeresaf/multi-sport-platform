@@ -5,13 +5,16 @@ using SportsPlatform.BuildingBlocks.Auditing;
 using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Results;
 using SportsPlatform.Modules.Identity.Domain.Invitations;
+using SportsPlatform.Modules.Identity.Features.Members;
 using SportsPlatform.Modules.Identity.Infrastructure;
 
 namespace SportsPlatform.Modules.Identity.Features.Invitations.RevokeInvitation;
 
 /// <summary>
 /// Revokes a pending invitation of the request's tenant: its link stops working. An accepted, revoked or expired one is
-/// <c>AUTH_INVITATION_TRANSITION_INVALID</c>. An email being sent meanwhile conflicts on save and is retried, then skipped.
+/// <c>AUTH_INVITATION_TRANSITION_INVALID</c>; only an owner revokes one that carries <c>TENANT_OWNER</c>
+/// (<c>AUTH_OWNER_REQUIRED</c>). An email sent between the load and the save makes this save conflict (409, retry); an
+/// email being sent after it conflicts in the outbox and is skipped on retry.
 /// </summary>
 public sealed class RevokeInvitationHandler(IdentityDbContext context, ICurrentActor actor, AuditScope audit, TimeProvider timeProvider)
 {
@@ -31,6 +34,11 @@ public sealed class RevokeInvitationHandler(IdentityDbContext context, ICurrentA
         if (!RowVersion.IsSatisfied(entry.Property<uint>(AuditColumns.Version).CurrentValue, version, ifMatch))
         {
             return IdentityErrors.ConcurrencyConflict;
+        }
+
+        if (InvitationRules.InvitesOwner(invitation) && !await MemberChanges.IsOwnerOrSystemAsync(context, actor, cancellationToken))
+        {
+            return IdentityErrors.OwnerRequired;
         }
 
         var now = timeProvider.GetUtcNow();

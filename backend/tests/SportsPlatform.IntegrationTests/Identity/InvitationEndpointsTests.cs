@@ -189,6 +189,29 @@ public sealed class InvitationEndpointsTests(PostgresFixture fixture) : Database
     }
 
     [Fact]
+    public async Task Only_an_owner_revokes_or_replaces_an_owner_invitation()
+    {
+        var (kmsa, grace) = await KmsaWithOwnerAsync();
+        var daniel = await CreateMemberAsync(App.Services, kmsa, "daniel.kato@kmsa.example", Ct, TenantWide(IdentityRoles.TenantAdmin));
+        using var owner = App.ClientFor(grace.UserId, kmsa);
+        using var admin = App.ClientFor(daniel.UserId, kmsa);
+        var invitation = await owner.InvitedAsync("moses.okello@kmsa.example", Ct, IdentityRoles.TenantOwner);
+
+        using var revokeByAdmin = await admin.RevokeInvitationAsync(invitation.InvitationId, Ct);
+        using var replaceByAdmin = await admin.InviteAsync("moses.okello@kmsa.example", Ct, IdentityRoles.Viewer);
+        using var stillPending = await owner.GetAsync(InvitationPath(invitation.InvitationId), Ct);
+        using var revokeByOwner = await owner.RevokeInvitationAsync(invitation.InvitationId, Ct);
+
+        await revokeByAdmin.ShouldBeProblemAsync(HttpStatusCode.Forbidden, "AUTH_OWNER_REQUIRED");
+        await replaceByAdmin.ShouldBeProblemAsync(HttpStatusCode.Forbidden, "AUTH_OWNER_REQUIRED");
+        (await stillPending.ReadInvitationAsync(Ct)).Status.ShouldBe(InvitationState.Pending);
+        revokeByOwner.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var refused = (await AuditTestData.EntriesAsync(App.Services, Ct)).Where(e => e.ErrorCode == "AUTH_OWNER_REQUIRED").ToList();
+        refused.Select(e => (e.ActionCode, e.EntityId)).ShouldBe(
+            [("invitation.revoke", (Guid?)invitation.InvitationId), ("membership.invite", null)], ignoreOrder: true);
+    }
+
+    [Fact]
     public async Task A_viewer_reads_invitations_but_can_not_invite_or_revoke_and_a_registrar_can_not_read_them()
     {
         var (kmsa, grace) = await KmsaWithOwnerAsync();
@@ -204,12 +227,14 @@ public sealed class InvitationEndpointsTests(PostgresFixture fixture) : Database
         using var invite = await asViewer.InviteAsync("moses.okello@kmsa.example", Ct, IdentityRoles.Viewer);
         using var revoke = await asViewer.RevokeInvitationAsync(invitation.InvitationId, Ct);
         using var registrarList = await asRegistrar.GetAsync(InvitationsPath, Ct);
+        using var registrarRead = await asRegistrar.GetAsync(InvitationPath(invitation.InvitationId), Ct);
 
         list.StatusCode.ShouldBe(HttpStatusCode.OK);
         read.StatusCode.ShouldBe(HttpStatusCode.OK);
         await invite.ShouldBeProblemAsync(HttpStatusCode.Forbidden, "AUTH_FORBIDDEN");
         await revoke.ShouldBeProblemAsync(HttpStatusCode.Forbidden, "AUTH_FORBIDDEN");
         await registrarList.ShouldBeProblemAsync(HttpStatusCode.Forbidden, "AUTH_FORBIDDEN");
+        await registrarRead.ShouldBeProblemAsync(HttpStatusCode.Forbidden, "AUTH_FORBIDDEN");
     }
 
     [Fact]

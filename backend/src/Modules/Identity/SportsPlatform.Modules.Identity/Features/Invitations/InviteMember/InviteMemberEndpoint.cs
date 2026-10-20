@@ -15,7 +15,7 @@ internal static class InviteMemberEndpoint
         .WithSummary("Invite a person to the tenant")
         .WithDescription(
             "Invites `email` to join the tenant named by `X-Tenant-Id` with `roleCodes` (tenant roles, tenant-wide). Only an " +
-            $"owner invites with TENANT_OWNER. A person who is already a member (active or suspended) can't be invited. {InvitationEndpoints.InviteNote}")
+            $"owner invites with TENANT_OWNER or replaces a pending invitation that has it. A person who is already a member (active or suspended) can't be invited. {InvitationEndpoints.InviteNote}")
         .RequireAction(IdentityActions.MembershipInvite)
         .ValidateRequest<InviteMemberRequest>(CommonErrors.InvalidRequest)
         .ProducesErrors(

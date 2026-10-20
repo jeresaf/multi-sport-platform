@@ -16,12 +16,12 @@ internal static class InviteOwnerEndpoint
         .WithName("InviteTenantOwner")
         .WithSummary("Invite a tenant's owner")
         .WithDescription(
-            "Invites `email` to join the tenant as TENANT_OWNER, in any status (usually PROVISIONING, before it is activated). " +
+            "Invites `email` to join the tenant as TENANT_OWNER, usually while it is PROVISIONING; an ARCHIVED tenant is refused. " +
             $"A person who is already a member can't be invited. {InvitationEndpoints.InviteNote}")
         .RequireAction(IdentityActions.TenantOwnerInvite)
         .RunsUnderRouteTenant()
         .ValidateRequest<InviteOwnerRequest>(CommonErrors.InvalidRequest)
-        .ProducesErrors(IdentityErrors.AlreadyMember, IdentityErrors.ConcurrencyConflict);
+        .ProducesErrors(IdentityErrors.TenantArchived, IdentityErrors.AlreadyMember, IdentityErrors.ConcurrencyConflict);
 
     private static async Task<Results<Created<InvitationResponse>, ProblemHttpResult>> HandleAsync(
         Guid tenantId, InviteOwnerRequest request, InviteHandler handler, HttpResponse response, CancellationToken cancellationToken)

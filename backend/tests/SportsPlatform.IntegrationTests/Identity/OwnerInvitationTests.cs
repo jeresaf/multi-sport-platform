@@ -54,6 +54,22 @@ public sealed class OwnerInvitationTests(PostgresFixture fixture) : DatabaseTest
     }
 
     [Fact]
+    public async Task An_archived_tenant_gets_no_owner_invitation_but_a_suspended_one_does()
+    {
+        App.Authorization.UseIdentityRoles();
+        var archived = await TenantTestData.SaveTenantAsync(App.Services, "kmsa", TenantStatus.Archived, Ct);
+        var suspended = await TenantTestData.SaveTenantAsync(App.Services, "elssc", TenantStatus.Suspended, Ct);
+        var adminId = await AccountTestData.CreateUserAsync(App.Services, "asha.mutesi@msp.example", TestPasswords.New(), Ct, platformRole: PlatformRoles.Admin);
+        using var client = App.CreateClient().AsUser(adminId);
+
+        using var toArchived = await client.PostAsJsonAsync(OwnerInvitationsPath(archived), new { email = _graceEmail }, Ct);
+        using var toSuspended = await client.PostAsJsonAsync(OwnerInvitationsPath(suspended), new { email = "agnes.akello@elssc.example" }, Ct);
+
+        await toArchived.ShouldBeProblemAsync(HttpStatusCode.Conflict, "AUTH_TENANT_ARCHIVED");
+        toSuspended.StatusCode.ShouldBe(HttpStatusCode.Created);
+    }
+
+    [Fact]
     public async Task Support_staff_and_tenant_owners_can_not_invite_an_owner_through_the_platform_api()
     {
         App.Authorization.UseIdentityRoles();

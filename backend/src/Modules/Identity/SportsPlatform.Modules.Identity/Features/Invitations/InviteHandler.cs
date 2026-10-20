@@ -5,6 +5,7 @@ using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.BuildingBlocks.Auditing;
 using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Results;
+using SportsPlatform.BuildingBlocks.Tenancy;
 using SportsPlatform.Modules.Identity.Contracts.Invitations;
 using SportsPlatform.Modules.Identity.Domain.Invitations;
 using SportsPlatform.Modules.Identity.Domain.Memberships;
@@ -15,6 +16,7 @@ using SportsPlatform.Modules.Identity.Features.Members;
 using SportsPlatform.Modules.Identity.Infrastructure;
 using SportsPlatform.Modules.Identity.Infrastructure.Configurations;
 using SportsPlatform.Modules.Identity.Infrastructure.Users;
+using SportsPlatform.Modules.Tenancy.Contracts.Tenants;
 
 namespace SportsPlatform.Modules.Identity.Features.Invitations;
 
@@ -34,11 +36,14 @@ public sealed class InviteHandler(
     ILookupNormalizer normalizer,
     ICurrentActor actor,
     AuditScope audit,
+    ITenantContext tenantContext,
+    ITenantDirectory tenants,
     TimeProvider timeProvider)
 {
     /// <summary>
     /// <c>membership.invite</c>: unknown roles and roles not held tenant-wide are <c>AUTH_ROLE_NOT_ASSIGNABLE</c>; only an
-    /// owner (or the system actor, for seeds) invites with <c>TENANT_OWNER</c> (<c>AUTH_OWNER_REQUIRED</c>).
+    /// owner (or the system actor, for seeds) invites with <c>TENANT_OWNER</c>, or replaces a pending invitation that
+    /// carries it (<c>AUTH_OWNER_REQUIRED</c>).
     /// </summary>
     public async Task<Result<InvitationResponse>> InviteMemberAsync(InviteMemberRequest request, CancellationToken cancellationToken)
     {
@@ -60,20 +65,37 @@ public sealed class InviteHandler(
             return IdentityErrors.OwnerRequired;
         }
 
-        return await InviteAsync(request.Email!, definitions, cancellationToken);
+        return await InviteAsync(request.Email!, definitions, ownerRuleApplies: true, cancellationToken);
     }
 
-    /// <summary><c>tenant.owner.invite</c>: an invitation with <c>TENANT_OWNER</c> to the route's tenant, by platform staff.</summary>
-    public Task<Result<InvitationResponse>> InviteOwnerAsync(InviteOwnerRequest request, CancellationToken cancellationToken)
+    /// <summary>
+    /// <c>tenant.owner.invite</c>: an invitation with <c>TENANT_OWNER</c> to the route's tenant, by platform staff; an
+    /// archived tenant is <c>AUTH_TENANT_ARCHIVED</c>.
+    /// </summary>
+    public async Task<Result<InvitationResponse>> InviteOwnerAsync(InviteOwnerRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
         var owner = roles.Find(IdentityRoles.TenantOwner)
             ?? throw new InvalidOperationException($"The role catalogue has no {IdentityRoles.TenantOwner}.");
-        return InviteAsync(request.Email!, [owner], cancellationToken);
+
+        // Tenant resolution found the route's tenant; it can't have gone since (tenants are never deleted).
+        var tenantId = tenantContext.TenantId ?? throw new InvalidOperationException("The owner invitation runs under the route's tenant.");
+        var tenant = await tenants.GetByIdAsync(tenantId, cancellationToken);
+        if (tenant.IsFailure)
+        {
+            return tenant.Error;
+        }
+
+        if (tenant.Value.Status == TenantStatus.Archived)
+        {
+            return IdentityErrors.TenantArchived;
+        }
+
+        return await InviteAsync(request.Email!, [owner], ownerRuleApplies: false, cancellationToken);
     }
 
     private async Task<Result<InvitationResponse>> InviteAsync(
-        string email, IReadOnlyCollection<RoleDefinition> definitions, CancellationToken cancellationToken)
+        string email, IReadOnlyCollection<RoleDefinition> definitions, bool ownerRuleApplies, CancellationToken cancellationToken)
     {
         var now = timeProvider.GetUtcNow();
         var trimmed = email.Trim();
@@ -85,8 +107,6 @@ public sealed class InviteHandler(
         }
 
         var invitation = created.Value;
-        audit.Describe(InvitationEndpoints.EntityType, invitation.Id);
-
         // Users are global (same module): an existing user is matched by the normalised email, as sign-in does.
         var userId = await context.Set<User>().Where(u => u.NormalizedEmail == normalized).Select(u => (Guid?)u.Id)
             .SingleOrDefaultAsync(cancellationToken);
@@ -99,12 +119,22 @@ public sealed class InviteHandler(
         var replaced = await context.Set<Invitation>()
             .Where(i => i.NormalizedEmail == normalized && i.Status == InvitationStatus.Pending)
             .ToListAsync(cancellationToken);
+        if (ownerRuleApplies
+            && replaced.Any(InvitationRules.InvitesOwner)
+            && !await MemberChanges.IsOwnerOrSystemAsync(context, actor, cancellationToken))
+        {
+            return IdentityErrors.OwnerRequired;
+        }
+
         foreach (var previous in replaced)
         {
             previous.Supersede(actor, now);
         }
 
-        audit.Describe(metadata: new InvitationAuditMetadata(invitation.RoleCodes, [.. replaced.Select(i => i.Id)]));
+        // Only now is the invitation going to exist: refusals above are audited without an entity (#30 R2).
+        audit.Describe(
+            InvitationEndpoints.EntityType, invitation.Id,
+            metadata: new InvitationAuditMetadata(invitation.RoleCodes, [.. replaced.Select(i => i.Id)]));
         var entry = context.Add(invitation);
         context.Publish(new InvitationIssued.V1(invitation.Id), InvitationEndpoints.EntityType, invitation.Id);
 
