@@ -7,13 +7,13 @@ at the start of every review.
 
 - **Current slice:** S03 — Identity and access (docs/build/slices/S03-identity-access.md, rewritten by the S02 slice
   review). S00, S01 and S02 are done
-- **Current task:** S03-T6c1 — Organisation settings, Members & roles — in review (#58)
-- **Next:** S03-T6c2 — platform console, slice demo e2e, slice close
+- **Current task:** S03-T6c2a — Platform console: tenants list, create, detail, lifecycle, owner invitation — in progress
+- **Next:** S03-T6c2b — slice demo e2e, platform e2e, slice close
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S03-T6c2 — Platform console (tenants list, create, detail, lifecycle, owner invitation), slice demo e2e, screenshots
+1. S03-T6c2b — Slice demo e2e (platform admin → owner → viewer, audit through the API), platform e2e, slice close
 
 ## Log
 
@@ -212,6 +212,11 @@ at the start of every review.
   T6c1 (owner, #58): revoking an invitation is sent without `If-Match` (the email send changes its version; the
   state machine guards the revoke). The user's own row is marked "You", and suspending, removing or changing their
   own roles says "This is you" first.
+  T6c2 (owner, plan 2026-10-20, defaults): two PRs, T6c2a (console screens, Vitest, screenshots) and T6c2b (demo e2e,
+  platform e2e, the #58 Q1 test, slice close). The demo's "audit trail shows every step" is checked through
+  `GET /api/platform/v1/audit-entries` (no Audit screen in S03); a sign-in stays audited with actor `ANONYMOUS` and the
+  user as its entity (#43 N1), so the e2e checks the entity for it. The tenant detail has no profile editing
+  (`tenant.update`).
 - **S03-T5 (owner, plan 2026-10-20):** two PRs, T5a (capabilities) and T5b (matrix test, Q20). `tenant.capabilities.read`
   is held by every role assignable tenant-wide, not `TEAM_MANAGER` (spec: "in every tenant role"; a team-scoped role
   can't be granted an action without a resource before S06). The fake chain test is `CONTEST → COMPETITION`: no
