@@ -147,4 +147,20 @@ public static class IdentityActions
         ActionScope.Platform,
         AuditRequirement.Required,
         since: "S03");
+
+    // S03-T5: what the caller may do, for the admin app to show only what it allows (the server still decides).
+    public static readonly ActionDefinition TenantCapabilitiesRead = new(
+        "tenant.capabilities.read",
+        "List the tenant actions the signed-in user may perform in the request's tenant, optionally on one resource (a competition, team or contest).",
+        ActionScope.Tenant,
+        AuditRequirement.None,
+        since: "S03",
+        scopableBy: [AssignmentScope.Tenant]);
+
+    public static readonly ActionDefinition PlatformCapabilitiesRead = new(
+        "platform.capabilities.read",
+        "List the platform actions the signed-in user may perform.",
+        ActionScope.Platform,
+        AuditRequirement.None,
+        since: "S03");
 }

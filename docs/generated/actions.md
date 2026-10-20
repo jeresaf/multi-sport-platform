@@ -22,6 +22,7 @@ admin endpoint requires one of these; the code is stable and is what roles grant
 | `membership.suspend` | Identity | TENANT | TENANT | REQUIRED_WITH_REASON | — | no | no | no | S03 | Suspend a member, with a reason: they lose access to the tenant and keep their roles until restored. Only an owner suspends an owner; never the last one. |
 | `platform.admin.create` | Identity | PLATFORM | — | REQUIRED | — | no | no | no | S03 | Create a platform administrator: a new user with PLATFORM_ADMIN (CLI create-platform-admin only; no endpoint). |
 | `platform.audit.read` | Platform | PLATFORM | — | REQUIRED | — | no | no | no | S01 | View audit entries of every tenant. |
+| `platform.capabilities.read` | Identity | PLATFORM | — | NONE | — | no | no | no | S03 | List the platform actions the signed-in user may perform. |
 | `platform.outbox.read` | Platform | PLATFORM | — | REQUIRED | — | no | no | no | S01 | View outbox messages and their delivery status. |
 | `platform.outbox.redrive` | Platform | PLATFORM | — | REQUIRED_WITH_REASON | — | no | no | no | S01 | Re-deliver failed outbox messages. |
 | `role.assign` | Identity | TENANT | TENANT | REQUIRED | — | no | no | no | S03 | Give a member a role, tenant-wide (other scopes later). Only an owner grants TENANT_OWNER. |
@@ -29,6 +30,7 @@ admin endpoint requires one of these; the code is stable and is what roles grant
 | `tenant.access.read` | Tenancy | TENANT | TENANT | REQUIRED | — | no | no | yes | S03 | View the tenant's status and access mode, and why: available while the tenant is suspended or archived. |
 | `tenant.activate` | Tenancy | PLATFORM | — | REQUIRED | — | no | no | no | S02 | Activate a provisioned tenant (PROVISIONING → ACTIVE). |
 | `tenant.archive` | Tenancy | PLATFORM | — | REQUIRED_WITH_REASON | — | no | no | no | S02 | Archive a tenant, with a reason (ACTIVE or SUSPENDED → ARCHIVED). |
+| `tenant.capabilities.read` | Identity | TENANT | TENANT | NONE | — | no | no | no | S03 | List the tenant actions the signed-in user may perform in the request's tenant, optionally on one resource (a competition, team or contest). |
 | `tenant.create` | Tenancy | PLATFORM | — | REQUIRED | — | no | no | no | S02 | Create a tenant (status PROVISIONING). |
 | `tenant.owner.invite` | Identity | PLATFORM | — | REQUIRED | — | no | no | no | S03 | Invite a tenant's owner by email (platform console): an invitation with TENANT_OWNER, under the tenant named in the route. |
 | `tenant.read` | Tenancy | PLATFORM | — | REQUIRED | — | no | no | no | S02 | View tenants and their profiles. |

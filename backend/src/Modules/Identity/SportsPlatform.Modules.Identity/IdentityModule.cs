@@ -22,6 +22,9 @@ using SportsPlatform.Modules.Identity.Features.Account.Login;
 using SportsPlatform.Modules.Identity.Features.Account.Logout;
 using SportsPlatform.Modules.Identity.Features.Account.ResetPassword;
 using SportsPlatform.Modules.Identity.Features.Authorization;
+using SportsPlatform.Modules.Identity.Features.Capabilities;
+using SportsPlatform.Modules.Identity.Features.Capabilities.GetPlatformCapabilities;
+using SportsPlatform.Modules.Identity.Features.Capabilities.GetTenantCapabilities;
 using SportsPlatform.Modules.Identity.Features.Directory;
 using SportsPlatform.Modules.Identity.Features.Invitations;
 using SportsPlatform.Modules.Identity.Features.Invitations.Acceptance;
@@ -101,6 +104,7 @@ public sealed class IdentityModule : IModule
         // grants from the roles defined in code, which the Host checks against the action catalogue at startup.
         services.AddSessionCookie();
         services.AddSingleton(new RoleCatalogue(IdentityRoles.All));
+        services.AddScoped<Permissions>();
         services.AddScoped<IAuthorizationEvaluator, IdentityAuthorizationEvaluator>();
 
         services.AddScoped<CreatePlatformAdminHandler>();
@@ -141,6 +145,11 @@ public sealed class IdentityModule : IModule
         services.AddSingleton<IValidator<LookupInvitationRequest>, LookupInvitationRequestValidator>();
         services.AddSingleton<IValidator<AcceptInvitationRequest>, AcceptInvitationRequestValidator>();
 
+        // T5: what the caller may do, decided as the evaluator decides.
+        services.AddScoped<GetTenantCapabilitiesHandler>();
+        services.AddScoped<GetPlatformCapabilitiesHandler>();
+        services.AddSingleton<IValidator<GetTenantCapabilitiesRequest>, GetTenantCapabilitiesRequestValidator>();
+
         // D13: the reset and invitation emails are sent by Identity's own consumers, never inside the request.
         services.AddIntegrationEventConsumer<PasswordResetRequested.V1, PasswordResetEmailConsumer, IdentityDbContext>(
             PasswordResetEmailConsumer.Name);
@@ -179,6 +188,9 @@ public sealed class IdentityModule : IModule
         var invitee = InvitationEndpoints.AccountGroup(groups.Account);
         LookupInvitationEndpoint.Map(invitee);
         AcceptInvitationEndpoint.Map(invitee);
+
+        GetTenantCapabilitiesEndpoint.Map(CapabilitiesEndpoints.Group(groups.Admin));
+        GetPlatformCapabilitiesEndpoint.Map(CapabilitiesEndpoints.Group(groups.Platform));
     }
 
     // S03 D15.

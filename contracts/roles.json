@@ -8,6 +8,7 @@
       "actions": [
         "platform.admin.create",
         "platform.audit.read",
+        "platform.capabilities.read",
         "platform.outbox.read",
         "platform.outbox.redrive",
         "tenant.activate",
@@ -28,6 +29,7 @@
       "assignableAt": [],
       "actions": [
         "platform.audit.read",
+        "platform.capabilities.read",
         "platform.outbox.read",
         "tenant.read"
       ]
@@ -49,6 +51,7 @@
         "role.assign",
         "role.revoke",
         "tenant.access.read",
+        "tenant.capabilities.read",
         "tenant.settings.read",
         "tenant.settings.update"
       ]
@@ -69,6 +72,7 @@
         "membership.suspend",
         "role.assign",
         "role.revoke",
+        "tenant.capabilities.read",
         "tenant.settings.read",
         "tenant.settings.update"
       ]
@@ -81,6 +85,7 @@
         "TENANT"
       ],
       "actions": [
+        "tenant.capabilities.read",
         "tenant.settings.read"
       ]
     },
@@ -93,6 +98,7 @@
         "COMPETITION"
       ],
       "actions": [
+        "tenant.capabilities.read",
         "tenant.settings.read"
       ]
     },
@@ -105,6 +111,7 @@
         "COMPETITION"
       ],
       "actions": [
+        "tenant.capabilities.read",
         "tenant.settings.read"
       ]
     },
@@ -118,6 +125,7 @@
         "CONTEST"
       ],
       "actions": [
+        "tenant.capabilities.read",
         "tenant.settings.read"
       ]
     },
@@ -139,6 +147,7 @@
         "COMPETITION"
       ],
       "actions": [
+        "tenant.capabilities.read",
         "tenant.settings.read"
       ]
     },
@@ -151,6 +160,7 @@
       ],
       "actions": [
         "membership.read",
+        "tenant.capabilities.read",
         "tenant.settings.read"
       ]
     }

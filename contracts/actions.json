@@ -221,6 +221,19 @@
       "since": "S01"
     },
     {
+      "code": "platform.capabilities.read",
+      "module": "Identity",
+      "description": "List the platform actions the signed-in user may perform.",
+      "scope": "PLATFORM",
+      "scopableBy": [],
+      "audit": "NONE",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "since": "S03"
+    },
+    {
       "code": "platform.outbox.read",
       "module": "Platform",
       "description": "View outbox messages and their delivery status.",
@@ -316,6 +329,21 @@
       "allowsAnonymous": false,
       "availableWhenBlocked": false,
       "since": "S02"
+    },
+    {
+      "code": "tenant.capabilities.read",
+      "module": "Identity",
+      "description": "List the tenant actions the signed-in user may perform in the request's tenant, optionally on one resource (a competition, team or contest).",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "NONE",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "since": "S03"
     },
     {
       "code": "tenant.create",
