@@ -14,12 +14,9 @@ at the start of every review.
 
 ## Next up
 
-1. S03-T6a — API prerequisites: request schemas without optional members in `required`; `If-Match`/`ETag` declared;
-   activate/restore 400s; a test against strict-body schema name clashes; `ITenantDirectory.GetManyAsync`; `/me`
-   tenants with `slug`, `displayName`, `status`; regenerated contracts and client
-2. S03-T6b — Web foundation: shadcn/ui (official CLI), rewrites, API client wrapper (`X-CSRF`, `X-Tenant-Id`), TanStack
+1. S03-T6b — Web foundation: shadcn/ui (official CLI), rewrites, API client wrapper (`X-CSRF`, `X-Tenant-Id`), TanStack
    Query, auth pages, 401/403/404 and error display, shell with capabilities-filtered nav, tenant switcher, user menu
-3. S03-T6c — Members & roles, organisation settings, platform console, Playwright demo flow and screenshots
+2. S03-T6c — Members & roles, organisation settings, platform console, Playwright demo flow and screenshots
 
 ## Log
 
