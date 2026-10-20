@@ -87,6 +87,38 @@ public sealed class InvitationTests
     }
 
     [Fact]
+    public void A_pending_invitation_is_accepted_once()
+    {
+        var invitation = Pending();
+        var userId = Guid.CreateVersion7();
+        var membershipId = Guid.CreateVersion7();
+
+        invitation.Accept(userId, membershipId, _now.AddDays(1)).IsSuccess.ShouldBeTrue();
+
+        invitation.ShouldSatisfyAllConditions(
+            i => i.Status.ShouldBe(InvitationStatus.Accepted),
+            i => i.AcceptedBy.ShouldBe(userId),
+            i => i.AcceptedAt.ShouldBe(_now.AddDays(1)),
+            i => i.MembershipId.ShouldBe(membershipId),
+            i => i.StateAt(_now.AddDays(30)).ShouldBe(InvitationState.Accepted)); // accepted is final, never expired
+        invitation.Accept(userId, membershipId, _now.AddDays(1)).Error.ShouldBe(IdentityErrors.InvitationAlreadyAccepted);
+        invitation.Revoke(_owner, _now.AddDays(1)).Error.ShouldBe(IdentityErrors.InvitationTransitionInvalid);
+    }
+
+    [Fact]
+    public void An_expired_or_revoked_invitation_can_not_be_accepted()
+    {
+        var expired = Pending();
+        var revoked = Pending();
+        revoked.Revoke(_owner, _now).IsSuccess.ShouldBeTrue();
+
+        expired.Accept(Guid.CreateVersion7(), Guid.CreateVersion7(), _now.AddDays(7)).Error.ShouldBe(IdentityErrors.InvitationExpired);
+        revoked.Accept(Guid.CreateVersion7(), Guid.CreateVersion7(), _now).Error.ShouldBe(IdentityErrors.InvitationTokenInvalid);
+        expired.Status.ShouldBe(InvitationStatus.Pending);
+        expired.AcceptedBy.ShouldBeNull();
+    }
+
+    [Fact]
     public void A_token_is_issued_only_while_pending_and_the_newest_replaces_the_older()
     {
         var invitation = Pending();

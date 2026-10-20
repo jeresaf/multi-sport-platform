@@ -124,6 +124,23 @@ public static class IdentityActions
         since: "S03",
         scopableBy: [AssignmentScope.Tenant]);
 
+    // S03-T4c2: the invitee, with the token from the email (in the body, never the path); anonymous callers allowed.
+    public static readonly ActionDefinition InvitationRead = new(
+        "invitation.read",
+        "Look up an invitation by its token: the tenant, the invited email and roles, when it expires and whether the email has an account.",
+        ActionScope.Account,
+        AuditRequirement.Required,
+        since: "S03",
+        allowsAnonymous: true);
+
+    public static readonly ActionDefinition InvitationAccept = new(
+        "invitation.accept",
+        "Accept an invitation with its token: join the tenant with the invited roles, setting a password if the email has no account yet (signed in as that user otherwise). Does not sign in.",
+        ActionScope.Account,
+        AuditRequirement.Required,
+        since: "S03",
+        allowsAnonymous: true);
+
     public static readonly ActionDefinition TenantOwnerInvite = new(
         "tenant.owner.invite",
         "Invite a tenant's owner by email (platform console): an invitation with TENANT_OWNER, under the tenant named in the route.",

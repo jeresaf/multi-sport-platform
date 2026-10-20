@@ -67,6 +67,14 @@ public sealed class Invitation : AggregateRoot, ITenantOwned
 
     public DateTimeOffset? RevokedAt { get; private set; }
 
+    /// <summary>The user who accepted: created by the acceptance, or signed in as the invited email.</summary>
+    public Guid? AcceptedBy { get; private set; }
+
+    public DateTimeOffset? AcceptedAt { get; private set; }
+
+    /// <summary>The membership the acceptance created (same tenant).</summary>
+    public Guid? MembershipId { get; private set; }
+
     /// <summary>
     /// A pending invitation for the scope's tenant (stamped on save): <c>AUTH_ROLE_NOT_ASSIGNABLE</c> unless there is at
     /// least one role, each a tenant role assignable tenant-wide; a role named twice counts once.
@@ -96,6 +104,43 @@ public sealed class Invitation : AggregateRoot, ITenantOwned
         InvitationStatus.Revoked => InvitationState.Revoked,
         _ => throw new InvalidOperationException($"Unknown invitation status {Status}."),
     };
+
+    /// <summary>
+    /// Whether the invitation's token still works (S03-T4c2): pending and not expired. Otherwise
+    /// <c>AUTH_INVITATION_EXPIRED</c>, <c>AUTH_INVITATION_ALREADY_ACCEPTED</c>, or <c>AUTH_INVITATION_TOKEN_INVALID</c> for a
+    /// revoked one (revoked and unknown tokens answer alike).
+    /// </summary>
+    public Result CheckUsableAt(DateTimeOffset now) => StateAt(now) switch
+    {
+        InvitationState.Pending => Result.Success(),
+        InvitationState.Expired => Result.Failure(IdentityErrors.InvitationExpired),
+        InvitationState.Accepted => Result.Failure(IdentityErrors.InvitationAlreadyAccepted),
+        _ => Result.Failure(IdentityErrors.InvitationTokenInvalid),
+    };
+
+    /// <summary>
+    /// <c>PENDING</c> → <c>ACCEPTED</c> by <paramref name="userId"/>, who joined as <paramref name="membershipId"/>: the
+    /// token works once. Refused as <see cref="CheckUsableAt"/> says.
+    /// </summary>
+    public Result Accept(Guid userId, Guid membershipId, DateTimeOffset now)
+    {
+        if (userId == Guid.Empty || membershipId == Guid.Empty)
+        {
+            throw new ArgumentException("An accepted invitation names its user and membership.");
+        }
+
+        var usable = CheckUsableAt(now);
+        if (usable.IsFailure)
+        {
+            return usable;
+        }
+
+        Status = InvitationStatus.Accepted;
+        AcceptedBy = userId;
+        AcceptedAt = now;
+        MembershipId = membershipId;
+        return Result.Success();
+    }
 
     /// <summary><c>PENDING</c> → <c>REVOKED</c>; an expired, accepted or revoked one is <c>AUTH_INVITATION_TRANSITION_INVALID</c>.</summary>
     public Result Revoke(ICurrentActor actor, DateTimeOffset now)

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.Modules.Identity.Domain.Invitations;
+using SportsPlatform.Modules.Identity.Domain.Memberships;
 
 namespace SportsPlatform.Modules.Identity.Infrastructure.Configurations;
 
@@ -34,6 +35,9 @@ internal sealed class InvitationConfiguration : IEntityTypeConfiguration<Invitat
             table.HasCheckConstraint("ck_invitations_role_codes", "cardinality(role_codes) >= 1");
             table.HasCheckConstraint("ck_invitations_token", "(token_hash IS NULL) = (token_issued_at IS NULL)");
             table.HasCheckConstraint("ck_invitations_revoked", "(status = 'REVOKED') = (revoked_by IS NOT NULL AND revoked_at IS NOT NULL)");
+            table.HasCheckConstraint(
+                "ck_invitations_accepted",
+                "(status = 'ACCEPTED') = (accepted_by IS NOT NULL AND accepted_at IS NOT NULL AND membership_id IS NOT NULL)");
         });
 
         builder.Property(i => i.Email).HasMaxLength(Invitation.EmailMaxLength).HasAnnotation(_pii, _private);
@@ -48,5 +52,11 @@ internal sealed class InvitationConfiguration : IEntityTypeConfiguration<Invitat
             .HasDatabaseName(PendingEmailIndex);
 
         builder.HasIndex(i => i.TokenHash).IsUnique().HasDatabaseName(TokenHashIndex);
+
+        // The membership the acceptance created, in the same tenant (a composite key, like role assignments').
+        builder.HasOne<TenantMembership>().WithMany()
+            .HasForeignKey(i => new { i.TenantId, i.MembershipId })
+            .HasPrincipalKey(m => new { m.TenantId, m.Id })
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

@@ -92,7 +92,7 @@ Added with the owner's approval, 2026-10-20 (S03-T4c, D12). An invitation to joi
 (`identity.invitations`).
 
 ```text
-PENDING ──accept (T4c2)──► ACCEPTED
+PENDING ──accept──► ACCEPTED (accepted_by, accepted_at, membership_id)
 PENDING ──revoke | a new invitation to the same email──► REVOKED
 PENDING and now ≥ expires_at (7 days after it was made) ⇒ EXPIRED (derived, never stored; final)
 ```
@@ -101,6 +101,10 @@ PENDING and now ≥ expires_at (7 days after it was made) ⇒ EXPIRED (derived, 
 - An expired invitation can't be accepted or revoked; inviting again makes a new one.
 - The token is made when the email is sent; only its SHA-256 is stored, and a resent email's token replaces the
   earlier one. A token works once: accepting ends the `PENDING` state.
+- Accepting (S03-T4c2) creates the membership with the invitation's roles, tenant-wide and granted by the inviter, in
+  the same save as `ACCEPTED`; a new user gets the invited email, confirmed. An expired invitation is
+  `410 AUTH_INVITATION_EXPIRED`, an accepted one `409 AUTH_INVITATION_ALREADY_ACCEPTED`, a revoked one answers like an
+  unknown token (`404 AUTH_INVITATION_TOKEN_INVALID`). No one joins an `ARCHIVED` tenant.
 
 ---
 

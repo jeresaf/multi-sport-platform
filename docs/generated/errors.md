@@ -12,7 +12,11 @@ the message is the default title and may change.
 | `AUTH_CURRENT_PASSWORD_INVALID` | 400 | The current password is incorrect. | Identity |
 | `AUTH_FORBIDDEN` | 403 | You are not allowed to perform this action. | BuildingBlocks |
 | `AUTH_INVALID_CREDENTIALS` | 401 | The email or password is incorrect, or the account can't sign in right now. | Identity |
+| `AUTH_INVITATION_ALREADY_ACCEPTED` | 409 | The invitation has been accepted already. Sign in instead. | Identity |
+| `AUTH_INVITATION_EXPIRED` | 410 | The invitation has expired. Ask for a new invitation. | Identity |
 | `AUTH_INVITATION_NOT_FOUND` | 404 | No such invitation in this tenant. | Identity |
+| `AUTH_INVITATION_SIGN_IN_REQUIRED` | 403 | The invited email has an account: sign in with it to accept the invitation. | Identity |
+| `AUTH_INVITATION_TOKEN_INVALID` | 404 | The invitation link is invalid or no longer works. Ask for a new invitation. | Identity |
 | `AUTH_INVITATION_TRANSITION_INVALID` | 409 | The invitation is no longer pending. | Identity |
 | `AUTH_LAST_OWNER` | 409 | The tenant must keep at least one active owner. Make another member an owner first. | Identity |
 | `AUTH_MEMBERSHIP_NOT_FOUND` | 404 | No such member in this tenant. | Identity |
@@ -24,7 +28,7 @@ the message is the default title and may change.
 | `AUTH_ROLE_ALREADY_ASSIGNED` | 409 | The member already holds this role at this scope. | Identity |
 | `AUTH_ROLE_ASSIGNMENT_NOT_FOUND` | 404 | The role assignment was not found. | Identity |
 | `AUTH_ROLE_NOT_ASSIGNABLE` | 400 | This role can't be assigned at this scope. | Identity |
-| `AUTH_TENANT_ARCHIVED` | 409 | The tenant is archived: unarchive it before inviting its owner. | Identity |
+| `AUTH_TENANT_ARCHIVED` | 409 | The tenant is archived: no one can be invited to it or join it until it is unarchived. | Identity |
 | `AUTH_TENANT_FORBIDDEN` | 403 | You are not allowed to work in this tenant. | BuildingBlocks |
 | `AUTH_UNAUTHENTICATED` | 401 | Sign in to perform this action. | BuildingBlocks |
 | `AUTH_USER_EXISTS` | 409 | A user with this email already exists. | Identity |

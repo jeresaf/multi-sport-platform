@@ -101,9 +101,32 @@ public static class IdentityErrors
         "AUTH_ALREADY_MEMBER", "This person is already a member of the tenant.", ErrorKind.Conflict);
 
     /// <summary>
-    /// The platform console invites no owner into an <c>ARCHIVED</c> tenant (owner, S03-T4c1): unarchive it first. Other
-    /// statuses are allowed, so a suspended tenant can get a new owner.
+    /// No one is invited into, or joins, an <c>ARCHIVED</c> tenant: the platform console's owner invitation (owner,
+    /// S03-T4c1) and accepting an invitation (T4c2) refuse it. Other statuses are allowed, so a suspended tenant can get
+    /// a new owner.
     /// </summary>
     public static readonly Error TenantArchived = new(
-        "AUTH_TENANT_ARCHIVED", "The tenant is archived: unarchive it before inviting its owner.", ErrorKind.Conflict);
+        "AUTH_TENANT_ARCHIVED", "The tenant is archived: no one can be invited to it or join it until it is unarchived.", ErrorKind.Conflict);
+
+    /// <summary>
+    /// An invitation token that is malformed, unknown, revoked or replaced by a newer invitation or email (S03-T4c2):
+    /// these answer alike, so a revoked link tells nothing about the invitation.
+    /// </summary>
+    public static readonly Error InvitationTokenInvalid = new(
+        "AUTH_INVITATION_TOKEN_INVALID", "The invitation link is invalid or no longer works. Ask for a new invitation.", ErrorKind.NotFound);
+
+    /// <summary>The invitation was still pending when its 7 days ran out (<c>EXPIRED</c>, final): ask for a new one.</summary>
+    public static readonly Error InvitationExpired = new(
+        "AUTH_INVITATION_EXPIRED", "The invitation has expired. Ask for a new invitation.", ErrorKind.Gone);
+
+    /// <summary>The invitation was accepted already (a token works once): sign in instead.</summary>
+    public static readonly Error InvitationAlreadyAccepted = new(
+        "AUTH_INVITATION_ALREADY_ACCEPTED", "The invitation has been accepted already. Sign in instead.", ErrorKind.Conflict);
+
+    /// <summary>
+    /// The invited email has an account, and the caller isn't signed in as it (anonymous or another user): sign in as
+    /// that user, then accept. A 403, not a 401, so a client doesn't take it for a lost session.
+    /// </summary>
+    public static readonly Error InvitationSignInRequired = new(
+        "AUTH_INVITATION_SIGN_IN_REQUIRED", "The invited email has an account: sign in with it to accept the invitation.", ErrorKind.Forbidden);
 }

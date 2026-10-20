@@ -17,6 +17,7 @@ public sealed class ResultHttpExtensionsTests
         { ErrorKind.NotFound, 404 },
         { ErrorKind.MethodNotAllowed, 405 },
         { ErrorKind.Conflict, 409 },
+        { ErrorKind.Gone, 410 },
         { ErrorKind.PayloadTooLarge, 413 },
         { ErrorKind.UnsupportedMediaType, 415 },
         { ErrorKind.Unprocessable, 422 },

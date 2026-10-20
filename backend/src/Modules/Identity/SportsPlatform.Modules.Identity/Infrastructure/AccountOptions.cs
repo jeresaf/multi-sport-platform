@@ -27,6 +27,9 @@ public sealed class AccountRateLimitOptions
     public RateLimitWindow ForgotPasswordPerIp { get; set; } = new() { PermitLimit = 10, WindowSeconds = 60 * 60 };
 
     public RateLimitWindow ForgotPasswordPerEmail { get; set; } = new() { PermitLimit = 3, WindowSeconds = 60 * 60 };
+
+    /// <summary>Invitation lookup and acceptance together (S03-T4c2, owner): 30 per 10 minutes.</summary>
+    public RateLimitWindow InvitationPerIp { get; set; } = new() { PermitLimit = 30, WindowSeconds = 10 * 60 };
 }
 
 /// <summary>At most <see cref="PermitLimit"/> requests per fixed window of <see cref="WindowSeconds"/>.</summary>

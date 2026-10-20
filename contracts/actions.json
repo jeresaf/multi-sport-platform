@@ -79,6 +79,32 @@
       "since": "S03"
     },
     {
+      "code": "invitation.accept",
+      "module": "Identity",
+      "description": "Accept an invitation with its token: join the tenant with the invited roles, setting a password if the email has no account yet (signed in as that user otherwise). Does not sign in.",
+      "scope": "ACCOUNT",
+      "scopableBy": [],
+      "audit": "REQUIRED",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": true,
+      "availableWhenBlocked": false,
+      "since": "S03"
+    },
+    {
+      "code": "invitation.read",
+      "module": "Identity",
+      "description": "Look up an invitation by its token: the tenant, the invited email and roles, when it expires and whether the email has an account.",
+      "scope": "ACCOUNT",
+      "scopableBy": [],
+      "audit": "REQUIRED",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": true,
+      "availableWhenBlocked": false,
+      "since": "S03"
+    },
+    {
       "code": "invitation.revoke",
       "module": "Identity",
       "description": "Revoke a pending invitation: its link stops working. Only an owner revokes an invitation with TENANT_OWNER.",

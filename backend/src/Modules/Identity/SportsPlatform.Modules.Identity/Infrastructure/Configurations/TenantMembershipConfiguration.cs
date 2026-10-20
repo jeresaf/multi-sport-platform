@@ -27,7 +27,7 @@ internal sealed class TenantMembershipConfiguration : IEntityTypeConfiguration<T
         builder.Ignore(m => m.ActiveRoles);
 
         builder.HasOne<User>().WithMany().HasForeignKey(m => m.UserId).OnDelete(DeleteBehavior.Restrict);
-        builder.HasAlternateKey(m => new { m.TenantId, m.Id });
+        builder.HasAlternateKey(m => new { m.TenantId, m.Id }).HasName("ak_tenant_memberships_tenant_id_id");
         builder.HasMany(m => m.Roles).WithOne()
             .HasForeignKey(a => new { a.TenantId, a.MembershipId })
             .HasPrincipalKey(m => new { m.TenantId, m.Id })

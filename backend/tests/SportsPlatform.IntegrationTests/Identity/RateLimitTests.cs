@@ -83,6 +83,25 @@ public sealed class RateLimitTests(PostgresFixture fixture) : DatabaseTest(fixtu
         thirdFromKampala.ShouldBeRateLimited();
     }
 
+    // S03-T4c2: lookup and acceptance share one per-IP limit; the token is the key, so there is no other.
+    [Fact]
+    public async Task Invitation_lookup_and_acceptance_share_a_limit_per_client_address()
+    {
+        await using var app = AppWithLimits(("InvitationPerIp", 2));
+        const string unknown = "bm90LWEtcmVhbC10b2tlbi1hdC1hbGwtMzItYnl0ZXM";
+
+        var lookup = await PostAsync(app.Server, new Uri("/api/account/v1/invitations/lookup", UriKind.Relative), new { token = unknown }, _kampala, null);
+        var accept = await PostAsync(
+            app.Server, new Uri("/api/account/v1/invitations/accept", UriKind.Relative), new { token = unknown, password = TestPasswords.New() }, _kampala, null);
+        var third = await PostAsync(app.Server, new Uri("/api/account/v1/invitations/lookup", UriKind.Relative), new { token = unknown }, _kampala, null);
+        var elsewhere = await PostAsync(app.Server, new Uri("/api/account/v1/invitations/lookup", UriKind.Relative), new { token = unknown }, _entebbe, null);
+
+        lookup.ShouldHaveStatus(StatusCodes.Status404NotFound);
+        accept.ShouldHaveStatus(StatusCodes.Status404NotFound);
+        third.ShouldBeRateLimited();
+        elsewhere.ShouldHaveStatus(StatusCodes.Status404NotFound);
+    }
+
     // S02 D7 (owner, T2b): behind a trusted proxy the limit counts the client's address, not the proxy's.
     [Fact]
     public async Task Behind_a_trusted_proxy_each_client_has_its_own_limit()

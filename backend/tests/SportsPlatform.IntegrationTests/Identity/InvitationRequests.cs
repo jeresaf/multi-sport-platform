@@ -19,6 +19,19 @@ internal static partial class InvitationRequests
         this HttpClient client, string email, CancellationToken cancellationToken, params string[] roleCodes) =>
         client.PostAsJsonAsync(InvitationsPath, new { email, roleCodes }, cancellationToken);
 
+    public const string InviteePath = "/api/account/v1/invitations";
+
+    /// <summary>The invitee's lookup, with the token in the body.</summary>
+    public static Task<HttpResponseMessage> LookupInvitationAsync(this HttpClient client, string token, CancellationToken cancellationToken) =>
+        client.PostAsJsonAsync($"{InviteePath}/lookup", new { token }, cancellationToken);
+
+    /// <summary>The invitee's acceptance; <paramref name="password"/> is left out of the body when null.</summary>
+    public static Task<HttpResponseMessage> AcceptInvitationAsync(
+        this HttpClient client, string token, string? password, CancellationToken cancellationToken) =>
+        password is null
+            ? client.PostAsJsonAsync($"{InviteePath}/accept", new { token }, cancellationToken)
+            : client.PostAsJsonAsync($"{InviteePath}/accept", new { token, password }, cancellationToken);
+
     public static Task<HttpResponseMessage> RevokeInvitationAsync(this HttpClient client, Guid invitationId, CancellationToken cancellationToken) =>
         client.PostAsJsonAsync($"{InvitationPath(invitationId)}/revoke", new { }, cancellationToken);
 
