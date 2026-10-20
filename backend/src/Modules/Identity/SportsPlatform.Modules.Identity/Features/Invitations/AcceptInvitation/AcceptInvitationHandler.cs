@@ -61,7 +61,8 @@ public sealed class AcceptInvitationHandler(
         var tenant = await tenants.GetByIdAsync(invitation.TenantId, cancellationToken);
         if (tenant.IsFailure)
         {
-            return Fail(tenant.Error);
+            // Tenants are never deleted (history over overwrite): an invitation's tenant always exists.
+            throw new InvalidOperationException($"The tenant {invitation.TenantId} of invitation {invitation.Id} was not found.");
         }
 
         if (tenant.Value.Status == TenantStatus.Archived)

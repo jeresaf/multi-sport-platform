@@ -244,7 +244,7 @@ Deliver:
   DEMO); say so in the plan.
 
 Acceptance:
-- [ ] Invitation tokens are single-use, expire, and are stored hashed (tests read the table).
+- [x] Invitation tokens are single-use, expire, and are stored hashed (tests read the table).
 - [ ] Removing a membership, suspending it, or revoking the last role denies the next request (test).
 - [ ] A member of tenant A can't read or change tenant B's members, invitations or roles through the API (`403` on
       the header, no data), and the isolation harness covers the three tables.
@@ -462,3 +462,19 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   (link `{Identity:AdminAppUrl}/accept-invitation?token=…`, the tenant's display name: `TenantSummary.DisplayName`, new).
   A revoked or expired invitation gets no email. The Host documents `TENANT_NOT_FOUND` on every route-tenant endpoint.
   `IdCursor` is the UUIDv7 list cursor shared with the member list. `TestApp.Emails.FailNext()` makes the next send fail.
+- **T4c2 (owner, plan 2026-10-20):** two PRs, T4c2a (lookup, accept, rate limit) and T4c2b (DEMO seeder; ELSSC's
+  owner is Agnes Namutebi, added to pilot-customer.md).
+- **T4c2a:** `/api/account/v1/invitations` (tag Invitations): `POST /lookup` (`invitation.read`) and `POST /accept`
+  (`invitation.accept`), both anonymous-allowed and audited, token in the body. `InvitationByToken` asks
+  `IdentityDirectory.FindInvitationAsync(sha256)` (sp_platform, ID and tenant only), sets the request's tenant, then
+  reads the invitation under RLS and describes the audit entry. Refusals: unknown, revoked or replaced token
+  `404 AUTH_INVITATION_TOKEN_INVALID` (alike); expired `410 AUTH_INVITATION_EXPIRED` (`ErrorKind.Gone`, new); accepted
+  `409 AUTH_INVITATION_ALREADY_ACCEPTED`; archived tenant `409 AUTH_TENANT_ARCHIVED`. Accept also: a role code no
+  longer in the catalogue `AUTH_ROLE_NOT_ASSIGNABLE`; a new email needs `password` (`AUTH_PASSWORD_REJECTED`, field
+  `password`) and gets a confirmed user; an existing one needs the caller signed in as it
+  (`403 AUTH_INVITATION_SIGN_IN_REQUIRED`; a password sent is ignored) and not a current member (`AUTH_ALREADY_MEMBER`).
+  The membership (`invited_by` = the inviter) and its tenant-wide roles (`granted_by` = the inviter) are saved with the
+  user, the accepted invitation (`accepted_by`, `accepted_at`, `membership_id`, composite key to the membership) and
+  the audit entry (user, membership, roles, account created; no email) in one save; a race is
+  `409 AUTH_CONCURRENCY_CONFLICT`. Accepting doesn't sign in. Rate limit `identity.invitation` per IP only
+  (`Identity:RateLimits:InvitationPerIp`, 30 per 10 minutes, both endpoints together): `RateLimitedPerIp`.
