@@ -59,6 +59,27 @@ Renewal = a new period row. History is never overwritten.
 
 ---
 
+## Identity & Access
+
+### Tenant membership (stored)
+
+Added with the owner's approval, 2026-10-20 (S03-T4). A user's membership of a tenant (`identity.tenant_memberships`).
+
+```text
+ACTIVE ──suspend (reason)──► SUSPENDED ──restore──► ACTIVE
+ACTIVE | SUSPENDED ──remove (reason)──► REMOVED
+```
+
+- Only an `ACTIVE` membership passes the `X-Tenant-Id` check and grants its roles' actions. A `SUSPENDED` one keeps
+  its roles for when it is restored.
+- `REMOVED` is terminal and takes no role changes; a user who rejoins gets a new membership (through an
+  invitation), so the old row stays as history. At most one membership per tenant and user is not `REMOVED`.
+- A role assignment is granted and revoked, never changed; revoking keeps the row with who and when.
+- A tenant keeps at least one active `TENANT_OWNER` (S03 D17): removing, suspending or revoking the last one is
+  refused (`409 AUTH_LAST_OWNER`, S03-T4b).
+
+---
+
 ## Sports Configuration (file metadata in v1, ADR-0006)
 
 ```text

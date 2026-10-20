@@ -22,14 +22,17 @@ paths:
   it needs (leave `TenantId` empty unless the entity takes it from its parent); `Referencing(foreignKey, id)` returns
   a new entity pointing at `id` for each tenant-owned foreign key **onto** another type, else null. Discovery uses
   the `ModuleDatabase` registrations (`AddModuleDbContext`): a `ModuleDbContext` without one fails
-  `ModuleDatabaseRegistrationTests` unless it is listed there with a reason.
+  `ModuleDatabaseRegistrationTests` unless it is a `PlatformServiceDbContext` (never migrated, maps no tenant-owned
+  entity) or is listed there with a reason.
 - **RLS coverage** (`Isolation/RlsCoverageTests`): every table with a `tenant_id` column needs `EnableTenantRls` in
   its migration (test schemas included). A table that must not have RLS goes in the test's exception list with a
   reason, agreed with the owner; a stale exception fails the test. Exceptions: `outbox_messages` (Q15) and
   `tenant_domains` (global host lookup, S02-T3b).
 - **Actor and tenant over HTTP:** `TestApp` and `HostOnlyApp` register the test authentication scheme
   (`Infrastructure/TestAuthentication`): `client.AsUser(userId, memberOf: tenantIds)` sends `X-Test-User` and
-  `X-Test-Tenants`, so the request runs as that user and passes the membership check for `X-Tenant-Id`. Without it the
+  `X-Test-Tenants`, so the request runs as that user and passes the membership check for `X-Tenant-Id`. With
+  `App.Authorization.UseIdentityRoles()` both the evaluator and the membership check are Identity's: memberships and
+  roles come from the database (`Identity/MembershipTestData`), and `X-Test-Tenants` is ignored. Without `X-Test-User` the
   real session cookie authenticates (account tests sign in through `/api/account/v1/login`), else the request is the
   anonymous actor and gets `401 AUTH_UNAUTHENTICATED` on any action that needs a user (S03 D4). Test clients send
   `X-CSRF: 1` and use https (the cookie is `Secure`); `client.WithoutCsrfHeader()` drops the header. Outside HTTP,

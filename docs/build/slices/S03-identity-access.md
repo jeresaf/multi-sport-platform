@@ -404,3 +404,25 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   `IdentityDbContext` (global table, no platform service). The middleware passes the resolved tenant in
   `AuthorizationRequest`; nothing fills `ScopeRef` yet. Tests hand requests to the real evaluator with
   `App.Authorization.UseIdentityRoles()`. No migration: T1a shipped the table.
+- **T4 (owner, plan, 2026-10-20):** three PRs: T4a tables, identity directory, membership check, evaluator tenant
+  step, `/me` tenants; T4b member and role endpoints, last owner, access-mode refinements (D11); T4c invitations,
+  invitation email, DEMO seeder. Only a `TENANT_OWNER` grants or revokes `TENANT_OWNER`, invites as owner, or
+  suspends or removes an owner (`403 AUTH_OWNER_REQUIRED` for an admin). `membership.read` (members and invitations):
+  `TENANT_OWNER`, `TENANT_ADMIN`, `VIEWER`. The invitation token goes in the request body, not the path:
+  `POST /api/account/v1/invitations/lookup` (`invitation.read`) and `POST /api/account/v1/invitations/accept`
+  (`invitation.accept`), so request logs and traces never hold it (replaces `/api/account/v1/invitations/{token}`).
+- **T4a:** `TenantMembership` (aggregate) and `RoleAssignment` (child, composite key to its membership) live in
+  Identity's `Domain/Memberships`, with the state machine and assignment rules (a tenant role, at one of its
+  assignment scopes, a scope ID unless tenant-wide; a tenant-wide assignment has `scope_id` NULL). Both tables are
+  tenant-owned with RLS; at most one membership per tenant and user that is not `REMOVED`; one active assignment per
+  membership, role and scope (`NULLS NOT DISTINCT`). `ix_tenant_memberships_user_id` doesn't start with `tenant_id`:
+  it serves the directory's cross-tenant read by user. `IdentityDirectoryDbContext` maps the two tables as plain row
+  types (no tenant filter), refuses to save, and is used only by `Features.Directory`; `IdentityDirectory` is the
+  real `ITenantMembershipChecker` (the Host's `NoTenantMemberships` is gone). Platform service contexts derive from
+  `PlatformServiceDbContext`; the architecture test requires each to be listed with its allowed users, and the
+  registration test that none is migrated or maps a tenant-owned entity. The evaluator's tenant step reads under the
+  request's tenant through `IdentityDbContext`; `IScopeChainProvider` (BuildingBlocks) returns the scopes above a
+  resource, and the chain always includes the resource itself. Tests: `MembershipTestData` (memberships saved under
+  their tenant, a test-only role `FIXTURE_READER`); with `UseIdentityRoles()` the membership check is the directory's,
+  not `X-Test-Tenants`. `EnumColumns` (BuildingBlocks.Persistence) replaces Tenancy's private enum helpers. Membership
+  and role endpoints come with T4b, so T4a's tests change memberships through the domain.

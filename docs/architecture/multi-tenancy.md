@@ -27,7 +27,8 @@ status changes.
 the scope's `TenantContext` once (D1), from the matched endpoint:
 - **Tenant actions (admin API):** a caller who is not signed in gets `401 AUTH_UNAUTHENTICATED` before the header is
   looked at (S03 D4). `X-Tenant-Id` must be a GUID of a tenant the actor is a member of
-  (`ITenantMembershipChecker`; the Host default grants none until S03-T4), else `403 AUTH_TENANT_FORBIDDEN`.
+  (`ITenantMembershipChecker`: Identity's directory, an `ACTIVE` row of `identity.tenant_memberships` for the
+  signed-in user, read on every request, S03-T4a), else `403 AUTH_TENANT_FORBIDDEN`.
 - **Platform endpoints marked `.RunsUnderRouteTenant()`** (`/tenants/{tenantId}/…`): the route's tenant through
   `ITenantDirectory.GetByIdAsync`, else `404 TENANT_NOT_FOUND`. The startup check requires a platform action and the
   route parameter. Other platform endpoints get no tenant, whatever headers are sent.
@@ -128,7 +129,13 @@ CREATE POLICY tenant_isolation ON registry.persons
   (`sp_platform`) with `BYPASSRLS`, only inside platform services, and are audited. A platform service gets its own
   DbContext registered with `AddPlatformServiceDbContext<T>` (connection `Platform`): it maps tables that the
   module's migrated context owns, is never migrated, and an architecture test names the features allowed to use it.
-  The first one is `PlatformAuditDbContext` (S02 D3).
+  The first one is `PlatformAuditDbContext` (S02 D3). Each derives from `PlatformServiceDbContext`, maps no
+  tenant-owned entity (plain row types instead, so no tenant filter applies) and is listed in
+  `TenantIsolationRulesTests` with the namespaces allowed to use it (S03-T4a, #33 N2).
+- **Identity directory (S03-T4a, D8):** `IdentityDirectoryDbContext`, read-only, used only by Identity's
+  `Features.Directory`: the membership check above (a request's tenant isn't set yet) and the user's tenants and roles
+  for `GET /api/account/v1/me`. Every query names one user, the caller, so it isn't audited by itself; the request's
+  entry covers it.
 - **Audit under RLS (as built, S02-T2b):** `audit.audit_entries` has the `tenant_isolation` policy, so `sp_app` reads
   and inserts its tenant's entries only, and entries without a tenant not at all (they would be a future tenant-facing
   audit view's rows). The writers (`AuditLog` for direct entries, `AuditRecordedConsumer` for entries through a
