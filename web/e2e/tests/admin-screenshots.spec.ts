@@ -1,9 +1,19 @@
 import { expect, test, type Page } from "@playwright/test";
-import { inviteOwner, personEmail, platformAdmin, signIn } from "./support/accounts";
+import {
+  acceptByApi,
+  createTenant,
+  inviteOwner,
+  inviteOwnerOf,
+  newPassword,
+  personEmail,
+  platformAdmin,
+  signIn,
+  suspendTenant,
+} from "./support/accounts";
 
 // Screenshots for the PR (S03-T6: tablet and desktop, light and dark). CI uploads e2e/screenshots as an artifact.
 // The signed-out pages are also shot at phone width: their links come by email and are usually opened on a phone
-// (#56 review, owner). The signed-in pages get phone width with the shell (T6b2).
+// (#56 review, owner); so is the shell (web.md: phone, tablet and desktop).
 const phone = { name: "phone", width: 375, height: 812 } as const;
 const widths = [
   { name: "tablet", width: 820, height: 1180 },
@@ -40,8 +50,58 @@ test("screenshots of the signed-out pages", async ({ page, request }) => {
   await shoot(page, "accept-invitation", [phone, ...widths]);
 });
 
-test("screenshots of the signed-in home", async ({ page }) => {
+test("screenshots of the platform console", async ({ page }) => {
   await signIn(page, platformAdmin.email, platformAdmin.password);
-  await expect(page.getByText(`Signed in as ${platformAdmin.email}`)).toBeVisible();
-  await shoot(page, "home");
+  await expect(page.getByRole("heading", { level: 1, name: "Platform console" })).toBeVisible();
+  await shoot(page, "platform-console", [phone, ...widths]);
+
+  await page.getByRole("button", { name: "Account menu" }).click();
+  await expect(page.getByRole("menuitem", { name: "Sign out" })).toBeVisible();
+  await shoot(page, "user-menu", widths);
+});
+
+test("screenshots of a tenant workspace", async ({ page, request }) => {
+  const email = personEmail("grace.nakato", "kmsa");
+  const password = newPassword();
+  await acceptByApi(request, await inviteOwner(request, "kmsa", email), password);
+  await signIn(page, email, password);
+  await expect(page.getByRole("heading", { level: 1, name: "Kampala Metro Sports Association" })).toBeVisible();
+  await shoot(page, "tenant-workspace", [phone, ...widths]);
+
+  await page.getByRole("button", { name: "Workspace: Kampala Metro Sports Association" }).click();
+  await expect(page.getByRole("menu")).toBeVisible();
+  await shoot(page, "workspace-switcher", widths);
+  await page.keyboard.press("Escape");
+
+  await page.setViewportSize(phone);
+  await page.getByRole("button", { name: "Open navigation" }).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await shoot(page, "navigation-sheet", [phone]);
+  await page.keyboard.press("Escape");
+
+  await page.goto("/t/kmsa/settings/organisation");
+  await expect(page.getByText("This screen isn't available yet.")).toBeVisible();
+  await shoot(page, "not-available", widths);
+
+  await page.goto("/platform");
+  await expect(page.getByRole("heading", { level: 1, name: "You can't open this page" })).toBeVisible();
+  await shoot(page, "forbidden", [phone, ...widths]);
+
+  await page.goto("/t/no-such-tenant");
+  await expect(page.getByRole("heading", { level: 1, name: "Page not found" })).toBeVisible();
+  await shoot(page, "not-found", [phone, ...widths]);
+});
+
+test("screenshots of a suspended tenant", async ({ page, request }) => {
+  const run = process.env.MSP_E2E_RUN!;
+  const slug = `acacia-schools-${run}`;
+  const id = await createTenant(request, slug, `Acacia Schools Netball Circle ${run}`);
+  const email = personEmail("agnes.namutebi", slug);
+  const password = newPassword();
+  await acceptByApi(request, await inviteOwnerOf(request, id, email), password);
+  await suspendTenant(request, id, "Subscription unpaid since September");
+
+  await signIn(page, email, password);
+  await expect(page.getByText("Subscription unpaid since September")).toBeVisible();
+  await shoot(page, "tenant-suspended", [phone, ...widths]);
 });

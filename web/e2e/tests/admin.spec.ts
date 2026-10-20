@@ -20,18 +20,20 @@ test("a wrong password is refused with the catalogue's message", async ({ page }
 
 test("the platform administrator signs in through the rewrite and signs out", async ({ page, context }) => {
   // A return path that isn't the fallback ("/"), so the test fails if sign-in ignores it.
-  await page.goto("/sign-in?returnTo=%2F%3Ffrom%3Dlink");
+  await page.goto("/sign-in?returnTo=%2Fplatform%2Faudit%3Ffrom%3Dlink");
   await page.getByLabel("Email").fill(platformAdmin.email);
   await page.getByLabel("Password").fill(platformAdmin.password);
   await page.getByRole("button", { name: "Sign in" }).click();
 
-  await expect(page).toHaveURL("/?from=link");
-  await expect(page.getByText(`Signed in as ${platformAdmin.email} (Platform admin)`)).toBeVisible();
+  await expect(page).toHaveURL("/platform/audit?from=link");
+  await page.getByRole("button", { name: "Account menu" }).click();
+  await expect(page.getByRole("menu").getByText(platformAdmin.email)).toBeVisible();
+  await expect(page.getByRole("menu").getByText("Platform admin")).toBeVisible();
   // The session cookie is the admin app's own (first-party, HttpOnly, SameSite=Strict; `msp_session` in Development).
   const session = (await context.cookies()).find((cookie) => cookie.name === "msp_session");
   expect(session).toMatchObject({ domain: "localhost", httpOnly: true, sameSite: "Strict" });
 
-  await page.getByRole("button", { name: "Sign out" }).click();
+  await page.getByRole("menuitem", { name: "Sign out" }).click();
 
   await expect(page).toHaveURL("/sign-in");
   await page.goto("/");
@@ -44,5 +46,6 @@ test("a sign-in link can't send someone to another site", async ({ page }) => {
   await page.getByLabel("Password").fill(platformAdmin.password);
   await page.getByRole("button", { name: "Sign in" }).click();
 
-  await expect(page).toHaveURL("/");
+  // The fallback: `/`, which opens the administrator's workspace (the platform console; they belong to no tenant).
+  await expect(page).toHaveURL("/platform");
 });

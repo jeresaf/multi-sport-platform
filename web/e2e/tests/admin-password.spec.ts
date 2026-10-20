@@ -24,7 +24,7 @@ test("a member who forgot their password resets it from the email", async ({ pag
   await expect(page.getByRole("heading", { level: 1, name: "Password changed" })).toBeVisible();
 
   await signIn(page, email, password);
-  await expect(page.getByText(`Signed in as ${email}`)).toBeVisible();
+  await expect(page).toHaveURL("/t/elssc");
 });
 
 test("a too-short password is refused before it is sent", async ({ page }) => {
