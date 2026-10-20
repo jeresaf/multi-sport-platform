@@ -12,7 +12,12 @@ async function shoot(page: Page, name: string) {
     await page.setViewportSize({ width: size.width, height: size.height });
     for (const colorScheme of ["light", "dark"] as const) {
       await page.emulateMedia({ colorScheme });
-      await page.screenshot({ path: `screenshots/admin-${name}-${size.name}-${colorScheme}.png`, fullPage: true });
+      // Finish colour transitions first: switching the scheme animates every shadcn control.
+      await page.screenshot({
+        path: `screenshots/admin-${name}-${size.name}-${colorScheme}.png`,
+        fullPage: true,
+        animations: "disabled",
+      });
     }
   }
 }
