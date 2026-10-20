@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Json;
 using SportsPlatform.BuildingBlocks.Auditing;
 using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.IntegrationTests.Api;
@@ -6,6 +7,7 @@ using SportsPlatform.IntegrationTests.Audit;
 using SportsPlatform.IntegrationTests.Infrastructure;
 using SportsPlatform.IntegrationTests.Tenancy;
 using SportsPlatform.Modules.Identity.Domain.Invitations;
+using SportsPlatform.Modules.Identity.Domain.PlatformRoles;
 using SportsPlatform.Modules.Identity.Domain.Roles;
 using SportsPlatform.Modules.Tenancy.Contracts.Tenants;
 using static SportsPlatform.IntegrationTests.Identity.InvitationRequests;
@@ -116,6 +118,27 @@ public sealed class InviterLeavesTests(PostgresFixture fixture) : DatabaseTest(f
 
         await refused.ShouldBeProblemAsync(HttpStatusCode.Forbidden, "AUTH_OWNER_REQUIRED");
         (await StatusesAsync()).ShouldBe([(_brianEmail, "PENDING")]);
+    }
+
+    // Invitations are matched by the inviting user (#54 R1): a platform user who is also a member loses the owner
+    // invitations they sent from the platform console when that membership is suspended.
+    [Fact]
+    public async Task A_platform_user_who_is_also_a_member_loses_the_owner_invitations_they_sent()
+    {
+        var (kmsa, grace, _) = await KmsaWithOwnerAndAdminAsync();
+        var isaac = await AccountTestData.CreateUserAsync(
+            App.Services, "isaac.mugisha@msp.example", TestPasswords.New(), Ct, platformRole: PlatformRoles.Admin);
+        var isaacsMembership = await JoinAsync(App.Services, kmsa, isaac, Ct, TenantWide(IdentityRoles.Viewer));
+        using var platform = App.CreateClient().AsUser(isaac);
+        using var owner = App.ClientFor(grace.UserId, kmsa);
+        using (var invited = await platform.PostAsJsonAsync(OwnerInvitationsPath(kmsa), new { email = _brianEmail }, Ct))
+        {
+            invited.StatusCode.ShouldBe(HttpStatusCode.Created);
+        }
+
+        (await owner.SuspendAsync(isaacsMembership, Ct)).StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        (await StatusesAsync()).ShouldBe([(_brianEmail, "REVOKED")]);
     }
 
     private async Task<(Guid Tenant, Member Owner, Member Admin)> KmsaWithOwnerAndAdminAsync()
