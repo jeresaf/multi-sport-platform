@@ -8,4 +8,5 @@ namespace SportsPlatform.Modules.Identity.Features.Members.AssignRole;
 /// <c>scopeId</c> stays empty). <c>version</c>, when sent, must be the membership's current one.
 /// </summary>
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
-public sealed record AssignRoleRequest(string? RoleCode, AssignmentScope? ScopeType, Guid? ScopeId, uint? Version);
+public sealed record AssignRoleRequest(
+    string? RoleCode, AssignmentScope? ScopeType = null, Guid? ScopeId = null, uint? Version = null);

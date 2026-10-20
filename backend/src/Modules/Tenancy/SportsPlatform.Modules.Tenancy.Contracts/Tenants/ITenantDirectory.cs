@@ -8,6 +8,9 @@ public interface ITenantDirectory
     /// <summary>The tenant, or <c>TENANT_NOT_FOUND</c>.</summary>
     Task<Result<TenantSummary>> GetByIdAsync(Guid tenantId, CancellationToken cancellationToken);
 
+    /// <summary>The tenants with these IDs, in any order; an ID that names no tenant is left out.</summary>
+    Task<IReadOnlyList<TenantSummary>> GetManyAsync(IReadOnlyCollection<Guid> tenantIds, CancellationToken cancellationToken);
+
     /// <summary>The tenant, or <c>TENANT_NOT_FOUND</c>.</summary>
     Task<Result<TenantSummary>> GetBySlugAsync(string slug, CancellationToken cancellationToken);
 

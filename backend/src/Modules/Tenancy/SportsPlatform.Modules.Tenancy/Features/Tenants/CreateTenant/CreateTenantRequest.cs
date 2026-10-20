@@ -15,4 +15,4 @@ public sealed record CreateTenantRequest(
     string? TimeZone,
     string? DefaultLocale,
     string? CurrencyCode,
-    bool? PublicEnabled);
+    bool? PublicEnabled = null);

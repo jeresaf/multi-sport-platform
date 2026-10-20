@@ -190,6 +190,14 @@
         "responses": {
           "200": {
             "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -236,6 +244,16 @@
         "summary": "Change the tenant's settings",
         "description": "Changes the keys sent of the settings of the tenant named by `X-Tenant-Id`; missing or null keys stay as they are. Any other key, or a value of the wrong type, is 400 VALIDATION_INVALID_REQUEST with an `errors` entry naming it. Send `version` from the last read to get 409 TENANT_CONCURRENCY_CONFLICT instead of overwriting someone else's change; `If-Match` with the `ETag` works the same way (if both are sent, both must match).",
         "operationId": "UpdateTenantSettings",
+        "parameters": [
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -249,6 +267,14 @@
         "responses": {
           "200": {
             "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -258,7 +284,7 @@
             }
           },
           "400": {
-            "description": "Problem Details; `code`: `VALIDATION_INVALID_REQUEST`",
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST`",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -267,7 +293,8 @@
               }
             },
             "x-error-codes": [
-              "VALIDATION_INVALID_REQUEST"
+              "VALIDATION_INVALID_REQUEST",
+              "VALIDATION_MALFORMED_REQUEST"
             ]
           },
           "409": {
@@ -475,6 +502,14 @@
         "responses": {
           "200": {
             "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -545,6 +580,14 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too.",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -560,6 +603,14 @@
         "responses": {
           "200": {
             "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -569,7 +620,7 @@
             }
           },
           "400": {
-            "description": "Problem Details; `code`: `VALIDATION_REASON_REQUIRED`",
+            "description": "Problem Details; `code`: `VALIDATION_MALFORMED_REQUEST`, `VALIDATION_REASON_REQUIRED`",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -578,6 +629,7 @@
               }
             },
             "x-error-codes": [
+              "VALIDATION_MALFORMED_REQUEST",
               "VALIDATION_REASON_REQUIRED"
             ]
           },
@@ -660,6 +712,14 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too.",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -681,6 +741,14 @@
         "responses": {
           "200": {
             "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -747,6 +815,19 @@
             "x-error-codes": [
               "AUTH_UNAUTHENTICATED"
             ]
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_MALFORMED_REQUEST`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_MALFORMED_REQUEST"
+            ]
           }
         }
       }
@@ -768,6 +849,14 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too.",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -783,6 +872,14 @@
         "responses": {
           "200": {
             "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -792,7 +889,7 @@
             }
           },
           "400": {
-            "description": "Problem Details; `code`: `VALIDATION_REASON_REQUIRED`",
+            "description": "Problem Details; `code`: `VALIDATION_MALFORMED_REQUEST`, `VALIDATION_REASON_REQUIRED`",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -801,6 +898,7 @@
               }
             },
             "x-error-codes": [
+              "VALIDATION_MALFORMED_REQUEST",
               "VALIDATION_REASON_REQUIRED"
             ]
           },
@@ -883,6 +981,14 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too.",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -898,6 +1004,14 @@
         "responses": {
           "201": {
             "description": "Created",
+            "headers": {
+              "ETag": {
+                "description": "The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -907,7 +1021,7 @@
             }
           },
           "400": {
-            "description": "Problem Details; `code`: `AUTH_ROLE_NOT_ASSIGNABLE`, `VALIDATION_INVALID_REQUEST`",
+            "description": "Problem Details; `code`: `AUTH_ROLE_NOT_ASSIGNABLE`, `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST`",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -917,7 +1031,8 @@
             },
             "x-error-codes": [
               "AUTH_ROLE_NOT_ASSIGNABLE",
-              "VALIDATION_INVALID_REQUEST"
+              "VALIDATION_INVALID_REQUEST",
+              "VALIDATION_MALFORMED_REQUEST"
             ]
           },
           "404": {
@@ -1008,6 +1123,14 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too.",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -1029,6 +1152,14 @@
         "responses": {
           "200": {
             "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1096,6 +1227,19 @@
             "x-error-codes": [
               "AUTH_UNAUTHENTICATED"
             ]
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_MALFORMED_REQUEST`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_MALFORMED_REQUEST"
+            ]
           }
         }
       }
@@ -1121,6 +1265,14 @@
         "responses": {
           "201": {
             "description": "Created",
+            "headers": {
+              "ETag": {
+                "description": "The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1130,7 +1282,7 @@
             }
           },
           "400": {
-            "description": "Problem Details; `code`: `AUTH_ROLE_NOT_ASSIGNABLE`, `VALIDATION_INVALID_REQUEST`",
+            "description": "Problem Details; `code`: `AUTH_ROLE_NOT_ASSIGNABLE`, `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST`",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1140,7 +1292,8 @@
             },
             "x-error-codes": [
               "AUTH_ROLE_NOT_ASSIGNABLE",
-              "VALIDATION_INVALID_REQUEST"
+              "VALIDATION_INVALID_REQUEST",
+              "VALIDATION_MALFORMED_REQUEST"
             ]
           },
           "403": {
@@ -1298,6 +1451,14 @@
         "responses": {
           "200": {
             "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1368,6 +1529,14 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too.",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -1389,6 +1558,14 @@
         "responses": {
           "200": {
             "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1453,6 +1630,19 @@
             },
             "x-error-codes": [
               "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_MALFORMED_REQUEST`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_MALFORMED_REQUEST"
             ]
           }
         }
@@ -1678,7 +1868,7 @@
             }
           },
           "400": {
-            "description": "Problem Details; `code`: `VALIDATION_REASON_REQUIRED`",
+            "description": "Problem Details; `code`: `VALIDATION_MALFORMED_REQUEST`, `VALIDATION_REASON_REQUIRED`",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1687,6 +1877,7 @@
               }
             },
             "x-error-codes": [
+              "VALIDATION_MALFORMED_REQUEST",
               "VALIDATION_REASON_REQUIRED"
             ]
           },
@@ -1918,6 +2109,14 @@
         "responses": {
           "201": {
             "description": "Created",
+            "headers": {
+              "ETag": {
+                "description": "The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1927,7 +2126,7 @@
             }
           },
           "400": {
-            "description": "Problem Details; `code`: `VALIDATION_INVALID_REQUEST`",
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST`",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1936,7 +2135,8 @@
               }
             },
             "x-error-codes": [
-              "VALIDATION_INVALID_REQUEST"
+              "VALIDATION_INVALID_REQUEST",
+              "VALIDATION_MALFORMED_REQUEST"
             ]
           },
           "409": {
@@ -2100,6 +2300,14 @@
         "responses": {
           "201": {
             "description": "Created",
+            "headers": {
+              "ETag": {
+                "description": "The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -2109,7 +2317,7 @@
             }
           },
           "400": {
-            "description": "Problem Details; `code`: `VALIDATION_INVALID_REQUEST`",
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST`",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2118,7 +2326,8 @@
               }
             },
             "x-error-codes": [
-              "VALIDATION_INVALID_REQUEST"
+              "VALIDATION_INVALID_REQUEST",
+              "VALIDATION_MALFORMED_REQUEST"
             ]
           },
           "409": {
@@ -2186,6 +2395,14 @@
         "responses": {
           "200": {
             "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -2251,6 +2468,14 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too.",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -2266,6 +2491,14 @@
         "responses": {
           "200": {
             "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -2275,7 +2508,7 @@
             }
           },
           "400": {
-            "description": "Problem Details; `code`: `VALIDATION_INVALID_REQUEST`",
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST`",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2284,7 +2517,8 @@
               }
             },
             "x-error-codes": [
-              "VALIDATION_INVALID_REQUEST"
+              "VALIDATION_INVALID_REQUEST",
+              "VALIDATION_MALFORMED_REQUEST"
             ]
           },
           "404": {
@@ -2360,6 +2594,14 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too.",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -2381,6 +2623,14 @@
         "responses": {
           "200": {
             "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -2442,6 +2692,19 @@
               "AUTH_CSRF_REQUIRED",
               "AUTH_FORBIDDEN"
             ]
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_MALFORMED_REQUEST`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_MALFORMED_REQUEST"
+            ]
           }
         }
       }
@@ -2463,6 +2726,14 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too.",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -2478,6 +2749,14 @@
         "responses": {
           "200": {
             "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -2487,7 +2766,7 @@
             }
           },
           "400": {
-            "description": "Problem Details; `code`: `VALIDATION_REASON_REQUIRED`",
+            "description": "Problem Details; `code`: `VALIDATION_MALFORMED_REQUEST`, `VALIDATION_REASON_REQUIRED`",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2496,6 +2775,7 @@
               }
             },
             "x-error-codes": [
+              "VALIDATION_MALFORMED_REQUEST",
               "VALIDATION_REASON_REQUIRED"
             ]
           },
@@ -2573,6 +2853,14 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too.",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -2594,6 +2882,14 @@
         "responses": {
           "200": {
             "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -2655,6 +2951,19 @@
               "AUTH_CSRF_REQUIRED",
               "AUTH_FORBIDDEN"
             ]
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_MALFORMED_REQUEST`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_MALFORMED_REQUEST"
+            ]
           }
         }
       }
@@ -2676,6 +2985,14 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too.",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -2691,6 +3008,14 @@
         "responses": {
           "200": {
             "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -2700,7 +3025,7 @@
             }
           },
           "400": {
-            "description": "Problem Details; `code`: `VALIDATION_REASON_REQUIRED`",
+            "description": "Problem Details; `code`: `VALIDATION_MALFORMED_REQUEST`, `VALIDATION_REASON_REQUIRED`",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2709,6 +3034,7 @@
               }
             },
             "x-error-codes": [
+              "VALIDATION_MALFORMED_REQUEST",
               "VALIDATION_REASON_REQUIRED"
             ]
           },
@@ -2786,6 +3112,14 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too.",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -2801,6 +3135,14 @@
         "responses": {
           "200": {
             "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -2810,7 +3152,7 @@
             }
           },
           "400": {
-            "description": "Problem Details; `code`: `VALIDATION_REASON_REQUIRED`",
+            "description": "Problem Details; `code`: `VALIDATION_MALFORMED_REQUEST`, `VALIDATION_REASON_REQUIRED`",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2819,6 +3161,7 @@
               }
             },
             "x-error-codes": [
+              "VALIDATION_MALFORMED_REQUEST",
               "VALIDATION_REASON_REQUIRED"
             ]
           },
@@ -2950,7 +3293,7 @@
             "description": "No Content"
           },
           "400": {
-            "description": "Problem Details; `code`: `VALIDATION_INVALID_REQUEST`",
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST`",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2959,7 +3302,8 @@
               }
             },
             "x-error-codes": [
-              "VALIDATION_INVALID_REQUEST"
+              "VALIDATION_INVALID_REQUEST",
+              "VALIDATION_MALFORMED_REQUEST"
             ]
           },
           "429": {
@@ -3051,7 +3395,7 @@
           "Account"
         ],
         "summary": "Read the signed-in user",
-        "description": "The signed-in user: ID, email, active platform roles, and the tenants they are an active member of with their roles there (empty until memberships exist).",
+        "description": "The signed-in user: ID, email, active platform roles, and the tenants they are an active member of, ordered by name, each with its slug, display name and status and the user's roles there. Every status is listed. A suspended or archived tenant's workspace is blocked (TENANT_BLOCKED): only `tenant.access.read` is allowed. A provisioning tenant's workspace opens only for those setting it up; others get TENANT_PROVISIONING.",
         "operationId": "GetMe",
         "responses": {
           "200": {
@@ -3103,7 +3447,7 @@
             "description": "Accepted"
           },
           "400": {
-            "description": "Problem Details; `code`: `VALIDATION_INVALID_REQUEST`",
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST`",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3112,7 +3456,8 @@
               }
             },
             "x-error-codes": [
-              "VALIDATION_INVALID_REQUEST"
+              "VALIDATION_INVALID_REQUEST",
+              "VALIDATION_MALFORMED_REQUEST"
             ]
           },
           "429": {
@@ -3167,7 +3512,7 @@
             "description": "No Content"
           },
           "400": {
-            "description": "Problem Details; `code`: `AUTH_PASSWORD_REJECTED`, `AUTH_RESET_TOKEN_INVALID`, `VALIDATION_INVALID_REQUEST`",
+            "description": "Problem Details; `code`: `AUTH_PASSWORD_REJECTED`, `AUTH_RESET_TOKEN_INVALID`, `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST`",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3178,7 +3523,8 @@
             "x-error-codes": [
               "AUTH_PASSWORD_REJECTED",
               "AUTH_RESET_TOKEN_INVALID",
-              "VALIDATION_INVALID_REQUEST"
+              "VALIDATION_INVALID_REQUEST",
+              "VALIDATION_MALFORMED_REQUEST"
             ]
           },
           "409": {
@@ -3233,7 +3579,7 @@
             "description": "No Content"
           },
           "400": {
-            "description": "Problem Details; `code`: `AUTH_CURRENT_PASSWORD_INVALID`, `AUTH_PASSWORD_REJECTED`, `VALIDATION_INVALID_REQUEST`",
+            "description": "Problem Details; `code`: `AUTH_CURRENT_PASSWORD_INVALID`, `AUTH_PASSWORD_REJECTED`, `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST`",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3244,7 +3590,8 @@
             "x-error-codes": [
               "AUTH_CURRENT_PASSWORD_INVALID",
               "AUTH_PASSWORD_REJECTED",
-              "VALIDATION_INVALID_REQUEST"
+              "VALIDATION_INVALID_REQUEST",
+              "VALIDATION_MALFORMED_REQUEST"
             ]
           },
           "409": {
@@ -3319,7 +3666,7 @@
             }
           },
           "400": {
-            "description": "Problem Details; `code`: `VALIDATION_INVALID_REQUEST`",
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST`",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3328,7 +3675,8 @@
               }
             },
             "x-error-codes": [
-              "VALIDATION_INVALID_REQUEST"
+              "VALIDATION_INVALID_REQUEST",
+              "VALIDATION_MALFORMED_REQUEST"
             ]
           },
           "429": {
@@ -3430,7 +3778,7 @@
             }
           },
           "400": {
-            "description": "Problem Details; `code`: `AUTH_PASSWORD_REJECTED`, `AUTH_ROLE_NOT_ASSIGNABLE`, `VALIDATION_INVALID_REQUEST`",
+            "description": "Problem Details; `code`: `AUTH_PASSWORD_REJECTED`, `AUTH_ROLE_NOT_ASSIGNABLE`, `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST`",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3441,7 +3789,8 @@
             "x-error-codes": [
               "AUTH_PASSWORD_REJECTED",
               "AUTH_ROLE_NOT_ASSIGNABLE",
-              "VALIDATION_INVALID_REQUEST"
+              "VALIDATION_INVALID_REQUEST",
+              "VALIDATION_MALFORMED_REQUEST"
             ]
           },
           "429": {
@@ -3577,10 +3926,7 @@
       },
       "AssignRoleRequest": {
         "required": [
-          "roleCode",
-          "scopeType",
-          "scopeId",
-          "version"
+          "roleCode"
         ],
         "type": "object",
         "properties": {
@@ -3770,9 +4116,6 @@
         }
       },
       "ChangeMemberStatusRequest": {
-        "required": [
-          "version"
-        ],
         "type": "object",
         "properties": {
           "version": {
@@ -3788,8 +4131,7 @@
       },
       "ChangeMemberStatusWithReasonRequest": {
         "required": [
-          "reason",
-          "version"
+          "reason"
         ],
         "type": "object",
         "properties": {
@@ -3834,9 +4176,6 @@
         "description": "Change the signed-in user's password."
       },
       "ChangeTenantStatusRequest": {
-        "required": [
-          "version"
-        ],
         "type": "object",
         "properties": {
           "version": {
@@ -3852,8 +4191,7 @@
       },
       "ChangeTenantStatusWithReasonRequest": {
         "required": [
-          "reason",
-          "version"
+          "reason"
         ],
         "type": "object",
         "properties": {
@@ -3906,8 +4244,7 @@
           "countryCode",
           "timeZone",
           "defaultLocale",
-          "currencyCode",
-          "publicEnabled"
+          "currencyCode"
         ],
         "type": "object",
         "properties": {
@@ -4495,6 +4832,9 @@
       "MeTenantResponse": {
         "required": [
           "tenantId",
+          "slug",
+          "displayName",
+          "status",
           "roles"
         ],
         "type": "object",
@@ -4503,6 +4843,15 @@
             "type": "string",
             "format": "uuid"
           },
+          "slug": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TenantStatus"
+          },
           "roles": {
             "type": "array",
             "items": {
@@ -4510,7 +4859,7 @@
             }
           }
         },
-        "description": "A tenant the user is an active member of, with the codes of the roles they hold there (any scope)."
+        "description": "A tenant the user is an active member of: its slug (the workspace URL), display name and status, and the codes of the\nroles they hold there (any scope). Every status is listed. A `SUSPENDED` or `ARCHIVED` tenant's workspace is\nblocked, and its owner can read why; a `PROVISIONING` tenant's opens only for those setting it up (others get\n`TENANT_PROVISIONING`)."
       },
       "MinorRegistrationConsent": {
         "enum": [
@@ -4750,9 +5099,6 @@
         "description": "Set a new password with the token from a reset email's link."
       },
       "RevokeInvitationRequest": {
-        "required": [
-          "version"
-        ],
         "type": "object",
         "properties": {
           "version": {
@@ -4767,9 +5113,6 @@
         "description": "The optional body of `revoke`: `version`, when sent, must be the invitation's current one."
       },
       "RevokeRoleRequest": {
-        "required": [
-          "version"
-        ],
         "type": "object",
         "properties": {
           "version": {
@@ -5023,16 +5366,6 @@
         "description": "An IANA time zone: its ID as `code` (`Africa/Kampala`) and its country; no country for `Etc/UTC`."
       },
       "UpdateTenantProfileRequest": {
-        "required": [
-          "legalName",
-          "displayName",
-          "countryCode",
-          "timeZone",
-          "defaultLocale",
-          "currencyCode",
-          "publicEnabled",
-          "version"
-        ],
         "type": "object",
         "properties": {
           "legalName": {
@@ -5089,15 +5422,6 @@
         "description": "The profile fields to change; a missing or null field stays as it is. The slug and the status can't be changed here\n(unknown members are rejected). `version`, when sent, must be the tenant's current version."
       },
       "UpdateTenantSettingsRequest": {
-        "required": [
-          "timeZone",
-          "defaultLocale",
-          "currencyCode",
-          "publicEnabled",
-          "startingSoonMinutes",
-          "minorRegistrationConsent",
-          "version"
-        ],
         "type": "object",
         "properties": {
           "timeZone": {

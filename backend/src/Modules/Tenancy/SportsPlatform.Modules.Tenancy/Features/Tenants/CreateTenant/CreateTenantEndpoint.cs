@@ -19,6 +19,7 @@ internal static class CreateTenantEndpoint
             "time zone, locale (`en` or `en-UG`) and currency must be active reference data. `publicEnabled` defaults to " +
             "false; the public site shows only while the tenant is ACTIVE.")
         .RequireAction(TenancyActions.TenantCreate)
+        .ReturnsETag()
         .ValidateRequest<CreateTenantRequest>(CommonErrors.InvalidRequest)
         .ProducesErrors(TenancyErrors.SlugTaken);
 

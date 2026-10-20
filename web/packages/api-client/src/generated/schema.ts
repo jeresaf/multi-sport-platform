@@ -669,7 +669,7 @@ export interface paths {
         };
         /**
          * Read the signed-in user
-         * @description The signed-in user: ID, email, active platform roles, and the tenants they are an active member of with their roles there (empty until memberships exist).
+         * @description The signed-in user: ID, email, active platform roles, and the tenants they are an active member of, ordered by name, each with its slug, display name and status and the user's roles there. Every status is listed. A suspended or archived tenant's workspace is blocked (TENANT_BLOCKED): only `tenant.access.read` is allowed. A provisioning tenant's workspace opens only for those setting it up; others get TENANT_PROVISIONING.
          */
         get: operations["GetMe"];
         put?: never;
@@ -812,11 +812,11 @@ export interface components {
          */
         AssignRoleRequest: {
             roleCode: null | string;
-            scopeType: null | components["schemas"]["AssignmentScope"];
+            scopeType?: null | components["schemas"]["AssignmentScope"];
             /** Format: uuid */
-            scopeId: null | string;
+            scopeId?: null | string;
             /** Format: uint32 */
-            version: null | number;
+            version?: null | number;
         };
         /**
          * @description One audit entry as platform staff see it: every column, with `metadata` as the JSON object it was stored as
@@ -866,7 +866,7 @@ export interface components {
         /** @description The optional body of `restore`: `version`, when sent, must be the membership's current one. */
         ChangeMemberStatusRequest: {
             /** Format: uint32 */
-            version: null | number;
+            version?: null | number;
         };
         /**
          * @description The body of `suspend` and `remove` (audit `REQUIRED_WITH_REASON`). The reason is kept permanently on
@@ -875,7 +875,7 @@ export interface components {
         ChangeMemberStatusWithReasonRequest: {
             reason: null | string;
             /** Format: uint32 */
-            version: null | number;
+            version?: null | number;
         };
         /** @description Change the signed-in user's password. */
         ChangePasswordRequest: {
@@ -885,7 +885,7 @@ export interface components {
         /** @description The optional body of `activate` and `restore`: `version`, when sent, must be the tenant's current one. */
         ChangeTenantStatusRequest: {
             /** Format: uint32 */
-            version: null | number;
+            version?: null | number;
         };
         /**
          * @description The body of `suspend`, `archive` and `unarchive` (audit `REQUIRED_WITH_REASON`). The reason is kept
@@ -894,7 +894,7 @@ export interface components {
         ChangeTenantStatusWithReasonRequest: {
             reason: null | string;
             /** Format: uint32 */
-            version: null | number;
+            version?: null | number;
         };
         /** @description An ISO 3166-1 country: alpha-2 `code` (`UG`), alpha-3, numeric code and English name. */
         CountryResponse: {
@@ -915,7 +915,7 @@ export interface components {
             timeZone: null | string;
             defaultLocale: null | string;
             currencyCode: null | string;
-            publicEnabled: null | boolean;
+            publicEnabled?: null | boolean;
         };
         /** @description An ISO 4217 currency: alphabetic `code` (`UGX`), numeric code, English name, minor units (UGX 0). */
         CurrencyResponse: {
@@ -1075,10 +1075,18 @@ export interface components {
             platformRoles: string[];
             tenants: components["schemas"]["MeTenantResponse"][];
         };
-        /** @description A tenant the user is an active member of, with the codes of the roles they hold there (any scope). */
+        /**
+         * @description A tenant the user is an active member of: its slug (the workspace URL), display name and status, and the codes of the
+         *     roles they hold there (any scope). Every status is listed. A `SUSPENDED` or `ARCHIVED` tenant's workspace is
+         *     blocked, and its owner can read why; a `PROVISIONING` tenant's opens only for those setting it up (others get
+         *     `TENANT_PROVISIONING`).
+         */
         MeTenantResponse: {
             /** Format: uuid */
             tenantId: string;
+            slug: string;
+            displayName: string;
+            status: components["schemas"]["TenantStatus"];
             roles: string[];
         };
         /**
@@ -1164,12 +1172,12 @@ export interface components {
         /** @description The optional body of `revoke`: `version`, when sent, must be the invitation's current one. */
         RevokeInvitationRequest: {
             /** Format: uint32 */
-            version: null | number;
+            version?: null | number;
         };
         /** @description The optional body of `revoke`: `version`, when sent, must be the membership's current one. */
         RevokeRoleRequest: {
             /** Format: uint32 */
-            version: null | number;
+            version?: null | number;
         };
         /**
          * @description The public site's identity: `PUBLIC` fields only. PrimaryDomain is the host the site
@@ -1275,31 +1283,31 @@ export interface components {
          *     (unknown members are rejected). `version`, when sent, must be the tenant's current version.
          */
         UpdateTenantProfileRequest: {
-            legalName: null | string;
-            displayName: null | string;
-            countryCode: null | string;
-            timeZone: null | string;
-            defaultLocale: null | string;
-            currencyCode: null | string;
-            publicEnabled: null | boolean;
+            legalName?: null | string;
+            displayName?: null | string;
+            countryCode?: null | string;
+            timeZone?: null | string;
+            defaultLocale?: null | string;
+            currencyCode?: null | string;
+            publicEnabled?: null | boolean;
             /** Format: uint32 */
-            version: null | number;
+            version?: null | number;
         };
         /**
          * @description The settings to change; a missing or null key stays as it is. Only these keys exist: any other key, or a value of
          *     the wrong type, is named in `errors`. `version`, when sent, must be the settings' current version.
          */
         UpdateTenantSettingsRequest: {
-            timeZone: null | string;
-            defaultLocale: null | string;
-            currencyCode: null | string;
-            publicEnabled: null | boolean;
+            timeZone?: null | string;
+            defaultLocale?: null | string;
+            currencyCode?: null | string;
+            publicEnabled?: null | boolean;
             /** Format: int32 */
-            startingSoonMinutes: null | number;
+            startingSoonMinutes?: null | number;
             /** @enum {unknown} */
-            minorRegistrationConsent: "REQUIRED" | "RECOMMENDED" | "OFF" | null;
+            minorRegistrationConsent?: "REQUIRED" | "RECOMMENDED" | "OFF" | null;
             /** Format: uint32 */
-            version: null | number;
+            version?: null | number;
         };
     };
     responses: never;
@@ -1486,6 +1494,8 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1515,7 +1525,10 @@ export interface operations {
     UpdateTenantSettings: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too. */
+                "If-Match"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1528,13 +1541,15 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["TenantSettingsResponse"];
                 };
             };
-            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST` */
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST` */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -1675,6 +1690,8 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1713,7 +1730,10 @@ export interface operations {
     SuspendMember: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too. */
+                "If-Match"?: string;
+            };
             path: {
                 membershipId: string;
             };
@@ -1728,13 +1748,15 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["MemberResponse"];
                 };
             };
-            /** @description Problem Details; `code`: `VALIDATION_REASON_REQUIRED` */
+            /** @description Problem Details; `code`: `VALIDATION_MALFORMED_REQUEST`, `VALIDATION_REASON_REQUIRED` */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -1784,7 +1806,10 @@ export interface operations {
     RestoreMember: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too. */
+                "If-Match"?: string;
+            };
             path: {
                 membershipId: string;
             };
@@ -1799,10 +1824,21 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["MemberResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_MALFORMED_REQUEST` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
             /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
@@ -1846,7 +1882,10 @@ export interface operations {
     RemoveMember: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too. */
+                "If-Match"?: string;
+            };
             path: {
                 membershipId: string;
             };
@@ -1861,13 +1900,15 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["MemberResponse"];
                 };
             };
-            /** @description Problem Details; `code`: `VALIDATION_REASON_REQUIRED` */
+            /** @description Problem Details; `code`: `VALIDATION_MALFORMED_REQUEST`, `VALIDATION_REASON_REQUIRED` */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -1917,7 +1958,10 @@ export interface operations {
     AssignRole: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too. */
+                "If-Match"?: string;
+            };
             path: {
                 membershipId: string;
             };
@@ -1932,13 +1976,15 @@ export interface operations {
             /** @description Created */
             201: {
                 headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["MemberResponse"];
                 };
             };
-            /** @description Problem Details; `code`: `AUTH_ROLE_NOT_ASSIGNABLE`, `VALIDATION_INVALID_REQUEST` */
+            /** @description Problem Details; `code`: `AUTH_ROLE_NOT_ASSIGNABLE`, `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST` */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -1988,7 +2034,10 @@ export interface operations {
     RevokeRole: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too. */
+                "If-Match"?: string;
+            };
             path: {
                 membershipId: string;
                 assignmentId: string;
@@ -2004,10 +2053,21 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["MemberResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_MALFORMED_REQUEST` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
             /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
@@ -2115,13 +2175,15 @@ export interface operations {
             /** @description Created */
             201: {
                 headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["InvitationResponse"];
                 };
             };
-            /** @description Problem Details; `code`: `AUTH_ROLE_NOT_ASSIGNABLE`, `VALIDATION_INVALID_REQUEST` */
+            /** @description Problem Details; `code`: `AUTH_ROLE_NOT_ASSIGNABLE`, `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST` */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -2173,6 +2235,8 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2211,7 +2275,10 @@ export interface operations {
     RevokeInvitation: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too. */
+                "If-Match"?: string;
+            };
             path: {
                 invitationId: string;
             };
@@ -2226,10 +2293,21 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["InvitationResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_MALFORMED_REQUEST` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
             /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
@@ -2397,7 +2475,7 @@ export interface operations {
                     "application/json": components["schemas"]["OutboxMessageResponse"];
                 };
             };
-            /** @description Problem Details; `code`: `VALIDATION_REASON_REQUIRED` */
+            /** @description Problem Details; `code`: `VALIDATION_MALFORMED_REQUEST`, `VALIDATION_REASON_REQUIRED` */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -2521,13 +2599,15 @@ export interface operations {
             /** @description Created */
             201: {
                 headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["InvitationResponse"];
                 };
             };
-            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST` */
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST` */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -2641,13 +2721,15 @@ export interface operations {
             /** @description Created */
             201: {
                 headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["TenantResponse"];
                 };
             };
-            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST` */
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST` */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -2699,6 +2781,8 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2737,7 +2821,10 @@ export interface operations {
     UpdateTenantProfile: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too. */
+                "If-Match"?: string;
+            };
             path: {
                 tenantId: string;
             };
@@ -2752,13 +2839,15 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["TenantResponse"];
                 };
             };
-            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST` */
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST` */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -2808,7 +2897,10 @@ export interface operations {
     ActivateTenant: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too. */
+                "If-Match"?: string;
+            };
             path: {
                 tenantId: string;
             };
@@ -2823,10 +2915,21 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["TenantResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_MALFORMED_REQUEST` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
             /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
@@ -2870,7 +2973,10 @@ export interface operations {
     SuspendTenant: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too. */
+                "If-Match"?: string;
+            };
             path: {
                 tenantId: string;
             };
@@ -2885,13 +2991,15 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["TenantResponse"];
                 };
             };
-            /** @description Problem Details; `code`: `VALIDATION_REASON_REQUIRED` */
+            /** @description Problem Details; `code`: `VALIDATION_MALFORMED_REQUEST`, `VALIDATION_REASON_REQUIRED` */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -2941,7 +3049,10 @@ export interface operations {
     RestoreTenant: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too. */
+                "If-Match"?: string;
+            };
             path: {
                 tenantId: string;
             };
@@ -2956,10 +3067,21 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["TenantResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_MALFORMED_REQUEST` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
             /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
@@ -3003,7 +3125,10 @@ export interface operations {
     ArchiveTenant: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too. */
+                "If-Match"?: string;
+            };
             path: {
                 tenantId: string;
             };
@@ -3018,13 +3143,15 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["TenantResponse"];
                 };
             };
-            /** @description Problem Details; `code`: `VALIDATION_REASON_REQUIRED` */
+            /** @description Problem Details; `code`: `VALIDATION_MALFORMED_REQUEST`, `VALIDATION_REASON_REQUIRED` */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -3074,7 +3201,10 @@ export interface operations {
     UnarchiveTenant: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too. */
+                "If-Match"?: string;
+            };
             path: {
                 tenantId: string;
             };
@@ -3089,13 +3219,15 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["TenantResponse"];
                 };
             };
-            /** @description Problem Details; `code`: `VALIDATION_REASON_REQUIRED` */
+            /** @description Problem Details; `code`: `VALIDATION_MALFORMED_REQUEST`, `VALIDATION_REASON_REQUIRED` */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -3200,7 +3332,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST` */
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST` */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -3323,7 +3455,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST` */
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST` */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -3372,7 +3504,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Problem Details; `code`: `AUTH_PASSWORD_REJECTED`, `AUTH_RESET_TOKEN_INVALID`, `VALIDATION_INVALID_REQUEST` */
+            /** @description Problem Details; `code`: `AUTH_PASSWORD_REJECTED`, `AUTH_RESET_TOKEN_INVALID`, `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST` */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -3421,7 +3553,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Problem Details; `code`: `AUTH_CURRENT_PASSWORD_INVALID`, `AUTH_PASSWORD_REJECTED`, `VALIDATION_INVALID_REQUEST` */
+            /** @description Problem Details; `code`: `AUTH_CURRENT_PASSWORD_INVALID`, `AUTH_PASSWORD_REJECTED`, `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST` */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -3481,7 +3613,7 @@ export interface operations {
                     "application/json": components["schemas"]["LookupInvitationResponse"];
                 };
             };
-            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST` */
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST` */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -3559,7 +3691,7 @@ export interface operations {
                     "application/json": components["schemas"]["AcceptInvitationResponse"];
                 };
             };
-            /** @description Problem Details; `code`: `AUTH_PASSWORD_REJECTED`, `AUTH_ROLE_NOT_ASSIGNABLE`, `VALIDATION_INVALID_REQUEST` */
+            /** @description Problem Details; `code`: `AUTH_PASSWORD_REJECTED`, `AUTH_ROLE_NOT_ASSIGNABLE`, `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST` */
             400: {
                 headers: {
                     [name: string]: unknown;

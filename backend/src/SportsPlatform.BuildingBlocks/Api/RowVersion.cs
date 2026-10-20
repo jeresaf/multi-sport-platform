@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Net.Http.Headers;
@@ -29,5 +30,31 @@ public static class RowVersion
             ? null
             : CommonErrors.MalformedRequest.ToProblem("'If-Match' must be * or a list of quoted entity tags, such as \"1234\".");
         return problem is null;
+    }
+}
+
+/// <summary>The endpoint reads <c>If-Match</c> (<see cref="RowVersion.TryReadIfMatch"/>); the Host documents the header.</summary>
+public sealed record AcceptsIfMatchMetadata;
+
+/// <summary>The endpoint's success response carries the resource's <c>ETag</c>; the Host documents the header.</summary>
+public sealed record ReturnsETagMetadata;
+
+/// <summary>Declares an endpoint's use of the row version, so OpenAPI shows the headers (api-conventions.md, "Concurrency").</summary>
+public static class RowVersionEndpointExtensions
+{
+    /// <summary>The endpoint takes an optional <c>If-Match</c> with the <c>ETag</c> of the last read.</summary>
+    public static TBuilder AcceptsIfMatch<TBuilder>(this TBuilder builder)
+        where TBuilder : IEndpointConventionBuilder
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        return builder.WithMetadata(new AcceptsIfMatchMetadata());
+    }
+
+    /// <summary>The endpoint's success response sets <c>ETag</c> to the quoted <c>version</c>.</summary>
+    public static TBuilder ReturnsETag<TBuilder>(this TBuilder builder)
+        where TBuilder : IEndpointConventionBuilder
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        return builder.WithMetadata(new ReturnsETagMetadata());
     }
 }

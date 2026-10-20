@@ -200,7 +200,14 @@ Modules call each other in-process through Contracts, never over HTTP.
   (`SportsPlatform.BuildingBlocks.Api`) adds one Problem Details response per status and lists that status's codes
   in the response description and in `x-error-codes`. The Host adds the pipeline's 403s: `AUTH_FORBIDDEN` on every admin and platform
   endpoint, and `AUTH_TENANT_FORBIDDEN`, `TENANT_PROVISIONING` and (unless the action is available when blocked)
-  `TENANT_BLOCKED` on tenant actions.
+  `TENANT_BLOCKED` on tenant actions, and `400 VALIDATION_MALFORMED_REQUEST` on every endpoint that reads a body or
+  `If-Match` (S03-T6a).
+- Request members the server treats as optional (`version`, PATCH fields, an optional scope) have a default (`= null`)
+  on the request record, so the schema doesn't list them as `required` and the generated client lets callers leave
+  them out. Endpoints that read `If-Match` declare `.AcceptsIfMatch()` and endpoints that set the `ETag` declare
+  `.ReturnsETag()` (`RowVersionEndpointExtensions`); the Host documents the header parameter and the response header.
+  Tests require both wherever a body or a success response carries `version` (`RowVersionHeadersTests`). A strict
+  JSON body's schema is named by its type's short name: two such types must not share one (`StrictJsonBodySchemaTests`).
 - One document, `v1`, OpenAPI 3.1, covering all three families. Health probes are infrastructure and are left
   out. The document is served (`/openapi/v1.json`, Scalar at `/scalar`) in Development only.
 - JSON numbers are strict: a number sent as a string (`"5"`) is a malformed request (400).

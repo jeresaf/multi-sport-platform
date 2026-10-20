@@ -82,16 +82,20 @@ public sealed class TenantMembershipRequestTests(PostgresFixture fixture) : Data
     }
 
     [Fact]
-    public async Task Me_lists_the_tenants_the_user_is_an_active_member_of_with_their_roles()
+    public async Task Me_lists_the_tenants_the_user_is_an_active_member_of_by_name_with_their_status_and_roles()
     {
         App.Authorization.UseIdentityRoles();
         var kmsa = await TenantTestData.SaveTenantAsync(App.Services, "kmsa", TenantStatus.Active, Ct);
         var elssc = await TenantTestData.SaveTenantAsync(App.Services, "elssc", TenantStatus.Active, Ct);
         var mvule = await TenantTestData.SaveTenantAsync(App.Services, "mvule-youth", TenantStatus.Active, Ct);
         var sunbird = await TenantTestData.SaveTenantAsync(App.Services, "sunbird-juniors", TenantStatus.Active, Ct);
+        var acacia = await TenantTestData.SaveTenantAsync(App.Services, "acacia-schools", TenantStatus.Archived, Ct);
+        var jacaranda = await TenantTestData.SaveTenantAsync(App.Services, "jacaranda-games", TenantStatus.Suspended, Ct);
         var grace = await CreateMemberAsync(
             App.Services, kmsa, "grace.nakato@kmsa.example", Ct, TenantWide(IdentityRoles.TenantOwner), TenantWide(IdentityRoles.Viewer));
         await JoinAsync(App.Services, elssc, grace.UserId, Ct, TenantWide(IdentityRoles.Viewer));
+        await JoinAsync(App.Services, acacia, grace.UserId, Ct, TenantWide(IdentityRoles.Viewer));
+        await JoinAsync(App.Services, jacaranda, grace.UserId, Ct, TenantWide(IdentityRoles.TenantOwner));
         var left = new Member(grace.UserId, await JoinAsync(App.Services, mvule, grace.UserId, Ct, TenantWide(IdentityRoles.Viewer)), mvule);
         await ChangeAsync(App.Services, left, m => m.Remove("Left the league", SystemActor.Instance, JoinedAt), Ct);
         var paused = new Member(grace.UserId, await JoinAsync(App.Services, sunbird, grace.UserId, Ct, TenantWide(IdentityRoles.Viewer)), sunbird);
@@ -102,9 +106,15 @@ public sealed class TenantMembershipRequestTests(PostgresFixture fixture) : Data
         using var response = await client.GetAsync(AccountTestData.MePath, Ct);
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
-        var me = (await response.Content.ReadFromJsonAsync<MeResponse>(Ct)).ShouldNotBeNull();
-        me.Tenants.OrderBy(t => t.TenantId).Select(t => (t.TenantId, string.Join(',', t.Roles))).ShouldBe(
-            new[] { (kmsa, IdentityRoles.TenantOwner), (elssc, IdentityRoles.Viewer) }.OrderBy(t => t.Item1));
+        var me = (await response.Content.ReadFromJsonAsync<MeResponse>(MemberRequests.Json, Ct)).ShouldNotBeNull();
+
+        // Suspended and archived tenants are listed with their status: the switcher shows them as blocked.
+        me.Tenants.Select(t => (t.TenantId, t.Slug, t.DisplayName, t.Status, string.Join(',', t.Roles))).ShouldBe([
+            (acacia, "acacia-schools", "acacia-schools Sports", TenantStatus.Archived, IdentityRoles.Viewer),
+            (elssc, "elssc", "elssc Sports", TenantStatus.Active, IdentityRoles.Viewer),
+            (jacaranda, "jacaranda-games", "jacaranda-games Sports", TenantStatus.Suspended, IdentityRoles.TenantOwner),
+            (kmsa, "kmsa", "kmsa Sports", TenantStatus.Active, IdentityRoles.TenantOwner),
+        ]);
     }
 
     /// <summary>The user's client for the tenant: the membership check is the database's, not <c>X-Test-Tenants</c>.</summary>

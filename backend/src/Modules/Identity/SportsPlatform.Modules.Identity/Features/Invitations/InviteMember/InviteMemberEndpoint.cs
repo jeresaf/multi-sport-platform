@@ -17,6 +17,7 @@ internal static class InviteMemberEndpoint
             "Invites `email` to join the tenant named by `X-Tenant-Id` with `roleCodes` (tenant roles, tenant-wide). Only an " +
             $"owner invites with TENANT_OWNER or replaces a pending invitation that has it. A person who is already a member (active or suspended) can't be invited. {InvitationEndpoints.InviteNote}")
         .RequireAction(IdentityActions.MembershipInvite)
+        .ReturnsETag()
         .ValidateRequest<InviteMemberRequest>(CommonErrors.InvalidRequest)
         .ProducesErrors(
             IdentityErrors.RoleNotAssignable, IdentityErrors.OwnerRequired, IdentityErrors.AlreadyMember, IdentityErrors.ConcurrencyConflict);

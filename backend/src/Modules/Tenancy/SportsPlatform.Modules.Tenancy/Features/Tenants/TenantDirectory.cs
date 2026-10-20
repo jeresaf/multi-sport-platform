@@ -24,6 +24,20 @@ internal sealed class TenantDirectory(
     public async Task<Result<TenantSummary>> GetByIdAsync(Guid tenantId, CancellationToken cancellationToken) =>
         Found(await FindAsync(t => t.Id == tenantId, cancellationToken));
 
+    public async Task<IReadOnlyList<TenantSummary>> GetManyAsync(IReadOnlyCollection<Guid> tenantIds, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(tenantIds);
+        if (tenantIds.Count == 0)
+        {
+            return [];
+        }
+
+        return await context.Set<Tenant>().AsNoTracking()
+            .Where(t => tenantIds.Contains(t.Id))
+            .Select(t => new TenantSummary(t.Id, t.Slug, t.Status, t.DisplayName))
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<Result<TenantSummary>> GetBySlugAsync(string slug, CancellationToken cancellationToken) =>
         Found(await FindAsync(t => t.Slug == slug, cancellationToken));
 
