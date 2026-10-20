@@ -8,7 +8,9 @@ import {
   personEmail,
   platformAdmin,
   signIn,
+  signInByApi,
   suspendTenant,
+  tenantId,
 } from "./support/accounts";
 import { open } from "./support/pages";
 import { phone, shoot, widths } from "./support/screenshots";
@@ -45,6 +47,43 @@ test("screenshots of the platform console", async ({ page }) => {
   await page.goto("/platform/diagnostics");
   await expect(page.getByText("This screen isn't available yet.")).toBeVisible();
   await shoot(page, "not-available", widths);
+});
+
+test("screenshots of the platform console's tenants", async ({ page, request }) => {
+  await signInByApi(request, platformAdmin.email, platformAdmin.password);
+  const kmsa = await tenantId(request, "kmsa");
+  await signIn(page, platformAdmin.email, platformAdmin.password);
+  await expect(page.getByRole("heading", { level: 1, name: "Platform console" })).toBeVisible();
+
+  await page.goto("/platform/tenants");
+  await expect(page.getByRole("heading", { level: 1, name: "Tenants" })).toBeVisible();
+  await expect(page.getByRole("row").nth(1)).toBeVisible();
+  await expect(loading(page)).toHaveCount(0);
+  await shoot(page, "tenants", [phone, ...widths]);
+
+  await page.getByRole("button", { name: "New tenant" }).click();
+  const create = page.getByRole("dialog");
+  await expect(create.getByRole("option", { name: "Uganda", exact: true })).toBeAttached();
+  await create.getByRole("button", { name: "Create tenant" }).click();
+  await expect(create.getByText("Choose a country.")).toBeVisible();
+  await shoot(page, "tenant-create", [phone, ...widths]);
+  await page.keyboard.press("Escape");
+
+  await page.goto(`/platform/tenants/${kmsa}`);
+  await expect(page.getByRole("heading", { level: 1, name: "Kampala Metro Sports Association" })).toBeVisible();
+  await expect(page.getByText("Uganda")).toBeVisible();
+  await shoot(page, "tenant-detail", [phone, ...widths]);
+
+  // The dialogs only: the demo tenant stays active for the other tests.
+  await page.getByRole("button", { name: "Suspend" }).click();
+  await expect(page.getByRole("dialog").getByLabel("Reason")).toBeVisible();
+  await shoot(page, "tenant-reason-dialog", [phone, ...widths]);
+  await page.keyboard.press("Escape");
+
+  await page.getByRole("button", { name: "Invite an owner" }).click();
+  await expect(page.getByRole("dialog").getByLabel("Email")).toBeVisible();
+  await shoot(page, "owner-invite-dialog", [phone, ...widths]);
+  await page.keyboard.press("Escape");
 });
 
 test("screenshots of a tenant workspace", async ({ page, request }) => {

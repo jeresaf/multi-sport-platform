@@ -52,6 +52,13 @@ test("an owner manages members and settings; a viewer only reads them, and the A
   await invite.getByRole("checkbox", { name: "Registrar" }).click();
   await invite.getByRole("button", { name: "Send invitation" }).click();
   await expect(invite).toBeHidden();
+  // Sending the email changes the invitation moments after it is created (PROGRESS tech debt): a revoke saved while
+  // that send is saved meets a concurrency conflict. Wait, on the list itself, until the email has gone out.
+  await expect(async () => {
+    await page.reload();
+    await expect(row(page, leaving)).toBeVisible();
+    await expect(row(page, leaving)).not.toContainText("Not sent yet", { timeout: 1_000 });
+  }).toPass({ timeout: 20_000 });
   await page.getByRole("button", { name: `Revoke the invitation to ${leaving}` }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Revoke" }).click();
   await expect(page.getByRole("dialog")).toBeHidden();

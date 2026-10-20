@@ -19,3 +19,11 @@ export function useCurrencies() {
     staleTime,
   });
 }
+
+export function useCountries() {
+  return useQuery({
+    queryKey: ["reference", "countries"],
+    queryFn: () => call(api.GET("/api/public/v1/reference/countries")),
+    staleTime,
+  });
+}

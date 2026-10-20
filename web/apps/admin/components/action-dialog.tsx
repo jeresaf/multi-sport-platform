@@ -48,6 +48,10 @@ type ActionDialogProps = {
   onConfirm: (reason: string | undefined) => void;
   /** After a concurrency conflict: read the record again and close the dialog. */
   onReload: () => void;
+  /** Under the reason: who keeps and sees it. Every reason is permanent, so it always says not to include personal data. */
+  reasonHint?: string;
+  /** The change no longer applies (the record was read again after a refusal): its refusal stays, confirming doesn't. */
+  confirmDisabled?: boolean;
   /** Where focus goes when the dialog closes (by default, back to what opened it). */
   onCloseAutoFocus?: (event: Event) => void;
 };
@@ -66,6 +70,8 @@ export function ActionDialog({
   onConfirm,
   onReload,
   onCloseAutoFocus,
+  confirmDisabled = false,
+  reasonHint = "Kept in the audit trail with your name. Don't include personal details.",
 }: Readonly<ActionDialogProps>) {
   const form = useForm<ReasonValues>({
     resolver: zodResolver(withReason ? reasonSchema : noReasonSchema),
@@ -118,7 +124,7 @@ export function ActionDialog({
                 </p>
               ) : (
                 <p id="action-reason-hint" className="text-sm text-muted-foreground">
-                  Kept in the audit trail with your name. Don&apos;t include personal details.
+                  {reasonHint}
                 </p>
               )}
             </div>
@@ -127,7 +133,7 @@ export function ActionDialog({
             <Button variant="outline" disabled={pending} onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" variant={destructive ? "destructive" : "default"} disabled={pending || conflict}>
+            <Button type="submit" variant={destructive ? "destructive" : "default"} disabled={pending || conflict || confirmDisabled}>
               {pending ? "Saving…" : confirmLabel}
             </Button>
           </DialogFooter>

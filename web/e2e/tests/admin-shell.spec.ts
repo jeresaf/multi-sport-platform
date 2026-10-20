@@ -28,6 +28,10 @@ test("the platform administrator works in the console, with its navigation", asy
 
   await workspaceNav(page).getByRole("link", { name: "Tenants" }).click();
   await expect(page).toHaveURL("/platform/tenants");
+  await expect(page.getByRole("heading", { level: 1, name: "Tenants" })).toBeVisible();
+  // Screens that come later answer "not available yet".
+  await workspaceNav(page).getByRole("link", { name: "Diagnostics" }).click();
+  await expect(page).toHaveURL("/platform/diagnostics");
   await expect(page.getByText("This screen isn't available yet.")).toBeVisible();
 
   // Not a member of any tenant: the switcher says so and offers the console.
