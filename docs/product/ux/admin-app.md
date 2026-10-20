@@ -67,7 +67,8 @@ user's capabilities (docs/architecture/authorization.md); the server still enfor
   date (UTC: the list carries no time zone); a status filter (all by default) and "Show more". **New tenant**
   (`tenant.create`) asks for the slug (it never changes), name, legal name, country, time zone, language, currency and
   public site, with the country, zone and currency from the platform's reference data (the zones narrowed to the
-  chosen country's); a taken slug is said under the slug. The new tenant opens on its detail page, still provisioning.
+  chosen country's, plus those of no country such as Etc/UTC); a taken slug is said under the slug. The new tenant
+  opens on its detail page, still provisioning.
 - **A tenant** (`/platform/tenants/{id}`): its profile, dates in the tenant's own time zone, and the lifecycle changes
   its status and the user's capabilities allow (state-machines.md, Tenant): activate and restore are confirmed;
   suspend, archive and unarchive ask for a reason, and the dialog says the tenant's owners see it (after an unarchive,
@@ -78,8 +79,9 @@ user's capabilities (docs/architecture/authorization.md); the server still enfor
   (`tenant.owner.invite`, not offered for an archived tenant) sends an email invitation to `TENANT_OWNER` and says
   until when the link works (date, time and the tenant's zone). The owner can work in the tenant while it is
   provisioning. Platform support staff (`tenant.read` only) see the same pages without controls, and are told that
-  changes need a platform administrator. Owner invitations sent earlier, the status reason and history, members,
-  domains and subscription say they aren't available yet; profile editing (`tenant.update`) is not offered.
+  changing its status or inviting its owner needs a platform administrator. Owner invitations sent earlier, the status
+  reason and history, members, domains and subscription say they aren't available yet; profile editing
+  (`tenant.update`) is not offered.
 - Diagnostics and Audit are still "not available yet".
 
 ## Workspaces and screens
