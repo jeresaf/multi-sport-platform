@@ -89,7 +89,8 @@ public sealed class DemoInvitationSeeder : ISeeder
 
     /// <summary>
     /// Whether the person needs no invitation: one pending and unexpired, one accepted (even if the member was removed
-    /// since: D18 sends neither again), or the email's user already a member.
+    /// since: D18 sends neither again), or the email's user already a member. A pending invitation counts whatever its
+    /// roles: the seeder doesn't replace one someone sent by hand.
     /// </summary>
     private static async Task<bool> IsSettledAsync(IServiceProvider services, DemoInvitee invitee, CancellationToken cancellationToken)
     {

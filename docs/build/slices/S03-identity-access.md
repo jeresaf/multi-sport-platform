@@ -485,3 +485,5 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   defaults: no deterministic IDs (natural key tenant + normalised email); a pending unexpired or accepted invitation,
   or a current membership, is skipped; an expired or revoked one is sent again; only an `ACTIVE` tenant is seeded, a
   missing one stops the run. The emails go out through the API's outbox (Mailpit; the CI e2e job starts it too).
+  The runner skips a seeder whose checksum is unchanged, so an expired invitation is sent again only when the data or
+  the seeder's version changes, or after `seed --reset` (pre-review; documented in pilot-customer.md).

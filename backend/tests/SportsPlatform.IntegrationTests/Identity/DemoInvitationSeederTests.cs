@@ -182,6 +182,44 @@ public sealed class DemoInvitationSeederTests(PostgresFixture fixture) : Databas
         (await InvitationsAsync()).Where(i => first.All(f => f.Id != i.Id)).ShouldHaveSingleItem().Email.ShouldBe(_agnes);
     }
 
+    [Fact]
+    public async Task A_current_member_without_an_invitation_is_not_invited()
+    {
+        await SeedDemoAsync(App);
+        var brian = (await InvitationsAsync()).Single(i => i.Email == _brian);
+        App.Authorization.AllowAll();
+        using (var admin = App.CreateClient().AsUser(Guid.CreateVersion7(), memberOf: [_kmsaId]))
+        {
+            admin.DefaultRequestHeaders.Add("X-Tenant-Id", _kmsaId.ToString());
+            using var revoked = await admin.RevokeInvitationAsync(brian.Id, Ct);
+            revoked.StatusCode.ShouldBe(HttpStatusCode.OK);
+        }
+
+        // Brian joined some other way since: a member, with no pending or accepted invitation.
+        await MembershipTestData.CreateMemberAsync(App.Services, _kmsaId, _brian, Ct, MembershipTestData.TenantWide(IdentityRoles.Registrar));
+
+        await using var rerun = WithRerunSeeder();
+        var report = await SeedDemoAsync(rerun);
+
+        RerunSeeder(report).Outcome.ShouldBe(SeedOutcome.None);
+        (await InvitationsAsync()).Where(i => i.Email == _brian).ShouldHaveSingleItem().Status.ShouldBe("REVOKED");
+    }
+
+    [Fact]
+    public async Task A_missing_demo_tenant_stops_the_run_and_nothing_is_recorded()
+    {
+        // A copy that runs before tenancy.demo.tenants, so KMSA doesn't exist yet.
+        await using var early = App.WithWebHostBuilder(builder =>
+            builder.ConfigureTestServices(services => services.AddSeeder<EarlyDemoInvitationSeeder>()));
+
+        var exception = await Should.ThrowAsync<InvalidOperationException>(() => SeedDemoAsync(early));
+
+        exception.Message.ShouldContain("'kmsa'");
+        (await InvitationsAsync()).ShouldBeEmpty();
+        (await CountAsync("SELECT count(*) FROM platform.seed_runs WHERE seeder_key LIKE 'identity.%' OR seeder_key LIKE 'test.demo.invitations%'"))
+            .ShouldBe(0);
+    }
+
     private static SeederResult DemoSeeder(SeedReport report) => report.Seeders.Single(s => s.Key == "identity.demo.invitations");
 
     private static SeederResult RerunSeeder(SeedReport report) => report.Seeders.Single(s => s.Key == RerunDemoInvitationSeeder.SeederKey);
@@ -216,6 +254,21 @@ public sealed class DemoInvitationSeederTests(PostgresFixture fixture) : Databas
         public SeedCategory Category => SeedCategory.Demo;
 
         public int Order => 11;
+
+        public string Checksum { get; } = Guid.NewGuid().ToString("N");
+
+        public Task<SeedOutcome> RunAsync(SeedContext context, CancellationToken cancellationToken) => _seeder.RunAsync(context, cancellationToken);
+    }
+
+    private sealed class EarlyDemoInvitationSeeder : ISeeder
+    {
+        private readonly DemoInvitationSeeder _seeder = new();
+
+        public string Key => "test.demo.invitations-early";
+
+        public SeedCategory Category => SeedCategory.Demo;
+
+        public int Order => -1;
 
         public string Checksum { get; } = Guid.NewGuid().ToString("N");
 
