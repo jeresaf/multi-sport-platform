@@ -8,6 +8,8 @@ import PlatformLayout from "./platform/layout";
 import TenantWorkspaceLayout from "./t/[tenantSlug]/layout";
 
 const navigation = vi.hoisted(() => ({ params: {} as Record<string, string>, pathname: "/", replace: vi.fn() }));
+const leaveTo = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/leave", () => ({ leaveTo }));
 vi.mock("next/navigation", () => ({
   useParams: () => navigation.params,
   usePathname: () => navigation.pathname,
@@ -46,7 +48,10 @@ function openTenant(slug: string, pathname = `/t/${slug}`) {
 
 const workspaceNav = () => screen.getAllByRole("navigation", { name: "Workspace" })[0]!;
 
-beforeEach(() => navigation.replace.mockReset());
+beforeEach(() => {
+  navigation.replace.mockReset();
+  leaveTo.mockReset();
+});
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
@@ -226,12 +231,13 @@ describe("switcher and user menu", () => {
     expect(menu.queryByRole("menuitem", { name: "Platform console" })).toBeNull();
   });
 
-  it("signs out from the user menu and goes to the sign-in page", async () => {
+  it("signs out from the user menu with a fresh load of the sign-in page (no return path)", async () => {
     await openOwnerWorkspace();
 
     openMenu("Account menu");
     fireEvent.click(await screen.findByRole("menuitem", { name: "Sign out" }));
 
-    await waitFor(() => expect(navigation.replace).toHaveBeenCalledWith("/sign-in"));
+    await waitFor(() => expect(leaveTo).toHaveBeenCalledWith("/sign-in"));
+    expect(navigation.replace).not.toHaveBeenCalled();
   });
 });

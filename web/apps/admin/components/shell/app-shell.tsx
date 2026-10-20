@@ -3,10 +3,9 @@
 import { Button } from "@msp/ui/components/button";
 import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from "@msp/ui/components/sheet";
 import { Menu } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { ProblemAlert } from "@/components/problem-alert";
-import { useMe, useSignOut } from "@/lib/account";
+import { useMe, useSignOutAndLeave } from "@/lib/account";
 import type { NavItem } from "@/lib/navigation";
 import { NavList } from "./nav-list";
 import { UserMenu } from "./user-menu";
@@ -21,9 +20,8 @@ export function AppShell({
   navigation,
   children,
 }: Readonly<{ workspace: string; navigation: readonly NavItem[]; children: ReactNode }>) {
-  const router = useRouter();
   const me = useMe();
-  const signOut = useSignOut();
+  const signOut = useSignOutAndLeave();
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
@@ -52,10 +50,7 @@ export function AppShell({
           {me.data ? <WorkspaceSwitcher me={me.data} current={workspace} /> : null}
         </div>
         {me.data ? (
-          <UserMenu
-            me={me.data}
-            onSignOut={() => signOut.mutate(undefined, { onSuccess: () => router.replace("/sign-in") })}
-          />
+          <UserMenu me={me.data} onSignOut={() => signOut.mutate()} />
         ) : null}
       </header>
       <div className="flex flex-1">
