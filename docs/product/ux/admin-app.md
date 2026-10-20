@@ -61,6 +61,23 @@ user's capabilities (docs/architecture/authorization.md); the server still enfor
 - **Change password** (`/account/password`, from the user menu): current and new password; the user's other sessions end within 5
   minutes, this one stays.
 
+### As built (S03-T6c2a)
+
+- **Tenants** (`/platform/tenants`, `tenant.read`): every tenant by slug with its name, country, status and creation
+  date (UTC: the list carries no time zone); a status filter (all by default) and "Show more". **New tenant**
+  (`tenant.create`) asks for the slug (it never changes), name, legal name, country, time zone, language, currency and
+  public site, with the country, zone and currency from the platform's reference data; a taken slug is said under the
+  slug. The new tenant opens on its detail page, still provisioning.
+- **A tenant** (`/platform/tenants/{id}`): its profile, dates in the tenant's own time zone, and the lifecycle changes
+  its status and the user's capabilities allow (state-machines.md, Tenant): activate and restore are confirmed;
+  suspend, archive and unarchive ask for a reason. Each sends `If-Match`; a conflict offers Reload, and a change the
+  status no longer allows reads the tenant again. **Invite an owner** (`tenant.owner.invite`, not offered for an
+  archived tenant) sends an email invitation to `TENANT_OWNER` and says until when the link works. The owner can work
+  in the tenant while it is provisioning. Platform support staff (`tenant.read` only) see the same pages without
+  controls. Owner invitations sent earlier, the status reason and history, members, domains and subscription say
+  they aren't available yet; profile editing (`tenant.update`) is not offered.
+- Diagnostics and Audit are still "not available yet".
+
 ## Workspaces and screens
 
 ### Platform console (platform staff)
