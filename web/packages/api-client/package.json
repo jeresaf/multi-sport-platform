@@ -6,10 +6,11 @@
   "exports": {
     ".": "./src/index.ts",
     "./admin": "./src/admin.ts",
-    "./errors": "./src/errors.ts"
+    "./errors": "./src/errors.ts",
+    "./roles": "./src/roles.ts"
   },
   "scripts": {
-    "generate": "openapi-typescript ../../../contracts/openapi.json --output src/generated/schema.ts && node -e \"require('node:fs').copyFileSync('../../../contracts/errors.json','src/generated/errors.json')\"",
+    "generate": "openapi-typescript ../../../contracts/openapi.json --output src/generated/schema.ts && node -e \"for (const f of ['errors', 'roles']) require('node:fs').copyFileSync('../../../contracts/' + f + '.json', 'src/generated/' + f + '.json')\"",
     "lint": "eslint . --max-warnings=0",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
