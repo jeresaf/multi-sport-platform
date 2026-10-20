@@ -341,6 +341,43 @@ describe("members & roles: refusals and the owner's own rules", () => {
     expect(within(await screen.findByRole("dialog")).getByText("These are your own roles:")).toBeTruthy();
   });
 
+  it("says the workspace is gone once the user has suspended themselves (#58 re-review Q1)", async () => {
+    const self = {
+      ...brian,
+      userId: "0199a3f0-0000-7000-8000-000000000001",
+      email: "grace.nakato@kmsa.example",
+      roles: [role("TENANT_ADMIN", 5)],
+    };
+    let suspended = false;
+    const gone: Answer = { status: 403, body: problem("AUTH_TENANT_FORBIDDEN", 403) };
+    open(["TENANT_ADMIN"], ownerActions, {
+      // `me` lists active memberships only: after the change the tenant is no longer the user's.
+      "GET /api/account/v1/me": () => {
+        const answer = me(["TENANT_ADMIN"]);
+        return suspended ? { ...answer, body: { ...(answer.body as object), tenants: [] } } : answer;
+      },
+      "GET /api/admin/v1/me/capabilities": () =>
+        suspended ? gone : { status: 200, body: { actions: ownerActions, scope: null } },
+      "GET /api/admin/v1/members": () => (suspended ? gone : members([self])),
+      "GET /api/admin/v1/invitations": () => (suspended ? gone : members([])),
+      [`POST /api/admin/v1/members/${self.membershipId}/suspend`]: () => {
+        suspended = true;
+        return { status: 200, body: { ...self, status: "SUSPENDED", version: 6 } };
+      },
+    });
+
+    await screen.findByRole("button", { name: `Change ${self.email}` });
+    openMenu(`Change ${self.email}`);
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Suspend" }));
+    const dialog = within(await screen.findByRole("dialog"));
+    fireEvent.change(dialog.getByLabelText("Reason"), { target: { value: "Stepping down" } });
+    fireEvent.click(dialog.getByRole("button", { name: "Suspend" }));
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Page not found" })).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Members" })).toBeNull();
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
   it("says when an invitation's email hasn't gone out yet, and that it never will once it isn't pending", async () => {
     const revoked = { ...ownerInvitation, status: "REVOKED", emailSentAt: null, revokedAt: "2026-10-19T09:00:01Z" };
     open(["TENANT_OWNER"], ownerActions, {

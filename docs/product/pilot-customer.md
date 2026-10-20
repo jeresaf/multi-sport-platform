@@ -116,7 +116,8 @@ consent-first registration (tenant setting: guardian consent required before reg
 Tests that need more than two tenants (paging, status filters, a provisioning tenant) use these invented bodies,
 named after trees and birds so they don't read as a real district, council or league: **Acacia Schools Netball
 Circle** (`acacia-schools`), **Jacaranda Corporate Games** (`jacaranda-games`), **Mvule Youth Football League**
-(`mvule-youth`), **Sunbird Junior Sports Club** (`sunbird-juniors`). They are never seeded.
+(`mvule-youth`), **Sunbird Junior Sports Club** (`sunbird-juniors`), **Acacia Road Runners** (`acacia-runners`),
+**Weaver Bird Athletics Club** (`weaver-athletics`). They are never seeded.
 
 ## Privacy notes for this persona
 

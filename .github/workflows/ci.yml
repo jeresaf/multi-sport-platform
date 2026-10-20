@@ -112,7 +112,7 @@ jobs:
           name: playwright-report
           path: web/e2e/playwright-report
           retention-days: 7
-      # Phone, tablet and desktop screenshots of the public pages, linked from UI pull requests.
+      # Phone, tablet and desktop screenshots of the public and admin pages, linked from UI pull requests.
       - name: Upload screenshots
         if: success() || failure()
         uses: actions/upload-artifact@v7

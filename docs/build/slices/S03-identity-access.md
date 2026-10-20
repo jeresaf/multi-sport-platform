@@ -300,9 +300,13 @@ Deliver:
 - Likely two PRs (T6a auth pages, shell, client; T6b members, platform console, e2e).
 
 Acceptance:
-- [ ] The demo flow passes in CI against the real API.
-- [ ] Every screen works at tablet and desktop widths (screenshots).
-- [ ] No control is shown that the capabilities don't allow; the server still refuses when called directly (test).
+- [x] The demo flow passes in CI against the real API.
+      Evidence: `admin-demo.spec.ts` (with the audit trail), `admin-platform.spec.ts`, CI job `e2e`.
+- [x] Every screen works at tablet and desktop widths (screenshots).
+      Evidence: `support/screenshots.ts` (`shoot`), the CI artifact `screenshots`.
+- [x] No control is shown that the capabilities don't allow; the server still refuses when called directly (test).
+      Evidence: `admin-members.spec.ts`, `admin-demo.spec.ts` (viewer), `admin-shell.spec.ts` (registrar),
+      `admin-invitation.spec.ts` (owner on a platform endpoint), Vitest capability tests.
 
 ## Carried over from S02 (slice review 2026-10-19)
 
@@ -323,16 +327,16 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
 
 ## Slice acceptance
 
-- [ ] Platform admin, tenant owner and viewer flows work end to end, in CI.
-- [ ] Every admin and platform endpoint is authorised server-side by its action (matrix test); capabilities drive the
+- [x] Platform admin, tenant owner and viewer flows work end to end, in CI.
+- [x] Every admin and platform endpoint is authorised server-side by its action (matrix test); capabilities drive the
       UI.
-- [ ] Memberships, invitations and role assignments are covered by the isolation harness; the RLS exception list is
+- [x] Memberships, invitations and role assignments are covered by the isolation harness; the RLS exception list is
       unchanged.
-- [ ] No default credentials anywhere; sign-in has lockout, rate limits and CSRF protection.
-- [ ] Docs updated: authorization.md (account scope, roles as built, access-mode refinements), api-conventions.md
+- [x] No default credentials anywhere; sign-in has lockout, rate limits and CSRF protection.
+- [x] Docs updated: authorization.md (account scope, roles as built, access-mode refinements), api-conventions.md
       (account family, CSRF, 401), multi-tenancy.md (membership check), state-machines.md (membership, invitation),
       CLAUDE.md commands (`create-platform-admin`), `docs/generated/roles.md`.
-- [ ] The S02 carry-overs above are done and removed from PROGRESS.md "Tech debt / follow-ups".
+- [x] The S02 carry-overs above are done and removed from PROGRESS.md "Tech debt / follow-ups".
 
 ## Implementation notes
 
@@ -570,3 +574,16 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   an invitation sends no `If-Match`: the outbox's email send changes its version right after it is listed (found by
   e2e). `test/setup.ts` stands in for `ResizeObserver` (Radix checkbox in jsdom). e2e: `admin-members.spec.ts` on a
   run-unique Jacaranda Corporate Games tenant; `support/screenshots.ts` holds `shoot()`.
+- **T6c2 (two PRs, owner):** T6c2a the platform console's tenant screens under `app/(signed-in)/platform/tenants`
+  (list with status filter and "Show more", New tenant dialog opening the new tenant, detail with lifecycle dialogs
+  and Invite an owner); the state machine and the actions each change needs are a table in the detail page, and a
+  saved change is announced (`role="status"`). T6c2b the e2e: `admin-demo.spec.ts` runs the slice demo through the
+  screens (the platform administrator's console, both people joining from Mailpit's email in browsers of their own,
+  the viewer's `403 AUTH_FORBIDDEN`) and checks the audit trail through `GET /api/platform/v1/audit-entries`
+  (`support/audit.ts`, read again a few seconds apart until the outbox's entries arrive). An accepted invitation is
+  audited under the tenant by the anonymous caller, the user named in its metadata; a sign-in by the anonymous caller
+  with the user as its entity (#43 N1). `admin-platform.spec.ts` takes a tenant through its lifecycle and checks the
+  taken-slug field error; `admin-members.spec.ts` covers an administrator suspending themselves (the workspace
+  answers "Page not found", since `me` lists active memberships only, and the API `403 AUTH_TENANT_FORBIDDEN`). Pages under a
+  tenant workspace get the tenant from the layout (`TenantProvider`, `useTenantWorkspace`), never from `me` directly:
+  a page re-rendered with a newer `me` before its layout would otherwise fail when the tenant has left it.

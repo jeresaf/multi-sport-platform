@@ -1,19 +1,12 @@
 "use client";
 
 import { Badge } from "@msp/ui/components/badge";
-import { useParams } from "next/navigation";
-import { useMe } from "@/lib/account";
 import { humanizeCode } from "@/lib/codes";
-import { findTenant } from "@/lib/workspace";
+import { useTenantWorkspace } from "@/lib/tenant-workspace";
 
 /** The tenant workspace's first page: the organisation and the user's roles in it. */
 export default function TenantOverviewPage() {
-  const { tenantSlug } = useParams<{ tenantSlug: string }>();
-  const me = useMe();
-  const tenant = me.data ? findTenant(me.data, tenantSlug) : undefined;
-  if (!tenant) {
-    return null;
-  }
+  const { tenant } = useTenantWorkspace();
 
   return (
     <section className="grid gap-4">

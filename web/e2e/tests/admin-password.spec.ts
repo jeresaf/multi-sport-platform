@@ -81,6 +81,8 @@ test("a signed-in member changes their password, stays signed in, and signs in w
   // This session stays signed in (the response renews its cookie through the rewrite).
   await open(page, "/");
   await expect(page).toHaveURL("/t/elssc");
+  // `/` sends the user on once `me` is read: the menu opened before the workspace has rendered is lost.
+  await expect(page.getByText("Your roles: Tenant owner")).toBeVisible();
 
   await page.getByRole("button", { name: /^Account menu: / }).click();
   await page.getByRole("menuitem", { name: "Sign out" }).click();
