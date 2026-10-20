@@ -1,10 +1,11 @@
+using System.Text.RegularExpressions;
 using NetArchTest.Rules;
 using SportsPlatform.BuildingBlocks.Persistence;
 
 namespace SportsPlatform.ArchitectureTests;
 
 /// <summary>AR-04: code can't step around the tenant query filter or RLS except in named platform services.</summary>
-public sealed class TenantIsolationRulesTests
+public sealed partial class TenantIsolationRulesTests
 {
     /// <summary>Source files (relative to <c>backend/src</c>) of the reviewed platform services that may ignore the filter.</summary>
     private static readonly HashSet<string> _mayIgnoreQueryFilters = [];
@@ -22,6 +23,25 @@ public sealed class TenantIsolationRulesTests
             .Select(path => Path.GetRelativePath(source, path).Replace('\\', '/'))
             .Where(path => !_mayIgnoreQueryFilters.Contains(path))
             .ShouldBeEmpty();
+    }
+
+    // RoleAssignment.Grant is public for the isolation harness; production code assigns roles through the membership,
+    // which refuses removed members and duplicates (#46 N4).
+    [Fact]
+    public void Only_the_membership_and_the_isolation_samples_grant_role_assignments_directly()
+    {
+        var backend = SolutionAssemblies.BackendDirectory;
+        var callers = Directory.GetFiles(backend, "*.cs", SearchOption.AllDirectories)
+            .Where(path => !IsBuildOutput(path) && GrantCall().IsMatch(File.ReadAllText(path)))
+            .Select(path => Path.GetRelativePath(backend, path).Replace('\\', '/'))
+            .ToList();
+
+        callers.ShouldBe(
+            [
+                "src/Modules/Identity/SportsPlatform.Modules.Identity/Domain/Memberships/TenantMembership.cs",
+                "tests/SportsPlatform.IntegrationTests/Isolation/IsolationSamples.cs",
+            ],
+            ignoreOrder: true);
     }
 
     // Platform service contexts run as sp_platform (BYPASSRLS): each is named here with the only namespaces (and the
@@ -63,6 +83,10 @@ public sealed class TenantIsolationRulesTests
         users.Where(name => !_platformServiceUsers[context].Any(allowed => name.StartsWith(allowed, StringComparison.Ordinal)))
             .ShouldBeEmpty();
     }
+
+    // A call of RoleAssignment.Grant, not of PlatformRoleAssignment.Grant.
+    [GeneratedRegex(@"(?<![A-Za-z])RoleAssignment\.Grant\(")]
+    private static partial Regex GrantCall();
 
     private static bool IsBuildOutput(string path)
     {
