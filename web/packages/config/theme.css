@@ -10,10 +10,12 @@
   --color-background: var(--msp-color-background);
   --color-surface: var(--msp-color-surface);
   --color-surface-raised: var(--msp-color-surface-raised);
+  --color-surface-muted: var(--msp-color-surface-muted);
   --color-border: var(--msp-color-border);
   --color-text: var(--msp-color-text);
   --color-text-muted: var(--msp-color-text-muted);
   --color-focus: var(--msp-color-focus);
+  --color-overlay: var(--msp-color-overlay);
 
   --color-primary: var(--msp-color-brand-primary);
   --color-primary-hover: var(--msp-color-brand-primary-hover);
@@ -24,7 +26,26 @@
   --color-success: var(--msp-color-success);
   --color-warning: var(--msp-color-warning);
   --color-danger: var(--msp-color-danger);
+  --color-danger-contrast: var(--msp-color-danger-contrast);
   --color-info: var(--msp-color-info);
+
+  /* shadcn/ui's names (packages/ui), mapped onto the same tokens. Its `secondary` (a neutral button) is not our brand
+     secondary: the components use `muted` for that instead. */
+  --color-foreground: var(--msp-color-text);
+  --color-muted: var(--msp-color-surface-muted);
+  --color-muted-foreground: var(--msp-color-text-muted);
+  --color-card: var(--msp-color-surface);
+  --color-card-foreground: var(--msp-color-text);
+  --color-popover: var(--msp-color-surface-raised);
+  --color-popover-foreground: var(--msp-color-text);
+  --color-accent: var(--msp-color-surface-muted);
+  --color-accent-foreground: var(--msp-color-text);
+  --color-primary-foreground: var(--msp-color-brand-primary-contrast);
+  --color-destructive: var(--msp-color-danger);
+  --color-destructive-foreground: var(--msp-color-danger-contrast);
+  --color-input: var(--msp-color-border);
+  --color-ring: var(--msp-color-focus);
+
   --color-transparent: transparent;
   --color-current: currentColor;
 
@@ -43,8 +64,12 @@
   --text-8xl: initial;
   --text-9xl: initial;
 
-  /* Elevation tokens (0–3) arrive with the first component that needs them; no ad-hoc shadows until then. */
+  /* Elevation 0–3 from the tokens; shadcn/ui's xs and sm are elevation 1, md is 2, lg is 3. No ad-hoc shadows. */
   --shadow-*: initial;
+  --shadow-xs: var(--msp-elevation-1);
+  --shadow-sm: var(--msp-elevation-1);
+  --shadow-md: var(--msp-elevation-2);
+  --shadow-lg: var(--msp-elevation-3);
   --inset-shadow-*: initial;
   --drop-shadow-*: initial;
   --text-shadow-*: initial;
@@ -52,4 +77,16 @@
   --breakpoint-*: initial;
   --breakpoint-tablet: 768px;
   --breakpoint-desktop: 1200px;
+}
+
+/* `dark:` follows the tokens: the OS preference unless data-theme="light", or data-theme="dark". */
+@custom-variant dark {
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not([data-theme="light"]) *) {
+      @slot;
+    }
+  }
+  &:where([data-theme="dark"], [data-theme="dark"] *) {
+    @slot;
+  }
 }

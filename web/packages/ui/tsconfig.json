@@ -1,7 +1,17 @@
 {
   "extends": "@msp/config/tsconfig/library.json",
   "compilerOptions": {
-    "types": ["vitest/globals"]
+    "types": [
+      "vitest/globals"
+    ],
+    "paths": {
+      "@msp/ui/*": [
+        "./src/*"
+      ]
+    }
   },
-  "include": ["src", "vitest.config.ts"]
+  "include": [
+    "src",
+    "vitest.config.ts"
+  ]
 }

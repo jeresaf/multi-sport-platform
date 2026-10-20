@@ -6,10 +6,12 @@ export const colors = {
   background: cssVar("color-background"),
   surface: cssVar("color-surface"),
   surfaceRaised: cssVar("color-surface-raised"),
+  surfaceMuted: cssVar("color-surface-muted"),
   border: cssVar("color-border"),
   text: cssVar("color-text"),
   textMuted: cssVar("color-text-muted"),
   focus: cssVar("color-focus"),
+  overlay: cssVar("color-overlay"),
   brand: {
     primary: cssVar("color-brand-primary"),
     primaryHover: cssVar("color-brand-primary-hover"),
@@ -21,6 +23,7 @@ export const colors = {
     success: cssVar("color-success"),
     warning: cssVar("color-warning"),
     danger: cssVar("color-danger"),
+    dangerContrast: cssVar("color-danger-contrast"),
     info: cssVar("color-info"),
   },
 } as const;
@@ -51,6 +54,13 @@ export const radius = {
 
 /** Breakpoints (min-width, px): phone < 768, tablet 768–1199, desktop ≥ 1200. */
 export const breakpoints = { tablet: 768, desktop: 1200 } as const;
+
+/** Elevation 1–3 (0 is no shadow), tuned for both themes. */
+export const elevation = {
+  1: cssVar("elevation-1"),
+  2: cssVar("elevation-2"),
+  3: cssVar("elevation-3"),
+} as const;
 
 export const motion = {
   fast: cssVar("duration-fast"),
