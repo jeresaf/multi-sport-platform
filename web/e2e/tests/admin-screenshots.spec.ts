@@ -66,7 +66,7 @@ test("screenshots of the platform console's tenants", async ({ page, request }) 
   await expect(create.getByRole("option", { name: "Uganda", exact: true })).toBeAttached();
   await create.getByRole("button", { name: "Create tenant" }).click();
   await expect(create.getByText("Choose a country.")).toBeVisible();
-  await shoot(page, "tenant-create", widths);
+  await shoot(page, "tenant-create", [phone, ...widths]);
   await page.keyboard.press("Escape");
 
   await page.goto(`/platform/tenants/${kmsa}`);
@@ -77,12 +77,12 @@ test("screenshots of the platform console's tenants", async ({ page, request }) 
   // The dialogs only: the demo tenant stays active for the other tests.
   await page.getByRole("button", { name: "Suspend" }).click();
   await expect(page.getByRole("dialog").getByLabel("Reason")).toBeVisible();
-  await shoot(page, "tenant-reason-dialog", widths);
+  await shoot(page, "tenant-reason-dialog", [phone, ...widths]);
   await page.keyboard.press("Escape");
 
   await page.getByRole("button", { name: "Invite an owner" }).click();
   await expect(page.getByRole("dialog").getByLabel("Email")).toBeVisible();
-  await shoot(page, "owner-invite-dialog", widths);
+  await shoot(page, "owner-invite-dialog", [phone, ...widths]);
   await page.keyboard.press("Escape");
 });
 
