@@ -191,9 +191,10 @@ Computed by Tenancy from tenant status × subscription status (docs/domain/state
 |---|---|
 | `FULL` | Normal operation |
 | `READ_ONLY` | Admin can read and export; writes rejected with `TENANT_READ_ONLY`, except: finishing contests already `LIVE` and submitting their results (24 h window), account/billing actions, exports |
-| `BLOCKED` | Admin access denied except tenant owner viewing status; public site off |
+| `BLOCKED` | Admin access denied except tenant owner viewing status (`tenant.access.read`, S03 D11); public site off |
 
-The access-mode check runs before entitlement and permission checks for every admin request.
+The access-mode check runs before entitlement and permission checks for every admin request. While a tenant is `PROVISIONING` it is
+`FULL` for its owners and admins only; other members get `TENANT_PROVISIONING` (docs/domain/state-machines.md).
 
 ## Platform staff and support
 

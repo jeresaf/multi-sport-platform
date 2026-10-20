@@ -98,9 +98,12 @@ change renews the caller's own cookie; a reset ends every session. Wrong current
 the sign-in lockout (owner, T2b); a reset clears the lockout.
 
 **Step 1 as built:** for a TENANT-scope action, `ITenantAccess.CheckAdminAccessAsync` on the resolved tenant:
-status-only until S04 (`PROVISIONING`, `ACTIVE` → `FULL`; `SUSPENDED`, `ARCHIVED` → `BLOCKED` → `TENANT_BLOCKED`). No
-resolved tenant fails closed with `AUTH_TENANT_FORBIDDEN`. The `BLOCKED` exception for the tenant owner viewing status
-needs roles (S03). Platform actions have no step 1: platform staff work on blocked tenants (restore, unarchive).
+status-based until S04: `ACTIVE` → `FULL`; `PROVISIONING` → `FULL` when `ITenantSetupAccess` (Identity) says the actor
+holds `TENANT_OWNER` or `TENANT_ADMIN` tenant-wide, else `TENANT_PROVISIONING`; `SUSPENDED`, `ARCHIVED` → `BLOCKED` →
+`TENANT_BLOCKED`, except for actions marked `availableWhenBlocked`, which pass to the evaluator (S03 D11). Only
+`TENANT_OWNER` holds such an action (`tenant.access.read`), so an admin asking for it gets `AUTH_FORBIDDEN`. No resolved
+tenant fails closed with `AUTH_TENANT_FORBIDDEN`. Platform actions have no step 1: platform staff work on blocked
+tenants (restore, unarchive).
 
 ## Roles and scopes
 

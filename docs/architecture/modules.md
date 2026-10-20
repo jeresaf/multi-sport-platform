@@ -76,7 +76,7 @@ public visibility, policies such as "minor consent required for registration"), 
 entitlement definitions, plans, plan entitlements, subscriptions (periods), tenant entitlement overrides, usage
 counters.
 **Provides:** `ITenantDirectory` (resolve by host/slug/id), `ITenantAccess` (computed access mode:
-`FULL | READ_ONLY | BLOCKED`), `IEntitlements` (`CanUse`, `GetLimit`, `CheckQuota`), enabled sports.
+`FULL | READ_ONLY | BLOCKED`; step 1 for an action, asking Identity's `ITenantSetupAccess` for a `PROVISIONING` tenant), `IEntitlements` (`CanUse`, `GetLimit`, `CheckQuota`), enabled sports.
 **Does not own:** branding (module 13), users (module 2), billing/payment processing (out of scope).
 **First slice:** S02 (tenants), S04 (plans & entitlements), S05 (sport enablement).
 **Absorbs:** pack specs 06, 07. Owner's managers: **Tenant, Subscription/Feature**.
