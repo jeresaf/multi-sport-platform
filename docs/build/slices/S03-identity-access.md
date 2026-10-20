@@ -560,3 +560,13 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   guard, which added a return path. e2e: `admin-shell.spec.ts` (console, owner, registrar refused by the API, a
   suspended run-unique tenant from pilot-customer.md's test-only names); every shell page is shot at phone, tablet and
   desktop, light and dark.
+- **T6c1:** tenant pages live under `app/(signed-in)/t/[tenantSlug]/settings/{organisation,members}` and read the
+  workspace through `useTenantWorkspace()` (`lib/tenant-workspace.ts`: the tenant, its `X-Tenant-Id` client, `can()`);
+  each page checks its own action (the catch-all no longer answers for its path). Changes send `If-Match` from the
+  version last read (`lib/concurrency.ts`), and `*_CONCURRENCY_CONFLICT` shows `ConflictAlert` (Reload). Confirmations
+  go through `ActionDialog` (a required reason for `REQUIRED_WITH_REASON` actions, the API's refusal kept in the
+  dialog). Pickers are a native `SelectField` (long lists, phone pickers); role pickers read `contracts/roles.json`
+  through `@msp/api-client/roles`. Dates use the tenant's zone from the settings (`lib/tenant-settings.ts`). Revoking
+  an invitation sends no `If-Match`: the outbox's email send changes its version right after it is listed (found by
+  e2e). `test/setup.ts` stands in for `ResizeObserver` (Radix checkbox in jsdom). e2e: `admin-members.spec.ts` on a
+  run-unique Jacaranda Corporate Games tenant; `support/screenshots.ts` holds `shoot()`.

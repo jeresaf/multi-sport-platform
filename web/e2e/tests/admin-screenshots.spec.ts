@@ -11,30 +11,10 @@ import {
   suspendTenant,
 } from "./support/accounts";
 import { open } from "./support/pages";
+import { phone, shoot, widths } from "./support/screenshots";
 
-// Screenshots for the PR (S03-T6: tablet and desktop, light and dark). CI uploads e2e/screenshots as an artifact.
-// The signed-out pages are also shot at phone width: their links come by email and are usually opened on a phone
-// (#56 review, owner); so is the shell (web.md: phone, tablet and desktop).
-const phone = { name: "phone", width: 375, height: 812 } as const;
-const widths = [
-  { name: "tablet", width: 820, height: 1180 },
-  { name: "desktop", width: 1280, height: 800 },
-] as const;
-
-async function shoot(page: Page, name: string, sizes: readonly { name: string; width: number; height: number }[] = widths) {
-  for (const size of sizes) {
-    await page.setViewportSize({ width: size.width, height: size.height });
-    for (const colorScheme of ["light", "dark"] as const) {
-      await page.emulateMedia({ colorScheme });
-      // `animations: "disabled"` ends colour transitions at once: switching the scheme animates every shadcn control.
-      await page.screenshot({
-        path: `screenshots/admin-${name}-${size.name}-${colorScheme}.png`,
-        fullPage: true,
-        animations: "disabled",
-      });
-    }
-  }
-}
+// A screen still reading its data (`Loading`, a polite status).
+const loading = (page: Page) => page.getByRole("status").filter({ hasText: "Loading" });
 
 test("screenshots of the signed-out pages", async ({ page, request }) => {
   await open(page, "/sign-in");
@@ -59,6 +39,12 @@ test("screenshots of the platform console", async ({ page }) => {
   await page.getByRole("button", { name: /^Account menu: / }).click();
   await expect(page.getByRole("menuitem", { name: "Sign out" })).toBeVisible();
   await shoot(page, "user-menu", widths);
+  await page.keyboard.press("Escape");
+
+  // Screens that come later answer "not available yet".
+  await page.goto("/platform/diagnostics");
+  await expect(page.getByText("This screen isn't available yet.")).toBeVisible();
+  await shoot(page, "not-available", widths);
 });
 
 test("screenshots of a tenant workspace", async ({ page, request }) => {
@@ -81,8 +67,17 @@ test("screenshots of a tenant workspace", async ({ page, request }) => {
   await page.keyboard.press("Escape");
 
   await page.goto("/t/kmsa/settings/organisation");
-  await expect(page.getByText("This screen isn't available yet.")).toBeVisible();
-  await shoot(page, "not-available", widths);
+  await expect(page.getByRole("heading", { level: 1, name: "Organisation" })).toBeVisible();
+  await expect(page.getByLabel("Time zone")).toHaveValue("Africa/Kampala");
+  await expect(loading(page)).toHaveCount(0);
+  await shoot(page, "organisation", [phone, ...widths]);
+
+  await page.goto("/t/kmsa/settings/members");
+  await expect(page.getByRole("heading", { level: 1, name: "Members & roles" })).toBeVisible();
+  // Oldest first, 25 a page: on a database that earlier runs used, this run's owner may be on a later page.
+  await expect(page.getByRole("row").filter({ hasText: "Tenant owner" }).first()).toBeVisible();
+  await expect(loading(page)).toHaveCount(0);
+  await shoot(page, "members", [phone, ...widths]);
 
   await page.goto("/platform");
   await expect(page.getByRole("heading", { level: 1, name: "You can't open this page" })).toBeVisible();

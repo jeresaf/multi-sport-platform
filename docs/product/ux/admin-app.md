@@ -37,6 +37,30 @@ user's capabilities (docs/architecture/authorization.md); the server still enfor
   tenant or address is "Page not found". Forms can't be sent until the page is interactive (their button is
   disabled until then). Signing out reloads the sign-in page, so nothing the user saw stays in memory.
 
+### As built (S03-T6c1)
+
+- **Organisation** (`/t/{slug}/settings/organisation`): time zone and currency (pickers from the platform's reference
+  data), language code, "starting soon" minutes, guardian consent for minors, public site. Without
+  `tenant.settings.update` the form is shown disabled with a note saying who can change it. Saving sends only the
+  settings that changed, with `If-Match`. The tenant's name is the platform's (`tenant.update`); the page says so.
+- **Members & roles** (`/t/{slug}/settings/members`): members (active by default; suspended or removed on request) with
+  their roles, status and the reason for it, and invitations (pending and expired by default; with when the email went
+  out, or "Not sent yet" while pending and "Not sent" once it never will be; an expired one shows when it expired). A
+  member's menu offers only what the capabilities and the membership state allow: change
+  roles (tenant-wide), suspend and remove (each with a required reason, kept in the audit trail), restore. Only an owner
+  is offered the owner role, suspending, restoring or removing an owner, and revoking an invitation carrying the owner
+  role; the server refuses the rest (`AUTH_OWNER_REQUIRED`, `AUTH_LAST_OWNER`) and the dialog shows why. The user's own
+  row is marked "You", and changing their own access or roles says so first. Role changes are one request per role, each
+  with the version the previous one returned; if one is refused the dialog says which were already saved. On a phone a
+  member's roles and status sit under their email. After a change that takes a row out of the list, focus goes to the
+  section's heading.
+- **Concurrency.** A change sends the version it was based on (`If-Match`); `*_CONCURRENCY_CONFLICT` shows "This record
+  changed since you opened it" with **Reload**. Revoking an invitation is the exception: sending its email changes its
+  version moments after it is listed, so the revoke relies on the invitation's state instead.
+- **Dates** on these screens are in the tenant's time zone (from the settings), in UTC for someone who can't read them.
+- **Change password** (`/account/password`, from the user menu): current and new password; the user's other sessions end within 5
+  minutes, this one stays.
+
 ## Workspaces and screens
 
 ### Platform console (platform staff)

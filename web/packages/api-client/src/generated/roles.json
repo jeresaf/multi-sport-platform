@@ -1,0 +1,168 @@
+{
+  "roles": [
+    {
+      "code": "PLATFORM_ADMIN",
+      "scope": "PLATFORM",
+      "description": "Platform staff: tenants and their lifecycle, platform administrators, audit and outbox.",
+      "assignableAt": [],
+      "actions": [
+        "platform.admin.create",
+        "platform.audit.read",
+        "platform.capabilities.read",
+        "platform.outbox.read",
+        "platform.outbox.redrive",
+        "tenant.activate",
+        "tenant.archive",
+        "tenant.create",
+        "tenant.owner.invite",
+        "tenant.read",
+        "tenant.restore",
+        "tenant.suspend",
+        "tenant.unarchive",
+        "tenant.update"
+      ]
+    },
+    {
+      "code": "PLATFORM_SUPPORT",
+      "scope": "PLATFORM",
+      "description": "Platform staff, read-only: tenants, audit and outbox (every tenant, audit and outbox read is audited).",
+      "assignableAt": [],
+      "actions": [
+        "platform.audit.read",
+        "platform.capabilities.read",
+        "platform.outbox.read",
+        "tenant.read"
+      ]
+    },
+    {
+      "code": "TENANT_OWNER",
+      "scope": "TENANT",
+      "description": "All tenant actions, including members, roles, subscription view and tenant settings.",
+      "assignableAt": [
+        "TENANT"
+      ],
+      "actions": [
+        "invitation.revoke",
+        "membership.invite",
+        "membership.read",
+        "membership.remove",
+        "membership.restore",
+        "membership.suspend",
+        "role.assign",
+        "role.revoke",
+        "tenant.access.read",
+        "tenant.capabilities.read",
+        "tenant.settings.read",
+        "tenant.settings.update"
+      ]
+    },
+    {
+      "code": "TENANT_ADMIN",
+      "scope": "TENANT",
+      "description": "All tenant actions except ownership transfer.",
+      "assignableAt": [
+        "TENANT"
+      ],
+      "actions": [
+        "invitation.revoke",
+        "membership.invite",
+        "membership.read",
+        "membership.remove",
+        "membership.restore",
+        "membership.suspend",
+        "role.assign",
+        "role.revoke",
+        "tenant.capabilities.read",
+        "tenant.settings.read",
+        "tenant.settings.update"
+      ]
+    },
+    {
+      "code": "REGISTRAR",
+      "scope": "TENANT",
+      "description": "People, organisations, teams and venues: create, update, duplicate review; no merges.",
+      "assignableAt": [
+        "TENANT"
+      ],
+      "actions": [
+        "tenant.capabilities.read",
+        "tenant.settings.read"
+      ]
+    },
+    {
+      "code": "COMPETITION_MANAGER",
+      "scope": "TENANT",
+      "description": "Competitions, editions, registrations, roster approval, stages, fixtures, officials, contest admin, standings recalculation.",
+      "assignableAt": [
+        "TENANT",
+        "COMPETITION"
+      ],
+      "actions": [
+        "tenant.capabilities.read",
+        "tenant.settings.read"
+      ]
+    },
+    {
+      "code": "RESULTS_OFFICER",
+      "scope": "TENANT",
+      "description": "Result approve, reject, reopen and correct; progression overrides with a reason.",
+      "assignableAt": [
+        "TENANT",
+        "COMPETITION"
+      ],
+      "actions": [
+        "tenant.capabilities.read",
+        "tenant.settings.read"
+      ]
+    },
+    {
+      "code": "SCORER",
+      "scope": "TENANT",
+      "description": "Contest check-in, start, periods and clock; timeline record and correct; result submit.",
+      "assignableAt": [
+        "TENANT",
+        "COMPETITION",
+        "CONTEST"
+      ],
+      "actions": [
+        "tenant.capabilities.read",
+        "tenant.settings.read"
+      ]
+    },
+    {
+      "code": "TEAM_MANAGER",
+      "scope": "TENANT",
+      "description": "Team profile, memberships, staff, roster and lineup drafts and submission, registration create and submit.",
+      "assignableAt": [
+        "TEAM"
+      ],
+      "actions": []
+    },
+    {
+      "code": "DATA_ENTRY",
+      "scope": "TENANT",
+      "description": "Historical results entry and import dry runs (running an import needs COMPETITION_MANAGER or TENANT_ADMIN).",
+      "assignableAt": [
+        "TENANT",
+        "COMPETITION"
+      ],
+      "actions": [
+        "tenant.capabilities.read",
+        "tenant.settings.read"
+      ]
+    },
+    {
+      "code": "VIEWER",
+      "scope": "TENANT",
+      "description": "Read-only admin.",
+      "assignableAt": [
+        "TENANT"
+      ],
+      "actions": [
+        "membership.read",
+        "tenant.capabilities.read",
+        "tenant.settings.read"
+      ]
+    }
+  ]
+}

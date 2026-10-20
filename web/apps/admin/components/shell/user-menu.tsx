@@ -10,10 +10,11 @@ import {
   DropdownMenuTrigger,
 } from "@msp/ui/components/dropdown-menu";
 import { KeyRound, LogOut, UserRound } from "lucide-react";
+import Link from "next/link";
 import { humanizeCode } from "@/lib/codes";
 import type { Me } from "@/lib/workspace";
 
-/** Who is signed in, and signing out. Changing the password has no screen yet, so it says so. */
+/** Who is signed in, changing their password, and signing out. */
 export function UserMenu({ me, onSignOut }: Readonly<{ me: Me; onSignOut: () => void }>) {
   return (
     <DropdownMenu>
@@ -33,9 +34,11 @@ export function UserMenu({ me, onSignOut }: Readonly<{ me: Me; onSignOut: () => 
           ) : null}
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem disabled>
-          <KeyRound aria-hidden="true" />
-          Change password (not available yet)
+        <DropdownMenuItem asChild>
+          <Link href="/account/password">
+            <KeyRound aria-hidden="true" />
+            Change password
+          </Link>
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={onSignOut}>
           <LogOut aria-hidden="true" />
