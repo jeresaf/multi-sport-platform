@@ -1,12 +1,14 @@
 "use client";
 
+import { ProblemAlert } from "@/components/problem-alert";
 import { StatusPage } from "@/components/status-page";
 import { isApiProblem } from "@/lib/api";
 import { useTenantAccess } from "@/lib/capabilities";
 import { humanizeCode } from "@/lib/codes";
 import type { MeTenant } from "@/lib/workspace";
 
-const dateFormat = new Intl.DateTimeFormat("en-GB", { dateStyle: "long" });
+// UTC until the tenant's time zone reaches the admin app (`/me` and `tenant/access` don't carry it).
+const dateFormat = new Intl.DateTimeFormat("en-GB", { dateStyle: "long", timeZone: "UTC" });
 
 /**
  * A suspended or archived tenant's workspace (S03 D11): its status, and — for whoever the server lets read
@@ -33,8 +35,11 @@ export function BlockedTenant({ tenant }: Readonly<{ tenant: MeTenant }>) {
           ) : null}
         </dl>
       ) : null}
+      {access.isPending ? <p>Loading…</p> : null}
       {access.isError && isApiProblem(access.error, "AUTH_FORBIDDEN") ? (
         <p>Ask the organisation&apos;s owner why, or contact MSP support.</p>
+      ) : access.isError ? (
+        <ProblemAlert error={access.error} title="Couldn't load why" />
       ) : null}
     </StatusPage>
   );

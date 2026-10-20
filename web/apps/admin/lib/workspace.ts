@@ -58,3 +58,12 @@ export function rememberWorkspace(path: string): void {
     // Not remembered: `/` falls back to the first active tenant.
   }
 }
+
+/** On sign-out: the next person on this browser shouldn't learn which workspace the last one used. */
+export function forgetWorkspace(): void {
+  try {
+    globalThis.localStorage?.removeItem(lastUsedKey);
+  } catch {
+    // Nothing stored, or storage refuses: nothing to forget.
+  }
+}

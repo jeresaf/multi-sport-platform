@@ -2,6 +2,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, call, isUnauthenticated } from "./api";
 import { leaveTo } from "./leave";
+import { forgetWorkspace } from "./workspace";
 
 export const meQueryKey = ["account", "me"] as const;
 
@@ -41,6 +42,9 @@ export function useSignOut() {
 export function useSignOutAndLeave() {
   return useMutation({
     mutationFn: signOut,
-    onSuccess: () => leaveTo("/sign-in"),
+    onSuccess: () => {
+      forgetWorkspace();
+      leaveTo("/sign-in");
+    },
   });
 }

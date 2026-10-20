@@ -80,6 +80,27 @@ describe("signed-in guard", () => {
 });
 
 describe("tenant workspace", () => {
+  it("sends someone whose session ended to sign in when any call answers 401, not only `me`", async () => {
+    let meAnswers = 0;
+    fakeApi({
+      "GET /api/account/v1/me": () =>
+        ++meAnswers === 1 ? me() : { status: 401, body: problem("AUTH_UNAUTHENTICATED", 401) },
+      "GET /api/admin/v1/me/capabilities": { status: 401, body: problem("AUTH_UNAUTHENTICATED", 401) },
+    });
+    window.history.replaceState(null, "", "/t/kmsa");
+    navigation.params = { tenantSlug: "kmsa" };
+
+    renderWithQuery(
+      <SignedInLayout>
+        <TenantWorkspaceLayout>
+          <p>Workspace page</p>
+        </TenantWorkspaceLayout>
+      </SignedInLayout>,
+    );
+
+    await waitFor(() => expect(navigation.replace).toHaveBeenCalledWith("/sign-in?returnTo=%2Ft%2Fkmsa"));
+  });
+
   it("shows an owner every entry, asking for the capabilities in that tenant", async () => {
     const requests = fakeApi({
       "GET /api/account/v1/me": me(),
@@ -135,6 +156,17 @@ describe("tenant workspace", () => {
     expect(screen.getByText("12 October 2026")).toBeTruthy();
     expect(screen.queryByText("Workspace page")).toBeNull();
     expect(requests.some((request) => request.path === "/api/admin/v1/me/capabilities")).toBe(false);
+  });
+
+  it("shows a failure to load why a tenant is suspended, with its reference", async () => {
+    fakeApi({
+      "GET /api/account/v1/me": me(),
+      "GET /api/admin/v1/tenant/access": { status: 500, body: problem("PLATFORM_UNEXPECTED_ERROR", 500) },
+    });
+
+    openTenant("elssc");
+
+    expect(await screen.findByText("Reference: kmsa-admin.test")).toBeTruthy();
   });
 
   it("tells a member who may not read why a tenant is suspended whom to ask", async () => {
@@ -239,5 +271,6 @@ describe("switcher and user menu", () => {
 
     await waitFor(() => expect(leaveTo).toHaveBeenCalledWith("/sign-in"));
     expect(navigation.replace).not.toHaveBeenCalled();
+    expect(localStorage.getItem("msp.admin.lastWorkspace")).toBeNull();
   });
 });
