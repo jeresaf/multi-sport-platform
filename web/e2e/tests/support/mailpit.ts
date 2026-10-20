@@ -39,5 +39,29 @@ export async function linkFromEmail(request: APIRequestContext, to: string, path
     .toBeDefined();
 
   returned.add(link!);
+  if (path === "/accept-invitation") {
+    await invitationTokenStored(request, link!);
+  }
   return link!;
+}
+
+/**
+ * Waits until the API knows the invitation link's token. The email goes out before the token's hash is saved (the
+ * outbox saves the consumer's changes after the send, `InvitationEmailConsumer`), so a link read straight from the
+ * email can answer `404 AUTH_INVITATION_TOKEN_INVALID` for a moment (#58 R1).
+ */
+async function invitationTokenStored(request: APIRequestContext, link: string) {
+  const token = new URL(link).searchParams.get("token");
+  await expect
+    .poll(
+      async () => {
+        const lookup = await request.post("/api/account/v1/invitations/lookup", {
+          data: { token },
+          headers: { "X-CSRF": "1" },
+        });
+        return lookup.status();
+      },
+      { message: "the invitation link's token to be stored", timeout: 10_000 },
+    )
+    .toBe(200);
 }
