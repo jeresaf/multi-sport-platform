@@ -274,7 +274,9 @@ Deliver:
 Acceptance:
 - [ ] The matrix test covers every mapped admin and platform endpoint; a new endpoint is covered without editing the
       test.
-- [ ] Capabilities match the evaluator for every system role (table-driven).
+- [x] Capabilities match the evaluator for every system role (table-driven). Evidence:
+      `CapabilitiesTests.A_members_tenant_capabilities_are_what_the_evaluator_allows`,
+      `CapabilitiesTests.A_platform_users_capabilities_are_what_the_evaluator_allows` (T5a).
 - [ ] Suspending or removing an inviter revokes their pending invitations; the invitee's token then answers
       `404 AUTH_INVITATION_TOKEN_INVALID` (Q20, test).
 
@@ -506,3 +508,12 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   tenant reached by tenant-wide assignments. Identity reads action definitions through `IActionCatalogue`
   (BuildingBlocks); `ScopeChains` (BuildingBlocks) is the provider registry, one provider per resource type, checked
   at startup.
+- **T5a:** `Permissions` (Identity, scoped) reads the actor's platform roles, or their active membership's unrevoked
+  assignments in the request's tenant (RLS), once; `HeldRoles.Allows(action, chain)` is the one rule the evaluator and
+  both capabilities handlers apply (the evaluator reads the resource's chain only when an assignment below the tenant
+  could grant). `ScopeChains` (BuildingBlocks, scoped) replaces the evaluator's own provider lookup; the Host refuses
+  two providers for one type (`ScopeChainRules`). `IActionCatalogue` (BuildingBlocks) is `DeclaredActions` in the Host.
+  `GET /api/admin/v1/me/capabilities` (tag Capabilities): optional `scopeType` (`COMPETITION | TEAM | CONTEST`) and
+  `scopeId` together, else `400 VALIDATION_INVALID_QUERY`; answers `{ actions, scope }`, actions in ordinal order.
+  `GET /api/platform/v1/me/capabilities`: `{ actions, scope: null }`. A member with no roles, or only a team-scoped
+  `TEAM_MANAGER`, gets `403 AUTH_FORBIDDEN` on the tenant list.

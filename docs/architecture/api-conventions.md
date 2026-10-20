@@ -14,6 +14,11 @@
 `Cache-Control: no-store`; account actions are allowed nowhere else (startup check). A few allow anonymous callers
 (`account.login`, password reset, invitation acceptance); the rest need a session.
 
+**What the caller may do (S03-T5).** `GET /api/admin/v1/me/capabilities` and `GET /api/platform/v1/me/capabilities`
+list the action codes the caller may perform in the request's tenant or on the platform (docs/architecture/authorization.md,
+"UI behaviour"). They live in their families, not under `/api/account`, because they answer for a tenant or the
+platform and are authorized like every other action there.
+
 **Sessions (S03 D5).** The admin web signs in with `POST /api/account/v1/login` and gets ASP.NET Core Identity's
 cookie: `__Host-msp_session` (`msp_session` over http in Development), HttpOnly, Secure, `SameSite=Strict`, path `/`;
 12 hours sliding, 7 days at most; the security stamp is checked every 5 minutes. It is a session cookie (no
