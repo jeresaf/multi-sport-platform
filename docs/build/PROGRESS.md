@@ -7,8 +7,8 @@ at the start of every review.
 
 - **Current slice:** S03 — Identity and access (docs/build/slices/S03-identity-access.md, rewritten by the S02 slice
   review). S00, S01 and S02 are done
-- **Current task:** S03-T6b1 — Admin web: shadcn/ui, API client wrapper, rewrites, error display, signed-out pages — in review (#56)
-  (sign in, forgot and reset password, accept invitation)
+- **Current task:** S03-T6b1 — Admin web: shadcn/ui, API client wrapper, rewrites, error display, signed-out pages
+  (sign in, forgot and reset password, accept invitation) — in review (#56)
 - **Next:** S03-T6b2 — shell, guards, navigation, tenant switcher, user menu, 401/403/404; then S03-T6c — members,
   settings, platform console, e2e
 - **Blocked on:** nothing
