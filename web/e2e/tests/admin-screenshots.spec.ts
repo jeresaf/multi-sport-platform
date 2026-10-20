@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import {
   acceptByApi,
   createTenant,
@@ -12,6 +12,9 @@ import {
 } from "./support/accounts";
 import { open } from "./support/pages";
 import { phone, shoot, widths } from "./support/screenshots";
+
+// A screen still reading its data (`Loading`, a polite status).
+const loading = (page: Page) => page.getByRole("status").filter({ hasText: "Loading" });
 
 test("screenshots of the signed-out pages", async ({ page, request }) => {
   await open(page, "/sign-in");
@@ -65,11 +68,15 @@ test("screenshots of a tenant workspace", async ({ page, request }) => {
 
   await page.goto("/t/kmsa/settings/organisation");
   await expect(page.getByRole("heading", { level: 1, name: "Organisation" })).toBeVisible();
+  await expect(page.getByLabel("Time zone")).toHaveValue("Africa/Kampala");
+  await expect(loading(page)).toHaveCount(0);
   await shoot(page, "organisation", [phone, ...widths]);
 
   await page.goto("/t/kmsa/settings/members");
   await expect(page.getByRole("heading", { level: 1, name: "Members & roles" })).toBeVisible();
-  await expect(page.getByText(email)).toBeVisible();
+  // Oldest first, 25 a page: on a database that earlier runs used, this run's owner may be on a later page.
+  await expect(page.getByRole("row").filter({ hasText: "Tenant owner" }).first()).toBeVisible();
+  await expect(loading(page)).toHaveCount(0);
   await shoot(page, "members", [phone, ...widths]);
 
   await page.goto("/platform");
