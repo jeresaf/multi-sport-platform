@@ -169,6 +169,10 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
 (2026-10-18). The S00 carry-overs assigned to S01 are done. Each item names where it gets done.
 
 **S03 — identity and access**
+- Assignment scope vs action scope (#45 N1): `RoleRules` checks a tenant role per role, not per assignment. T4's
+  evaluator grants a tenant action only when the role includes it, the assignment's scope type is in the action's
+  `scopable_by`, and that scope is in the resource's chain; test a competition-scoped `COMPETITION_MANAGER` refused
+  `tenant.settings.read`. (T4)
 - Tests that order audit entries by ID (`AuditTestData.EntriesAsync`) see entries written at one fake-clock instant
   in random order (UUIDv7 from `AuditScope`'s clock); compare such entries without order, or order by something
   stable (S03-T3, found in `PasswordResetTests`). (Any task touching audit tests)
