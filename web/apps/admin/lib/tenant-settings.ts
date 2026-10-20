@@ -22,6 +22,11 @@ export function useTenantTimeZone(): string {
   return useTenantSettings().data?.timeZone ?? "UTC";
 }
 
+/** A date and time as people read them in a time zone: "20 Oct 2026, 14:30". */
+export function formatDateTime(instant: string, timeZone: string): string {
+  return new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short", timeZone }).format(new Date(instant));
+}
+
 /** A date as people read it in a time zone: "20 Oct 2026". */
 export function formatDate(instant: string, timeZone: string): string {
   return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone }).format(

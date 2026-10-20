@@ -76,7 +76,11 @@ export default function TenantsPage() {
       {tenants.isError ? <ProblemAlert error={tenants.error} /> : null}
       {tenants.isSuccess && rows.length === 0 ? (
         <EmptyState title={status ? `No ${humanizeCode(status).toLowerCase()} tenants` : "No tenants yet"}>
-          {status ? "Choose another status to see others." : "Create the first one with New tenant."}
+          {status
+            ? "Choose another status to see others."
+            : can("tenant.create")
+              ? "Create the first one with New tenant."
+              : "Platform administrators create tenants."}
         </EmptyState>
       ) : null}
       {rows.length > 0 ? (

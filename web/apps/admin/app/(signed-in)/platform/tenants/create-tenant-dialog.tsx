@@ -15,7 +15,7 @@ import {
 import { Label } from "@msp/ui/components/label";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { FormField } from "@/components/form-field";
 import { ProblemAlert } from "@/components/problem-alert";
@@ -86,6 +86,11 @@ export function CreateTenantDialog({ onOpenChange }: Readonly<{ onOpenChange: (o
   const timeZones = useTimeZones();
   const currencies = useCurrencies();
   const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues });
+  // The chosen country's zones first narrow the list; a country without zones (or none chosen) shows them all.
+  const countryCode = useWatch({ control: form.control, name: "countryCode" });
+  const allZones = timeZones.data?.items ?? [];
+  const countryZones = allZones.filter((zone) => zone.countryCode === countryCode);
+  const zoneChoices = countryZones.length > 0 ? countryZones : allZones;
 
   const create = useMutation({
     mutationFn: (values: Values) => call(api.POST("/api/platform/v1/tenants", { body: values })),
@@ -150,7 +155,15 @@ export function CreateTenantDialog({ onOpenChange }: Readonly<{ onOpenChange: (o
             id="tenant-countryCode"
             label="Country"
             error={errors.countryCode?.message}
-            {...form.register("countryCode")}
+            {...form.register("countryCode", {
+              // A zone chosen for another country no longer fits: choose again.
+              onChange: (event: { target: { value: string } }) => {
+                const zone = allZones.find((item) => item.code === form.getValues("timeZone"));
+                if (zone && zone.countryCode !== event.target.value) {
+                  form.setValue("timeZone", "");
+                }
+              },
+            })}
           >
             <option value="">Choose a country</option>
             {(countries.data?.items ?? []).map((country) => (
@@ -166,7 +179,7 @@ export function CreateTenantDialog({ onOpenChange }: Readonly<{ onOpenChange: (o
             {...form.register("timeZone")}
           >
             <option value="">Choose a time zone</option>
-            {(timeZones.data?.items ?? []).map((zone) => (
+            {zoneChoices.map((zone) => (
               <option key={zone.code} value={zone.code}>
                 {zone.code}
               </option>

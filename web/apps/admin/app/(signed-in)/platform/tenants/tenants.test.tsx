@@ -4,7 +4,7 @@ import { act, cleanup, fireEvent, screen, waitFor, within } from "@testing-libra
 import { errorMessage } from "@msp/api-client/errors";
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { fakeApi, problem, renderWithQuery, type Answer } from "@/test/render";
+import { fakeApi, problem, renderWithQuery, type Answer, type Answers } from "@/test/render";
 import PlatformLayout from "../layout";
 import TenantPage from "./[tenantId]/page";
 import TenantsPage from "./page";
@@ -75,7 +75,7 @@ const reference = {
   ]),
 };
 
-function render(ui: ReactElement, actions: string[], answers: Record<string, Answer | (() => Answer)>, roles = ["PLATFORM_ADMIN"]) {
+function render(ui: ReactElement, actions: string[], answers: Answers, roles = ["PLATFORM_ADMIN"]) {
   const requests = fakeApi({
     "GET /api/account/v1/me": me(roles),
     "GET /api/platform/v1/me/capabilities": { status: 200, body: { actions, scope: null } },
@@ -86,7 +86,7 @@ function render(ui: ReactElement, actions: string[], answers: Record<string, Ans
   return requests;
 }
 
-function openList(actions: string[] = adminActions, answers: Record<string, Answer | (() => Answer)> = {}) {
+function openList(actions: string[] = adminActions, answers: Answers = {}) {
   navigation.params = {};
   navigation.pathname = "/platform/tenants";
   return render(<TenantsPage />, actions, {
@@ -100,7 +100,7 @@ const detailPath = (tenant: { id: string }) => `/api/platform/v1/tenants/${tenan
 function openDetail(
   tenant: typeof kmsa,
   actions: string[] = adminActions,
-  answers: Record<string, Answer | (() => Answer)> = {},
+  answers: Answers = {},
   roles?: string[],
 ) {
   navigation.params = { tenantId: tenant.id };
@@ -142,9 +142,8 @@ describe("tenants list", () => {
 
   it("filters by status and pages with Show more", async () => {
     const requests = openList(adminActions, {
-      "GET /api/platform/v1/tenants": () => {
-        const last = requests.at(-1)!;
-        const query = new URLSearchParams(last.search);
+      "GET /api/platform/v1/tenants": (request) => {
+        const query = new URLSearchParams(request.search);
         if (query.get("cursor") === "next") {
           return page([listItem(kmsa)]);
         }
@@ -169,6 +168,13 @@ describe("tenants list", () => {
     openList(adminActions, { "GET /api/platform/v1/tenants": page([]) });
 
     expect(await screen.findByText("No tenants yet")).toBeTruthy();
+  });
+
+  it("doesn't tell support staff to create a tenant they can't create", async () => {
+    openList(supportActions, { "GET /api/platform/v1/tenants": page([]) });
+
+    expect(await screen.findByText("Platform administrators create tenants.")).toBeTruthy();
+    expect(screen.queryByText(/New tenant/)).toBeNull();
   });
 
   it("offers support staff no New tenant", async () => {
@@ -230,6 +236,33 @@ describe("creating a tenant", () => {
     expect(create.headers.get("X-Tenant-Id")).toBeNull();
   });
 
+  it("offers the chosen country's time zones, and asks again when the country changes", async () => {
+    openList(adminActions, {
+      "GET /api/public/v1/reference/countries": page([
+        { code: "UG", alpha3Code: "UGA", numericCode: "800", name: "Uganda" },
+        { code: "KE", alpha3Code: "KEN", numericCode: "404", name: "Kenya" },
+      ]),
+      "GET /api/public/v1/reference/time-zones": page([
+        { code: "Africa/Kampala", countryCode: "UG" },
+        { code: "Africa/Nairobi", countryCode: "KE" },
+      ]),
+    });
+
+    fireEvent.click(await screen.findByRole("button", { name: "New tenant" }));
+    const dialog = within(await screen.findByRole("dialog"));
+    const zones = () => dialog.getAllByRole("option").map((option) => option.textContent).filter((name) => name?.startsWith("Africa/"));
+    await dialog.findByRole("option", { name: "Africa/Nairobi" });
+    expect(zones()).toEqual(["Africa/Kampala", "Africa/Nairobi"]);
+
+    fireEvent.change(dialog.getByLabelText("Country"), { target: { value: "UG" } });
+    await waitFor(() => expect(zones()).toEqual(["Africa/Kampala"]));
+    fireEvent.change(dialog.getByLabelText("Time zone"), { target: { value: "Africa/Kampala" } });
+
+    fireEvent.change(dialog.getByLabelText("Country"), { target: { value: "KE" } });
+    await waitFor(() => expect(zones()).toEqual(["Africa/Nairobi"]));
+    expect((dialog.getByLabelText("Time zone") as HTMLSelectElement).value).toBe("");
+  });
+
   it("puts a taken slug and the server's field errors under their fields", async () => {
     let answer: Answer = { status: 409, body: problem("TENANT_SLUG_TAKEN", 409) };
     openList(adminActions, { "POST /api/platform/v1/tenants": () => answer });
@@ -285,6 +318,7 @@ describe("a tenant's detail", () => {
 
     await screen.findByRole("heading", { level: 1, name: kmsa.displayName });
     expect(offered()).toEqual([]);
+    expect(screen.getByText("You can view this tenant. Changing its status needs a platform administrator.")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Invite an owner" })).toBeNull();
   });
 
@@ -296,8 +330,12 @@ describe("a tenant's detail", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Suspend" }));
     const dialog = within(await screen.findByRole("dialog"));
     expect(dialog.getByRole("heading", { name: `Suspend ${kmsa.displayName}?` })).toBeTruthy();
-    // Reasons are kept permanently (audit trail): the field says not to put personal details in them.
-    expect(dialog.getByRole("textbox", { name: "Reason", description: /Don.t include personal details/ })).toBeTruthy();
+    // Reasons are kept permanently (audit trail) and the tenant's owners see them: the dialog says so, and the field says
+    // not to put personal details in them.
+    expect(dialog.getByText(/Its owners still see that it is suspended, since when, and this reason\./)).toBeTruthy();
+    expect(
+      dialog.getByRole("textbox", { name: "Reason", description: /shown to the tenant.s owners\. Don.t include personal details/ }),
+    ).toBeTruthy();
     fireEvent.click(dialog.getByRole("button", { name: "Suspend" }));
     expect(await dialog.findByText(/Give a reason/)).toBeTruthy();
     expect(requests.some((request) => request.path.endsWith("/suspend"))).toBe(false);
@@ -310,8 +348,11 @@ describe("a tenant's detail", () => {
     expect(suspend.body).toEqual({ reason: "Annual fee unpaid" });
     expect(suspend.headers.get("If-Match")).toBe('"4"');
     expect(suspend.headers.get("X-Tenant-Id")).toBeNull();
-    // The tenant is shown as the API returned it.
+    // The tenant is shown as the API returned it; focus is on its heading (the Suspend button is gone) and the change
+    // is announced.
     expect(offered()).toEqual(["Restore", "Archive"]);
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("heading", { level: 1, name: kmsa.displayName })));
+    expect(screen.getAllByRole("status").map((status) => status.textContent)).toContain("Suspended.");
   });
 
   it("activates without a reason", async () => {
@@ -389,6 +430,9 @@ describe("a tenant's detail", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: label }));
     const dialog = within(await screen.findByRole("dialog"));
+    if (path === "unarchive") {
+      expect(dialog.getByText(/Its owners then see this reason instead of the earlier one\./)).toBeTruthy();
+    }
     if (reason) {
       fireEvent.change(dialog.getByLabelText("Reason"), { target: { value: reason } });
     } else {
@@ -400,6 +444,16 @@ describe("a tenant's detail", () => {
     const sent = requests.find((request) => request.path === `${detailPath(tenant)}/${path}`)!;
     expect(sent.body).toEqual(reason ? { reason } : undefined);
     expect(sent.headers.get("If-Match")).toBe('"4"');
+  });
+
+  it("doesn't ask for the tenant without tenant.read", async () => {
+    const requests = openDetail(kmsa, []);
+
+    // The shell is up (capabilities read), so the forbidden page is the tenant page's own.
+    expect((await screen.findAllByRole("navigation")).length).toBeGreaterThan(0);
+    expect(await screen.findByRole("heading", { name: "You can't open this page" })).toBeTruthy();
+    await act(async () => {}); // runs the page's effects, where a query would start
+    expect(requests.some((request) => request.path === detailPath(kmsa))).toBe(false);
   });
 
   it("says an unknown tenant isn't there", async () => {
@@ -441,8 +495,9 @@ describe("inviting a tenant's owner", () => {
     expect(requests.find((request) => request.path.endsWith("/owner-invitations"))!.body).toEqual({
       email: invitation.email,
     });
-    expect(screen.getByRole("status").textContent).toBe(
-      `Invited ${invitation.email}. The email with the link goes out in a moment; the link works until 27 Oct 2026.`,
+    // The link expires at a time of day: shown in the tenant's zone, which is named.
+    expect(screen.getAllByRole("status").map((status) => status.textContent)).toContain(
+      `Invited ${invitation.email}. The email with the link goes out in a moment; the link works until 27 Oct 2026, 12:00 (Africa/Kampala).`,
     );
   });
 

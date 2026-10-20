@@ -5,7 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { ActionDialog } from "@/components/action-dialog";
 import { Loading } from "@/components/loading";
 import { ProblemAlert } from "@/components/problem-alert";
@@ -15,7 +15,7 @@ import { api, call, isApiProblem } from "@/lib/api";
 import { ifMatch } from "@/lib/concurrency";
 import { usePlatformCan } from "@/lib/platform-workspace";
 import { useCountries } from "@/lib/reference-data";
-import { formatDate } from "@/lib/tenant-settings";
+import { formatDate, formatDateTime } from "@/lib/tenant-settings";
 import { platformPath } from "@/lib/workspace";
 import { tenantQueryKey, useTenant, useTenantSaved, type Tenant, type TenantStatus } from "../tenants-data";
 import { OwnerInviteDialog, type OwnerInvitation } from "./owner-invite-dialog";
@@ -49,7 +49,7 @@ const changes: Readonly<
     from: ["ACTIVE"],
     label: "Suspend",
     description:
-      "Its members can't work in it and its public site is offline until it is restored. Its owners can still see that it is suspended, and since when.",
+      "Its members can't work in it and its public site is offline until it is restored. Its owners still see that it is suspended, since when, and this reason.",
     withReason: true,
     destructive: true,
   },
@@ -66,7 +66,7 @@ const changes: Readonly<
     from: ["ACTIVE", "SUSPENDED"],
     label: "Archive",
     description:
-      "The tenant is closed: no one can work in it, join it or be invited to it. It can be unarchived later, which leaves it suspended. Its slug is never reused.",
+      "The tenant is closed: no one can work in it, join it or be invited to it. Its owners still see that it is archived and this reason. It can be unarchived later, which leaves it suspended. Its slug is never reused.",
     withReason: true,
     destructive: true,
   },
@@ -74,10 +74,20 @@ const changes: Readonly<
     action: "tenant.unarchive",
     from: ["ARCHIVED"],
     label: "Unarchive",
-    description: "It comes back suspended: restore it afterwards to let its members work again.",
+    description:
+      "It comes back suspended: restore it afterwards to let its members work again. Its owners then see this reason instead of the earlier one.",
     withReason: true,
     destructive: false,
   },
+};
+
+// What the page announces once a change is saved (the badge shows it too).
+const done: Readonly<Record<Change, string>> = {
+  activate: "Activated.",
+  suspend: "Suspended.",
+  restore: "Restored.",
+  archive: "Archived.",
+  unarchive: "Unarchived: the tenant is suspended until it is restored.",
 };
 
 const changeOrder: readonly Change[] = ["activate", "restore", "suspend", "unarchive", "archive"];
@@ -121,6 +131,10 @@ function TenantDetail({ tenant }: Readonly<{ tenant: Tenant }>) {
   const [pending, setPending] = useState<Change | null>(null);
   const [inviting, setInviting] = useState(false);
   const [invited, setInvited] = useState<OwnerInvitation | null>(null);
+  const [announcement, setAnnouncement] = useState("");
+  // The button that opened the dialog is gone after a change (Suspend becomes Restore): focus goes to the heading.
+  const heading = useRef<HTMLHeadingElement>(null);
+  const changed = useRef(false);
   const reload = () => queryClient.invalidateQueries({ queryKey: tenantQueryKey(tenant.id) });
 
   const change = useMutation({
@@ -145,11 +159,14 @@ function TenantDetail({ tenant }: Readonly<{ tenant: Tenant }>) {
           );
       }
     },
-    onSuccess: async (next) => {
+    onSuccess: async (next, { change }) => {
       await saved(next);
+      changed.current = true;
+      setAnnouncement(done[change]);
       setPending(null);
     },
-    // Refused because the tenant changed meanwhile (someone else suspended it): show it as it is now.
+    // Defensive: a change sent with the shown version that someone else made first is a concurrency conflict (the
+    // version is checked first), so this refusal shouldn't come from this page; should it, show the tenant as it is.
     onError: (error) => {
       if (isApiProblem(error, "TENANT_INVALID_TRANSITION")) {
         void reload();
@@ -178,11 +195,16 @@ function TenantDetail({ tenant }: Readonly<{ tenant: Tenant }>) {
 
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div className="grid min-w-0 gap-2">
-          <h1 className="text-2xl font-semibold break-words">{tenant.displayName}</h1>
+          <h1 ref={heading} tabIndex={-1} className="text-2xl font-semibold break-words outline-none">
+            {tenant.displayName}
+          </h1>
           <div className="flex flex-wrap items-center gap-3">
             <StatusBadge status={tenant.status} />
             <span className="text-muted-foreground">{tenant.slug}</span>
           </div>
+          <p role="status" className="sr-only">
+            {announcement}
+          </p>
         </div>
         {allowed.length > 0 ? (
           <div className="flex flex-wrap gap-2">
@@ -199,6 +221,11 @@ function TenantDetail({ tenant }: Readonly<{ tenant: Tenant }>) {
               </Button>
             ))}
           </div>
+        ) : null}
+        {changeOrder.every((name) => !can(changes[name].action)) ? (
+          <p className="basis-full text-sm text-muted-foreground">
+            You can view this tenant. Changing its status needs a platform administrator.
+          </p>
         ) : null}
       </header>
 
@@ -230,7 +257,7 @@ function TenantDetail({ tenant }: Readonly<{ tenant: Tenant }>) {
         </p>
         <p role="status" className="text-sm">
           {invited
-            ? `Invited ${invited.email}. The email with the link goes out in a moment; the link works until ${formatDate(invited.expiresAt, timeZone)}.`
+            ? `Invited ${invited.email}. The email with the link goes out in a moment; the link works until ${formatDateTime(invited.expiresAt, timeZone)} (${timeZone}).`
             : ""}
         </p>
         {canInvite ? (
@@ -276,6 +303,14 @@ function TenantDetail({ tenant }: Readonly<{ tenant: Tenant }>) {
             void reload();
             setPending(null);
           }}
+          onCloseAutoFocus={(event) => {
+            if (changed.current) {
+              changed.current = false;
+              event.preventDefault();
+              heading.current?.focus();
+            }
+          }}
+          reasonHint="Kept in the audit trail with your name, and shown to the tenant's owners. Don't include personal details."
         />
       ) : null}
     </div>

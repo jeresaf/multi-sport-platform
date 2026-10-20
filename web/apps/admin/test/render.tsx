@@ -13,8 +13,11 @@ export function renderWithQuery(ui: ReactElement) {
 export type Answer = { status: number; body?: unknown };
 export type RecordedRequest = { method: string; path: string; search: string; headers: Headers; body: unknown };
 
+/** An answer, or a function of the request it answers (its query string, say). */
+export type Answers = Record<string, Answer | ((request: RecordedRequest) => Answer)>;
+
 /** Replaces fetch: `answers["POST /api/account/v1/login"]` answers that request; anything else is a 404. */
-export function fakeApi(answers: Record<string, Answer | (() => Answer)>) {
+export function fakeApi(answers: Answers) {
   const requests: RecordedRequest[] = [];
   vi.stubGlobal("fetch", async (request: Request) => {
     const { pathname: path, search } = new URL(request.url);
@@ -25,7 +28,7 @@ export function fakeApi(answers: Record<string, Answer | (() => Answer)>) {
     recorded.body = text ? JSON.parse(text) : undefined;
 
     const entry = answers[`${request.method} ${path}`];
-    const answer = typeof entry === "function" ? entry() : (entry ?? { status: 404, body: problem("PLATFORM_ROUTE_NOT_FOUND", 404) });
+    const answer = typeof entry === "function" ? entry(recorded) : (entry ?? { status: 404, body: problem("PLATFORM_ROUTE_NOT_FOUND", 404) });
     const contentType = answer.status >= 400 ? "application/problem+json" : "application/json";
     return new Response(answer.body === undefined ? null : JSON.stringify(answer.body), {
       status: answer.status,
