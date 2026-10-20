@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { Loading } from "@/components/loading";
 import { AppShell } from "@/components/shell/app-shell";
 import { StatusPage } from "@/components/status-page";
 import { useMe } from "@/lib/account";
@@ -20,7 +21,11 @@ export default function LandingPage() {
   }, [target, router]);
 
   if (!me.data || target) {
-    return <p className="p-4 text-muted-foreground">Loading…</p>;
+    return (
+      <main className="mx-auto grid w-full max-w-xl gap-4 px-4 py-12">
+        <Loading />
+      </main>
+    );
   }
   return (
     <AppShell workspace="No workspace" navigation={[]}>

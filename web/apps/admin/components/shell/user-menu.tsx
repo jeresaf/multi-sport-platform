@@ -18,7 +18,7 @@ export function UserMenu({ me, onSignOut }: Readonly<{ me: Me; onSignOut: () => 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" aria-label="Account menu" className="min-w-0">
+        <Button variant="ghost" aria-label={`Account menu: ${me.email}`} className="min-w-0">
           <UserRound aria-hidden="true" />
           <span className="hidden truncate desktop:inline">{me.email}</span>
         </Button>

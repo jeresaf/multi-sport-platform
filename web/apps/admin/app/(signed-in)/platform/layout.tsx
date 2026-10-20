@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, type ReactNode } from "react";
+import { Loading } from "@/components/loading";
 import { ProblemAlert } from "@/components/problem-alert";
 import { AppShell } from "@/components/shell/app-shell";
 import { ForbiddenView } from "@/components/status-page";
@@ -30,7 +31,7 @@ export default function PlatformLayout({ children }: Readonly<{ children: ReactN
     return (
       <AppShell workspace={workspace} navigation={[]}>
         {!isPlatformStaff ? <ForbiddenView /> : null}
-        {isPlatformStaff && capabilities.isPending ? <p className="text-muted-foreground">Loading…</p> : null}
+        {isPlatformStaff && capabilities.isPending ? <Loading /> : null}
         {capabilities.isError && isApiProblem(capabilities.error) && capabilities.error.status === 403 ? (
           <ForbiddenView error={capabilities.error} />
         ) : capabilities.isError ? (

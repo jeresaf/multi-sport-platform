@@ -1,5 +1,5 @@
 // The admin app's query client (providers.tsx; tests use it too, so they see the same behaviour).
-import { MutationCache, QueryCache, QueryClient } from "@tanstack/react-query";
+import { hashKey, MutationCache, QueryCache, QueryClient } from "@tanstack/react-query";
 import { meQueryKey } from "./account";
 import { isUnauthenticated } from "./api";
 
@@ -17,7 +17,7 @@ export function createQueryClient() {
   });
 
   function onUnauthenticated(error: unknown, queryKey?: readonly unknown[]) {
-    if (isUnauthenticated(error) && queryKey?.[0] !== meQueryKey[0]) {
+    if (isUnauthenticated(error) && (queryKey === undefined || hashKey(queryKey) !== hashKey(meQueryKey))) {
       void queryClient.invalidateQueries({ queryKey: meQueryKey });
     }
   }

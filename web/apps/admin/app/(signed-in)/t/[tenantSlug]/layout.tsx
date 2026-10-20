@@ -2,6 +2,7 @@
 
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, type ReactNode } from "react";
+import { Loading } from "@/components/loading";
 import { ProblemAlert } from "@/components/problem-alert";
 import { AppShell } from "@/components/shell/app-shell";
 import { ForbiddenView, NotFoundView } from "@/components/status-page";
@@ -25,11 +26,13 @@ export default function TenantWorkspaceLayout({ children }: Readonly<{ children:
   const capabilities = useTenantCapabilities(tenant?.tenantId ?? "", tenant !== undefined && !blocked);
   const items = useMemo(() => tenantNavigation(tenantSlug), [tenantSlug]);
 
+  // Only a workspace that opens (or says why it's closed) is remembered: `/` must not lead back to a refusal.
+  const opens = blocked || capabilities.isSuccess;
   useEffect(() => {
-    if (tenant) {
+    if (tenant && opens) {
       rememberWorkspace(tenantPath(tenant.slug));
     }
-  }, [tenant]);
+  }, [tenant, opens]);
 
   if (!tenant) {
     return (
@@ -43,7 +46,7 @@ export default function TenantWorkspaceLayout({ children }: Readonly<{ children:
     return (
       <AppShell workspace={tenant.displayName} navigation={[]}>
         {blocked ? <BlockedTenant tenant={tenant} /> : null}
-        {capabilities.isPending && !blocked ? <p className="text-muted-foreground">Loading…</p> : null}
+        {capabilities.isPending && !blocked ? <Loading /> : null}
         {capabilities.isError && isApiProblem(capabilities.error) && capabilities.error.status === 403 ? (
           <ForbiddenView error={capabilities.error} />
         ) : capabilities.isError ? (

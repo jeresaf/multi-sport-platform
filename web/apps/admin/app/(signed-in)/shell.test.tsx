@@ -190,6 +190,8 @@ describe("tenant workspace", () => {
 
     expect(await screen.findByRole("heading", { name: "You can't open this page" })).toBeTruthy();
     expect(screen.getByText(/still being set up/)).toBeTruthy();
+    // `/` must not lead back here.
+    expect(localStorage.getItem("msp.admin.lastWorkspace")).toBeNull();
   });
 });
 
@@ -266,7 +268,7 @@ describe("switcher and user menu", () => {
   it("signs out from the user menu with a fresh load of the sign-in page (no return path)", async () => {
     await openOwnerWorkspace();
 
-    openMenu("Account menu");
+    openMenu(/^Account menu: /);
     fireEvent.click(await screen.findByRole("menuitem", { name: "Sign out" }));
 
     await waitFor(() => expect(leaveTo).toHaveBeenCalledWith("/sign-in"));

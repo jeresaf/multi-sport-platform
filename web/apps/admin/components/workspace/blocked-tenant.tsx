@@ -1,5 +1,6 @@
 "use client";
 
+import { Loading } from "@/components/loading";
 import { ProblemAlert } from "@/components/problem-alert";
 import { StatusPage } from "@/components/status-page";
 import { isApiProblem } from "@/lib/api";
@@ -35,7 +36,7 @@ export function BlockedTenant({ tenant }: Readonly<{ tenant: MeTenant }>) {
           ) : null}
         </dl>
       ) : null}
-      {access.isPending ? <p>Loading…</p> : null}
+      {access.isPending ? <Loading /> : null}
       {access.isError && isApiProblem(access.error, "AUTH_FORBIDDEN") ? (
         <p>Ask the organisation&apos;s owner why, or contact MSP support.</p>
       ) : access.isError ? (

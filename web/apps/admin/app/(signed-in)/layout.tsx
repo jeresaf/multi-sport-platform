@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
+import { Loading } from "@/components/loading";
 import { ProblemAlert } from "@/components/problem-alert";
 import { useMe } from "@/lib/account";
 import { isUnauthenticated } from "@/lib/api";
@@ -24,7 +25,7 @@ export default function SignedInLayout({ children }: Readonly<{ children: ReactN
   }
   return (
     <main className="mx-auto grid w-full max-w-xl gap-4 px-4 py-12">
-      {me.isError && !signedOut ? <ProblemAlert error={me.error} /> : <p className="text-muted-foreground">Loading…</p>}
+      {me.isError && !signedOut ? <ProblemAlert error={me.error} /> : <Loading />}
     </main>
   );
 }
