@@ -157,6 +157,32 @@ public sealed class InvitationAcceptanceTests(PostgresFixture fixture) : Databas
         me.Tenants.ShouldHaveSingleItem().Roles.ShouldBe([IdentityRoles.Registrar]);
     }
 
+    // #50 N1: with a real session the security stamp check reads identity.users before the request's tenant is set.
+    [Fact]
+    public async Task A_signed_in_invitee_accepts_after_the_session_stamp_check_and_joins_the_right_tenant()
+    {
+        App.Authorization.UseIdentityRoles();
+        var password = TestPasswords.New();
+        var brian = await AccountTestData.CreateUserAsync(App.Services, _brianEmail, password, Ct);
+        var (kmsa, _, token) = await KmsaInvitesBrianAsync(IdentityRoles.Registrar);
+        using var session = App.CreateClient();
+        (await session.LoginAsync(_brianEmail, password, Ct)).StatusCode.ShouldBe(HttpStatusCode.NoContent);
+        App.Clock.Advance(TimeSpan.FromMinutes(6)); // past the 5-minute stamp validation interval
+
+        using var response = await session.AcceptInvitationAsync(token, password: null, Ct);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK, await response.Content.ReadAsStringAsync(Ct));
+        var accepted = (await response.Content.ReadFromJsonAsync<AcceptInvitationResponse>(Json, Ct)).ShouldNotBeNull();
+        var membership = (await QueryAsync(
+            DatabaseRoles.Platform,
+            "SELECT tenant_id, user_id FROM identity.tenant_memberships WHERE id = @m",
+            r => (Tenant: r.GetGuid(0), User: r.GetGuid(1)),
+            new Npgsql.NpgsqlParameter("m", accepted.MembershipId))).ShouldHaveSingleItem();
+        membership.ShouldBe((kmsa, brian));
+        var me = (await session.GetFromJsonAsync<MeResponse>(AccountTestData.MePath, Json, Ct)).ShouldNotBeNull();
+        me.Tenants.ShouldHaveSingleItem().TenantId.ShouldBe(kmsa);
+    }
+
     [Fact]
     public async Task An_expired_invitation_can_not_be_looked_up_or_accepted()
     {
