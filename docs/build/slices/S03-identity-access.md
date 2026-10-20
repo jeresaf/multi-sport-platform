@@ -245,12 +245,18 @@ Deliver:
 
 Acceptance:
 - [x] Invitation tokens are single-use, expire, and are stored hashed (tests read the table).
-- [ ] Removing a membership, suspending it, or revoking the last role denies the next request (test).
-- [ ] A member of tenant A can't read or change tenant B's members, invitations or roles through the API (`403` on
-      the header, no data), and the isolation harness covers the three tables.
-- [ ] A `PROVISIONING` tenant: owner and admin may work, a viewer gets `403 TENANT_PROVISIONING`; a suspended tenant:
-      the owner reads `GET /api/admin/v1/tenant/access`, everything else is `403 TENANT_BLOCKED`.
-- [ ] The last owner can't be removed, suspended or demoted (`409 AUTH_LAST_OWNER`).
+- [x] Removing a membership, suspending it, or revoking the last role denies the next request (test).
+      Evidence: `TenantMembershipRequestTests.Removing_suspending_or_revoking_the_last_role_denies_the_next_request`
+      (#46), `MemberEndpointsTests.Suspending_removing_or_revoking_the_last_role_through_the_api_denies_the_next_request` (#47).
+- [x] A member of tenant A can't read or change tenant B's members, invitations or roles through the API (`403` on
+      the header, no data), and the isolation harness covers the three tables. Evidence:
+      `MemberEndpointsTests.A_member_of_one_tenant_can_not_read_or_change_another_tenants_members` (#47),
+      `InvitationEndpointsTests.A_member_of_another_tenant_sees_and_changes_none_of_its_invitations` (#49), the
+      isolation samples for memberships and role assignments (#46) and invitations (#49).
+- [x] A `PROVISIONING` tenant: owner and admin may work, a viewer gets `403 TENANT_PROVISIONING`; a suspended tenant:
+      the owner reads `GET /api/admin/v1/tenant/access`, everything else is `403 TENANT_BLOCKED`. Evidence:
+      `TenantAccessModeTests` (#48).
+- [x] The last owner can't be removed, suspended or demoted (`409 AUTH_LAST_OWNER`). Evidence: `OwnerRulesTests` (#47).
 
 ### T5 — Capabilities and the authorization matrix
 Deliver:
@@ -262,11 +268,15 @@ Deliver:
 - A generated test over the endpoint catalogue: every admin and platform endpoint answers `403` for a signed-in user
   whose roles lack its action and passes authorization with a role that has it (handlers may then fail on their own
   rules; the test checks the authorization step only).
+- Q20 (owner, 2026-10-20, #51 M2): suspending or removing a membership revokes the pending invitations that member
+  sent, in the same save; details in the T5 plan.
 
 Acceptance:
 - [ ] The matrix test covers every mapped admin and platform endpoint; a new endpoint is covered without editing the
       test.
 - [ ] Capabilities match the evaluator for every system role (table-driven).
+- [ ] Suspending or removing an inviter revokes their pending invitations; the invitee's token then answers
+      `404 AUTH_INVITATION_TOKEN_INVALID` (Q20, test).
 
 ### T6 — Admin web: sign-in, shell, members, platform console
 Deliver:
