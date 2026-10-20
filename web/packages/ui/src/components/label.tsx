@@ -1,3 +1,5 @@
+"use client"
+
 import * as React from "react"
 import { cn } from "@msp/ui/lib/utils"
 import { Label as LabelPrimitive } from "radix-ui"
