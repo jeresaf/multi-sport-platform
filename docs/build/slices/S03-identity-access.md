@@ -429,3 +429,15 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   their tenant, a test-only role `FIXTURE_READER`); with `UseIdentityRoles()` the membership check is the directory's,
   not `X-Test-Tenants`. `EnumColumns` (BuildingBlocks.Persistence) replaces Tenancy's private enum helpers. Membership
   and role endpoints come with T4b, so T4a's tests change memberships through the domain.
+- **T4b (owner, plan 2026-10-20):** two PRs, T4b1 (members, roles, owner rules) and T4b2 (access mode, D11). Member
+  emails are shown to `membership.read` holders; roles are assigned tenant-wide only in S03.
+- **T4b1:** `/api/admin/v1/members` (tag Members): `GET` (cursor over membership IDs, UUIDv7 so oldest first;
+  `status` filter, removed hidden by default), `GET /{id}`, `POST /{id}/suspend|restore|remove`, `POST /{id}/roles`
+  (201, returns the member), `POST /{id}/roles/{assignmentId}/revoke`. Each change returns the member with its
+  `version`/`ETag` and takes `version` or `If-Match`; `TenantVersion` became BuildingBlocks `RowVersion`.
+  `MemberChanges` runs every change: load (`AUTH_MEMBERSHIP_NOT_FOUND`), version, owner-only rule
+  (`AUTH_OWNER_REQUIRED`; the system actor passes), last owner (`AUTH_LAST_OWNER`, only `ACTIVE` memberships count,
+  #46 N1) under `pg_advisory_xact_lock` on the tenant, then the domain change and one save. Every change marks
+  `roles_changed_at` modified, so the membership row and its version always change: a role change at the same instant
+  as the previous one used to leave the row as it was (T4a). `membership.read` is audited; the audit names the
+  membership, never the email.

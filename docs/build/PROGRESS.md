@@ -170,6 +170,12 @@ at the start of every review.
   logs and traces never hold it. The identity directory's `sp_platform` reads are not audited (owner, S03-T4a
   pre-review): they read only the caller's own memberships, on every admin request; multi-tenancy.md records the
   exemption.
+- **S03-T4b (owner, plan 2026-10-20):** T4b in two PRs (T4b1 member and role endpoints, owner rules, last owner;
+  T4b2 access-mode refinements). The member list and detail show the member's email to every holder of
+  `membership.read` (data-conventions.md records the exception to `*.read_private`). `role.assign` accepts the
+  `TENANT` scope only in S03. `GET /tenant/access` (T4b2) returns status, access mode and date, not the platform's
+  reason. `/me` and blocked tenants (#46 N2) decided in T6. Beyond the plan: `membership.read` is audited
+  (`REQUIRED`, like `tenant.settings.read`; the plan said none), since it returns emails.
 
 ## Tech debt / follow-ups
 
@@ -177,12 +183,9 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
 (2026-10-18). The S00 carry-overs assigned to S01 are done. Each item names where it gets done.
 
 **S03 — identity and access**
-- Last-owner count (#46 N1): suspended and removed memberships keep their unrevoked role rows, so count
-  `TENANT_OWNER` only on `ACTIVE` memberships, tenant-wide and unrevoked; test that with a suspended second owner,
-  removing the only active owner is `409 AUTH_LAST_OWNER`. (T4b)
 - `/me` and blocked tenants (#46 N2): `/me` lists every tenant with an active membership, suspended and archived
   tenants included. Decide whether `/me` filters by tenant status or the switcher shows them as blocked, and record
-  it. (T4b or T6)
+  it; the switcher gets status with the names (#46 N3) (owner, S03-T4b: T6)
 - Tenant names for the switcher (#46 N3): `/me` returns tenant IDs only and Identity can't read Tenancy's tables; get
   names through a Tenancy contract (e.g. the caller's tenants by ID list), not copies in Identity. (T6)
 - Two `IScopeChainProvider`s for one resource type make the evaluator throw at request time; add a startup check with
