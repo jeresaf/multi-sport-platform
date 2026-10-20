@@ -84,6 +84,8 @@ test("`/` opens the last workspace used in this browser, else the first active t
   await page.getByRole("button", { name: /^Workspace: / }).click();
   await page.getByRole("menuitem", { name: kmsa }).click();
   await expect(page.getByRole("heading", { level: 1, name: kmsa })).toBeVisible();
+  // Remembered after the workspace opens (an effect): wait for it rather than racing it.
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("msp.admin.lastWorkspace"))).toBe("/t/kmsa");
 
   await page.goto("/");
   await expect(page).toHaveURL("/t/kmsa");
