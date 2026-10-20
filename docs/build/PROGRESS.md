@@ -7,13 +7,13 @@ at the start of every review.
 
 - **Current slice:** S03 — Identity and access (docs/build/slices/S03-identity-access.md, rewritten by the S02 slice
   review). S00, S01 and S02 are done
-- **Current task:** S03-T4b2 — Access-mode refinements (D11) — in review (#48)
-- **Next:** S03-T4c — Invitations (admin, platform owner invite, lookup and accept), invitation email, DEMO seeder
+- **Current task:** S03-T4c1 — Invitations: invite, list, revoke, platform owner invitation, invitation email
+- **Next:** S03-T4c2 — Invitation lookup and acceptance, DEMO seeder
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S03-T4c — Invitations (admin, platform owner invite, lookup and accept), invitation email, DEMO seeder (D12, D13, D18)
+1. S03-T4c2 — Invitation lookup and acceptance, rate limit, DEMO seeder (D12, D18)
 2. S03-T5 — Capabilities and the authorization matrix
 3. S03-T6 — Admin web: sign-in, shell, members, platform console (likely two PRs: T6a, T6b)
 
@@ -176,6 +176,12 @@ at the start of every review.
   `TENANT` scope only in S03. `GET /tenant/access` (T4b2) returns status, access mode and date, not the platform's
   reason. `/me` and blocked tenants (#46 N2) decided in T6. Beyond the plan: `membership.read` is audited
   (`REQUIRED`, like `tenant.settings.read`; the plan said none), since it returns emails.
+- **S03-T4c (owner, plan 2026-10-20):** two PRs (T4c1 sending: table, invite, list, revoke, platform owner invitation,
+  email; T4c2 accepting: lookup, accept, rate limit, DEMO seeder). Invitation state machine added to state-machines.md:
+  `EXPIRED` is derived and final; a new invitation to a pending email revokes the old one. Accepting doesn't sign in.
+  The ELSSC owner for the DEMO seeder is a fictional person the builder adds to pilot-customer.md (reviewer checks).
+  T4c1 also: `GET /api/admin/v1/invitations/{id}` (so the 201's `Location` resolves); `TenantSummary` gains
+  `DisplayName`; the acceptance columns (`accepted_by`, `accepted_at`, `membership_id` → membership) ship with T4c2.
 
 ## Tech debt / follow-ups
 

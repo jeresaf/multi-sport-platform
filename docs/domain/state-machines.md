@@ -86,6 +86,22 @@ ACTIVE | SUSPENDED ──remove (reason)──► REMOVED
 - A tenant keeps at least one active `TENANT_OWNER` (S03 D17): removing, suspending or revoking the last one is
   refused (`409 AUTH_LAST_OWNER`, S03-T4b). Only `ACTIVE` memberships count as owners.
 
+### Invitation (stored; `EXPIRED` derived)
+
+Added with the owner's approval, 2026-10-20 (S03-T4c, D12). An invitation to join a tenant with roles
+(`identity.invitations`).
+
+```text
+PENDING ──accept (T4c2)──► ACCEPTED
+PENDING ──revoke | a new invitation to the same email──► REVOKED
+PENDING and now ≥ expires_at (7 days after it was made) ⇒ EXPIRED (derived, never stored; final)
+```
+
+- At most one invitation per tenant and email is `PENDING`: a new one revokes the pending one, expired or not.
+- An expired invitation can't be accepted or revoked; inviting again makes a new one.
+- The token is made when the email is sent; only its SHA-256 is stored, and a resent email's token replaces the
+  earlier one. A token works once: accepting ends the `PENDING` state.
+
 ---
 
 ## Sports Configuration (file metadata in v1, ADR-0006)
