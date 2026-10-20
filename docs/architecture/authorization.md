@@ -94,8 +94,8 @@ competitions, teams and contests can confirm the resource exists (owner, S03-T4b
 
 **Invitations (S03-T4c, D12).** `/api/admin/v1/invitations` invites a person by email with tenant-wide roles
 (`membership.invite`), lists and reads invitations (`membership.read`) and revokes them (`invitation.revoke`); owner
-and admin invite and revoke, `VIEWER` reads. Only an owner (or the system actor) invites with `TENANT_OWNER`
-(`AUTH_OWNER_REQUIRED`). The platform console invites a tenant's owner with `tenant.owner.invite` (`PLATFORM_ADMIN`,
+and admin invite and revoke, `VIEWER` reads. Only an owner (or the system actor) invites with `TENANT_OWNER`, or
+revokes or replaces a pending invitation that carries it, the platform's included (`AUTH_OWNER_REQUIRED`). The platform console invites a tenant's owner with `tenant.owner.invite` (`PLATFORM_ADMIN`,
 `POST /api/platform/v1/tenants/{tenantId}/owner-invitations`, under the route's tenant). A person who is already a
 member (active or suspended) is `409 AUTH_ALREADY_MEMBER`; a new invitation to an email with a pending one revokes the
 older one.

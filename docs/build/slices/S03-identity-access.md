@@ -441,3 +441,24 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   `roles_changed_at` modified, so the membership row and its version always change: a role change at the same instant
   as the previous one used to leave the row as it was (T4a). `membership.read` is audited; the audit names the
   membership, never the email.
+- **T4c (owner, plan 2026-10-20):** two PRs, T4c1 (sending) and T4c2 (lookup, accept, rate limit, DEMO seeder).
+  Invitation state machine in state-machines.md (`EXPIRED` derived and final; a new invitation to a pending email
+  revokes it). Accepting doesn't sign in. The ELSSC owner for the DEMO seeder is a fictional person added to
+  pilot-customer.md in T4c2.
+- **T4c1:** `Invitation` (aggregate, `Domain/Invitations`; `identity.invitations`, tenant-owned, RLS): email and its
+  Identity-normalised form (`PRIVATE`), `role_codes text[]` (tenant-wide roles), invited by/at, `expires_at` (+7 days),
+  `token_hash`/`token_issued_at`, revoked by/at. At most one `PENDING` per tenant and email
+  (`ux_invitations_tenant_id_normalized_email_pending` includes `status`, so EF saves the superseded row before the
+  insert); `ux_invitations_token_hash` doesn't start with `tenant_id`: T4c2's directory finds an invitation by it before
+  a tenant is set. `/api/admin/v1/invitations` (tag Invitations): `POST` (`membership.invite`, 201), `GET` and
+  `GET /{id}` (`membership.read`; no status = still pending, expired included; `EXPIRED` derived), `POST /{id}/revoke`
+  (`invitation.revoke`, `version`/`If-Match`). `POST /api/platform/v1/tenants/{tenantId}/owner-invitations`
+  (`tenant.owner.invite`, `PLATFORM_ADMIN`; an `ARCHIVED` tenant is `409 AUTH_TENANT_ARCHIVED`, owner). One
+  `InviteHandler` for both: `AUTH_ROLE_NOT_ASSIGNABLE`, `AUTH_ALREADY_MEMBER` (a membership that isn't removed), and the
+  owner rule: only an owner (or `SYSTEM`) invites with `TENANT_OWNER` or revokes or replaces a pending invitation that
+  carries it, the platform's included (pre-review). The request saves the invitation, its audit entry and
+  `InvitationIssued.V1(InvitationId)`; the consumer `identity.invitation_email` runs under the event's tenant, makes 32
+  random bytes (base64url), stores the SHA-256 on the invitation (saved after the send by the outbox) and sends the email
+  (link `{Identity:AdminAppUrl}/accept-invitation?token=…`, the tenant's display name: `TenantSummary.DisplayName`, new).
+  A revoked or expired invitation gets no email. The Host documents `TENANT_NOT_FOUND` on every route-tenant endpoint.
+  `IdCursor` is the UUIDv7 list cursor shared with the member list. `TestApp.Emails.FailNext()` makes the next send fail.

@@ -7,8 +7,8 @@ at the start of every review.
 
 - **Current slice:** S03 — Identity and access (docs/build/slices/S03-identity-access.md, rewritten by the S02 slice
   review). S00, S01 and S02 are done
-- **Current task:** S03-T4c1 — Invitations: invite, list, revoke, platform owner invitation, invitation email
-- **Next:** S03-T4c2 — Invitation lookup and acceptance, DEMO seeder
+- **Current task:** S03-T4c1 — Invitations: invite, list, revoke, platform owner invitation, invitation email — in review
+- **Next:** S03-T4c2 — Invitation lookup and acceptance, rate limit, DEMO seeder
 - **Blocked on:** nothing
 
 ## Next up
@@ -63,6 +63,7 @@ at the start of every review.
 | 2026-10-20 | S03-T4a | #46 | `identity.tenant_memberships` and `identity.role_assignments` (tenant-owned, RLS, isolation samples; one non-removed membership per tenant and user, one active assignment per membership, role and scope, tenant-wide = NULL scope ID); `TenantMembership` state machine (state-machines.md, owner) and assignment rules, `roles_changed_at` so role changes bump the membership's version; `PlatformServiceDbContext` base and the generic platform-service rule (#33 N2); `IdentityDirectory` (read-only, `sp_platform`, caller's own memberships only) as the real `ITenantMembershipChecker` (Host `NoTenantMemberships` removed) and `/me` tenants; evaluator tenant step (active membership, role grants the action, assignment scope type in `scopable_by` (#45 N1), tenant or resource scope chain via `IScopeChainProvider`); `EnumColumns` shared; errors `AUTH_MEMBERSHIP_TRANSITION_INVALID`, `AUTH_ROLE_NOT_ASSIGNABLE`, `AUTH_ROLE_ALREADY_ASSIGNED`, `AUTH_ROLE_ASSIGNMENT_NOT_FOUND` | Owner (plan): T4 in three PRs; owners only act on owners; `membership.read` for owner, admin, viewer; invitation token in the body (T4c). Owner (pre-review): directory reads not audited (documented exemption). No new actions, events or packages |
 | 2026-10-20 | S03-T4b1 | #47 | `/api/admin/v1/members`: list (cursor over UUIDv7 membership IDs, `status` filter, removed hidden by default; email and active roles), read, suspend/restore/remove (reasons), assign role (201, tenant-wide only), revoke role; actions `membership.read` (audited), `membership.suspend`, `membership.restore`, `membership.remove`, `role.assign`, `role.revoke` (owner and admin; `VIEWER` reads); errors `AUTH_MEMBERSHIP_NOT_FOUND`, `AUTH_OWNER_REQUIRED`, `AUTH_LAST_OWNER`; `MemberChanges` (version, owner-only rule, last owner counted on `ACTIVE` memberships under `pg_advisory_xact_lock`, #46 N1); every change updates the membership row (fixes a same-instant role change keeping its version, T4a); BuildingBlocks `RowVersion` (was Tenancy `TenantVersion`) | Owner (plan): T4b in two PRs; emails shown to `membership.read` holders; tenant-wide roles only; `/me` and blocked tenants in T6. Beyond the plan: `membership.read` audited. No migrations, events or packages. Pre-review: owner check under the lock, commit not cancellable, more isolation, audit and revoke tests. #47 N2: changes to a removed owner are 409 for everyone |
 | 2026-10-20 | S03-T4b2 | #48 | Access mode with roles (D11): `PROVISIONING` is `FULL` only for `TENANT_OWNER`/`TENANT_ADMIN` held tenant-wide (BuildingBlocks `ITenantSetupAccess`, Identity's `TenantSetupAccess`, asked by Tenancy's step 1), others `403 TENANT_PROVISIONING`; `ActionDefinition.availableWhenBlocked` (tenant actions only; "When blocked" column in actions.md); `tenant.access.read` (`GET /api/admin/v1/tenant/access`: status, access mode, reason and time of the change into that status; audited; `TENANT_OWNER` only); `CheckAdminAccessAsync` takes the action; pipeline OpenAPI errors add `TENANT_PROVISIONING`, drop `TENANT_BLOCKED` where it can't happen. Removes tech debt #34 R1 and S02-T3a | Owner (plan): an admin or viewer asking for the access read gets `AUTH_FORBIDDEN`; the reason is shown to the owner; setup roles count only tenant-wide. Tests without `UseIdentityRoles()` let every `X-Test-Tenants` member set a tenant up; `TenantResolutionTests`' provisioning case split into an admin who works and a member refused. No migrations, events or packages. Pre-review: ties between changes at one instant broken by ID; a second suspension shows its own reason and time (test). Follow-up for T6: the platform console's suspend/archive/unarchive reason dialog should say the tenant owner sees the reason (after an unarchive the owner sees the unarchive reason, not the earlier suspension's) |
+| 2026-10-20 | S03-T4c1 | — | `identity.invitations` (tenant-owned, RLS; pending → revoked, `EXPIRED` derived, one pending per email, token hash unique); `/api/admin/v1/invitations` invite (`membership.invite`), list and get (`membership.read`), revoke (`invitation.revoke`, version/If-Match); platform owner invitation (`tenant.owner.invite`, archived refused); `InvitationIssued.V1` and consumer `identity.invitation_email` (token made at send, only its SHA-256 stored, newest wins); errors `AUTH_INVITATION_NOT_FOUND`, `AUTH_INVITATION_TRANSITION_INVALID`, `AUTH_ALREADY_MEMBER`, `AUTH_TENANT_ARCHIVED`; `TenantSummary.DisplayName`; Host documents `TENANT_NOT_FOUND` for route-tenant endpoints | Owner (plan): T4c in two PRs; state machine approved; no sign-in on accept; ELSSC owner proposed by the builder. Beyond the plan: `GET /invitations/{id}`; acceptance columns move to T4c2. Owner (finish): an archived tenant gets no owner invitation. Pre-review: only an owner revokes or replaces an owner's invitation; failed invites audited without an entity. No new packages |
 
 ## Deviations from spec (agreed)
 
@@ -182,6 +183,8 @@ at the start of every review.
   The ELSSC owner for the DEMO seeder is a fictional person the builder adds to pilot-customer.md (reviewer checks).
   T4c1 also: `GET /api/admin/v1/invitations/{id}` (so the 201's `Location` resolves); `TenantSummary` gains
   `DisplayName`; the acceptance columns (`accepted_by`, `accepted_at`, `membership_id` → membership) ship with T4c2.
+  Owner (finish-task): the platform owner invitation refuses an `ARCHIVED` tenant (`409 AUTH_TENANT_ARCHIVED`); other
+  statuses are allowed. Pre-review: only an owner revokes or replaces an invitation carrying `TENANT_OWNER`.
 
 ## Tech debt / follow-ups
 
@@ -228,7 +231,8 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
   `X-Forwarded-For`. Infrastructure task: set `ForwardedHeaders:KnownNetworks` (Cloudflare and Azure ranges) and
   `ForwardLimit`, or read `CF-Connecting-IP` from trusted edges only, and test that two clients behind the full chain
   get separate limits; otherwise the 20-a-minute login limit becomes platform-wide. (T6, infrastructure)
-- Reset token in the link's query string (#44 M3): T6's `/reset-password` page sends `Referrer-Policy: no-referrer`,
+- Reset and invitation tokens in the link's query string (#44 M3; the invitation link `/accept-invitation?token=` is
+  S03-T4c1's and its page T6's, same treatment): T6's `/reset-password` page sends `Referrer-Policy: no-referrer`,
   removes the token from the URL after reading it (`history.replaceState`) and loads nothing from other origins; or
   move the token to the fragment (`#token=`). Decide in T6. (T6)
 - Password reset email: a failed send is retried by the outbox with a new token (by design), but no test makes the
