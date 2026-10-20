@@ -95,7 +95,8 @@ are generated placeholders.
 `docker compose up -d`, `seed --category DEMO`, run the API (its outbox sends the emails), open Mailpit
 (http://localhost:8025), take the token from the invitation's link and accept it with a password of your choosing:
 on the admin app's accept page once S03-T6 builds it, until then `POST /api/account/v1/invitations/accept` (Scalar).
-Invitations expire after 7 days; the seeder sends a new one when the data changes or after `seed --reset`. The other
+Invitations expire after 7 days; the seeder sends a new one when the data changes or after `seed --reset`. An
+accepted invitation is never sent again, even after that member is removed: run `seed --reset` to get them back. The other
 people above get roles scoped to competitions, teams or contests, which arrive with those modules.
 
 ## Second tenant (isolation and multi-tenant demos)
