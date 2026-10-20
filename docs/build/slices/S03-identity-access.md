@@ -220,9 +220,9 @@ Deliver:
 - After T3 a real platform admin can run the S02 platform API (tenants, audit, diagnostics) end to end.
 
 Acceptance:
-- [ ] A platform admin may perform every platform action; `PLATFORM_SUPPORT` only the read ones; a user without a
+- [x] A platform admin may perform every platform action; `PLATFORM_SUPPORT` only the read ones; a user without a
       platform role gets `403 AUTH_FORBIDDEN` on each (generated over the action catalogue).
-- [ ] A role naming an unknown action code, or an action of the wrong scope, stops the Host at startup (test).
+- [x] A role naming an unknown action code, or an action of the wrong scope, stops the Host at startup (test).
 
 ### T4 — Memberships, invitations and tenant roles
 Deliver:
