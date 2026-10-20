@@ -7,17 +7,16 @@ at the start of every review.
 
 - **Current slice:** S03 — Identity and access (docs/build/slices/S03-identity-access.md, rewritten by the S02 slice
   review). S00, S01 and S02 are done
-- **Current task:** S03-T4b1 — Member and role endpoints, owner rules and the last owner (D17) — in review (#47; owner,
-  2026-10-20: T4b split into T4b1 members and roles, T4b2 access-mode refinements)
-- **Next:** S03-T4b2 — Access-mode refinements (D11): `PROVISIONING` for owners and admins, `tenant.access.read`
+- **Current task:** S03-T4b2 — Access-mode refinements (D11): `PROVISIONING` for owners and admins, `BLOCKED`
+  exception, `tenant.access.read` — in progress (plan approved 2026-10-20)
+- **Next:** S03-T4c — Invitations (admin, platform owner invite, lookup and accept), invitation email, DEMO seeder
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S03-T4b2 — Access-mode refinements (D11): `PROVISIONING` for owners and admins, `BLOCKED` exception, `tenant.access.read`
-2. S03-T4c — Invitations (admin, platform owner invite, lookup and accept), invitation email, DEMO seeder (D12, D13, D18)
-3. S03-T5 — Capabilities and the authorization matrix
-4. S03-T6 — Admin web: sign-in, shell, members, platform console (likely two PRs: T6a, T6b)
+1. S03-T4c — Invitations (admin, platform owner invite, lookup and accept), invitation email, DEMO seeder (D12, D13, D18)
+2. S03-T5 — Capabilities and the authorization matrix
+3. S03-T6 — Admin web: sign-in, shell, members, platform console (likely two PRs: T6a, T6b)
 
 ## Log
 
