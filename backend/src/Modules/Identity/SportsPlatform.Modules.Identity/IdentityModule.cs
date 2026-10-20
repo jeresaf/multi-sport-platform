@@ -9,6 +9,7 @@ using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.BuildingBlocks.Modules;
 using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Persistence.Messaging;
+using SportsPlatform.BuildingBlocks.Persistence.Seeding;
 using SportsPlatform.BuildingBlocks.Tenancy;
 using SportsPlatform.Modules.Identity.Contracts.Account;
 using SportsPlatform.Modules.Identity.Contracts.Invitations;
@@ -45,6 +46,7 @@ using SportsPlatform.Modules.Identity.Infrastructure.PasswordReset;
 using SportsPlatform.Modules.Identity.Infrastructure.RateLimiting;
 using SportsPlatform.Modules.Identity.Infrastructure.Sessions;
 using SportsPlatform.Modules.Identity.Infrastructure.Users;
+using SportsPlatform.Modules.Identity.Seed.Demo;
 
 namespace SportsPlatform.Modules.Identity;
 
@@ -144,6 +146,9 @@ public sealed class IdentityModule : IModule
             PasswordResetEmailConsumer.Name);
         services.AddIntegrationEventConsumer<InvitationIssued.V1, InvitationEmailConsumer, IdentityDbContext>(
             InvitationEmailConsumer.Name);
+
+        // T4c2b: the pilot customer's people are invited by the DEMO seed (D18), after the demo tenants.
+        services.AddSeeder<DemoInvitationSeeder>();
     }
 
     public void MapEndpoints(ApiEndpointGroups groups)

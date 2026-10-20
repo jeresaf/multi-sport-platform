@@ -78,11 +78,12 @@ jobs:
         working-directory: web
     steps:
       - uses: actions/checkout@v7
-      - name: Start PostgreSQL
+      # Mailpit receives the DEMO invitations the API's outbox sends (identity.demo.invitations).
+      - name: Start PostgreSQL and Mailpit
         working-directory: .
         run: |
           cp .env.example .env
-          docker compose up -d --wait --wait-timeout 120 postgres
+          docker compose up -d --wait --wait-timeout 120 postgres mailpit
       - uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json

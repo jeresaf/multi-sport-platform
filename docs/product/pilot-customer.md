@@ -88,6 +88,17 @@ guardian consents for some — not all — minors.
 **Sponsors (fictional businesses):** Nile Crest Insurance, Metro Fresh Dairy, Mengo Hardware Supplies — logos
 are generated placeholders.
 
+**Demo sign-in (S03 D18).** The DEMO seed (`identity.demo.invitations`) invites, never creates passwords for:
+`grace.nakato@kmsa.example` (`TENANT_OWNER`), `daniel.kato@kmsa.example` (`TENANT_ADMIN`),
+`brian.ssemakula@kmsa.example` (`REGISTRAR`), `esther.nabirye@kmsa.example` (`RESULTS_OFFICER`) and
+`agnes.namutebi@elssc.example` (`TENANT_OWNER`). The addresses are invented (`.example` never delivers). To use one:
+`docker compose up -d`, `seed --category DEMO`, run the API (its outbox sends the emails), open Mailpit
+(http://localhost:8025), take the token from the invitation's link and accept it with a password of your choosing:
+on the admin app's accept page once S03-T6 builds it, until then `POST /api/account/v1/invitations/accept` (Scalar).
+Invitations expire after 7 days; the seeder sends a new one when the data changes or after `seed --reset`. An
+accepted invitation is never sent again, even after that member is removed: run `seed --reset` to get them back. The other
+people above get roles scoped to competitions, teams or contests, which arrive with those modules.
+
 ## Second tenant (isolation and multi-tenant demos)
 
 **Eastern Lakes Schools Sports Council (ELSSC)** — slug `elssc`, fictional. Twelve secondary schools (for
@@ -95,6 +106,10 @@ example Lakeshore High School, Mabira Hills College, Riverside Secondary School,
 player is a minor. It buys an **event pass** for its two-day Inter-Schools Football Festival (under-16 boys and
 girls, knockout). ELSSC proves that two tenants never see each other's data, brand or users, and it exercises
 consent-first registration (tenant setting: guardian consent required before registration).
+
+| Person | Job at ELSSC | Role (scope) |
+|---|---|---|
+| Agnes Namutebi | Council General Secretary; signs the event-pass contract | `TENANT_OWNER` (tenant) |
 
 ## Other tenants (tests only)
 
