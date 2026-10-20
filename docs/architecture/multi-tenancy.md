@@ -135,9 +135,10 @@ CREATE POLICY tenant_isolation ON registry.persons
 - **Identity directory (S03-T4a, D8):** `IdentityDirectoryDbContext`, read-only, used only by Identity's
   `Features.Directory`: the membership check above (a request's tenant isn't set yet) and the user's tenants and roles
   for `GET /api/account/v1/me` (each tenant's slug, display name and status then come from Tenancy's
-  `ITenantDirectory.GetManyAsync`, the global tenant table; suspended and archived tenants are listed, S03-T6a). Every read is of the caller's own memberships (the current actor; no method takes a
-  user ID), so these reads are **not audited**: an exemption from the rule above, agreed by the owner (S03-T4a),
-  because the membership check runs on every admin request. One more read (S03-T4c2): the invitation whose token
+  `ITenantDirectory.GetManyAsync`, the global tenant table; suspended and archived tenants are listed, S03-T6a).
+  Every read is of the caller's own memberships (the current actor; no method takes a user ID), so these reads are
+  **not audited**: an exemption from the rule above, agreed by the owner (S03-T4a), because the membership check runs
+  on every admin request. One more read (S03-T4c2): the invitation whose token
   has a given SHA-256, returning its ID and tenant only, so the invitee's lookup and acceptance can then run under
   that tenant. That read is covered by those endpoints' own audit entries (`invitation.read`, `invitation.accept`:
   under the invitation's tenant, or without a tenant when the token is unknown).
