@@ -539,3 +539,15 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   `Referrer-Policy: no-referrer`. Accepting as an existing account signs in on the accept page (the token never goes
   back into a URL). e2e: `start-api.sh` creates the run's platform admin (`MSP_E2E_ADMIN_EMAIL`/`_PASSWORD`, generated
   by `playwright.config.ts`); people are invited with run-unique addresses and their emails read from Mailpit.
+- **T6b2:** the shell lives in `apps/admin/app/(signed-in)` (the guard layout: a 401 goes to `/sign-in?returnTo=<path>`),
+  with `t/[tenantSlug]` and `platform` layouts that read the capabilities and render `components/shell/AppShell`.
+  Navigation is data (`lib/navigation.ts`: label, path, icon, the action its screen needs); a workspace's catch-all
+  `[...section]` page answers a planned screen with "not available yet" (or 403 when not allowed) and anything else
+  with 404, so T6c's pages simply take their paths. A tenant client per workspace (`tenantApi(tenantId)`) sends
+  `X-Tenant-Id`. Suspended and archived tenants skip the capabilities call and read `GET …/tenant/access`; a 403 on the
+  capabilities (`TENANT_PROVISIONING`, `AUTH_FORBIDDEN` for a member with no tenant-wide role) shows its reason. The
+  last workspace is kept in `localStorage` (`msp.admin.lastWorkspace`, a convenience; failures ignored). Signing out
+  of the shell is a full load of `/sign-in` (`useSignOutAndLeave`): refetching `me` after the logout raced the
+  guard, which added a return path. e2e: `admin-shell.spec.ts` (console, owner, registrar refused by the API, a
+  suspended run-unique tenant from pilot-customer.md's test-only names); every shell page is shot at phone, tablet and
+  desktop, light and dark.
