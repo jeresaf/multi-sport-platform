@@ -9,6 +9,7 @@ using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.BuildingBlocks.Modules;
 using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Persistence.Messaging;
+using SportsPlatform.BuildingBlocks.Tenancy;
 using SportsPlatform.Modules.Identity.Contracts.Account;
 using SportsPlatform.Modules.Identity.Domain.Roles;
 using SportsPlatform.Modules.Identity.Features.Account;
@@ -19,8 +20,10 @@ using SportsPlatform.Modules.Identity.Features.Account.Login;
 using SportsPlatform.Modules.Identity.Features.Account.Logout;
 using SportsPlatform.Modules.Identity.Features.Account.ResetPassword;
 using SportsPlatform.Modules.Identity.Features.Authorization;
+using SportsPlatform.Modules.Identity.Features.Directory;
 using SportsPlatform.Modules.Identity.Features.PlatformAdmins.CreatePlatformAdmin;
 using SportsPlatform.Modules.Identity.Infrastructure;
+using SportsPlatform.Modules.Identity.Infrastructure.Directory;
 using SportsPlatform.Modules.Identity.Infrastructure.PasswordReset;
 using SportsPlatform.Modules.Identity.Infrastructure.RateLimiting;
 using SportsPlatform.Modules.Identity.Infrastructure.Sessions;
@@ -30,7 +33,8 @@ namespace SportsPlatform.Modules.Identity;
 
 /// <summary>
 /// Identity &amp; Access: users, platform roles and the data protection key ring (S03-T1); the session cookie, the
-/// account API, password reset and change, sign-in rate limits (T2); roles in code and the authorization evaluator (T3); memberships follow in S03 (docs/architecture/modules.md).
+/// account API, password reset and change, sign-in rate limits (T2); roles in code and the authorization evaluator (T3);
+/// tenant memberships, their role assignments and the identity directory (T4) (docs/architecture/modules.md).
 /// </summary>
 public sealed class IdentityModule : IModule
 {
@@ -46,6 +50,11 @@ public sealed class IdentityModule : IModule
     public void AddServices(IServiceCollection services, IConfiguration configuration)
     {
         services.AddModuleDbContext<IdentityDbContext>(configuration, Schema);
+
+        // S03 D8: the cross-tenant lookups before a request's tenant is set; the real ITenantMembershipChecker.
+        services.AddPlatformServiceDbContext<IdentityDirectoryDbContext>(configuration, Schema);
+        services.AddScoped<IdentityDirectory>();
+        services.AddScoped<ITenantMembershipChecker>(provider => provider.GetRequiredService<IdentityDirectory>());
 
         // S03 D14: the key ring in identity.data_protection_keys, shared by every API instance.
         services.AddDataProtection()

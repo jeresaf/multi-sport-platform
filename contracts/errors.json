@@ -31,6 +31,12 @@
       "owner": "Identity"
     },
     {
+      "code": "AUTH_MEMBERSHIP_TRANSITION_INVALID",
+      "status": 409,
+      "message": "The membership's status doesn't allow this change.",
+      "owner": "Identity"
+    },
+    {
       "code": "AUTH_PASSWORD_REJECTED",
       "status": 400,
       "message": "The password was rejected: use at least 12 characters.",
@@ -46,6 +52,24 @@
       "code": "AUTH_RESET_TOKEN_INVALID",
       "status": 400,
       "message": "The reset link is invalid or has expired. Ask for a new one.",
+      "owner": "Identity"
+    },
+    {
+      "code": "AUTH_ROLE_ALREADY_ASSIGNED",
+      "status": 409,
+      "message": "The member already holds this role at this scope.",
+      "owner": "Identity"
+    },
+    {
+      "code": "AUTH_ROLE_ASSIGNMENT_NOT_FOUND",
+      "status": 404,
+      "message": "The role assignment was not found.",
+      "owner": "Identity"
+    },
+    {
+      "code": "AUTH_ROLE_NOT_ASSIGNABLE",
+      "status": 400,
+      "message": "This role can't be assigned at this scope.",
       "owner": "Identity"
     },
     {

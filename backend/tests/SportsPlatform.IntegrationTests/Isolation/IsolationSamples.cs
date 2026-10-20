@@ -1,9 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
+using SportsPlatform.BuildingBlocks.Actions;
 using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.BuildingBlocks.Domain;
 using SportsPlatform.IntegrationTests.Messaging;
 using SportsPlatform.IntegrationTests.Persistence;
+using SportsPlatform.Modules.Identity.Domain.Memberships;
+using SportsPlatform.Modules.Identity.Domain.Roles;
+using SportsPlatform.Modules.Identity.Infrastructure.Users;
 using SportsPlatform.Modules.Tenancy.Domain.Settings;
 using SportsPlatform.Modules.Tenancy.Domain.Tenants;
 
@@ -41,6 +45,8 @@ public static class IsolationSamples
         new TenantProbeSample(),
         new TenantProbeNoteSample(),
         new ConsumedNoteSample(),
+        new TenantMembershipSample(),
+        new RoleAssignmentSample(),
     ];
 
     public static IIsolationSample For(Type entityType) =>
@@ -124,5 +130,47 @@ public static class IsolationSamples
         }
 
         public Entity? Referencing(IForeignKey foreignKey, Guid principalId) => null;
+    }
+
+    /// <summary>Identity: a membership of a new (global) user; the user's key is not tenant-owned.</summary>
+    private sealed class TenantMembershipSample : IIsolationSample
+    {
+        public Type EntityType => typeof(TenantMembership);
+
+        public Entity Add(DbContext context) => IdentitySamples.AddMember(context, "grace.nakato@kmsa.example");
+
+        public Entity? Referencing(IForeignKey foreignKey, Guid principalId) => null;
+    }
+
+    /// <summary>Identity: a tenant-wide role held by a new member.</summary>
+    private sealed class RoleAssignmentSample : IIsolationSample
+    {
+        public Type EntityType => typeof(RoleAssignment);
+
+        public Entity Add(DbContext context)
+        {
+            var membership = IdentitySamples.AddMember(context, "daniel.kato@kmsa.example");
+            return membership.AssignRole(IdentitySamples.Admin, AssignmentScope.Tenant, scopeId: null, SystemActor.Instance, IdentitySamples.Now).Value;
+        }
+
+        public Entity? Referencing(IForeignKey foreignKey, Guid principalId) =>
+            foreignKey.PrincipalEntityType.ClrType == typeof(TenantMembership)
+                ? RoleAssignment.Grant(principalId, IdentitySamples.Admin, AssignmentScope.Tenant, scopeId: null, SystemActor.Instance, IdentitySamples.Now)
+                : null;
+    }
+
+    private static class IdentitySamples
+    {
+        public static readonly DateTimeOffset Now = new(2026, 10, 1, 8, 0, 0, TimeSpan.Zero);
+
+        public static RoleDefinition Admin { get; } = IdentityRoles.All.Single(role => role.Code == IdentityRoles.TenantAdmin);
+
+        public static TenantMembership AddMember(DbContext context, string email)
+        {
+            var user = User.Create(email, emailConfirmed: true);
+            var membership = TenantMembership.Join(user.Id, invitedBy: null, Now);
+            context.AddRange(user, membership);
+            return membership;
+        }
     }
 }

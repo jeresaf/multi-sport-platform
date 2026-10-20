@@ -96,7 +96,8 @@ public static class TestAuthentication
         }
     }
 
-    private sealed class ClaimsMembershipChecker(IHttpContextAccessor accessor) : ITenantMembershipChecker
+    /// <summary>Membership from <c>X-Test-Tenants</c>, whatever the database holds.</summary>
+    public sealed class ClaimsMembershipChecker(IHttpContextAccessor accessor) : ITenantMembershipChecker
     {
         public ValueTask<bool> IsMemberAsync(Guid tenantId, CancellationToken cancellationToken) => ValueTask.FromResult(
             accessor.HttpContext?.User.FindAll(TenantClaim).Any(claim => claim.Value == tenantId.ToString()) == true);

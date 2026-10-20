@@ -68,7 +68,17 @@ to every signed-in user; those marked `allowsAnonymous` also to anonymous caller
 
 **Platform actions (S03-T3).** The evaluator allows a platform action when the user holds an unrevoked platform role
 (`identity.platform_role_assignments`) that includes it, read per request (no claims cache). Platform roles grant no
-tenant actions. Until S03-T4 the evaluator refuses every tenant action (fail closed).
+tenant actions.
+
+**Tenant actions (S03-T4a, D10).** The evaluator allows a tenant action when the user has an `ACTIVE` membership
+(`identity.tenant_memberships`) in the request's tenant and an unrevoked role assignment (`identity.role_assignments`)
+such that: the role includes the action; the assignment's scope type is in the action's `scopable_by` (so a
+competition-scoped `COMPETITION_MANAGER` gets no `TENANT`-only action, #45 N1); and the scope is the tenant
+(`TENANT`, no scope ID) or appears in the scope chain of the request's resource (`AuthorizationRequest.Scope`): the
+resource itself plus what its module's `IScopeChainProvider` returns above it (no module provides one before S06).
+Memberships and roles are read on every request under the request's tenant (RLS), so a removed or suspended
+membership, or a revoked last role, is refused on the next request. A request whose tenant isn't the scope's tenant
+is refused (fail closed). Only users hold roles; the system and anonymous actors get no tenant action.
 
 **Ending sessions (S03 D5, T2b).** Sessions are not stored on the server; a password change or reset changes the
 user's security stamp, and every other session fails its next stamp check (at most 5 minutes later) with `401`. A

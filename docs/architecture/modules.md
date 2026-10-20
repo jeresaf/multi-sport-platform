@@ -59,7 +59,8 @@ role → action-code sets, scoped role assignments (`TENANT | COMPETITION | TEAM
 the data protection key ring (`identity.data_protection_keys`: cookies and Identity's tokens, S03 D14).
 Later: public fan accounts.
 **Provides:** authentication (the session cookie, the API's only scheme, and the account API under
-`/api/account/v1`, S03-T2), `IPermissionQueries`, the authorization evaluator implementation, membership queries
+`/api/account/v1`, S03-T2), `IPermissionQueries`, the authorization evaluator implementation, the membership check
+of tenant resolution (`ITenantMembershipChecker`, through the identity directory, S03-T4), membership queries
 (e.g. "users with role X in scope Y" for notifications). The actor context (`ActorContext`, `ICurrentActor`) stays
 in BuildingBlocks: the Host sets it from the principal's `sub`, and Identity never sets it.
 **Does not own:** Person biodata (a user *may* be linked to a Person in Registry by ID), entitlements, tenant

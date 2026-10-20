@@ -7,15 +7,17 @@ at the start of every review.
 
 - **Current slice:** S03 — Identity and access (docs/build/slices/S03-identity-access.md, rewritten by the S02 slice
   review). S00, S01 and S02 are done
-- **Current task:** S03-T3 — Roles in code, platform roles and the evaluator — in review (#45)
-- **Next:** S03-T4 — Memberships, invitations and tenant roles
+- **Current task:** S03-T4a — Memberships, role assignments, the identity directory and the evaluator's tenant step —
+  in review (#46)
+- **Next:** S03-T4b — Member and role endpoints, last owner, access-mode refinements
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S03-T4 — Memberships, invitations and tenant roles (likely two PRs: T4a, T4b)
-2. S03-T5 — Capabilities and the authorization matrix
-3. S03-T6 — Admin web: sign-in, shell, members, platform console (likely two PRs: T6a, T6b)
+1. S03-T4b — Member and role endpoints, last owner, access-mode refinements (D11, D17)
+2. S03-T4c — Invitations (admin, platform owner invite, lookup and accept), invitation email, DEMO seeder (D12, D13, D18)
+3. S03-T5 — Capabilities and the authorization matrix
+4. S03-T6 — Admin web: sign-in, shell, members, platform console (likely two PRs: T6a, T6b)
 
 ## Log
 
@@ -60,6 +62,7 @@ at the start of every review.
 | 2026-10-19 | S03-T2a | #43 | Account family `/api/account/v1` (`ACCOUNT` actions, `allowsAnonymous`, no-store, startup rules); `AnonymousActor` for requests without a user (a principal without a GUID `sub` too) with `actor_kind` widened in audit and tenancy; `401 AUTH_UNAUTHENTICATED` before any tenant lookup and in authorization; CSRF middleware (`X-CSRF: 1`, `403 AUTH_CSRF_REQUIRED`, audited); Identity's cookie as the only scheme (`__Host-msp_session`, 12 h sliding, 7 d absolute, stamp every 5 min, app clock; claims `sub` + stamp); `login` (lockout, same answer and same hashing for every refusal, DENIED entry saved with the count via `AuditScope.RecordOnSave`, race retried), `logout`, `me`; `IdentityAuthorizationEvaluator` replaces deny-all (account step); startup check for missing validators; test scheme falls back to the cookie, test clients https + `X-CSRF` | T2 split in T2a/T2b; Q18 answered (cookies only); T2b rate limits, reset token and `AUTH_CURRENT_PASSWORD_INVALID` agreed (owner, plan). `AUTH_UNAUTHENTICATED`/`AUTH_CSRF_REQUIRED` in BuildingBlocks `AuthorizationErrors` (pipeline errors). Session cookie without `Expires`. No new packages |
 | 2026-10-19 | S03-T2b | #44 | `account.password.forgot` (always 202; `PasswordResetRequested.V1` through the outbox, consumer `identity.password_reset_email` creates the token and sends the link to `{Identity:AdminAppUrl}/reset-password`), `account.password.reset` (token `{userId}.{secret}`, SHA-256 in `identity.user_tokens`, 1 h, once, newest wins; signs out every session, clears the lockout), `account.password.change` (wrong current password = `400 AUTH_CURRENT_PASSWORD_INVALID`, counted toward the lockout; other sessions end, this cookie renewed); rate limits on login and forgot-password (per IP before the audit, per normalised email after validation; `429 AUTH_RATE_LIMITED` + `Retry-After`, audited DENIED); `X-Forwarded-For` from trusted proxies; `Identity:*` validated on start; fixes: `UserStore.UpdateAsync` keeps the loaded concurrency stamp, `Identity.TwoFactorRememberMe` registered so a stale stamp signs out instead of 500 | Owner (plan): one PR; change failures lock; reset unlocks; user ID in the token; per-IP 429s not audited; `X-Forwarded-For` trusted (S02 D7 widened). `AUTH_PASSWORD_REJECTED`: rule in `detail`, field in `errors`. No new packages |
 | 2026-10-20 | S03-T3 | #45 | `IdentityRoles` (Identity `Domain/Roles`): `PLATFORM_ADMIN` (every platform action), `PLATFORM_SUPPORT` (platform `*.read`), the nine tenant roles with their assignment scopes (tenant-wide roles read the settings; owner and admin change them; `TEAM_MANAGER` nothing yet); `RoleCatalogue` singleton; Host startup check `RoleRules` (undeclared action, wrong scope, action none of a tenant role's scopes can grant, duplicate codes, platform roles ≠ `PlatformRoles`); `export-catalogues` writes `docs/generated/roles.md` and `contracts/roles.json`; `IdentityAuthorizationEvaluator` scoped, platform actions from unrevoked platform roles per request, tenant actions still refused; `AuthorizationRequest` gains `TenantId` and `ScopeRef`; `TestApp` `Authorization.UseIdentityRoles()` | Owner (plan): one PR; all nine tenant roles; settings read for every tenant-wide role; `TEAM_MANAGER` without settings and the scope rule in the startup check. Fixed on the way: `PasswordResetTests` compared two audit entries in ID order, which the fake clock makes random. No migrations, actions, errors, events or packages |
+| 2026-10-20 | S03-T4a | #46 | `identity.tenant_memberships` and `identity.role_assignments` (tenant-owned, RLS, isolation samples; one non-removed membership per tenant and user, one active assignment per membership, role and scope, tenant-wide = NULL scope ID); `TenantMembership` state machine (state-machines.md, owner) and assignment rules, `roles_changed_at` so role changes bump the membership's version; `PlatformServiceDbContext` base and the generic platform-service rule (#33 N2); `IdentityDirectory` (read-only, `sp_platform`, caller's own memberships only) as the real `ITenantMembershipChecker` (Host `NoTenantMemberships` removed) and `/me` tenants; evaluator tenant step (active membership, role grants the action, assignment scope type in `scopable_by` (#45 N1), tenant or resource scope chain via `IScopeChainProvider`); `EnumColumns` shared; errors `AUTH_MEMBERSHIP_TRANSITION_INVALID`, `AUTH_ROLE_NOT_ASSIGNABLE`, `AUTH_ROLE_ALREADY_ASSIGNED`, `AUTH_ROLE_ASSIGNMENT_NOT_FOUND` | Owner (plan): T4 in three PRs; owners only act on owners; `membership.read` for owner, admin, viewer; invitation token in the body (T4c). Owner (pre-review): directory reads not audited (documented exemption). No new actions, events or packages |
 
 ## Deviations from spec (agreed)
 
@@ -162,6 +165,11 @@ at the start of every review.
   API. `SeedContext` runs each command in its own scope rather than "once in the seeder's scope" (D1 and `AuditScope`
   allow one tenant and one action per scope). The demo tenants also get `minor_registration_consent = REQUIRED`
   (pilot-customer.md), `publicEnabled` and locale `en-UG`.
+- **S03-T4:** three PRs instead of two (owner, 2026-10-20). Invitation endpoints take the token in the body:
+  `POST /api/account/v1/invitations/lookup` and `…/accept` instead of `/api/account/v1/invitations/{token}` (T4c), so
+  logs and traces never hold it. The identity directory's `sp_platform` reads are not audited (owner, S03-T4a
+  pre-review): they read only the caller's own memberships, on every admin request; multi-tenancy.md records the
+  exemption.
 
 ## Tech debt / follow-ups
 
@@ -169,10 +177,16 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
 (2026-10-18). The S00 carry-overs assigned to S01 are done. Each item names where it gets done.
 
 **S03 — identity and access**
-- Assignment scope vs action scope (#45 N1): `RoleRules` checks a tenant role per role, not per assignment. T4's
-  evaluator grants a tenant action only when the role includes it, the assignment's scope type is in the action's
-  `scopable_by`, and that scope is in the resource's chain; test a competition-scoped `COMPETITION_MANAGER` refused
-  `tenant.settings.read`. (T4)
+- Last-owner count (#46 N1): suspended and removed memberships keep their unrevoked role rows, so count
+  `TENANT_OWNER` only on `ACTIVE` memberships, tenant-wide and unrevoked; test that with a suspended second owner,
+  removing the only active owner is `409 AUTH_LAST_OWNER`. (T4b)
+- `/me` and blocked tenants (#46 N2): `/me` lists every tenant with an active membership, suspended and archived
+  tenants included. Decide whether `/me` filters by tenant status or the switcher shows them as blocked, and record
+  it. (T4b or T6)
+- Tenant names for the switcher (#46 N3): `/me` returns tenant IDs only and Identity can't read Tenancy's tables; get
+  names through a Tenancy contract (e.g. the caller's tenants by ID list), not copies in Identity. (T6)
+- Two `IScopeChainProvider`s for one resource type make the evaluator throw at request time; add a startup check with
+  the first provider (S03-T4a pre-review). (S06)
 - Tests that order audit entries by ID (`AuditTestData.EntriesAsync`) see entries written at one fake-clock instant
   in random order (UUIDv7 from `AuditScope`'s clock); compare such entries without order, or order by something
   stable (S03-T3, found in `PasswordResetTests`). (Any task touching audit tests)
@@ -184,10 +198,6 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
   owners/admins (setup). S03: limit it to them, with a test (#34 R1).
 - `BLOCKED` access mode lets the tenant owner view the tenant's status (state-machines.md); S02-T3a refuses every
   admin request on a blocked tenant because there are no roles yet. S03: the exception for the owner (S02-T3a).
-- Real `ITenantMembershipChecker` replacing `NoTenantMemberships` (T4).
-- With the second `AddPlatformServiceDbContext<T>` (e.g. `PlatformTenantStatistics`): make
-  `TenantIsolationRulesTests.Only_the_audit_features_use_the_platform_audit_context` generic: discover the contexts
-  registered that way and require an allowed-users entry for each (#33 N2). (T4)
 - **OpenAPI (with the first admin UI client, S03 or later):** optional request members (`version`, PATCH fields) are
   listed as `required` (nullable) in the schemas, so the TS client makes callers pass `null`; endpoints don't declare
   the `If-Match` request header or the `ETag` response header, and activate/restore list no 400 (pipeline errors).

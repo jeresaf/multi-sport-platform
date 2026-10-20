@@ -3,13 +3,17 @@ using SportsPlatform.BuildingBlocks.Actions;
 using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.BuildingBlocks.Results;
 using SportsPlatform.Modules.Identity.Domain.PlatformRoles;
+using SportsPlatform.Modules.Identity.Features.Directory;
 using SportsPlatform.Modules.Identity.Infrastructure;
 using SportsPlatform.Modules.Identity.Infrastructure.Users;
 
 namespace SportsPlatform.Modules.Identity.Features.Account.GetMe;
 
-/// <summary>Reads the signed-in user and their active platform roles. Tenants stay empty until memberships (T4).</summary>
-public sealed class GetMeHandler(IdentityDbContext context, ICurrentActor actor)
+/// <summary>
+/// Reads the signed-in user, their active platform roles and the tenants they are an active member of, with their roles
+/// there (across tenants, through the identity directory).
+/// </summary>
+public sealed class GetMeHandler(IdentityDbContext context, IdentityDirectory directory, ICurrentActor actor)
 {
     public async Task<Result<MeResponse>> HandleAsync(CancellationToken cancellationToken)
     {
@@ -29,6 +33,8 @@ public sealed class GetMeHandler(IdentityDbContext context, ICurrentActor actor)
             .OrderBy(code => code)
             .ToListAsync(cancellationToken);
 
-        return Result.Success(new MeResponse(user.Id, user.Email!, platformRoles, []));
+        var tenants = await directory.MyTenantsAsync(cancellationToken);
+        return Result.Success(new MeResponse(
+            user.Id, user.Email!, platformRoles, [.. tenants.Select(t => new MeTenantResponse(t.TenantId, t.Roles))]));
     }
 }

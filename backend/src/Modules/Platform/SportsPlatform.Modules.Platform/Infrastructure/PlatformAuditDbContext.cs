@@ -13,7 +13,7 @@ namespace SportsPlatform.Modules.Platform.Infrastructure;
 /// its entry). Never migrated: <see cref="PlatformDbContext"/> owns the tables. Used only by <c>Features.Audit</c>.
 /// </summary>
 public sealed class PlatformAuditDbContext(DbContextOptions<PlatformAuditDbContext> options, ITenantContext tenantContext)
-    : ModuleDbContext(options, PlatformModule.SchemaName, tenantContext)
+    : PlatformServiceDbContext(options, PlatformModule.SchemaName, tenantContext)
 {
     protected override Error ConcurrencyConflictError => PlatformErrors.ConcurrencyConflict;
 

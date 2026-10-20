@@ -11,9 +11,13 @@ the message is the default title and may change.
 | `AUTH_CURRENT_PASSWORD_INVALID` | 400 | The current password is incorrect. | Identity |
 | `AUTH_FORBIDDEN` | 403 | You are not allowed to perform this action. | BuildingBlocks |
 | `AUTH_INVALID_CREDENTIALS` | 401 | The email or password is incorrect, or the account can't sign in right now. | Identity |
+| `AUTH_MEMBERSHIP_TRANSITION_INVALID` | 409 | The membership's status doesn't allow this change. | Identity |
 | `AUTH_PASSWORD_REJECTED` | 400 | The password was rejected: use at least 12 characters. | Identity |
 | `AUTH_RATE_LIMITED` | 429 | Too many attempts. Wait a while and try again. | Identity |
 | `AUTH_RESET_TOKEN_INVALID` | 400 | The reset link is invalid or has expired. Ask for a new one. | Identity |
+| `AUTH_ROLE_ALREADY_ASSIGNED` | 409 | The member already holds this role at this scope. | Identity |
+| `AUTH_ROLE_ASSIGNMENT_NOT_FOUND` | 404 | The role assignment was not found. | Identity |
+| `AUTH_ROLE_NOT_ASSIGNABLE` | 400 | This role can't be assigned at this scope. | Identity |
 | `AUTH_TENANT_FORBIDDEN` | 403 | You are not allowed to work in this tenant. | BuildingBlocks |
 | `AUTH_UNAUTHENTICATED` | 401 | Sign in to perform this action. | BuildingBlocks |
 | `AUTH_USER_EXISTS` | 409 | A user with this email already exists. | Identity |
