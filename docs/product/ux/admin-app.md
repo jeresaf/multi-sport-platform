@@ -66,16 +66,20 @@ user's capabilities (docs/architecture/authorization.md); the server still enfor
 - **Tenants** (`/platform/tenants`, `tenant.read`): every tenant by slug with its name, country, status and creation
   date (UTC: the list carries no time zone); a status filter (all by default) and "Show more". **New tenant**
   (`tenant.create`) asks for the slug (it never changes), name, legal name, country, time zone, language, currency and
-  public site, with the country, zone and currency from the platform's reference data; a taken slug is said under the
-  slug. The new tenant opens on its detail page, still provisioning.
+  public site, with the country, zone and currency from the platform's reference data (the zones narrowed to the
+  chosen country's); a taken slug is said under the slug. The new tenant opens on its detail page, still provisioning.
 - **A tenant** (`/platform/tenants/{id}`): its profile, dates in the tenant's own time zone, and the lifecycle changes
   its status and the user's capabilities allow (state-machines.md, Tenant): activate and restore are confirmed;
-  suspend, archive and unarchive ask for a reason. Each sends `If-Match`; a conflict offers Reload, and a change the
-  status no longer allows reads the tenant again; the refusal stays in the dialog and the change can't be sent again. **Invite an owner** (`tenant.owner.invite`, not offered for an
-  archived tenant) sends an email invitation to `TENANT_OWNER` and says until when the link works. The owner can work
-  in the tenant while it is provisioning. Platform support staff (`tenant.read` only) see the same pages without
-  controls. Owner invitations sent earlier, the status reason and history, members, domains and subscription say
-  they aren't available yet; profile editing (`tenant.update`) is not offered.
+  suspend, archive and unarchive ask for a reason, and the dialog says the tenant's owners see it (after an unarchive,
+  instead of the earlier one). Each change sends `If-Match`, and a conflict (someone changed the tenant since it was
+  read) offers Reload. Should the API still refuse a change for the status (`TENANT_INVALID_TRANSITION`; not expected,
+  since the version is checked first), the tenant is read again, the refusal stays in the dialog and the change can't
+  be sent again. After a change, focus moves to the tenant's name and the new status is announced. **Invite an owner**
+  (`tenant.owner.invite`, not offered for an archived tenant) sends an email invitation to `TENANT_OWNER` and says
+  until when the link works (date, time and the tenant's zone). The owner can work in the tenant while it is
+  provisioning. Platform support staff (`tenant.read` only) see the same pages without controls, and are told that
+  changes need a platform administrator. Owner invitations sent earlier, the status reason and history, members,
+  domains and subscription say they aren't available yet; profile editing (`tenant.update`) is not offered.
 - Diagnostics and Audit are still "not available yet".
 
 ## Workspaces and screens
