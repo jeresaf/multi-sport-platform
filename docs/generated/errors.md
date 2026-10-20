@@ -6,12 +6,15 @@ the message is the default title and may change.
 
 | Code | HTTP | Default message | Owner |
 |---|---|---|---|
-| `AUTH_CONCURRENCY_CONFLICT` | 409 | The account was changed by someone else. Reload and try again. | Identity |
+| `AUTH_CONCURRENCY_CONFLICT` | 409 | The account or membership was changed by someone else. Reload and try again. | Identity |
 | `AUTH_CSRF_REQUIRED` | 403 | The request must carry the X-CSRF header. | BuildingBlocks |
 | `AUTH_CURRENT_PASSWORD_INVALID` | 400 | The current password is incorrect. | Identity |
 | `AUTH_FORBIDDEN` | 403 | You are not allowed to perform this action. | BuildingBlocks |
 | `AUTH_INVALID_CREDENTIALS` | 401 | The email or password is incorrect, or the account can't sign in right now. | Identity |
+| `AUTH_LAST_OWNER` | 409 | The tenant must keep at least one active owner. Make another member an owner first. | Identity |
+| `AUTH_MEMBERSHIP_NOT_FOUND` | 404 | No such member in this tenant. | Identity |
 | `AUTH_MEMBERSHIP_TRANSITION_INVALID` | 409 | The membership's status doesn't allow this change. | Identity |
+| `AUTH_OWNER_REQUIRED` | 403 | Only a tenant owner can change an owner or the owner role. | Identity |
 | `AUTH_PASSWORD_REJECTED` | 400 | The password was rejected: use at least 12 characters. | Identity |
 | `AUTH_RATE_LIMITED` | 429 | Too many attempts. Wait a while and try again. | Identity |
 | `AUTH_RESET_TOKEN_INVALID` | 400 | The reset link is invalid or has expired. Ask for a new one. | Identity |

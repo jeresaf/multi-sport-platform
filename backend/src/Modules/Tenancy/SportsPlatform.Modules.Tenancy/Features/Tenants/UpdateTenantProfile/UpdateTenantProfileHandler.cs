@@ -35,7 +35,7 @@ public sealed class UpdateTenantProfileHandler(TenancyDbContext context, AuditSc
 
         // A change saved by someone else after this read still conflicts on save: xmin is the concurrency token.
         var entry = context.Entry(tenant);
-        if (!TenantVersion.IsSatisfied(entry.Property<uint>(AuditColumns.Version).CurrentValue, request.Version, ifMatch))
+        if (!RowVersion.IsSatisfied(entry.Property<uint>(AuditColumns.Version).CurrentValue, request.Version, ifMatch))
         {
             return TenancyErrors.ConcurrencyConflict;
         }

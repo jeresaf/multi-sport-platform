@@ -56,7 +56,7 @@ public sealed class RoleCatalogueTests
         var json = RoleCatalogueExport.ToJson(_roles);
 
         markdown.ShouldContain("**Actions** is what a role grants today; **Description** is the role's purpose");
-        markdown.ShouldContain("| `VIEWER` | TENANT | TENANT | `tenant.settings.read` | Read-only admin. |\n");
+        markdown.ShouldContain("| `VIEWER` | TENANT | TENANT | `membership.read`, `tenant.settings.read` | Read-only admin. |\n");
         markdown.ShouldContain("| `SCORER` | TENANT | TENANT, COMPETITION, CONTEST | `tenant.settings.read` |");
         markdown.ShouldContain("| `TEAM_MANAGER` | TENANT | TEAM | — |");
         markdown.ShouldContain("| `PLATFORM_SUPPORT` | PLATFORM | — | `platform.audit.read`, `platform.outbox.read`, `tenant.read` |");
@@ -70,6 +70,10 @@ public sealed class RoleCatalogueTests
         owner.GetProperty("scope").GetString().ShouldBe("TENANT");
         owner.GetProperty("description").GetString().ShouldNotBeNullOrWhiteSpace();
         owner.GetProperty("assignableAt").EnumerateArray().Select(scope => scope.GetString()).ShouldBe(["TENANT"]);
-        owner.GetProperty("actions").EnumerateArray().Select(action => action.GetString()).ShouldBe(["tenant.settings.read", "tenant.settings.update"]);
+        owner.GetProperty("actions").EnumerateArray().Select(action => action.GetString()).ShouldBe(
+        [
+            "membership.read", "membership.remove", "membership.restore", "membership.suspend", "role.assign", "role.revoke",
+            "tenant.settings.read", "tenant.settings.update",
+        ]);
     }
 }

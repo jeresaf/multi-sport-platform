@@ -7,14 +7,14 @@ at the start of every review.
 
 - **Current slice:** S03 — Identity and access (docs/build/slices/S03-identity-access.md, rewritten by the S02 slice
   review). S00, S01 and S02 are done
-- **Current task:** S03-T4a — Memberships, role assignments, the identity directory and the evaluator's tenant step —
-  in review (#46)
-- **Next:** S03-T4b — Member and role endpoints, last owner, access-mode refinements
+- **Current task:** S03-T4b1 — Member and role endpoints, owner rules and the last owner (D17) — in review (#47; owner,
+  2026-10-20: T4b split into T4b1 members and roles, T4b2 access-mode refinements)
+- **Next:** S03-T4b2 — Access-mode refinements (D11): `PROVISIONING` for owners and admins, `tenant.access.read`
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S03-T4b — Member and role endpoints, last owner, access-mode refinements (D11, D17)
+1. S03-T4b2 — Access-mode refinements (D11): `PROVISIONING` for owners and admins, `BLOCKED` exception, `tenant.access.read`
 2. S03-T4c — Invitations (admin, platform owner invite, lookup and accept), invitation email, DEMO seeder (D12, D13, D18)
 3. S03-T5 — Capabilities and the authorization matrix
 4. S03-T6 — Admin web: sign-in, shell, members, platform console (likely two PRs: T6a, T6b)
@@ -63,6 +63,7 @@ at the start of every review.
 | 2026-10-19 | S03-T2b | #44 | `account.password.forgot` (always 202; `PasswordResetRequested.V1` through the outbox, consumer `identity.password_reset_email` creates the token and sends the link to `{Identity:AdminAppUrl}/reset-password`), `account.password.reset` (token `{userId}.{secret}`, SHA-256 in `identity.user_tokens`, 1 h, once, newest wins; signs out every session, clears the lockout), `account.password.change` (wrong current password = `400 AUTH_CURRENT_PASSWORD_INVALID`, counted toward the lockout; other sessions end, this cookie renewed); rate limits on login and forgot-password (per IP before the audit, per normalised email after validation; `429 AUTH_RATE_LIMITED` + `Retry-After`, audited DENIED); `X-Forwarded-For` from trusted proxies; `Identity:*` validated on start; fixes: `UserStore.UpdateAsync` keeps the loaded concurrency stamp, `Identity.TwoFactorRememberMe` registered so a stale stamp signs out instead of 500 | Owner (plan): one PR; change failures lock; reset unlocks; user ID in the token; per-IP 429s not audited; `X-Forwarded-For` trusted (S02 D7 widened). `AUTH_PASSWORD_REJECTED`: rule in `detail`, field in `errors`. No new packages |
 | 2026-10-20 | S03-T3 | #45 | `IdentityRoles` (Identity `Domain/Roles`): `PLATFORM_ADMIN` (every platform action), `PLATFORM_SUPPORT` (platform `*.read`), the nine tenant roles with their assignment scopes (tenant-wide roles read the settings; owner and admin change them; `TEAM_MANAGER` nothing yet); `RoleCatalogue` singleton; Host startup check `RoleRules` (undeclared action, wrong scope, action none of a tenant role's scopes can grant, duplicate codes, platform roles ≠ `PlatformRoles`); `export-catalogues` writes `docs/generated/roles.md` and `contracts/roles.json`; `IdentityAuthorizationEvaluator` scoped, platform actions from unrevoked platform roles per request, tenant actions still refused; `AuthorizationRequest` gains `TenantId` and `ScopeRef`; `TestApp` `Authorization.UseIdentityRoles()` | Owner (plan): one PR; all nine tenant roles; settings read for every tenant-wide role; `TEAM_MANAGER` without settings and the scope rule in the startup check. Fixed on the way: `PasswordResetTests` compared two audit entries in ID order, which the fake clock makes random. No migrations, actions, errors, events or packages |
 | 2026-10-20 | S03-T4a | #46 | `identity.tenant_memberships` and `identity.role_assignments` (tenant-owned, RLS, isolation samples; one non-removed membership per tenant and user, one active assignment per membership, role and scope, tenant-wide = NULL scope ID); `TenantMembership` state machine (state-machines.md, owner) and assignment rules, `roles_changed_at` so role changes bump the membership's version; `PlatformServiceDbContext` base and the generic platform-service rule (#33 N2); `IdentityDirectory` (read-only, `sp_platform`, caller's own memberships only) as the real `ITenantMembershipChecker` (Host `NoTenantMemberships` removed) and `/me` tenants; evaluator tenant step (active membership, role grants the action, assignment scope type in `scopable_by` (#45 N1), tenant or resource scope chain via `IScopeChainProvider`); `EnumColumns` shared; errors `AUTH_MEMBERSHIP_TRANSITION_INVALID`, `AUTH_ROLE_NOT_ASSIGNABLE`, `AUTH_ROLE_ALREADY_ASSIGNED`, `AUTH_ROLE_ASSIGNMENT_NOT_FOUND` | Owner (plan): T4 in three PRs; owners only act on owners; `membership.read` for owner, admin, viewer; invitation token in the body (T4c). Owner (pre-review): directory reads not audited (documented exemption). No new actions, events or packages |
+| 2026-10-20 | S03-T4b1 | #47 | `/api/admin/v1/members`: list (cursor over UUIDv7 membership IDs, `status` filter, removed hidden by default; email and active roles), read, suspend/restore/remove (reasons), assign role (201, tenant-wide only), revoke role; actions `membership.read` (audited), `membership.suspend`, `membership.restore`, `membership.remove`, `role.assign`, `role.revoke` (owner and admin; `VIEWER` reads); errors `AUTH_MEMBERSHIP_NOT_FOUND`, `AUTH_OWNER_REQUIRED`, `AUTH_LAST_OWNER`; `MemberChanges` (version, owner-only rule, last owner counted on `ACTIVE` memberships under `pg_advisory_xact_lock`, #46 N1); every change updates the membership row (fixes a same-instant role change keeping its version, T4a); BuildingBlocks `RowVersion` (was Tenancy `TenantVersion`) | Owner (plan): T4b in two PRs; emails shown to `membership.read` holders; tenant-wide roles only; `/me` and blocked tenants in T6. Beyond the plan: `membership.read` audited. No migrations, events or packages. Pre-review: owner check under the lock, commit not cancellable, more isolation, audit and revoke tests. #47 N2: changes to a removed owner are 409 for everyone |
 
 ## Deviations from spec (agreed)
 
@@ -170,6 +171,12 @@ at the start of every review.
   logs and traces never hold it. The identity directory's `sp_platform` reads are not audited (owner, S03-T4a
   pre-review): they read only the caller's own memberships, on every admin request; multi-tenancy.md records the
   exemption.
+- **S03-T4b (owner, plan 2026-10-20):** T4b in two PRs (T4b1 member and role endpoints, owner rules, last owner;
+  T4b2 access-mode refinements). The member list and detail show the member's email to every holder of
+  `membership.read` (data-conventions.md records the exception to `*.read_private`). `role.assign` accepts the
+  `TENANT` scope only in S03. `GET /tenant/access` (T4b2) returns status, access mode and date, not the platform's
+  reason. `/me` and blocked tenants (#46 N2) decided in T6. Beyond the plan: `membership.read` is audited
+  (`REQUIRED`, like `tenant.settings.read`; the plan said none), since it returns emails.
 
 ## Tech debt / follow-ups
 
@@ -177,14 +184,18 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
 (2026-10-18). The S00 carry-overs assigned to S01 are done. Each item names where it gets done.
 
 **S03 — identity and access**
-- Last-owner count (#46 N1): suspended and removed memberships keep their unrevoked role rows, so count
-  `TENANT_OWNER` only on `ACTIVE` memberships, tenant-wide and unrevoked; test that with a suspended second owner,
-  removing the only active owner is `409 AUTH_LAST_OWNER`. (T4b)
 - `/me` and blocked tenants (#46 N2): `/me` lists every tenant with an active membership, suspended and archived
   tenants included. Decide whether `/me` filters by tenant status or the switcher shows them as blocked, and record
-  it. (T4b or T6)
+  it; the switcher gets status with the names (#46 N3) (owner, S03-T4b: T6)
 - Tenant names for the switcher (#46 N3): `/me` returns tenant IDs only and Identity can't read Tenancy's tables; get
   names through a Tenancy contract (e.g. the caller's tenants by ID list), not copies in Identity. (T6)
+- Member changes (S03-T4b1 pre-review): the audit scope counts as recorded at `SavedChanges`, before an explicit
+  transaction commits; `MemberChanges` commits with `CancellationToken.None`, but a failing commit would still roll back
+  unaudited. Mark the scope recorded on commit when a transaction is open (BuildingBlocks `DbTransactionInterceptor`).
+  The concurrent last-owner test can pass without the lock when the two requests run one after the other; a
+  deterministic test would hold the advisory lock on a test connection. Advisory lock keys follow
+  `<schema>.<purpose>:<id>` (only `MemberChanges` today); write the convention into data-conventions.md with the
+  second user. (Later)
 - Two `IScopeChainProvider`s for one resource type make the evaluator throw at request time; add a startup check with
   the first provider (S03-T4a pre-review). (S06)
 - Tests that order audit entries by ID (`AuditTestData.EntriesAsync`) see entries written at one fake-clock instant

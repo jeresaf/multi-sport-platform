@@ -76,7 +76,7 @@ ACTIVE | SUSPENDED ──remove (reason)──► REMOVED
   invitation), so the old row stays as history. At most one membership per tenant and user is not `REMOVED`.
 - A role assignment is granted and revoked, never changed; revoking keeps the row with who and when.
 - A tenant keeps at least one active `TENANT_OWNER` (S03 D17): removing, suspending or revoking the last one is
-  refused (`409 AUTH_LAST_OWNER`, S03-T4b).
+  refused (`409 AUTH_LAST_OWNER`, S03-T4b). Only `ACTIVE` memberships count as owners.
 
 ---
 

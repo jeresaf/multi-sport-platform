@@ -57,4 +57,53 @@ public static class IdentityActions
         ActionScope.Platform,
         AuditRequirement.Required,
         since: "S03");
+
+    // S03-T4b: the members of the request's tenant (X-Tenant-Id) and their roles.
+    public static readonly ActionDefinition MembershipRead = new(
+        "membership.read",
+        "View the tenant's members: email, status and roles (every read is audited; the email is never in the audit).",
+        ActionScope.Tenant,
+        AuditRequirement.Required,
+        since: "S03",
+        scopableBy: [AssignmentScope.Tenant]);
+
+    public static readonly ActionDefinition MembershipSuspend = new(
+        "membership.suspend",
+        "Suspend a member, with a reason: they lose access to the tenant and keep their roles until restored. Only an owner suspends an owner; never the last one.",
+        ActionScope.Tenant,
+        AuditRequirement.RequiredWithReason,
+        since: "S03",
+        scopableBy: [AssignmentScope.Tenant]);
+
+    public static readonly ActionDefinition MembershipRestore = new(
+        "membership.restore",
+        "Restore a suspended member with the roles they held. Only an owner restores an owner.",
+        ActionScope.Tenant,
+        AuditRequirement.Required,
+        since: "S03",
+        scopableBy: [AssignmentScope.Tenant]);
+
+    public static readonly ActionDefinition MembershipRemove = new(
+        "membership.remove",
+        "Remove a member, with a reason (final; rejoining needs a new invitation). Only an owner removes an owner; never the last one.",
+        ActionScope.Tenant,
+        AuditRequirement.RequiredWithReason,
+        since: "S03",
+        scopableBy: [AssignmentScope.Tenant]);
+
+    public static readonly ActionDefinition RoleAssign = new(
+        "role.assign",
+        "Give a member a role, tenant-wide (other scopes later). Only an owner grants TENANT_OWNER.",
+        ActionScope.Tenant,
+        AuditRequirement.Required,
+        since: "S03",
+        scopableBy: [AssignmentScope.Tenant]);
+
+    public static readonly ActionDefinition RoleRevoke = new(
+        "role.revoke",
+        "Revoke a member's role (the assignment is kept as history). Only an owner revokes TENANT_OWNER; never the last owner's.",
+        ActionScope.Tenant,
+        AuditRequirement.Required,
+        since: "S03",
+        scopableBy: [AssignmentScope.Tenant]);
 }

@@ -21,6 +21,12 @@ using SportsPlatform.Modules.Identity.Features.Account.Logout;
 using SportsPlatform.Modules.Identity.Features.Account.ResetPassword;
 using SportsPlatform.Modules.Identity.Features.Authorization;
 using SportsPlatform.Modules.Identity.Features.Directory;
+using SportsPlatform.Modules.Identity.Features.Members;
+using SportsPlatform.Modules.Identity.Features.Members.AssignRole;
+using SportsPlatform.Modules.Identity.Features.Members.ChangeMemberStatus;
+using SportsPlatform.Modules.Identity.Features.Members.GetMember;
+using SportsPlatform.Modules.Identity.Features.Members.ListMembers;
+using SportsPlatform.Modules.Identity.Features.Members.RevokeRole;
 using SportsPlatform.Modules.Identity.Features.PlatformAdmins.CreatePlatformAdmin;
 using SportsPlatform.Modules.Identity.Infrastructure;
 using SportsPlatform.Modules.Identity.Infrastructure.Directory;
@@ -34,7 +40,7 @@ namespace SportsPlatform.Modules.Identity;
 /// <summary>
 /// Identity &amp; Access: users, platform roles and the data protection key ring (S03-T1); the session cookie, the
 /// account API, password reset and change, sign-in rate limits (T2); roles in code and the authorization evaluator (T3);
-/// tenant memberships, their role assignments and the identity directory (T4) (docs/architecture/modules.md).
+/// tenant memberships, their role assignments and the identity directory (T4a); the member and role endpoints (T4b) (docs/architecture/modules.md).
 /// </summary>
 public sealed class IdentityModule : IModule
 {
@@ -91,6 +97,17 @@ public sealed class IdentityModule : IModule
         services.AddSingleton<IValidator<ResetPasswordRequest>, ResetPasswordRequestValidator>();
         services.AddSingleton<IValidator<ChangePasswordRequest>, ChangePasswordRequestValidator>();
 
+        // T4b: the members of the request's tenant and their roles.
+        services.AddScoped<MemberChanges>();
+        services.AddScoped<ListMembersHandler>();
+        services.AddScoped<GetMemberHandler>();
+        services.AddScoped<ChangeMemberStatusHandler>();
+        services.AddScoped<AssignRoleHandler>();
+        services.AddScoped<RevokeRoleHandler>();
+        services.AddSingleton<IValidator<ListMembersRequest>, ListMembersRequestValidator>();
+        services.AddSingleton<IValidator<ChangeMemberStatusWithReasonRequest>, ChangeMemberStatusWithReasonRequestValidator>();
+        services.AddSingleton<IValidator<AssignRoleRequest>, AssignRoleRequestValidator>();
+
         // D13: the reset email is sent by Identity's own consumer, never inside the request.
         services.AddIntegrationEventConsumer<PasswordResetRequested.V1, PasswordResetEmailConsumer, IdentityDbContext>(
             PasswordResetEmailConsumer.Name);
@@ -106,6 +123,13 @@ public sealed class IdentityModule : IModule
         ForgotPasswordEndpoint.Map(account);
         ResetPasswordEndpoint.Map(account);
         ChangePasswordEndpoint.Map(account);
+
+        var members = MemberEndpoints.Group(groups.Admin);
+        ListMembersEndpoint.Map(members);
+        GetMemberEndpoint.Map(members);
+        ChangeMemberStatusEndpoints.Map(members);
+        AssignRoleEndpoint.Map(members);
+        RevokeRoleEndpoint.Map(members);
     }
 
     // S03 D15.

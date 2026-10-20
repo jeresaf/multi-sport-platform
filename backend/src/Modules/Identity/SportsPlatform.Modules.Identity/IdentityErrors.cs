@@ -13,7 +13,7 @@ public static class IdentityErrors
         "AUTH_INVALID_CREDENTIALS", "The email or password is incorrect, or the account can't sign in right now.", ErrorKind.Unauthorized);
 
     public static readonly Error ConcurrencyConflict = new(
-        "AUTH_CONCURRENCY_CONFLICT", "The account was changed by someone else. Reload and try again.", ErrorKind.Conflict);
+        "AUTH_CONCURRENCY_CONFLICT", "The account or membership was changed by someone else. Reload and try again.", ErrorKind.Conflict);
 
     /// <summary>
     /// The password fails the policy (S03 D15: at least 12 characters, no composition rules). On the account endpoints,
@@ -64,4 +64,21 @@ public static class IdentityErrors
     /// <summary>No active role assignment with this ID on the membership (unknown or already revoked).</summary>
     public static readonly Error RoleAssignmentNotFound = new(
         "AUTH_ROLE_ASSIGNMENT_NOT_FOUND", "The role assignment was not found.", ErrorKind.NotFound);
+
+    public static readonly Error MembershipNotFound = new(
+        "AUTH_MEMBERSHIP_NOT_FOUND", "No such member in this tenant.", ErrorKind.NotFound);
+
+    /// <summary>
+    /// The change would leave the tenant without an active <c>TENANT_OWNER</c> (S03 D17): suspending, removing or
+    /// revoking the owner role of its only active owner. Ownership transfer is out of scope: grant a second owner first.
+    /// </summary>
+    public static readonly Error LastOwner = new(
+        "AUTH_LAST_OWNER", "The tenant must keep at least one active owner. Make another member an owner first.", ErrorKind.Conflict);
+
+    /// <summary>
+    /// Only a <c>TENANT_OWNER</c> grants or revokes <c>TENANT_OWNER</c>, or suspends, restores or removes an owner (owner,
+    /// S03-T4); a <c>TENANT_ADMIN</c> gets this.
+    /// </summary>
+    public static readonly Error OwnerRequired = new(
+        "AUTH_OWNER_REQUIRED", "Only a tenant owner can change an owner or the owner role.", ErrorKind.Forbidden);
 }

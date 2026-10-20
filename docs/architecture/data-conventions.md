@@ -78,6 +78,11 @@ so tests and exports can enforce it:
 Rules: public DTO tests assert no non-`PUBLIC` fields; redaction tests assert logs/analytics/audit metadata don't
 contain `PRIVATE`/`SENSITIVE` values; minors' public profiles follow ADR-0015.
 
+Exception (owner, S03-T4b): a member's sign-in email (`identity.users`, `PRIVATE`) is shown in the member list and
+detail (`/api/admin/v1/members`) to every holder of `membership.read`, without a `*.read_private` action: until
+people have profiles it is the only way to tell members apart. It stays out of logs and audit metadata (the audit
+names the membership by ID).
+
 Properties of DTOs and audit metadata records are classified with `[PersonalData(PersonalDataClass.X)]`
 (`SportsPlatform.BuildingBlocks.Privacy`; on a positional record, `[property: PersonalData(...)]`). Audit metadata
 masks `PRIVATE` and `SENSITIVE` values as `"[REDACTED]"` (`AuditMetadata`). Unclassified members are written as they

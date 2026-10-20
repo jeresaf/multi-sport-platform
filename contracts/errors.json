@@ -3,7 +3,7 @@
     {
       "code": "AUTH_CONCURRENCY_CONFLICT",
       "status": 409,
-      "message": "The account was changed by someone else. Reload and try again.",
+      "message": "The account or membership was changed by someone else. Reload and try again.",
       "owner": "Identity"
     },
     {
@@ -31,9 +31,27 @@
       "owner": "Identity"
     },
     {
+      "code": "AUTH_LAST_OWNER",
+      "status": 409,
+      "message": "The tenant must keep at least one active owner. Make another member an owner first.",
+      "owner": "Identity"
+    },
+    {
+      "code": "AUTH_MEMBERSHIP_NOT_FOUND",
+      "status": 404,
+      "message": "No such member in this tenant.",
+      "owner": "Identity"
+    },
+    {
       "code": "AUTH_MEMBERSHIP_TRANSITION_INVALID",
       "status": 409,
       "message": "The membership's status doesn't allow this change.",
+      "owner": "Identity"
+    },
+    {
+      "code": "AUTH_OWNER_REQUIRED",
+      "status": 403,
+      "message": "Only a tenant owner can change an owner or the owner role.",
       "owner": "Identity"
     },
     {

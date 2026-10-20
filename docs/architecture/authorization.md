@@ -80,6 +80,18 @@ Memberships and roles are read on every request under the request's tenant (RLS)
 membership, or a revoked last role, is refused on the next request. A request whose tenant isn't the scope's tenant
 is refused (fail closed). Only users hold roles; the system and anonymous actors get no tenant action.
 
+**Members and owners (S03-T4b).** `/api/admin/v1/members` lists the tenant's members and changes them
+(`membership.read`, `membership.suspend|restore|remove`, `role.assign|revoke`; owner and admin, and `VIEWER` reads).
+Two rules that the handlers check after authorization:
+- Only an active `TENANT_OWNER` grants or revokes `TENANT_OWNER`, or suspends, restores or removes an owner; anyone
+  else gets `403 AUTH_OWNER_REQUIRED` (owner, S03-T4). The system actor (seeds) passes.
+- A tenant keeps at least one active owner (D17): suspending, removing or revoking the owner role of the only `ACTIVE`
+  membership holding an unrevoked tenant-wide `TENANT_OWNER` is `409 AUTH_LAST_OWNER`. Suspended owners don't count.
+  The change holds a per-tenant transaction lock (`pg_advisory_xact_lock`) while it counts the other owners and saves,
+  so two owners removing each other at once can't both succeed.
+In S03 roles are assigned tenant-wide only; other scopes are `400 AUTH_ROLE_NOT_ASSIGNABLE` until the modules that own
+competitions, teams and contests can confirm the resource exists (owner, S03-T4b).
+
 **Ending sessions (S03 D5, T2b).** Sessions are not stored on the server; a password change or reset changes the
 user's security stamp, and every other session fails its next stamp check (at most 5 minutes later) with `401`. A
 change renews the caller's own cookie; a reset ends every session. Wrong current passwords on a change count toward

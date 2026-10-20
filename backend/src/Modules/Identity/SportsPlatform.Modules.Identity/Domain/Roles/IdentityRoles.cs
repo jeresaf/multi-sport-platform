@@ -23,7 +23,14 @@ public static class IdentityRoles
     private const string _tenantSettingsUpdate = "tenant.settings.update";
 
     // Every role assigned tenant-wide reads the settings (time zone, locale, currency) its screens need (owner, S03-T3).
-    private static readonly string[] _tenantAdministration = [_tenantSettingsRead, _tenantSettingsUpdate];
+    private const string _membershipRead = "membership.read";
+
+    private static readonly string[] _tenantAdministration =
+    [
+        _tenantSettingsRead, _tenantSettingsUpdate,
+        _membershipRead, "membership.suspend", "membership.restore", "membership.remove", "role.assign", "role.revoke",
+    ];
+
     private static readonly string[] _tenantContext = [_tenantSettingsRead];
 
     private static readonly string[] _platformReads = ["platform.audit.read", "platform.outbox.read", "tenant.read"];
@@ -76,6 +83,6 @@ public static class IdentityRoles
             _tenantContext, [AssignmentScope.Tenant, AssignmentScope.Competition]),
         new(Viewer, RoleScope.Tenant,
             "Read-only admin.",
-            _tenantContext, [AssignmentScope.Tenant]),
+            [.. _tenantContext, _membershipRead], [AssignmentScope.Tenant]),
     ];
 }
