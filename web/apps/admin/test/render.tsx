@@ -11,15 +11,15 @@ export function renderWithQuery(ui: ReactElement) {
 }
 
 export type Answer = { status: number; body?: unknown };
-export type RecordedRequest = { method: string; path: string; headers: Headers; body: unknown };
+export type RecordedRequest = { method: string; path: string; search: string; headers: Headers; body: unknown };
 
 /** Replaces fetch: `answers["POST /api/account/v1/login"]` answers that request; anything else is a 404. */
 export function fakeApi(answers: Record<string, Answer | (() => Answer)>) {
   const requests: RecordedRequest[] = [];
   vi.stubGlobal("fetch", async (request: Request) => {
-    const path = new URL(request.url).pathname;
+    const { pathname: path, search } = new URL(request.url);
     const text = await request.text();
-    requests.push({ method: request.method, path, headers: request.headers, body: text ? JSON.parse(text) : undefined });
+    requests.push({ method: request.method, path, search, headers: request.headers, body: text ? JSON.parse(text) : undefined });
 
     const entry = answers[`${request.method} ${path}`];
     const answer = typeof entry === "function" ? entry() : (entry ?? { status: 404, body: problem("PLATFORM_ROUTE_NOT_FOUND", 404) });

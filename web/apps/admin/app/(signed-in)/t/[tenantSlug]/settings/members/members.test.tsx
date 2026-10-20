@@ -333,14 +333,36 @@ describe("members & roles: refusals and the owner's own rules", () => {
     openMenu(`Change ${self.email}`);
     fireEvent.click(await screen.findByRole("menuitem", { name: "Remove" }));
     expect(within(await screen.findByRole("dialog")).getByText("This is you:")).toBeTruthy();
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+
+    openMenu(`Change ${self.email}`);
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Change roles" }));
+    expect(within(await screen.findByRole("dialog")).getByText("These are your own roles:")).toBeTruthy();
   });
 
-  it("says when an invitation's email hasn't gone out yet", async () => {
+  it("says when an invitation's email hasn't gone out yet, and that it never will once it isn't pending", async () => {
+    const revoked = { ...ownerInvitation, status: "REVOKED", emailSentAt: null, revokedAt: "2026-10-19T09:00:01Z" };
     open(["TENANT_OWNER"], ownerActions, {
-      "GET /api/admin/v1/invitations": members([{ ...viewerInvitation, emailSentAt: null }]),
+      "GET /api/admin/v1/invitations": members([{ ...viewerInvitation, emailSentAt: null }, revoked]),
     });
 
     expect((await screen.findAllByText("Not sent yet")).length).toBe(1);
+    expect(within(screen.getByText(revoked.email).closest("tr")!).getByText("Not sent")).toBeTruthy();
+  });
+
+  it("lists expired invitations on their own, with when they expired", async () => {
+    const expired = { ...viewerInvitation, status: "EXPIRED", expiresAt: "2026-10-12T09:00:00Z" };
+    const requests = open(["TENANT_OWNER"], ownerActions, { "GET /api/admin/v1/invitations": members([expired]) });
+
+    fireEvent.change(await screen.findByLabelText("Invitations to show"), { target: { value: "EXPIRED" } });
+
+    await waitFor(() =>
+      expect(requests.some((r) => r.path === "/api/admin/v1/invitations" && r.search === "?status=EXPIRED")).toBe(true),
+    );
+    const row = (await screen.findByText(expired.email)).closest("tr")!;
+    expect(within(row).getByText(/^Expired /)).toBeTruthy();
+    expect(within(row).queryByText("—")).toBeNull();
   });
 });
 

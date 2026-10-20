@@ -45,7 +45,8 @@ user's capabilities (docs/architecture/authorization.md); the server still enfor
   settings that changed, with `If-Match`. The tenant's name is the platform's (`tenant.update`); the page says so.
 - **Members & roles** (`/t/{slug}/settings/members`): members (active by default; suspended or removed on request) with
   their roles, status and the reason for it, and invitations (pending and expired by default; with when the email went
-  out, or "Not sent yet"). A member's menu offers only what the capabilities and the membership state allow: change
+  out, or "Not sent yet" while pending and "Not sent" once it never will be; an expired one shows when it expired). A
+  member's menu offers only what the capabilities and the membership state allow: change
   roles (tenant-wide), suspend and remove (each with a required reason, kept in the audit trail), restore. Only an owner
   is offered the owner role, suspending, restoring or removing an owner, and revoking an invitation carrying the owner
   role; the server refuses the rest (`AUTH_OWNER_REQUIRED`, `AUTH_LAST_OWNER`) and the dialog shows why. The user's own

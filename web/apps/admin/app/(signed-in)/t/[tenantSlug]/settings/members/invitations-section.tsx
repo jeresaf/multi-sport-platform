@@ -34,6 +34,11 @@ const filters: readonly { value: Filter; label: string }[] = [
   { value: "REVOKED", label: "Revoked" },
 ];
 
+/** A pending invitation's expiry is when it will lapse; an expired one's, when it did. */
+function showsExpiry(invitation: Invitation): boolean {
+  return invitation.status === "PENDING" || invitation.status === "EXPIRED";
+}
+
 /** Columns shown from tablet width up. */
 const wide = "hidden tablet:table-cell";
 
@@ -142,9 +147,9 @@ export function InvitationsSection({ isOwner }: Readonly<{ isOwner: boolean }>) 
                   <div className="mt-2 grid gap-2 whitespace-normal tablet:hidden">
                     <span>{invitation.roleCodes.map(humanizeCode).join(", ")}</span>
                     <StatusBadge status={invitation.status} />
-                    {invitation.status === "PENDING" ? (
+                    {showsExpiry(invitation) ? (
                       <span className="text-sm text-muted-foreground">
-                        Expires {formatDate(invitation.expiresAt, timeZone)}
+                        {invitation.status === "EXPIRED" ? "Expired" : "Expires"} {formatDate(invitation.expiresAt, timeZone)}
                       </span>
                     ) : null}
                   </div>
@@ -156,11 +161,16 @@ export function InvitationsSection({ isOwner }: Readonly<{ isOwner: boolean }>) 
                   <StatusBadge status={invitation.status} />
                 </TableCell>
                 <TableCell className={wide}>
-                  {/* Set by the outbox once the email has gone out; until then nothing was sent. */}
-                  {invitation.emailSentAt ? formatDate(invitation.emailSentAt, timeZone) : "Not sent yet"}
+                  {/* Set by the outbox once the email has gone out. Only a pending invitation's email is still to
+                      come: the sender skips one that was revoked, accepted or expired first. */}
+                  {invitation.emailSentAt
+                    ? formatDate(invitation.emailSentAt, timeZone)
+                    : invitation.status === "PENDING"
+                      ? "Not sent yet"
+                      : "Not sent"}
                 </TableCell>
                 <TableCell className={wide}>
-                  {invitation.status === "PENDING" ? formatDate(invitation.expiresAt, timeZone) : "—"}
+                  {showsExpiry(invitation) ? formatDate(invitation.expiresAt, timeZone) : "—"}
                 </TableCell>
                 <TableCell className="text-right">
                   {revocable(invitation) ? (
