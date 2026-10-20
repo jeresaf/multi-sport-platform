@@ -93,9 +93,15 @@ Added with the owner's approval, 2026-10-20 (S03-T4c, D12). An invitation to joi
 
 ```text
 PENDING ──accept──► ACCEPTED (accepted_by, accepted_at, membership_id)
-PENDING ──revoke | a new invitation to the same email──► REVOKED
+PENDING ──revoke | a new invitation to the same email | the inviter suspended or removed──► REVOKED
 PENDING and now ≥ expires_at (7 days after it was made) ⇒ EXPIRED (derived, never stored; final)
 ```
+
+- Suspending or removing a membership revokes the pending, unexpired invitations that member sent in the tenant, in
+  the same save (Q20, owner, S03-T5); the member change's audit entry lists their IDs. Expired and accepted ones stay
+  as they are, invitations sent by platform staff or the system are not touched, and restoring the member brings none
+  back. An invitation the member sends at the same instant as their suspension can commit after it and stay pending
+  (accepted, owner).
 
 - At most one invitation per tenant and email is `PENDING`: a new one revokes the pending one, expired or not.
 - An expired invitation can't be accepted or revoked; inviting again makes a new one.
