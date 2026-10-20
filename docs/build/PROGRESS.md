@@ -7,8 +7,8 @@ at the start of every review.
 
 - **Current slice:** S03 — Identity and access (docs/build/slices/S03-identity-access.md, rewritten by the S02 slice
   review). S00, S01 and S02 are done
-- **Current task:** S03-T5a — Capabilities (`me/capabilities` for admin and platform) — in review (#52)
-- **Next:** S03-T5b — Authorization matrix test; an inviter's pending invitations revoked (Q20)
+- **Current task:** S03-T5b — Authorization matrix test; an inviter's pending invitations revoked (Q20)
+- **Next:** S03-T6 — Admin web: sign-in, shell, members, platform console
 - **Blocked on:** nothing
 
 ## Next up
