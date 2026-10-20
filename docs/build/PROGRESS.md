@@ -7,13 +7,19 @@ at the start of every review.
 
 - **Current slice:** S03 — Identity and access (docs/build/slices/S03-identity-access.md, rewritten by the S02 slice
   review). S00, S01 and S02 are done
-- **Current task:** S03-T5b — Authorization matrix test; an inviter's pending invitations revoked (Q20) — in review (#54)
-- **Next:** S03-T6 — Admin web: sign-in, shell, members, platform console
+- **Current task:** S03-T6a — API prerequisites for the admin web (OpenAPI fixes; `/me` with tenant names, slugs and
+  status) — plan approved, not started (needs a session with the .NET SDK)
+- **Next:** S03-T6b — Admin web foundation; then S03-T6c — members, settings, platform console, e2e
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S03-T6 — Admin web: sign-in, shell, members, platform console (likely two PRs: T6a, T6b)
+1. S03-T6a — API prerequisites: request schemas without optional members in `required`; `If-Match`/`ETag` declared;
+   activate/restore 400s; a test against strict-body schema name clashes; `ITenantDirectory.GetManyAsync`; `/me`
+   tenants with `slug`, `displayName`, `status`; regenerated contracts and client
+2. S03-T6b — Web foundation: shadcn/ui (official CLI), rewrites, API client wrapper (`X-CSRF`, `X-Tenant-Id`), TanStack
+   Query, auth pages, 401/403/404 and error display, shell with capabilities-filtered nav, tenant switcher, user menu
+3. S03-T6c — Members & roles, organisation settings, platform console, Playwright demo flow and screenshots
 
 ## Log
 
@@ -187,6 +193,11 @@ at the start of every review.
   `DisplayName`; the acceptance columns (`accepted_by`, `accepted_at`, `membership_id` → membership) ship with T4c2.
   Owner (finish-task): the platform owner invitation refuses an `ARCHIVED` tenant (`409 AUTH_TENANT_ARCHIVED`); other
   statuses are allowed. Pre-review: only an owner revokes or replaces an invitation carrying `TENANT_OWNER`.
+- **S03-T6 (owner, plan 2026-10-20):** three PRs instead of two: T6a API prerequisites, T6b web foundation, T6c
+  members, settings, platform console and e2e. `/me` keeps suspended and archived tenants and returns their status; the
+  switcher shows them as blocked (the owner can open one and read why, `tenant.access.read`). shadcn/ui is initialised
+  with the official CLI (needs `ui.shadcn.com`). The environment's network now allows the .NET download hosts and
+  `ui.shadcn.com` (owner); a new session is needed for the change to apply.
 - **S03-T5 (owner, plan 2026-10-20):** two PRs, T5a (capabilities) and T5b (matrix test, Q20). `tenant.capabilities.read`
   is held by every role assignable tenant-wide, not `TEAM_MANAGER` (spec: "in every tenant role"; a team-scoped role
   can't be granted an action without a resource before S06). The fake chain test is `CONTEST → COMPETITION`: no
