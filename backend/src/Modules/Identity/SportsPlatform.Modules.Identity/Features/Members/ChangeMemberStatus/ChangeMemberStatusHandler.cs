@@ -23,7 +23,9 @@ public sealed record MemberStatusChangedAuditMetadata(IReadOnlyList<Guid> Revoke
 /// Moves a membership along its state machine (docs/domain/state-machines.md, "Tenant membership"). Only an owner
 /// changes an owner's status; suspending or removing the last active owner is <c>AUTH_LAST_OWNER</c>. A suspended or
 /// removed member is refused from their next request on. Suspending or removing also revokes the pending, unexpired
-/// invitations that member sent in the tenant, in the same save (Q20); restoring doesn't bring them back.
+/// invitations that member's user sent in the tenant, in the same save (Q20), platform owner invitations included;
+/// restoring doesn't bring them back. An invitation that changes between the load and the save (its email being sent)
+/// makes the member change conflict (409 AUTH_CONCURRENCY_CONFLICT); a retry succeeds.
 /// </summary>
 public sealed class ChangeMemberStatusHandler(
     MemberChanges changes, IdentityDbContext context, ICurrentActor actor, AuditScope audit, TimeProvider timeProvider)
