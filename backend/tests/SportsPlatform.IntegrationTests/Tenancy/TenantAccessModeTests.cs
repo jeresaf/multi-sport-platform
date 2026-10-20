@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text;
+using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.BuildingBlocks.Auditing;
 using SportsPlatform.IntegrationTests.Api;
 using SportsPlatform.IntegrationTests.Audit;
@@ -89,6 +90,25 @@ public sealed class TenantAccessModeTests(PostgresFixture fixture) : DatabaseTes
         await (await client.GetAsync(_settingsPath, Ct)).ShouldBeProblemAsync(HttpStatusCode.Forbidden, "TENANT_BLOCKED");
         await (await client.GetAsync(MembersPath, Ct)).ShouldBeProblemAsync(HttpStatusCode.Forbidden, "TENANT_BLOCKED");
         await (await PatchSettingsAsync(client)).ShouldBeProblemAsync(HttpStatusCode.Forbidden, "TENANT_BLOCKED");
+    }
+
+    [Fact]
+    public async Task A_second_suspension_shows_its_own_reason_and_time()
+    {
+        var kmsa = await TenantAsync(TenantStatus.Suspended);
+        var restored = new DateTimeOffset(2026, 10, 5, 9, 0, 0, TimeSpan.Zero);
+        var suspendedAgain = new DateTimeOffset(2026, 10, 12, 14, 30, 0, TimeSpan.Zero);
+        await TenantTestData.ChangeAsync(App.Services, kmsa, t => t.Restore(SystemActor.Instance, restored).IsSuccess.ShouldBeTrue(), Ct);
+        await TenantTestData.ChangeAsync(
+            App.Services, kmsa, t => t.Suspend("Contract renewal unsigned", SystemActor.Instance, suspendedAgain).IsSuccess.ShouldBeTrue(), Ct);
+        var owner = await CreateMemberAsync(App.Services, kmsa, "grace.nakato@kmsa.example", Ct, TenantWide(IdentityRoles.TenantOwner));
+        using var client = App.ClientFor(owner.UserId, kmsa);
+
+        using var response = await client.GetAsync(_accessPath, Ct);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await ReadAccessAsync(response)).ShouldBe(
+            new TenantAccessResponse(TenantStatus.Suspended, TenantAccessMode.Blocked, "Contract renewal unsigned", suspendedAgain));
     }
 
     [Theory]

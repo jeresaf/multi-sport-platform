@@ -28,7 +28,7 @@ public sealed class GetTenantAccessHandler(TenancyDbContext context, ITenantCont
         // creation row for PROVISIONING).
         var last = await context.Set<TenantStatusChange>().AsNoTracking()
             .Where(c => c.TenantId == tenantId && c.ToStatus == status)
-            .OrderByDescending(c => c.OccurredAt)
+            .OrderByDescending(c => c.OccurredAt).ThenByDescending(c => c.Id) // a stable answer for changes at one instant
             .Select(c => new { c.Reason, c.OccurredAt })
             .FirstAsync(cancellationToken);
 

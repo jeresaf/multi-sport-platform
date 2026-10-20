@@ -138,6 +138,17 @@ internal static class TenantTestData
         await using var scope = services.CreateAsyncScope();
         return await scope.ServiceProvider.GetRequiredService<TenancyDbContext>().Set<Tenant>().CountAsync(cancellationToken);
     }
+
+    /// <summary>Changes a saved tenant through its domain methods, under that tenant (its status history is tenant-owned).</summary>
+    public static async Task ChangeAsync(IServiceProvider services, Guid tenantId, Action<Tenant> change, CancellationToken cancellationToken)
+    {
+        await using var scope = services.CreateAsyncScope();
+        scope.ServiceProvider.GetRequiredService<TenantContext>().Set(tenantId);
+        var context = scope.ServiceProvider.GetRequiredService<TenancyDbContext>();
+        var tenant = await context.Set<Tenant>().Include(t => t.StatusHistory).SingleAsync(t => t.Id == tenantId, cancellationToken);
+        change(tenant);
+        await context.SaveChangesAsync(cancellationToken);
+    }
 }
 
 internal sealed record TenantState(TenantStatus Status, uint Version);
