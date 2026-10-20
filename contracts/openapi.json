@@ -212,7 +212,7 @@
             ]
           },
           "403": {
-            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`",
+            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -223,7 +223,8 @@
             "x-error-codes": [
               "AUTH_FORBIDDEN",
               "AUTH_TENANT_FORBIDDEN",
-              "TENANT_BLOCKED"
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING"
             ]
           }
         }
@@ -296,7 +297,7 @@
             ]
           },
           "403": {
-            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`",
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -308,7 +309,58 @@
               "AUTH_CSRF_REQUIRED",
               "AUTH_FORBIDDEN",
               "AUTH_TENANT_FORBIDDEN",
-              "TENANT_BLOCKED"
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING"
+            ]
+          }
+        }
+      }
+    },
+    "/api/admin/v1/tenant/access": {
+      "get": {
+        "tags": [
+          "Tenant access"
+        ],
+        "summary": "Get the tenant's access",
+        "description": "The status and access mode of the tenant named by `X-Tenant-Id`, with the reason and time of the change that put it in that status. Available while the tenant is suspended or archived, so its owner sees why every other request is `403 TENANT_BLOCKED`.",
+        "operationId": "GetTenantAccess",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TenantAccessResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_PROVISIONING`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_PROVISIONING"
             ]
           }
         }
@@ -383,7 +435,7 @@
             ]
           },
           "403": {
-            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`",
+            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -394,7 +446,8 @@
             "x-error-codes": [
               "AUTH_FORBIDDEN",
               "AUTH_TENANT_FORBIDDEN",
-              "TENANT_BLOCKED"
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING"
             ]
           }
         }
@@ -457,7 +510,7 @@
             ]
           },
           "403": {
-            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`",
+            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -468,7 +521,8 @@
             "x-error-codes": [
               "AUTH_FORBIDDEN",
               "AUTH_TENANT_FORBIDDEN",
-              "TENANT_BLOCKED"
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING"
             ]
           }
         }
@@ -556,7 +610,7 @@
             ]
           },
           "403": {
-            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_OWNER_REQUIRED`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`",
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_OWNER_REQUIRED`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -569,7 +623,8 @@
               "AUTH_FORBIDDEN",
               "AUTH_OWNER_REQUIRED",
               "AUTH_TENANT_FORBIDDEN",
-              "TENANT_BLOCKED"
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING"
             ]
           },
           "401": {
@@ -663,7 +718,7 @@
             ]
           },
           "403": {
-            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_OWNER_REQUIRED`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`",
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_OWNER_REQUIRED`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -676,7 +731,8 @@
               "AUTH_FORBIDDEN",
               "AUTH_OWNER_REQUIRED",
               "AUTH_TENANT_FORBIDDEN",
-              "TENANT_BLOCKED"
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING"
             ]
           },
           "401": {
@@ -777,7 +833,7 @@
             ]
           },
           "403": {
-            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_OWNER_REQUIRED`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`",
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_OWNER_REQUIRED`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -790,7 +846,8 @@
               "AUTH_FORBIDDEN",
               "AUTH_OWNER_REQUIRED",
               "AUTH_TENANT_FORBIDDEN",
-              "TENANT_BLOCKED"
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING"
             ]
           },
           "401": {
@@ -892,7 +949,7 @@
             ]
           },
           "403": {
-            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_OWNER_REQUIRED`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`",
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_OWNER_REQUIRED`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -905,7 +962,8 @@
               "AUTH_FORBIDDEN",
               "AUTH_OWNER_REQUIRED",
               "AUTH_TENANT_FORBIDDEN",
-              "TENANT_BLOCKED"
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING"
             ]
           },
           "401": {
@@ -1009,7 +1067,7 @@
             ]
           },
           "403": {
-            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_OWNER_REQUIRED`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`",
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_OWNER_REQUIRED`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1022,7 +1080,8 @@
               "AUTH_FORBIDDEN",
               "AUTH_OWNER_REQUIRED",
               "AUTH_TENANT_FORBIDDEN",
-              "TENANT_BLOCKED"
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING"
             ]
           },
           "401": {
@@ -3640,6 +3699,42 @@
         },
         "description": "The public site's identity: `PUBLIC` fields only. PrimaryDomain is the host the site\nprefers, which may differ from the host the request came in on."
       },
+      "TenantAccessMode": {
+        "enum": [
+          "FULL",
+          "READ_ONLY",
+          "BLOCKED"
+        ],
+        "description": "What a tenant may do, derived from its status (and, from S04, its subscription): state-machines.md."
+      },
+      "TenantAccessResponse": {
+        "required": [
+          "status",
+          "accessMode",
+          "reason",
+          "since"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/TenantStatus"
+          },
+          "accessMode": {
+            "$ref": "#/components/schemas/TenantAccessMode"
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "since": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "A tenant's access as its owner sees it: `status`, the `accessMode` derived from it, and the\n`reason` (null when the change needs none, such as an activation) and time (`since`) of the change that put the\ntenant in its status."
+      },
       "TenantListItem": {
         "required": [
           "id",
@@ -3962,6 +4057,9 @@
     },
     {
       "name": "Tenant settings"
+    },
+    {
+      "name": "Tenant access"
     },
     {
       "name": "Members"
