@@ -64,7 +64,9 @@ public sealed class MemberChanges(IdentityDbContext context, ICurrentActor actor
         }
 
         // A change that takes an owner away takes the tenant's owner lock first, so the caller's ownership and the
-        // other owners are read after every owner change committed before it.
+        // other owners are read after every owner change committed before it. Other owner changes (granting the role,
+        // restoring an owner) check the caller without the lock: if the caller loses ownership a moment later, the
+        // change was still made by an owner and leaves at least one.
         var impact = impactOf(membership);
         await using var transaction = impact == OwnerImpact.RemovesOwner
             ? await context.Database.BeginTransactionAsync(cancellationToken)
