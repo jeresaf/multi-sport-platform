@@ -28,7 +28,9 @@ export function adminHeaders(tenantId?: string): Middleware {
   };
 }
 
-export function createAdminClient({ tenantId, baseUrl = "", ...options }: AdminClientOptions = {}) {
+export function createAdminClient({ tenantId, baseUrl, ...options }: AdminClientOptions = {}) {
+  // The page's own origin: the API is behind the app's rewrite. (Not "": a relative URL isn't valid everywhere.)
+  baseUrl ??= globalThis.location?.origin ?? "";
   const client = createApiClient({ credentials: "same-origin", ...options, baseUrl });
   client.use(adminHeaders(tenantId));
   return client;
