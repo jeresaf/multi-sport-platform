@@ -177,6 +177,14 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
 (2026-10-18). The S00 carry-overs assigned to S01 are done. Each item names where it gets done.
 
 **S03 — identity and access**
+- Last-owner count (#46 N1): suspended and removed memberships keep their unrevoked role rows, so count
+  `TENANT_OWNER` only on `ACTIVE` memberships, tenant-wide and unrevoked; test that with a suspended second owner,
+  removing the only active owner is `409 AUTH_LAST_OWNER`. (T4b)
+- `/me` and blocked tenants (#46 N2): `/me` lists every tenant with an active membership, suspended and archived
+  tenants included. Decide whether `/me` filters by tenant status or the switcher shows them as blocked, and record
+  it. (T4b or T6)
+- Tenant names for the switcher (#46 N3): `/me` returns tenant IDs only and Identity can't read Tenancy's tables; get
+  names through a Tenancy contract (e.g. the caller's tenants by ID list), not copies in Identity. (T6)
 - Two `IScopeChainProvider`s for one resource type make the evaluator throw at request time; add a startup check with
   the first provider (S03-T4a pre-review). (S06)
 - Tests that order audit entries by ID (`AuditTestData.EntriesAsync`) see entries written at one fake-clock instant
