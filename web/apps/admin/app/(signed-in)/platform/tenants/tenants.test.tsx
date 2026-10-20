@@ -1,6 +1,6 @@
 // Platform console → Tenants: the list and its filter, creating a tenant, and a tenant's lifecycle and owner invitation,
 // with the controls following the platform capabilities and the tenant state machine.
-import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { errorMessage } from "@msp/api-client/errors";
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -126,6 +126,18 @@ describe("tenants list", () => {
     // The list has no tenant time zone: its dates are UTC, and the heading says so.
     expect(screen.getByRole("columnheader", { name: "Created (UTC)" })).toBeTruthy();
     expect(screen.getAllByText("17 Oct 2026").length).toBeGreaterThan(0);
+    // The country by name, from the reference data.
+    expect((await screen.findAllByText("Uganda")).length).toBeGreaterThan(0);
+  });
+
+  it("doesn't ask for tenants without tenant.read", async () => {
+    const requests = openList([]);
+
+    // The shell is up (capabilities read), so the forbidden page is the tenants page's own.
+    expect((await screen.findAllByRole("navigation")).length).toBeGreaterThan(0);
+    expect(await screen.findByRole("heading", { name: "You can't open this page" })).toBeTruthy();
+    await act(async () => {}); // runs the page's effects, where a query would start
+    expect(requests.some((request) => request.path === "/api/platform/v1/tenants")).toBe(false);
   });
 
   it("filters by status and pages with Show more", async () => {
@@ -284,6 +296,8 @@ describe("a tenant's detail", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Suspend" }));
     const dialog = within(await screen.findByRole("dialog"));
     expect(dialog.getByRole("heading", { name: `Suspend ${kmsa.displayName}?` })).toBeTruthy();
+    // Reasons are kept permanently (audit trail): the field says not to put personal details in them.
+    expect(dialog.getByRole("textbox", { name: "Reason", description: /Don.t include personal details/ })).toBeTruthy();
     fireEvent.click(dialog.getByRole("button", { name: "Suspend" }));
     expect(await dialog.findByText(/Give a reason/)).toBeTruthy();
     expect(requests.some((request) => request.path.endsWith("/suspend"))).toBe(false);
@@ -356,6 +370,36 @@ describe("a tenant's detail", () => {
 
     expect(await dialog.findByText(errorMessage("TENANT_INVALID_TRANSITION")!)).toBeTruthy();
     await waitFor(() => expect(reads).toBe(2));
+    // The refusal stays; suspending the now suspended tenant can't be sent again.
+    await waitFor(() => expect(dialog.getByRole("button", { name: "Suspend" }).hasAttribute("disabled")).toBe(true));
+    fireEvent.click(dialog.getByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(offered()).toEqual(["Restore", "Archive"]);
+  });
+
+  it.each([
+    ["Restore", "restore", "SUSPENDED", null],
+    ["Archive", "archive", "SUSPENDED", "Merged into another council"],
+    ["Unarchive", "unarchive", "ARCHIVED", "Council reopened"],
+  ])("%s sends its request with the tenant's version, and a reason only when it needs one", async (label, path, status, reason) => {
+    const tenant = { ...kmsa, status };
+    const requests = openDetail(tenant, adminActions, {
+      [`POST ${detailPath(tenant)}/${path}`]: { status: 200, body: { ...tenant, version: 5 } },
+    });
+
+    fireEvent.click(await screen.findByRole("button", { name: label }));
+    const dialog = within(await screen.findByRole("dialog"));
+    if (reason) {
+      fireEvent.change(dialog.getByLabelText("Reason"), { target: { value: reason } });
+    } else {
+      expect(dialog.queryByLabelText("Reason")).toBeNull();
+    }
+    fireEvent.click(dialog.getByRole("button", { name: label }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    const sent = requests.find((request) => request.path === `${detailPath(tenant)}/${path}`)!;
+    expect(sent.body).toEqual(reason ? { reason } : undefined);
+    expect(sent.headers.get("If-Match")).toBe('"4"');
   });
 
   it("says an unknown tenant isn't there", async () => {

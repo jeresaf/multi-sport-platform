@@ -13,6 +13,7 @@ import { StatusBadge } from "@/components/status-badge";
 import { ForbiddenView } from "@/components/status-page";
 import { humanizeCode } from "@/lib/codes";
 import { usePlatformCan } from "@/lib/platform-workspace";
+import { useCountries } from "@/lib/reference-data";
 import { formatDate } from "@/lib/tenant-settings";
 import { platformPath } from "@/lib/workspace";
 import { CreateTenantDialog } from "./create-tenant-dialog";
@@ -29,7 +30,9 @@ export default function TenantsPage() {
   const can = usePlatformCan();
   const [status, setStatus] = useState<TenantStatus | undefined>(undefined);
   const [creating, setCreating] = useState(false);
-  const tenants = useTenants(status);
+  const tenants = useTenants(status, can("tenant.read"));
+  const countries = useCountries();
+  const countryName = (code: string) => countries.data?.items.find((item) => item.code === code)?.name ?? code;
 
   if (!can("tenant.read")) {
     return <ForbiddenView />;
@@ -98,7 +101,7 @@ export default function TenantsPage() {
                   </Link>
                   <p className="truncate text-sm text-muted-foreground">{tenant.slug}</p>
                 </TableCell>
-                <TableCell className={wide}>{tenant.countryCode}</TableCell>
+                <TableCell className={wide}>{countryName(tenant.countryCode)}</TableCell>
                 <TableCell>
                   <StatusBadge status={tenant.status} />
                 </TableCell>

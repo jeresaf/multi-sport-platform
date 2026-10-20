@@ -14,9 +14,10 @@ export const tenantsQueryKey = ["platform", "tenants"] as const;
 const listQueryKey = (status: TenantStatus | undefined) => [...tenantsQueryKey, "list", status ?? "ALL"] as const;
 export const tenantQueryKey = (tenantId: string) => [...tenantsQueryKey, "detail", tenantId] as const;
 
-/** `undefined`: every status. */
-export function useTenants(status: TenantStatus | undefined) {
+/** `undefined`: every status. Not read without `tenant.read` (`enabled`): the request would only be refused. */
+export function useTenants(status: TenantStatus | undefined, enabled: boolean) {
   return useInfiniteQuery({
+    enabled,
     queryKey: listQueryKey(status),
     queryFn: ({ pageParam }) =>
       call(
@@ -29,8 +30,9 @@ export function useTenants(status: TenantStatus | undefined) {
   });
 }
 
-export function useTenant(tenantId: string) {
+export function useTenant(tenantId: string, enabled: boolean) {
   return useQuery({
+    enabled,
     queryKey: tenantQueryKey(tenantId),
     queryFn: () => call(api.GET("/api/platform/v1/tenants/{tenantId}", { params: { path: { tenantId } } })),
   });

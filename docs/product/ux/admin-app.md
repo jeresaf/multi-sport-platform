@@ -71,7 +71,7 @@ user's capabilities (docs/architecture/authorization.md); the server still enfor
 - **A tenant** (`/platform/tenants/{id}`): its profile, dates in the tenant's own time zone, and the lifecycle changes
   its status and the user's capabilities allow (state-machines.md, Tenant): activate and restore are confirmed;
   suspend, archive and unarchive ask for a reason. Each sends `If-Match`; a conflict offers Reload, and a change the
-  status no longer allows reads the tenant again. **Invite an owner** (`tenant.owner.invite`, not offered for an
+  status no longer allows reads the tenant again; the refusal stays in the dialog and the change can't be sent again. **Invite an owner** (`tenant.owner.invite`, not offered for an
   archived tenant) sends an email invitation to `TENANT_OWNER` and says until when the link works. The owner can work
   in the tenant while it is provisioning. Platform support staff (`tenant.read` only) see the same pages without
   controls. Owner invitations sent earlier, the status reason and history, members, domains and subscription say

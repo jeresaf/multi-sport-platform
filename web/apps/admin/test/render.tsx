@@ -18,8 +18,11 @@ export function fakeApi(answers: Record<string, Answer | (() => Answer)>) {
   const requests: RecordedRequest[] = [];
   vi.stubGlobal("fetch", async (request: Request) => {
     const { pathname: path, search } = new URL(request.url);
+    // Recorded when it is made, so a test can tell a request was never sent; the body follows once read.
+    const recorded: RecordedRequest = { method: request.method, path, search, headers: request.headers, body: undefined };
+    requests.push(recorded);
     const text = await request.text();
-    requests.push({ method: request.method, path, search, headers: request.headers, body: text ? JSON.parse(text) : undefined });
+    recorded.body = text ? JSON.parse(text) : undefined;
 
     const entry = answers[`${request.method} ${path}`];
     const answer = typeof entry === "function" ? entry() : (entry ?? { status: 404, body: problem("PLATFORM_ROUTE_NOT_FOUND", 404) });

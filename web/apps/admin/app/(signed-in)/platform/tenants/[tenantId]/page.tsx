@@ -95,7 +95,7 @@ function Detail({ label, children }: Readonly<{ label: string; children: ReactNo
 export default function TenantPage() {
   const { tenantId } = useParams<{ tenantId: string }>();
   const can = usePlatformCan();
-  const tenant = useTenant(tenantId);
+  const tenant = useTenant(tenantId, can("tenant.read"));
 
   if (!can("tenant.read")) {
     return <ForbiddenView />;
@@ -269,6 +269,8 @@ function TenantDetail({ tenant }: Readonly<{ tenant: Tenant }>) {
           withReason={open.withReason}
           pending={change.isPending}
           error={change.error}
+          // After TENANT_INVALID_TRANSITION the tenant is read again: a change its new status doesn't allow can't be sent.
+          confirmDisabled={!allowed.includes(pending)}
           onConfirm={(reason) => change.mutate({ change: pending, reason })}
           onReload={() => {
             void reload();
