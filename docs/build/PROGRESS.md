@@ -7,13 +7,13 @@ at the start of every review.
 
 - **Current slice:** S03 — Identity and access (docs/build/slices/S03-identity-access.md, rewritten by the S02 slice
   review). S00, S01 and S02 are done
-- **Current task:** S03-T6b2 — Admin shell — in review (#57)
-- **Next:** S03-T6c — members, settings, platform console, e2e
+- **Current task:** S03-T6c1 — Organisation settings, Members & roles — in progress
+- **Next:** S03-T6c2 — platform console, slice demo e2e, slice close
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S03-T6c — Members & roles, organisation settings, platform console, Playwright demo flow and screenshots
+1. S03-T6c2 — Platform console (tenants list, create, detail, lifecycle, owner invitation), slice demo e2e, screenshots
 
 ## Log
 
