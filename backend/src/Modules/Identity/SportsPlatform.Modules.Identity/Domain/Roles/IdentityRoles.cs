@@ -31,7 +31,8 @@ public static class IdentityRoles
     private const string _membershipRead = "membership.read";
 
     // Every role assigned tenant-wide reads the settings (time zone, locale, currency) its screens need (owner, S03-T3)
-    // and what it may do there (S03-T5).
+    // and what it may do there (S03-T5). Held only below the tenant, it grants neither until requests carry resource
+    // scopes (S06, #52 R1).
     private const string _capabilitiesRead = "tenant.capabilities.read";
 
     private static readonly string[] _tenantAdministration =

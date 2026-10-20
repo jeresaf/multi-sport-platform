@@ -32,8 +32,7 @@ public sealed class Permissions(IdentityDbContext context, RoleCatalogue roles, 
             .Select(roles.Find)
             .OfType<RoleDefinition>()
             .Where(role => role.Scope == RoleScope.Platform)
-            // A platform role has no assignment scope; Allows ignores ScopeType for platform roles.
-            .Select(role => new HeldRole(role, AssignmentScope.Tenant, null))]);
+            .Select(role => new HeldRole(role, ScopeType: null, ScopeId: null))]);
     }
 
     /// <summary>
@@ -61,10 +60,10 @@ public sealed class Permissions(IdentityDbContext context, RoleCatalogue roles, 
 }
 
 /// <summary>
-/// A role the actor holds and where: tenant-wide (<c>TENANT</c>, no scope ID) or at one resource. Platform roles have no
-/// scope: they are held as <c>TENANT</c> with no ID, which <see cref="HeldRoles.Allows"/> doesn't read for them.
+/// A role the actor holds and where: tenant-wide (<c>TENANT</c>, no scope ID) or at one resource. A platform role has no
+/// assignment scope (both null).
 /// </summary>
-public sealed record HeldRole(RoleDefinition Role, AssignmentScope ScopeType, Guid? ScopeId);
+public sealed record HeldRole(RoleDefinition Role, AssignmentScope? ScopeType, Guid? ScopeId);
 
 /// <summary>The roles one actor holds in one place (the platform, or one tenant), and what they allow (S03 D10).</summary>
 public sealed class HeldRoles(IReadOnlyList<HeldRole> held)
@@ -86,9 +85,10 @@ public sealed class HeldRoles(IReadOnlyList<HeldRole> held)
         return Held.Any(held => held.Role.Grants(action) && (action.Scope, held.Role.Scope) switch
         {
             (ActionScope.Platform, RoleScope.Platform) => true,
-            (ActionScope.Tenant, RoleScope.Tenant) => action.ScopableBy.Contains(held.ScopeType)
-                && (held.ScopeType == AssignmentScope.Tenant
-                    || (held.ScopeId is { } scopeId && chain.Contains(new ScopeRef(held.ScopeType, scopeId)))),
+            (ActionScope.Tenant, RoleScope.Tenant) => held.ScopeType is { } scopeType
+                && action.ScopableBy.Contains(scopeType)
+                && (scopeType == AssignmentScope.Tenant
+                    || (held.ScopeId is { } scopeId && chain.Contains(new ScopeRef(scopeType, scopeId)))),
             _ => false,
         });
     }
@@ -97,7 +97,7 @@ public sealed class HeldRoles(IReadOnlyList<HeldRole> held)
     public bool GrantsBelowTheTenant(ActionDefinition action)
     {
         ArgumentNullException.ThrowIfNull(action);
-        return Held.Any(held => held.ScopeType != AssignmentScope.Tenant && held.Role.Scope == RoleScope.Tenant
-            && action.ScopableBy.Contains(held.ScopeType) && held.Role.Grants(action));
+        return Held.Any(held => held.ScopeType is { } scopeType && scopeType != AssignmentScope.Tenant
+            && held.Role.Scope == RoleScope.Tenant && action.ScopableBy.Contains(scopeType) && held.Role.Grants(action));
     }
 }

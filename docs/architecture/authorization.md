@@ -216,8 +216,9 @@ This table is the source of truth for the values seeded in S04.
   actions. Both decide with the evaluator's own rule, so the list is exactly what the evaluator allows (step 3); the
   tenant endpoint answers only when step 1 lets it through (in S03 that means `FULL`; otherwise its 403 says why). S04
   adds entitlements, `READ_ONLY` (where this read still answers, so writes must be left out or marked) and the reason
-  for each unavailable action. `TEAM_MANAGER`, assigned at a team only, can't read them until requests
-  carry resource scopes (S06).
+  for each unavailable action. A member with no tenant-wide role can't read them until requests carry resource
+  scopes (S06): `TEAM_MANAGER` (team only), or any role assigned only at a competition or contest, gets `403`, even
+  for its own resource (#52 R1).
 - The server remains the only enforcement point.
 
 ## Audit and analytics reuse

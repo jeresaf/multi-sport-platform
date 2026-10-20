@@ -33,7 +33,7 @@ public sealed class CapabilitiesTests(PostgresFixture fixture) : DatabaseTest(fi
     private static readonly Guid _under17Cup = new("0192a1b2-0000-7000-8000-00000000c002");
     private static readonly Guid _metroFootballLeagueOpener = new("0192a1b2-0000-7000-8000-00000000d001");
 
-    /// <summary>Every tenant role that can be held tenant-wide (<c>TEAM_MANAGER</c> can't: see below).</summary>
+    /// <summary>Every tenant role that can be held tenant-wide (<c>TEAM_MANAGER</c> can't; a member without one: see below).</summary>
     public static TheoryData<string> TenantWideRoles =>
         [.. IdentityRoles.All.Where(role => role.Scope == RoleScope.Tenant && role.AssignableAt.Contains(AssignmentScope.Tenant)).Select(role => role.Code)];
 
@@ -141,19 +141,32 @@ public sealed class CapabilitiesTests(PostgresFixture fixture) : DatabaseTest(fi
         await response.ShouldBeProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_INVALID_QUERY");
     }
 
-    [Fact]
-    public async Task A_team_manager_reads_no_tenant_capabilities_until_requests_carry_resources()
+    /// <summary>A role held only below the tenant: <c>TEAM_MANAGER</c> (team only) and roles assigned at one resource.</summary>
+    public static TheoryData<string, AssignmentScope> ResourceScopedRoles => new()
     {
-        // TEAM_MANAGER is assigned at a team only, and an action without a resource is granted only tenant-wide (S06 follow-up).
+        { IdentityRoles.TeamManager, AssignmentScope.Team },
+        { IdentityRoles.CompetitionManager, AssignmentScope.Competition },
+        { IdentityRoles.Scorer, AssignmentScope.Contest },
+    };
+
+    [Theory]
+    [MemberData(nameof(ResourceScopedRoles))]
+    public async Task A_member_with_no_tenant_wide_role_reads_no_tenant_capabilities_until_requests_carry_resources(string role, AssignmentScope scopeType)
+    {
+        // tenant.capabilities.read is granted only tenant-wide, and requests carry no resource yet, not even for the
+        // member's own resource (#52 R1, S06 follow-up).
         App.Authorization.UseIdentityRoles();
         var kmsa = await TenantTestData.SaveTenantAsync(App.Services, "kmsa", TenantStatus.Active, Ct);
-        var manager = await CreateMemberAsync(
-            App.Services, kmsa, "patrick.opio@kmsa.example", Ct, (IdentityRoles.TeamManager, AssignmentScope.Team, Guid.CreateVersion7()));
-        using var client = App.ClientFor(manager.UserId, kmsa);
+        var resourceId = Guid.CreateVersion7();
+        var member = await CreateMemberAsync(App.Services, kmsa, MailboxOf(role, "kmsa.example"), Ct, (role, scopeType, resourceId));
+        using var client = App.ClientFor(member.UserId, kmsa);
 
-        using var response = await client.GetAsync(TenantCapabilitiesPath, Ct);
+        using var tenantWide = await client.GetAsync(TenantCapabilitiesPath, Ct);
+        using var onTheirResource = await client.GetAsync(
+            $"{TenantCapabilitiesPath}?scopeType={scopeType.ToString().ToUpperInvariant()}&scopeId={resourceId}", Ct);
 
-        await response.ShouldBeProblemAsync(HttpStatusCode.Forbidden, "AUTH_FORBIDDEN");
+        await tenantWide.ShouldBeProblemAsync(HttpStatusCode.Forbidden, "AUTH_FORBIDDEN");
+        await onTheirResource.ShouldBeProblemAsync(HttpStatusCode.Forbidden, "AUTH_FORBIDDEN");
     }
 
     [Fact]
@@ -260,7 +273,5 @@ public sealed class CapabilitiesTests(PostgresFixture fixture) : DatabaseTest(fi
     {
         public IReadOnlyList<ActionDefinition> All { get; } =
             [.. application.All.Append(AuthorizationTestActions.FixtureRead).OrderBy(action => action.Code.Value, StringComparer.Ordinal)];
-
-        public ActionDefinition? Find(string code) => All.SingleOrDefault(action => action.Code.Value == code);
     }
 }

@@ -501,7 +501,8 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   the seeder's version changes, or after `seed --reset` (pre-review; documented in pilot-customer.md).
 - **T5 (owner, plan 2026-10-20):** two PRs, T5a (capabilities) and T5b (matrix test, Q20). `tenant.capabilities.read`
   is scopable by `TENANT` and held by every role assignable tenant-wide: `TEAM_MANAGER` (team scope only) can't be
-  granted an action without a resource until S06 brings resource scopes to requests (follow-up).
+  granted an action without a resource until S06 brings resource scopes to requests (follow-up). Nor can any role
+  assigned only at a competition or contest (owner, #52 R1).
   `platform.capabilities.read` is held by both platform roles. Both reads are audit `NONE`. The capability list is
   step 3 only: the tenant endpoint answers only when step 1 lets it through (`FULL` in S03; its 403 says why
   otherwise); S04 adds entitlements, `READ_ONLY` and reasons. `AssignmentScope` gets no `EDITION`: the fake chain test is `CONTEST → COMPETITION`, the
@@ -515,5 +516,6 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   two providers for one type (`ScopeChainRules`). `IActionCatalogue` (BuildingBlocks) is `DeclaredActions` in the Host.
   `GET /api/admin/v1/me/capabilities` (tag Capabilities): optional `scopeType` (`COMPETITION | TEAM | CONTEST`) and
   `scopeId` together, else `400 VALIDATION_INVALID_QUERY`; answers `{ actions, scope }`, actions in ordinal order.
-  `GET /api/platform/v1/me/capabilities`: `{ actions, scope: null }`. A member with no roles, or only a team-scoped
-  `TEAM_MANAGER`, gets `403 AUTH_FORBIDDEN` on the tenant list.
+  `GET /api/platform/v1/me/capabilities`: `{ actions, scope: null }`. A member with no roles, or with roles only below
+  the tenant (`TEAM_MANAGER`; a competition- or contest-scoped role), gets `403 AUTH_FORBIDDEN` on the tenant list,
+  even for their own resource.
