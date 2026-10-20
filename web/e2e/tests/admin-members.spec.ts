@@ -1,5 +1,13 @@
 import { expect, test, type Page } from "@playwright/test";
-import { acceptByApi, createTenant, inviteOwnerOf, newPassword, personEmail, signIn } from "./support/accounts";
+import {
+  acceptByApi,
+  createTenant,
+  inviteMember,
+  inviteOwnerOf,
+  newPassword,
+  personEmail,
+  signIn,
+} from "./support/accounts";
 import { linkFromEmail } from "./support/mailpit";
 import { open } from "./support/pages";
 import { phone, shoot, widths } from "./support/screenshots";
@@ -125,4 +133,32 @@ test("an owner manages members and settings; a viewer only reads them, and the A
   await shoot(page, "members-owner", [phone, ...widths]);
 
   await viewerContext.close();
+});
+
+test("an administrator who suspends themselves loses the workspace at once", async ({ page, request }) => {
+  const slug = `kisaasi-runners-${run}`;
+  const tenantId = await createTenant(request, slug, `Kisaasi Road Runners ${run}`);
+  const owner = { email: personEmail("grace.nakato", slug), password: newPassword(), tenantId };
+  await acceptByApi(request, await inviteOwnerOf(request, tenantId, owner.email), owner.password);
+  const admin = { email: personEmail("daniel.kato", slug), password: newPassword() };
+  await acceptByApi(request, await inviteMember(request, owner, admin.email, ["TENANT_ADMIN"]), admin.password);
+
+  await signIn(page, admin.email, admin.password);
+  await expect(page).toHaveURL(`/t/${slug}`);
+  await open(page, `/t/${slug}/settings/members`);
+  await page.getByRole("button", { name: `Change ${admin.email}` }).click();
+  await page.getByRole("menuitem", { name: "Suspend" }).click();
+  const suspend = page.getByRole("dialog");
+  await expect(suspend).toContainText("This is you:");
+  await suspend.getByLabel("Reason").fill("Stepping down as administrator");
+  await suspend.getByRole("button", { name: "Suspend" }).click();
+
+  // `me` lists active memberships only, so the workspace is no longer theirs: the page says so (#58 re-review Q1).
+  await expect(page.getByRole("heading", { level: 1, name: "Page not found" })).toBeVisible();
+  await expect(page).toHaveURL(`/t/${slug}/settings/members`);
+
+  // … and the API refuses them, with their own session: no active membership (multi-tenancy.md).
+  const settings = await page.request.get("/api/admin/v1/tenant/settings", { headers: { "X-Tenant-Id": tenantId } });
+  expect(settings.status()).toBe(403);
+  expect(await settings.json()).toMatchObject({ code: "AUTH_TENANT_FORBIDDEN" });
 });
