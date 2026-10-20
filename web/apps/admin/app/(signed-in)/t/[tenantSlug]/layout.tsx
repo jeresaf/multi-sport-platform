@@ -12,6 +12,7 @@ import { meQueryKey, useMe } from "@/lib/account";
 import { isApiProblem, isUnauthenticated } from "@/lib/api";
 import { useTenantCapabilities } from "@/lib/capabilities";
 import { tenantNavigation, visibleNavigation } from "@/lib/navigation";
+import { TenantProvider } from "@/lib/tenant-workspace";
 import { findTenant, forgetWorkspace, isBlocked, rememberWorkspace, tenantPath } from "@/lib/workspace";
 import { WorkspaceProvider } from "@/lib/workspace-context";
 
@@ -75,7 +76,7 @@ export default function TenantWorkspaceLayout({ children }: Readonly<{ children:
   return (
     <WorkspaceProvider value={{ items, actions }}>
       <AppShell workspace={tenant.displayName} navigation={visibleNavigation(items, actions)}>
-        {children}
+        <TenantProvider tenant={tenant}>{children}</TenantProvider>
       </AppShell>
     </WorkspaceProvider>
   );

@@ -584,4 +584,6 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   audited under the tenant by the anonymous caller, the user named in its metadata; a sign-in by the anonymous caller
   with the user as its entity (#43 N1). `admin-platform.spec.ts` takes a tenant through its lifecycle and checks the
   taken-slug field error; `admin-members.spec.ts` covers an administrator suspending themselves (the workspace
-  answers "Page not found", since `me` lists active memberships only, and the API `403 AUTH_TENANT_FORBIDDEN`).
+  answers "Page not found", since `me` lists active memberships only, and the API `403 AUTH_TENANT_FORBIDDEN`). Pages under a
+  tenant workspace get the tenant from the layout (`TenantProvider`, `useTenantWorkspace`), never from `me` directly:
+  a page re-rendered with a newer `me` before its layout would otherwise fail when the tenant has left it.
