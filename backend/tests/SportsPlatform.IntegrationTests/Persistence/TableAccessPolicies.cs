@@ -59,6 +59,9 @@ public static class TableAccessPolicies
         ["identity.tenant_memberships"] = TableAccess.ReadWrite,
         ["identity.role_assignments"] = TableAccess.ReadWrite,
 
+        // Invitations (S03-T4c, RLS): pending ones are revoked or accepted, and their token hash replaced.
+        ["identity.invitations"] = TableAccess.ReadWrite,
+
         ["identity.outbox_messages"] = TableAccess.ReadWrite,
         ["identity.inbox_messages"] = TableAccess.ReadWrite,
         ["platform.outbox_messages"] = TableAccess.ReadWrite,

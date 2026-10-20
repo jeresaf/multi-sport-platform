@@ -35,6 +35,7 @@ public static class IdentityRoles
     [
         _tenantSettingsRead, _tenantSettingsUpdate,
         _membershipRead, "membership.suspend", "membership.restore", "membership.remove", "role.assign", "role.revoke",
+        "membership.invite", "invitation.revoke",
     ];
 
     // Only the owner sees a blocked tenant's status and why (S03 D11): the actions available when blocked.
@@ -55,6 +56,7 @@ public static class IdentityRoles
                 "tenant.activate",
                 "tenant.archive",
                 "tenant.create",
+                "tenant.owner.invite",
                 "tenant.restore",
                 "tenant.suspend",
                 "tenant.unarchive",

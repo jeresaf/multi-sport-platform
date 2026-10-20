@@ -19,7 +19,8 @@ public interface ITenantDirectory
 }
 
 /// <summary>
-/// A tenant's identity and status; no profile data. Whether its public site is enabled is a tenant-owned setting:
-/// <c>ITenantAccess.CheckPublicAccessAsync</c> reads it under the tenant.
+/// A tenant's identity, status and the name people know it by (invitation emails, the tenant switcher); no other
+/// profile data. Whether its public site is enabled is a tenant-owned setting: <c>ITenantAccess.CheckPublicAccessAsync</c>
+/// reads it under the tenant.
 /// </summary>
-public sealed record TenantSummary(Guid Id, string Slug, TenantStatus Status);
+public sealed record TenantSummary(Guid Id, string Slug, TenantStatus Status, string DisplayName);

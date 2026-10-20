@@ -5,6 +5,7 @@ using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.BuildingBlocks.Domain;
 using SportsPlatform.IntegrationTests.Messaging;
 using SportsPlatform.IntegrationTests.Persistence;
+using SportsPlatform.Modules.Identity.Domain.Invitations;
 using SportsPlatform.Modules.Identity.Domain.Memberships;
 using SportsPlatform.Modules.Identity.Domain.Roles;
 using SportsPlatform.Modules.Identity.Infrastructure.Users;
@@ -47,6 +48,7 @@ public static class IsolationSamples
         new ConsumedNoteSample(),
         new TenantMembershipSample(),
         new RoleAssignmentSample(),
+        new InvitationSample(),
     ];
 
     public static IIsolationSample For(Type entityType) =>
@@ -157,6 +159,22 @@ public static class IsolationSamples
             foreignKey.PrincipalEntityType.ClrType == typeof(TenantMembership)
                 ? RoleAssignment.Grant(principalId, IdentitySamples.Admin, AssignmentScope.Tenant, scopeId: null, SystemActor.Instance, IdentitySamples.Now)
                 : null;
+    }
+
+    /// <summary>Identity: a pending invitation; nothing tenant-owned points at one.</summary>
+    private sealed class InvitationSample : IIsolationSample
+    {
+        public Type EntityType => typeof(Invitation);
+
+        public Entity Add(DbContext context)
+        {
+            var invitation = Invitation.Create(
+                "esther.nabirye@kmsa.example", "ESTHER.NABIRYE@KMSA.EXAMPLE", [IdentitySamples.Admin], SystemActor.Instance, IdentitySamples.Now).Value;
+            context.Add(invitation);
+            return invitation;
+        }
+
+        public Entity? Referencing(IForeignKey foreignKey, Guid principalId) => null;
     }
 
     private static class IdentitySamples

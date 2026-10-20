@@ -81,4 +81,22 @@ public static class IdentityErrors
     /// </summary>
     public static readonly Error OwnerRequired = new(
         "AUTH_OWNER_REQUIRED", "Only a tenant owner can change an owner or the owner role.", ErrorKind.Forbidden);
+
+    /// <summary>No invitation with this ID in this tenant.</summary>
+    public static readonly Error InvitationNotFound = new(
+        "AUTH_INVITATION_NOT_FOUND", "No such invitation in this tenant.", ErrorKind.NotFound);
+
+    /// <summary>
+    /// A change the invitation's state doesn't allow (docs/domain/state-machines.md, "Invitation"): revoking one that is
+    /// accepted, revoked or expired.
+    /// </summary>
+    public static readonly Error InvitationTransitionInvalid = new(
+        "AUTH_INVITATION_TRANSITION_INVALID", "The invitation is no longer pending.", ErrorKind.Conflict);
+
+    /// <summary>
+    /// Inviting an email whose user already has a membership of the tenant that is not removed (active or suspended):
+    /// give them roles or restore them instead.
+    /// </summary>
+    public static readonly Error AlreadyMember = new(
+        "AUTH_ALREADY_MEMBER", "This person is already a member of the tenant.", ErrorKind.Conflict);
 }

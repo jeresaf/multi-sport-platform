@@ -93,8 +93,8 @@ public sealed class RoleCatalogueTests
         owner.GetProperty("assignableAt").EnumerateArray().Select(scope => scope.GetString()).ShouldBe(["TENANT"]);
         owner.GetProperty("actions").EnumerateArray().Select(action => action.GetString()).ShouldBe(
         [
-            "membership.read", "membership.remove", "membership.restore", "membership.suspend", "role.assign", "role.revoke",
-            "tenant.access.read", "tenant.settings.read", "tenant.settings.update",
+            "invitation.revoke", "membership.invite", "membership.read", "membership.remove", "membership.restore",
+            "membership.suspend", "role.assign", "role.revoke", "tenant.access.read", "tenant.settings.read", "tenant.settings.update",
         ]);
     }
 }

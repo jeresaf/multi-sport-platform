@@ -106,4 +106,28 @@ public static class IdentityActions
         AuditRequirement.Required,
         since: "S03",
         scopableBy: [AssignmentScope.Tenant]);
+
+    // S03-T4c: invitations to the request's tenant (D12); the email goes out through the outbox (D13).
+    public static readonly ActionDefinition MembershipInvite = new(
+        "membership.invite",
+        "Invite a person by email to join the tenant with tenant-wide roles; replaces a pending invitation to the same email. Only an owner invites an owner.",
+        ActionScope.Tenant,
+        AuditRequirement.Required,
+        since: "S03",
+        scopableBy: [AssignmentScope.Tenant]);
+
+    public static readonly ActionDefinition InvitationRevoke = new(
+        "invitation.revoke",
+        "Revoke a pending invitation: its link stops working.",
+        ActionScope.Tenant,
+        AuditRequirement.Required,
+        since: "S03",
+        scopableBy: [AssignmentScope.Tenant]);
+
+    public static readonly ActionDefinition TenantOwnerInvite = new(
+        "tenant.owner.invite",
+        "Invite a tenant's owner by email (platform console): an invitation with TENANT_OWNER, under the tenant named in the route.",
+        ActionScope.Platform,
+        AuditRequirement.Required,
+        since: "S03");
 }

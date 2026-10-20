@@ -11,6 +11,7 @@ using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Persistence.Messaging;
 using SportsPlatform.BuildingBlocks.Tenancy;
 using SportsPlatform.Modules.Identity.Contracts.Account;
+using SportsPlatform.Modules.Identity.Contracts.Invitations;
 using SportsPlatform.Modules.Identity.Domain.Roles;
 using SportsPlatform.Modules.Identity.Features.Account;
 using SportsPlatform.Modules.Identity.Features.Account.ChangePassword;
@@ -21,6 +22,13 @@ using SportsPlatform.Modules.Identity.Features.Account.Logout;
 using SportsPlatform.Modules.Identity.Features.Account.ResetPassword;
 using SportsPlatform.Modules.Identity.Features.Authorization;
 using SportsPlatform.Modules.Identity.Features.Directory;
+using SportsPlatform.Modules.Identity.Features.Invitations;
+using SportsPlatform.Modules.Identity.Features.Invitations.GetInvitation;
+using SportsPlatform.Modules.Identity.Features.Invitations.InviteMember;
+using SportsPlatform.Modules.Identity.Features.Invitations.InviteOwner;
+using SportsPlatform.Modules.Identity.Features.Invitations.ListInvitations;
+using SportsPlatform.Modules.Identity.Features.Invitations.RevokeInvitation;
+using SportsPlatform.Modules.Identity.Features.Invitations.SendInvitationEmail;
 using SportsPlatform.Modules.Identity.Features.Members;
 using SportsPlatform.Modules.Identity.Features.Members.AssignRole;
 using SportsPlatform.Modules.Identity.Features.Members.ChangeMemberStatus;
@@ -40,7 +48,8 @@ namespace SportsPlatform.Modules.Identity;
 /// <summary>
 /// Identity &amp; Access: users, platform roles and the data protection key ring (S03-T1); the session cookie, the
 /// account API, password reset and change, sign-in rate limits (T2); roles in code and the authorization evaluator (T3);
-/// tenant memberships, their role assignments and the identity directory (T4a); the member and role endpoints (T4b) (docs/architecture/modules.md).
+/// tenant memberships, their role assignments and the identity directory (T4a); the member and role endpoints (T4b);
+/// invitations and their email (T4c) (docs/architecture/modules.md).
 /// </summary>
 public sealed class IdentityModule : IModule
 {
@@ -111,9 +120,20 @@ public sealed class IdentityModule : IModule
         services.AddSingleton<IValidator<ChangeMemberStatusWithReasonRequest>, ChangeMemberStatusWithReasonRequestValidator>();
         services.AddSingleton<IValidator<AssignRoleRequest>, AssignRoleRequestValidator>();
 
-        // D13: the reset email is sent by Identity's own consumer, never inside the request.
+        // T4c: invitations to the request's tenant (D12), and a tenant's owner from the platform console.
+        services.AddScoped<InviteHandler>();
+        services.AddScoped<GetInvitationHandler>();
+        services.AddScoped<ListInvitationsHandler>();
+        services.AddScoped<RevokeInvitationHandler>();
+        services.AddSingleton<IValidator<InviteMemberRequest>, InviteMemberRequestValidator>();
+        services.AddSingleton<IValidator<InviteOwnerRequest>, InviteOwnerRequestValidator>();
+        services.AddSingleton<IValidator<ListInvitationsRequest>, ListInvitationsRequestValidator>();
+
+        // D13: the reset and invitation emails are sent by Identity's own consumers, never inside the request.
         services.AddIntegrationEventConsumer<PasswordResetRequested.V1, PasswordResetEmailConsumer, IdentityDbContext>(
             PasswordResetEmailConsumer.Name);
+        services.AddIntegrationEventConsumer<InvitationIssued.V1, InvitationEmailConsumer, IdentityDbContext>(
+            InvitationEmailConsumer.Name);
     }
 
     public void MapEndpoints(ApiEndpointGroups groups)
@@ -133,6 +153,13 @@ public sealed class IdentityModule : IModule
         ChangeMemberStatusEndpoints.Map(members);
         AssignRoleEndpoint.Map(members);
         RevokeRoleEndpoint.Map(members);
+
+        var invitations = InvitationEndpoints.Group(groups.Admin);
+        InviteMemberEndpoint.Map(invitations);
+        ListInvitationsEndpoint.Map(invitations);
+        GetInvitationEndpoint.Map(invitations);
+        RevokeInvitationEndpoint.Map(invitations);
+        InviteOwnerEndpoint.Map(groups.Platform);
     }
 
     // S03 D15.
