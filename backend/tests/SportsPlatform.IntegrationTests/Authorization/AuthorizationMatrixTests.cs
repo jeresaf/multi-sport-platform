@@ -91,7 +91,7 @@ public sealed class AuthorizationMatrixTests(PostgresFixture fixture) : Database
         null => "not asked",
     };
 
-    private async Task<string?> CodeOfAsync(HttpResponseMessage response)
+    private static async Task<string?> CodeOfAsync(HttpResponseMessage response)
     {
         if (response.Content.Headers.ContentType?.MediaType != "application/problem+json")
         {
@@ -196,7 +196,7 @@ public sealed class AuthorizationMatrixTests(PostgresFixture fixture) : Database
             {
                 roles.Count.ShouldBeLessThanOrEqualTo(1, "The matrix makes platform users with at most one role.");
                 var userId = await AccountTestData.CreateUserAsync(
-                    app.Services, mailbox, TestPasswords.New(), cancellationToken, platformRole: roles.FirstOrDefault());
+                    app.Services, mailbox, TestPasswords.New(), cancellationToken, platformRole: roles.Count > 0 ? roles[0] : null);
                 client = app.CreateClient().AsUser(userId);
             }
             else

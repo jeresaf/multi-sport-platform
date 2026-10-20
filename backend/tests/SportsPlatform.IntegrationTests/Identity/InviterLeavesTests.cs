@@ -9,7 +9,6 @@ using SportsPlatform.Modules.Identity.Domain.Invitations;
 using SportsPlatform.Modules.Identity.Domain.Roles;
 using SportsPlatform.Modules.Tenancy.Contracts.Tenants;
 using static SportsPlatform.IntegrationTests.Identity.InvitationRequests;
-using static SportsPlatform.IntegrationTests.Identity.MemberRequests;
 using static SportsPlatform.IntegrationTests.Identity.MembershipTestData;
 
 namespace SportsPlatform.IntegrationTests.Identity;
