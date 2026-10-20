@@ -69,7 +69,7 @@ public sealed class TestApp : WebApplicationFactory<Program>
             services.RemoveAll<IAuthorizationEvaluator>();
             services.AddScoped<IdentityAuthorizationEvaluator>();
             services.AddScoped<IAuthorizationEvaluator>(provider => Authorization.UsesIdentityRoles
-                ? provider.GetRequiredService<IdentityAuthorizationEvaluator>()
+                ? Authorization.Recording(provider.GetRequiredService<IdentityAuthorizationEvaluator>())
                 : Authorization);
 
             // With Identity's roles, memberships come from the database too (the identity directory), not X-Test-Tenants.

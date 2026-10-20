@@ -18,6 +18,9 @@ public sealed class TestAuthorizationEvaluator : IAuthorizationEvaluator
 
     public ConcurrentQueue<AuthorizationRequest> Requests { get; } = new();
 
+    /// <summary>What Identity's evaluator decided while <see cref="UseIdentityRoles"/> is on (the authorization matrix reads it).</summary>
+    public ConcurrentQueue<(AuthorizationRequest Request, bool Allowed)> Decisions { get; } = new();
+
     public void Allow(params ActionDefinition[] actions)
     {
         foreach (var action in actions)
@@ -40,7 +43,11 @@ public sealed class TestAuthorizationEvaluator : IAuthorizationEvaluator
         _allowAll = false;
         _usesIdentityRoles = false;
         Requests.Clear();
+        Decisions.Clear();
     }
+
+    /// <summary>Identity's evaluator, each decision recorded in <see cref="Decisions"/>.</summary>
+    public IAuthorizationEvaluator Recording(IAuthorizationEvaluator identity) => new RecordingEvaluator(identity, Decisions);
 
     public ValueTask<Result> AuthorizeAsync(AuthorizationRequest request, CancellationToken cancellationToken)
     {
@@ -51,5 +58,16 @@ public sealed class TestAuthorizationEvaluator : IAuthorizationEvaluator
         return ValueTask.FromResult(_allowAll || account || _allowed.ContainsKey(request.Action.Code)
             ? Result.Success()
             : Result.Failure(AuthorizationErrors.Forbidden));
+    }
+
+    private sealed class RecordingEvaluator(
+        IAuthorizationEvaluator inner, ConcurrentQueue<(AuthorizationRequest Request, bool Allowed)> decisions) : IAuthorizationEvaluator
+    {
+        public async ValueTask<Result> AuthorizeAsync(AuthorizationRequest request, CancellationToken cancellationToken)
+        {
+            var result = await inner.AuthorizeAsync(request, cancellationToken);
+            decisions.Enqueue((request, result.IsSuccess));
+            return result;
+        }
     }
 }

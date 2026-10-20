@@ -272,13 +272,14 @@ Deliver:
   sent, in the same save; details in the T5 plan.
 
 Acceptance:
-- [ ] The matrix test covers every mapped admin and platform endpoint; a new endpoint is covered without editing the
-      test.
+- [x] The matrix test covers every mapped admin and platform endpoint; a new endpoint is covered without editing the
+      test. Evidence: `AuthorizationMatrixTests.Every_admin_and_platform_endpoint_is_authorized_by_its_action` (T5b).
 - [x] Capabilities match the evaluator for every system role (table-driven). Evidence:
       `CapabilitiesTests.A_members_tenant_capabilities_are_what_the_evaluator_allows`,
       `CapabilitiesTests.A_platform_users_capabilities_are_what_the_evaluator_allows` (T5a).
-- [ ] Suspending or removing an inviter revokes their pending invitations; the invitee's token then answers
-      `404 AUTH_INVITATION_TOKEN_INVALID` (Q20, test).
+- [x] Suspending or removing an inviter revokes their pending invitations; the invitee's token then answers
+      `404 AUTH_INVITATION_TOKEN_INVALID` (Q20, test). Evidence:
+      `InviterLeavesTests.An_inviter_who_leaves_takes_their_pending_invitations_with_them` (suspend, remove) (T5b).
 
 ### T6 — Admin web: sign-in, shell, members, platform console
 Deliver:
@@ -519,3 +520,12 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   `GET /api/platform/v1/me/capabilities`: `{ actions, scope: null }`. A member with no roles, or with roles only below
   the tenant (`TEAM_MANAGER`; a competition- or contest-scoped role), gets `403 AUTH_FORBIDDEN` on the tenant list,
   even for their own resource.
+- **T5b (owner, plan 2026-10-20):** `AuthorizationMatrixTests` enumerates the app's `RouteEndpoint`s under
+  `/api/admin/` and `/api/platform/` that declare an action, fills route parameters (`tenantId` the test tenant, since
+  route-tenant endpoints refuse an unknown one before authorization; `module` = `identity`; other GUIDs new) and sends
+  each with no body: a user holding every other role of the action's scope must get `403 AUTH_FORBIDDEN` from the
+  evaluator, and one holding a granting role must pass it (the test records the evaluator's decisions). Q20:
+  `ChangeMemberStatusHandler` revokes the pending, unexpired invitations the member's user sent in the tenant before
+  the one save, and the `membership.suspend|remove` audit entry's metadata lists their IDs (owner). Expired and accepted
+  ones stay; restoring brings none back. An invitation sent at the same instant as the suspension can stay pending
+  (owner: accepted, tech debt).
