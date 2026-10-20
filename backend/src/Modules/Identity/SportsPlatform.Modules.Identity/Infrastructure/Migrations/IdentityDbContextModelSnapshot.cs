@@ -335,6 +335,115 @@ namespace SportsPlatform.Modules.Identity.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("SportsPlatform.Modules.Identity.Domain.Invitations.Invitation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("email")
+                        .HasAnnotation("pii", "PRIVATE");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<DateTimeOffset>("InvitedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("invited_at");
+
+                    b.Property<Guid>("InvitedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("invited_by");
+
+                    b.Property<string>("NormalizedEmail")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("normalized_email")
+                        .HasAnnotation("pii", "PRIVATE");
+
+                    b.Property<DateTimeOffset?>("RevokedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("revoked_at");
+
+                    b.Property<Guid?>("RevokedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("revoked_by");
+
+                    b.PrimitiveCollection<string[]>("RoleCodes")
+                        .IsRequired()
+                        .HasColumnType("text[]")
+                        .HasColumnName("role_codes");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<byte[]>("TokenHash")
+                        .HasColumnType("bytea")
+                        .HasColumnName("token_hash");
+
+                    b.Property<DateTimeOffset?>("TokenIssuedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("token_issued_at");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_invitations");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique()
+                        .HasDatabaseName("ux_invitations_token_hash");
+
+                    b.HasIndex("TenantId", "NormalizedEmail", "Status")
+                        .IsUnique()
+                        .HasDatabaseName("ux_invitations_tenant_id_normalized_email_pending")
+                        .HasFilter("status = 'PENDING'");
+
+                    b.ToTable("invitations", "identity", t =>
+                        {
+                            t.HasCheckConstraint("ck_invitations_revoked", "(status = 'REVOKED') = (revoked_by IS NOT NULL AND revoked_at IS NOT NULL)");
+
+                            t.HasCheckConstraint("ck_invitations_role_codes", "cardinality(role_codes) >= 1");
+
+                            t.HasCheckConstraint("ck_invitations_status", "status IN ('PENDING', 'ACCEPTED', 'REVOKED')");
+
+                            t.HasCheckConstraint("ck_invitations_token", "(token_hash IS NULL) = (token_issued_at IS NULL)");
+                        });
+                });
+
             modelBuilder.Entity("SportsPlatform.Modules.Identity.Domain.Memberships.RoleAssignment", b =>
                 {
                     b.Property<Guid>("Id")

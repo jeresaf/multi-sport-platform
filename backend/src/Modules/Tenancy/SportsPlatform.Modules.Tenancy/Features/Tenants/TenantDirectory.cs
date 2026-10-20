@@ -98,13 +98,13 @@ internal sealed class TenantDirectory(
     private Task<TenantSummary?> FindByNormalizedHostAsync(string host, CancellationToken cancellationToken) =>
         context.Set<TenantDomain>().AsNoTracking()
             .Where(d => d.Host == host && d.Status == TenantDomainStatus.Active)
-            .Join(context.Set<Tenant>(), d => d.TenantId, t => t.Id, (d, t) => new TenantSummary(t.Id, t.Slug, t.Status))
+            .Join(context.Set<Tenant>(), d => d.TenantId, t => t.Id, (d, t) => new TenantSummary(t.Id, t.Slug, t.Status, t.DisplayName))
             .SingleOrDefaultAsync(cancellationToken);
 
     private Task<TenantSummary?> FindAsync(
         Expression<Func<Tenant, bool>> predicate, CancellationToken cancellationToken) =>
         context.Set<Tenant>().AsNoTracking()
             .Where(predicate)
-            .Select(t => new TenantSummary(t.Id, t.Slug, t.Status))
+            .Select(t => new TenantSummary(t.Id, t.Slug, t.Status, t.DisplayName))
             .SingleOrDefaultAsync(cancellationToken);
 }

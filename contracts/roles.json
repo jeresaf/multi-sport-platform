@@ -13,6 +13,7 @@
         "tenant.activate",
         "tenant.archive",
         "tenant.create",
+        "tenant.owner.invite",
         "tenant.read",
         "tenant.restore",
         "tenant.suspend",
@@ -39,6 +40,8 @@
         "TENANT"
       ],
       "actions": [
+        "invitation.revoke",
+        "membership.invite",
         "membership.read",
         "membership.remove",
         "membership.restore",
@@ -58,6 +61,8 @@
         "TENANT"
       ],
       "actions": [
+        "invitation.revoke",
+        "membership.invite",
         "membership.read",
         "membership.remove",
         "membership.restore",

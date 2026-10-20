@@ -12,7 +12,8 @@ namespace SportsPlatform.Host.OpenApi;
 /// action that needs a user can be <c>AUTH_UNAUTHENTICATED</c> (S03 D4); a state-changing request
 /// <c>AUTH_CSRF_REQUIRED</c> (D7); a platform or tenant action <c>AUTH_FORBIDDEN</c> (the evaluator), and a tenant action
 /// also <c>AUTH_TENANT_FORBIDDEN</c> (tenant resolution), <c>TENANT_PROVISIONING</c> and, unless the action is available
-/// when blocked, <c>TENANT_BLOCKED</c> (access mode, Tenancy's codes; S03 D11).
+/// when blocked, <c>TENANT_BLOCKED</c> (access mode, Tenancy's codes; S03 D11). An endpoint that runs under its route's
+/// tenant can be <c>TENANT_NOT_FOUND</c> (tenant resolution), whichever module maps it.
 /// </summary>
 internal static class PipelineErrorDocumentation
 {
@@ -29,6 +30,11 @@ internal static class PipelineErrorDocumentation
 
             var methods = endpoint.Metadata.OfType<IHttpMethodMetadata>().LastOrDefault()?.HttpMethods ?? [];
             var errors = Errors(action, changesState: methods.Any(method => !CsrfProtection.IsSafe(method))).ToList();
+            if (endpoint.Metadata.OfType<RunsUnderRouteTenantMetadata>().Any())
+            {
+                errors.Add(TenancyErrors.NotFound);
+            }
+
             foreach (var status in errors.Select(error => error.Kind.ToStatusCode()).Distinct())
             {
                 endpoint.Metadata.Add(new ProducesResponseTypeMetadata(status, typeof(ProblemDetails), [ErrorResponseExtensions.ProblemContentType]));

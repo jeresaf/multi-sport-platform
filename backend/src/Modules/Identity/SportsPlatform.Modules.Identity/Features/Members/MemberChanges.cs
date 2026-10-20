@@ -130,7 +130,11 @@ public sealed class MemberChanges(IdentityDbContext context, ICurrentActor actor
     /// The caller is an active owner of the request's tenant. The system actor (seeds and commands, which the Host
     /// doesn't authorize) passes.
     /// </summary>
-    private async Task<bool> IsOwnerOrSystemAsync(CancellationToken cancellationToken) =>
+    private Task<bool> IsOwnerOrSystemAsync(CancellationToken cancellationToken) =>
+        IsOwnerOrSystemAsync(context, actor, cancellationToken);
+
+    /// <inheritdoc cref="IsOwnerOrSystemAsync(CancellationToken)"/>
+    internal static async Task<bool> IsOwnerOrSystemAsync(IdentityDbContext context, ICurrentActor actor, CancellationToken cancellationToken) =>
         actor.Kind == ActorKind.System
         || (actor.Kind == ActorKind.User && await context.Set<TenantMembership>().AnyAsync(
             m => m.UserId == actor.ActorId && m.Status == MembershipStatus.Active && m.Roles.Any(a =>

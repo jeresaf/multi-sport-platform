@@ -1,4 +1,3 @@
-using System.Buffers.Text;
 using System.Globalization;
 using Microsoft.AspNetCore.Mvc;
 using SportsPlatform.BuildingBlocks.Persistence.Messaging;
@@ -28,26 +27,10 @@ public sealed record ListMembersRequest(
     public static bool TryParseLimit(string value, out int limit) =>
         int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out limit) && limit is >= 1 and <= MaxLimit;
 
-    /// <summary>The opaque cursor: the last membership ID of a page (UUIDv7, the sort key), base64url-encoded.</summary>
-    public static string EncodeCursor(Guid membershipId) => Base64Url.EncodeToString(membershipId.ToByteArray(bigEndian: true));
+    /// <summary>The opaque cursor: the last membership ID of a page (UUIDv7, the sort key).</summary>
+    public static string EncodeCursor(Guid membershipId) => IdCursor.Encode(membershipId);
 
-    public static bool TryDecodeCursor(string? cursor, out Guid membershipId)
-    {
-        membershipId = Guid.Empty;
-        if (cursor is null || cursor.Length != 22 || !Base64Url.IsValid(cursor))
-        {
-            return false;
-        }
-
-        var decoded = new Guid(Base64Url.DecodeFromChars(cursor), bigEndian: true);
-        if (EncodeCursor(decoded) != cursor)
-        {
-            return false;
-        }
-
-        membershipId = decoded;
-        return true;
-    }
+    public static bool TryDecodeCursor(string? cursor, out Guid membershipId) => IdCursor.TryDecode(cursor, out membershipId);
 
     /// <summary>The query; call it only after the validator accepted the request.</summary>
     public MemberQuery ToQuery()

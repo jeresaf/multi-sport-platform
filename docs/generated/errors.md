@@ -6,11 +6,14 @@ the message is the default title and may change.
 
 | Code | HTTP | Default message | Owner |
 |---|---|---|---|
+| `AUTH_ALREADY_MEMBER` | 409 | This person is already a member of the tenant. | Identity |
 | `AUTH_CONCURRENCY_CONFLICT` | 409 | The account or membership was changed by someone else. Reload and try again. | Identity |
 | `AUTH_CSRF_REQUIRED` | 403 | The request must carry the X-CSRF header. | BuildingBlocks |
 | `AUTH_CURRENT_PASSWORD_INVALID` | 400 | The current password is incorrect. | Identity |
 | `AUTH_FORBIDDEN` | 403 | You are not allowed to perform this action. | BuildingBlocks |
 | `AUTH_INVALID_CREDENTIALS` | 401 | The email or password is incorrect, or the account can't sign in right now. | Identity |
+| `AUTH_INVITATION_NOT_FOUND` | 404 | No such invitation in this tenant. | Identity |
+| `AUTH_INVITATION_TRANSITION_INVALID` | 409 | The invitation is no longer pending. | Identity |
 | `AUTH_LAST_OWNER` | 409 | The tenant must keep at least one active owner. Make another member an owner first. | Identity |
 | `AUTH_MEMBERSHIP_NOT_FOUND` | 404 | No such member in this tenant. | Identity |
 | `AUTH_MEMBERSHIP_TRANSITION_INVALID` | 409 | The membership's status doesn't allow this change. | Identity |
@@ -21,6 +24,7 @@ the message is the default title and may change.
 | `AUTH_ROLE_ALREADY_ASSIGNED` | 409 | The member already holds this role at this scope. | Identity |
 | `AUTH_ROLE_ASSIGNMENT_NOT_FOUND` | 404 | The role assignment was not found. | Identity |
 | `AUTH_ROLE_NOT_ASSIGNABLE` | 400 | This role can't be assigned at this scope. | Identity |
+| `AUTH_TENANT_ARCHIVED` | 409 | The tenant is archived: unarchive it before inviting its owner. | Identity |
 | `AUTH_TENANT_FORBIDDEN` | 403 | You are not allowed to work in this tenant. | BuildingBlocks |
 | `AUTH_UNAUTHENTICATED` | 401 | Sign in to perform this action. | BuildingBlocks |
 | `AUTH_USER_EXISTS` | 409 | A user with this email already exists. | Identity |

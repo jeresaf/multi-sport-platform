@@ -12,6 +12,8 @@ admin endpoint requires one of these; the code is stable and is what roles grant
 | `account.password.forgot` | Identity | ACCOUNT | — | REQUIRED | — | no | yes | no | S03 | Ask for a password reset email. Always accepted, whether or not the email has an account; the audit never records the email. |
 | `account.password.reset` | Identity | ACCOUNT | — | REQUIRED | — | no | yes | no | S03 | Set a new password with the token from a reset email; signs out every session of the user and clears a lockout. |
 | `account.read` | Identity | ACCOUNT | — | NONE | — | no | no | no | S03 | Read the signed-in user: email, platform roles and tenants with their roles. |
+| `invitation.revoke` | Identity | TENANT | TENANT | REQUIRED | — | no | no | no | S03 | Revoke a pending invitation: its link stops working. Only an owner revokes an invitation with TENANT_OWNER. |
+| `membership.invite` | Identity | TENANT | TENANT | REQUIRED | — | no | no | no | S03 | Invite a person by email to join the tenant with tenant-wide roles; replaces a pending invitation to the same email. Only an owner invites an owner or replaces an owner's invitation. |
 | `membership.read` | Identity | TENANT | TENANT | REQUIRED | — | no | no | no | S03 | View the tenant's members: email, status and roles (every read is audited; the email is never in the audit). |
 | `membership.remove` | Identity | TENANT | TENANT | REQUIRED_WITH_REASON | — | no | no | no | S03 | Remove a member, with a reason (final; rejoining needs a new invitation). Only an owner removes an owner; never the last one. |
 | `membership.restore` | Identity | TENANT | TENANT | REQUIRED | — | no | no | no | S03 | Restore a suspended member with the roles they held. Only an owner restores an owner. |
@@ -26,6 +28,7 @@ admin endpoint requires one of these; the code is stable and is what roles grant
 | `tenant.activate` | Tenancy | PLATFORM | — | REQUIRED | — | no | no | no | S02 | Activate a provisioned tenant (PROVISIONING → ACTIVE). |
 | `tenant.archive` | Tenancy | PLATFORM | — | REQUIRED_WITH_REASON | — | no | no | no | S02 | Archive a tenant, with a reason (ACTIVE or SUSPENDED → ARCHIVED). |
 | `tenant.create` | Tenancy | PLATFORM | — | REQUIRED | — | no | no | no | S02 | Create a tenant (status PROVISIONING). |
+| `tenant.owner.invite` | Identity | PLATFORM | — | REQUIRED | — | no | no | no | S03 | Invite a tenant's owner by email (platform console): an invitation with TENANT_OWNER, under the tenant named in the route. |
 | `tenant.read` | Tenancy | PLATFORM | — | REQUIRED | — | no | no | no | S02 | View tenants and their profiles. |
 | `tenant.restore` | Tenancy | PLATFORM | — | REQUIRED | — | no | no | no | S02 | Restore a suspended tenant (SUSPENDED → ACTIVE). |
 | `tenant.settings.read` | Tenancy | TENANT | TENANT | REQUIRED | — | no | no | no | S02 | View the tenant's settings: time zone, locale, currency, public site, starting-soon window, minor consent policy. |

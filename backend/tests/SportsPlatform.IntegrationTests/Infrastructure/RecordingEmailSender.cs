@@ -10,6 +10,7 @@ public sealed class RecordingEmailSender : IEmailSender
 {
     private readonly Lock _lock = new();
     private readonly List<EmailMessage> _sent = [];
+    private bool _failNext;
 
     public IReadOnlyList<EmailMessage> Sent
     {
@@ -27,10 +28,25 @@ public sealed class RecordingEmailSender : IEmailSender
         ArgumentNullException.ThrowIfNull(message);
         lock (_lock)
         {
+            if (_failNext)
+            {
+                _failNext = false;
+                throw new InvalidOperationException("The test SMTP server refused the message.");
+            }
+
             _sent.Add(message);
         }
 
         return Task.CompletedTask;
+    }
+
+    /// <summary>The next send fails, as a transport failure would: nothing is recorded and the outbox retries.</summary>
+    public void FailNext()
+    {
+        lock (_lock)
+        {
+            _failNext = true;
+        }
     }
 
     public void Reset()
@@ -38,6 +54,7 @@ public sealed class RecordingEmailSender : IEmailSender
         lock (_lock)
         {
             _sent.Clear();
+            _failNext = false;
         }
     }
 }
