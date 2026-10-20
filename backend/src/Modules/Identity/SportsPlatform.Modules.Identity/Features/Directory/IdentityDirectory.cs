@@ -8,8 +8,9 @@ namespace SportsPlatform.Modules.Identity.Features.Directory;
 
 /// <summary>
 /// The cross-tenant reads a request needs before its tenant is set (S03 D8), on <see cref="IdentityDirectoryDbContext"/>.
-/// Each reads the memberships of one user, the caller, so it is not audited by itself; the request's own entry
-/// covers it. Read per request (no cache, S03 D5): a removed or suspended membership is refused on the next request.
+/// Every read is of the caller's own memberships (the current actor; no method takes a user ID), so they are not
+/// audited (owner, S03-T4a: an exemption from multi-tenancy.md's "audited" rule for sp_platform). Read per request (no
+/// cache, S03 D5): a removed or suspended membership is refused on the next request.
 /// </summary>
 public sealed class IdentityDirectory(IdentityDirectoryDbContext context, ICurrentActor actor) : ITenantMembershipChecker
 {
@@ -19,11 +20,16 @@ public sealed class IdentityDirectory(IdentityDirectoryDbContext context, ICurre
         && await context.Memberships.AnyAsync(
             m => m.TenantId == tenantId && m.UserId == actor.ActorId && m.Status == MembershipStatus.Active, cancellationToken);
 
-    /// <summary>The tenants <paramref name="userId"/> is an active member of, with the codes of their unrevoked roles.</summary>
-    public async Task<IReadOnlyList<MemberTenant>> TenantsOfAsync(Guid userId, CancellationToken cancellationToken)
+    /// <summary>The tenants the signed-in user is an active member of, with the codes of their unrevoked roles.</summary>
+    public async Task<IReadOnlyList<MemberTenant>> MyTenantsAsync(CancellationToken cancellationToken)
     {
+        if (actor.Kind != ActorKind.User)
+        {
+            return [];
+        }
+
         var rows = await context.Memberships
-            .Where(m => m.UserId == userId && m.Status == MembershipStatus.Active)
+            .Where(m => m.UserId == actor.ActorId && m.Status == MembershipStatus.Active)
             .Select(m => new
             {
                 m.TenantId,

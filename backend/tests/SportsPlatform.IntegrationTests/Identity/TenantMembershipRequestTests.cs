@@ -88,11 +88,14 @@ public sealed class TenantMembershipRequestTests(PostgresFixture fixture) : Data
         var kmsa = await TenantTestData.SaveTenantAsync(App.Services, "kmsa", TenantStatus.Active, Ct);
         var elssc = await TenantTestData.SaveTenantAsync(App.Services, "elssc", TenantStatus.Active, Ct);
         var mvule = await TenantTestData.SaveTenantAsync(App.Services, "mvule-youth", TenantStatus.Active, Ct);
+        var sunbird = await TenantTestData.SaveTenantAsync(App.Services, "sunbird-juniors", TenantStatus.Active, Ct);
         var grace = await CreateMemberAsync(
             App.Services, kmsa, "grace.nakato@kmsa.example", Ct, TenantWide(IdentityRoles.TenantOwner), TenantWide(IdentityRoles.Viewer));
         await JoinAsync(App.Services, elssc, grace.UserId, Ct, TenantWide(IdentityRoles.Viewer));
         var left = new Member(grace.UserId, await JoinAsync(App.Services, mvule, grace.UserId, Ct, TenantWide(IdentityRoles.Viewer)), mvule);
         await ChangeAsync(App.Services, left, m => m.Remove("Left the league", SystemActor.Instance, JoinedAt), Ct);
+        var paused = new Member(grace.UserId, await JoinAsync(App.Services, sunbird, grace.UserId, Ct, TenantWide(IdentityRoles.Viewer)), sunbird);
+        await ChangeAsync(App.Services, paused, m => m.Suspend("Under review", SystemActor.Instance, JoinedAt), Ct);
         await ChangeAsync(App.Services, grace, m => m.RevokeRole(m.Roles.Single(r => r.RoleCode == IdentityRoles.Viewer).Id, SystemActor.Instance, JoinedAt), Ct);
         using var client = App.CreateClient().AsUser(grace.UserId);
 

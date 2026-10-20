@@ -83,7 +83,9 @@ public sealed class TenantMembershipTests
         var membership = TenantMembership.Join(_user, invitedBy: null, _now);
         var manager = Role(IdentityRoles.CompetitionManager);
 
+        membership.RolesChangedAt.ShouldBeNull();
         var tenantWide = membership.AssignRole(manager, AssignmentScope.Tenant, scopeId: null, SystemActor.Instance, _now).Value;
+        membership.RolesChangedAt.ShouldBe(_now);
         membership.AssignRole(manager, AssignmentScope.Tenant, scopeId: null, SystemActor.Instance, _now)
             .Error.ShouldBe(IdentityErrors.RoleAlreadyAssigned);
         membership.AssignRole(manager, AssignmentScope.Competition, _competition, SystemActor.Instance, _now).IsSuccess.ShouldBeTrue();
@@ -96,8 +98,10 @@ public sealed class TenantMembershipTests
             a => a.GrantedBy.ShouldBe(SystemActor.Id),
             a => a.IsActive.ShouldBeTrue());
 
-        membership.RevokeRole(tenantWide.Id, SystemActor.Instance, _now).IsSuccess.ShouldBeTrue();
-        tenantWide.ShouldSatisfyAllConditions(a => a.IsActive.ShouldBeFalse(), a => a.RevokedAt.ShouldBe(_now));
+        var later = _now.AddMinutes(5);
+        membership.RevokeRole(tenantWide.Id, SystemActor.Instance, later).IsSuccess.ShouldBeTrue();
+        membership.RolesChangedAt.ShouldBe(later);
+        tenantWide.ShouldSatisfyAllConditions(a => a.IsActive.ShouldBeFalse(), a => a.RevokedAt.ShouldBe(later));
         membership.RevokeRole(tenantWide.Id, SystemActor.Instance, _now).Error.ShouldBe(IdentityErrors.RoleAssignmentNotFound);
         membership.ActiveRoles.ShouldHaveSingleItem().ScopeType.ShouldBe(AssignmentScope.Competition);
 

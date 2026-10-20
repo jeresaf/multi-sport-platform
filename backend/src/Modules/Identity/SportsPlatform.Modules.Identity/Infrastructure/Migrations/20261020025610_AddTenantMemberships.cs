@@ -26,6 +26,7 @@ namespace SportsPlatform.Modules.Identity.Infrastructure.Migrations
                     status_reason = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
                     status_changed_by = table.Column<Guid>(type: "uuid", nullable: true),
                     status_changed_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    roles_changed_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
                     created_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     created_by = table.Column<Guid>(type: "uuid", nullable: false),
                     updated_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),

@@ -33,7 +33,7 @@ public sealed class GetMeHandler(IdentityDbContext context, IdentityDirectory di
             .OrderBy(code => code)
             .ToListAsync(cancellationToken);
 
-        var tenants = await directory.TenantsOfAsync(user.Id, cancellationToken);
+        var tenants = await directory.MyTenantsAsync(cancellationToken);
         return Result.Success(new MeResponse(
             user.Id, user.Email!, platformRoles, [.. tenants.Select(t => new MeTenantResponse(t.TenantId, t.Roles))]));
     }

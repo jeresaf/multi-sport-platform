@@ -439,6 +439,10 @@ namespace SportsPlatform.Modules.Identity.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("joined_at");
 
+                    b.Property<DateTimeOffset?>("RolesChangedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("roles_changed_at");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(20)

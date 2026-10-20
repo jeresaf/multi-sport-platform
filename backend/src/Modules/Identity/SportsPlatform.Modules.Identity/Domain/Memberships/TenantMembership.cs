@@ -49,6 +49,12 @@ public sealed class TenantMembership : AggregateRoot, ITenantOwned
 
     public DateTimeOffset? StatusChangedAt { get; private set; }
 
+    /// <summary>
+    /// When a role was last assigned or revoked. Changing it changes the membership row, so a concurrent change to the
+    /// same membership's roles fails its version check (only the root's <c>xmin</c> is checked, database.md).
+    /// </summary>
+    public DateTimeOffset? RolesChangedAt { get; private set; }
+
     /// <summary>Every assignment, revoked ones included.</summary>
     public IReadOnlyList<RoleAssignment> Roles => _roles;
 
@@ -92,6 +98,7 @@ public sealed class TenantMembership : AggregateRoot, ITenantOwned
 
         var assignment = RoleAssignment.Grant(Id, role, scopeType, scopeId, actor, now);
         _roles.Add(assignment);
+        RolesChangedAt = now;
         return Result.Success(assignment);
     }
 
@@ -110,6 +117,7 @@ public sealed class TenantMembership : AggregateRoot, ITenantOwned
         }
 
         assignment.Revoke(actor, now);
+        RolesChangedAt = now;
         return Result.Success();
     }
 

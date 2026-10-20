@@ -12,7 +12,7 @@ using SportsPlatform.Modules.Identity.Infrastructure;
 namespace SportsPlatform.Modules.Identity.Infrastructure.Migrations
 {
     [DbContext(typeof(IdentityDbContext))]
-    [Migration("20261020020851_AddTenantMemberships")]
+    [Migration("20261020025610_AddTenantMemberships")]
     partial class AddTenantMemberships
     {
         /// <inheritdoc />
@@ -441,6 +441,10 @@ namespace SportsPlatform.Modules.Identity.Infrastructure.Migrations
                     b.Property<DateTimeOffset>("JoinedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("joined_at");
+
+                    b.Property<DateTimeOffset?>("RolesChangedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("roles_changed_at");
 
                     b.Property<string>("Status")
                         .IsRequired()
