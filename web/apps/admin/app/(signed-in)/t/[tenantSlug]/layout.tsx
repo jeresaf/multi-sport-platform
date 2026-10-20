@@ -1,5 +1,6 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, type ReactNode } from "react";
 import { Loading } from "@/components/loading";
@@ -7,11 +8,11 @@ import { ProblemAlert } from "@/components/problem-alert";
 import { AppShell } from "@/components/shell/app-shell";
 import { ForbiddenView, NotFoundView } from "@/components/status-page";
 import { BlockedTenant } from "@/components/workspace/blocked-tenant";
-import { useMe } from "@/lib/account";
-import { isApiProblem } from "@/lib/api";
+import { meQueryKey, useMe } from "@/lib/account";
+import { isApiProblem, isUnauthenticated } from "@/lib/api";
 import { useTenantCapabilities } from "@/lib/capabilities";
 import { tenantNavigation, visibleNavigation } from "@/lib/navigation";
-import { findTenant, isBlocked, rememberWorkspace, tenantPath } from "@/lib/workspace";
+import { findTenant, forgetWorkspace, isBlocked, rememberWorkspace, tenantPath } from "@/lib/workspace";
 import { WorkspaceProvider } from "@/lib/workspace-context";
 
 /**
@@ -26,13 +27,26 @@ export default function TenantWorkspaceLayout({ children }: Readonly<{ children:
   const capabilities = useTenantCapabilities(tenant?.tenantId ?? "", tenant !== undefined && !blocked);
   const items = useMemo(() => tenantNavigation(tenantSlug), [tenantSlug]);
 
-  // Only a workspace that opens (or says why it's closed) is remembered: `/` must not lead back to a refusal.
+  const queryClient = useQueryClient();
+  const refusal = !blocked && isApiProblem(capabilities.error) && capabilities.error.status === 403 ? capabilities.error : null;
+
+  // Only a workspace that opens (or says why it's closed) is remembered, and one that refuses is forgotten: `/` must
+  // not lead back to a refusal. A tenant blocked since `me` was read asks again, so the page says why it's closed.
   const opens = blocked || capabilities.isSuccess;
   useEffect(() => {
     if (tenant && opens) {
       rememberWorkspace(tenantPath(tenant.slug));
     }
   }, [tenant, opens]);
+  useEffect(() => {
+    if (!tenant || !refusal) {
+      return;
+    }
+    forgetWorkspace(tenantPath(tenant.slug));
+    if (refusal.problem.code === "TENANT_BLOCKED") {
+      void queryClient.invalidateQueries({ queryKey: meQueryKey });
+    }
+  }, [tenant, refusal, queryClient]);
 
   if (!tenant) {
     return (
@@ -46,10 +60,11 @@ export default function TenantWorkspaceLayout({ children }: Readonly<{ children:
     return (
       <AppShell workspace={tenant.displayName} navigation={[]}>
         {blocked ? <BlockedTenant tenant={tenant} /> : null}
-        {capabilities.isPending && !blocked ? <Loading /> : null}
-        {capabilities.isError && isApiProblem(capabilities.error) && capabilities.error.status === 403 ? (
-          <ForbiddenView error={capabilities.error} />
-        ) : capabilities.isError ? (
+        {/* A 401 is the guard's: it sends the user to sign in. */}
+        {!blocked && (capabilities.isPending || isUnauthenticated(capabilities.error)) ? <Loading /> : null}
+        {refusal ? (
+          <ForbiddenView error={refusal} />
+        ) : !blocked && capabilities.isError && !isUnauthenticated(capabilities.error) ? (
           <ProblemAlert error={capabilities.error} />
         ) : null}
       </AppShell>

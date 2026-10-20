@@ -33,14 +33,17 @@ export function NotFoundView() {
   );
 }
 
-/** A 403: the API's refusal when there is one (its code says why), else the capabilities didn't allow the screen. */
+/**
+ * A 403: the API's refusal when there is one (its code says why), else the capabilities didn't allow the screen. It is
+ * always shown in the shell, so it points to the workspace menu: a link to `/` could lead straight back here.
+ */
 export function ForbiddenView({ error }: Readonly<{ error?: unknown }>) {
   const described = error instanceof ApiProblem ? describeProblem(error.problem) : undefined;
   return (
     <StatusPage status="403" title="You can't open this page">
       <p>{described?.message ?? "Your roles in this workspace don't include it. Ask an administrator if you need it."}</p>
       {described?.correlationId ? <p>Reference: {described.correlationId}</p> : null}
-      <p>{homeLink}</p>
+      <p>Open another workspace from the workspace menu at the top of the page.</p>
     </StatusPage>
   );
 }

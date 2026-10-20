@@ -6,7 +6,7 @@ import { ProblemAlert } from "@/components/problem-alert";
 import { AppShell } from "@/components/shell/app-shell";
 import { ForbiddenView } from "@/components/status-page";
 import { useMe } from "@/lib/account";
-import { isApiProblem } from "@/lib/api";
+import { isApiProblem, isUnauthenticated } from "@/lib/api";
 import { usePlatformCapabilities } from "@/lib/capabilities";
 import { platformNavigation, visibleNavigation } from "@/lib/navigation";
 import { platformPath, rememberWorkspace } from "@/lib/workspace";
@@ -21,20 +21,22 @@ export default function PlatformLayout({ children }: Readonly<{ children: ReactN
   const capabilities = usePlatformCapabilities(isPlatformStaff);
   const items = useMemo(() => platformNavigation(), []);
 
+  // As for tenants: only a console that opens is remembered.
   useEffect(() => {
-    if (isPlatformStaff) {
+    if (capabilities.isSuccess) {
       rememberWorkspace(platformPath);
     }
-  }, [isPlatformStaff]);
+  }, [capabilities.isSuccess]);
 
   if (!isPlatformStaff || !capabilities.data) {
     return (
       <AppShell workspace={workspace} navigation={[]}>
         {!isPlatformStaff ? <ForbiddenView /> : null}
-        {isPlatformStaff && capabilities.isPending ? <Loading /> : null}
+        {/* A 401 is the guard's: it sends the user to sign in. */}
+        {isPlatformStaff && (capabilities.isPending || isUnauthenticated(capabilities.error)) ? <Loading /> : null}
         {capabilities.isError && isApiProblem(capabilities.error) && capabilities.error.status === 403 ? (
           <ForbiddenView error={capabilities.error} />
-        ) : capabilities.isError ? (
+        ) : capabilities.isError && !isUnauthenticated(capabilities.error) ? (
           <ProblemAlert error={capabilities.error} />
         ) : null}
       </AppShell>

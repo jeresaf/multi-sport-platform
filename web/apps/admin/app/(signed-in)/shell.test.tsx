@@ -181,6 +181,7 @@ describe("tenant workspace", () => {
   });
 
   it("shows the server's reason when it refuses the workspace (a tenant still being set up)", async () => {
+    localStorage.setItem("msp.admin.lastWorkspace", "/t/kmsa");
     fakeApi({
       "GET /api/account/v1/me": me(),
       "GET /api/admin/v1/me/capabilities": { status: 403, body: problem("TENANT_PROVISIONING", 403) },
@@ -190,8 +191,43 @@ describe("tenant workspace", () => {
 
     expect(await screen.findByRole("heading", { name: "You can't open this page" })).toBeTruthy();
     expect(screen.getByText(/still being set up/)).toBeTruthy();
-    // `/` must not lead back here.
-    expect(localStorage.getItem("msp.admin.lastWorkspace")).toBeNull();
+    // `/` must not lead back here; the menu, not a link home, leads elsewhere.
+    await waitFor(() => expect(localStorage.getItem("msp.admin.lastWorkspace")).toBeNull());
+    expect(screen.getByText(/workspace menu at the top/)).toBeTruthy();
+  });
+
+  it("asks `me` again when a tenant was blocked since it was read, and says why it's closed", async () => {
+    let meAnswers = 0;
+    fakeApi({
+      "GET /api/account/v1/me": () =>
+        ++meAnswers === 1
+          ? me()
+          : { status: 200, body: { ...(me().body as object), tenants: [elssc, { ...kmsa, status: "SUSPENDED" }] } },
+      "GET /api/admin/v1/me/capabilities": { status: 403, body: problem("TENANT_BLOCKED", 403) },
+      "GET /api/admin/v1/tenant/access": {
+        status: 200,
+        body: { status: "SUSPENDED", accessMode: "BLOCKED", reason: "Subscription unpaid", since: "2026-10-20T08:00:00Z" },
+      },
+    });
+
+    openTenant("kmsa");
+
+    expect(await screen.findByRole("heading", { name: `${kmsa.displayName} is suspended` })).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "You can't open this page" })).toBeNull();
+  });
+
+  it("waits for the guard on a 401 instead of showing it", async () => {
+    const requests = fakeApi({
+      "GET /api/account/v1/me": me(),
+      "GET /api/admin/v1/me/capabilities": { status: 401, body: problem("AUTH_UNAUTHENTICATED", 401) },
+    });
+
+    openTenant("kmsa");
+
+    await waitFor(() => expect(requests.some((request) => request.path === "/api/admin/v1/me/capabilities")).toBe(true));
+    await waitFor(() => expect(requests.filter((request) => request.path === "/api/account/v1/me")).toHaveLength(2));
+    expect(screen.getByRole("status").textContent).toBe("Loading…");
+    expect(screen.queryByText("That didn't work")).toBeNull();
   });
 });
 
@@ -225,6 +261,7 @@ describe("platform console", () => {
     );
 
     await screen.findByText("Console page");
+    expect(localStorage.getItem("msp.admin.lastWorkspace")).toBe("/platform");
     const nav = within(workspaceNav());
     expect(nav.getByRole("link", { name: "Tenants" })).toBeTruthy();
     expect(nav.queryByRole("link", { name: "Diagnostics" })).toBeNull();
@@ -251,7 +288,9 @@ describe("switcher and user menu", () => {
     openMenu(`Workspace: ${kmsa.displayName}`);
 
     const menu = within(await screen.findByRole("menu"));
-    expect(menu.getByRole("menuitem", { name: kmsa.displayName }).getAttribute("href")).toBe("/t/kmsa");
+    const current = menu.getByRole("menuitem", { name: kmsa.displayName });
+    expect(current.getAttribute("href")).toBe("/t/kmsa");
+    expect(current.getAttribute("aria-current")).toBe("page");
     expect(menu.getByRole("menuitem", { name: new RegExp(`^${elssc.displayName}\\s*Suspended$`) })).toBeTruthy();
     expect(menu.getByRole("menuitem", { name: "Platform console" }).getAttribute("href")).toBe("/platform");
   });

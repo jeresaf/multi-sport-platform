@@ -59,10 +59,15 @@ export function rememberWorkspace(path: string): void {
   }
 }
 
-/** On sign-out: the next person on this browser shouldn't learn which workspace the last one used. */
-export function forgetWorkspace(): void {
+/**
+ * Forgets the last-used workspace: on sign-out (the next person on this browser shouldn't learn it), or only `path`
+ * when that workspace refuses the user (so `/` doesn't lead back to the refusal).
+ */
+export function forgetWorkspace(path?: string): void {
   try {
-    globalThis.localStorage?.removeItem(lastUsedKey);
+    if (path === undefined || globalThis.localStorage?.getItem(lastUsedKey) === path) {
+      globalThis.localStorage?.removeItem(lastUsedKey);
+    }
   } catch {
     // Nothing stored, or storage refuses: nothing to forget.
   }
