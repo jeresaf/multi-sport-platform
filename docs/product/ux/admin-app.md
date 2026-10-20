@@ -33,8 +33,9 @@ user's capabilities (docs/architecture/authorization.md); the server still enfor
   console" for platform staff. A suspended or archived tenant opens a page saying so; whoever may read
   `tenant.access.read` (the owner) also sees since when and why, the others are told to ask the owner.
 - **401, 403, 404.** Without a session every signed-in page goes to sign-in and back to the same address afterwards.
-  A refusal shows the code's message (for example `TENANT_PROVISIONING`); an unknown tenant or address is "Page not
-  found". Signing out reloads the sign-in page, so nothing the user saw stays in memory.
+  A refusal shows the code's message (for example `TENANT_PROVISIONING`) and points to the workspace menu; an unknown
+  tenant or address is "Page not found". Forms can't be sent until the page is interactive (their button is
+  disabled until then). Signing out reloads the sign-in page, so nothing the user saw stays in memory.
 
 ## Workspaces and screens
 
