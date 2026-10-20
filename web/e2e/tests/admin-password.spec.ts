@@ -1,13 +1,15 @@
 import { expect, test } from "@playwright/test";
 import { acceptByApi, inviteOwner, newPassword, personEmail, signIn } from "./support/accounts";
 import { linkFromEmail } from "./support/mailpit";
+import { open } from "./support/pages";
 
 test("a member who forgot their password resets it from the email", async ({ page, request }) => {
   const email = personEmail("agnes.namutebi", "elssc");
   await acceptByApi(request, await inviteOwner(request, "elssc", email), newPassword());
 
-  await page.goto("/sign-in");
+  await open(page, "/sign-in");
   await page.getByRole("link", { name: "Forgot your password?" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Forgot your password?" })).toBeVisible();
   await page.getByLabel("Email").fill(email);
   await page.getByRole("button", { name: "Send the link" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Check your email" })).toBeVisible();

@@ -2,6 +2,7 @@
 // other person is invited by it with a run-unique address, so a run never depends on another run's data.
 import { expect, type APIRequestContext, type Page } from "@playwright/test";
 import { linkFromEmail } from "./mailpit";
+import { open } from "./pages";
 
 export const platformAdmin = {
   email: process.env.MSP_E2E_ADMIN_EMAIL!,
@@ -113,11 +114,11 @@ export async function myTenantId(request: APIRequestContext, slug: string): Prom
 export async function acceptByApi(request: APIRequestContext, link: string, password: string) {
   const token = new URL(link).searchParams.get("token");
   const accepted = await request.post("/api/account/v1/invitations/accept", { data: { token, password }, headers: csrf });
-  expect(accepted.status(), "accept").toBe(200);
+  expect(accepted.status(), `accept: ${await accepted.text()}`).toBe(200);
 }
 
 export async function signIn(page: Page, email: string, password: string) {
-  await page.goto("/sign-in");
+  await open(page, "/sign-in");
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();

@@ -10,6 +10,7 @@ import {
   signIn,
   suspendTenant,
 } from "./support/accounts";
+import { open } from "./support/pages";
 
 // Screenshots for the PR (S03-T6: tablet and desktop, light and dark). CI uploads e2e/screenshots as an artifact.
 // The signed-out pages are also shot at phone width: their links come by email and are usually opened on a phone
@@ -36,12 +37,12 @@ async function shoot(page: Page, name: string, sizes: readonly { name: string; w
 }
 
 test("screenshots of the signed-out pages", async ({ page, request }) => {
-  await page.goto("/sign-in");
+  await open(page, "/sign-in");
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page.getByText("Enter your email address.")).toBeVisible();
   await shoot(page, "sign-in-errors", [phone, ...widths]);
 
-  await page.goto("/forgot-password");
+  await open(page, "/forgot-password");
   await expect(page.getByRole("heading", { level: 1, name: "Forgot your password?" })).toBeVisible();
   await shoot(page, "forgot-password", [phone, ...widths]);
 
@@ -55,7 +56,7 @@ test("screenshots of the platform console", async ({ page }) => {
   await expect(page.getByRole("heading", { level: 1, name: "Platform console" })).toBeVisible();
   await shoot(page, "platform-console", [phone, ...widths]);
 
-  await page.getByRole("button", { name: "Account menu" }).click();
+  await page.getByRole("button", { name: /^Account menu: / }).click();
   await expect(page.getByRole("menuitem", { name: "Sign out" })).toBeVisible();
   await shoot(page, "user-menu", widths);
 });

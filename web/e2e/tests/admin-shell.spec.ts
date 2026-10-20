@@ -66,8 +66,25 @@ test("a tenant owner opens their workspace; the console and unknown tenants are 
   await page.goto("/t/no-such-tenant");
   await expect(page.getByRole("heading", { level: 1, name: "Page not found" })).toBeVisible();
 
-  // `/` remembers the last workspace opened in this browser.
-  await page.goto("/t/kmsa");
+});
+
+test("`/` opens the last workspace used in this browser, else the first active tenant", async ({ page, request }) => {
+  // Owner of both DEMO tenants: ELSSC ("Eastern Lakes…") comes first by name.
+  const email = personEmail("isaac.mugisha", "elssc");
+  const password = newPassword();
+  await acceptByApi(request, await inviteOwner(request, "elssc", email), password);
+  const kmsaLink = await inviteOwner(request, "kmsa", email);
+  // An existing account accepts while signed in as itself (S03 D12).
+  await signInByApi(request, email, password);
+  await acceptByApi(request, kmsaLink, password);
+
+  await signIn(page, email, password);
+  await expect(page).toHaveURL("/t/elssc");
+
+  await page.getByRole("button", { name: /^Workspace: / }).click();
+  await page.getByRole("menuitem", { name: kmsa }).click();
+  await expect(page.getByRole("heading", { level: 1, name: kmsa })).toBeVisible();
+
   await page.goto("/");
   await expect(page).toHaveURL("/t/kmsa");
 });
