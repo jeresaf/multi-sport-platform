@@ -14,8 +14,9 @@ internal static class GetMeEndpoint
         .WithSummary("Read the signed-in user")
         .WithDescription(
             "The signed-in user: ID, email, active platform roles, and the tenants they are an active member of, ordered " +
-            "by name, each with its slug, display name and status and the user's roles there. Suspended and archived " +
-            "tenants are listed: their workspace is blocked (TENANT_BLOCKED), and only `tenant.access.read` is allowed.")
+            "by name, each with its slug, display name and status and the user's roles there. Every status is listed. " +
+            "A suspended or archived tenant's workspace is blocked (TENANT_BLOCKED): only `tenant.access.read` is " +
+            "allowed. A provisioning tenant's workspace opens only for those setting it up; others get TENANT_PROVISIONING.")
         .RequireAction(IdentityActions.AccountRead);
 
     private static async Task<Results<Ok<MeResponse>, ProblemHttpResult>> HandleAsync(
