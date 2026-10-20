@@ -24,13 +24,14 @@ public sealed class TenantActionAuthorizationTests(PostgresFixture fixture) : Da
         Unarchive,
         GetSettings,
         UpdateSettings,
+        GetAccess,
     }
 
     private static readonly ActionDefinition[] _actions =
     [
         TenancyActions.TenantCreate, TenancyActions.TenantRead, TenancyActions.TenantUpdate, TenancyActions.TenantActivate,
         TenancyActions.TenantSuspend, TenancyActions.TenantRestore, TenancyActions.TenantArchive, TenancyActions.TenantUnarchive,
-        TenancyActions.TenantSettingsRead, TenancyActions.TenantSettingsUpdate,
+        TenancyActions.TenantSettingsRead, TenancyActions.TenantSettingsUpdate, TenancyActions.TenantAccessRead,
     ];
 
     [Fact]
@@ -50,6 +51,7 @@ public sealed class TenantActionAuthorizationTests(PostgresFixture fixture) : Da
     [InlineData(Endpoint.Unarchive, "tenant.unarchive", HttpStatusCode.OK)]
     [InlineData(Endpoint.GetSettings, "tenant.settings.read", HttpStatusCode.OK)]
     [InlineData(Endpoint.UpdateSettings, "tenant.settings.update", HttpStatusCode.OK)]
+    [InlineData(Endpoint.GetAccess, "tenant.access.read", HttpStatusCode.OK)]
     public async Task Allowed(Endpoint endpoint, string action, HttpStatusCode expected)
     {
         var tenantId = await TenantTestData.SaveTenantAsync(App.Services, "elssc", StatusFor(endpoint), Ct);
@@ -73,6 +75,7 @@ public sealed class TenantActionAuthorizationTests(PostgresFixture fixture) : Da
     [InlineData(Endpoint.Unarchive, "tenant.restore")]
     [InlineData(Endpoint.GetSettings, "tenant.settings.update")]
     [InlineData(Endpoint.UpdateSettings, "tenant.settings.read")]
+    [InlineData(Endpoint.GetAccess, "tenant.settings.read")]
     public async Task Denied_without_its_own_action(Endpoint endpoint, string otherAction)
     {
         var status = StatusFor(endpoint);
@@ -102,7 +105,7 @@ public sealed class TenantActionAuthorizationTests(PostgresFixture fixture) : Da
     {
         // A signed-in user (anonymous is 401, S03 D4); tenant actions: a member of the tenant, named in X-Tenant-Id.
         using var client = App.CreateClient().AsUser(TenantTestData.StaffId, tenantId);
-        if (endpoint is Endpoint.GetSettings or Endpoint.UpdateSettings)
+        if (endpoint is Endpoint.GetSettings or Endpoint.UpdateSettings or Endpoint.GetAccess)
         {
             client.DefaultRequestHeaders.Add("X-Tenant-Id", tenantId.ToString());
         }
@@ -119,6 +122,7 @@ public sealed class TenantActionAuthorizationTests(PostgresFixture fixture) : Da
                 new Uri(tenant, UriKind.Relative), new { displayName = "Eastern Lakes Schools" }, Ct),
             Endpoint.Activate => await client.PostAsync(new Uri($"{tenant}/activate", UriKind.Relative), null, Ct),
             Endpoint.Restore => await client.PostAsync(new Uri($"{tenant}/restore", UriKind.Relative), null, Ct),
+            Endpoint.GetAccess => await client.GetAsync(new Uri("/api/admin/v1/tenant/access", UriKind.Relative), Ct),
             Endpoint.GetSettings => await client.GetAsync(new Uri(TenantSettingsTests.SettingsPath, UriKind.Relative), Ct),
             Endpoint.UpdateSettings => await client.PatchAsJsonAsync(
                 new Uri(TenantSettingsTests.SettingsPath, UriKind.Relative), new { startingSoonMinutes = 45 }, Ct),

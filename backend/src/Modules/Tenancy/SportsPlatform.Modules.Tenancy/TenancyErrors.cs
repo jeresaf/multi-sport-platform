@@ -18,6 +18,13 @@ public static class TenancyErrors
     public static readonly Error Blocked = new(
         "TENANT_BLOCKED", "This tenant is suspended or archived.", ErrorKind.Forbidden);
 
+    /// <summary>
+    /// A tenant action on a <c>PROVISIONING</c> tenant by a member who doesn't hold <c>TENANT_OWNER</c> or
+    /// <c>TENANT_ADMIN</c> (S03 D11).
+    /// </summary>
+    public static readonly Error Provisioning = new(
+        "TENANT_PROVISIONING", "This tenant is still being set up; only its owners and administrators can work in it.", ErrorKind.Forbidden);
+
     /// <summary>A public request for a tenant whose site is hidden or off; says nothing more (S02-T3).</summary>
     public static readonly Error Unavailable = new(
         "TENANT_UNAVAILABLE", "This site is not available.", ErrorKind.Forbidden);

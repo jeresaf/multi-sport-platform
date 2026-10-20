@@ -7,17 +7,15 @@ at the start of every review.
 
 - **Current slice:** S03 — Identity and access (docs/build/slices/S03-identity-access.md, rewritten by the S02 slice
   review). S00, S01 and S02 are done
-- **Current task:** S03-T4b1 — Member and role endpoints, owner rules and the last owner (D17) — in review (#47; owner,
-  2026-10-20: T4b split into T4b1 members and roles, T4b2 access-mode refinements)
-- **Next:** S03-T4b2 — Access-mode refinements (D11): `PROVISIONING` for owners and admins, `tenant.access.read`
+- **Current task:** S03-T4b2 — Access-mode refinements (D11) — in review (#48)
+- **Next:** S03-T4c — Invitations (admin, platform owner invite, lookup and accept), invitation email, DEMO seeder
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S03-T4b2 — Access-mode refinements (D11): `PROVISIONING` for owners and admins, `BLOCKED` exception, `tenant.access.read`
-2. S03-T4c — Invitations (admin, platform owner invite, lookup and accept), invitation email, DEMO seeder (D12, D13, D18)
-3. S03-T5 — Capabilities and the authorization matrix
-4. S03-T6 — Admin web: sign-in, shell, members, platform console (likely two PRs: T6a, T6b)
+1. S03-T4c — Invitations (admin, platform owner invite, lookup and accept), invitation email, DEMO seeder (D12, D13, D18)
+2. S03-T5 — Capabilities and the authorization matrix
+3. S03-T6 — Admin web: sign-in, shell, members, platform console (likely two PRs: T6a, T6b)
 
 ## Log
 
@@ -64,6 +62,7 @@ at the start of every review.
 | 2026-10-20 | S03-T3 | #45 | `IdentityRoles` (Identity `Domain/Roles`): `PLATFORM_ADMIN` (every platform action), `PLATFORM_SUPPORT` (platform `*.read`), the nine tenant roles with their assignment scopes (tenant-wide roles read the settings; owner and admin change them; `TEAM_MANAGER` nothing yet); `RoleCatalogue` singleton; Host startup check `RoleRules` (undeclared action, wrong scope, action none of a tenant role's scopes can grant, duplicate codes, platform roles ≠ `PlatformRoles`); `export-catalogues` writes `docs/generated/roles.md` and `contracts/roles.json`; `IdentityAuthorizationEvaluator` scoped, platform actions from unrevoked platform roles per request, tenant actions still refused; `AuthorizationRequest` gains `TenantId` and `ScopeRef`; `TestApp` `Authorization.UseIdentityRoles()` | Owner (plan): one PR; all nine tenant roles; settings read for every tenant-wide role; `TEAM_MANAGER` without settings and the scope rule in the startup check. Fixed on the way: `PasswordResetTests` compared two audit entries in ID order, which the fake clock makes random. No migrations, actions, errors, events or packages |
 | 2026-10-20 | S03-T4a | #46 | `identity.tenant_memberships` and `identity.role_assignments` (tenant-owned, RLS, isolation samples; one non-removed membership per tenant and user, one active assignment per membership, role and scope, tenant-wide = NULL scope ID); `TenantMembership` state machine (state-machines.md, owner) and assignment rules, `roles_changed_at` so role changes bump the membership's version; `PlatformServiceDbContext` base and the generic platform-service rule (#33 N2); `IdentityDirectory` (read-only, `sp_platform`, caller's own memberships only) as the real `ITenantMembershipChecker` (Host `NoTenantMemberships` removed) and `/me` tenants; evaluator tenant step (active membership, role grants the action, assignment scope type in `scopable_by` (#45 N1), tenant or resource scope chain via `IScopeChainProvider`); `EnumColumns` shared; errors `AUTH_MEMBERSHIP_TRANSITION_INVALID`, `AUTH_ROLE_NOT_ASSIGNABLE`, `AUTH_ROLE_ALREADY_ASSIGNED`, `AUTH_ROLE_ASSIGNMENT_NOT_FOUND` | Owner (plan): T4 in three PRs; owners only act on owners; `membership.read` for owner, admin, viewer; invitation token in the body (T4c). Owner (pre-review): directory reads not audited (documented exemption). No new actions, events or packages |
 | 2026-10-20 | S03-T4b1 | #47 | `/api/admin/v1/members`: list (cursor over UUIDv7 membership IDs, `status` filter, removed hidden by default; email and active roles), read, suspend/restore/remove (reasons), assign role (201, tenant-wide only), revoke role; actions `membership.read` (audited), `membership.suspend`, `membership.restore`, `membership.remove`, `role.assign`, `role.revoke` (owner and admin; `VIEWER` reads); errors `AUTH_MEMBERSHIP_NOT_FOUND`, `AUTH_OWNER_REQUIRED`, `AUTH_LAST_OWNER`; `MemberChanges` (version, owner-only rule, last owner counted on `ACTIVE` memberships under `pg_advisory_xact_lock`, #46 N1); every change updates the membership row (fixes a same-instant role change keeping its version, T4a); BuildingBlocks `RowVersion` (was Tenancy `TenantVersion`) | Owner (plan): T4b in two PRs; emails shown to `membership.read` holders; tenant-wide roles only; `/me` and blocked tenants in T6. Beyond the plan: `membership.read` audited. No migrations, events or packages. Pre-review: owner check under the lock, commit not cancellable, more isolation, audit and revoke tests. #47 N2: changes to a removed owner are 409 for everyone |
+| 2026-10-20 | S03-T4b2 | #48 | Access mode with roles (D11): `PROVISIONING` is `FULL` only for `TENANT_OWNER`/`TENANT_ADMIN` held tenant-wide (BuildingBlocks `ITenantSetupAccess`, Identity's `TenantSetupAccess`, asked by Tenancy's step 1), others `403 TENANT_PROVISIONING`; `ActionDefinition.availableWhenBlocked` (tenant actions only; "When blocked" column in actions.md); `tenant.access.read` (`GET /api/admin/v1/tenant/access`: status, access mode, reason and time of the change into that status; audited; `TENANT_OWNER` only); `CheckAdminAccessAsync` takes the action; pipeline OpenAPI errors add `TENANT_PROVISIONING`, drop `TENANT_BLOCKED` where it can't happen. Removes tech debt #34 R1 and S02-T3a | Owner (plan): an admin or viewer asking for the access read gets `AUTH_FORBIDDEN`; the reason is shown to the owner; setup roles count only tenant-wide. Tests without `UseIdentityRoles()` let every `X-Test-Tenants` member set a tenant up; `TenantResolutionTests`' provisioning case split into an admin who works and a member refused. No migrations, events or packages. Pre-review: ties between changes at one instant broken by ID; a second suspension shows its own reason and time (test). Follow-up for T6: the platform console's suspend/archive/unarchive reason dialog should say the tenant owner sees the reason (after an unarchive the owner sees the unarchive reason, not the earlier suspension's) |
 
 ## Deviations from spec (agreed)
 
@@ -205,10 +204,6 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
   (Cloudflare), with the `/health/*` item below (infrastructure task after M1). Decided (S03 D3): anonymous denials
   keep one row each; login and forgot-password are also rate-limited in the API (done, S03-T2b: in memory, per API
   instance, so N instances allow N times the limit until the edge limits exist).
-- `PROVISIONING` is `FULL` for every member in S02-T3a (no roles yet); state-machines.md gives it only to tenant
-  owners/admins (setup). S03: limit it to them, with a test (#34 R1).
-- `BLOCKED` access mode lets the tenant owner view the tenant's status (state-machines.md); S02-T3a refuses every
-  admin request on a blocked tenant because there are no roles yet. S03: the exception for the owner (S02-T3a).
 - **OpenAPI (with the first admin UI client, S03 or later):** optional request members (`version`, PATCH fields) are
   listed as `required` (nullable) in the schemas, so the TS client makes callers pass `null`; endpoints don't declare
   the `If-Match` request header or the `ETag` response header, and activate/restore list no 400 (pipeline errors).

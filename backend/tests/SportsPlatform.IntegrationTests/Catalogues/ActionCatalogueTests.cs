@@ -43,7 +43,8 @@ public sealed class ActionCatalogueTests
         var markdown = ActionCatalogue.ToMarkdown(catalogue);
         var json = ActionCatalogue.ToJson(catalogue);
 
-        markdown.ShouldContain("| `platform.outbox.redrive` | Platform | PLATFORM | — | REQUIRED_WITH_REASON | — | no | no | S01 | Re-deliver failed outbox messages. |\n");
+        markdown.ShouldContain("| `platform.outbox.redrive` | Platform | PLATFORM | — | REQUIRED_WITH_REASON | — | no | no | no | S01 | Re-deliver failed outbox messages. |\n");
+        markdown.ShouldContain("| `tenant.access.read` | Tenancy | TENANT | TENANT | REQUIRED | — | no | no | yes | S03 |");
         markdown.ShouldNotContain("\r");
         json.ShouldNotContain("\r");
         json.ShouldEndWith("}\n");
@@ -58,6 +59,9 @@ public sealed class ActionCatalogueTests
         read.GetProperty("entitlement").ValueKind.ShouldBe(JsonValueKind.Null);
         read.GetProperty("idempotent").GetBoolean().ShouldBeFalse();
         read.GetProperty("allowsAnonymous").GetBoolean().ShouldBeFalse();
+        read.GetProperty("availableWhenBlocked").GetBoolean().ShouldBeFalse();
+        actions.Single(action => action.GetProperty("code").GetString() == "tenant.access.read")
+            .GetProperty("availableWhenBlocked").GetBoolean().ShouldBeTrue();
         read.GetProperty("since").GetString().ShouldBe("S01");
     }
 
@@ -71,7 +75,7 @@ public sealed class ActionCatalogueTests
         var markdown = ActionCatalogue.ToMarkdown([new ActionCatalogueEntry(action, "Fixtures")]);
         using var json = JsonDocument.Parse(ActionCatalogue.ToJson([new ActionCatalogueEntry(action, "Fixtures")]));
 
-        markdown.ShouldContain("| `fixture.reschedule` | Fixtures | TENANT | TENANT, COMPETITION | REQUIRED_WITH_REASON | `fixtures.scheduling` | yes | no | S10 | Move a fixture \\| keep its round. |\n");
+        markdown.ShouldContain("| `fixture.reschedule` | Fixtures | TENANT | TENANT, COMPETITION | REQUIRED_WITH_REASON | `fixtures.scheduling` | yes | no | no | S10 | Move a fixture \\| keep its round. |\n");
         json.RootElement.GetProperty("actions")[0].GetProperty("scopableBy").EnumerateArray()
             .Select(scope => scope.GetString()).ShouldBe(["TENANT", "COMPETITION"]);
     }

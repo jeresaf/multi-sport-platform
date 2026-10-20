@@ -34,6 +34,7 @@ the message is the default title and may change.
 | `TENANT_CONCURRENCY_CONFLICT` | 409 | The tenant was changed by someone else. Reload and try again. | Tenancy |
 | `TENANT_INVALID_TRANSITION` | 409 | The tenant's status does not allow this change. | Tenancy |
 | `TENANT_NOT_FOUND` | 404 | No such tenant. | Tenancy |
+| `TENANT_PROVISIONING` | 403 | This tenant is still being set up; only its owners and administrators can work in it. | Tenancy |
 | `TENANT_SLUG_TAKEN` | 409 | This slug belongs to another tenant, possibly an archived one. Slugs are never reused. | Tenancy |
 | `TENANT_UNAVAILABLE` | 403 | This site is not available. | Tenancy |
 | `VALIDATION_INVALID_QUERY` | 400 | A query parameter is not valid. | BuildingBlocks |

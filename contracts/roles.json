@@ -45,6 +45,7 @@
         "membership.suspend",
         "role.assign",
         "role.revoke",
+        "tenant.access.read",
         "tenant.settings.read",
         "tenant.settings.update"
       ]

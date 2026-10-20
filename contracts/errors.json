@@ -169,6 +169,12 @@
       "owner": "Tenancy"
     },
     {
+      "code": "TENANT_PROVISIONING",
+      "status": 403,
+      "message": "This tenant is still being set up; only its owners and administrators can work in it.",
+      "owner": "Tenancy"
+    },
+    {
       "code": "TENANT_SLUG_TAKEN",
       "status": 409,
       "message": "This slug belongs to another tenant, possibly an archived one. Slugs are never reused.",

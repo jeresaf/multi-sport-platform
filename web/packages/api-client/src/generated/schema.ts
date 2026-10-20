@@ -128,6 +128,26 @@ export interface paths {
         patch: operations["UpdateTenantSettings"];
         trace?: never;
     };
+    "/api/admin/v1/tenant/access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the tenant's access
+         * @description The status and access mode of the tenant named by `X-Tenant-Id`, with the reason and time of the change that put it in that status. Available while the tenant is suspended or archived, so its owner sees why every other request is `403 TENANT_BLOCKED`.
+         */
+        get: operations["GetTenantAccess"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/v1/members": {
         parameters: {
             query?: never;
@@ -907,6 +927,23 @@ export interface components {
             primaryDomain: string;
         };
         /**
+         * @description What a tenant may do, derived from its status (and, from S04, its subscription): state-machines.md.
+         * @enum {unknown}
+         */
+        TenantAccessMode: "FULL" | "READ_ONLY" | "BLOCKED";
+        /**
+         * @description A tenant's access as its owner sees it: `status`, the `accessMode` derived from it, and the
+         *     `reason` (null when the change needs none, such as an activation) and time (`since`) of the change that put the
+         *     tenant in its status.
+         */
+        TenantAccessResponse: {
+            status: components["schemas"]["TenantStatus"];
+            accessMode: components["schemas"]["TenantAccessMode"];
+            reason: null | string;
+            /** Format: date-time */
+            since: string;
+        };
+        /**
          * @description A tenant in the platform list. No settings: the list runs under no tenant, and settings are tenant-owned (read one
          *     tenant for them). `version` is the tenant row's, as in the detail.
          */
@@ -1210,7 +1247,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED` */
+            /** @description Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING` */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -1261,7 +1298,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED` */
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING` */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -1272,6 +1309,44 @@ export interface operations {
             };
             /** @description Problem Details; `code`: `TENANT_CONCURRENCY_CONFLICT` */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetTenantAccess: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TenantAccessResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_PROVISIONING` */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1321,7 +1396,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED` */
+            /** @description Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING` */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -1361,7 +1436,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED` */
+            /** @description Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING` */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -1423,7 +1498,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_OWNER_REQUIRED`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED` */
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_OWNER_REQUIRED`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING` */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -1485,7 +1560,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_OWNER_REQUIRED`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED` */
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_OWNER_REQUIRED`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING` */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -1556,7 +1631,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_OWNER_REQUIRED`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED` */
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_OWNER_REQUIRED`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING` */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -1627,7 +1702,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_OWNER_REQUIRED`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED` */
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_OWNER_REQUIRED`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING` */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -1690,7 +1765,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_OWNER_REQUIRED`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED` */
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_OWNER_REQUIRED`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING` */
             403: {
                 headers: {
                     [name: string]: unknown;

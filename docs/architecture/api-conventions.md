@@ -194,7 +194,8 @@ Modules call each other in-process through Contracts, never over HTTP.
 - Every endpoint has a summary, request/response schemas, and documented error codes: `.ProducesErrors(...)`
   (`SportsPlatform.BuildingBlocks.Api`) adds one Problem Details response per status and lists that status's codes
   in the response description and in `x-error-codes`. The Host adds the pipeline's 403s: `AUTH_FORBIDDEN` on every admin and platform
-  endpoint, and `AUTH_TENANT_FORBIDDEN` and `TENANT_BLOCKED` on tenant actions.
+  endpoint, and `AUTH_TENANT_FORBIDDEN`, `TENANT_PROVISIONING` and (unless the action is available when blocked)
+  `TENANT_BLOCKED` on tenant actions.
 - One document, `v1`, OpenAPI 3.1, covering all three families. Health probes are infrastructure and are left
   out. The document is served (`/openapi/v1.json`, Scalar at `/scalar`) in Development only.
 - JSON numbers are strict: a number sent as a string (`"5"`) is a malformed request (400).

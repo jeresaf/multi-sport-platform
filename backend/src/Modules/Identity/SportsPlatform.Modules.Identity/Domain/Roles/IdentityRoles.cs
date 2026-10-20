@@ -19,6 +19,12 @@ public static class IdentityRoles
     public const string DataEntry = "DATA_ENTRY";
     public const string Viewer = "VIEWER";
 
+    /// <summary>
+    /// The roles that may work in a <c>PROVISIONING</c> tenant, held tenant-wide (S03 D11); other members get
+    /// <c>TENANT_PROVISIONING</c> until it is activated.
+    /// </summary>
+    public static IReadOnlyList<string> SetupRoles { get; } = [TenantOwner, TenantAdmin];
+
     private const string _tenantSettingsRead = "tenant.settings.read";
     private const string _tenantSettingsUpdate = "tenant.settings.update";
 
@@ -30,6 +36,9 @@ public static class IdentityRoles
         _tenantSettingsRead, _tenantSettingsUpdate,
         _membershipRead, "membership.suspend", "membership.restore", "membership.remove", "role.assign", "role.revoke",
     ];
+
+    // Only the owner sees a blocked tenant's status and why (S03 D11): the actions available when blocked.
+    private static readonly string[] _tenantOwnership = ["tenant.access.read"];
 
     private static readonly string[] _tenantContext = [_tenantSettingsRead];
 
@@ -57,7 +66,7 @@ public static class IdentityRoles
 
         new(TenantOwner, RoleScope.Tenant,
             "All tenant actions, including members, roles, subscription view and tenant settings.",
-            _tenantAdministration, [AssignmentScope.Tenant]),
+            [.. _tenantAdministration, .. _tenantOwnership], [AssignmentScope.Tenant]),
         new(TenantAdmin, RoleScope.Tenant,
             "All tenant actions except ownership transfer.",
             _tenantAdministration, [AssignmentScope.Tenant]),

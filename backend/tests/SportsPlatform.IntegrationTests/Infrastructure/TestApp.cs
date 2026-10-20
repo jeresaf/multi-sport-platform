@@ -78,6 +78,13 @@ public sealed class TestApp : WebApplicationFactory<Program>
             services.AddScoped<ITenantMembershipChecker>(provider => Authorization.UsesIdentityRoles
                 ? provider.GetRequiredService<IdentityDirectory>()
                 : provider.GetRequiredService<TestAuthentication.ClaimsMembershipChecker>());
+
+            // Likewise who may work in a PROVISIONING tenant: Identity's setup roles, or every X-Test-Tenants member.
+            services.RemoveAll<ITenantSetupAccess>();
+            services.AddScoped<TenantSetupAccess>();
+            services.AddScoped<ITenantSetupAccess>(provider => Authorization.UsesIdentityRoles
+                ? provider.GetRequiredService<TenantSetupAccess>()
+                : TestAuthentication.ClaimsSetupAccess.Instance);
             Telemetry.AddTo(services);
             services.RemoveAll<IEmailSender>();
             services.AddSingleton<IEmailSender>(Emails);

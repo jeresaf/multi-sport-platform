@@ -10,7 +10,8 @@ namespace SportsPlatform.Host.Authorization;
 /// <summary>
 /// The decision formula (docs/architecture/authorization.md) for the matched endpoint's declared action: an anonymous
 /// caller gets 401 unless the action allows anonymous callers (S03 D4); then step 1, the
-/// tenant's access mode, for a tenant action (status-only until S04; <c>READ_ONLY</c> is not produced yet), then the
+/// tenant's access mode, for a tenant action (status and, for a <c>PROVISIONING</c> tenant, the actor's setup roles,
+/// S03 D11; <c>READ_ONLY</c> is not produced before S04), then the
 /// evaluator (steps 2–3). Runs after tenant resolution and before the endpoint, so request bodies are not read for a
 /// caller who is not allowed.
 /// </summary>
@@ -54,7 +55,7 @@ internal sealed class ActionAuthorizationMiddleware(RequestDelegate next)
             return;
         }
 
-        if (action.Scope == ActionScope.Tenant && await AccessModeAsync(services, context.RequestAborted) is { } refusal)
+        if (action.Scope == ActionScope.Tenant && await AccessModeAsync(services, action, context.RequestAborted) is { } refusal)
         {
             await refusal.ToProblem().ExecuteAsync(context);
             return;
@@ -74,14 +75,14 @@ internal sealed class ActionAuthorizationMiddleware(RequestDelegate next)
     /// <summary>
     /// Step 1. Tenant resolution has set a tenant the actor is a member of; without one it fails closed.
     /// </summary>
-    private static async Task<Error?> AccessModeAsync(IServiceProvider services, CancellationToken cancellationToken)
+    private static async Task<Error?> AccessModeAsync(IServiceProvider services, ActionDefinition action, CancellationToken cancellationToken)
     {
         if (services.GetRequiredService<ITenantContext>().TenantId is not { } tenantId)
         {
             return AuthorizationErrors.TenantForbidden;
         }
 
-        var access = await services.GetRequiredService<ITenantAccess>().CheckAdminAccessAsync(tenantId, cancellationToken);
+        var access = await services.GetRequiredService<ITenantAccess>().CheckAdminAccessAsync(tenantId, action, cancellationToken);
         return access.IsFailure ? access.Error : null;
     }
 }

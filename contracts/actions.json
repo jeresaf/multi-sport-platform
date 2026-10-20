@@ -10,6 +10,7 @@
       "entitlement": null,
       "idempotent": false,
       "allowsAnonymous": true,
+      "availableWhenBlocked": false,
       "since": "S03"
     },
     {
@@ -22,6 +23,7 @@
       "entitlement": null,
       "idempotent": false,
       "allowsAnonymous": false,
+      "availableWhenBlocked": false,
       "since": "S03"
     },
     {
@@ -34,6 +36,7 @@
       "entitlement": null,
       "idempotent": false,
       "allowsAnonymous": false,
+      "availableWhenBlocked": false,
       "since": "S03"
     },
     {
@@ -46,6 +49,7 @@
       "entitlement": null,
       "idempotent": false,
       "allowsAnonymous": true,
+      "availableWhenBlocked": false,
       "since": "S03"
     },
     {
@@ -58,6 +62,7 @@
       "entitlement": null,
       "idempotent": false,
       "allowsAnonymous": true,
+      "availableWhenBlocked": false,
       "since": "S03"
     },
     {
@@ -70,6 +75,7 @@
       "entitlement": null,
       "idempotent": false,
       "allowsAnonymous": false,
+      "availableWhenBlocked": false,
       "since": "S03"
     },
     {
@@ -84,6 +90,7 @@
       "entitlement": null,
       "idempotent": false,
       "allowsAnonymous": false,
+      "availableWhenBlocked": false,
       "since": "S03"
     },
     {
@@ -98,6 +105,7 @@
       "entitlement": null,
       "idempotent": false,
       "allowsAnonymous": false,
+      "availableWhenBlocked": false,
       "since": "S03"
     },
     {
@@ -112,6 +120,7 @@
       "entitlement": null,
       "idempotent": false,
       "allowsAnonymous": false,
+      "availableWhenBlocked": false,
       "since": "S03"
     },
     {
@@ -126,6 +135,7 @@
       "entitlement": null,
       "idempotent": false,
       "allowsAnonymous": false,
+      "availableWhenBlocked": false,
       "since": "S03"
     },
     {
@@ -138,6 +148,7 @@
       "entitlement": null,
       "idempotent": false,
       "allowsAnonymous": false,
+      "availableWhenBlocked": false,
       "since": "S03"
     },
     {
@@ -150,6 +161,7 @@
       "entitlement": null,
       "idempotent": false,
       "allowsAnonymous": false,
+      "availableWhenBlocked": false,
       "since": "S01"
     },
     {
@@ -162,6 +174,7 @@
       "entitlement": null,
       "idempotent": false,
       "allowsAnonymous": false,
+      "availableWhenBlocked": false,
       "since": "S01"
     },
     {
@@ -174,6 +187,7 @@
       "entitlement": null,
       "idempotent": false,
       "allowsAnonymous": false,
+      "availableWhenBlocked": false,
       "since": "S01"
     },
     {
@@ -188,6 +202,7 @@
       "entitlement": null,
       "idempotent": false,
       "allowsAnonymous": false,
+      "availableWhenBlocked": false,
       "since": "S03"
     },
     {
@@ -202,6 +217,22 @@
       "entitlement": null,
       "idempotent": false,
       "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "since": "S03"
+    },
+    {
+      "code": "tenant.access.read",
+      "module": "Tenancy",
+      "description": "View the tenant's status and access mode, and why: available while the tenant is suspended or archived.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": true,
       "since": "S03"
     },
     {
@@ -214,6 +245,7 @@
       "entitlement": null,
       "idempotent": false,
       "allowsAnonymous": false,
+      "availableWhenBlocked": false,
       "since": "S02"
     },
     {
@@ -226,6 +258,7 @@
       "entitlement": null,
       "idempotent": false,
       "allowsAnonymous": false,
+      "availableWhenBlocked": false,
       "since": "S02"
     },
     {
@@ -238,6 +271,7 @@
       "entitlement": null,
       "idempotent": false,
       "allowsAnonymous": false,
+      "availableWhenBlocked": false,
       "since": "S02"
     },
     {
@@ -250,6 +284,7 @@
       "entitlement": null,
       "idempotent": false,
       "allowsAnonymous": false,
+      "availableWhenBlocked": false,
       "since": "S02"
     },
     {
@@ -262,6 +297,7 @@
       "entitlement": null,
       "idempotent": false,
       "allowsAnonymous": false,
+      "availableWhenBlocked": false,
       "since": "S02"
     },
     {
@@ -276,6 +312,7 @@
       "entitlement": null,
       "idempotent": false,
       "allowsAnonymous": false,
+      "availableWhenBlocked": false,
       "since": "S02"
     },
     {
@@ -290,6 +327,7 @@
       "entitlement": null,
       "idempotent": false,
       "allowsAnonymous": false,
+      "availableWhenBlocked": false,
       "since": "S02"
     },
     {
@@ -302,6 +340,7 @@
       "entitlement": null,
       "idempotent": false,
       "allowsAnonymous": false,
+      "availableWhenBlocked": false,
       "since": "S02"
     },
     {
@@ -314,6 +353,7 @@
       "entitlement": null,
       "idempotent": false,
       "allowsAnonymous": false,
+      "availableWhenBlocked": false,
       "since": "S02"
     },
     {
@@ -326,6 +366,7 @@
       "entitlement": null,
       "idempotent": false,
       "allowsAnonymous": false,
+      "availableWhenBlocked": false,
       "since": "S02"
     }
   ]

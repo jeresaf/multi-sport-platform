@@ -4,7 +4,9 @@ using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.BuildingBlocks.Auditing;
 using SportsPlatform.IntegrationTests.Api;
 using SportsPlatform.IntegrationTests.Audit;
+using SportsPlatform.IntegrationTests.Identity;
 using SportsPlatform.IntegrationTests.Infrastructure;
+using SportsPlatform.Modules.Identity.Domain.Roles;
 using SportsPlatform.Modules.Platform;
 using SportsPlatform.Modules.Platform.Domain.Audit;
 using SportsPlatform.Modules.Tenancy;
@@ -96,12 +98,10 @@ public sealed class TenantResolutionTests(PostgresFixture fixture) : DatabaseTes
             e => e.TenantId.ShouldBeNull());
     }
 
-    [Theory]
-    [InlineData(TenantStatus.Active)]
-    [InlineData(TenantStatus.Provisioning)] // setup happens in the admin app
-    public async Task Member_works_in_a_full_access_tenant_and_the_entry_names_it(TenantStatus status)
+    [Fact]
+    public async Task Member_works_in_a_full_access_tenant_and_the_entry_names_it()
     {
-        var kmsa = await TenantTestData.SaveTenantAsync(App.Services, "kmsa", status, Ct);
+        var kmsa = await TenantTestData.SaveTenantAsync(App.Services, "kmsa", TenantStatus.Active, Ct);
         await using var admin = await AdminTestApp.StartAsync(Fixture, Ct);
         using var client = admin.CreateClient().AsUser(_secretaryId, kmsa);
         client.DefaultRequestHeaders.Add(_tenantHeader, kmsa.ToString());
@@ -112,6 +112,40 @@ public sealed class TenantResolutionTests(PostgresFixture fixture) : DatabaseTes
         (await response.Content.ReadFromJsonAsync<Guid?>(Ct)).ShouldBe(kmsa);
         (await SingleEntryAsync()).ShouldSatisfyAllConditions(
             e => e.Outcome.ShouldBe(AuditOutcome.Success),
+            e => e.TenantId.ShouldBe(kmsa));
+    }
+
+    // Setup happens in the admin app, by those who set the tenant up (S03 D11): the roles come from the database.
+    [Fact]
+    public async Task An_admin_sets_up_a_provisioning_tenant()
+    {
+        var kmsa = await TenantTestData.SaveTenantAsync(App.Services, "kmsa", TenantStatus.Provisioning, Ct);
+        var daniel = await MembershipTestData.CreateMemberAsync(
+            App.Services, kmsa, "daniel.kato@kmsa.example", Ct, MembershipTestData.TenantWide(IdentityRoles.TenantAdmin));
+        await using var admin = await AdminTestApp.StartAsync(Fixture, Ct);
+        using var client = admin.CreateClient().AsUser(daniel.UserId, kmsa);
+        client.DefaultRequestHeaders.Add(_tenantHeader, kmsa.ToString());
+
+        using var response = await client.PostAsync(AdminTestApp.FixturesPath, content: null, Ct);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await response.Content.ReadFromJsonAsync<Guid?>(Ct)).ShouldBe(kmsa);
+    }
+
+    [Fact]
+    public async Task Member_without_a_setup_role_is_refused_in_a_provisioning_tenant_and_the_entry_names_it()
+    {
+        var kmsa = await TenantTestData.SaveTenantAsync(App.Services, "kmsa", TenantStatus.Provisioning, Ct);
+        await using var admin = await AdminTestApp.StartAsync(Fixture, Ct);
+        using var client = admin.CreateClient().AsUser(_secretaryId, kmsa);
+        client.DefaultRequestHeaders.Add(_tenantHeader, kmsa.ToString());
+
+        using var response = await client.PostAsync(AdminTestApp.FixturesPath, content: null, Ct);
+
+        await response.ShouldBeProblemAsync(HttpStatusCode.Forbidden, "TENANT_PROVISIONING");
+        (await SingleEntryAsync()).ShouldSatisfyAllConditions(
+            e => e.Outcome.ShouldBe(AuditOutcome.Denied),
+            e => e.ErrorCode.ShouldBe("TENANT_PROVISIONING"),
             e => e.TenantId.ShouldBe(kmsa));
     }
 

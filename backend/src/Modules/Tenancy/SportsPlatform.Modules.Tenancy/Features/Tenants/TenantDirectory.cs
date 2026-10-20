@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
+using SportsPlatform.BuildingBlocks.Actions;
 using SportsPlatform.BuildingBlocks.Results;
 using SportsPlatform.BuildingBlocks.Tenancy;
 using SportsPlatform.Modules.Tenancy.Contracts.Access;
@@ -16,7 +17,9 @@ namespace SportsPlatform.Modules.Tenancy.Features.Tenants;
 /// Tenant lookups for the Host's tenant resolution. <c>tenants</c> and <c>tenant_domains</c> are global (no RLS), so
 /// these reads may come before the scope's tenant is set (S02 D1); only the public-site setting needs the tenant.
 /// </summary>
-internal sealed class TenantDirectory(TenancyDbContext context, TenantHostCache hostCache, ITenantContext tenantContext) : ITenantDirectory, ITenantAccess
+internal sealed class TenantDirectory(
+    TenancyDbContext context, TenantHostCache hostCache, ITenantContext tenantContext, ITenantSetupAccess setupAccess)
+    : ITenantDirectory, ITenantAccess
 {
     public async Task<Result<TenantSummary>> GetByIdAsync(Guid tenantId, CancellationToken cancellationToken) =>
         Found(await FindAsync(t => t.Id == tenantId, cancellationToken));
@@ -32,16 +35,33 @@ internal sealed class TenantDirectory(TenancyDbContext context, TenantHostCache 
     public async Task<TenantAccessMode?> GetAccessModeAsync(Guid tenantId, CancellationToken cancellationToken) =>
         await FindAsync(t => t.Id == tenantId, cancellationToken) is { } tenant ? AccessModeOf(tenant.Status) : null;
 
-    public async Task<Result> CheckAdminAccessAsync(Guid tenantId, CancellationToken cancellationToken) =>
-        await GetAccessModeAsync(tenantId, cancellationToken) switch
+    public async Task<Result> CheckAdminAccessAsync(Guid tenantId, ActionDefinition action, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(action);
+        if (await FindAsync(t => t.Id == tenantId, cancellationToken) is not { } tenant)
         {
-            TenantAccessMode.Full => Result.Success(),
-            TenantAccessMode.Blocked => Result.Failure(TenancyErrors.Blocked),
-            // Not produced before subscriptions (S04), which add TENANT_READ_ONLY for writes and let reads through.
-            TenantAccessMode.ReadOnly => throw new NotSupportedException("READ_ONLY access arrives with subscriptions (S04)."),
-            null => Result.Failure(TenancyErrors.NotFound),
-            _ => throw new ArgumentOutOfRangeException(nameof(tenantId)),
+            return Result.Failure(TenancyErrors.NotFound);
+        }
+
+        return tenant.Status switch
+        {
+            // FULL only for those who set the tenant up (S03 D11); the rest wait until it is activated.
+            TenantStatus.Provisioning => await setupAccess.CanSetUpAsync(tenantId, cancellationToken)
+                ? Result.Success()
+                : Result.Failure(TenancyErrors.Provisioning),
+            _ => AccessModeOf(tenant.Status) switch
+            {
+                TenantAccessMode.Full => Result.Success(),
+
+                // The owner can still see why (tenant.access.read); everything else waits for a restore.
+                TenantAccessMode.Blocked => action.AvailableWhenBlocked ? Result.Success() : Result.Failure(TenancyErrors.Blocked),
+
+                // Not produced before subscriptions (S04), which add TENANT_READ_ONLY for writes and let reads through.
+                TenantAccessMode.ReadOnly => throw new NotSupportedException("READ_ONLY access arrives with subscriptions (S04)."),
+                _ => throw new ArgumentOutOfRangeException(nameof(tenantId)),
+            },
         };
+    }
 
     public async Task<Result> CheckPublicAccessAsync(TenantSummary tenant, CancellationToken cancellationToken)
     {
@@ -61,8 +81,11 @@ internal sealed class TenantDirectory(TenancyDbContext context, TenantHostCache 
             : Result.Failure(TenancyErrors.Unavailable);
     }
 
-    /// <summary>Status-only until subscriptions arrive (S02 D9, state-machines.md "Access mode").</summary>
-    private static TenantAccessMode AccessModeOf(TenantStatus status) => status switch
+    /// <summary>
+    /// Status-only until subscriptions arrive (S02 D9, state-machines.md "Access mode"). <c>PROVISIONING</c> is
+    /// <c>FULL</c> for those who may set the tenant up; step 1 refuses everyone else.
+    /// </summary>
+    public static TenantAccessMode AccessModeOf(TenantStatus status) => status switch
     {
         TenantStatus.Provisioning or TenantStatus.Active => TenantAccessMode.Full,
         TenantStatus.Suspended or TenantStatus.Archived => TenantAccessMode.Blocked,

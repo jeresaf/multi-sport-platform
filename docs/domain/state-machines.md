@@ -57,6 +57,14 @@ Renewal = a new period row. History is never overwritten.
 | ACTIVE | EXPIRED, CANCELLED, none | `READ_ONLY` (live contests may finish; results may be submitted for 24 h) |
 | SUSPENDED, ARCHIVED | any | `BLOCKED` |
 
+How (S03-T4b2, D11):
+- `PROVISIONING`: `FULL` for a member holding `TENANT_OWNER` or `TENANT_ADMIN` tenant-wide (an `ACTIVE` membership,
+  an unrevoked assignment); every other member gets `403 TENANT_PROVISIONING` on every tenant action until the tenant
+  is activated.
+- `BLOCKED`: every tenant action is `403 TENANT_BLOCKED` except those marked `availableWhenBlocked` in the action
+  catalogue, which only `TENANT_OWNER` holds: `tenant.access.read` (`GET /api/admin/v1/tenant/access`), so the owner
+  sees the status and the reason for it. Platform actions are not affected (staff restore and unarchive).
+
 ---
 
 ## Identity & Access

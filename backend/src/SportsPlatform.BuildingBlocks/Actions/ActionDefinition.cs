@@ -43,7 +43,8 @@ public sealed class ActionDefinition
         IReadOnlyList<AssignmentScope>? scopableBy = null,
         string? entitlement = null,
         bool idempotent = false,
-        bool allowsAnonymous = false)
+        bool allowsAnonymous = false,
+        bool availableWhenBlocked = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(description);
         ArgumentException.ThrowIfNullOrWhiteSpace(since);
@@ -72,6 +73,12 @@ public sealed class ActionDefinition
             throw new ArgumentException($"Only account actions can allow anonymous callers ('{code}' is {scope}).", nameof(allowsAnonymous));
         }
 
+        // Only a tenant's own work is refused while it is blocked; the exception is for its owner (S03 D11).
+        if (availableWhenBlocked && scope != ActionScope.Tenant)
+        {
+            throw new ArgumentException($"Only tenant actions can be available when blocked ('{code}' is {scope}).", nameof(availableWhenBlocked));
+        }
+
         Description = description;
         Scope = scope;
         Audit = audit;
@@ -79,6 +86,7 @@ public sealed class ActionDefinition
         Entitlement = entitlement;
         Idempotent = idempotent;
         AllowsAnonymous = allowsAnonymous;
+        AvailableWhenBlocked = availableWhenBlocked;
     }
 
     public ActionCode Code { get; }
@@ -101,6 +109,12 @@ public sealed class ActionDefinition
 
     /// <summary>Whether a caller who is not signed in may perform it (account actions only); otherwise anonymous is 401.</summary>
     public bool AllowsAnonymous { get; }
+
+    /// <summary>
+    /// Whether a tenant action passes step 1 while the tenant is <c>BLOCKED</c> (suspended or archived); every other
+    /// tenant action is <c>TENANT_BLOCKED</c> then. Only <c>TENANT_OWNER</c> holds such actions (S03 D11).
+    /// </summary>
+    public bool AvailableWhenBlocked { get; }
 
     /// <summary>The slice that introduced the action, e.g. <c>S01</c>.</summary>
     public string Since { get; }

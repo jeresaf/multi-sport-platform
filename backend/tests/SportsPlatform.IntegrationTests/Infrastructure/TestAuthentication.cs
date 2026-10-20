@@ -102,4 +102,12 @@ public static class TestAuthentication
         public ValueTask<bool> IsMemberAsync(Guid tenantId, CancellationToken cancellationToken) => ValueTask.FromResult(
             accessor.HttpContext?.User.FindAll(TenantClaim).Any(claim => claim.Value == tenantId.ToString()) == true);
     }
+
+    /// <summary>Every <c>X-Test-Tenants</c> member may set a tenant up (tenant resolution has checked membership).</summary>
+    public sealed class ClaimsSetupAccess : ITenantSetupAccess
+    {
+        public static readonly ClaimsSetupAccess Instance = new();
+
+        public ValueTask<bool> CanSetUpAsync(Guid tenantId, CancellationToken cancellationToken) => ValueTask.FromResult(true);
+    }
 }
