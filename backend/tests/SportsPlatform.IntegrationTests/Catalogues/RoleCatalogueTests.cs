@@ -55,6 +55,7 @@ public sealed class RoleCatalogueTests
         var markdown = RoleCatalogueExport.ToMarkdown(_roles);
         var json = RoleCatalogueExport.ToJson(_roles);
 
+        markdown.ShouldContain("**Actions** is what a role grants today; **Description** is the role's purpose");
         markdown.ShouldContain("| `VIEWER` | TENANT | TENANT | `tenant.settings.read` | Read-only admin. |\n");
         markdown.ShouldContain("| `SCORER` | TENANT | TENANT, COMPETITION, CONTEST | `tenant.settings.read` |");
         markdown.ShouldContain("| `TEAM_MANAGER` | TENANT | TEAM | — |");
