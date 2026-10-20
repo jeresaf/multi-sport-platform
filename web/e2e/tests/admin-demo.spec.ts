@@ -114,15 +114,20 @@ test("slice demo: platform admin → owner → viewer, with the audit trail", as
     entry.actionCode === "invitation.accept" &&
     entry.outcome === "SUCCESS" &&
     JSON.stringify(entry.metadata).includes(userId);
-  await auditEntries(request, { tenantId }, [
-    by("tenant.create", adminId),
-    by("tenant.activate", adminId),
-    by("tenant.owner.invite", adminId),
-    accepted(ownerId),
-    by("tenant.settings.update", ownerId),
-    by("membership.invite", ownerId),
-    accepted(viewerId),
-  ]);
+  // One read per action: the tenant's own entries (every audited read in it, and these reads too) would crowd
+  // a single page.
+  const steps: [string, (entry: AuditEntry) => boolean][] = [
+    ["tenant.create", by("tenant.create", adminId)],
+    ["tenant.activate", by("tenant.activate", adminId)],
+    ["tenant.owner.invite", by("tenant.owner.invite", adminId)],
+    ["invitation.accept", accepted(ownerId)],
+    ["tenant.settings.update", by("tenant.settings.update", ownerId)],
+    ["membership.invite", by("membership.invite", ownerId)],
+    ["invitation.accept", accepted(viewerId)],
+  ];
+  for (const [action, expected] of steps) {
+    await auditEntries(request, { tenantId, action }, [expected]);
+  }
 
   await auditEntries(request, { actorId: viewerId, action: "tenant.settings.update" }, [
     (entry) => entry.outcome === "DENIED" && entry.errorCode === "AUTH_FORBIDDEN",

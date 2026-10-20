@@ -301,8 +301,12 @@ Deliver:
 
 Acceptance:
 - [x] The demo flow passes in CI against the real API.
+      Evidence: `admin-demo.spec.ts` (with the audit trail), `admin-platform.spec.ts`, CI job `e2e`.
 - [x] Every screen works at tablet and desktop widths (screenshots).
+      Evidence: `support/screenshots.ts` (`shoot`), the CI artifact `screenshots`.
 - [x] No control is shown that the capabilities don't allow; the server still refuses when called directly (test).
+      Evidence: `admin-members.spec.ts`, `admin-demo.spec.ts` (viewer), `admin-shell.spec.ts` (registrar),
+      `admin-invitation.spec.ts` (owner on a platform endpoint), Vitest capability tests.
 
 ## Carried over from S02 (slice review 2026-10-19)
 

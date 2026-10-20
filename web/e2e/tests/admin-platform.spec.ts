@@ -20,8 +20,10 @@ async function change(page: Page, label: string, announced: string, reason?: str
 }
 
 test("the platform administrator creates a tenant and takes it through its lifecycle", async ({ page }) => {
-  const slug = `entebbe-netball-${run}`;
-  const name = `Entebbe Netball Circle ${run}`;
+  // The suspended list is ordered by slug, 25 a page, and a kept local database gathers other runs' suspended tenants:
+  // a slug sorting first stays on the first page.
+  const slug = `abaana-netball-${run}`;
+  const name = `Abaana Netball Circle ${run}`;
   await signIn(page, platformAdmin.email, platformAdmin.password);
   await expect(page).toHaveURL("/platform");
   await open(page, "/platform/tenants");
@@ -65,6 +67,7 @@ test("the platform administrator creates a tenant and takes it through its lifec
 
   // Unarchived, it is suspended until restored, and can be invited to again.
   await change(page, "Unarchive", "Unarchived: the tenant is suspended until it is restored.", "Association re-formed");
-  await expect(page.getByRole("button", { name: "Restore", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Invite an owner" })).toBeVisible();
+  // Restored, it leaves no suspended tenant behind for later runs.
+  await change(page, "Restore", "Restored.");
 });
