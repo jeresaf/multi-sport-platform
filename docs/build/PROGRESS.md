@@ -7,17 +7,14 @@ at the start of every review.
 
 - **Current slice:** S03 — Identity and access (docs/build/slices/S03-identity-access.md, rewritten by the S02 slice
   review). S00, S01 and S02 are done
-- **Current task:** S03-T6b1 — Admin web: shadcn/ui, API client wrapper, rewrites, error display, signed-out pages
-  (sign in, forgot and reset password, accept invitation) — in review (#56)
-- **Next:** S03-T6b2 — shell, guards, navigation, tenant switcher, user menu, 401/403/404; then S03-T6c — members,
-  settings, platform console, e2e
+- **Current task:** S03-T6b2 — Admin shell: guards, capabilities-filtered navigation, tenant switcher, user menu,
+  `/t/{tenantSlug}` and `/platform` layouts, 401/403/404, screenshots — in progress
+- **Next:** S03-T6c — members, settings, platform console, e2e
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S03-T6b2 — Shell: guards, capabilities-filtered nav, tenant switcher, user menu, `/t/{tenantSlug}` and `/platform`
-   layouts, 401/403/404, screenshots
-2. S03-T6c — Members & roles, organisation settings, platform console, Playwright demo flow and screenshots
+1. S03-T6c — Members & roles, organisation settings, platform console, Playwright demo flow and screenshots
 
 ## Log
 
@@ -202,6 +199,10 @@ at the start of every review.
   user menu, 401/403/404, screenshots). Reset and invitation tokens stay in the link's query string (#44 M3): their pages
   send `Referrer-Policy: no-referrer`, remove the token from the URL after reading it and load nothing from other
   origins.
+  T6b2 (plan 2026-10-20, owner took the defaults): `/` opens the last-used workspace, else the first active tenant,
+  else the platform console; navigation entries whose screens come later stay visible and open a "not available yet"
+  page; a suspended or archived tenant opens a blocked page from the switcher (status and reason read by whoever holds
+  `tenant.access.read`); the branch is the session's `claude/…` branch, not `s03/t6b2-…`.
 - **S03-T5 (owner, plan 2026-10-20):** two PRs, T5a (capabilities) and T5b (matrix test, Q20). `tenant.capabilities.read`
   is held by every role assignable tenant-wide, not `TEAM_MANAGER` (spec: "in every tenant role"; a team-scoped role
   can't be granted an action without a resource before S06). The fake chain test is `CONTEST → COMPETITION`: no
