@@ -46,6 +46,10 @@ public static class TableAccessPolicies
         ["tenancy.tenant_domains"] = TableAccess.ReadWrite,
         ["tenancy.tenant_settings"] = TableAccess.ReadWrite,
 
+        // Plans (S04-T1b): configuration data, global, written only by the CONFIGURATION seeder as the owner.
+        ["tenancy.plans"] = TableAccess.ReadOnly,
+        ["tenancy.plan_entitlements"] = TableAccess.ReadOnly,
+
         // Identity (S03-T1): global users with Identity's satellite tables, platform roles (revoked rows are kept), and the
         // data protection key ring (the repository only inserts).
         ["identity.users"] = TableAccess.ReadWrite,

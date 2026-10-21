@@ -10,6 +10,7 @@ using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Persistence.Messaging;
 using SportsPlatform.BuildingBlocks.Persistence.Seeding;
 using SportsPlatform.Modules.Platform;
+using SportsPlatform.Modules.Tenancy;
 using Testcontainers.PostgreSql;
 
 namespace SportsPlatform.IntegrationTests.Infrastructure;
@@ -89,32 +90,36 @@ public sealed class PostgresFixture : IAsyncLifetime
             [
                 .. databases.Select(d => new Table(d.Schema, ModuleDbContextOptions.MigrationsHistoryTable)),
                 .. ReferenceTables.Select(table => new Table(PlatformModule.SchemaName, table)),
+                .. PlanTables.Select(table => new Table(TenancyModule.SchemaName, table)),
             ],
         });
 
-        // Real reference data once per run; the reset keeps it.
-        await RestoreReferenceDataAsync();
+        // Real reference and configuration data once per run; the reset keeps it.
+        await RestoreSeedDataAsync();
     }
 
     /// <summary>
     /// Platform's reference tables, seeded once when the fixture starts and kept by <see cref="ResetAsync"/>: the
     /// runtime roles can't change them, so a test that does (as the owner) restores them with
-    /// <see cref="RestoreReferenceDataAsync"/>.
+    /// <see cref="RestoreSeedDataAsync"/>.
     /// </summary>
     public static IReadOnlyList<string> ReferenceTables { get; } = ["countries", "currencies", "languages", "time_zones"];
 
+    /// <summary>Tenancy's plan tables (CONFIGURATION, S04 D18): seeded and kept like <see cref="ReferenceTables"/>.</summary>
+    public static IReadOnlyList<string> PlanTables { get; } = ["plans", "plan_entitlements"];
+
     /// <summary>
-    /// Resets, then seeds the real reference data again (the reset empties <c>seed_runs</c>, so every REFERENCE seeder
-    /// runs): after a test changed reference data or dropped the schemas.
+    /// Resets, then seeds the real reference and configuration data again (the reset empties <c>seed_runs</c>, so every
+    /// REFERENCE and CONFIGURATION seeder runs): after a test changed that data or dropped the schemas.
     /// </summary>
-    public async Task RestoreReferenceDataAsync()
+    public async Task RestoreSeedDataAsync()
     {
         await ResetAsync();
         var report = await App.Services.GetRequiredService<SeedRunner>()
-            .RunAsync(new SeedRequest(SeedCategory.Reference), TestContext.Current.CancellationToken);
+            .RunAsync(new SeedRequest(SeedCategory.Configuration), TestContext.Current.CancellationToken);
         if (report.IsRefused)
         {
-            throw new InvalidOperationException($"Reference data not restored: {report.Refusal}");
+            throw new InvalidOperationException($"Reference and configuration data not restored: {report.Refusal}");
         }
 
         await ResetAsync();

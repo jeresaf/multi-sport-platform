@@ -20,6 +20,7 @@ admin endpoint requires one of these; the code is stable and is what roles grant
 | `membership.remove` | Identity | TENANT | TENANT | REQUIRED_WITH_REASON | — | no | no | no | S03 | Remove a member, with a reason (final; rejoining needs a new invitation). Only an owner removes an owner; never the last one. |
 | `membership.restore` | Identity | TENANT | TENANT | REQUIRED | — | no | no | no | S03 | Restore a suspended member with the roles they held. Only an owner restores an owner. |
 | `membership.suspend` | Identity | TENANT | TENANT | REQUIRED_WITH_REASON | — | no | no | no | S03 | Suspend a member, with a reason: they lose access to the tenant and keep their roles until restored. Only an owner suspends an owner; never the last one. |
+| `plan.read` | Tenancy | PLATFORM | — | REQUIRED | — | no | no | no | S04 | View the plans and each entitlement's value on them. |
 | `platform.admin.create` | Identity | PLATFORM | — | REQUIRED | — | no | no | no | S03 | Create a platform administrator: a new user with PLATFORM_ADMIN (CLI create-platform-admin only; no endpoint). |
 | `platform.audit.read` | Platform | PLATFORM | — | REQUIRED | — | no | no | no | S01 | View audit entries of every tenant. |
 | `platform.capabilities.read` | Identity | PLATFORM | — | NONE | — | no | no | no | S03 | List the platform actions the signed-in user may perform. |

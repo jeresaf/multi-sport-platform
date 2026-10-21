@@ -240,6 +240,113 @@ namespace SportsPlatform.Modules.Tenancy.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("SportsPlatform.Modules.Tenancy.Domain.Plans.Plan", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("code");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<int>("Rank")
+                        .HasColumnType("integer")
+                        .HasColumnName("rank");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_plans");
+
+                    b.HasIndex("Code")
+                        .IsUnique()
+                        .HasDatabaseName("ix_plans_code");
+
+                    b.ToTable("plans", "tenancy", t =>
+                        {
+                            t.HasCheckConstraint("ck_plans_code", "code ~ '^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$'");
+
+                            t.HasCheckConstraint("ck_plans_rank", "rank >= 1");
+                        });
+                });
+
+            modelBuilder.Entity("SportsPlatform.Modules.Tenancy.Domain.Plans.PlanEntitlement", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("EntitlementCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("entitlement_code");
+
+                    b.Property<Guid>("PlanId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("plan_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("value");
+
+                    b.HasKey("Id")
+                        .HasName("pk_plan_entitlements");
+
+                    b.HasIndex("PlanId", "EntitlementCode")
+                        .IsUnique()
+                        .HasDatabaseName("ix_plan_entitlements_plan_id_entitlement_code");
+
+                    b.ToTable("plan_entitlements", "tenancy", t =>
+                        {
+                            t.HasCheckConstraint("ck_plan_entitlements_entitlement_code", "entitlement_code ~ '^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$'");
+                        });
+                });
+
             modelBuilder.Entity("SportsPlatform.Modules.Tenancy.Domain.Settings.TenantSettings", b =>
                 {
                     b.Property<Guid>("Id")
@@ -475,6 +582,16 @@ namespace SportsPlatform.Modules.Tenancy.Infrastructure.Migrations
                         .HasConstraintName("fk_tenant_domains_tenants_tenant_id");
                 });
 
+            modelBuilder.Entity("SportsPlatform.Modules.Tenancy.Domain.Plans.PlanEntitlement", b =>
+                {
+                    b.HasOne("SportsPlatform.Modules.Tenancy.Domain.Plans.Plan", null)
+                        .WithMany("Entitlements")
+                        .HasForeignKey("PlanId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_plan_entitlements_plans_plan_id");
+                });
+
             modelBuilder.Entity("SportsPlatform.Modules.Tenancy.Domain.Settings.TenantSettings", b =>
                 {
                     b.HasOne("SportsPlatform.Modules.Tenancy.Domain.Tenants.Tenant", null)
@@ -493,6 +610,11 @@ namespace SportsPlatform.Modules.Tenancy.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_tenant_status_history_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("SportsPlatform.Modules.Tenancy.Domain.Plans.Plan", b =>
+                {
+                    b.Navigation("Entitlements");
                 });
 
             modelBuilder.Entity("SportsPlatform.Modules.Tenancy.Domain.Tenants.Tenant", b =>

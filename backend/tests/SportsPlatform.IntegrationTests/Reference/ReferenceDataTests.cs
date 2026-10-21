@@ -49,7 +49,7 @@ public sealed class ReferenceDataTests(PostgresFixture fixture) : DatabaseTest(f
         }
         finally
         {
-            await Fixture.RestoreReferenceDataAsync();
+            await Fixture.RestoreSeedDataAsync();
         }
     }
 

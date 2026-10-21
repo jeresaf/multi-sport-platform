@@ -3,9 +3,10 @@
     {
       "code": "PLATFORM_ADMIN",
       "scope": "PLATFORM",
-      "description": "Platform staff: tenants and their lifecycle, platform administrators, audit and outbox.",
+      "description": "Platform staff: tenants and their lifecycle, plans, platform administrators, audit and outbox.",
       "assignableAt": [],
       "actions": [
+        "plan.read",
         "platform.admin.create",
         "platform.audit.read",
         "platform.capabilities.read",
@@ -25,9 +26,10 @@
     {
       "code": "PLATFORM_SUPPORT",
       "scope": "PLATFORM",
-      "description": "Platform staff, read-only: tenants, audit and outbox (every tenant, audit and outbox read is audited).",
+      "description": "Platform staff, read-only: tenants, plans, audit and outbox (every tenant, plan, audit and outbox read is audited).",
       "assignableAt": [],
       "actions": [
+        "plan.read",
         "platform.audit.read",
         "platform.capabilities.read",
         "platform.outbox.read",

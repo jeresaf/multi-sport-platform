@@ -3222,6 +3222,54 @@
         }
       }
     },
+    "/api/platform/v1/plans": {
+      "get": {
+        "tags": [
+          "Plans"
+        ],
+        "summary": "List plans",
+        "description": "The active plans in rank order (STANDARD, then PRO), each with every entitlement's definition and value, ordered by entitlement code. A value is `{ enabled }`, `{ limit }` (null = unlimited) or `{ level }` (null = none). Plans change only through a reviewed seed (no editing). Every read is audited.",
+        "operationId": "ListPlans",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListPlansResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_FORBIDDEN"
+            ]
+          }
+        }
+      }
+    },
     "/api/platform/v1/me/capabilities": {
       "get": {
         "tags": [
@@ -4325,6 +4373,65 @@
         },
         "description": "An ISO 4217 currency: alphabetic `code` (`UGX`), numeric code, English name, minor units (UGX 0)."
       },
+      "EntitlementType": {
+        "enum": [
+          "BOOLEAN",
+          "QUOTA",
+          "LEVEL"
+        ],
+        "description": "What kind of value an entitlement has (docs/architecture/authorization.md, \"Entitlements\")."
+      },
+      "EntitlementValue": {
+        "type": "object",
+        "oneOf": [
+          {
+            "required": [
+              "enabled"
+            ],
+            "type": "object",
+            "properties": {
+              "enabled": {
+                "type": "boolean",
+                "description": "BOOLEAN: on or off."
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "required": [
+              "limit"
+            ],
+            "type": "object",
+            "properties": {
+              "limit": {
+                "type": [
+                  "null",
+                  "integer"
+                ],
+                "description": "QUOTA: the most items; null = unlimited."
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "required": [
+              "level"
+            ],
+            "type": "object",
+            "properties": {
+              "level": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "description": "LEVEL: a level code; null = none."
+              }
+            },
+            "additionalProperties": false
+          }
+        ],
+        "description": "An entitlement's value, by its type: `{ enabled }` (BOOLEAN), `{ limit }` (QUOTA; null = unlimited) or `{ level }` (LEVEL; null = none)."
+      },
       "ForgotPasswordRequest": {
         "required": [
           "email"
@@ -4584,6 +4691,20 @@
           },
           "page": {
             "$ref": "#/components/schemas/PageInfo"
+          }
+        }
+      },
+      "ListPlansResponse": {
+        "required": [
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanResponse"
+            }
           }
         }
       },
@@ -4992,6 +5113,90 @@
           }
         },
         "description": "The `page` member of a cursor-paginated list (docs/architecture/api-conventions.md): pass\nNextCursor as `cursor` to get the next page; it is null on the last page."
+      },
+      "PlanEntitlementResponse": {
+        "required": [
+          "code",
+          "name",
+          "description",
+          "type",
+          "unit",
+          "levels",
+          "default",
+          "value",
+          "enforcedBy"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/EntitlementType"
+          },
+          "unit": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "levels": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "default": {
+            "$ref": "#/components/schemas/EntitlementValue"
+          },
+          "value": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/EntitlementValue"
+              }
+            ]
+          },
+          "enforcedBy": {
+            "type": "string"
+          }
+        },
+        "description": "An entitlement's definition and its Value on the plan: null when the stored plan has no value for\nit yet (the code declares an entitlement that `seed --category CONFIGURATION` hasn't written)."
+      },
+      "PlanResponse": {
+        "required": [
+          "code",
+          "name",
+          "rank",
+          "entitlements"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "rank": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "entitlements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanEntitlementResponse"
+            }
+          }
+        }
       },
       "ProblemDetails": {
         "required": [
@@ -5506,6 +5711,9 @@
     },
     {
       "name": "Tenants"
+    },
+    {
+      "name": "Plans"
     },
     {
       "name": "Account"

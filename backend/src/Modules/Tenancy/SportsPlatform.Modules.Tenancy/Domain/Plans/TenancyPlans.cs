@@ -47,7 +47,7 @@ public static class TenancyPlans
         (TenancyEntitlements.PublicNotifications, Flag(true)),
         (TenancyEntitlements.ApiAccess, Flag(true))));
 
-    /// <summary>In rank order.</summary>
+    /// <summary>In rank order. Code reads them through <see cref="IPlanCatalogue"/>, which tests can replace.</summary>
     public static IReadOnlyList<PlanDefinition> All { get; } = [Standard, Pro];
 
     private static Dictionary<string, EntitlementValue> Values(params (EntitlementDefinition Entitlement, EntitlementValue Value)[] values) =>

@@ -9,9 +9,12 @@ using SportsPlatform.BuildingBlocks.Persistence.Seeding;
 using SportsPlatform.Modules.Tenancy.Contracts.Access;
 using SportsPlatform.Modules.Tenancy.Contracts.Tenants;
 using SportsPlatform.Modules.Tenancy.Domain.Domains;
+using SportsPlatform.Modules.Tenancy.Domain.Plans;
 using SportsPlatform.Modules.Tenancy.Domain.Tenants;
 using SportsPlatform.Modules.Tenancy.Features.Access.GetTenantAccess;
 using SportsPlatform.Modules.Tenancy.Features.Domains;
+using SportsPlatform.Modules.Tenancy.Features.Plans;
+using SportsPlatform.Modules.Tenancy.Features.Plans.ListPlans;
 using SportsPlatform.Modules.Tenancy.Features.Settings;
 using SportsPlatform.Modules.Tenancy.Features.Settings.GetTenantSettings;
 using SportsPlatform.Modules.Tenancy.Features.Settings.UpdateTenantSettings;
@@ -24,13 +27,14 @@ using SportsPlatform.Modules.Tenancy.Features.Tenants.ListTenants;
 using SportsPlatform.Modules.Tenancy.Features.Tenants.PublishTenantEvents;
 using SportsPlatform.Modules.Tenancy.Features.Tenants.UpdateTenantProfile;
 using SportsPlatform.Modules.Tenancy.Infrastructure;
+using SportsPlatform.Modules.Tenancy.Seed.Configuration;
 using SportsPlatform.Modules.Tenancy.Seed.Demo;
 
 namespace SportsPlatform.Modules.Tenancy;
 
 /// <summary>
-/// Tenancy &amp; Commercial: tenants and their lifecycle, domains, settings and the public site (S02); plans and entitlements follow
-/// (docs/architecture/modules.md).
+/// Tenancy &amp; Commercial: tenants and their lifecycle, domains, settings and the public site (S02); entitlements and plans
+/// (S04); subscriptions follow (docs/architecture/modules.md).
 /// </summary>
 public sealed class TenancyModule : IModule
 {
@@ -78,6 +82,9 @@ public sealed class TenancyModule : IModule
         services.AddScoped<UpdateTenantSettingsHandler>();
         services.AddScoped<IValidator<UpdateTenantSettingsRequest>, UpdateTenantSettingsRequestValidator>();
         services.AddSingleton<IValidator<ChangeTenantStatusWithReasonRequest>, ChangeTenantStatusWithReasonRequestValidator>();
+        services.AddSingleton<IPlanCatalogue>(new PlanCatalogue(TenancyPlans.All));
+        services.AddScoped<ListPlansHandler>();
+        services.AddSeeder<PlanSeeder>();
         services.AddSeeder<DemoTenantSeeder>();
         services.AddDomainEventSubscriber<TenantCreatedDomainEvent, PublishTenantCreated>();
         services.AddDomainEventSubscriber<TenantStatusChangedDomainEvent, PublishTenantStatusChanged>();
@@ -97,5 +104,6 @@ public sealed class TenancyModule : IModule
         GetTenantSettingsEndpoint.Map(settings);
         UpdateTenantSettingsEndpoint.Map(settings);
         GetTenantAccessEndpoint.Map(groups.Admin);
+        ListPlansEndpoint.Map(PlanEndpoints.Group(groups.Platform));
     }
 }

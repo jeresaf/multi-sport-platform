@@ -25,6 +25,7 @@ public sealed class TenantActionAuthorizationTests(PostgresFixture fixture) : Da
         GetSettings,
         UpdateSettings,
         GetAccess,
+        ListPlans,
     }
 
     private static readonly ActionDefinition[] _actions =
@@ -32,6 +33,7 @@ public sealed class TenantActionAuthorizationTests(PostgresFixture fixture) : Da
         TenancyActions.TenantCreate, TenancyActions.TenantRead, TenancyActions.TenantUpdate, TenancyActions.TenantActivate,
         TenancyActions.TenantSuspend, TenancyActions.TenantRestore, TenancyActions.TenantArchive, TenancyActions.TenantUnarchive,
         TenancyActions.TenantSettingsRead, TenancyActions.TenantSettingsUpdate, TenancyActions.TenantAccessRead,
+        TenancyActions.PlanRead,
     ];
 
     [Fact]
@@ -52,6 +54,7 @@ public sealed class TenantActionAuthorizationTests(PostgresFixture fixture) : Da
     [InlineData(Endpoint.GetSettings, "tenant.settings.read", HttpStatusCode.OK)]
     [InlineData(Endpoint.UpdateSettings, "tenant.settings.update", HttpStatusCode.OK)]
     [InlineData(Endpoint.GetAccess, "tenant.access.read", HttpStatusCode.OK)]
+    [InlineData(Endpoint.ListPlans, "plan.read", HttpStatusCode.OK)]
     public async Task Allowed(Endpoint endpoint, string action, HttpStatusCode expected)
     {
         var tenantId = await TenantTestData.SaveTenantAsync(App.Services, "elssc", StatusFor(endpoint), Ct);
@@ -76,6 +79,7 @@ public sealed class TenantActionAuthorizationTests(PostgresFixture fixture) : Da
     [InlineData(Endpoint.GetSettings, "tenant.settings.update")]
     [InlineData(Endpoint.UpdateSettings, "tenant.settings.read")]
     [InlineData(Endpoint.GetAccess, "tenant.settings.read")]
+    [InlineData(Endpoint.ListPlans, "tenant.read")]
     public async Task Denied_without_its_own_action(Endpoint endpoint, string otherAction)
     {
         var status = StatusFor(endpoint);
@@ -123,6 +127,7 @@ public sealed class TenantActionAuthorizationTests(PostgresFixture fixture) : Da
             Endpoint.Activate => await client.PostAsync(new Uri($"{tenant}/activate", UriKind.Relative), null, Ct),
             Endpoint.Restore => await client.PostAsync(new Uri($"{tenant}/restore", UriKind.Relative), null, Ct),
             Endpoint.GetAccess => await client.GetAsync(new Uri("/api/admin/v1/tenant/access", UriKind.Relative), Ct),
+            Endpoint.ListPlans => await client.GetAsync(new Uri("/api/platform/v1/plans", UriKind.Relative), Ct),
             Endpoint.GetSettings => await client.GetAsync(new Uri(TenantSettingsTests.SettingsPath, UriKind.Relative), Ct),
             Endpoint.UpdateSettings => await client.PatchAsJsonAsync(
                 new Uri(TenantSettingsTests.SettingsPath, UriKind.Relative), new { startingSoonMinutes = 45 }, Ct),
