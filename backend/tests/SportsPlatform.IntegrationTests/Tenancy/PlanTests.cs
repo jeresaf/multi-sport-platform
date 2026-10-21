@@ -48,8 +48,10 @@ public sealed class PlanTests(PostgresFixture fixture) : DatabaseTest(fixture)
     [Fact]
     public async Task The_runtime_role_cannot_change_a_plan()
     {
-        await Should.ThrowAsync<Npgsql.PostgresException>(() =>
+        var refused = await Should.ThrowAsync<Npgsql.PostgresException>(() =>
             ExecuteAsync(DatabaseRoles.App, "UPDATE tenancy.plan_entitlements SET value = '{\"limit\":null}'"));
+
+        refused.SqlState.ShouldBe(Npgsql.PostgresErrorCodes.InsufficientPrivilege);
     }
 
     [Fact]
@@ -99,6 +101,75 @@ public sealed class PlanTests(PostgresFixture fixture) : DatabaseTest(fixture)
         pro["MAX_STAFF_USERS"].ShouldBe("""{"limit":1000}""");
         pro["CUSTOM_DOMAIN"].ShouldBe("""{"enabled":true}""");
         pro["BRANDING"].ShouldBe("""{"level":"FULL"}""");
+    }
+
+    [Fact]
+    public async Task An_inactive_plan_is_not_listed()
+    {
+        try
+        {
+            await ExecuteAsync(DatabaseRoles.Migrator, "UPDATE tenancy.plans SET is_active = false WHERE code = 'PRO'");
+
+            (await ListAsync()).Select(plan => plan.Code).ShouldBe(["STANDARD"]);
+        }
+        finally
+        {
+            await Fixture.RestoreSeedDataAsync();
+        }
+    }
+
+    // A declared entitlement the seed hasn't written yet has no value, not a made-up default (AR-30; PROGRESS: T4).
+    [Fact]
+    public async Task A_declared_entitlement_without_a_stored_value_is_listed_with_a_null_value()
+    {
+        try
+        {
+            await ExecuteAsync(
+                DatabaseRoles.Migrator,
+                "DELETE FROM tenancy.plan_entitlements WHERE entitlement_code = 'CUSTOM_DOMAIN' " +
+                "AND plan_id = (SELECT id FROM tenancy.plans WHERE code = 'PRO')");
+
+            var plans = await ListAsync();
+
+            plans.Single(p => p.Code == "PRO").Entitlements.Single(e => e.Code == "CUSTOM_DOMAIN").Value.ShouldBeNull();
+            plans.Single(p => p.Code == "STANDARD").Entitlements.Single(e => e.Code == "CUSTOM_DOMAIN").Value
+                .ShouldBe(TenancyPlans.Standard.Values["CUSTOM_DOMAIN"]);
+        }
+        finally
+        {
+            await Fixture.RestoreSeedDataAsync();
+        }
+    }
+
+    // Seeders never delete: a value kept for an entitlement no longer declared is stored but never listed.
+    [Fact]
+    public async Task A_stored_value_for_an_entitlement_not_declared_is_not_listed()
+    {
+        const string retired = "RETIRED_FEATURE";
+        try
+        {
+            await ExecuteAsync(
+                DatabaseRoles.Migrator,
+                "INSERT INTO tenancy.plan_entitlements (id, plan_id, entitlement_code, value, created_at, created_by, updated_at, updated_by) " +
+                $"SELECT gen_random_uuid(), id, '{retired}', '{{\"enabled\":true}}', now(), '{Guid.Empty}', now(), '{Guid.Empty}' " +
+                "FROM tenancy.plans WHERE code = 'PRO'");
+
+            var plans = await ListAsync();
+
+            plans.ShouldAllBe(plan => plan.Entitlements.All(e => e.Code != retired));
+        }
+        finally
+        {
+            await ExecuteAsync(DatabaseRoles.Migrator, $"DELETE FROM tenancy.plan_entitlements WHERE entitlement_code = '{retired}'");
+        }
+    }
+
+    private async Task<IReadOnlyList<PlanResponse>> ListAsync()
+    {
+        using var client = CreateClient();
+        using var response = await client.GetAsync(new Uri(_plansPath, UriKind.Relative), Ct);
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        return (await response.Content.ReadFromJsonAsync<ListPlansResponse>(Json, Ct)).ShouldNotBeNull().Items;
     }
 
     /// <summary>A platform staff member allowed this endpoint's action (the base class resets it before each test).</summary>
