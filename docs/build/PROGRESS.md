@@ -261,6 +261,10 @@ items are with S04's tasks or their own trigger. Each item names where it gets d
   also see UTC. (S04-T2 adds the zone to `/tenant/access`, D15; T4's blocked page uses it)
 - Advisory lock keys follow `<schema>.<purpose>:<id>` (only `MemberChanges` today, S03-T4b1 pre-review): write the
   convention into data-conventions.md with its second user, the subscription lock (S04-T2, D3, D12).
+- `GET /plans` sends `value: null` for a declared entitlement the CONFIGURATION seed hasn't written yet (S04-T1b
+  pre-review): the console's Plans screen shows it as "not seeded", never as unlimited or none. (S04-T4)
+- `export-catalogues` reads the plans from `TenancyPlans.All`, not `IPlanCatalogue` (S04-T1b pre-review): the same
+  list today; when T3 registers D20's test-only entitlement and plans, keep the export on the declared ones. (S04-T3)
 - `DuplicateEntitlements` and `DuplicateActions` in the integration test assembly break any catalogue built from a
   module in that assembly (#63 R9): T3 builds D20's test catalogue explicitly (`DeclaredEntitlements(definitions)`), not
   by scanning the test assembly. (S04-T3)
