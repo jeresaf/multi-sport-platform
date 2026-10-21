@@ -9,8 +9,8 @@ at the start of every review.
   rewritten by the S03 slice review). S00, S01, S02 and S03 are done
 - **Current task:** S04-T1 — Entitlement catalogue and plans — not started; next is `/next-task`
 - **Next:** S04-T2 — Subscriptions and access mode
-- **Blocked on:** the owner's review of the S03 slice review (S04 decisions D1–D20; Q23–Q26 are needed in S04's
-  plans)
+- **Blocked on:** the owner's review of the S03 slice review PR (S04 decisions D1–D20). Q21–Q26: the owner took the
+  defaults (2026-10-21, open-questions.md "Answered")
 
 ## Next up
 
@@ -226,6 +226,9 @@ at the start of every review.
   account's `invitation.accept` is likewise audited by `ANONYMOUS` (the account doesn't exist yet), with the user in
   its metadata, so the e2e checks the metadata for it. The tenant detail has no profile editing
   (`tenant.update`).
+  T6c2a (owner, 2026-10-21, "the defaults on all my questions"): the create-tenant time-zone picker offers the zones
+  of no country (Etc/UTC) with any country; the password-reset e2e test keeps the accepted risk of the send-before-save
+  race until the backend saves the token before sending (#58 re-review N2, tech debt).
 - **S03-T5 (owner, plan 2026-10-20):** two PRs, T5a (capabilities) and T5b (matrix test, Q20). `tenant.capabilities.read`
   is held by every role assignable tenant-wide, not `TEAM_MANAGER` (spec: "in every tenant role"; a team-scoped role
   can't be granted an action without a resource before S06). The fake chain test is `CONTEST → COMPETITION`: no
