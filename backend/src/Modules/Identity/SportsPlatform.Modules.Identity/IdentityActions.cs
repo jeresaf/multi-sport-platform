@@ -114,7 +114,8 @@ public static class IdentityActions
         ActionScope.Tenant,
         AuditRequirement.Required,
         since: "S03",
-        scopableBy: [AssignmentScope.Tenant]);
+        scopableBy: [AssignmentScope.Tenant],
+        entitlement: "MAX_STAFF_USERS"); // Every invitation reserves a seat (S04 D13); the handler counts from S04-T3.
 
     public static readonly ActionDefinition InvitationRevoke = new(
         "invitation.revoke",

@@ -16,12 +16,13 @@ using SportsPlatform.Host.Catalogues;
 using SportsPlatform.Host.Modules;
 using SportsPlatform.Host.OpenApi;
 using SportsPlatform.Modules.Identity.Domain.Roles;
+using SportsPlatform.Modules.Tenancy.Domain.Plans;
 
 (string Name, string Description, Func<string[], Task<int>>? Run)[] commands =
 [
     ("migrate", "Apply database migrations for every module (as sp_migrator)", MigrateAsync),
     ("seed", "Run seeders for a category and its prerequisites: " + SeedRequest.Usage, SeedAsync),
-    ("export-catalogues", "Write the action, role, error and event catalogues to docs/generated and contracts", ExportCataloguesAsync),
+    ("export-catalogues", "Write the action, entitlement, role, error and event catalogues to docs/generated and contracts", ExportCataloguesAsync),
     ("export-openapi", "Write contracts/openapi.json", ExportOpenApiAsync),
     ("create-platform-admin", "Create a platform administrator: " + CreatePlatformAdminCommand.Usage, CreatePlatformAdminAsync),
 ];
@@ -149,6 +150,10 @@ static async Task<int> ExportCataloguesAsync(string[] args)
     var actions = ActionCatalogue.Build(ModuleRegistry.All);
     await WriteGeneratedAsync(Path.Combine(root, "docs", "generated", "actions.md"), ActionCatalogue.ToMarkdown(actions));
     await WriteGeneratedAsync(Path.Combine(root, "contracts", "actions.json"), ActionCatalogue.ToJson(actions));
+
+    var entitlements = EntitlementCatalogue.Build(ModuleRegistry.All);
+    await WriteGeneratedAsync(Path.Combine(root, "docs", "generated", "entitlements.md"), EntitlementCatalogue.ToMarkdown(entitlements, TenancyPlans.All, actions));
+    await WriteGeneratedAsync(Path.Combine(root, "contracts", "entitlements.json"), EntitlementCatalogue.ToJson(entitlements, TenancyPlans.All, actions));
 
     var errors = ErrorCatalogue.Build(ModuleRegistry.All);
     await WriteGeneratedAsync(Path.Combine(root, "docs", "generated", "errors.md"), ErrorCatalogue.ToMarkdown(errors));
