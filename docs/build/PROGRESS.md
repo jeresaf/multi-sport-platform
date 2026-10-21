@@ -7,10 +7,12 @@ at the start of every review.
 
 - **Current slice:** S04 — Plans, subscriptions and entitlements (docs/build/slices/S04-plans-entitlements.md,
   rewritten by the S03 slice review). S00, S01, S02 and S03 are done
-- **Current task:** S04-T1 — Entitlement catalogue and plans — not started; next is `/next-task`
-- **Next:** S04-T2 — Subscriptions and access mode
-- **Blocked on:** the owner's review of the S03 slice review PR (S04 decisions D1–D20). Q21–Q26: the owner took the
-  defaults (2026-10-21, open-questions.md "Answered")
+- **Current task:** S04-T1 — Entitlement catalogue and plans, as two PRs (owner, plan 2026-10-21): T1a the
+  entitlement catalogue (definitions, plan values in code, startup rule, `export-catalogues`) — in progress; T1b plans
+  in the database, the `tenancy.configuration.plans` seeder and `GET /api/platform/v1/plans`
+- **Next:** S04-T1b, then S04-T2 — Subscriptions and access mode
+- **Blocked on:** nothing. The S03 slice review (#61, #62) is merged; Q21–Q26: the owner took the defaults
+  (2026-10-21, open-questions.md "Answered")
 
 ## Next up
 
