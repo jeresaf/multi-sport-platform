@@ -195,6 +195,19 @@
       "since": "S03"
     },
     {
+      "code": "plan.read",
+      "module": "Tenancy",
+      "description": "View the plans and each entitlement's value on them.",
+      "scope": "PLATFORM",
+      "scopableBy": [],
+      "audit": "REQUIRED",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "since": "S04"
+    },
+    {
       "code": "platform.admin.create",
       "module": "Identity",
       "description": "Create a platform administrator: a new user with PLATFORM_ADMIN (CLI create-platform-admin only; no endpoint).",

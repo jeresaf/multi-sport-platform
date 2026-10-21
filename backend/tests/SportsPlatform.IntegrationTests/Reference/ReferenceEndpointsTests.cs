@@ -50,7 +50,7 @@ public sealed class ReferenceEndpointsTests(PostgresFixture fixture) : DatabaseT
         }
         finally
         {
-            await Fixture.RestoreReferenceDataAsync();
+            await Fixture.RestoreSeedDataAsync();
         }
     }
 
@@ -140,7 +140,7 @@ public sealed class ReferenceEndpointsTests(PostgresFixture fixture) : DatabaseT
         }
         finally
         {
-            await Fixture.RestoreReferenceDataAsync();
+            await Fixture.RestoreSeedDataAsync();
         }
     }
 

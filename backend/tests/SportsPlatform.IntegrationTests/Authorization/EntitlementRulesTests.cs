@@ -94,6 +94,20 @@ public sealed class EntitlementRulesTests
         exception.Message.ShouldContain("Action 'membership.invite' names entitlement MAX_STAFF_USERS");
     }
 
+    // #63 R1: the rule reads the plans service, so a test can declare other plans (S04 D20).
+    [Fact]
+    public void The_Host_checks_the_plans_of_the_plan_catalogue_at_startup()
+    {
+        var withoutTeams = TenancyPlans.Pro.Values.Where(entry => entry.Key != "MAX_TEAMS").ToDictionary(StringComparer.Ordinal);
+        using var app = new HostOnlyApp().WithWebHostBuilder(builder => builder.ConfigureTestServices(services =>
+            services.AddSingleton<IPlanCatalogue>(new PlanCatalogue([TenancyPlans.Standard, new PlanDefinition("PRO", "Pro", 2, withoutTeams)]))));
+
+        var exception = Should.Throw<InvalidOperationException>(() => app.Services);
+
+        exception.Message.ShouldStartWith("Actions and plans must name declared entitlements:");
+        exception.Message.ShouldContain("Plan PRO gives entitlement MAX_TEAMS no value.");
+    }
+
     private static ActionCatalogueEntry Tenant(string code, string entitlement) =>
         new(new ActionDefinition(code, "A test action.", ActionScope.Tenant, AuditRequirement.None, "S04", [AssignmentScope.Tenant], entitlement), "Test");
 }

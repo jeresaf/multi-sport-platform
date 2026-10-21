@@ -229,9 +229,9 @@ Deliver:
   them. CLAUDE.md's `export-catalogues` line lists the new files; `seed --category CONFIGURATION` is in the commands.
 
 Acceptance:
-- [ ] The entitlement catalogue lists every entitlement with its STANDARD and PRO values and the actions that name it.
-- [ ] Seeded plan values match authorization.md's table (a test reads the table).
-- [ ] An action naming an unknown entitlement, or a platform action naming one, stops the Host at startup (test).
+- [x] The entitlement catalogue lists every entitlement with its STANDARD and PRO values and the actions that name it.
+- [x] Seeded plan values match authorization.md's table (a test reads the table).
+- [x] An action naming an unknown entitlement, or a platform action naming one, stops the Host at startup (test).
 
 ### T2 — Subscriptions and access mode
 Deliver:

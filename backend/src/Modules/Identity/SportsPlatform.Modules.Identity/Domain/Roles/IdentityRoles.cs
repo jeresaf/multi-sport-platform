@@ -47,12 +47,12 @@ public static class IdentityRoles
 
     private static readonly string[] _tenantContext = [_tenantSettingsRead, _capabilitiesRead];
 
-    private static readonly string[] _platformReads = ["platform.audit.read", "platform.capabilities.read", "platform.outbox.read", "tenant.read"];
+    private static readonly string[] _platformReads = ["plan.read", "platform.audit.read", "platform.capabilities.read", "platform.outbox.read", "tenant.read"];
 
     public static IReadOnlyList<RoleDefinition> All { get; } =
     [
         new(PlatformRoleCodes.Admin, RoleScope.Platform,
-            "Platform staff: tenants and their lifecycle, platform administrators, audit and outbox.",
+            "Platform staff: tenants and their lifecycle, plans, platform administrators, audit and outbox.",
             [
                 .. _platformReads,
                 "platform.admin.create",
@@ -67,7 +67,7 @@ public static class IdentityRoles
                 "tenant.update",
             ]),
         new(PlatformRoleCodes.Support, RoleScope.Platform,
-            "Platform staff, read-only: tenants, audit and outbox (every tenant, audit and outbox read is audited).",
+            "Platform staff, read-only: tenants, plans, audit and outbox (every tenant, plan, audit and outbox read is audited).",
             _platformReads),
 
         new(TenantOwner, RoleScope.Tenant,

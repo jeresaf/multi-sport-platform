@@ -18,6 +18,8 @@ public sealed record EntitlementCatalogueEntry(EntitlementDefinition Entitlement
 /// </summary>
 public static class EntitlementCatalogue
 {
+    private static readonly EntitlementValueJsonConverter _valueConverter = new();
+
     public static IReadOnlyList<EntitlementCatalogueEntry> Build(IEnumerable<IModule> modules)
     {
         ArgumentNullException.ThrowIfNull(modules);
@@ -166,35 +168,9 @@ public static class EntitlementCatalogue
         return Encoding.UTF8.GetString(stream.ToArray()) + "\n";
     }
 
-    // { "enabled": true } | { "limit": 120 } (null = unlimited) | { "level": "BASIC" } (null = none): typed, never a bare scalar.
-    private static void WriteValue(Utf8JsonWriter writer, EntitlementValue value)
-    {
-        writer.WriteStartObject();
-        switch (value.Type)
-        {
-            case EntitlementType.Boolean:
-                writer.WriteBoolean("enabled", value.Enabled);
-                break;
-            case EntitlementType.Quota:
-                if (value.Limit is { } limit)
-                {
-                    writer.WriteNumber("limit", limit);
-                }
-                else
-                {
-                    writer.WriteNull("limit");
-                }
-
-                break;
-            case EntitlementType.Level:
-                writer.WriteString("level", value.LevelCode);
-                break;
-            default:
-                throw new InvalidOperationException($"Unknown entitlement type {value.Type}.");
-        }
-
-        writer.WriteEndObject();
-    }
+    // The value's one JSON shape (EntitlementValueJsonConverter): typed, never a bare scalar.
+    private static void WriteValue(Utf8JsonWriter writer, EntitlementValue value) =>
+        _valueConverter.Write(writer, value, JsonSerializerOptions.Default);
 
     private static EntitlementValue? ValueOn(PlanDefinition plan, EntitlementDefinition entitlement) =>
         plan.Values.GetValueOrDefault(entitlement.Code);

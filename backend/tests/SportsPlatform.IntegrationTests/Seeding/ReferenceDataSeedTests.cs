@@ -69,7 +69,7 @@ public sealed class ReferenceDataSeedTests(PostgresFixture fixture) : DatabaseTe
         }
         finally
         {
-            await Fixture.RestoreReferenceDataAsync();
+            await Fixture.RestoreSeedDataAsync();
         }
     }
 
@@ -92,7 +92,7 @@ public sealed class ReferenceDataSeedTests(PostgresFixture fixture) : DatabaseTe
         }
         finally
         {
-            await Fixture.RestoreReferenceDataAsync();
+            await Fixture.RestoreSeedDataAsync();
         }
 
         (await CountriesAsync("KE", "UG")).ShouldBe([("KE", "Kenya", true), ("UG", "Uganda", true)]);
@@ -121,7 +121,7 @@ public sealed class ReferenceDataSeedTests(PostgresFixture fixture) : DatabaseTe
         }
         finally
         {
-            await Fixture.RestoreReferenceDataAsync();
+            await Fixture.RestoreSeedDataAsync();
         }
     }
 

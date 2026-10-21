@@ -63,7 +63,7 @@ public static class EntitlementRules
     {
         ArgumentNullException.ThrowIfNull(app);
 
-        var violations = Validate(actions, app.Services.GetRequiredService<IEntitlementCatalogue>(), TenancyPlans.All);
+        var violations = Validate(actions, app.Services.GetRequiredService<IEntitlementCatalogue>(), app.Services.GetRequiredService<IPlanCatalogue>().All);
         if (violations.Count > 0)
         {
             throw new InvalidOperationException("Actions and plans must name declared entitlements:\n" + string.Join("\n", violations));

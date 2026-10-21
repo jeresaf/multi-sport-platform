@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
+using SportsPlatform.BuildingBlocks.Entitlements;
 using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Results;
 using SportsPlatform.BuildingBlocks.Tenancy;
+using SportsPlatform.Modules.Tenancy.Infrastructure.Configurations;
 
 namespace SportsPlatform.Modules.Tenancy.Infrastructure;
 
@@ -13,4 +15,13 @@ public sealed class TenancyDbContext(DbContextOptions<TenancyDbContext> options,
 
     protected override void ConfigureModel(ModelBuilder modelBuilder) =>
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(TenancyDbContext).Assembly);
+
+    // A value, not an entity: without this EF would map EntitlementValue as a related table.
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        ArgumentNullException.ThrowIfNull(configurationBuilder);
+        configurationBuilder.Properties<EntitlementValue>()
+            .HaveConversion<EntitlementValueConverter>()
+            .HaveColumnType(EntitlementValueConverter.ColumnType);
+    }
 }

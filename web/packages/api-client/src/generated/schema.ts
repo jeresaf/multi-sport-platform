@@ -600,6 +600,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/platform/v1/plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List plans
+         * @description The active plans in rank order (then by code), each with every entitlement's definition and value, ordered by entitlement code. A value is `{ enabled }`, `{ limit }` (null = unlimited) or `{ level }` (null = none); `value` itself is null when the configuration seed hasn't written that entitlement yet (not "unlimited"). Plans change only through a reviewed seed (no editing). Every read is audited.
+         */
+        get: operations["ListPlans"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/platform/v1/me/capabilities": {
         parameters: {
             query?: never;
@@ -925,6 +945,22 @@ export interface components {
             /** Format: int32 */
             minorUnits: number;
         };
+        /**
+         * @description What kind of value an entitlement has (docs/architecture/authorization.md, "Entitlements").
+         * @enum {unknown}
+         */
+        EntitlementType: "BOOLEAN" | "QUOTA" | "LEVEL";
+        /** @description An entitlement's value, by its type: `{ enabled }` (BOOLEAN), `{ limit }` (QUOTA; null = unlimited) or `{ level }` (LEVEL; null = none). */
+        EntitlementValue: {
+            /** @description BOOLEAN: on or off. */
+            enabled: boolean;
+        } | {
+            /** @description QUOTA: the most items; null = unlimited. */
+            limit: null | number;
+        } | {
+            /** @description LEVEL: a level code; null = none. */
+            level: null | string;
+        };
         /** @description Ask for a password reset email. */
         ForgotPasswordRequest: {
             email: null | string;
@@ -998,6 +1034,9 @@ export interface components {
         ListOutboxMessagesResponse: {
             items: components["schemas"]["OutboxMessageResponse"][];
             page: components["schemas"]["PageInfo"];
+        };
+        ListPlansResponse: {
+            items: components["schemas"]["PlanResponse"][];
         };
         ListTenantsResponse: {
             items: components["schemas"]["TenantListItem"][];
@@ -1139,6 +1178,28 @@ export interface components {
         PageInfo: {
             nextCursor: null | string;
             hasMore: boolean;
+        };
+        /**
+         * @description An entitlement's definition and its Value on the plan: null when the stored plan has no value for
+         *     it yet (the code declares an entitlement that `seed --category CONFIGURATION` hasn't written).
+         */
+        PlanEntitlementResponse: {
+            code: string;
+            name: string;
+            description: string;
+            type: components["schemas"]["EntitlementType"];
+            unit: null | string;
+            levels: string[];
+            default: components["schemas"]["EntitlementValue"];
+            value: null | components["schemas"]["EntitlementValue"];
+            enforcedBy: string;
+        };
+        PlanResponse: {
+            code: string;
+            name: string;
+            /** Format: int32 */
+            rank: number;
+            entitlements: components["schemas"]["PlanEntitlementResponse"][];
         };
         ProblemDetails: {
             type?: null | string;
@@ -3265,6 +3326,44 @@ export interface operations {
             };
             /** @description Problem Details; `code`: `TENANT_CONCURRENCY_CONFLICT`, `TENANT_INVALID_TRANSITION` */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListPlans: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListPlansResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_FORBIDDEN` */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -85,4 +85,11 @@ public static class TenancyActions
         since: "S03",
         scopableBy: [AssignmentScope.Tenant],
         availableWhenBlocked: true);
+
+    public static readonly ActionDefinition PlanRead = new(
+        "plan.read",
+        "View the plans and each entitlement's value on them.",
+        ActionScope.Platform,
+        AuditRequirement.Required,
+        since: "S04");
 }

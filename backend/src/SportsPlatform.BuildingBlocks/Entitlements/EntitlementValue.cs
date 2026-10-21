@@ -1,11 +1,13 @@
 using System.Globalization;
+using System.Text.Json.Serialization;
 
 namespace SportsPlatform.BuildingBlocks.Entitlements;
 
 /// <summary>
 /// The value of one entitlement, from a plan, a tenant override or the default: on or off for a boolean, a limit (or
-/// unlimited) for a quota, a level (or none) for a level entitlement.
+/// unlimited) for a quota, a level (or none) for a level entitlement. Its JSON: <see cref="EntitlementValueJsonConverter"/>.
 /// </summary>
+[JsonConverter(typeof(EntitlementValueJsonConverter))]
 public sealed record EntitlementValue
 {
     private EntitlementValue(EntitlementType type, bool enabled, int? limit, string? levelCode)

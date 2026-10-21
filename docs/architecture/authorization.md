@@ -183,7 +183,10 @@ invalidated on plan/override/subscription change.
 ### Entitlements and plan values (adopted 2026-10-17 — open question Q2)
 
 Plain-language plan descriptions, indicative prices and the research behind them: docs/product/pricing-and-plans.md.
-This table is the source of truth for the values seeded in S04.
+This table is the source of truth for the values seeded in S04. As built (S04-T1): Tenancy declares the values in
+code (`TenancyPlans`); `tenancy.configuration.plans` seeds them into `tenancy.plans` and `tenancy.plan_entitlements`;
+tests compare this table with the code and the seeded rows with the code. Platform staff read them at
+`GET /api/platform/v1/plans` (`plan.read`).
 
 | Entitlement | Type | Gates (examples) | STANDARD | PRO |
 |---|---|---|---|---|
