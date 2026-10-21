@@ -79,7 +79,10 @@ public sealed partial class EntitlementDefinition
 
     public EntitlementType Type { get; }
 
-    /// <summary>The module that checks it (S04 D1), e.g. "Identity"; text, so modules that don't exist yet need nothing.</summary>
+    /// <summary>
+    /// The module that checks it (S04 D1), by its docs/architecture/modules.md heading, e.g. "Identity &amp; Access"; text,
+    /// so modules that don't exist yet need nothing.
+    /// </summary>
     public string EnforcedBy { get; }
 
     /// <summary>The slice that introduced the entitlement, e.g. <c>S04</c>.</summary>

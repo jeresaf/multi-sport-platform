@@ -238,6 +238,12 @@ at the start of every review.
   can't be granted an action without a resource before S06). The fake chain test is `CONTEST → COMPETITION`: no
   `EDITION` scope type is added. Owner (#52 R1): accepted until S06 that every member with no tenant-wide role
   (`TEAM_MANAGER`, or roles assigned only at a competition or contest) gets `403` on the tenant list.
+- **S04-T1 (owner, plan 2026-10-21):** two PRs: T1a (#63) the entitlement catalogue in code; T1b the plan tables, the
+  `tenancy.configuration.plans` seeder, `PostgresFixture` and `GET /api/platform/v1/plans`. The plan values live in
+  code (`TenancyPlans`), the one source for the seed and the export; a test compares them with authorization.md's
+  table (D2's "a test reads the table"), and T1b compares the seeded rows with them. Entitlements are found by
+  reflection over `*Entitlements` classes, like actions. Owner on #63: R3 the entitlement types stay in BuildingBlocks
+  beside the action catalogue (AR-26 updated); R1 and R2 go to T1b (tech debt, S04).
 
 ## Tech debt / follow-ups
 
@@ -255,6 +261,16 @@ items are with S04's tasks or their own trigger. Each item names where it gets d
   also see UTC. (S04-T2 adds the zone to `/tenant/access`, D15; T4's blocked page uses it)
 - Advisory lock keys follow `<schema>.<purpose>:<id>` (only `MemberChanges` today, S03-T4b1 pre-review): write the
   convention into data-conventions.md with its second user, the subscription lock (S04-T2, D3, D12).
+- Plans as a service (#63 R1): `EntitlementRules` reads the plans from the static `TenancyPlans.All` and requires every
+  plan to value every catalogued entitlement, so D20's test-only entitlement (T3) would stop the Host. T1b registers
+  the plans as a service that the rule and the seeder read and tests can replace. (S04-T1b)
+- One JSON shape for `EntitlementValue` (#63 R2): `{ enabled }`, `{ limit }` (null = unlimited), `{ level }` exists only
+  in the Host's export. T1b moves it next to the type (one converter) for the `plan_entitlements.value` jsonb column,
+  the export, `GET /plans` and T3's overrides. T1b also orders `GET /plans` rows on purpose (#63 R8: the catalogue is in
+  code order, not the table's). (S04-T1b)
+- `DuplicateEntitlements` and `DuplicateActions` in the integration test assembly break any catalogue built from a
+  module in that assembly (#63 R9): T3 builds D20's test catalogue explicitly (`DeclaredEntitlements(definitions)`), not
+  by scanning the test assembly. (S04-T3)
 
 **Identity and access** (from S03; each names its trigger)
 - OpenAPI list queries (S03-T6c1): `status` and `limit` on `GET …/members`, `…/invitations` and the platform tenant

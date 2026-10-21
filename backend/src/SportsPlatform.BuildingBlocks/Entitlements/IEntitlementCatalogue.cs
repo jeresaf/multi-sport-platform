@@ -2,7 +2,7 @@ namespace SportsPlatform.BuildingBlocks.Entitlements;
 
 /// <summary>
 /// Every entitlement declared in a module's <c>*Entitlements</c> class, for code that needs the definition behind an
-/// action's entitlement code without referencing Tenancy (AR-02). The Host builds it at startup.
+/// action's entitlement code. It sits beside the action catalogue (AR-26, owner on #63 R3); the Host builds it at startup.
 /// </summary>
 public interface IEntitlementCatalogue
 {

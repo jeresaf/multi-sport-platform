@@ -39,7 +39,7 @@ public static class TenancyEntitlements
     public static readonly EntitlementDefinition MaxStaffUsers = new(
         "MAX_STAFF_USERS",
         "Staff users",
-        "Users with a tenant membership (admins, managers, scorers, officials with logins). Public accounts don't count.",
+        "Users with a tenant membership (admins, managers, scorers, officials with logins), plus pending invitations: each reserves a seat. Public accounts don't count.",
         EntitlementType.Quota,
         enforcedBy: "Identity & Access",
         since: "S04",

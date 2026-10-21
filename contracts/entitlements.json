@@ -206,7 +206,7 @@
       "code": "MAX_STAFF_USERS",
       "module": "Tenancy",
       "name": "Staff users",
-      "description": "Users with a tenant membership (admins, managers, scorers, officials with logins). Public accounts don't count.",
+      "description": "Users with a tenant membership (admins, managers, scorers, officials with logins), plus pending invitations: each reserves a seat. Public accounts don't count.",
       "type": "QUOTA",
       "unit": "users",
       "levels": [],
