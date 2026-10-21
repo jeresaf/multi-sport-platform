@@ -208,7 +208,7 @@ Modules call each other in-process through Contracts, never over HTTP.
   `.ReturnsETag()` (`RowVersionEndpointExtensions`); the Host documents the header parameter and the response header.
   Tests require both wherever a body or a success response carries `version` (`RowVersionHeadersTests`). A strict
   JSON body's schema is named by its type's short name: two such types must not share one (`StrictJsonBodySchemaTests`).
-- One document, `v1`, OpenAPI 3.1, covering all three families. Health probes are infrastructure and are left
+- One document, `v1`, OpenAPI 3.1, covering all four families. Health probes are infrastructure and are left
   out. The document is served (`/openapi/v1.json`, Scalar at `/scalar`) in Development only.
 - JSON numbers are strict: a number sent as a string (`"5"`) is a malformed request (400).
 - Regenerate: CLI `export-openapi`, then `pnpm --filter @msp/api-client generate` in `web/`. The `Contracts` CI

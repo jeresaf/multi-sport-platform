@@ -5,15 +5,19 @@ at the start of every review.
 
 ## Now
 
-- **Current slice:** S03 — Identity and access (docs/build/slices/S03-identity-access.md): every task built; slice
-  close in review. S00, S01 and S02 are done
-- **Current task:** S03-T6c2b — slice demo e2e, platform e2e, slice close — in review
-- **Next:** S03 slice review (reviewer); S04's spec is the kit's version and needs the reviewer's rewrite first
-- **Blocked on:** nothing
+- **Current slice:** S04 — Plans, subscriptions and entitlements (docs/build/slices/S04-plans-entitlements.md,
+  rewritten by the S03 slice review). S00, S01, S02 and S03 are done
+- **Current task:** S04-T1 — Entitlement catalogue and plans — not started; next is `/next-task`
+- **Next:** S04-T2 — Subscriptions and access mode
+- **Blocked on:** the owner's review of the S03 slice review PR (S04 decisions D1–D20). Q21–Q26: the owner took the
+  defaults (2026-10-21, open-questions.md "Answered")
 
 ## Next up
 
-1. S03 slice review (reviewer), then the S04 spec rewrite (docs/build/slices/S04-plans-entitlements.md)
+1. S04-T1 — Entitlement catalogue and plans
+2. S04-T2 — Subscriptions and access mode (likely two PRs: T2a, T2b)
+3. S04-T3 — Overrides, effective entitlements, quotas and the full pipeline (likely two PRs: T3a, T3b)
+4. S04-T4 — Platform and tenant screens (likely two PRs: T4a, T4b)
 
 ## Log
 
@@ -72,6 +76,7 @@ at the start of every review.
 | 2026-10-20 | S03-T6c1 | #58 | Organisation settings (reference-data pickers; read-only without `tenant.settings.update`; PATCH of the changed settings only, with `If-Match`); Members & roles (members with status filter and paging, change tenant-wide roles one request at a time chained by version, suspend/remove with a reason, restore; invitations with invite and revoke; owner role offered to owners only); conflict alert with Reload for `*_CONCURRENCY_CONFLICT`; change-password page (user menu); dates in the tenant's time zone. shadcn dialog, checkbox, textarea, table; native select field; `@msp/api-client/roles` from `contracts/roles.json` (copied by `pnpm generate`). Vitest: organisation, members, change password. Playwright `admin-members.spec.ts` (owner manages, viewer reads, API refuses the viewer's PATCH with `403 AUTH_FORBIDDEN`); screenshots of the new screens and dialogs | Owner (plan): T6c in two PRs (T6c1 tenant screens, T6c2 platform console and the demo flow); defaults for lists (status filter and paging, no search or sort), blocked date, owner invitations, multi-call role changes. Owner: carry the leftover items (Q21 default stands; stale e2e expectations; change password built; blocked-date UTC stays). Found by e2e: an invitation's version changes when its email is sent, so revoke is sent without `If-Match` (the state machine still guards it). No backend change, no new actions, errors, events, migrations or npm dependencies. Pre-review (ready; all ten findings fixed): an administrator isn't offered suspend, restore or remove on an owner's membership (owner-only on the server); focus moves to the section heading when a change takes the row out of the list; checkboxes get a 44 px target; "already saved" shown on a mid-way conflict too; last-owner and partial-failure tests; reason and expiry on a phone; a `*_TRANSITION_INVALID` refusal refreshes the list; a saved zone or currency missing from the reference list stays selectable. Reason fields say not to include personal details (backend.md). Review (subagent, request changes): R1 CI e2e race, an invitation link used before its token was saved (`linkFromEmail` waits for the lookup; backend send-before-save logged); R2 change-password e2e and screenshots; R3 docs; R4 screenshots wait for data; R5 "Email sent" from `emailSentAt`; R6 reasons wrap; R7 conflict, transition and owner-on-owner tests; R8 Expired filter; R9 Node 24 not installed here (CI runs it). Owner: revoke without `If-Match` agreed; own row marked "You" with a warning. Re-review (subagent, approve with nits): N1 "Not sent" for an invitation that will never be emailed; N2 reset links share the send-before-save race (tech debt widened, e2e risk accepted); N3 tests for the roles dialog's self-warning and the Expired filter; N4 expired invitations show when they expired; Q1 logged for T6c2 |
 | 2026-10-20 | S03-T6c2a | #59 | Platform console tenants: list (name, slug, country by name, status, created in UTC; status filter, "Show more"); New tenant (reference-data pickers; slug never changes; field errors from the API) opening the new tenant; detail (profile in the tenant's time zone; lifecycle changes the state machine and the capabilities allow, a reason for suspend/archive/unarchive, `If-Match` from the tenant's version, Reload after a conflict, a `TENANT_INVALID_TRANSITION`, not expected since the version is checked first, reads the tenant again and the change can't be resent); Invite an owner (not for an archived tenant; says until when the link works); "not available yet" for earlier owner invitations, status history, members, domains, subscription. Vitest `tenants.test.tsx`; screenshots (list, create, detail, reason and invite dialogs; phone, tablet, desktop; light, dark) | Owner (plan): T6c2 in two PRs (this: screens, Vitest, screenshots; T6c2b: demo e2e, platform e2e, #58 Q1, slice close); no profile editing. Pre-review (ready; no blocker or major): invalid transition leaves the dialog's confirm disabled after the reload, with tests for it and for restore/archive/unarchive requests and the reason field's personal-data hint; no tenant read without `tenant.read`; country by name in the list; dialog screenshots at phone width and of the viewport only (`shoot`). The fake API records a request when it is made. Review (subagent, request changes): R1 the reason dialogs say the tenant's owners see the reason (the #48 follow-up; owner: yes); R2 focus moves to the tenant's name and the change is announced (owner: announce); R3 the invalid-transition handling described as defensive; R4 detail-page `tenant.read` test; R5 function answers get their request; R6 invitation expiry with time and zone; R7 time zones narrowed to the chosen country; R8 support staff told why there are no controls; R9 docs wrapped. Re-review (approve): N1 test that a zone of another country is cleared; N2 zones of no country (Etc/UTC) offered with any country, a zone cleared only when the new list lacks it (builder's choice; owner may restrict); N3 support staff note covers the invitation. CI: the members e2e revoked an invitation while its email send was being saved (tech debt, concurrency conflict); it now waits for "Email sent". No backend change, no new actions, errors, events, migrations or dependencies |
 | 2026-10-20 | S03-T6c2b | #60 | Slice close. Playwright `admin-demo.spec.ts`: the slice demo through the screens (platform administrator creates and activates a tenant and invites its owner; the owner joins from the Mailpit email, changes a setting and invites a viewer; the viewer joins, reads the settings only, and their PATCH is `403 AUTH_FORBIDDEN`), then the audit trail through `GET /api/platform/v1/audit-entries` (`support/audit.ts`): tenant create, activate and owner invitation by the administrator, settings change and invitation by the owner, both acceptances, the viewer's DENIED change, both sign-ins. `admin-platform.spec.ts`: taken slug on its field; activate, suspend, restore, archive (no owner invitation), unarchive, with reasons; status filter. `admin-members.spec.ts`: an administrator suspending themselves lands on "Page not found" and gets `403 AUTH_TENANT_FORBIDDEN` (#58 re-review Q1). T6 and slice acceptance ticked; roadmap S03 ☑; CI screenshot comment | Owner (plan): one PR; self-suspend landing tested as built, friendlier message a follow-up; #43 N1 kept for the Audit screen slice. Tech debt: Q1 and the stale Q20 item removed. Pre-review (ready; no blocker or major): evidence lines for T6; the acceptance by `ANONYMOUS` added to the T6c2 deviation (owner to confirm); the platform e2e tenant sorts first and ends restored, so a kept local database's suspended tenants never push it off the first page; one audit read per action. CI (e2e): the self-suspension test met the error page: a page under the workspace read `me` itself (`useTenantWorkspace`) and threw when the tenant left it, before the layout said "Page not found"; the layout now hands its pages the tenant (`TenantProvider`), with a Vitest test that fails without it. The password-change e2e opened the account menu before `/` had sent it on to the workspace (local flake); it waits for the workspace. e2e run locally (30 passed, twice). Review (subagent, approve with nits): R1 test tenants named per pilot-customer.md (Mvule; new invented Acacia Road Runners and Weaver Bird Athletics Club added there); N1 the overview page takes the tenant from the layout too; N2 comment; N3 the acceptance matched on `userId` and `accountCreated`; N4 PR number; N5 the DENIED entry filtered by tenant. Owner: Q1 anonymous acceptance accepted; Q2 the friendlier landing stays "Later, admin web". No backend change, no new actions, errors, events, migrations or dependencies |
+| 2026-10-20 | S03 slice review | — | Docs only: S04 spec rewritten by the reviewer (D1–D20, T1–T4); S03 slice review note (acceptance confirmed with evidence); tech debt regrouped (S04 carry-overs with their tasks, the other S03 items by trigger, edge limits to the infrastructure task, the duplicate key-ring item merged); deviation note on `GET /tenant/access`'s reason corrected; api-conventions.md: the OpenAPI document covers four families; open questions Q22 (platform staff roles), Q23 (subscription windows), Q24 (staff-user quota), Q25 (demo without a PRO-only action), Q26 (who sees the subscription); Q21 retagged | All S03 acceptance items met on main (76664f8); the slice demo runs in CI (`admin-demo.spec.ts`); the owner's manual demo is not recorded |
 
 ## Deviations from spec (agreed)
 
@@ -183,8 +188,8 @@ at the start of every review.
   T4b2 access-mode refinements). The member list and detail show the member's email to every holder of
   `membership.read` (data-conventions.md records the exception to `*.read_private`). `role.assign` accepts the
   `TENANT` scope only in S03. `GET /tenant/access` (T4b2) returns status, access mode and date, not the platform's
-  reason. `/me` and blocked tenants (#46 N2) decided in T6. Beyond the plan: `membership.read` is audited
-  (`REQUIRED`, like `tenant.settings.read`; the plan said none), since it returns emails.
+  reason (superseded by the T4b2 plan: the owner sees the reason too). `/me` and blocked tenants (#46 N2) decided in
+  T6. Beyond the plan: `membership.read` is audited (`REQUIRED`, like `tenant.settings.read`; the plan said none), since it returns emails.
 - **S03-T4c (owner, plan 2026-10-20):** two PRs (T4c1 sending: table, invite, list, revoke, platform owner invitation,
   email; T4c2 accepting: lookup, accept, rate limit, DEMO seeder). Invitation state machine added to state-machines.md:
   `EXPIRED` is derived and final; a new invitation to a pending email revokes the old one. Accepting doesn't sign in.
@@ -221,6 +226,9 @@ at the start of every review.
   account's `invitation.accept` is likewise audited by `ANONYMOUS` (the account doesn't exist yet), with the user in
   its metadata, so the e2e checks the metadata for it. The tenant detail has no profile editing
   (`tenant.update`).
+  T6c2a (owner, 2026-10-21, "the defaults on all my questions"): the create-tenant time-zone picker offers the zones
+  of no country (Etc/UTC) with any country; the password-reset e2e test keeps the accepted risk of the send-before-save
+  race until the backend saves the token before sending (#58 re-review N2, tech debt).
 - **S03-T5 (owner, plan 2026-10-20):** two PRs, T5a (capabilities) and T5b (matrix test, Q20). `tenant.capabilities.read`
   is held by every role assignable tenant-wide, not `TEAM_MANAGER` (spec: "in every tenant role"; a team-scoped role
   can't be granted an action without a resource before S06). The fake chain test is `CONTEST → COMPETITION`: no
@@ -230,13 +238,21 @@ at the start of every review.
 ## Tech debt / follow-ups
 
 Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or trigger) at S01 acceptance
-(2026-10-18). The S00 carry-overs assigned to S01 are done. Each item names where it gets done.
+(2026-10-18). The S00 carry-overs assigned to S01 are done. Regrouped by the S03 slice review (2026-10-20): the S03
+items are with S04's tasks or their own trigger. Each item names where it gets done.
 
-**S03 — identity and access**
+**S04 — plans and entitlements** (carried over from S03 by the slice review, 2026-10-20; each names its task)
+- Capabilities under `READ_ONLY` (S03-T5a pre-review): `tenant.capabilities.read` is a read, so a `READ_ONLY` tenant
+  will answer it, and the list (step 3 only) would include writes that step 1 refuses. Leave them out or give the
+  reason. Also: OpenAPI shows `scopeType` as a free string (values only in the description). (S04-T3, D14)
 - Blocked tenant's "since" date is shown in UTC: `/me` and `GET …/tenant/access` carry no tenant time zone (S03-T6b2
   pre-review). Other tenant screens use the settings' zone since S03-T6c1, but a blocked tenant can't read its
   settings (`403 TENANT_BLOCKED`): add the zone to `/tenant/access` or `/me`. Members without `tenant.settings.read`
-  also see UTC. (Backend, when a tenant screen needs it)
+  also see UTC. (S04-T2 adds the zone to `/tenant/access`, D15; T4's blocked page uses it)
+- Advisory lock keys follow `<schema>.<purpose>:<id>` (only `MemberChanges` today, S03-T4b1 pre-review): write the
+  convention into data-conventions.md with its second user, the subscription lock (S04-T2, D3, D12).
+
+**Identity and access** (from S03; each names its trigger)
 - OpenAPI list queries (S03-T6c1): `status` and `limit` on `GET …/members`, `…/invitations` and the platform tenant
   list are typed as strings, so the generated client can't send `limit` as a number (the admin app uses the default,
   25). Document them as their enum and integer. (Any task touching those endpoints)
@@ -257,40 +273,32 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
   transaction commits; `MemberChanges` commits with `CancellationToken.None`, but a failing commit would still roll back
   unaudited. Mark the scope recorded on commit when a transaction is open (BuildingBlocks `DbTransactionInterceptor`).
   The concurrent last-owner test can pass without the lock when the two requests run one after the other; a
-  deterministic test would hold the advisory lock on a test connection. Advisory lock keys follow
-  `<schema>.<purpose>:<id>` (only `MemberChanges` today); write the convention into data-conventions.md with the
-  second user. (Later)
+  deterministic test would hold the advisory lock on a test connection. (Later)
 - Invitation emails are kept for ever (#49 N1): `identity.invitations.email`/`normalized_email` (`PRIVATE`) stay on
   revoked, expired and accepted invitations, for people who never joined too. With the privacy work (ADR-0015): redact
-  or purge them on invitations never accepted, some time after they were revoked or expired. (Privacy work)
+  or purge them on invitations never accepted, some time after they were revoked or expired. (Privacy tooling,
+  Phase 9)
 - Invitation acceptance, the double use (S03-T4c2a pre-review): `The_same_link_used_twice_at_once…` also passes when
   the two requests run one after the other (the second gets `AUTH_INVITATION_ALREADY_ACCEPTED`), so the unique-index
   catch and the `DuplicateEmail` branch of `AcceptInvitationHandler` aren't shown to run. A deterministic test would
   create the user or membership between the handler's reads and its save. (Later, with the last-owner lock test)
-- Capabilities under `READ_ONLY` (S03-T5a pre-review): `tenant.capabilities.read` is a read, so a `READ_ONLY` tenant
-  will answer it, and the list (step 3 only) would include writes that step 1 refuses. Leave them out or give the
-  reason. Also: OpenAPI shows `scopeType` as a free string (values only in the description). (S04)
 - Members with no tenant-wide role read no capabilities (S03-T5a, owner; #52 R1): an action without a resource is
   granted only tenant-wide, so `GET /api/admin/v1/me/capabilities` is 403 for a member whose only roles are below the
   tenant: `TEAM_MANAGER` (team only), or `COMPETITION_MANAGER`, `RESULTS_OFFICER`, `DATA_ENTRY` or `SCORER` assigned
-  at one competition or contest, even with `scopeType`/`scopeId` for their own resource. T6's shell must handle the
-  403. Decide how such a member reads their capabilities when requests carry resource scopes. (S06)
+  at one competition or contest, even with `scopeType`/`scopeId` for their own resource (the S03-T6b2 shell shows the
+  403's reason). Decide how such a member reads their capabilities when requests carry resource scopes. (S06)
 - An invitation a member sends at the same instant as their suspension or removal can commit after it and stay pending
   (S03-T5b, Q20; owner: accepted). Close it if it matters: refuse lookup and accept when the inviter is no longer an
   active member. (Later)
 - Tests that order audit entries by ID (`AuditTestData.EntriesAsync`) see entries written at one fake-clock instant
   in random order (UUIDv7 from `AuditScope`'s clock); compare such entries without order, or order by something
   stable (S03-T3, found in `PasswordResetTests`). (Any task touching audit tests)
-- Denials cost a permanent row each (#23 R2): rate-limit `/api/admin`, `/api/platform` and `/api/account` at the edge
-  (Cloudflare), with the `/health/*` item below (infrastructure task after M1). Decided (S03 D3): anonymous denials
-  keep one row each; login and forgot-password are also rate-limited in the API (done, S03-T2b: in memory, per API
-  instance, so N instances allow N times the limit until the edge limits exist).
 - Audit screens (#43 N1): a successful sign-in is audited with actor `ANONYMOUS` and entity = the user, and a new
   account's invitation acceptance by `ANONYMOUS` with the user in its metadata (the slice demo e2e checks both that
-  way); if the screens filter by actor, consider recording them as the user. (Audit screen slice)
+  way); if the screens filter by actor, consider recording them as the user. (Audit explorer, S13)
 - Logout deletes the cookie only (no server-side session store): a copied cookie lives until it expires or the
-  security stamp changes. Identity's lockout uses the system clock (`UserManager` takes no `TimeProvider`). (Later,
-  S03-T2a)
+  security stamp changes. Identity's lockout uses the system clock (`UserManager` takes no `TimeProvider`). (Security
+  review, Phase 9; S03-T2a)
 - Password reset email: a failed send is retried by the outbox with a new token (by design), but no test makes the
   sender fail and checks the retry (S03-T2b). (Later)
 - The CLI's Serilog → `LogLevel` mapping (`UseHostLogLevels`, S03-T1a) has no test; move it into the Host and unit-test it
@@ -322,10 +330,17 @@ Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or 
   with the right `ForwardLimit`; a test proves two clients behind the full chain get separate limits.
 - The API needs `ConnectionStrings:Platform` (`sp_platform`) at runtime for the audit trail (S02-T2b): provision that
   secret for the API in Key Vault with the staging setup, or every audited request fails there (#33 N1).
-- SMTP provider for `IEmailSender`, `Email:From` on the real domain, and encryption at rest of the data-protection
-  key ring (Key Vault) — S03 D13/D14.
+- SMTP provider for `IEmailSender` and `Email:From` on the real domain (S03 D13); the key ring's encryption is above.
+- Run `seed --category CONFIGURATION` in every environment after `migrate` (S04: the plans); without it no tenant has
+  plan values.
+- Platform staff roles (Q22): `PLATFORM_SUPPORT` can't be granted and no platform role can be revoked; the CLI
+  commands come before the first deployment (S03 slice review).
 
 **Infrastructure task after M1**
+- Denials cost a permanent row each (#23 R2): rate-limit `/api/admin`, `/api/platform` and `/api/account` at the edge
+  (Cloudflare), with the `/health/*` item below (infrastructure task after M1). Decided (S03 D3): anonymous denials
+  keep one row each; login and forgot-password are also rate-limited in the API (done, S03-T2b: in memory, per API
+  instance, so N instances allow N times the limit until the edge limits exist).
 - A failed direct audit write (denial, failure, read) is only logged: the response is already written. Alert on that
   Error with the `FAILED` outbox alert below (infrastructure task after M1; S01-T6a).
 - Alert on any `FAILED` outbox message (OpenTelemetry counter or gauge): with strict ordering one holds back its

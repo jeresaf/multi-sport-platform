@@ -587,3 +587,11 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   answers "Page not found", since `me` lists active memberships only, and the API `403 AUTH_TENANT_FORBIDDEN`). Pages under a
   tenant workspace get the tenant from the layout (`TenantProvider`, `useTenantWorkspace`), never from `me` directly:
   a page re-rendered with a newer `me` before its layout would otherwise fail when the tenant has left it.
+
+**Slice review (2026-10-20).** All acceptance items are met on main (76664f8, #60): each task's evidence is named
+above and the tests exist; the RLS exception list is unchanged (`outbox_messages`, `tenant_domains`). The slice demo
+runs in CI as `admin-demo.spec.ts`; the owner's manual demo is not recorded. No ADR drift (bearer tokens deferred by
+Q18 within ADR-0005). Small drift recorded in PROGRESS.md and handed to S04: api-conventions.md's "429 rate/quota"
+against authorization.md's quota refusal (S04 D11); `IAuthorizationEvaluator`'s comment still says the Host denies
+everything and that it covers access mode and entitlements (S04-T3). Found: `PLATFORM_SUPPORT` can't be granted and
+no platform role can be revoked (Q22). api-conventions.md now says the OpenAPI document covers four families.
