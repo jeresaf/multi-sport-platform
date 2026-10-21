@@ -40,7 +40,7 @@ public static class SportsPlatformApp
         var actions = ActionCatalogue.Build(ModuleRegistry.All);
         app.EnsureEndpointsDeclareActions(actions);
         app.EnsureRolesGrantDeclaredActions(actions);
-        app.EnsureActionsNameDeclaredEntitlements(actions);
+        app.EnsureEntitlementsAreConsistent(actions);
         app.EnsureOneScopeChainPerResourceType();
         app.EnsureRequestValidators();
 

@@ -7,8 +7,8 @@ namespace SportsPlatform.Host.Authorization;
 
 /// <summary>
 /// Startup check of the entitlements (S04 D1): an action names only a declared entitlement, and only a tenant action
-/// names one (step 2 runs for tenant actions only, D10); every plan gives every declared entitlement a value of its
-/// type, and nothing else.
+/// names one (step 2 runs for tenant actions only, D10); plan codes and ranks are unique (ranks order upgrades, D4);
+/// every plan gives every declared entitlement a value of its type, and nothing else.
 /// </summary>
 public static class EntitlementRules
 {
@@ -32,6 +32,11 @@ public static class EntitlementRules
             }
         }
 
+        violations.AddRange(plans.GroupBy(plan => plan.Code, StringComparer.Ordinal).Where(group => group.Count() > 1)
+            .Select(group => $"Plan {group.Key} is defined more than once."));
+        violations.AddRange(plans.GroupBy(plan => plan.Rank).Where(group => group.Count() > 1)
+            .Select(group => $"Plans {string.Join(", ", group.Select(plan => plan.Code))} share rank {group.Key}."));
+
         foreach (var plan in plans)
         {
             foreach (var entitlement in entitlements.All)
@@ -54,7 +59,7 @@ public static class EntitlementRules
     }
 
     /// <summary>Throws when an action or a plan breaks the rules, listing every violation.</summary>
-    public static void EnsureActionsNameDeclaredEntitlements(this WebApplication app, IReadOnlyList<ActionCatalogueEntry> actions)
+    public static void EnsureEntitlementsAreConsistent(this WebApplication app, IReadOnlyList<ActionCatalogueEntry> actions)
     {
         ArgumentNullException.ThrowIfNull(app);
 

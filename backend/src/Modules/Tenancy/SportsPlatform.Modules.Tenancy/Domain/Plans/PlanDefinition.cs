@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using SportsPlatform.BuildingBlocks.Entitlements;
 
 namespace SportsPlatform.Modules.Tenancy.Domain.Plans;
@@ -24,7 +25,7 @@ public sealed class PlanDefinition
         Code = code;
         Name = name;
         Rank = rank;
-        Values = values;
+        Values = values.ToFrozenDictionary(StringComparer.Ordinal);
     }
 
     /// <summary>Stable, e.g. <c>STANDARD</c>.</summary>

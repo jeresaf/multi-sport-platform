@@ -68,6 +68,18 @@ public sealed class EntitlementRulesTests
         ], ignoreOrder: true);
     }
 
+    [Fact]
+    public void Plan_codes_and_ranks_are_unique()
+    {
+        var copy = new PlanDefinition("PRO", "Pro again", 1, TenancyPlans.Pro.Values);
+
+        EntitlementRules.Validate([], _entitlements, [.. TenancyPlans.All, copy]).ShouldBe(
+        [
+            "Plan PRO is defined more than once.",
+            "Plans STANDARD, PRO share rank 1.",
+        ], ignoreOrder: true);
+    }
+
     // T1 acceptance: membership.invite names MAX_STAFF_USERS; without that entitlement declared, the Host won't build.
     [Fact]
     public void An_action_naming_an_undeclared_entitlement_stops_the_Host_at_startup()
