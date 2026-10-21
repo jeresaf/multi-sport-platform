@@ -6,6 +6,7 @@ using Microsoft.Net.Http.Headers;
 using Microsoft.OpenApi;
 using Scalar.AspNetCore;
 using SportsPlatform.BuildingBlocks.Api;
+using SportsPlatform.BuildingBlocks.Entitlements;
 
 namespace SportsPlatform.Host.OpenApi;
 
@@ -31,6 +32,7 @@ public static class ApiDocumentation
             options.OpenApiVersion = OpenApiSpecVersion.OpenApi3_1;
             options.AddDocumentTransformer(DescribeDocumentAsync);
             options.AddSchemaTransformer(DescribeProblemDetails);
+            options.AddSchemaTransformer(DescribeEntitlementValues);
             options.AddOperationTransformer(ListErrorCodes);
             options.AddOperationTransformer(DescribeStrictJsonBodyAsync);
             options.AddOperationTransformer(DescribeRowVersionHeaders);
@@ -125,6 +127,37 @@ public static class ApiDocumentation
         schema.Required ??= new HashSet<string>();
         schema.Required.Add(ProblemFields.Code);
         schema.Required.Add(ProblemFields.CorrelationId);
+        return Task.CompletedTask;
+    }
+
+    // EntitlementValue has its own JSON converter, so the generator can't see its shape: one of three one-property objects.
+    private static Task DescribeEntitlementValues(
+        OpenApiSchema schema, OpenApiSchemaTransformerContext context, CancellationToken cancellationToken)
+    {
+        if (context.JsonTypeInfo.Type != typeof(EntitlementValue))
+        {
+            return Task.CompletedTask;
+        }
+
+        static OpenApiSchema OneProperty(string name, JsonSchemaType type, string description) => new()
+        {
+            Type = JsonSchemaType.Object,
+            Properties = new Dictionary<string, IOpenApiSchema> { [name] = new OpenApiSchema { Type = type, Description = description } },
+            Required = new HashSet<string> { name },
+            AdditionalPropertiesAllowed = false,
+        };
+
+        schema.Type = JsonSchemaType.Object;
+        schema.Properties = null;
+        schema.Required = null;
+        schema.Description = "An entitlement's value, by its type: `{ enabled }` (BOOLEAN), `{ limit }` (QUOTA; null = " +
+            "unlimited) or `{ level }` (LEVEL; null = none).";
+        schema.OneOf =
+        [
+            OneProperty(EntitlementValueJsonConverter.Enabled, JsonSchemaType.Boolean, "BOOLEAN: on or off."),
+            OneProperty(EntitlementValueJsonConverter.Limit, JsonSchemaType.Integer | JsonSchemaType.Null, "QUOTA: the most items; null = unlimited."),
+            OneProperty(EntitlementValueJsonConverter.Level, JsonSchemaType.String | JsonSchemaType.Null, "LEVEL: a level code; null = none."),
+        ];
         return Task.CompletedTask;
     }
 
