@@ -148,7 +148,7 @@ jobs:
       - name: Install web dependencies
         working-directory: web
         run: pnpm install --frozen-lockfile
-      - name: Export action, role, error and event catalogues
+      - name: Export action, entitlement, role, error and event catalogues
         run: dotnet run --project backend/tools/SportsPlatform.Cli -- export-catalogues
       - name: Export OpenAPI document
         run: dotnet run --project backend/tools/SportsPlatform.Cli --no-build -- export-openapi

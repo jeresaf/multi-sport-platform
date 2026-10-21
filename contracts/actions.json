@@ -128,7 +128,7 @@
         "TENANT"
       ],
       "audit": "REQUIRED",
-      "entitlement": null,
+      "entitlement": "MAX_STAFF_USERS",
       "idempotent": false,
       "allowsAnonymous": false,
       "availableWhenBlocked": false,

@@ -1,0 +1,421 @@
+{
+  "plans": [
+    {
+      "code": "STANDARD",
+      "name": "Standard",
+      "rank": 1
+    },
+    {
+      "code": "PRO",
+      "name": "Pro",
+      "rank": 2
+    }
+  ],
+  "entitlements": [
+    {
+      "code": "API_ACCESS",
+      "module": "Tenancy",
+      "name": "API access",
+      "description": "Tenant API keys.",
+      "type": "BOOLEAN",
+      "unit": null,
+      "levels": [],
+      "default": {
+        "enabled": false
+      },
+      "plans": {
+        "STANDARD": {
+          "enabled": false
+        },
+        "PRO": {
+          "enabled": true
+        }
+      },
+      "enforcedBy": "Identity & Access",
+      "actions": [],
+      "since": "S04"
+    },
+    {
+      "code": "BRANDING",
+      "module": "Tenancy",
+      "name": "Branding",
+      "description": "BASIC: logo, primary and secondary colour, \"Powered by\" footer. FULL: brand versions, images, footer optional.",
+      "type": "LEVEL",
+      "unit": null,
+      "levels": [
+        "BASIC",
+        "FULL"
+      ],
+      "default": {
+        "level": null
+      },
+      "plans": {
+        "STANDARD": {
+          "level": "BASIC"
+        },
+        "PRO": {
+          "level": "FULL"
+        }
+      },
+      "enforcedBy": "Branding & Sponsorship",
+      "actions": [],
+      "since": "S04"
+    },
+    {
+      "code": "BULK_IMPORT",
+      "module": "Tenancy",
+      "name": "Bulk import",
+      "description": "REGISTRY: people, teams and venues from templates. FULL: also historical results and timelines.",
+      "type": "LEVEL",
+      "unit": null,
+      "levels": [
+        "REGISTRY",
+        "FULL"
+      ],
+      "default": {
+        "level": null
+      },
+      "plans": {
+        "STANDARD": {
+          "level": "REGISTRY"
+        },
+        "PRO": {
+          "level": "FULL"
+        }
+      },
+      "enforcedBy": "Data Exchange",
+      "actions": [],
+      "since": "S04"
+    },
+    {
+      "code": "CUSTOM_DOMAIN",
+      "module": "Tenancy",
+      "name": "Custom domain",
+      "description": "Serve the public site on the tenant's own domain.",
+      "type": "BOOLEAN",
+      "unit": null,
+      "levels": [],
+      "default": {
+        "enabled": false
+      },
+      "plans": {
+        "STANDARD": {
+          "enabled": false
+        },
+        "PRO": {
+          "enabled": true
+        }
+      },
+      "enforcedBy": "Tenancy & Commercial",
+      "actions": [],
+      "since": "S04"
+    },
+    {
+      "code": "HISTORICAL_RESULTS",
+      "module": "Tenancy",
+      "name": "Historical results",
+      "description": "Enter past results by hand.",
+      "type": "BOOLEAN",
+      "unit": null,
+      "levels": [],
+      "default": {
+        "enabled": false
+      },
+      "plans": {
+        "STANDARD": {
+          "enabled": true
+        },
+        "PRO": {
+          "enabled": true
+        }
+      },
+      "enforcedBy": "Match Operations",
+      "actions": [],
+      "since": "S04"
+    },
+    {
+      "code": "LIVE_SCORING",
+      "module": "Tenancy",
+      "name": "Live scoring",
+      "description": "Start contests and record play-by-play as it happens.",
+      "type": "BOOLEAN",
+      "unit": null,
+      "levels": [],
+      "default": {
+        "enabled": false
+      },
+      "plans": {
+        "STANDARD": {
+          "enabled": true
+        },
+        "PRO": {
+          "enabled": true
+        }
+      },
+      "enforcedBy": "Match Operations",
+      "actions": [],
+      "since": "S04"
+    },
+    {
+      "code": "MAX_ACTIVE_EDITIONS",
+      "module": "Tenancy",
+      "name": "Active editions",
+      "description": "Competition editions in DRAFT, REGISTRATION_OPEN, REGISTRATION_CLOSED or IN_PROGRESS.",
+      "type": "QUOTA",
+      "unit": "editions",
+      "levels": [],
+      "default": {
+        "limit": 0
+      },
+      "plans": {
+        "STANDARD": {
+          "limit": 8
+        },
+        "PRO": {
+          "limit": 60
+        }
+      },
+      "enforcedBy": "Competitions",
+      "actions": [],
+      "since": "S04"
+    },
+    {
+      "code": "MAX_ENABLED_SPORTS",
+      "module": "Tenancy",
+      "name": "Enabled sports",
+      "description": "Sports the tenant can enable. Counts distinct sports, not variants: rugby union 15s and 7s are one sport.",
+      "type": "QUOTA",
+      "unit": "sports",
+      "levels": [],
+      "default": {
+        "limit": 0
+      },
+      "plans": {
+        "STANDARD": {
+          "limit": 3
+        },
+        "PRO": {
+          "limit": null
+        }
+      },
+      "enforcedBy": "Tenancy & Commercial",
+      "actions": [],
+      "since": "S04"
+    },
+    {
+      "code": "MAX_STAFF_USERS",
+      "module": "Tenancy",
+      "name": "Staff users",
+      "description": "Users with a tenant membership (admins, managers, scorers, officials with logins), plus pending invitations: each reserves a seat. Public accounts don't count.",
+      "type": "QUOTA",
+      "unit": "users",
+      "levels": [],
+      "default": {
+        "limit": 0
+      },
+      "plans": {
+        "STANDARD": {
+          "limit": 100
+        },
+        "PRO": {
+          "limit": 1000
+        }
+      },
+      "enforcedBy": "Identity & Access",
+      "actions": [
+        "membership.invite"
+      ],
+      "since": "S04"
+    },
+    {
+      "code": "MAX_TEAMS",
+      "module": "Tenancy",
+      "name": "Teams",
+      "description": "Active teams in the registry.",
+      "type": "QUOTA",
+      "unit": "teams",
+      "levels": [],
+      "default": {
+        "limit": 0
+      },
+      "plans": {
+        "STANDARD": {
+          "limit": 120
+        },
+        "PRO": {
+          "limit": 2000
+        }
+      },
+      "enforcedBy": "Registry",
+      "actions": [],
+      "since": "S04"
+    },
+    {
+      "code": "OFFLINE_SCORING",
+      "module": "Tenancy",
+      "name": "Offline scoring",
+      "description": "Score on the mobile app without a connection and sync later.",
+      "type": "BOOLEAN",
+      "unit": null,
+      "levels": [],
+      "default": {
+        "enabled": false
+      },
+      "plans": {
+        "STANDARD": {
+          "enabled": true
+        },
+        "PRO": {
+          "enabled": true
+        }
+      },
+      "enforcedBy": "Match Operations",
+      "actions": [],
+      "since": "S04"
+    },
+    {
+      "code": "PUBLIC_NOTIFICATIONS",
+      "module": "Tenancy",
+      "name": "Public notifications",
+      "description": "Email and push alerts to the public. Staff notifications are never gated.",
+      "type": "BOOLEAN",
+      "unit": null,
+      "levels": [],
+      "default": {
+        "enabled": false
+      },
+      "plans": {
+        "STANDARD": {
+          "enabled": false
+        },
+        "PRO": {
+          "enabled": true
+        }
+      },
+      "enforcedBy": "Engagement",
+      "actions": [],
+      "since": "S04"
+    },
+    {
+      "code": "PUBLIC_SITE",
+      "module": "Tenancy",
+      "name": "Public site",
+      "description": "The tenant's public site on its platform subdomain.",
+      "type": "BOOLEAN",
+      "unit": null,
+      "levels": [],
+      "default": {
+        "enabled": false
+      },
+      "plans": {
+        "STANDARD": {
+          "enabled": true
+        },
+        "PRO": {
+          "enabled": true
+        }
+      },
+      "enforcedBy": "Tenancy & Commercial",
+      "actions": [],
+      "since": "S04"
+    },
+    {
+      "code": "REPORTS",
+      "module": "Tenancy",
+      "name": "Reports",
+      "description": "BASIC: CSV. ADVANCED: XLSX and PDF, scheduled.",
+      "type": "LEVEL",
+      "unit": null,
+      "levels": [
+        "BASIC",
+        "ADVANCED"
+      ],
+      "default": {
+        "level": null
+      },
+      "plans": {
+        "STANDARD": {
+          "level": "BASIC"
+        },
+        "PRO": {
+          "level": "ADVANCED"
+        }
+      },
+      "enforcedBy": "Insights",
+      "actions": [],
+      "since": "S04"
+    },
+    {
+      "code": "SPONSORSHIP",
+      "module": "Tenancy",
+      "name": "Sponsorship",
+      "description": "BASIC: up to 5 sponsor logos in a site-wide strip. FULL: campaigns, placements, scheduling, impression reports.",
+      "type": "LEVEL",
+      "unit": null,
+      "levels": [
+        "BASIC",
+        "FULL"
+      ],
+      "default": {
+        "level": null
+      },
+      "plans": {
+        "STANDARD": {
+          "level": "BASIC"
+        },
+        "PRO": {
+          "level": "FULL"
+        }
+      },
+      "enforcedBy": "Branding & Sponsorship",
+      "actions": [],
+      "since": "S04"
+    },
+    {
+      "code": "STORAGE_GB",
+      "module": "Tenancy",
+      "name": "Media storage",
+      "description": "Storage for uploaded media.",
+      "type": "QUOTA",
+      "unit": "GB",
+      "levels": [],
+      "default": {
+        "limit": 0
+      },
+      "plans": {
+        "STANDARD": {
+          "limit": 10
+        },
+        "PRO": {
+          "limit": 100
+        }
+      },
+      "enforcedBy": "Platform",
+      "actions": [],
+      "since": "S04"
+    },
+    {
+      "code": "TRANSFERS",
+      "module": "Tenancy",
+      "name": "Transfers",
+      "description": "Player transfers between teams.",
+      "type": "BOOLEAN",
+      "unit": null,
+      "levels": [],
+      "default": {
+        "enabled": false
+      },
+      "plans": {
+        "STANDARD": {
+          "enabled": false
+        },
+        "PRO": {
+          "enabled": true
+        }
+      },
+      "enforcedBy": "Team Operations",
+      "actions": [],
+      "since": "S04"
+    }
+  ]
+}

@@ -101,7 +101,10 @@ public sealed class ActionDefinition
 
     public AuditRequirement Audit { get; }
 
-    /// <summary>The entitlement that must be enabled, if any (entitlement codes arrive with S04).</summary>
+    /// <summary>
+    /// The entitlement this tenant action needs, if any (S04 D1, D10): a code declared in Tenancy's
+    /// <c>TenancyEntitlements</c>. Tenant actions only; a quota is counted by the handler, not enabled.
+    /// </summary>
     public string? Entitlement { get; }
 
     /// <summary>Whether the request must carry an <c>Idempotency-Key</c>.</summary>

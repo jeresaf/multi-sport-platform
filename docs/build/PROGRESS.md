@@ -7,10 +7,12 @@ at the start of every review.
 
 - **Current slice:** S04 — Plans, subscriptions and entitlements (docs/build/slices/S04-plans-entitlements.md,
   rewritten by the S03 slice review). S00, S01, S02 and S03 are done
-- **Current task:** S04-T1 — Entitlement catalogue and plans — not started; next is `/next-task`
-- **Next:** S04-T2 — Subscriptions and access mode
-- **Blocked on:** the owner's review of the S03 slice review PR (S04 decisions D1–D20). Q21–Q26: the owner took the
-  defaults (2026-10-21, open-questions.md "Answered")
+- **Current task:** S04-T1 — Entitlement catalogue and plans, as two PRs (owner, plan 2026-10-21): T1a the
+  entitlement catalogue (definitions, plan values in code, startup rule, `export-catalogues`) — in progress; T1b plans
+  in the database, the `tenancy.configuration.plans` seeder and `GET /api/platform/v1/plans`
+- **Next:** S04-T1b, then S04-T2 — Subscriptions and access mode
+- **Blocked on:** nothing. The S03 slice review (#61, #62) is merged; Q21–Q26: the owner took the defaults
+  (2026-10-21, open-questions.md "Answered")
 
 ## Next up
 
@@ -78,6 +80,7 @@ at the start of every review.
 | 2026-10-20 | S03-T6c2b | #60 | Slice close. Playwright `admin-demo.spec.ts`: the slice demo through the screens (platform administrator creates and activates a tenant and invites its owner; the owner joins from the Mailpit email, changes a setting and invites a viewer; the viewer joins, reads the settings only, and their PATCH is `403 AUTH_FORBIDDEN`), then the audit trail through `GET /api/platform/v1/audit-entries` (`support/audit.ts`): tenant create, activate and owner invitation by the administrator, settings change and invitation by the owner, both acceptances, the viewer's DENIED change, both sign-ins. `admin-platform.spec.ts`: taken slug on its field; activate, suspend, restore, archive (no owner invitation), unarchive, with reasons; status filter. `admin-members.spec.ts`: an administrator suspending themselves lands on "Page not found" and gets `403 AUTH_TENANT_FORBIDDEN` (#58 re-review Q1). T6 and slice acceptance ticked; roadmap S03 ☑; CI screenshot comment | Owner (plan): one PR; self-suspend landing tested as built, friendlier message a follow-up; #43 N1 kept for the Audit screen slice. Tech debt: Q1 and the stale Q20 item removed. Pre-review (ready; no blocker or major): evidence lines for T6; the acceptance by `ANONYMOUS` added to the T6c2 deviation (owner to confirm); the platform e2e tenant sorts first and ends restored, so a kept local database's suspended tenants never push it off the first page; one audit read per action. CI (e2e): the self-suspension test met the error page: a page under the workspace read `me` itself (`useTenantWorkspace`) and threw when the tenant left it, before the layout said "Page not found"; the layout now hands its pages the tenant (`TenantProvider`), with a Vitest test that fails without it. The password-change e2e opened the account menu before `/` had sent it on to the workspace (local flake); it waits for the workspace. e2e run locally (30 passed, twice). Review (subagent, approve with nits): R1 test tenants named per pilot-customer.md (Mvule; new invented Acacia Road Runners and Weaver Bird Athletics Club added there); N1 the overview page takes the tenant from the layout too; N2 comment; N3 the acceptance matched on `userId` and `accountCreated`; N4 PR number; N5 the DENIED entry filtered by tenant. Owner: Q1 anonymous acceptance accepted; Q2 the friendlier landing stays "Later, admin web". No backend change, no new actions, errors, events, migrations or dependencies |
 | 2026-10-20 | S03 slice review | — | Docs only: S04 spec rewritten by the reviewer (D1–D20, T1–T4); S03 slice review note (acceptance confirmed with evidence); tech debt regrouped (S04 carry-overs with their tasks, the other S03 items by trigger, edge limits to the infrastructure task, the duplicate key-ring item merged); deviation note on `GET /tenant/access`'s reason corrected; api-conventions.md: the OpenAPI document covers four families; open questions Q22 (platform staff roles), Q23 (subscription windows), Q24 (staff-user quota), Q25 (demo without a PRO-only action), Q26 (who sees the subscription); Q21 retagged | All S03 acceptance items met on main (76664f8); the slice demo runs in CI (`admin-demo.spec.ts`); the owner's manual demo is not recorded |
 | 2026-10-21 | Open questions | — | Docs only: the owner took the defaults on every open question; Q3–Q19 (with Q21–Q26 earlier the same day) moved to "Answered" in open-questions.md, none open | Q10's default keeps the domain TBD: the infrastructure task still chooses it ("First deployment", with Q10) |
+| 2026-10-21 | S04-T1a | #63 | Entitlement catalogue: `EntitlementDefinition`, `EntitlementValue`, `IEntitlementCatalogue` (BuildingBlocks); `TenancyEntitlements` (all 17 of authorization.md's table: type, unit, ordered levels, default, enforcing module, since) and `TenancyPlans` (STANDARD rank 1, PRO rank 2; values in code, the one source for T1b's seed and the export); `EntitlementRules` at startup (an action names a declared entitlement, only tenant actions name one, plan codes and ranks unique, every plan values every entitlement with its type); `membership.invite` names `MAX_STAFF_USERS`; `export-catalogues` writes `docs/generated/entitlements.md` and `contracts/entitlements.json` (CI step and CLAUDE.md updated); a test reads authorization.md's plan values table and compares it with the code both ways | Owner (plan 2026-10-21): T1 split into T1a (catalogue, code only) and T1b (plan tables, `tenancy.configuration.plans` seeder, `PostgresFixture`, `GET /api/platform/v1/plans`); plan values live in code; entitlements found by reflection over `*Entitlements` classes like actions. Acceptance 1 and 3 met; 2 half (code vs the table; seeded rows vs the code in T1b). About 1,250 changed lines without generated files (plan said ~550; ~450 are tests). Pre-review (ready, no blocker or major): log row; plan values frozen; duplicate plan codes and ranks refused; rule renamed `EnsureEntitlementsAreConsistent`. No new errors, events, endpoints, migrations or dependencies |
 
 ## Deviations from spec (agreed)
 
@@ -235,6 +238,12 @@ at the start of every review.
   can't be granted an action without a resource before S06). The fake chain test is `CONTEST → COMPETITION`: no
   `EDITION` scope type is added. Owner (#52 R1): accepted until S06 that every member with no tenant-wide role
   (`TEAM_MANAGER`, or roles assigned only at a competition or contest) gets `403` on the tenant list.
+- **S04-T1 (owner, plan 2026-10-21):** two PRs: T1a (#63) the entitlement catalogue in code; T1b the plan tables, the
+  `tenancy.configuration.plans` seeder, `PostgresFixture` and `GET /api/platform/v1/plans`. The plan values live in
+  code (`TenancyPlans`), the one source for the seed and the export; a test compares them with authorization.md's
+  table (D2's "a test reads the table"), and T1b compares the seeded rows with them. Entitlements are found by
+  reflection over `*Entitlements` classes, like actions. Owner on #63: R3 the entitlement types stay in BuildingBlocks
+  beside the action catalogue (AR-26 updated); R1 and R2 go to T1b (tech debt, S04).
 
 ## Tech debt / follow-ups
 
@@ -252,6 +261,16 @@ items are with S04's tasks or their own trigger. Each item names where it gets d
   also see UTC. (S04-T2 adds the zone to `/tenant/access`, D15; T4's blocked page uses it)
 - Advisory lock keys follow `<schema>.<purpose>:<id>` (only `MemberChanges` today, S03-T4b1 pre-review): write the
   convention into data-conventions.md with its second user, the subscription lock (S04-T2, D3, D12).
+- Plans as a service (#63 R1): `EntitlementRules` reads the plans from the static `TenancyPlans.All` and requires every
+  plan to value every catalogued entitlement, so D20's test-only entitlement (T3) would stop the Host. T1b registers
+  the plans as a service that the rule and the seeder read and tests can replace. (S04-T1b)
+- One JSON shape for `EntitlementValue` (#63 R2): `{ enabled }`, `{ limit }` (null = unlimited), `{ level }` exists only
+  in the Host's export. T1b moves it next to the type (one converter) for the `plan_entitlements.value` jsonb column,
+  the export, `GET /plans` and T3's overrides. T1b also orders `GET /plans` rows on purpose (#63 R8: the catalogue is in
+  code order, not the table's). (S04-T1b)
+- `DuplicateEntitlements` and `DuplicateActions` in the integration test assembly break any catalogue built from a
+  module in that assembly (#63 R9): T3 builds D20's test catalogue explicitly (`DeclaredEntitlements(definitions)`), not
+  by scanning the test assembly. (S04-T3)
 
 **Identity and access** (from S03; each names its trigger)
 - OpenAPI list queries (S03-T6c1): `status` and `limit` on `GET …/members`, `…/invitations` and the platform tenant

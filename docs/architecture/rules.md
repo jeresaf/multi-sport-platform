@@ -11,7 +11,8 @@ checks every PR against these rules; architecture tests enforce the ones marked 
   project. No shared DbContexts, no cross-schema queries, no cross-module foreign keys. **[test]** (ADR-0001, ADR-0008)
 - **AR-03 One owner per entity.** If ownership is unclear, the task is not ready — ask. (ADR-0001)
 - **AR-26 Minimal shared kernel.** `SportsPlatform.BuildingBlocks` holds only technical primitives (IDs, Result/
-  Error types, base entity, tenant/actor context abstractions, action attribute, outbox abstractions, clock).
+  Error types, base entity, tenant/actor context abstractions, action attribute, entitlement definition (S04, owner on #63 R3), outbox
+  abstractions, clock).
   No business logic, no domain enums. **[test]**
 - **AR-32 ADR for boundary or technology changes.** Moving ownership, adding a module, or changing a major
   technology needs an ADR first.
