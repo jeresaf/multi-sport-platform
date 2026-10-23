@@ -255,6 +255,14 @@ at the start of every review.
   capabilities keep step 3 only under `READ_ONLY` until T3 (D14); `/tenant/access` shows the current period's status
   and days but not the cancel reason; step 1 reads the periods uncached until T3's cache (D7).
 
+- **S04-T3a (owner, plan 2026-10-23, defaults taken):** T3a is two PRs: T3a1 (overrides: table, two actions and
+  endpoints, the platform read, ELSSC's demo override) and T3a2 (`IEntitlements`, D7's cache with step 1 on it, step 2,
+  the D20 tests for pack spec 07 §30). Defaults: `CheckQuotaAsync(code, used)` takes the count before the create,
+  refuses when `used >= limit` and warns when `used + 1` reaches 80 % of the limit; an unknown entitlement code in an
+  override is `TENANT_OVERRIDE_INVALID_VALUE` on `entitlementCode`; an override applies whatever the period's state
+  (step 1 still makes a tenant without a period `READ_ONLY`); D7's cache holds the tenant's time zone with its periods
+  and overrides, so a settings update clears it too.
+
 ## Tech debt / follow-ups
 
 Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or trigger) at S01 acceptance
@@ -269,8 +277,6 @@ items are with S04's tasks or their own trigger. Each item names where it gets d
   pre-review). Other tenant screens use the settings' zone since S03-T6c1, but a blocked tenant can't read its
   settings (`403 TENANT_BLOCKED`): add the zone to `/tenant/access` or `/me`. Members without `tenant.settings.read`
   also see UTC. (Backend done in S04-T2b: `/tenant/access` carries `timeZone`; T4's blocked page uses it)
-- DEMO: ELSSC's event-pass override `MAX_ACTIVE_EDITIONS = 1` until its period's end (D18) needs overrides (S04-T2b
-  deferral). (S04-T3a)
 - The S03 demo spec (`web/e2e/tests/admin-demo.spec.ts`) assigns its tenant's period through the API; switch it to the
   console's Subscription panel (S04-T2b deferral, D18). (S04-T4a)
 - `GET /plans` sends `value: null` for a declared entitlement the CONFIGURATION seed hasn't written yet (S04-T1b

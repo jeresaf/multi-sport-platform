@@ -98,7 +98,8 @@ periods, a quota), the command takes a PostgreSQL transaction-level advisory loc
 transaction. Concurrent commands on the same key queue on the lock, and each reads what the earlier ones committed.
 
 - Key: `<schema>.<purpose>:<id>`, hashed with `pg_advisory_xact_lock(hashtextextended(<key>, 0))`, e.g.
-  `identity.tenant_owners:<tenantId>` (S03), `tenancy.subscription:<tenantId>` (S04).
+  `identity.tenant_owners:<tenantId>` (S03), `tenancy.subscription:<tenantId>` and
+  `tenancy.entitlement_override:<tenantId>` (S04).
 - Take the lock inside an explicit transaction (`BeginTransactionAsync`), before the reads the rule depends on; commit
   with `CancellationToken.None` after the save, so a client hanging up can't roll back an audited change.
 - One key per rule and owner (usually the tenant); never hold two keys at once.

@@ -183,6 +183,16 @@ per plan, with per-tenant overrides.
 Effective value = platform default → plan value → tenant override (→ access mode). Cached per tenant; cache
 invalidated on plan/override/subscription change.
 
+**Overrides as built (S04-T3a1, D5).** `tenancy.tenant_entitlement_overrides` (tenant-owned, RLS): an entitlement
+code, a value of its type (`{ "enabled" }`, `{ "limit" }`, `{ "level" }`, as plans store them), a reason, an optional
+last day (`effective_until`, the tenant's date, included) and who removed it, when and why. At most one unremoved
+override per tenant and entitlement (a partial unique index); granting a second one removes the first ("Replaced by a
+new override") in the same save, so the history is kept. `entitlement.override` and `entitlement.override.remove`
+(`PLATFORM_ADMIN`, audit `REQUIRED_WITH_REASON`) run under the route's tenant
+(`/api/platform/v1/tenants/{tenantId}/entitlement-overrides`) and hold `tenancy.entitlement_override:<tenantId>`;
+`GET …/subscription` lists them with their reasons and history. Reasons are platform-only: tenants will see the value,
+never the reason. The effective value and its cache arrive with `IEntitlements` (S04-T3a2).
+
 ### Entitlements and plan values (adopted 2026-10-17 — open question Q2)
 
 Plain-language plan descriptions, indicative prices and the research behind them: docs/product/pricing-and-plans.md.
