@@ -42,6 +42,8 @@ the message is the default title and may change.
 | `TENANT_CONCURRENCY_CONFLICT` | 409 | The tenant was changed by someone else. Reload and try again. | Tenancy |
 | `TENANT_INVALID_TRANSITION` | 409 | The tenant's status does not allow this change. | Tenancy |
 | `TENANT_NOT_FOUND` | 404 | No such tenant. | Tenancy |
+| `TENANT_OVERRIDE_INVALID_VALUE` | 400 | The override must name a declared entitlement and give a value of its type. | Tenancy |
+| `TENANT_OVERRIDE_NOT_FOUND` | 404 | The tenant has no such entitlement override in place. | Tenancy |
 | `TENANT_PLAN_NOT_FOUND` | 400 | No active plan has this code. | Tenancy |
 | `TENANT_PROVISIONING` | 403 | This tenant is still being set up; only its owners and administrators can work in it. | Tenancy |
 | `TENANT_READ_ONLY` | 403 | This tenant is read-only: its subscription has ended or hasn't started. | Tenancy |
