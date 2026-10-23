@@ -28,14 +28,14 @@ public sealed class TenantSubscription
 
     /// <summary>
     /// The period that decides access today (S04 D3, as the owner refined it in #65 R2): the latest-started period in
-    /// effect today (ACTIVE, EXPIRING or GRACE); with none, the latest-started period of any kind, so an expired or
+    /// effect today (ACTIVE, EXPIRING, or GRACE until a later period has started); with none, the latest-started period of any kind, so an expired or
     /// cancelled one says why; with none started, the latest period (scheduled); with no periods, none. A period
     /// cancelled by mistake never hides a valid one still in effect.
     /// </summary>
     public SubscriptionPeriod? CurrentOn(DateOnly today)
     {
         var started = Periods.Where(p => p.StartsOn <= today).ToList();
-        return started.Find(p => IsInEffect(p, today)) ?? (started.Count > 0 ? started[0] : Latest);
+        return started.Find(p => IsInEffect(p, started, today)) ?? (started.Count > 0 ? started[0] : Latest);
     }
 
     /// <summary>The next non-cancelled period that starts after today, if any.</summary>
@@ -141,8 +141,17 @@ public sealed class TenantSubscription
         return Result.Success<IReadOnlyList<SubscriptionPeriod>>(cancelled);
     }
 
-    private static bool IsInEffect(SubscriptionPeriod period, DateOnly today) =>
-        period.StatusOn(today) is SubscriptionStatus.Active or SubscriptionStatus.Expiring or SubscriptionStatus.Grace;
+    /// <summary>
+    /// ACTIVE or EXPIRING; or GRACE while no later non-cancelled period has started, since grace only bridges the gap to
+    /// the next period (#65 R5): once that one has started, its own status decides.
+    /// </summary>
+    private static bool IsInEffect(SubscriptionPeriod period, IReadOnlyList<SubscriptionPeriod> started, DateOnly today) =>
+        period.StatusOn(today) switch
+        {
+            SubscriptionStatus.Active or SubscriptionStatus.Expiring => true,
+            SubscriptionStatus.Grace => !started.Any(p => !p.IsCancelled && p.StartsOn > period.StartsOn),
+            _ => false,
+        };
 
     private Result<SubscriptionPeriod> Add(SubscriptionTerms terms)
     {

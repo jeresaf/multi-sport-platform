@@ -273,6 +273,28 @@ public sealed class TenantSubscriptionTests
         new TenantSubscription([renewal, inGrace]).CurrentOn(_today).ShouldBeSameAs(renewal);
     }
 
+    // #65 R5: an earlier period's grace doesn't outlive a later period that started and ended.
+    [Fact]
+    public void Grace_ends_once_a_later_period_has_started_even_if_that_one_has_expired()
+    {
+        var inGrace = Period("2025-10-16", "2026-10-15");
+        var shortLater = Period("2026-10-16", "2026-10-20", expiringWindowDays: 0, graceDays: 0);
+        var subscription = new TenantSubscription([inGrace, shortLater]);
+
+        subscription.CurrentOn(_today).ShouldBeSameAs(shortLater);
+        shortLater.StatusOn(_today).ShouldBe(SubscriptionStatus.Expired);
+    }
+
+    [Fact]
+    public void Grace_still_counts_when_the_later_period_was_cancelled()
+    {
+        var inGrace = Period("2025-10-16", "2026-10-15");
+        var mistaken = Period("2026-10-16", "2027-10-15");
+        mistaken.Cancel("Assigned by mistake", SystemActor.Instance, _now);
+
+        new TenantSubscription([inGrace, mistaken]).CurrentOn(_today).ShouldBeSameAs(inGrace);
+    }
+
     [Fact]
     public void With_nothing_in_effect_the_latest_started_period_is_current_even_if_a_later_one_is_scheduled()
     {

@@ -53,7 +53,8 @@ Agreed with the owner in the S04-T2a plan, 2026-10-23 (S04 D3, D4):
   `ends_on` is the last day included; a cancellation takes effect when it is made.
 - Non-cancelled periods never share a day (checked under the tenant's lock `tenancy.subscription:<tenantId>`). A row
   never changes except to be cancelled.
-- The **current period** is the latest-started period in effect today (`ACTIVE`, `EXPIRING` or `GRACE`); with none,
+- The **current period** is the latest-started period in effect today (`ACTIVE`, `EXPIRING`, or `GRACE` while no later
+  non-cancelled period has started: grace only bridges the gap to the next period, #65 R5); with none,
   the latest-started period of any kind (so an expired or cancelled one says why); with none started, the latest
   period (`SCHEDULED`); with no periods, none. A period cancelled by mistake never hides a valid one still in effect
   (refined by the owner in #65 R2). A later non-cancelled period is `SCHEDULED` (the next one).
