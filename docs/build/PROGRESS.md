@@ -7,17 +7,18 @@ at the start of every review.
 
 - **Current slice:** S04 — Plans, subscriptions and entitlements (docs/build/slices/S04-plans-entitlements.md,
   rewritten by the S03 slice review). S00, S01, S02 and S03 are done
-- **Current task:** S04-T2b — Access mode `READ_ONLY`, `availableWhenReadOnly`, `/tenant/access`, seeds and test data
-  — in review
-- **Next:** S04-T3a — Overrides, `IEntitlements` and step 2
+- **Current task:** S04-T3a1 — Entitlement overrides: table, `entitlement.override`/`.remove`, the platform read,
+  ELSSC's demo override (plan approved 2026-10-23: T3a split into T3a1 and T3a2, defaults taken)
+- **Next:** S04-T3a2 — `IEntitlements`, its cache (step 1 included) and step 2
 - **Blocked on:** nothing. The S03 slice review (#61, #62) is merged; Q21–Q26: the owner took the defaults
   (2026-10-21, open-questions.md "Answered")
 
 ## Next up
 
-1. S04-T2b — Access mode `READ_ONLY`, the action flag, `/tenant/access`, DEMO seeder, test data and e2e setup (in review)
-2. S04-T3 — Overrides, effective entitlements, quotas and the full pipeline (likely two PRs: T3a, T3b)
-3. S04-T4 — Platform and tenant screens (likely two PRs: T4a, T4b)
+1. S04-T3a1 — Overrides (in progress)
+2. S04-T3a2 — `IEntitlements`, cache, step 2, pack spec 07 §30 tests (boolean steps)
+3. S04-T3b — `MAX_STAFF_USERS` quota, capabilities with `unavailable` and `access`, `GET …/tenant/subscription`
+4. S04-T4 — Platform and tenant screens (likely two PRs: T4a, T4b)
 
 ## Log
 
