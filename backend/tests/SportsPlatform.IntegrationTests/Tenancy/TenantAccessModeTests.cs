@@ -1,6 +1,11 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text;
+using System.Text.Json;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.AspNetCore.Routing.Patterns;
+using Microsoft.Extensions.DependencyInjection;
+using SportsPlatform.BuildingBlocks.Actions;
 using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.BuildingBlocks.Auditing;
 using SportsPlatform.IntegrationTests.Api;
@@ -34,7 +39,7 @@ public sealed class TenantAccessModeTests(PostgresFixture fixture) : DatabaseTes
     private const string _timeZone = "Africa/Kampala";
 
     /// <summary>The period test data gives a tenant that isn't provisioning, as access sees it on the test clock.</summary>
-    private static readonly SubscriptionAccess _testPeriod = new(
+    private static readonly TenantAccessPeriod _testPeriod = new(
         SubscriptionStatus.Active, TenantTestData.PeriodStartsOn, TenantTestData.PeriodEndsOn, TenantTestData.PeriodEndsOn.AddDays(14));
 
     private DateOnly Today => TenantCalendar.Today(App.Clock, _timeZone);
@@ -198,7 +203,7 @@ public sealed class TenantAccessModeTests(PostgresFixture fixture) : DatabaseTes
 
     [Theory]
     [MemberData(nameof(ReadOnlyCases))]
-    public async Task A_read_only_tenant_reads_and_refuses_every_write(string subscription)
+    public async Task A_read_only_tenant_reads_its_data_and_is_refused_a_write(string subscription)
     {
         var (kmsa, expected) = await ReadOnlyTenantAsync(subscription);
         var owner = await CreateMemberAsync(App.Services, kmsa, "grace.nakato@kmsa.example", Ct, TenantWide(IdentityRoles.TenantOwner));
@@ -222,6 +227,66 @@ public sealed class TenantAccessModeTests(PostgresFixture fixture) : DatabaseTes
             e => e.Outcome.ShouldBe(AuditOutcome.Denied),
             e => e.ErrorCode.ShouldBe("TENANT_READ_ONLY"),
             e => e.TenantId.ShouldBe(kmsa));
+    }
+
+    // Every mapped admin endpoint, read from the app's own endpoints like the authorization matrix: under READ_ONLY,
+    // step 1 refuses each action not available when read-only and lets every other through (#66 R2).
+    [Fact]
+    public async Task Under_read_only_every_admin_endpoint_is_refused_unless_its_action_is_available_when_read_only()
+    {
+        // No period: READ_ONLY. Every action allowed past step 3, so only step 1 decides.
+        var kmsa = await TenantTestData.SaveTenantAsync(
+            App.Services, "kmsa", TenantStatus.Active, publicEnabled: false, withDomain: true, withSubscription: false, Ct);
+        App.Authorization.AllowAll();
+        using var client = App.CreateClient().AsUser(TenantTestData.StaffId, kmsa);
+        client.DefaultRequestHeaders.Add("X-Tenant-Id", kmsa.ToString());
+        var endpoints = AdminEndpoints();
+        endpoints.ShouldContain(e => e.Action.AvailableWhenReadOnly);
+        endpoints.ShouldContain(e => !e.Action.AvailableWhenReadOnly);
+
+        var failures = new List<string>();
+        foreach (var (method, path, action) in endpoints)
+        {
+            using var request = new HttpRequestMessage(new HttpMethod(method), path);
+            using var response = await client.SendAsync(request, Ct);
+            var code = await CodeOfAsync(response);
+            if (action.AvailableWhenReadOnly ? code == "TENANT_READ_ONLY" : (response.StatusCode, code) != (HttpStatusCode.Forbidden, "TENANT_READ_ONLY"))
+            {
+                failures.Add($"{method} {path} ({action.Code}, available when read-only: {action.AvailableWhenReadOnly}) answered {(int)response.StatusCode} {code}.");
+            }
+        }
+
+        failures.ShouldBeEmpty();
+    }
+
+    /// <summary>The admin endpoints that require a tenant action, one per method, with GUID route parameters filled.</summary>
+    private List<(string Method, string Path, ActionDefinition Action)> AdminEndpoints() =>
+    [
+        .. App.Services.GetRequiredService<EndpointDataSource>().Endpoints
+            .OfType<RouteEndpoint>()
+            .Where(e => e.Metadata.GetOrderedMetadata<RequiresActionMetadata>() is [{ Action.Scope: ActionScope.Tenant }])
+            .Select(e => (Endpoint: e, Path: "/" + string.Join('/', e.RoutePattern.PathSegments.Select(segment => string.Concat(
+                segment.Parts.Select(part => part switch
+                {
+                    RoutePatternLiteralPart literal => literal.Content,
+                    RoutePatternSeparatorPart separator => separator.Content,
+                    RoutePatternParameterPart parameter => Guid.CreateVersion7().ToString(),
+                    _ => throw new InvalidOperationException($"Unexpected route part {part.GetType().Name}."),
+                }))))))
+            .Where(e => e.Path.StartsWith("/api/admin/", StringComparison.Ordinal))
+            .SelectMany(e => (e.Endpoint.Metadata.GetMetadata<IHttpMethodMetadata>()?.HttpMethods ?? [])
+                .Select(method => (method, e.Path, e.Endpoint.Metadata.GetRequiredMetadata<RequiresActionMetadata>().Action))),
+    ];
+
+    private static async Task<string?> CodeOfAsync(HttpResponseMessage response)
+    {
+        if (response.Content.Headers.ContentType?.MediaType != "application/problem+json")
+        {
+            return null;
+        }
+
+        using var problem = JsonDocument.Parse(await response.Content.ReadAsStringAsync(Ct));
+        return problem.RootElement.TryGetProperty("code", out var code) ? code.GetString() : null;
     }
 
     [Fact]
@@ -268,7 +333,7 @@ public sealed class TenantAccessModeTests(PostgresFixture fixture) : DatabaseTes
     /// An active tenant made read-only by its subscription: none; one that ended past its grace; the test period
     /// cancelled; or one that starts tomorrow. Returns the current period as access sees it (null for none).
     /// </summary>
-    private async Task<(Guid TenantId, SubscriptionAccess? Current)> ReadOnlyTenantAsync(string subscription)
+    private async Task<(Guid TenantId, TenantAccessPeriod? Current)> ReadOnlyTenantAsync(string subscription)
     {
         App.Authorization.UseIdentityRoles();
         var kmsa = await TenantTestData.SaveTenantAsync(
@@ -294,7 +359,7 @@ public sealed class TenantAccessModeTests(PostgresFixture fixture) : DatabaseTes
             "cancelled" => SubscriptionStatus.Cancelled,
             _ => SubscriptionStatus.Scheduled,
         };
-        return (kmsa, new SubscriptionAccess(status, p.StartsOn, p.EndsOn, p.EndsOn.AddDays(14)));
+        return (kmsa, new TenantAccessPeriod(status, p.StartsOn, p.EndsOn, p.EndsOn.AddDays(14)));
     }
 
     private async Task<Guid> TenantAsync(TenantStatus status)
