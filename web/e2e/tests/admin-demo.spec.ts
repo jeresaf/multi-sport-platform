@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { auditEntries, myUserId, type AuditEntry } from "./support/audit";
-import { newPassword, personEmail, platformAdmin, signIn, signInByApi } from "./support/accounts";
+import { assignSubscription, newPassword, personEmail, platformAdmin, signIn, signInByApi } from "./support/accounts";
 import { linkFromEmail } from "./support/mailpit";
 import { open } from "./support/pages";
 import { shoot, widths } from "./support/screenshots";
@@ -51,6 +51,8 @@ test("slice demo: platform admin → owner → viewer, with the audit trail", as
   await page.getByRole("button", { name: "Activate" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Activate" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Activated." })).toBeAttached();
+  // An active tenant without a subscription is read-only (S04 D9); the console assigns one from S04-T4.
+  await assignSubscription(page.request, tenantId);
   await page.getByRole("button", { name: "Invite an owner" }).click();
   await page.getByRole("dialog").getByLabel("Email").fill(owner.email);
   await page.getByRole("dialog").getByRole("button", { name: "Send invitation" }).click();
@@ -120,6 +122,7 @@ test("slice demo: platform admin → owner → viewer, with the audit trail", as
   const steps: [string, (entry: AuditEntry) => boolean][] = [
     ["tenant.create", by("tenant.create", adminId)],
     ["tenant.activate", by("tenant.activate", adminId)],
+    ["subscription.assign", by("subscription.assign", adminId)],
     ["tenant.owner.invite", by("tenant.owner.invite", adminId)],
     ["invitation.accept", accepted(ownerId)],
     ["tenant.settings.update", by("tenant.settings.update", ownerId)],

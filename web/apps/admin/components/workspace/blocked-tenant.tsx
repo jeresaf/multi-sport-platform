@@ -8,7 +8,7 @@ import { useTenantAccess } from "@/lib/capabilities";
 import { humanizeCode } from "@/lib/codes";
 import type { MeTenant } from "@/lib/workspace";
 
-// UTC until the tenant's time zone reaches the admin app (`/me` and `tenant/access` don't carry it).
+// UTC until this page reads `tenant/access` (S04-T4): it carries the tenant's time zone since S04-T2b; `/me` doesn't.
 const dateFormat = new Intl.DateTimeFormat("en-GB", { dateStyle: "long", timeZone: "UTC" });
 
 /**
