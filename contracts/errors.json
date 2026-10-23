@@ -229,6 +229,12 @@
       "owner": "Tenancy"
     },
     {
+      "code": "TENANT_READ_ONLY",
+      "status": 403,
+      "message": "This tenant is read-only: its subscription has ended or hasn't started.",
+      "owner": "Tenancy"
+    },
+    {
       "code": "TENANT_SLUG_TAKEN",
       "status": 409,
       "message": "This slug belongs to another tenant, possibly an archived one. Slugs are never reused.",

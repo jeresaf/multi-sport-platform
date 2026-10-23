@@ -120,4 +120,25 @@ public sealed class ActionDefinitionTests
         Should.Throw<ArgumentException>(() => new ActionDefinition(
             "tenant.read", "Read tenants.", scope, AuditRequirement.None, "S03", availableWhenBlocked: true));
     }
+
+    [Fact]
+    public void Tenant_action_may_be_available_when_read_only()
+    {
+        var action = new ActionDefinition(
+            "tenant.settings.read", "View the settings.", ActionScope.Tenant, AuditRequirement.Required, "S02",
+            [AssignmentScope.Tenant], availableWhenReadOnly: true);
+
+        action.AvailableWhenReadOnly.ShouldBeTrue();
+        new ActionDefinition("tenant.settings.update", "Change the settings.", ActionScope.Tenant, AuditRequirement.Required, "S02", [AssignmentScope.Tenant])
+            .AvailableWhenReadOnly.ShouldBeFalse();
+    }
+
+    [Theory]
+    [InlineData(ActionScope.Platform)]
+    [InlineData(ActionScope.Account)]
+    public void Only_tenant_actions_may_be_available_when_read_only(ActionScope scope)
+    {
+        Should.Throw<ArgumentException>(() => new ActionDefinition(
+            "tenant.read", "Read tenants.", scope, AuditRequirement.None, "S03", availableWhenReadOnly: true));
+    }
 }

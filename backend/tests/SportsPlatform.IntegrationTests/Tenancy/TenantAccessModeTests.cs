@@ -5,11 +5,16 @@ using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.BuildingBlocks.Auditing;
 using SportsPlatform.IntegrationTests.Api;
 using SportsPlatform.IntegrationTests.Audit;
+using SportsPlatform.IntegrationTests.Identity;
 using SportsPlatform.IntegrationTests.Infrastructure;
+using SportsPlatform.Modules.Identity.Domain.PlatformRoles;
 using SportsPlatform.Modules.Identity.Domain.Roles;
 using SportsPlatform.Modules.Tenancy.Contracts.Access;
+using SportsPlatform.Modules.Tenancy.Contracts.Subscriptions;
 using SportsPlatform.Modules.Tenancy.Contracts.Tenants;
+using SportsPlatform.Modules.Tenancy.Domain.Subscriptions;
 using SportsPlatform.Modules.Tenancy.Features.Access.GetTenantAccess;
+using static SportsPlatform.IntegrationTests.Identity.InvitationRequests;
 using static SportsPlatform.IntegrationTests.Identity.MemberRequests;
 using static SportsPlatform.IntegrationTests.Identity.MembershipTestData;
 
@@ -18,12 +23,21 @@ namespace SportsPlatform.IntegrationTests.Tenancy;
 /// <summary>
 /// Step 1 with roles (S03 D11), on the real membership check and evaluator: a <c>PROVISIONING</c> tenant is open to its
 /// owners and admins only (<c>403 TENANT_PROVISIONING</c> for other members); a <c>BLOCKED</c> one refuses every tenant
-/// action but <c>tenant.access.read</c>, which only its owner holds.
+/// action but <c>tenant.access.read</c>, which only its owner holds. With subscriptions (S04 D8): an <c>ACTIVE</c> one
+/// whose current period has expired, was cancelled or hasn't started, or that has none, is <c>READ_ONLY</c>: every
+/// tenant read passes, every other action is <c>403 TENANT_READ_ONLY</c>.
 /// </summary>
 public sealed class TenantAccessModeTests(PostgresFixture fixture) : DatabaseTest(fixture)
 {
     private const string _accessPath = "/api/admin/v1/tenant/access";
     private const string _settingsPath = "/api/admin/v1/tenant/settings";
+    private const string _timeZone = "Africa/Kampala";
+
+    /// <summary>The period test data gives a tenant that isn't provisioning, as access sees it on the test clock.</summary>
+    private static readonly SubscriptionAccess _testPeriod = new(
+        SubscriptionStatus.Active, TenantTestData.PeriodStartsOn, TenantTestData.PeriodEndsOn, TenantTestData.PeriodEndsOn.AddDays(14));
+
+    private DateOnly Today => TenantCalendar.Today(App.Clock, _timeZone);
 
     [Theory]
     [InlineData(IdentityRoles.TenantOwner)]
@@ -83,7 +97,7 @@ public sealed class TenantAccessModeTests(PostgresFixture fixture) : DatabaseTes
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var access = await ReadAccessAsync(response);
-        access.ShouldBe(new TenantAccessResponse(status, TenantAccessMode.Blocked, reason, access.Since));
+        access.ShouldBe(new TenantAccessResponse(status, TenantAccessMode.Blocked, reason, access.Since, _timeZone, _testPeriod));
         access.Since.ShouldBe(new DateTimeOffset(2026, 10, 1, 8, 0, 0, TimeSpan.Zero));
         (await response.Content.ReadAsStringAsync(Ct)).ShouldContain("\"accessMode\":\"BLOCKED\"");
 
@@ -108,7 +122,7 @@ public sealed class TenantAccessModeTests(PostgresFixture fixture) : DatabaseTes
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         (await ReadAccessAsync(response)).ShouldBe(
-            new TenantAccessResponse(TenantStatus.Suspended, TenantAccessMode.Blocked, "Contract renewal unsigned", suspendedAgain));
+            new TenantAccessResponse(TenantStatus.Suspended, TenantAccessMode.Blocked, "Contract renewal unsigned", suspendedAgain, _timeZone, _testPeriod));
     }
 
     [Theory]
@@ -141,7 +155,9 @@ public sealed class TenantAccessModeTests(PostgresFixture fixture) : DatabaseTes
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var access = await ReadAccessAsync(response);
-        access.ShouldBe(new TenantAccessResponse(status, mode, Reason: null, access.Since));
+        // Test data gives an active tenant a period, a provisioning one none (S04 D9: setup needs none).
+        access.ShouldBe(new TenantAccessResponse(
+            status, mode, Reason: null, access.Since, _timeZone, status == TenantStatus.Active ? _testPeriod : null));
         await (await adminClient.GetAsync(_accessPath, Ct)).ShouldBeProblemAsync(HttpStatusCode.Forbidden, "AUTH_FORBIDDEN");
     }
 
@@ -176,6 +192,109 @@ public sealed class TenantAccessModeTests(PostgresFixture fixture) : DatabaseTes
 
         await response.ShouldBeProblemAsync(HttpStatusCode.Forbidden, "AUTH_TENANT_FORBIDDEN");
         (await response.Content.ReadAsStringAsync(Ct)).ShouldNotContain("Season fees");
+    }
+
+    public static TheoryData<string> ReadOnlyCases => ["none", "expired", "cancelled", "scheduled"];
+
+    [Theory]
+    [MemberData(nameof(ReadOnlyCases))]
+    public async Task A_read_only_tenant_reads_and_refuses_every_write(string subscription)
+    {
+        var (kmsa, expected) = await ReadOnlyTenantAsync(subscription);
+        var owner = await CreateMemberAsync(App.Services, kmsa, "grace.nakato@kmsa.example", Ct, TenantWide(IdentityRoles.TenantOwner));
+        using var client = App.ClientFor(owner.UserId, kmsa);
+
+        // Every tenant read passes step 1: the settings, the members, the capabilities and the access.
+        (await client.GetAsync(_settingsPath, Ct)).StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await client.GetAsync(MembersPath, Ct)).StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await client.GetAsync("/api/admin/v1/me/capabilities", Ct)).StatusCode.ShouldBe(HttpStatusCode.OK);
+        using var response = await client.GetAsync(_accessPath, Ct);
+        var access = await ReadAccessAsync(response);
+        access.ShouldBe(new TenantAccessResponse(TenantStatus.Active, TenantAccessMode.ReadOnly, Reason: null, access.Since, _timeZone, expected));
+        (await response.Content.ReadAsStringAsync(Ct)).ShouldContain("\"accessMode\":\"READ_ONLY\"");
+
+        // Writes are refused before the evaluator, whoever holds them.
+        await (await PatchSettingsAsync(client)).ShouldBeProblemAsync(HttpStatusCode.Forbidden, "TENANT_READ_ONLY");
+        await (await client.InviteAsync("daniel.kato@kmsa.example", Ct, IdentityRoles.Viewer))
+            .ShouldBeProblemAsync(HttpStatusCode.Forbidden, "TENANT_READ_ONLY");
+        var entries = (await AuditTestData.EntriesAsync(App.Services, Ct)).Where(e => e.ActionCode == "tenant.settings.update").ToList();
+        entries.ShouldHaveSingleItem().ShouldSatisfyAllConditions(
+            e => e.Outcome.ShouldBe(AuditOutcome.Denied),
+            e => e.ErrorCode.ShouldBe("TENANT_READ_ONLY"),
+            e => e.TenantId.ShouldBe(kmsa));
+    }
+
+    [Fact]
+    public async Task Renewing_restores_writes_on_the_next_request()
+    {
+        var (kmsa, _) = await ReadOnlyTenantAsync("expired");
+        var owner = await CreateMemberAsync(App.Services, kmsa, "grace.nakato@kmsa.example", Ct, TenantWide(IdentityRoles.TenantOwner));
+        using var client = App.ClientFor(owner.UserId, kmsa);
+        await (await PatchSettingsAsync(client)).ShouldBeProblemAsync(HttpStatusCode.Forbidden, "TENANT_READ_ONLY");
+
+        var adminId = await AccountTestData.CreateUserAsync(App.Services, "asha.mutesi@msp.example", TestPasswords.New(), Ct, platformRole: PlatformRoles.Admin);
+        using var admin = App.CreateClient().AsUser(adminId);
+        using var renewed = await admin.PostAsJsonAsync(
+            new Uri($"{TenantTestData.TenantsPath}/{kmsa}/subscription/renew", UriKind.Relative), new { endsOn = Today.AddDays(180) }, Ct);
+        renewed.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        (await PatchSettingsAsync(client)).StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await ReadAccessAsync(await client.GetAsync(_accessPath, Ct))).AccessMode.ShouldBe(TenantAccessMode.Full);
+    }
+
+    [Fact]
+    public async Task Access_turns_read_only_at_midnight_in_the_tenants_time_zone_after_the_last_day_of_grace()
+    {
+        App.Authorization.UseIdentityRoles();
+        var kmsa = await TenantTestData.SaveTenantAsync(
+            App.Services, "kmsa", TenantStatus.Active, publicEnabled: false, withDomain: true, withSubscription: false, Ct);
+        var today = Today;
+        await TenantTestData.SavePeriodAsync(App.Services, kmsa, today.AddDays(-100), today.AddDays(-14), Ct); // grace ends today
+        var owner = await CreateMemberAsync(App.Services, kmsa, "grace.nakato@kmsa.example", Ct, TenantWide(IdentityRoles.TenantOwner));
+        using var client = App.ClientFor(owner.UserId, kmsa);
+
+        // Kampala is UTC+3 all year: its midnight is 21:00 UTC the day before.
+        var midnight = new DateTimeOffset(today.AddDays(1).ToDateTime(TimeOnly.MinValue), TimeSpan.FromHours(3));
+        App.Clock.Advance(midnight - App.Clock.GetUtcNow() - TimeSpan.FromSeconds(1));
+        (await ReadAccessAsync(await client.GetAsync(_accessPath, Ct))).Subscription.ShouldNotBeNull().Status.ShouldBe(SubscriptionStatus.Grace);
+        (await PatchSettingsAsync(client)).StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        App.Clock.Advance(TimeSpan.FromSeconds(1));
+        (await ReadAccessAsync(await client.GetAsync(_accessPath, Ct))).Subscription.ShouldNotBeNull().Status.ShouldBe(SubscriptionStatus.Expired);
+        await (await PatchSettingsAsync(client)).ShouldBeProblemAsync(HttpStatusCode.Forbidden, "TENANT_READ_ONLY");
+    }
+
+    /// <summary>
+    /// An active tenant made read-only by its subscription: none; one that ended past its grace; the test period
+    /// cancelled; or one that starts tomorrow. Returns the current period as access sees it (null for none).
+    /// </summary>
+    private async Task<(Guid TenantId, SubscriptionAccess? Current)> ReadOnlyTenantAsync(string subscription)
+    {
+        App.Authorization.UseIdentityRoles();
+        var kmsa = await TenantTestData.SaveTenantAsync(
+            App.Services, "kmsa", TenantStatus.Active, publicEnabled: false, withDomain: true, withSubscription: false, Ct);
+        var today = Today;
+        (DateOnly StartsOn, DateOnly EndsOn, string? Cancelled)? period = subscription switch
+        {
+            "none" => null,
+            "expired" => (today.AddDays(-200), today.AddDays(-15), null),
+            "cancelled" => (today.AddDays(-30), today.AddDays(150), "Association stopped running competitions"),
+            "scheduled" => (today.AddDays(1), today.AddDays(180), null),
+            _ => throw new ArgumentOutOfRangeException(nameof(subscription)),
+        };
+        if (period is not { } p)
+        {
+            return (kmsa, null);
+        }
+
+        await TenantTestData.SavePeriodAsync(App.Services, kmsa, p.StartsOn, p.EndsOn, Ct, p.Cancelled);
+        var status = subscription switch
+        {
+            "expired" => SubscriptionStatus.Expired,
+            "cancelled" => SubscriptionStatus.Cancelled,
+            _ => SubscriptionStatus.Scheduled,
+        };
+        return (kmsa, new SubscriptionAccess(status, p.StartsOn, p.EndsOn, p.EndsOn.AddDays(14)));
     }
 
     private async Task<Guid> TenantAsync(TenantStatus status)

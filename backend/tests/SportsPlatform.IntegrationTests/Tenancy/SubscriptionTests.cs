@@ -36,7 +36,7 @@ public sealed class SubscriptionTests(PostgresFixture fixture) : DatabaseTest(fi
     [Fact]
     public async Task Assign_adds_an_active_period_with_the_default_windows_and_is_audited_under_the_tenant()
     {
-        var tenantId = await TenantTestData.SaveTenantAsync(App.Services, "kmsa", TenantStatus.Active, Ct);
+        var tenantId = await TenantWithoutPeriodAsync("kmsa");
 
         using var response = await PostAsync(tenantId, "periods", Assign(Today.AddDays(-10), Today.AddDays(170), kind: "COMPLIMENTARY"));
 
@@ -68,7 +68,7 @@ public sealed class SubscriptionTests(PostgresFixture fixture) : DatabaseTest(fi
     [Fact]
     public async Task Assign_refuses_a_period_that_overlaps_one_that_is_not_cancelled()
     {
-        var tenantId = await TenantTestData.SaveTenantAsync(App.Services, "kmsa", TenantStatus.Active, Ct);
+        var tenantId = await TenantWithoutPeriodAsync("kmsa");
         using var first = await PostAsync(tenantId, "periods", Assign(Today, Today.AddDays(179)));
         first.StatusCode.ShouldBe(HttpStatusCode.Created);
 
@@ -84,7 +84,7 @@ public sealed class SubscriptionTests(PostgresFixture fixture) : DatabaseTest(fi
     [Fact]
     public async Task Concurrent_assigns_of_overlapping_periods_add_exactly_one()
     {
-        var tenantId = await TenantTestData.SaveTenantAsync(App.Services, "kmsa", TenantStatus.Active, Ct);
+        var tenantId = await TenantWithoutPeriodAsync("kmsa");
 
         var responses = await Task.WhenAll(Enumerable.Range(0, 10).Select(i =>
             PostAsync(tenantId, "periods", Assign(Today.AddDays(i), Today.AddDays(180 + i)))));
@@ -118,7 +118,7 @@ public sealed class SubscriptionTests(PostgresFixture fixture) : DatabaseTest(fi
     [InlineData("graceDays", -1, "VALIDATION_INVALID_REQUEST")]
     public async Task Assign_names_the_field_that_is_not_valid(string field, object? value, string code)
     {
-        var tenantId = await TenantTestData.SaveTenantAsync(App.Services, "kmsa", TenantStatus.Active, Ct);
+        var tenantId = await TenantWithoutPeriodAsync("kmsa");
         var body = Assign(Today, Today.AddDays(179));
         body[field] = value;
 
@@ -134,7 +134,7 @@ public sealed class SubscriptionTests(PostgresFixture fixture) : DatabaseTest(fi
     [Fact]
     public async Task Assign_refuses_an_unknown_kind_or_field_as_malformed()
     {
-        var tenantId = await TenantTestData.SaveTenantAsync(App.Services, "kmsa", TenantStatus.Active, Ct);
+        var tenantId = await TenantWithoutPeriodAsync("kmsa");
         var unknownKind = Assign(Today, Today.AddDays(179), kind: "EVENT_PASS");
         var unknownField = Assign(Today, Today.AddDays(179));
         unknownField["status"] = "ACTIVE";
@@ -157,7 +157,7 @@ public sealed class SubscriptionTests(PostgresFixture fixture) : DatabaseTest(fi
     [Fact]
     public async Task Renew_adds_a_period_from_the_day_after_the_latest_ends_on_the_plan_sent()
     {
-        var tenantId = await TenantTestData.SaveTenantAsync(App.Services, "kmsa", TenantStatus.Active, Ct);
+        var tenantId = await TenantWithoutPeriodAsync("kmsa");
         using var assigned = await PostAsync(tenantId, "periods", Assign(Today.AddDays(-100), Today.AddDays(20), plan: "PRO"));
 
         using var response = await PostAsync(tenantId, "renew", new Dictionary<string, object?>
@@ -180,7 +180,7 @@ public sealed class SubscriptionTests(PostgresFixture fixture) : DatabaseTest(fi
     [Fact]
     public async Task Renew_on_a_plan_that_is_no_longer_active_asks_for_a_plan_code()
     {
-        var tenantId = await TenantTestData.SaveTenantAsync(App.Services, "kmsa", TenantStatus.Active, Ct);
+        var tenantId = await TenantWithoutPeriodAsync("kmsa");
         await using (var scope = App.Services.CreateAsyncScope())
         {
             // A period on a plan no longer seeded as active (a dropped plan is deactivated, never deleted).
@@ -206,7 +206,7 @@ public sealed class SubscriptionTests(PostgresFixture fixture) : DatabaseTest(fi
     [Fact]
     public async Task Renew_without_a_period_or_to_a_day_before_its_first_day_is_refused()
     {
-        var tenantId = await TenantTestData.SaveTenantAsync(App.Services, "kmsa", TenantStatus.Active, Ct);
+        var tenantId = await TenantWithoutPeriodAsync("kmsa");
         using var none = await PostAsync(tenantId, "renew", new Dictionary<string, object?> { ["endsOn"] = Date(Today.AddDays(365)) });
         using var assigned = await PostAsync(tenantId, "periods", Assign(Today, Today.AddDays(179)));
 
@@ -222,7 +222,7 @@ public sealed class SubscriptionTests(PostgresFixture fixture) : DatabaseTest(fi
     [Fact]
     public async Task Change_plan_keeps_the_earlier_period_cancelled_and_adds_one_on_the_higher_plan_to_the_same_end()
     {
-        var tenantId = await TenantTestData.SaveTenantAsync(App.Services, "kmsa", TenantStatus.Active, Ct);
+        var tenantId = await TenantWithoutPeriodAsync("kmsa");
         using var assigned = await PostAsync(tenantId, "periods", Assign(Today.AddDays(-30), Today.AddDays(150)));
         var original = (await ReadAsync(assigned)).Periods.Single();
 
@@ -246,7 +246,7 @@ public sealed class SubscriptionTests(PostgresFixture fixture) : DatabaseTest(fi
     [Fact]
     public async Task Change_plan_to_a_lower_plan_waits_for_the_renewal_and_needs_a_period_in_effect()
     {
-        var tenantId = await TenantTestData.SaveTenantAsync(App.Services, "kmsa", TenantStatus.Active, Ct);
+        var tenantId = await TenantWithoutPeriodAsync("kmsa");
         using var none = await PostAsync(tenantId, "change-plan", new Dictionary<string, object?> { ["planCode"] = "PRO" });
         using var assigned = await PostAsync(tenantId, "periods", Assign(Today, Today.AddDays(179), plan: "PRO"));
 
@@ -263,7 +263,7 @@ public sealed class SubscriptionTests(PostgresFixture fixture) : DatabaseTest(fi
     [Fact]
     public async Task Cancel_cancels_the_current_and_scheduled_periods_with_the_reason_and_keeps_the_rows()
     {
-        var tenantId = await TenantTestData.SaveTenantAsync(App.Services, "elssc", TenantStatus.Active, Ct);
+        var tenantId = await TenantWithoutPeriodAsync("elssc");
         using var current = await PostAsync(tenantId, "periods", Assign(Today.AddDays(-5), Today.AddDays(40)));
         using var next = await PostAsync(tenantId, "periods", Assign(Today.AddDays(41), Today.AddDays(400)));
 
@@ -288,7 +288,7 @@ public sealed class SubscriptionTests(PostgresFixture fixture) : DatabaseTest(fi
     [Fact]
     public async Task Cancel_after_an_on_time_renewal_leaves_no_period_in_effect()
     {
-        var tenantId = await TenantTestData.SaveTenantAsync(App.Services, "elssc", TenantStatus.Active, Ct);
+        var tenantId = await TenantWithoutPeriodAsync("elssc");
         using var inGrace = await PostAsync(tenantId, "periods", Assign(Today.AddDays(-300), Today.AddDays(-3)));
         using var renewal = await PostAsync(tenantId, "periods", Assign(Today.AddDays(-2), Today.AddDays(300)));
 
@@ -303,7 +303,7 @@ public sealed class SubscriptionTests(PostgresFixture fixture) : DatabaseTest(fi
     [Fact]
     public async Task Cancel_needs_a_reason()
     {
-        var tenantId = await TenantTestData.SaveTenantAsync(App.Services, "kmsa", TenantStatus.Active, Ct);
+        var tenantId = await TenantWithoutPeriodAsync("kmsa");
 
         using var response = await PostAsync(tenantId, "cancel", new Dictionary<string, object?> { ["reason"] = " " });
 
@@ -313,7 +313,7 @@ public sealed class SubscriptionTests(PostgresFixture fixture) : DatabaseTest(fi
     [Fact]
     public async Task Get_lists_the_periods_latest_first_with_their_status_today_and_is_audited()
     {
-        var tenantId = await TenantTestData.SaveTenantAsync(App.Services, "kmsa", TenantStatus.Active, Ct);
+        var tenantId = await TenantWithoutPeriodAsync("kmsa");
         using var past = await PostAsync(tenantId, "periods", Assign(Today.AddDays(-400), Today.AddDays(-200)));
         using var current = await PostAsync(tenantId, "periods", Assign(Today.AddDays(-199), Today.AddDays(10)));
 
@@ -342,7 +342,7 @@ public sealed class SubscriptionTests(PostgresFixture fixture) : DatabaseTest(fi
     [Fact]
     public async Task A_period_ends_at_midnight_in_the_tenants_time_zone()
     {
-        var tenantId = await TenantTestData.SaveTenantAsync(App.Services, "kmsa", TenantStatus.Active, Ct);
+        var tenantId = await TenantWithoutPeriodAsync("kmsa");
         using var assigned = await PostAsync(tenantId, "periods", Assign(Today.AddDays(-30), Today, windowDays: 0, graceDays: 0));
         var kampalaMidnight = new DateTimeOffset(Today.AddDays(1).ToDateTime(TimeOnly.MinValue), TimeSpan.FromHours(3));
 
@@ -380,6 +380,10 @@ public sealed class SubscriptionTests(PostgresFixture fixture) : DatabaseTest(fi
     }
 
     private static string Date(DateOnly date) => date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+    // The commands start from no period; test data gives every active tenant one (S04 D18).
+    private Task<Guid> TenantWithoutPeriodAsync(string slug) => TenantTestData.SaveTenantAsync(
+        App.Services, slug, TenantStatus.Active, publicEnabled: false, withDomain: true, withSubscription: false, Ct);
 
     private static async Task<SubscriptionResponse> ReadAsync(HttpResponseMessage response) =>
         (await response.Content.ReadFromJsonAsync<SubscriptionResponse>(Json, Ct)).ShouldNotBeNull();

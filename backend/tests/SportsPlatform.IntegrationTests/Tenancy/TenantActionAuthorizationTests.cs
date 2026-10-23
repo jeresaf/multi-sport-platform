@@ -70,7 +70,10 @@ public sealed class TenantActionAuthorizationTests(PostgresFixture fixture) : Da
     [InlineData(Endpoint.CancelSubscription, "subscription.cancel", HttpStatusCode.Conflict)]
     public async Task Allowed(Endpoint endpoint, string action, HttpStatusCode expected)
     {
-        var tenantId = await TenantTestData.SaveTenantAsync(App.Services, "elssc", StatusFor(endpoint), Ct);
+        // The subscription commands start from no period (assign adds the first); everything else from test data's.
+        var withSubscription = endpoint is not (Endpoint.AssignPeriod or Endpoint.RenewSubscription or Endpoint.ChangePlan or Endpoint.CancelSubscription);
+        var tenantId = await TenantTestData.SaveTenantAsync(
+            App.Services, "elssc", StatusFor(endpoint), publicEnabled: false, withDomain: true, withSubscription, Ct);
         App.Authorization.Allow(Action(action));
 
         using var response = await SendAsync(endpoint, tenantId);

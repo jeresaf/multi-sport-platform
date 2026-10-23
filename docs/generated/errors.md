@@ -44,6 +44,7 @@ the message is the default title and may change.
 | `TENANT_NOT_FOUND` | 404 | No such tenant. | Tenancy |
 | `TENANT_PLAN_NOT_FOUND` | 400 | No active plan has this code. | Tenancy |
 | `TENANT_PROVISIONING` | 403 | This tenant is still being set up; only its owners and administrators can work in it. | Tenancy |
+| `TENANT_READ_ONLY` | 403 | This tenant is read-only: its subscription has ended or hasn't started. | Tenancy |
 | `TENANT_SLUG_TAKEN` | 409 | This slug belongs to another tenant, possibly an archived one. Slugs are never reused. | Tenancy |
 | `TENANT_SUBSCRIPTION_DOWNGRADE_AT_RENEWAL` | 409 | The plan can only change now to a higher plan. Choose a lower plan when renewing. | Tenancy |
 | `TENANT_SUBSCRIPTION_NOT_FOUND` | 409 | The tenant has no subscription period this change applies to. | Tenancy |
