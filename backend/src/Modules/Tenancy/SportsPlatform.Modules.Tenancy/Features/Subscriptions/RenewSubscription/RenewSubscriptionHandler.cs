@@ -6,7 +6,7 @@ namespace SportsPlatform.Modules.Tenancy.Features.Subscriptions.RenewSubscriptio
 /// <c>subscription.renew</c>: a new period from the day after the latest one ends (today if that has passed). Without a
 /// period, <c>TENANT_SUBSCRIPTION_NOT_FOUND</c>; an <c>endsOn</c> before the first day,
 /// <see cref="CommonErrors.InvalidRequest"/>; a plan taken over from the latest period that is no longer active,
-/// <c>TENANT_PLAN_NOT_FOUND</c>.
+/// <c>TENANT_PLAN_NOT_FOUND</c> (the endpoint reports both on their field).
 /// </summary>
 public sealed class RenewSubscriptionHandler(SubscriptionChanges subscriptions)
 {

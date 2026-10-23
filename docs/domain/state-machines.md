@@ -48,7 +48,7 @@ otherwise                                 → EXPIRED
 
 Renewal = a new period row. History is never overwritten.
 
-Added by the owner, 2026-10-23 (S04-T2a, S04 D3):
+Agreed with the owner in the S04-T2a plan, 2026-10-23 (S04 D3, D4):
 - Dates are `date`s in the tenant's time zone (settings); `now` above is the tenant's date today, by the app's clock.
   `ends_on` is the last day included; a cancellation takes effect when it is made.
 - Non-cancelled periods never share a day (checked under the tenant's lock `tenancy.subscription:<tenantId>`). A row

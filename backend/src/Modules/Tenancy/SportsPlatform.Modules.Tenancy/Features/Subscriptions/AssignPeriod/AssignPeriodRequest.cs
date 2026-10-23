@@ -1,5 +1,5 @@
 using System.Text.Json.Serialization;
-using SportsPlatform.Modules.Tenancy.Domain.Subscriptions;
+using SportsPlatform.Modules.Tenancy.Contracts.Subscriptions;
 
 namespace SportsPlatform.Modules.Tenancy.Features.Subscriptions.AssignPeriod;
 

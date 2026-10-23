@@ -9,6 +9,7 @@ using SportsPlatform.Modules.Identity.Domain.Invitations;
 using SportsPlatform.Modules.Identity.Domain.Memberships;
 using SportsPlatform.Modules.Identity.Domain.Roles;
 using SportsPlatform.Modules.Identity.Infrastructure.Users;
+using SportsPlatform.Modules.Tenancy.Contracts.Subscriptions;
 using SportsPlatform.Modules.Tenancy.Domain.Settings;
 using SportsPlatform.Modules.Tenancy.Domain.Subscriptions;
 using SportsPlatform.Modules.Tenancy.Domain.Tenants;

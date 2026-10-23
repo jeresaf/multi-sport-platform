@@ -651,7 +651,7 @@ export interface paths {
         put?: never;
         /**
          * Renew a tenant's subscription
-         * @description A new period from the day after the latest period (that isn't cancelled) ends, or from today if that day has passed or every period is cancelled, to `endsOn`. Dates are the tenant's (its time zone in settings) and both `startsOn` and `endsOn` are included. `planCode`, `kind` and the windows not sent are the latest period's: a lower plan is chosen here. Without any period, TENANT_SUBSCRIPTION_NOT_FOUND (assign one instead); an `endsOn` before the first day, VALIDATION_INVALID_REQUEST on `endsOn`.
+         * @description A new period from the day after the latest period (that isn't cancelled) ends, or from today if that day has passed or every period is cancelled, to `endsOn`. Dates are the tenant's (its time zone in settings) and both `startsOn` and `endsOn` are included. `planCode`, `kind` and the windows not sent are the latest period's: a lower plan is chosen here. Without any period, TENANT_SUBSCRIPTION_NOT_FOUND (assign one instead); an `endsOn` before the first day, VALIDATION_INVALID_REQUEST on `endsOn`; no `planCode` while the latest period's plan is no longer active, TENANT_PLAN_NOT_FOUND on `planCode`.
          */
         post: operations["RenewSubscription"];
         delete?: never;

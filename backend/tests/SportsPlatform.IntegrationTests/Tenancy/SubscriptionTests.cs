@@ -2,9 +2,11 @@ using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Persistence.Messaging;
+using SportsPlatform.BuildingBlocks.Tenancy;
 using SportsPlatform.IntegrationTests.Api;
 using SportsPlatform.IntegrationTests.Audit;
 using SportsPlatform.IntegrationTests.Identity;
@@ -14,6 +16,7 @@ using SportsPlatform.Modules.Tenancy.Contracts.Subscriptions;
 using SportsPlatform.Modules.Tenancy.Contracts.Tenants;
 using SportsPlatform.Modules.Tenancy.Domain.Subscriptions;
 using SportsPlatform.Modules.Tenancy.Features.Subscriptions;
+using SportsPlatform.Modules.Tenancy.Infrastructure;
 
 namespace SportsPlatform.IntegrationTests.Tenancy;
 
@@ -172,6 +175,32 @@ public sealed class SubscriptionTests(PostgresFixture fixture) : DatabaseTest(fi
             .ShouldBe(("STANDARD", SubscriptionStatus.Scheduled, Today.AddDays(21), Today.AddDays(385)));
         subscription.Periods[1].Status.ShouldBe(SubscriptionStatus.Expiring);
         (await AuditEntriesAsync()).Single(e => e.ActionCode == "subscription.renew").EntityId.ShouldBe(renewed.Id);
+    }
+
+    [Fact]
+    public async Task Renew_on_a_plan_that_is_no_longer_active_asks_for_a_plan_code()
+    {
+        var tenantId = await TenantTestData.SaveTenantAsync(App.Services, "kmsa", TenantStatus.Active, Ct);
+        await using (var scope = App.Services.CreateAsyncScope())
+        {
+            // A period on a plan no longer seeded as active (a dropped plan is deactivated, never deleted).
+            scope.ServiceProvider.GetRequiredService<TenantContext>().Set(tenantId);
+            var context = scope.ServiceProvider.GetRequiredService<TenancyDbContext>();
+            context.Add(SubscriptionPeriod.Create("BASIC", SubscriptionKind.Paid, Today.AddDays(-100), Today.AddDays(20), 30, 14));
+            await context.SaveChangesAsync(Ct);
+        }
+
+        using var inherited = await PostAsync(tenantId, "renew", new Dictionary<string, object?> { ["endsOn"] = Date(Today.AddDays(385)) });
+        using var sent = await PostAsync(tenantId, "renew", new Dictionary<string, object?>
+        {
+            ["endsOn"] = Date(Today.AddDays(385)),
+            ["planCode"] = "STANDARD",
+        });
+
+        var problem = await inherited.ShouldBeProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_INVALID_REQUEST");
+        var error = problem.GetProperty("errors").EnumerateArray().ShouldHaveSingleItem();
+        (error.GetProperty("field").GetString(), error.GetProperty("code").GetString()).ShouldBe(("planCode", "TENANT_PLAN_NOT_FOUND"));
+        sent.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
     [Fact]

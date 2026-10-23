@@ -73,7 +73,8 @@ internal static class SubscriptionEndpoints
                 $"day has passed or every period is cancelled, to `endsOn`. {_datesNote} `planCode`, `kind` and the " +
                 "windows not sent are the latest period's: a lower plan is chosen here. Without any period, " +
                 "TENANT_SUBSCRIPTION_NOT_FOUND (assign one instead); an `endsOn` before the first day, " +
-                "VALIDATION_INVALID_REQUEST on `endsOn`.")
+                "VALIDATION_INVALID_REQUEST on `endsOn`; no `planCode` while the latest period's plan is no longer active, " +
+                "TENANT_PLAN_NOT_FOUND on `planCode`.")
             .RequireAction(TenancyActions.SubscriptionRenew)
             .RunsUnderRouteTenant()
             .ValidateRequest<RenewSubscriptionRequest>(CommonErrors.InvalidRequest)
@@ -122,11 +123,25 @@ internal static class SubscriptionEndpoints
         return result.IsSuccess ? TypedResults.Ok(result.Value) : result.Error.ToProblem();
     }
 
-    // The renewal's first day is known only once the periods are read, so the handler checks endsOn against it.
-    private static Results<Ok<SubscriptionResponse>, ProblemHttpResult> RenewProblem(Error error) =>
-        error == CommonErrors.InvalidRequest
-            ? new ValidationResult([new ValidationFailure(nameof(RenewSubscriptionRequest.EndsOn),
-                "'endsOn' must be on or after the renewal's first day: the day after the latest period ends, or today.")])
-                .ToProblem(CommonErrors.InvalidRequest)
+    // The renewal's first day and the plan it takes over are known only once the periods are read, so the handler
+    // checks them; they are field errors like the validator's.
+    private static Results<Ok<SubscriptionResponse>, ProblemHttpResult> RenewProblem(Error error)
+    {
+        if (error == CommonErrors.InvalidRequest)
+        {
+            return FieldProblem(new ValidationFailure(nameof(RenewSubscriptionRequest.EndsOn),
+                "'endsOn' must be on or after the renewal's first day: the day after the latest period ends, or today."));
+        }
+
+        return error == TenancyErrors.PlanNotFound
+            ? FieldProblem(new ValidationFailure(nameof(RenewSubscriptionRequest.PlanCode),
+                "'planCode' must be sent: the latest period's plan is no longer active (GET /api/platform/v1/plans).")
+            {
+                ErrorCode = TenancyErrors.PlanNotFound.Code,
+            })
             : error.ToProblem();
+    }
+
+    private static ProblemHttpResult FieldProblem(ValidationFailure failure) =>
+        new ValidationResult([failure]).ToProblem(CommonErrors.InvalidRequest);
 }
