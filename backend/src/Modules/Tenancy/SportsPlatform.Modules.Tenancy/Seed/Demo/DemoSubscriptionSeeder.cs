@@ -63,6 +63,7 @@ public sealed class DemoSubscriptionSeeder : ISeeder
 
     private static async Task<bool> AssignAsync(IServiceProvider services, Guid tenantId, DemoSubscription demo, CancellationToken cancellationToken)
     {
+        // The demo tenants' zone: the tenant seeder sets it, so it is the stored one.
         var startsOn = TenantCalendar.Today(services.GetRequiredService<TimeProvider>(), DemoTenant.TimeZone);
         var request = new AssignPeriodRequest(TenancyPlans.Standard.Code, demo.Kind, startsOn, demo.EndsOn(startsOn));
         await DemoTenantSeeder.ValidateAsync(services, request, cancellationToken);

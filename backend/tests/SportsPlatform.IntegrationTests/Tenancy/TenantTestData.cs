@@ -168,7 +168,6 @@ internal static class TenantTestData
         return await scope.ServiceProvider.GetRequiredService<TenancyDbContext>().Set<Tenant>().CountAsync(cancellationToken);
     }
 
-    /// <summary>Changes a saved tenant through its domain methods, under that tenant (its status history is tenant-owned).</summary>
     /// <summary>
     /// A STANDARD period of the tenant from <paramref name="startsOn"/> to <paramref name="endsOn"/> with the default
     /// windows, cancelled by the platform when <paramref name="cancelReason"/> is given; saved under that tenant.
@@ -192,6 +191,7 @@ internal static class TenantTestData
         return period.Id;
     }
 
+    /// <summary>Changes a saved tenant through its domain methods, under that tenant (its status history is tenant-owned).</summary>
     public static async Task ChangeAsync(IServiceProvider services, Guid tenantId, Action<Tenant> change, CancellationToken cancellationToken)
     {
         await using var scope = services.CreateAsyncScope();
