@@ -208,8 +208,8 @@ its current subscription period on the tenant's date (time zone from its setting
 action is `403 TENANT_READ_ONLY`. The exceptions in the table above (live contests, results within 24 h, exports) set
 the flag with the slices that build them and check their own window. `ITenantAccess.GetAccessAsync` gives handlers
 the status, mode, time zone and current period; `GET /api/admin/v1/tenant/access` shows the owner the same, with the
-reason for the tenant's status. Read under the tenant (settings and periods are tenant-owned, RLS) and not cached, so
-a renewal takes effect on the next request.
+reason for the tenant's status. Read under the tenant (settings and periods are tenant-owned, RLS); the mode and "today"
+are derived on every request, and the stored periods are read uncached until S04-T3 caches them for up to 60 s (D7).
 
 ## Platform staff and support
 

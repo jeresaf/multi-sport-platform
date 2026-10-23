@@ -33,7 +33,10 @@ public sealed class DemoSubscriptionSeeder : ISeeder
 
     public SeedCategory Category => SeedCategory.Demo;
 
-    /// <summary>After the tenants (0), before the invitations (10).</summary>
+    /// <summary>
+    /// After the tenants (0), which it needs; before the invitations (10), so each tenant has its plan when invitations
+    /// are counted against the staff quota (S04-T3, D13).
+    /// </summary>
     public int Order => 5;
 
     public string Checksum { get; } = ComputeChecksum();

@@ -13,6 +13,6 @@ public sealed record TenantAccess(TenantStatus Status, TenantAccessMode Mode, st
 
 /// <summary>
 /// The current subscription period as access sees it: its status today and its days (all included), in the tenant's
-/// time zone. <c>graceEndsOn</c> is the last day of grace (<c>endsOn</c> without grace days).
+/// time zone. <c>graceEndsOn</c> is the last day of grace; equal to <c>endsOn</c> when the period has no grace days.
 /// </summary>
 public sealed record SubscriptionAccess(SubscriptionStatus Status, DateOnly StartsOn, DateOnly EndsOn, DateOnly GraceEndsOn);

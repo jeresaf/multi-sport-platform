@@ -91,8 +91,9 @@ How `READ_ONLY` is applied (S04-T2b, D8; plan approved by the owner 2026-10-23):
   `.read`. Later writes that must work while read-only (finishing a live contest, submitting its result within 24 h,
   exports) set the flag and check their own window in the handler through `ITenantAccess.GetAccessAsync` (status,
   mode, time zone, current period).
-- Nothing is cached and no job runs: the mode is derived on every request, so it changes at midnight in the tenant's
-  time zone and a renewal restores writes on the next request. Platform actions and the public site are not affected.
+- No job runs: the mode and "today" are derived on every request, so the mode changes at midnight in the tenant's
+  time zone. The stored periods are read uncached until S04-T3 caches them per instance for up to 60 s (D7), so a
+  renewal restores writes on the next request (within 60 s from T3). Platform actions and the public site are not affected.
 
 ---
 
