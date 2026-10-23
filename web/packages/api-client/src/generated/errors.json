@@ -217,6 +217,12 @@
       "owner": "Tenancy"
     },
     {
+      "code": "TENANT_PLAN_NOT_FOUND",
+      "status": 400,
+      "message": "No active plan has this code.",
+      "owner": "Tenancy"
+    },
+    {
       "code": "TENANT_PROVISIONING",
       "status": 403,
       "message": "This tenant is still being set up; only its owners and administrators can work in it.",
@@ -226,6 +232,24 @@
       "code": "TENANT_SLUG_TAKEN",
       "status": 409,
       "message": "This slug belongs to another tenant, possibly an archived one. Slugs are never reused.",
+      "owner": "Tenancy"
+    },
+    {
+      "code": "TENANT_SUBSCRIPTION_DOWNGRADE_AT_RENEWAL",
+      "status": 409,
+      "message": "The plan can only change now to a higher plan. Choose a lower plan when renewing.",
+      "owner": "Tenancy"
+    },
+    {
+      "code": "TENANT_SUBSCRIPTION_NOT_FOUND",
+      "status": 409,
+      "message": "The tenant has no subscription period this change applies to.",
+      "owner": "Tenancy"
+    },
+    {
+      "code": "TENANT_SUBSCRIPTION_OVERLAP",
+      "status": 409,
+      "message": "The period overlaps another subscription period of the tenant.",
       "owner": "Tenancy"
     },
     {

@@ -56,6 +56,8 @@ Core conventions, migrations review, database constraints and tests — not by a
 - `timestamptz` for instants (stored UTC); `date` for birth dates and other date-only values.
 - Scheduled starts are instants plus the venue's IANA time zone for display.
 - Inject `TimeProvider`; tests use a fake clock. Never `DateTime.Now`/`UtcNow` in domain or handlers.
+- A tenant's calendar days (subscription periods, S04) are `date`s in the tenant's time zone (settings): "today" is
+  computed from the clock on every use (`TenantCalendar.Today`), never stored or cached.
 
 ## Money and units
 
@@ -88,6 +90,18 @@ Properties of DTOs and audit metadata records are classified with `[PersonalData
 (`SportsPlatform.BuildingBlocks.Privacy`; on a positional record, `[property: PersonalData(...)]`). Audit metadata
 masks `PRIVATE` and `SENSITIVE` values as `"[REDACTED]"` (`AuditMetadata`). Unclassified members are written as they
 are, so anything personal goes in a record with classified properties, never in an anonymous type or dictionary.
+
+## Serializing changes: advisory locks
+
+When a rule spans rows that a single constraint can't check (the last owner of a tenant, non-overlapping subscription
+periods, a quota), the command takes a PostgreSQL transaction-level advisory lock, then reads and writes in the same
+transaction. Concurrent commands on the same key queue on the lock, and each reads what the earlier ones committed.
+
+- Key: `<schema>.<purpose>:<id>`, hashed with `pg_advisory_xact_lock(hashtextextended(<key>, 0))`, e.g.
+  `identity.tenant_owners:<tenantId>` (S03), `tenancy.subscription:<tenantId>` (S04).
+- Take the lock inside an explicit transaction (`BeginTransactionAsync`), before the reads the rule depends on; commit
+  with `CancellationToken.None` after the save, so a client hanging up can't roll back an audited change.
+- One key per rule and owner (usually the tenant); never hold two keys at once.
 
 ## Duplicate prevention
 

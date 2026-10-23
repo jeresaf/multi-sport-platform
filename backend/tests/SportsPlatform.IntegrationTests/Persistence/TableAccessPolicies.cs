@@ -46,6 +46,9 @@ public static class TableAccessPolicies
         ["tenancy.tenant_domains"] = TableAccess.ReadWrite,
         ["tenancy.tenant_settings"] = TableAccess.ReadWrite,
 
+        // Subscription periods (S04-T2a): a row changes only to be cancelled; never deleted.
+        ["tenancy.subscription_periods"] = TableAccess.ReadWrite,
+
         // Plans (S04-T1b): configuration data, global, written only by the CONFIGURATION seeder as the owner.
         ["tenancy.plans"] = TableAccess.ReadOnly,
         ["tenancy.plan_entitlements"] = TableAccess.ReadOnly,

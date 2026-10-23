@@ -3,7 +3,7 @@
     {
       "code": "PLATFORM_ADMIN",
       "scope": "PLATFORM",
-      "description": "Platform staff: tenants and their lifecycle, plans, platform administrators, audit and outbox.",
+      "description": "Platform staff: tenants and their lifecycle, plans and subscriptions, platform administrators, audit and outbox.",
       "assignableAt": [],
       "actions": [
         "plan.read",
@@ -12,6 +12,11 @@
         "platform.capabilities.read",
         "platform.outbox.read",
         "platform.outbox.redrive",
+        "subscription.assign",
+        "subscription.cancel",
+        "subscription.change_plan",
+        "subscription.read",
+        "subscription.renew",
         "tenant.activate",
         "tenant.archive",
         "tenant.create",
@@ -26,13 +31,14 @@
     {
       "code": "PLATFORM_SUPPORT",
       "scope": "PLATFORM",
-      "description": "Platform staff, read-only: tenants, plans, audit and outbox (every tenant, plan, audit and outbox read is audited).",
+      "description": "Platform staff, read-only: tenants, plans, subscriptions, audit and outbox (every one of these reads is audited).",
       "assignableAt": [],
       "actions": [
         "plan.read",
         "platform.audit.read",
         "platform.capabilities.read",
         "platform.outbox.read",
+        "subscription.read",
         "tenant.read"
       ]
     },

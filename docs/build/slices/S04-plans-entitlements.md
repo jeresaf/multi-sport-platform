@@ -253,8 +253,8 @@ Acceptance:
       including the day boundaries in the tenant's time zone.
 - [ ] An `ACTIVE` tenant with an expired, cancelled or no subscription reads (`*.read`) and gets
       `403 TENANT_READ_ONLY` on a write; renewing restores writes on the next request.
-- [ ] Overlapping periods are refused under concurrency (test).
-- [ ] Period history is never overwritten: a change plan or cancel keeps the earlier rows (test reads the table).
+- [x] Overlapping periods are refused under concurrency (test).
+- [x] Period history is never overwritten: a change plan or cancel keeps the earlier rows (test reads the table).
 
 ### T3 — Overrides, effective entitlements, quotas and the full pipeline
 Deliver:

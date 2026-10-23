@@ -1,6 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\SportsPlatform.BuildingBlocks\SportsPlatform.BuildingBlocks.csproj" />
     <ProjectReference Include="..\..\src\SportsPlatform.BuildingBlocks.Persistence\SportsPlatform.BuildingBlocks.Persistence.csproj" />
     <ProjectReference Include="..\..\src\Modules\Identity\SportsPlatform.Modules.Identity\SportsPlatform.Modules.Identity.csproj" />

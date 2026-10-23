@@ -3222,6 +3222,521 @@
         }
       }
     },
+    "/api/platform/v1/tenants/{tenantId}/subscription": {
+      "get": {
+        "tags": [
+          "Subscriptions"
+        ],
+        "summary": "Get a tenant's subscription",
+        "description": "Every subscription period of the tenant, latest start first, with its status on `today` (the tenant's date), the current period (the one that decides access) and the next scheduled one. Statuses are derived from the dates: SCHEDULED, ACTIVE, EXPIRING, GRACE, EXPIRED or CANCELLED.",
+        "operationId": "GetSubscription",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Problem Details; `code`: `TENANT_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "TENANT_NOT_FOUND"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_FORBIDDEN"
+            ]
+          }
+        }
+      }
+    },
+    "/api/platform/v1/tenants/{tenantId}/subscription/periods": {
+      "post": {
+        "tags": [
+          "Subscriptions"
+        ],
+        "summary": "Give a tenant a subscription period",
+        "description": "A new period on `planCode` (an active plan; otherwise TENANT_PLAN_NOT_FOUND on the field) from `startsOn` to `endsOn`. Dates are the tenant's (its time zone in settings) and both `startsOn` and `endsOn` are included. `kind` (PAID, TRIAL or COMPLIMENTARY) is for reporting only. `expiringWindowDays` defaults to 30 and `graceDays` to 14 (0–365). A period that shares a day with another period that isn't cancelled is refused (TENANT_SUBSCRIPTION_OVERLAP). A trial, an event pass or the pilot offer is an ordinary period.",
+        "operationId": "AssignSubscriptionPeriod",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignPeriodRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_REQUEST",
+              "VALIDATION_MALFORMED_REQUEST"
+            ]
+          },
+          "404": {
+            "description": "Problem Details; `code`: `TENANT_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "TENANT_NOT_FOUND"
+            ]
+          },
+          "409": {
+            "description": "Problem Details; `code`: `TENANT_SUBSCRIPTION_OVERLAP`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "TENANT_SUBSCRIPTION_OVERLAP"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
+              "AUTH_FORBIDDEN"
+            ]
+          }
+        }
+      }
+    },
+    "/api/platform/v1/tenants/{tenantId}/subscription/renew": {
+      "post": {
+        "tags": [
+          "Subscriptions"
+        ],
+        "summary": "Renew a tenant's subscription",
+        "description": "A new period from the day after the latest period (that isn't cancelled) ends, or from today if that day has passed or every period is cancelled, to `endsOn`. Dates are the tenant's (its time zone in settings) and both `startsOn` and `endsOn` are included. `planCode`, `kind` and the windows not sent are the latest period's: a lower plan is chosen here. Without any period, TENANT_SUBSCRIPTION_NOT_FOUND (assign one instead); an `endsOn` before the first day, VALIDATION_INVALID_REQUEST on `endsOn`; no `planCode` while the latest period's plan is no longer active, TENANT_PLAN_NOT_FOUND on `planCode`.",
+        "operationId": "RenewSubscription",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenewSubscriptionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_REQUEST",
+              "VALIDATION_MALFORMED_REQUEST"
+            ]
+          },
+          "404": {
+            "description": "Problem Details; `code`: `TENANT_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "TENANT_NOT_FOUND"
+            ]
+          },
+          "409": {
+            "description": "Problem Details; `code`: `TENANT_SUBSCRIPTION_NOT_FOUND`, `TENANT_SUBSCRIPTION_OVERLAP`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "TENANT_SUBSCRIPTION_NOT_FOUND",
+              "TENANT_SUBSCRIPTION_OVERLAP"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
+              "AUTH_FORBIDDEN"
+            ]
+          }
+        }
+      }
+    },
+    "/api/platform/v1/tenants/{tenantId}/subscription/change-plan": {
+      "post": {
+        "tags": [
+          "Subscriptions"
+        ],
+        "summary": "Move a tenant to a higher plan now",
+        "description": "Cancels the current period (reason \"Changed to <plan>\") and adds one on `planCode` from today to the same `endsOn`, with the same kind and windows; the history keeps both. Only to a higher plan (TENANT_SUBSCRIPTION_DOWNGRADE_AT_RENEWAL otherwise: choose a lower plan when renewing), and only while the current period is ACTIVE or EXPIRING (TENANT_SUBSCRIPTION_NOT_FOUND otherwise: renew instead).",
+        "operationId": "ChangeSubscriptionPlan",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePlanRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_REQUEST",
+              "VALIDATION_MALFORMED_REQUEST"
+            ]
+          },
+          "404": {
+            "description": "Problem Details; `code`: `TENANT_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "TENANT_NOT_FOUND"
+            ]
+          },
+          "409": {
+            "description": "Problem Details; `code`: `TENANT_SUBSCRIPTION_DOWNGRADE_AT_RENEWAL`, `TENANT_SUBSCRIPTION_NOT_FOUND`, `TENANT_SUBSCRIPTION_OVERLAP`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "TENANT_SUBSCRIPTION_DOWNGRADE_AT_RENEWAL",
+              "TENANT_SUBSCRIPTION_NOT_FOUND",
+              "TENANT_SUBSCRIPTION_OVERLAP"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
+              "AUTH_FORBIDDEN"
+            ]
+          }
+        }
+      }
+    },
+    "/api/platform/v1/tenants/{tenantId}/subscription/cancel": {
+      "post": {
+        "tags": [
+          "Subscriptions"
+        ],
+        "summary": "Cancel a tenant's subscription",
+        "description": "Cancels, now and with `reason`, every period that isn't cancelled or expired: those in effect today (an earlier one still in GRACE included) and every scheduled one. Nothing to cancel is TENANT_SUBSCRIPTION_NOT_FOUND. The reason is kept permanently on the periods and in the audit trail: don't include personal data.",
+        "operationId": "CancelSubscription",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelSubscriptionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_MALFORMED_REQUEST`, `VALIDATION_REASON_REQUIRED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_MALFORMED_REQUEST",
+              "VALIDATION_REASON_REQUIRED"
+            ]
+          },
+          "404": {
+            "description": "Problem Details; `code`: `TENANT_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "TENANT_NOT_FOUND"
+            ]
+          },
+          "409": {
+            "description": "Problem Details; `code`: `TENANT_SUBSCRIPTION_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "TENANT_SUBSCRIPTION_NOT_FOUND"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
+              "AUTH_FORBIDDEN"
+            ]
+          }
+        }
+      }
+    },
     "/api/platform/v1/plans": {
       "get": {
         "tags": [
@@ -3972,6 +4487,63 @@
         ],
         "description": "A role assignment scope that can grant a tenant action."
       },
+      "AssignPeriodRequest": {
+        "required": [
+          "planCode",
+          "kind",
+          "startsOn",
+          "endsOn"
+        ],
+        "type": "object",
+        "properties": {
+          "planCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "kind": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SubscriptionKind"
+              }
+            ]
+          },
+          "startsOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "endsOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "expiringWindowDays": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "graceDays": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A new period: `planCode` from `startsOn` to `endsOn` (both included, the tenant's dates). The windows\ndefault to 30 expiring and 14 grace days."
+      },
       "AssignRoleRequest": {
         "required": [
           "roleCode"
@@ -4121,6 +4693,22 @@
         ],
         "description": "Where the action came from."
       },
+      "CancelSubscriptionRequest": {
+        "required": [
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "description": "The body of `subscription.cancel` (audit `REQUIRED_WITH_REASON`). The reason is kept permanently on the\ncancelled periods and in the audit trail and is not redacted: it must not contain personal data."
+      },
       "CapabilitiesResponse": {
         "required": [
           "actions",
@@ -4222,6 +4810,22 @@
         },
         "additionalProperties": false,
         "description": "Change the signed-in user's password."
+      },
+      "ChangePlanRequest": {
+        "required": [
+          "planCode"
+        ],
+        "type": "object",
+        "properties": {
+          "planCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "description": "The higher plan to move to now."
       },
       "ChangeTenantStatusRequest": {
         "type": "object",
@@ -5280,6 +5884,53 @@
         },
         "description": "Why the message is re-driven; the audit entry records it (action audit `REQUIRED_WITH_REASON`). Kept permanently\nand not redacted, so it must not contain personal data."
       },
+      "RenewSubscriptionRequest": {
+        "required": [
+          "endsOn"
+        ],
+        "type": "object",
+        "properties": {
+          "endsOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "planCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "kind": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SubscriptionKind"
+              }
+            ]
+          },
+          "expiringWindowDays": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "graceDays": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A renewal up to `endsOn` (included). The plan, kind and windows not sent are the latest period's; a lower plan\nis chosen here."
+      },
       "ResetPasswordRequest": {
         "required": [
           "token",
@@ -5350,6 +6001,158 @@
           }
         },
         "description": "The public site's identity: `PUBLIC` fields only. PrimaryDomain is the host the site\nprefers, which may differ from the host the request came in on."
+      },
+      "SubscriptionKind": {
+        "enum": [
+          "PAID",
+          "TRIAL",
+          "COMPLIMENTARY"
+        ],
+        "description": "How a period was granted; for reporting only, never affects its status or access (state-machines.md)."
+      },
+      "SubscriptionPeriodResponse": {
+        "required": [
+          "id",
+          "planCode",
+          "kind",
+          "status",
+          "startsOn",
+          "endsOn",
+          "expiringWindowDays",
+          "graceDays",
+          "expiringFrom",
+          "graceEndsOn",
+          "createdAt",
+          "createdBy",
+          "cancelledAt",
+          "cancelledBy",
+          "cancelReason"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "planCode": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/SubscriptionKind"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SubscriptionStatus"
+          },
+          "startsOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "endsOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "expiringWindowDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "graceDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "expiringFrom": {
+            "type": "string",
+            "format": "date"
+          },
+          "graceEndsOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "cancelledAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "cancelledBy": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "cancelReason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "One period: `startsOn` to `endsOn`, both days included. `expiringFrom` is the first day of\n`EXPIRING` (after `endsOn` when the window is 0), `graceEndsOn` the last day of `GRACE`. The\ncancellation fields are set together."
+      },
+      "SubscriptionResponse": {
+        "required": [
+          "tenantId",
+          "today",
+          "timeZone",
+          "currentPeriodId",
+          "nextPeriodId",
+          "periods"
+        ],
+        "type": "object",
+        "properties": {
+          "tenantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "today": {
+            "type": "string",
+            "format": "date"
+          },
+          "timeZone": {
+            "type": "string"
+          },
+          "currentPeriodId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "nextPeriodId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "periods": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SubscriptionPeriodResponse"
+            }
+          }
+        },
+        "description": "A tenant's subscription as the platform sees it (S04 D16): every period, latest start first, with its status on\n`today`, the tenant's date in `timeZone`. `currentPeriodId` is the period that decides access (none\nwithout periods); `nextPeriodId` the next scheduled one. Overrides, effective entitlements and usage arrive with\nS04-T3."
+      },
+      "SubscriptionStatus": {
+        "enum": [
+          "SCHEDULED",
+          "ACTIVE",
+          "EXPIRING",
+          "GRACE",
+          "EXPIRED",
+          "CANCELLED"
+        ],
+        "description": "A subscription period's status, derived from its stored dates on a given day (docs/domain/state-machines.md,\n\"Subscription period\"); never stored."
       },
       "TenantAccessMode": {
         "enum": [
@@ -5711,6 +6514,9 @@
     },
     {
       "name": "Tenants"
+    },
+    {
+      "name": "Subscriptions"
     },
     {
       "name": "Plans"

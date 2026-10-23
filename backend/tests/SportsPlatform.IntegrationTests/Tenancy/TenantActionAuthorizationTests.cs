@@ -26,6 +26,11 @@ public sealed class TenantActionAuthorizationTests(PostgresFixture fixture) : Da
         UpdateSettings,
         GetAccess,
         ListPlans,
+        GetSubscription,
+        AssignPeriod,
+        RenewSubscription,
+        ChangePlan,
+        CancelSubscription,
     }
 
     private static readonly ActionDefinition[] _actions =
@@ -33,7 +38,8 @@ public sealed class TenantActionAuthorizationTests(PostgresFixture fixture) : Da
         TenancyActions.TenantCreate, TenancyActions.TenantRead, TenancyActions.TenantUpdate, TenancyActions.TenantActivate,
         TenancyActions.TenantSuspend, TenancyActions.TenantRestore, TenancyActions.TenantArchive, TenancyActions.TenantUnarchive,
         TenancyActions.TenantSettingsRead, TenancyActions.TenantSettingsUpdate, TenancyActions.TenantAccessRead,
-        TenancyActions.PlanRead,
+        TenancyActions.PlanRead, TenancyActions.SubscriptionRead, TenancyActions.SubscriptionAssign, TenancyActions.SubscriptionRenew,
+        TenancyActions.SubscriptionChangePlan, TenancyActions.SubscriptionCancel,
     ];
 
     [Fact]
@@ -55,6 +61,13 @@ public sealed class TenantActionAuthorizationTests(PostgresFixture fixture) : Da
     [InlineData(Endpoint.UpdateSettings, "tenant.settings.update", HttpStatusCode.OK)]
     [InlineData(Endpoint.GetAccess, "tenant.access.read", HttpStatusCode.OK)]
     [InlineData(Endpoint.ListPlans, "plan.read", HttpStatusCode.OK)]
+    [InlineData(Endpoint.GetSubscription, "subscription.read", HttpStatusCode.OK)]
+    [InlineData(Endpoint.AssignPeriod, "subscription.assign", HttpStatusCode.Created)]
+
+    // Past authorization: the tenant has no period to renew, change or cancel.
+    [InlineData(Endpoint.RenewSubscription, "subscription.renew", HttpStatusCode.Conflict)]
+    [InlineData(Endpoint.ChangePlan, "subscription.change_plan", HttpStatusCode.Conflict)]
+    [InlineData(Endpoint.CancelSubscription, "subscription.cancel", HttpStatusCode.Conflict)]
     public async Task Allowed(Endpoint endpoint, string action, HttpStatusCode expected)
     {
         var tenantId = await TenantTestData.SaveTenantAsync(App.Services, "elssc", StatusFor(endpoint), Ct);
@@ -80,6 +93,11 @@ public sealed class TenantActionAuthorizationTests(PostgresFixture fixture) : Da
     [InlineData(Endpoint.UpdateSettings, "tenant.settings.read")]
     [InlineData(Endpoint.GetAccess, "tenant.settings.read")]
     [InlineData(Endpoint.ListPlans, "tenant.read")]
+    [InlineData(Endpoint.GetSubscription, "plan.read")]
+    [InlineData(Endpoint.AssignPeriod, "subscription.read")]
+    [InlineData(Endpoint.RenewSubscription, "subscription.assign")]
+    [InlineData(Endpoint.ChangePlan, "subscription.renew")]
+    [InlineData(Endpoint.CancelSubscription, "subscription.change_plan")]
     public async Task Denied_without_its_own_action(Endpoint endpoint, string otherAction)
     {
         var status = StatusFor(endpoint);
@@ -128,6 +146,16 @@ public sealed class TenantActionAuthorizationTests(PostgresFixture fixture) : Da
             Endpoint.Restore => await client.PostAsync(new Uri($"{tenant}/restore", UriKind.Relative), null, Ct),
             Endpoint.GetAccess => await client.GetAsync(new Uri("/api/admin/v1/tenant/access", UriKind.Relative), Ct),
             Endpoint.ListPlans => await client.GetAsync(new Uri("/api/platform/v1/plans", UriKind.Relative), Ct),
+            Endpoint.GetSubscription => await client.GetAsync(new Uri($"{tenant}/subscription", UriKind.Relative), Ct),
+            Endpoint.AssignPeriod => await client.PostAsJsonAsync(
+                new Uri($"{tenant}/subscription/periods", UriKind.Relative),
+                new { planCode = "STANDARD", kind = "PAID", startsOn = "2026-10-01", endsOn = "2027-09-30" },
+                Ct),
+            Endpoint.RenewSubscription => await client.PostAsJsonAsync(
+                new Uri($"{tenant}/subscription/renew", UriKind.Relative), new { endsOn = "2027-09-30" }, Ct),
+            Endpoint.ChangePlan => await client.PostAsJsonAsync(
+                new Uri($"{tenant}/subscription/change-plan", UriKind.Relative), new { planCode = "PRO" }, Ct),
+            Endpoint.CancelSubscription => await client.PostAsJsonAsync(new Uri($"{tenant}/subscription/cancel", UriKind.Relative), reason, Ct),
             Endpoint.GetSettings => await client.GetAsync(new Uri(TenantSettingsTests.SettingsPath, UriKind.Relative), Ct),
             Endpoint.UpdateSettings => await client.PatchAsJsonAsync(
                 new Uri(TenantSettingsTests.SettingsPath, UriKind.Relative), new { startingSoonMinutes = 45 }, Ct),

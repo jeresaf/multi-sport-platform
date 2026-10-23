@@ -19,6 +19,12 @@ using SportsPlatform.Modules.Tenancy.Features.Settings;
 using SportsPlatform.Modules.Tenancy.Features.Settings.GetTenantSettings;
 using SportsPlatform.Modules.Tenancy.Features.Settings.UpdateTenantSettings;
 using SportsPlatform.Modules.Tenancy.Features.Site.GetSite;
+using SportsPlatform.Modules.Tenancy.Features.Subscriptions;
+using SportsPlatform.Modules.Tenancy.Features.Subscriptions.AssignPeriod;
+using SportsPlatform.Modules.Tenancy.Features.Subscriptions.CancelSubscription;
+using SportsPlatform.Modules.Tenancy.Features.Subscriptions.ChangePlan;
+using SportsPlatform.Modules.Tenancy.Features.Subscriptions.GetSubscription;
+using SportsPlatform.Modules.Tenancy.Features.Subscriptions.RenewSubscription;
 using SportsPlatform.Modules.Tenancy.Features.Tenants;
 using SportsPlatform.Modules.Tenancy.Features.Tenants.ChangeTenantStatus;
 using SportsPlatform.Modules.Tenancy.Features.Tenants.CreateTenant;
@@ -34,7 +40,7 @@ namespace SportsPlatform.Modules.Tenancy;
 
 /// <summary>
 /// Tenancy &amp; Commercial: tenants and their lifecycle, domains, settings and the public site (S02); entitlements and plans
-/// (S04); subscriptions follow (docs/architecture/modules.md).
+/// and subscriptions (S04) (docs/architecture/modules.md).
 /// </summary>
 public sealed class TenancyModule : IModule
 {
@@ -84,6 +90,16 @@ public sealed class TenancyModule : IModule
         services.AddSingleton<IValidator<ChangeTenantStatusWithReasonRequest>, ChangeTenantStatusWithReasonRequestValidator>();
         services.AddSingleton<IPlanCatalogue>(new PlanCatalogue(TenancyPlans.All));
         services.AddScoped<ListPlansHandler>();
+        services.AddScoped<SubscriptionChanges>();
+        services.AddScoped<GetSubscriptionHandler>();
+        services.AddScoped<AssignPeriodHandler>();
+        services.AddScoped<IValidator<AssignPeriodRequest>, AssignPeriodRequestValidator>();
+        services.AddScoped<RenewSubscriptionHandler>();
+        services.AddScoped<IValidator<RenewSubscriptionRequest>, RenewSubscriptionRequestValidator>();
+        services.AddScoped<ChangePlanHandler>();
+        services.AddScoped<IValidator<ChangePlanRequest>, ChangePlanRequestValidator>();
+        services.AddScoped<CancelSubscriptionHandler>();
+        services.AddSingleton<IValidator<CancelSubscriptionRequest>, CancelSubscriptionRequestValidator>();
         services.AddSeeder<PlanSeeder>();
         services.AddSeeder<DemoTenantSeeder>();
         services.AddDomainEventSubscriber<TenantCreatedDomainEvent, PublishTenantCreated>();
@@ -99,6 +115,7 @@ public sealed class TenancyModule : IModule
         CreateTenantEndpoint.Map(tenants);
         UpdateTenantProfileEndpoint.Map(tenants);
         ChangeTenantStatusEndpoints.Map(tenants);
+        SubscriptionEndpoints.Map(tenants);
         GetSiteEndpoint.Map(groups.Public);
         var settings = TenantSettingsEndpoints.Group(groups.Admin);
         GetTenantSettingsEndpoint.Map(settings);
