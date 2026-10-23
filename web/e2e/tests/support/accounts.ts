@@ -84,13 +84,14 @@ function kampalaDate(days: number): string {
 }
 
 /**
- * Gives a tenant a STANDARD period from today for 180 days, as the signed-in platform administrator of `request`, so an
+ * Gives a tenant a STANDARD period from yesterday to 179 days ahead (yesterday, so it has started even if Kampala's date
+ * turns between this runner and the API, #66 R7), as the signed-in platform administrator of `request`, so an
  * activated tenant has full access instead of being read-only (S04 D9, D18). The console's Subscription panel comes
  * with S04-T4.
  */
 export async function assignSubscription(request: APIRequestContext, id: string) {
   const assigned = await request.post(`/api/platform/v1/tenants/${id}/subscription/periods`, {
-    data: { planCode: "STANDARD", kind: "PAID", startsOn: kampalaDate(0), endsOn: kampalaDate(179) },
+    data: { planCode: "STANDARD", kind: "PAID", startsOn: kampalaDate(-1), endsOn: kampalaDate(179) },
     headers: csrf,
   });
   expect(assigned.status(), "assign subscription").toBe(201);
