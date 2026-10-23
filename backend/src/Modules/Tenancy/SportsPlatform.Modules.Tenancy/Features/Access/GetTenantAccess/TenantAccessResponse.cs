@@ -1,4 +1,5 @@
 using SportsPlatform.Modules.Tenancy.Contracts.Access;
+using SportsPlatform.Modules.Tenancy.Contracts.Subscriptions;
 using SportsPlatform.Modules.Tenancy.Contracts.Tenants;
 
 namespace SportsPlatform.Modules.Tenancy.Features.Access.GetTenantAccess;
@@ -16,4 +17,16 @@ public sealed record TenantAccessResponse(
     string? Reason,
     DateTimeOffset Since,
     string TimeZone,
-    SubscriptionAccess? Subscription);
+    TenantAccessPeriod? Subscription);
+
+/// <summary>
+/// The current subscription period on <c>/tenant/access</c>: its status today and its days (all included), in the
+/// tenant's time zone. <c>graceEndsOn</c> is the last day of grace; equal to <c>endsOn</c> when the period has no grace
+/// days. A response of its own, so a field added to Tenancy's contract for other modules doesn't change the API (#66 R4).
+/// </summary>
+public sealed record TenantAccessPeriod(SubscriptionStatus Status, DateOnly StartsOn, DateOnly EndsOn, DateOnly GraceEndsOn)
+{
+    public static TenantAccessPeriod? From(SubscriptionAccess? subscription) => subscription is null
+        ? null
+        : new(subscription.Status, subscription.StartsOn, subscription.EndsOn, subscription.GraceEndsOn);
+}

@@ -6010,33 +6010,6 @@
         },
         "description": "The public site's identity: `PUBLIC` fields only. PrimaryDomain is the host the site\nprefers, which may differ from the host the request came in on."
       },
-      "SubscriptionAccess": {
-        "required": [
-          "status",
-          "startsOn",
-          "endsOn",
-          "graceEndsOn"
-        ],
-        "type": "object",
-        "properties": {
-          "status": {
-            "$ref": "#/components/schemas/SubscriptionStatus"
-          },
-          "startsOn": {
-            "type": "string",
-            "format": "date"
-          },
-          "endsOn": {
-            "type": "string",
-            "format": "date"
-          },
-          "graceEndsOn": {
-            "type": "string",
-            "format": "date"
-          }
-        },
-        "description": "The current subscription period as access sees it: its status today and its days (all included), in the tenant's\ntime zone. `graceEndsOn` is the last day of grace (`endsOn` without grace days)."
-      },
       "SubscriptionKind": {
         "enum": [
           "PAID",
@@ -6197,6 +6170,33 @@
         ],
         "description": "What a tenant may do, derived from its status and its current subscription period: state-machines.md."
       },
+      "TenantAccessPeriod": {
+        "required": [
+          "status",
+          "startsOn",
+          "endsOn",
+          "graceEndsOn"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/SubscriptionStatus"
+          },
+          "startsOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "endsOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "graceEndsOn": {
+            "type": "string",
+            "format": "date"
+          }
+        },
+        "description": "The current subscription period on `/tenant/access`: its status today and its days (all included), in the\ntenant's time zone. `graceEndsOn` is the last day of grace; equal to `endsOn` when the period has no grace\ndays. A response of its own, so a field added to Tenancy's contract for other modules doesn't change the API (#66 R4)."
+      },
       "TenantAccessResponse": {
         "required": [
           "status",
@@ -6233,7 +6233,7 @@
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/SubscriptionAccess"
+                "$ref": "#/components/schemas/TenantAccessPeriod"
               }
             ]
           }

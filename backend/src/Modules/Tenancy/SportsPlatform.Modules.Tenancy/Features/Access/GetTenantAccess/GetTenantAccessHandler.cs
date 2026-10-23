@@ -34,6 +34,6 @@ public sealed class GetTenantAccessHandler(
             .Select(c => new { c.Reason, c.OccurredAt })
             .FirstAsync(cancellationToken);
 
-        return new TenantAccessResponse(status, access.Mode, last.Reason, last.OccurredAt, access.TimeZone, access.Subscription);
+        return new TenantAccessResponse(status, access.Mode, last.Reason, last.OccurredAt, access.TimeZone, TenantAccessPeriod.From(access.Subscription));
     }
 }

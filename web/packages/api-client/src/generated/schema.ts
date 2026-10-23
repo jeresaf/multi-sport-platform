@@ -1391,19 +1391,6 @@ export interface components {
             primaryDomain: string;
         };
         /**
-         * @description The current subscription period as access sees it: its status today and its days (all included), in the tenant's
-         *     time zone. `graceEndsOn` is the last day of grace (`endsOn` without grace days).
-         */
-        SubscriptionAccess: {
-            status: components["schemas"]["SubscriptionStatus"];
-            /** Format: date */
-            startsOn: string;
-            /** Format: date */
-            endsOn: string;
-            /** Format: date */
-            graceEndsOn: string;
-        };
-        /**
          * @description How a period was granted; for reporting only, never affects its status or access (state-machines.md).
          * @enum {unknown}
          */
@@ -1471,6 +1458,20 @@ export interface components {
          */
         TenantAccessMode: "FULL" | "READ_ONLY" | "BLOCKED";
         /**
+         * @description The current subscription period on `/tenant/access`: its status today and its days (all included), in the
+         *     tenant's time zone. `graceEndsOn` is the last day of grace; equal to `endsOn` when the period has no grace
+         *     days. A response of its own, so a field added to Tenancy's contract for other modules doesn't change the API (#66 R4).
+         */
+        TenantAccessPeriod: {
+            status: components["schemas"]["SubscriptionStatus"];
+            /** Format: date */
+            startsOn: string;
+            /** Format: date */
+            endsOn: string;
+            /** Format: date */
+            graceEndsOn: string;
+        };
+        /**
          * @description A tenant's access as its owner sees it: `status`; the `accessMode` derived from it and the current
          *     subscription period; the `reason` (null when the change needs none, such as an activation) and time
          *     (`since`) of the change that put the tenant in its status; the tenant's `timeZone` (IANA), in which to show
@@ -1484,7 +1485,7 @@ export interface components {
             /** Format: date-time */
             since: string;
             timeZone: string;
-            subscription: null | components["schemas"]["SubscriptionAccess"];
+            subscription: null | components["schemas"]["TenantAccessPeriod"];
         };
         /**
          * @description A tenant in the platform list. No settings: the list runs under no tenant, and settings are tenant-owned (read one
