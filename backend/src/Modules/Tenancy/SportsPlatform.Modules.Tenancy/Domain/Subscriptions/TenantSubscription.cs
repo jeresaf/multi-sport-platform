@@ -27,12 +27,16 @@ public sealed class TenantSubscription
     private SubscriptionPeriod? Latest => Periods is [var latest, ..] ? latest : null;
 
     /// <summary>
-    /// The period that decides access today (S04 D3): the non-cancelled period with the latest start on or before
-    /// today; with none, the latest period of any kind, so an expired, cancelled or scheduled one still says why; with
-    /// no periods, none.
+    /// The period that decides access today (S04 D3, as the owner refined it in #65 R2): the latest-started period in
+    /// effect today (ACTIVE, EXPIRING or GRACE); with none, the latest-started period of any kind, so an expired or
+    /// cancelled one says why; with none started, the latest period (scheduled); with no periods, none. A period
+    /// cancelled by mistake never hides a valid one still in effect.
     /// </summary>
-    public SubscriptionPeriod? CurrentOn(DateOnly today) =>
-        Periods.FirstOrDefault(p => !p.IsCancelled && p.StartsOn <= today) ?? Latest;
+    public SubscriptionPeriod? CurrentOn(DateOnly today)
+    {
+        var started = Periods.Where(p => p.StartsOn <= today).ToList();
+        return started.Find(p => IsInEffect(p, today)) ?? (started.Count > 0 ? started[0] : Latest);
+    }
 
     /// <summary>The next non-cancelled period that starts after today, if any.</summary>
     public SubscriptionPeriod? NextScheduledOn(DateOnly today) =>
@@ -115,15 +119,13 @@ public sealed class TenantSubscription
     }
 
     /// <summary>
-    /// <c>subscription.cancel</c>: cancels the current period, unless it has expired or is cancelled already, and every
-    /// scheduled period, now; returns them.
+    /// <c>subscription.cancel</c>: cancels, now, every period that isn't cancelled or expired: those in effect today
+    /// (an earlier one still in GRACE included, #65 R1) and every scheduled one; returns them.
     /// </summary>
     public Result<IReadOnlyList<SubscriptionPeriod>> Cancel(string reason, ICurrentActor actor, DateTimeOffset now, DateOnly today)
     {
-        var current = CurrentOn(today);
         var cancelled = _periods
-            .Where(p => !p.IsCancelled
-                && (p.StartsOn > today || (p == current && p.StatusOn(today) != SubscriptionStatus.Expired)))
+            .Where(p => p.StatusOn(today) is not (SubscriptionStatus.Cancelled or SubscriptionStatus.Expired))
             .OrderBy(p => p.StartsOn)
             .ToList();
         if (cancelled.Count == 0)
@@ -138,6 +140,9 @@ public sealed class TenantSubscription
 
         return Result.Success<IReadOnlyList<SubscriptionPeriod>>(cancelled);
     }
+
+    private static bool IsInEffect(SubscriptionPeriod period, DateOnly today) =>
+        period.StatusOn(today) is SubscriptionStatus.Active or SubscriptionStatus.Expiring or SubscriptionStatus.Grace;
 
     private Result<SubscriptionPeriod> Add(SubscriptionTerms terms)
     {

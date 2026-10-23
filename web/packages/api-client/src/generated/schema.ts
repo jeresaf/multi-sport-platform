@@ -631,7 +631,7 @@ export interface paths {
         put?: never;
         /**
          * Give a tenant a subscription period
-         * @description A new period on `planCode` (an active plan) from `startsOn` to `endsOn`. Dates are the tenant's (its time zone in settings) and both `startsOn` and `endsOn` are included. `kind` (PAID, TRIAL or COMPLIMENTARY) is for reporting only. `expiringWindowDays` defaults to 30 and `graceDays` to 14 (0–365). A period that shares a day with another period that isn't cancelled is refused (TENANT_SUBSCRIPTION_OVERLAP). A trial, an event pass or the pilot offer is an ordinary period.
+         * @description A new period on `planCode` (an active plan; otherwise TENANT_PLAN_NOT_FOUND on the field) from `startsOn` to `endsOn`. Dates are the tenant's (its time zone in settings) and both `startsOn` and `endsOn` are included. `kind` (PAID, TRIAL or COMPLIMENTARY) is for reporting only. `expiringWindowDays` defaults to 30 and `graceDays` to 14 (0–365). A period that shares a day with another period that isn't cancelled is refused (TENANT_SUBSCRIPTION_OVERLAP). A trial, an event pass or the pilot offer is an ordinary period.
          */
         post: operations["AssignSubscriptionPeriod"];
         delete?: never;
@@ -691,7 +691,7 @@ export interface paths {
         put?: never;
         /**
          * Cancel a tenant's subscription
-         * @description Cancels the current period, unless it has expired, and every scheduled period, now, with `reason`. Nothing to cancel is TENANT_SUBSCRIPTION_NOT_FOUND. The reason is kept permanently on the periods and in the audit trail: don't include personal data.
+         * @description Cancels, now and with `reason`, every period that isn't cancelled or expired: those in effect today (an earlier one still in GRACE included) and every scheduled one. Nothing to cancel is TENANT_SUBSCRIPTION_NOT_FOUND. The reason is kept permanently on the periods and in the audit trail: don't include personal data.
          */
         post: operations["CancelSubscription"];
         delete?: never;
@@ -3611,7 +3611,7 @@ export interface operations {
                     "application/json": components["schemas"]["SubscriptionResponse"];
                 };
             };
-            /** @description Problem Details; `code`: `TENANT_PLAN_NOT_FOUND`, `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST` */
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST` */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -3682,7 +3682,7 @@ export interface operations {
                     "application/json": components["schemas"]["SubscriptionResponse"];
                 };
             };
-            /** @description Problem Details; `code`: `TENANT_PLAN_NOT_FOUND`, `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST` */
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST` */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -3753,7 +3753,7 @@ export interface operations {
                     "application/json": components["schemas"]["SubscriptionResponse"];
                 };
             };
-            /** @description Problem Details; `code`: `TENANT_PLAN_NOT_FOUND`, `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST` */
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST` */
             400: {
                 headers: {
                     [name: string]: unknown;

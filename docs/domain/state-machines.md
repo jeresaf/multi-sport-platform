@@ -53,14 +53,16 @@ Agreed with the owner in the S04-T2a plan, 2026-10-23 (S04 D3, D4):
   `ends_on` is the last day included; a cancellation takes effect when it is made.
 - Non-cancelled periods never share a day (checked under the tenant's lock `tenancy.subscription:<tenantId>`). A row
   never changes except to be cancelled.
-- The **current period** is the non-cancelled period with the latest `starts_on` on or before today; with none, the
-  latest period of any kind (so an expired, cancelled or only-scheduled one still says why); with no periods, none. A
-  later non-cancelled period is `SCHEDULED` (the next one).
+- The **current period** is the latest-started period in effect today (`ACTIVE`, `EXPIRING` or `GRACE`); with none,
+  the latest-started period of any kind (so an expired or cancelled one says why); with none started, the latest
+  period (`SCHEDULED`); with no periods, none. A period cancelled by mistake never hides a valid one still in effect
+  (refined by the owner in #65 R2). A later non-cancelled period is `SCHEDULED` (the next one).
 - Commands (platform, `PLATFORM_ADMIN`): `subscription.assign` (a new period, refused if it overlaps),
   `subscription.renew` (from the day after the latest non-cancelled period ends, or today if that day has passed),
   `subscription.change_plan` (now, to a higher-ranked plan only, while the current period is `ACTIVE` or `EXPIRING`:
   cancels it with "Changed to <plan>" and adds one from today to the same `ends_on`), `subscription.cancel` (reason;
-  the current period unless `EXPIRED`, and every scheduled one).
+  every period not cancelled or `EXPIRED`: those in effect, an earlier one still in `GRACE` included, and every
+  scheduled one).
 
 ### Access mode (derived)
 

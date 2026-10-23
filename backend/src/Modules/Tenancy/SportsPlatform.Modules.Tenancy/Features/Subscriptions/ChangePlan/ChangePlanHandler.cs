@@ -13,12 +13,8 @@ public sealed class ChangePlanHandler(SubscriptionChanges subscriptions, ICurren
     {
         ArgumentNullException.ThrowIfNull(request);
         var planCode = request.PlanCode!;
-        var (ranks, active) = await subscriptions.PlansAsync(cancellationToken);
-        if (!active.Contains(planCode))
-        {
-            return TenancyErrors.PlanNotFound;
-        }
-
+        // The validator has checked that the plan is active (a field error, #65 R4).
+        var (ranks, _) = await subscriptions.PlansAsync(cancellationToken);
         return await subscriptions.ChangeAsync(
             tenantId,
             (subscription, today) =>

@@ -235,7 +235,12 @@ public sealed class SubscriptionTests(PostgresFixture fixture) : DatabaseTest(fi
             .ShouldBe(("PRO", Today, original.EndsOn, SubscriptionStatus.Active));
         (await RowsAsync(tenantId)).ShouldBe(
             [(original.Id, "STANDARD", true, "Changed to PRO"), (current.Id, "PRO", false, null)], ignoreOrder: true);
-        (await AuditEntriesAsync()).Single(e => e.ActionCode == "subscription.change_plan").EntityId.ShouldBe(current.Id);
+        var entry = (await AuditEntriesAsync()).Single(e => e.ActionCode == "subscription.change_plan");
+        entry.EntityId.ShouldBe(current.Id);
+        var metadata = Metadata(entry);
+        (metadata.GetProperty("planCode").GetString(), metadata.GetProperty("startsOn").GetString(), metadata.GetProperty("endsOn").GetString())
+            .ShouldBe(("PRO", Date(Today), Date(original.EndsOn)));
+        CancelledIds(metadata).ShouldBe([original.Id]);
     }
 
     [Fact]
@@ -269,12 +274,30 @@ public sealed class SubscriptionTests(PostgresFixture fixture) : DatabaseTest(fi
         var subscription = await ReadAsync(response);
         subscription.Periods.ShouldAllBe(p => p.Status == SubscriptionStatus.Cancelled && p.CancelReason == _reason);
         subscription.Periods.ShouldAllBe(p => p.CancelledBy == TenantTestData.StaffId && p.CancelledAt == App.Clock.GetUtcNow());
-        subscription.CurrentPeriodId.ShouldBe(subscription.Periods[0].Id);
+        // The started period, cancelled with the reason, decides access; not the later one that never started (#65 R2).
+        subscription.CurrentPeriodId.ShouldBe(subscription.Periods[1].Id);
         await again.ShouldBeProblemAsync(HttpStatusCode.Conflict, "TENANT_SUBSCRIPTION_NOT_FOUND");
         (await RowsAsync(tenantId)).ShouldAllBe(row => row.Cancelled && row.CancelReason == _reason);
         (await RowsAsync(tenantId)).Count.ShouldBe(2);
         var entry = (await AuditEntriesAsync()).Single(e => e.ActionCode == "subscription.cancel" && e.ErrorCode == null);
         (entry.Reason, entry.TenantId, entry.EntityId).ShouldBe((_reason, tenantId, subscription.Periods[1].Id));
+        CancelledIds(Metadata(entry)).ShouldBe([subscription.Periods[1].Id, subscription.Periods[0].Id]);
+    }
+
+    // #65 R1: cancelling an on-time renewal also cancels the period before it, still in grace.
+    [Fact]
+    public async Task Cancel_after_an_on_time_renewal_leaves_no_period_in_effect()
+    {
+        var tenantId = await TenantTestData.SaveTenantAsync(App.Services, "elssc", TenantStatus.Active, Ct);
+        using var inGrace = await PostAsync(tenantId, "periods", Assign(Today.AddDays(-300), Today.AddDays(-3)));
+        using var renewal = await PostAsync(tenantId, "periods", Assign(Today.AddDays(-2), Today.AddDays(300)));
+
+        using var response = await PostAsync(tenantId, "cancel", new Dictionary<string, object?> { ["reason"] = _reason });
+
+        var subscription = await ReadAsync(response);
+        subscription.Periods.ShouldAllBe(p => p.Status == SubscriptionStatus.Cancelled);
+        subscription.CurrentPeriodId.ShouldBe(subscription.Periods[0].Id);
+        (await RowsAsync(tenantId)).ShouldAllBe(row => row.Cancelled && row.CancelReason == _reason);
     }
 
     [Fact]
@@ -374,6 +397,12 @@ public sealed class SubscriptionTests(PostgresFixture fixture) : DatabaseTest(fi
         using var client = App.CreateClient().AsUser(TenantTestData.StaffId);
         return await client.GetAsync(new Uri($"{TenantTestData.TenantsPath}/{tenantId}/subscription", UriKind.Relative), Ct);
     }
+
+    private static JsonElement Metadata(AuditEntry entry) =>
+        JsonDocument.Parse(entry.Metadata.ShouldNotBeNull()).RootElement.Clone();
+
+    private static List<Guid> CancelledIds(JsonElement metadata) =>
+        [.. metadata.GetProperty("cancelledPeriodIds").EnumerateArray().Select(id => id.GetGuid())];
 
     /// <summary>The audit entries, after delivering the outbox: a command's entry is an outbox message until then.</summary>
     private async Task<List<AuditEntry>> AuditEntriesAsync()

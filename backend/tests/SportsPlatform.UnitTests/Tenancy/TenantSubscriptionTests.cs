@@ -243,8 +243,45 @@ public sealed class TenantSubscriptionTests
 
         cancelled.ShouldBe([running, next]);
         past.IsCancelled.ShouldBeFalse();
+        subscription.CurrentOn(_today).ShouldBeSameAs(running, "the cancelled period says why, not the expired one (#65 R2)");
         running.CancelReason.ShouldBe("Association merged into another");
         next.StatusOn(_today).ShouldBe(SubscriptionStatus.Cancelled);
+    }
+
+    // #65 R1: a renewal cancelled while the period before it is still in grace must not leave that one in effect.
+    [Fact]
+    public void Cancel_after_an_on_time_renewal_also_cancels_the_period_still_in_grace()
+    {
+        var inGrace = Period("2025-10-16", "2026-10-15");
+        var renewal = Period("2026-10-16", "2027-10-15");
+        var subscription = new TenantSubscription([inGrace, renewal]);
+        subscription.CurrentOn(_today).ShouldBeSameAs(renewal);
+
+        var cancelled = subscription.Cancel("Association closed", SystemActor.Instance, _now, _today).Value;
+
+        cancelled.ShouldBe([inGrace, renewal]);
+        subscription.CurrentOn(_today).ShouldNotBeNull().StatusOn(_today).ShouldBe(SubscriptionStatus.Cancelled);
+        subscription.CurrentOn(_today).ShouldBeSameAs(renewal);
+    }
+
+    [Fact]
+    public void A_later_period_in_effect_is_current_over_an_earlier_one_in_grace()
+    {
+        var inGrace = Period("2025-10-16", "2026-10-15");
+        var renewal = Period("2026-10-16", "2027-10-15");
+
+        new TenantSubscription([renewal, inGrace]).CurrentOn(_today).ShouldBeSameAs(renewal);
+    }
+
+    [Fact]
+    public void With_nothing_in_effect_the_latest_started_period_is_current_even_if_a_later_one_is_scheduled()
+    {
+        var expired = Period("2025-01-01", "2025-12-31");
+        var scheduled = Period("2026-11-01", "2027-10-31");
+        var subscription = new TenantSubscription([expired, scheduled]);
+
+        subscription.CurrentOn(_today).ShouldBeSameAs(expired);
+        subscription.NextScheduledOn(_today).ShouldBeSameAs(scheduled);
     }
 
     [Fact]

@@ -51,14 +51,14 @@ internal static class SubscriptionEndpoints
             .WithName("AssignSubscriptionPeriod")
             .WithSummary("Give a tenant a subscription period")
             .WithDescription(
-                $"A new period on `planCode` (an active plan) from `startsOn` to `endsOn`. {_datesNote} `kind` (PAID, " +
+                $"A new period on `planCode` (an active plan; otherwise TENANT_PLAN_NOT_FOUND on the field) from `startsOn` to `endsOn`. {_datesNote} `kind` (PAID, " +
                 "TRIAL or COMPLIMENTARY) is for reporting only. `expiringWindowDays` defaults to 30 and `graceDays` to 14 " +
                 "(0–365). A period that shares a day with another period that isn't cancelled is refused " +
                 "(TENANT_SUBSCRIPTION_OVERLAP). A trial, an event pass or the pilot offer is an ordinary period.")
             .RequireAction(TenancyActions.SubscriptionAssign)
             .RunsUnderRouteTenant()
             .ValidateRequest<AssignPeriodRequest>(CommonErrors.InvalidRequest)
-            .ProducesErrors(TenancyErrors.NotFound, TenancyErrors.PlanNotFound, TenancyErrors.SubscriptionOverlap);
+            .ProducesErrors(TenancyErrors.NotFound, TenancyErrors.SubscriptionOverlap);
 
         subscription.MapPost("/renew", async (
                 Guid tenantId, RenewSubscriptionRequest request, RenewSubscriptionHandler handler, CancellationToken cancellationToken) =>
@@ -78,8 +78,7 @@ internal static class SubscriptionEndpoints
             .RequireAction(TenancyActions.SubscriptionRenew)
             .RunsUnderRouteTenant()
             .ValidateRequest<RenewSubscriptionRequest>(CommonErrors.InvalidRequest)
-            .ProducesErrors(
-                TenancyErrors.NotFound, TenancyErrors.PlanNotFound, TenancyErrors.SubscriptionNotFound, TenancyErrors.SubscriptionOverlap);
+            .ProducesErrors(TenancyErrors.NotFound, TenancyErrors.SubscriptionNotFound, TenancyErrors.SubscriptionOverlap);
 
         subscription.MapPost("/change-plan", (
                 Guid tenantId, ChangePlanRequest request, ChangePlanHandler handler, CancellationToken cancellationToken) =>
@@ -96,7 +95,6 @@ internal static class SubscriptionEndpoints
             .ValidateRequest<ChangePlanRequest>(CommonErrors.InvalidRequest)
             .ProducesErrors(
                 TenancyErrors.NotFound,
-                TenancyErrors.PlanNotFound,
                 TenancyErrors.SubscriptionNotFound,
                 TenancyErrors.SubscriptionDowngradeAtRenewal,
                 TenancyErrors.SubscriptionOverlap);
@@ -107,7 +105,8 @@ internal static class SubscriptionEndpoints
             .WithName("CancelSubscription")
             .WithSummary("Cancel a tenant's subscription")
             .WithDescription(
-                "Cancels the current period, unless it has expired, and every scheduled period, now, with `reason`. " +
+                "Cancels, now and with `reason`, every period that isn't cancelled or expired: those in effect today (an " +
+                "earlier one still in GRACE included) and every scheduled one. " +
                 "Nothing to cancel is TENANT_SUBSCRIPTION_NOT_FOUND. The reason is kept permanently on the periods and " +
                 "in the audit trail: don't include personal data.")
             .RequireAction(TenancyActions.SubscriptionCancel)

@@ -5,7 +5,7 @@ using SportsPlatform.BuildingBlocks.Results;
 namespace SportsPlatform.Modules.Tenancy.Features.Subscriptions.CancelSubscription;
 
 /// <summary>
-/// <c>subscription.cancel</c>: the current period (unless expired) and every scheduled one, now, with the reason. The
+/// <c>subscription.cancel</c>: every period not cancelled or expired (in effect or scheduled), now, with the reason. The
 /// audit entry names the first period cancelled and lists them all.
 /// </summary>
 public sealed class CancelSubscriptionHandler(
