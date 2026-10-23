@@ -31,6 +31,8 @@ public sealed class TenantActionAuthorizationTests(PostgresFixture fixture) : Da
         RenewSubscription,
         ChangePlan,
         CancelSubscription,
+        GrantOverride,
+        RemoveOverride,
     }
 
     private static readonly ActionDefinition[] _actions =
@@ -39,7 +41,8 @@ public sealed class TenantActionAuthorizationTests(PostgresFixture fixture) : Da
         TenancyActions.TenantSuspend, TenancyActions.TenantRestore, TenancyActions.TenantArchive, TenancyActions.TenantUnarchive,
         TenancyActions.TenantSettingsRead, TenancyActions.TenantSettingsUpdate, TenancyActions.TenantAccessRead,
         TenancyActions.PlanRead, TenancyActions.SubscriptionRead, TenancyActions.SubscriptionAssign, TenancyActions.SubscriptionRenew,
-        TenancyActions.SubscriptionChangePlan, TenancyActions.SubscriptionCancel,
+        TenancyActions.SubscriptionChangePlan, TenancyActions.SubscriptionCancel, TenancyActions.EntitlementOverride,
+        TenancyActions.EntitlementOverrideRemove,
     ];
 
     [Fact]
@@ -63,6 +66,10 @@ public sealed class TenantActionAuthorizationTests(PostgresFixture fixture) : Da
     [InlineData(Endpoint.ListPlans, "plan.read", HttpStatusCode.OK)]
     [InlineData(Endpoint.GetSubscription, "subscription.read", HttpStatusCode.OK)]
     [InlineData(Endpoint.AssignPeriod, "subscription.assign", HttpStatusCode.Created)]
+    [InlineData(Endpoint.GrantOverride, "entitlement.override", HttpStatusCode.Created)]
+
+    // Past authorization: the tenant has no such override.
+    [InlineData(Endpoint.RemoveOverride, "entitlement.override.remove", HttpStatusCode.NotFound)]
 
     // Past authorization: the tenant has no period to renew, change or cancel.
     [InlineData(Endpoint.RenewSubscription, "subscription.renew", HttpStatusCode.Conflict)]
@@ -101,6 +108,8 @@ public sealed class TenantActionAuthorizationTests(PostgresFixture fixture) : Da
     [InlineData(Endpoint.RenewSubscription, "subscription.assign")]
     [InlineData(Endpoint.ChangePlan, "subscription.renew")]
     [InlineData(Endpoint.CancelSubscription, "subscription.change_plan")]
+    [InlineData(Endpoint.GrantOverride, "entitlement.override.remove")]
+    [InlineData(Endpoint.RemoveOverride, "entitlement.override")]
     public async Task Denied_without_its_own_action(Endpoint endpoint, string otherAction)
     {
         var status = StatusFor(endpoint);
@@ -159,6 +168,12 @@ public sealed class TenantActionAuthorizationTests(PostgresFixture fixture) : Da
             Endpoint.ChangePlan => await client.PostAsJsonAsync(
                 new Uri($"{tenant}/subscription/change-plan", UriKind.Relative), new { planCode = "PRO" }, Ct),
             Endpoint.CancelSubscription => await client.PostAsJsonAsync(new Uri($"{tenant}/subscription/cancel", UriKind.Relative), reason, Ct),
+            Endpoint.GrantOverride => await client.PostAsJsonAsync(
+                new Uri($"{tenant}/entitlement-overrides", UriKind.Relative),
+                new { entitlementCode = "MAX_ACTIVE_EDITIONS", value = new { limit = 1 }, reason = "Event pass: one edition" },
+                Ct),
+            Endpoint.RemoveOverride => await client.PostAsJsonAsync(
+                new Uri($"{tenant}/entitlement-overrides/{Guid.CreateVersion7()}/remove", UriKind.Relative), reason, Ct),
             Endpoint.GetSettings => await client.GetAsync(new Uri(TenantSettingsTests.SettingsPath, UriKind.Relative), Ct),
             Endpoint.UpdateSettings => await client.PatchAsJsonAsync(
                 new Uri(TenantSettingsTests.SettingsPath, UriKind.Relative), new { startingSoonMinutes = 45 }, Ct),

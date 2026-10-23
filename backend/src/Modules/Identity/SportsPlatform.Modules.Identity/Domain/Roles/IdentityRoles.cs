@@ -55,9 +55,11 @@ public static class IdentityRoles
     public static IReadOnlyList<RoleDefinition> All { get; } =
     [
         new(PlatformRoleCodes.Admin, RoleScope.Platform,
-            "Platform staff: tenants and their lifecycle, plans and subscriptions, platform administrators, audit and outbox.",
+            "Platform staff: tenants and their lifecycle, plans, subscriptions and entitlement overrides, platform administrators, audit and outbox.",
             [
                 .. _platformReads,
+                "entitlement.override",
+                "entitlement.override.remove",
                 "platform.admin.create",
                 "platform.outbox.redrive",
                 "subscription.assign",
