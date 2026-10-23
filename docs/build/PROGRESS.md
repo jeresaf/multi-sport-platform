@@ -7,16 +7,16 @@ at the start of every review.
 
 - **Current slice:** S04 — Plans, subscriptions and entitlements (docs/build/slices/S04-plans-entitlements.md,
   rewritten by the S03 slice review). S00, S01, S02 and S03 are done
-- **Current task:** S04-T1b — Plans in the database: `tenancy.plans` and `tenancy.plan_entitlements`, the
-  `tenancy.configuration.plans` seeder, `GET /api/platform/v1/plans` (T1a, #63, merged) — in review
-- **Next:** S04-T2 — Subscriptions and access mode
+- **Current task:** S04-T2a — Subscription periods: `tenancy.subscription_periods`, the derived status and current
+  period, `subscription.assign|renew|change_plan|cancel` and `GET …/tenants/{tenantId}/subscription`
+- **Next:** S04-T2b — Access mode `READ_ONLY`, `availableWhenReadOnly`, `/tenant/access`, seeds and test data
 - **Blocked on:** nothing. The S03 slice review (#61, #62) is merged; Q21–Q26: the owner took the defaults
   (2026-10-21, open-questions.md "Answered")
 
 ## Next up
 
-1. S04-T1b — Plans in the database (in review)
-2. S04-T2 — Subscriptions and access mode (likely two PRs: T2a, T2b)
+1. S04-T2a — Subscription periods, commands and the platform read (in progress)
+2. S04-T2b — Access mode `READ_ONLY`, the action flag, `/tenant/access`, DEMO seeder, test data and e2e setup
 3. S04-T3 — Overrides, effective entitlements, quotas and the full pipeline (likely two PRs: T3a, T3b)
 4. S04-T4 — Platform and tenant screens (likely two PRs: T4a, T4b)
 
