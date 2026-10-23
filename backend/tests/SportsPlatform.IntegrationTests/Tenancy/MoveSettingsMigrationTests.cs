@@ -48,17 +48,25 @@ public sealed class MoveSettingsMigrationTests(PostgresFixture fixture) : Databa
             await MigrateAsync(target: null);
         }
 
-        (await TenantTestData.SettingsAsync(App.Services, kmsa, Ct)).Values.ShouldBe(new TenantSettingsValues(
-            "Africa/Kampala", "en", "UGX", PublicEnabled: true, StartingSoonMinutes: 30, MinorRegistrationConsent.Recommended));
-        var copied = await TenantTestData.SettingsAsync(App.Services, elssc, Ct);
-        copied.ShouldSatisfyAllConditions(
-            s => s.Id.ShouldBe(elssc, "a copied row takes its tenant's ID"),
-            s => s.Values.ShouldBe(new TenantSettingsValues(
-                "Africa/Nairobi", "sw-KE", "KES", PublicEnabled: false, StartingSoonMinutes: 30, MinorRegistrationConsent.Recommended)));
-        (await QueryAsync(
-            DatabaseRoles.Migrator,
-            "SELECT count(*) FROM information_schema.columns WHERE table_schema = 'tenancy' AND table_name = 'tenants' AND column_name = 'time_zone'",
-            r => r.GetInt64(0))).ShouldBe([0L]);
+        try
+        {
+            (await TenantTestData.SettingsAsync(App.Services, kmsa, Ct)).Values.ShouldBe(new TenantSettingsValues(
+                "Africa/Kampala", "en", "UGX", PublicEnabled: true, StartingSoonMinutes: 30, MinorRegistrationConsent.Recommended));
+            var copied = await TenantTestData.SettingsAsync(App.Services, elssc, Ct);
+            copied.ShouldSatisfyAllConditions(
+                s => s.Id.ShouldBe(elssc, "a copied row takes its tenant's ID"),
+                s => s.Values.ShouldBe(new TenantSettingsValues(
+                    "Africa/Nairobi", "sw-KE", "KES", PublicEnabled: false, StartingSoonMinutes: 30, MinorRegistrationConsent.Recommended)));
+            (await QueryAsync(
+                DatabaseRoles.Migrator,
+                "SELECT count(*) FROM information_schema.columns WHERE table_schema = 'tenancy' AND table_name = 'tenants' AND column_name = 'time_zone'",
+                r => r.GetInt64(0))).ShouldBe([0L]);
+        }
+        finally
+        {
+            // Down and up dropped and recreated the plan tables, which the reset keeps: seed them again for the next test.
+            await Fixture.RestoreSeedDataAsync();
+        }
     }
 
     private async Task MigrateAsync(string? target)

@@ -84,14 +84,22 @@ public sealed class SeedRunnerTests(PostgresFixture fixture) : DatabaseTest(fixt
         // Testcontainers may report a non-local Docker host; locality itself is DatabaseResetTests'.
         await using var development = InEnvironment("Development", new() { [DatabaseReset.AllowResetOfKey] = FixtureHost });
 
-        var report = await Runner(development).RunAsync(new SeedRequest(SeedCategory.Reference, Reset: true), Ct);
+        try
+        {
+            var report = await Runner(development).RunAsync(new SeedRequest(SeedCategory.Reference, Reset: true), Ct);
 
-        report.IsRefused.ShouldBeFalse();
-        (await AuditTestData.EntriesAsync(App.Services, Ct)).ShouldBeEmpty();
-        (await SeedRunsAsync()).Select(run => run.SeederKey).ShouldBe(_referenceSeeders); // Only the runs after the reset.
-        (await ProbeCodesAsync()).ShouldBe(["KE", "UG"]);
-        (await QueryAsync(DatabaseRoles.App, "SELECT count(*) FROM platform.countries", reader => reader.GetInt64(0)))
-            .ShouldHaveSingleItem().ShouldBeGreaterThan(0); // The real reference data is seeded again.
+            report.IsRefused.ShouldBeFalse();
+            (await AuditTestData.EntriesAsync(App.Services, Ct)).ShouldBeEmpty();
+            (await SeedRunsAsync()).Select(run => run.SeederKey).ShouldBe(_referenceSeeders); // Only the runs after the reset.
+            (await ProbeCodesAsync()).ShouldBe(["KE", "UG"]);
+            (await QueryAsync(DatabaseRoles.App, "SELECT count(*) FROM platform.countries", reader => reader.GetInt64(0)))
+                .ShouldHaveSingleItem().ShouldBeGreaterThan(0); // The real reference data is seeded again.
+        }
+        finally
+        {
+            // REFERENCE only: the plan tables (CONFIGURATION) were dropped with the schemas; seed them again for the next test.
+            await Fixture.RestoreSeedDataAsync();
+        }
     }
 
     [Fact]
