@@ -150,7 +150,7 @@ public sealed class DemoTenantSeeder : ISeeder
         return true;
     }
 
-    private static async Task ValidateAsync<T>(IServiceProvider services, T request, CancellationToken cancellationToken)
+    internal static async Task ValidateAsync<T>(IServiceProvider services, T request, CancellationToken cancellationToken)
     {
         // As the endpoint does: handlers expect a validated request.
         var validation = await services.GetRequiredService<IValidator<T>>().ValidateAsync(request, cancellationToken);
@@ -160,7 +160,7 @@ public sealed class DemoTenantSeeder : ISeeder
         }
     }
 
-    private static void Succeed<T>(Result<T> result, string what)
+    internal static void Succeed<T>(Result<T> result, string what)
     {
         if (result.IsFailure)
         {

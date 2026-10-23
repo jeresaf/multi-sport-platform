@@ -99,6 +99,12 @@ Invitations expire after 7 days; the seeder sends a new one when the data change
 accepted invitation is never sent again, even after that member is removed: run `seed --reset` to get them back. The other
 people above get roles scoped to competitions, teams or contests, which arrive with those modules.
 
+**Demo subscriptions (S04 D18).** The DEMO seed (`tenancy.demo.subscriptions`, through `subscription.assign` as the
+system) gives KMSA a STANDARD period, `COMPLIMENTARY`, for six months from the seed date (the pilot offer), and ELSSC a
+STANDARD period, `PAID`, for 45 days (the event pass; its `MAX_ACTIVE_EDITIONS` override arrives with overrides,
+S04-T3). Days are in `Africa/Kampala`. A tenant that already has a period is left alone, so once a demo period has
+ended (the tenant is read-only), run `seed --reset` to start again.
+
 ## Second tenant (isolation and multi-tenant demos)
 
 **Eastern Lakes Schools Sports Council (ELSSC)** — slug `elssc`, fictional. Twelve secondary schools (for

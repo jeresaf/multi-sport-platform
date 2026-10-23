@@ -102,6 +102,7 @@ public sealed class TenancyModule : IModule
         services.AddSingleton<IValidator<CancelSubscriptionRequest>, CancelSubscriptionRequestValidator>();
         services.AddSeeder<PlanSeeder>();
         services.AddSeeder<DemoTenantSeeder>();
+        services.AddSeeder<DemoSubscriptionSeeder>();
         services.AddDomainEventSubscriber<TenantCreatedDomainEvent, PublishTenantCreated>();
         services.AddDomainEventSubscriber<TenantStatusChangedDomainEvent, PublishTenantStatusChanged>();
     }

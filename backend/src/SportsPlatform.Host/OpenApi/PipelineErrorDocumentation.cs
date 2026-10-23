@@ -77,6 +77,11 @@ internal static class PipelineErrorDocumentation
             {
                 yield return TenancyErrors.Blocked;
             }
+
+            if (!action.AvailableWhenReadOnly)
+            {
+                yield return TenancyErrors.ReadOnly;
+            }
         }
     }
 }

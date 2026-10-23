@@ -19,6 +19,13 @@ public static class TenancyErrors
         "TENANT_BLOCKED", "This tenant is suspended or archived.", ErrorKind.Forbidden);
 
     /// <summary>
+    /// Access mode READ_ONLY (an <c>ACTIVE</c> tenant whose subscription has ended, was cancelled or hasn't started): a
+    /// tenant action that isn't available when read-only is refused (S04 D8, D11).
+    /// </summary>
+    public static readonly Error ReadOnly = new(
+        "TENANT_READ_ONLY", "This tenant is read-only: its subscription has ended or hasn't started.", ErrorKind.Forbidden);
+
+    /// <summary>
     /// A tenant action on a <c>PROVISIONING</c> tenant by a member who doesn't hold <c>TENANT_OWNER</c> or
     /// <c>TENANT_ADMIN</c> (S03 D11).
     /// </summary>

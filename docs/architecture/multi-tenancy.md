@@ -201,6 +201,16 @@ Computed by Tenancy from tenant status × subscription status (docs/domain/state
 The access-mode check runs before entitlement and permission checks for every admin request. While a tenant is `PROVISIONING` it is
 `FULL` for its owners and admins only; other members get `TENANT_PROVISIONING` (docs/domain/state-machines.md).
 
+As built (S04-T2b): Tenancy's `ITenantAccess.CheckAdminAccessAsync` is step 1. An `ACTIVE` tenant's mode comes from
+its current subscription period on the tenant's date (time zone from its settings, the app's `TimeProvider`):
+`ACTIVE`, `EXPIRING` or `GRACE` is `FULL`; expired, cancelled, scheduled only or none is `READ_ONLY`. While
+`READ_ONLY`, actions flagged `availableWhenReadOnly` pass (every tenant read, by a startup rule) and every other tenant
+action is `403 TENANT_READ_ONLY`. The exceptions in the table above (live contests, results within 24 h, exports) set
+the flag with the slices that build them and check their own window. `ITenantAccess.GetAccessAsync` gives handlers
+the status, mode, time zone and current period; `GET /api/admin/v1/tenant/access` shows the owner the same, with the
+reason for the tenant's status. Read under the tenant (settings and periods are tenant-owned, RLS); the mode and "today"
+are derived on every request, and the stored periods are read uncached until S04-T3 caches them for up to 60 s (D7).
+
 ## Platform staff and support
 
 - Platform roles never get implicit tenant data access through the admin API. Support views are separate

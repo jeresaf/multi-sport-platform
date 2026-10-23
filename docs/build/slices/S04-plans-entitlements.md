@@ -249,9 +249,9 @@ Deliver:
   the plan.
 
 Acceptance:
-- [ ] Table-driven tests cover every row of state-machines.md's subscription and access-mode tables on a fake clock,
+- [x] Table-driven tests cover every row of state-machines.md's subscription and access-mode tables on a fake clock,
       including the day boundaries in the tenant's time zone.
-- [ ] An `ACTIVE` tenant with an expired, cancelled or no subscription reads (`*.read`) and gets
+- [x] An `ACTIVE` tenant with an expired, cancelled or no subscription reads (`*.read`) and gets
       `403 TENANT_READ_ONLY` on a write; renewing restores writes on the next request.
 - [x] Overlapping periods are refused under concurrency (test).
 - [x] Period history is never overwritten: a change plan or cancel keeps the earlier rows (test reads the table).
@@ -324,3 +324,10 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
 ## Implementation notes
 
 (The builder adds notes here as tasks merge.)
+
+- **T2b:** a `SCHEDULED` period with none in effect counts as none (`READ_ONLY`). `ITenantAccess.GetAccessAsync`
+  (status, mode, time zone, current period) replaces `GetAccessModeAsync`; `/tenant/access` shows the current period's
+  status and days but not the cancel reason (platform text; owner default, plan 2026-10-23). Step 1 reads the periods
+  uncached (T3 adds D7's cache). DEMO: ELSSC's `MAX_ACTIVE_EDITIONS` override waits for overrides (T3). The e2e specs
+  assign periods through the API until the console's panel (T4). Capabilities still list writes under `READ_ONLY`
+  until T3 (D14).

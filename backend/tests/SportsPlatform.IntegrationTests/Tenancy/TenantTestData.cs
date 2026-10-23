@@ -4,9 +4,12 @@ using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Persistence.Messaging;
 using SportsPlatform.BuildingBlocks.Tenancy;
+using SportsPlatform.Modules.Tenancy.Contracts.Subscriptions;
 using SportsPlatform.Modules.Tenancy.Contracts.Tenants;
 using SportsPlatform.Modules.Tenancy.Domain.Domains;
+using SportsPlatform.Modules.Tenancy.Domain.Plans;
 using SportsPlatform.Modules.Tenancy.Domain.Settings;
+using SportsPlatform.Modules.Tenancy.Domain.Subscriptions;
 using SportsPlatform.Modules.Tenancy.Domain.Tenants;
 using SportsPlatform.Modules.Tenancy.Infrastructure;
 
@@ -47,17 +50,36 @@ internal static class TenantTestData
         return body;
     }
 
+    /// <summary>The days of the period a non-provisioning test tenant gets: <see cref="SubscriptionStatus.Active"/> on the test clock's date.</summary>
+    public static readonly DateOnly PeriodStartsOn = new(2026, 1, 1);
+
+    /// <inheritdoc cref="PeriodStartsOn"/>
+    public static readonly DateOnly PeriodEndsOn = new(2027, 12, 31);
+
     /// <summary>
     /// A tenant saved straight through the module's DbContext, moved to <paramref name="status"/>, with its platform
-    /// subdomain <c>&lt;slug&gt;.localhost</c> (unless the overload says otherwise) and default settings; under the new
-    /// tenant, like the handlers, because its status history and settings are tenant-owned.
+    /// subdomain <c>&lt;slug&gt;.localhost</c> (unless the overload says otherwise), default settings and, unless it is
+    /// <c>PROVISIONING</c>, a STANDARD period from <see cref="PeriodStartsOn"/> to <see cref="PeriodEndsOn"/>, so an
+    /// <c>ACTIVE</c> one has full access (S04 D18); under the new tenant, like the handlers, because its status history,
+    /// settings and periods are tenant-owned.
     /// </summary>
     public static Task<Guid> SaveTenantAsync(IServiceProvider services, string slug, TenantStatus status, CancellationToken cancellationToken) =>
         SaveTenantAsync(services, slug, status, publicEnabled: false, withDomain: true, cancellationToken);
 
-    /// <summary>As the other overload; <paramref name="withDomain"/> false leaves the tenant without a domain.</summary>
+    /// <summary>As the first overload; <paramref name="withDomain"/> false leaves the tenant without a domain.</summary>
+    public static Task<Guid> SaveTenantAsync(
+        IServiceProvider services, string slug, TenantStatus status, bool publicEnabled, bool withDomain, CancellationToken cancellationToken) =>
+        SaveTenantAsync(services, slug, status, publicEnabled, withDomain, withSubscription: true, cancellationToken);
+
+    /// <summary>As the first overload; <paramref name="withSubscription"/> false leaves the tenant without a period.</summary>
     public static async Task<Guid> SaveTenantAsync(
-        IServiceProvider services, string slug, TenantStatus status, bool publicEnabled, bool withDomain, CancellationToken cancellationToken)
+        IServiceProvider services,
+        string slug,
+        TenantStatus status,
+        bool publicEnabled,
+        bool withDomain,
+        bool withSubscription,
+        CancellationToken cancellationToken)
     {
         await using var scope = services.CreateAsyncScope();
         var context = scope.ServiceProvider.GetRequiredService<TenancyDbContext>();
@@ -84,6 +106,13 @@ internal static class TenantTestData
         if (withDomain)
         {
             context.Add(TenantDomain.PlatformSubdomain(tenant.Id, slug, "localhost"));
+        }
+
+        if (withSubscription && status != TenantStatus.Provisioning)
+        {
+            context.Add(SubscriptionPeriod.Create(
+                TenancyPlans.Standard.Code, SubscriptionKind.Paid, PeriodStartsOn, PeriodEndsOn,
+                SubscriptionPeriod.DefaultExpiringWindowDays, SubscriptionPeriod.DefaultGraceDays));
         }
 
         await context.SaveChangesAsync(cancellationToken);
@@ -137,6 +166,29 @@ internal static class TenantTestData
     {
         await using var scope = services.CreateAsyncScope();
         return await scope.ServiceProvider.GetRequiredService<TenancyDbContext>().Set<Tenant>().CountAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// A STANDARD period of the tenant from <paramref name="startsOn"/> to <paramref name="endsOn"/> with the default
+    /// windows, cancelled by the platform when <paramref name="cancelReason"/> is given; saved under that tenant.
+    /// </summary>
+    public static async Task<Guid> SavePeriodAsync(
+        IServiceProvider services, Guid tenantId, DateOnly startsOn, DateOnly endsOn, CancellationToken cancellationToken, string? cancelReason = null)
+    {
+        await using var scope = services.CreateAsyncScope();
+        scope.ServiceProvider.GetRequiredService<TenantContext>().Set(tenantId);
+        var context = scope.ServiceProvider.GetRequiredService<TenancyDbContext>();
+        var period = SubscriptionPeriod.Create(
+            TenancyPlans.Standard.Code, SubscriptionKind.Paid, startsOn, endsOn,
+            SubscriptionPeriod.DefaultExpiringWindowDays, SubscriptionPeriod.DefaultGraceDays);
+        if (cancelReason is not null)
+        {
+            period.Cancel(cancelReason, new UserActor(StaffId), new DateTimeOffset(2026, 10, 1, 8, 0, 0, TimeSpan.Zero));
+        }
+
+        context.Add(period);
+        await context.SaveChangesAsync(cancellationToken);
+        return period.Id;
     }
 
     /// <summary>Changes a saved tenant through its domain methods, under that tenant (its status history is tenant-owned).</summary>

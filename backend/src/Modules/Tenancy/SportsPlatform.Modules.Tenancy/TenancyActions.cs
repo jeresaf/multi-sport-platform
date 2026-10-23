@@ -67,7 +67,8 @@ public static class TenancyActions
         ActionScope.Tenant,
         AuditRequirement.Required,
         since: "S02",
-        scopableBy: [AssignmentScope.Tenant]);
+        scopableBy: [AssignmentScope.Tenant],
+        availableWhenReadOnly: true);
 
     public static readonly ActionDefinition TenantSettingsUpdate = new(
         "tenant.settings.update",
@@ -79,12 +80,13 @@ public static class TenancyActions
 
     public static readonly ActionDefinition TenantAccessRead = new(
         "tenant.access.read",
-        "View the tenant's status and access mode, and why: available while the tenant is suspended or archived.",
+        "View the tenant's status, access mode and subscription, and why: available while the tenant is suspended, archived or read-only.",
         ActionScope.Tenant,
         AuditRequirement.Required,
         since: "S03",
         scopableBy: [AssignmentScope.Tenant],
-        availableWhenBlocked: true);
+        availableWhenBlocked: true,
+        availableWhenReadOnly: true);
 
     public static readonly ActionDefinition PlanRead = new(
         "plan.read",

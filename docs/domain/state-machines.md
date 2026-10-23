@@ -71,7 +71,7 @@ Agreed with the owner in the S04-T2a plan, 2026-10-23 (S04 D3, D4):
 |---|---|---|
 | PROVISIONING | any | `FULL` for tenant owners/admins (setup); public site hidden |
 | ACTIVE | ACTIVE, EXPIRING, GRACE | `FULL` (banner when EXPIRING/GRACE) |
-| ACTIVE | EXPIRED, CANCELLED, none | `READ_ONLY` (live contests may finish; results may be submitted for 24 h) |
+| ACTIVE | EXPIRED, CANCELLED, SCHEDULED only, none | `READ_ONLY` (live contests may finish; results may be submitted for 24 h) |
 | SUSPENDED, ARCHIVED | any | `BLOCKED` |
 
 How (S03-T4b2, D11):
@@ -81,6 +81,19 @@ How (S03-T4b2, D11):
 - `BLOCKED`: every tenant action is `403 TENANT_BLOCKED` except those marked `availableWhenBlocked` in the action
   catalogue, which only `TENANT_OWNER` holds: `tenant.access.read` (`GET /api/admin/v1/tenant/access`), so the owner
   sees the status and the reason for it. Platform actions are not affected (staff restore and unarchive).
+
+How `READ_ONLY` is applied (S04-T2b, D8; plan approved by the owner 2026-10-23):
+- Step 1 reads an `ACTIVE` tenant's current period (above) on the tenant's date: `ACTIVE`, `EXPIRING` or `GRACE` is
+  `FULL`; `EXPIRED`, `CANCELLED`, a `SCHEDULED` period with none in effect, or no period is `READ_ONLY`. Activating a
+  tenant doesn't need a period (D9): until one is assigned it is `READ_ONLY`.
+- While `READ_ONLY`, tenant actions marked `availableWhenReadOnly` in the action catalogue pass; every other tenant
+  action is `403 TENANT_READ_ONLY`. A startup rule requires the flag on every tenant action whose code ends in
+  `.read`. Later writes that must work while read-only (finishing a live contest, submitting its result within 24 h,
+  exports) set the flag and check their own window in the handler through `ITenantAccess.GetAccessAsync` (status,
+  mode, time zone, current period).
+- No job runs: the mode and "today" are derived on every request, so the mode changes at midnight in the tenant's
+  time zone. The stored periods are read uncached until S04-T3 caches them per instance for up to 60 s (D7), so a
+  renewal restores writes on the next request (within 60 s from T3). Platform actions and the public site are not affected.
 
 ---
 

@@ -65,7 +65,8 @@ public static class IdentityActions
         ActionScope.Tenant,
         AuditRequirement.Required,
         since: "S03",
-        scopableBy: [AssignmentScope.Tenant]);
+        scopableBy: [AssignmentScope.Tenant],
+        availableWhenReadOnly: true);
 
     public static readonly ActionDefinition MembershipSuspend = new(
         "membership.suspend",
@@ -156,7 +157,8 @@ public static class IdentityActions
         ActionScope.Tenant,
         AuditRequirement.None,
         since: "S03",
-        scopableBy: [AssignmentScope.Tenant]);
+        scopableBy: [AssignmentScope.Tenant],
+        availableWhenReadOnly: true);
 
     public static readonly ActionDefinition PlatformCapabilitiesRead = new(
         "platform.capabilities.read",

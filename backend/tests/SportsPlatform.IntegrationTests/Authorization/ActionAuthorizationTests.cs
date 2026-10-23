@@ -218,8 +218,8 @@ public sealed class ActionAuthorizationTests
 
     private sealed class FullAccess : ITenantAccess
     {
-        public Task<TenantAccessMode?> GetAccessModeAsync(Guid tenantId, CancellationToken cancellationToken) =>
-            Task.FromResult<TenantAccessMode?>(TenantAccessMode.Full);
+        public Task<TenantAccess?> GetAccessAsync(Guid tenantId, CancellationToken cancellationToken) =>
+            Task.FromResult<TenantAccess?>(new TenantAccess(TenantStatus.Active, TenantAccessMode.Full, "Africa/Kampala", Subscription: null));
 
         public Task<Result> CheckAdminAccessAsync(Guid tenantId, ActionDefinition action, CancellationToken cancellationToken) =>
             Task.FromResult(Result.Success());

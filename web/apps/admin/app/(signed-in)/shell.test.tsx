@@ -145,7 +145,14 @@ describe("tenant workspace", () => {
       "GET /api/account/v1/me": me(),
       "GET /api/admin/v1/tenant/access": {
         status: 200,
-        body: { status: "SUSPENDED", accessMode: "BLOCKED", reason: "Subscription unpaid", since: "2026-10-12T08:00:00Z" },
+        body: {
+          status: "SUSPENDED",
+          accessMode: "BLOCKED",
+          reason: "Subscription unpaid",
+          since: "2026-10-12T08:00:00Z",
+          timeZone: "Africa/Kampala",
+          subscription: { status: "ACTIVE", startsOn: "2026-04-23", endsOn: "2027-04-22", graceEndsOn: "2027-05-06" },
+        },
       },
     });
 
@@ -206,7 +213,14 @@ describe("tenant workspace", () => {
       "GET /api/admin/v1/me/capabilities": { status: 403, body: problem("TENANT_BLOCKED", 403) },
       "GET /api/admin/v1/tenant/access": {
         status: 200,
-        body: { status: "SUSPENDED", accessMode: "BLOCKED", reason: "Subscription unpaid", since: "2026-10-20T08:00:00Z" },
+        body: {
+          status: "SUSPENDED",
+          accessMode: "BLOCKED",
+          reason: "Subscription unpaid",
+          since: "2026-10-20T08:00:00Z",
+          timeZone: "Africa/Kampala",
+          subscription: { status: "ACTIVE", startsOn: "2026-04-23", endsOn: "2027-04-22", graceEndsOn: "2027-05-06" },
+        },
       },
     });
 

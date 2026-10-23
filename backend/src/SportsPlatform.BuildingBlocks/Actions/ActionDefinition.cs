@@ -44,7 +44,8 @@ public sealed class ActionDefinition
         string? entitlement = null,
         bool idempotent = false,
         bool allowsAnonymous = false,
-        bool availableWhenBlocked = false)
+        bool availableWhenBlocked = false,
+        bool availableWhenReadOnly = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(description);
         ArgumentException.ThrowIfNullOrWhiteSpace(since);
@@ -79,6 +80,12 @@ public sealed class ActionDefinition
             throw new ArgumentException($"Only tenant actions can be available when blocked ('{code}' is {scope}).", nameof(availableWhenBlocked));
         }
 
+        // Read-only is a tenant access mode (S04 D8); platform and account actions never pass through it.
+        if (availableWhenReadOnly && scope != ActionScope.Tenant)
+        {
+            throw new ArgumentException($"Only tenant actions can be available when read-only ('{code}' is {scope}).", nameof(availableWhenReadOnly));
+        }
+
         Description = description;
         Scope = scope;
         Audit = audit;
@@ -87,6 +94,7 @@ public sealed class ActionDefinition
         Idempotent = idempotent;
         AllowsAnonymous = allowsAnonymous;
         AvailableWhenBlocked = availableWhenBlocked;
+        AvailableWhenReadOnly = availableWhenReadOnly;
     }
 
     public ActionCode Code { get; }
@@ -118,6 +126,13 @@ public sealed class ActionDefinition
     /// tenant action is <c>TENANT_BLOCKED</c> then. Only <c>TENANT_OWNER</c> holds such actions (S03 D11).
     /// </summary>
     public bool AvailableWhenBlocked { get; }
+
+    /// <summary>
+    /// Whether a tenant action passes step 1 while the tenant is <c>READ_ONLY</c> (its subscription has ended, S04 D8);
+    /// every other tenant action is <c>TENANT_READ_ONLY</c> then. Every tenant read sets it (a startup rule); a write
+    /// that sets it checks its own window in the handler.
+    /// </summary>
+    public bool AvailableWhenReadOnly { get; }
 
     /// <summary>The slice that introduced the action, e.g. <c>S01</c>.</summary>
     public string Since { get; }

@@ -11,7 +11,7 @@ namespace SportsPlatform.Host.Authorization;
 /// The decision formula (docs/architecture/authorization.md) for the matched endpoint's declared action: an anonymous
 /// caller gets 401 unless the action allows anonymous callers (S03 D4); then step 1, the
 /// tenant's access mode, for a tenant action (status and, for a <c>PROVISIONING</c> tenant, the actor's setup roles,
-/// S03 D11; <c>READ_ONLY</c> is not produced before S04), then the
+/// S03 D11; for an <c>ACTIVE</c> one, its current subscription period decides <c>READ_ONLY</c>, S04 D8), then the
 /// evaluator (steps 2–3). Runs after tenant resolution and before the endpoint, so request bodies are not read for a
 /// caller who is not allowed.
 /// </summary>
