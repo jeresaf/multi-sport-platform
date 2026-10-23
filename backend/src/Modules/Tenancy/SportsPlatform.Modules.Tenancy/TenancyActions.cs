@@ -92,4 +92,39 @@ public static class TenancyActions
         ActionScope.Platform,
         AuditRequirement.Required,
         since: "S04");
+
+    public static readonly ActionDefinition SubscriptionRead = new(
+        "subscription.read",
+        "View a tenant's subscription periods, with their status today and the current period.",
+        ActionScope.Platform,
+        AuditRequirement.Required,
+        since: "S04");
+
+    public static readonly ActionDefinition SubscriptionAssign = new(
+        "subscription.assign",
+        "Give a tenant a subscription period: a plan from one date to another, which must not overlap another period.",
+        ActionScope.Platform,
+        AuditRequirement.Required,
+        since: "S04");
+
+    public static readonly ActionDefinition SubscriptionRenew = new(
+        "subscription.renew",
+        "Renew a tenant's subscription: a new period from the day after the latest one ends, optionally on another plan.",
+        ActionScope.Platform,
+        AuditRequirement.Required,
+        since: "S04");
+
+    public static readonly ActionDefinition SubscriptionChangePlan = new(
+        "subscription.change_plan",
+        "Move a tenant to a higher plan now, until the current period ends; a lower plan waits for the renewal.",
+        ActionScope.Platform,
+        AuditRequirement.Required,
+        since: "S04");
+
+    public static readonly ActionDefinition SubscriptionCancel = new(
+        "subscription.cancel",
+        "Cancel a tenant's current and scheduled subscription periods now, with a reason.",
+        ActionScope.Platform,
+        AuditRequirement.RequiredWithReason,
+        since: "S04");
 }

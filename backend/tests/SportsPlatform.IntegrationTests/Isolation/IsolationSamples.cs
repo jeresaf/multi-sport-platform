@@ -10,6 +10,7 @@ using SportsPlatform.Modules.Identity.Domain.Memberships;
 using SportsPlatform.Modules.Identity.Domain.Roles;
 using SportsPlatform.Modules.Identity.Infrastructure.Users;
 using SportsPlatform.Modules.Tenancy.Domain.Settings;
+using SportsPlatform.Modules.Tenancy.Domain.Subscriptions;
 using SportsPlatform.Modules.Tenancy.Domain.Tenants;
 
 namespace SportsPlatform.IntegrationTests.Isolation;
@@ -43,6 +44,7 @@ public static class IsolationSamples
     [
         new TenantStatusChangeSample(),
         new TenantSettingsSample(),
+        new SubscriptionPeriodSample(),
         new TenantProbeSample(),
         new TenantProbeNoteSample(),
         new ConsumedNoteSample(),
@@ -83,6 +85,28 @@ public static class IsolationSamples
             var settings = TenantSettings.Create(tenant.Id, TenantSettingsValues.Defaults("Africa/Kampala", "en-UG", "UGX", publicEnabled: true));
             context.AddRange(tenant, settings);
             return settings;
+        }
+
+        public Entity? Referencing(IForeignKey foreignKey, Guid principalId) => null;
+    }
+
+    /// <summary>
+    /// Tenancy: a period of a new tenant. The tenants table must have its tenant, so the sample gives it the new tenant's
+    /// ID (as the interceptor would when saved under that tenant).
+    /// </summary>
+    private sealed class SubscriptionPeriodSample : IIsolationSample
+    {
+        public Type EntityType => typeof(SubscriptionPeriod);
+
+        public Entity Add(DbContext context)
+        {
+            var profile = new TenantProfile("Kampala Metro Sports Association", "KMSA", "UG");
+            var tenant = Tenant.Create("kmsa", profile, SystemActor.Instance, new DateTimeOffset(2026, 10, 1, 8, 0, 0, TimeSpan.Zero));
+            var period = SubscriptionPeriod.Create(
+                "STANDARD", SubscriptionKind.Complimentary, new DateOnly(2026, 10, 1), new DateOnly(2027, 3, 31), 30, 14);
+            context.AddRange(tenant, period);
+            context.Entry(period).Property(p => p.TenantId).CurrentValue = tenant.Id;
+            return period;
         }
 
         public Entity? Referencing(IForeignKey foreignKey, Guid principalId) => null;

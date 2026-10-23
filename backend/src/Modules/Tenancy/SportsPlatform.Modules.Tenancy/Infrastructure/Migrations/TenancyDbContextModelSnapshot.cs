@@ -430,6 +430,93 @@ namespace SportsPlatform.Modules.Tenancy.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("SportsPlatform.Modules.Tenancy.Domain.Subscriptions.SubscriptionPeriod", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("CancelReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("cancel_reason");
+
+                    b.Property<DateTimeOffset?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("cancelled_at");
+
+                    b.Property<Guid?>("CancelledBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("cancelled_by");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateOnly>("EndsOn")
+                        .HasColumnType("date")
+                        .HasColumnName("ends_on");
+
+                    b.Property<int>("ExpiringWindowDays")
+                        .HasColumnType("integer")
+                        .HasColumnName("expiring_window_days");
+
+                    b.Property<int>("GraceDays")
+                        .HasColumnType("integer")
+                        .HasColumnName("grace_days");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("PlanCode")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("plan_code");
+
+                    b.Property<DateOnly>("StartsOn")
+                        .HasColumnType("date")
+                        .HasColumnName("starts_on");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_subscription_periods");
+
+                    b.HasIndex("TenantId", "StartsOn")
+                        .HasDatabaseName("ix_subscription_periods_tenant_id_starts_on");
+
+                    b.ToTable("subscription_periods", "tenancy", t =>
+                        {
+                            t.HasCheckConstraint("ck_subscription_periods_cancelled", "(cancelled_at IS NULL AND cancelled_by IS NULL AND cancel_reason IS NULL) OR (cancelled_at IS NOT NULL AND cancelled_by IS NOT NULL AND cancel_reason IS NOT NULL)");
+
+                            t.HasCheckConstraint("ck_subscription_periods_dates", "ends_on >= starts_on");
+
+                            t.HasCheckConstraint("ck_subscription_periods_expiring_window_days", "expiring_window_days BETWEEN 0 AND 365");
+
+                            t.HasCheckConstraint("ck_subscription_periods_grace_days", "grace_days BETWEEN 0 AND 365");
+
+                            t.HasCheckConstraint("ck_subscription_periods_kind", "kind IN ('PAID', 'TRIAL', 'COMPLIMENTARY')");
+                        });
+                });
+
             modelBuilder.Entity("SportsPlatform.Modules.Tenancy.Domain.Tenants.Tenant", b =>
                 {
                     b.Property<Guid>("Id")
@@ -600,6 +687,16 @@ namespace SportsPlatform.Modules.Tenancy.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_tenant_settings_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("SportsPlatform.Modules.Tenancy.Domain.Subscriptions.SubscriptionPeriod", b =>
+                {
+                    b.HasOne("SportsPlatform.Modules.Tenancy.Domain.Tenants.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_subscription_periods_tenant_tenant_id");
                 });
 
             modelBuilder.Entity("SportsPlatform.Modules.Tenancy.Domain.Tenants.TenantStatusChange", b =>

@@ -42,8 +42,12 @@ the message is the default title and may change.
 | `TENANT_CONCURRENCY_CONFLICT` | 409 | The tenant was changed by someone else. Reload and try again. | Tenancy |
 | `TENANT_INVALID_TRANSITION` | 409 | The tenant's status does not allow this change. | Tenancy |
 | `TENANT_NOT_FOUND` | 404 | No such tenant. | Tenancy |
+| `TENANT_PLAN_NOT_FOUND` | 400 | No active plan has this code. | Tenancy |
 | `TENANT_PROVISIONING` | 403 | This tenant is still being set up; only its owners and administrators can work in it. | Tenancy |
 | `TENANT_SLUG_TAKEN` | 409 | This slug belongs to another tenant, possibly an archived one. Slugs are never reused. | Tenancy |
+| `TENANT_SUBSCRIPTION_DOWNGRADE_AT_RENEWAL` | 409 | The plan can only change now to a higher plan. Choose a lower plan when renewing. | Tenancy |
+| `TENANT_SUBSCRIPTION_NOT_FOUND` | 409 | The tenant has no subscription period this change applies to. | Tenancy |
+| `TENANT_SUBSCRIPTION_OVERLAP` | 409 | The period overlaps another subscription period of the tenant. | Tenancy |
 | `TENANT_UNAVAILABLE` | 403 | This site is not available. | Tenancy |
 | `VALIDATION_INVALID_QUERY` | 400 | A query parameter is not valid. | BuildingBlocks |
 | `VALIDATION_INVALID_REQUEST` | 400 | A field of the request is not valid. | BuildingBlocks |

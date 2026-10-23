@@ -28,6 +28,11 @@ admin endpoint requires one of these; the code is stable and is what roles grant
 | `platform.outbox.redrive` | Platform | PLATFORM | — | REQUIRED_WITH_REASON | — | no | no | no | S01 | Re-deliver failed outbox messages. |
 | `role.assign` | Identity | TENANT | TENANT | REQUIRED | — | no | no | no | S03 | Give a member a role, tenant-wide (other scopes later). Only an owner grants TENANT_OWNER. |
 | `role.revoke` | Identity | TENANT | TENANT | REQUIRED | — | no | no | no | S03 | Revoke a member's role (the assignment is kept as history). Only an owner revokes TENANT_OWNER; never the last owner's. |
+| `subscription.assign` | Tenancy | PLATFORM | — | REQUIRED | — | no | no | no | S04 | Give a tenant a subscription period: a plan from one date to another, which must not overlap another period. |
+| `subscription.cancel` | Tenancy | PLATFORM | — | REQUIRED_WITH_REASON | — | no | no | no | S04 | Cancel a tenant's current and scheduled subscription periods now, with a reason. |
+| `subscription.change_plan` | Tenancy | PLATFORM | — | REQUIRED | — | no | no | no | S04 | Move a tenant to a higher plan now, until the current period ends; a lower plan waits for the renewal. |
+| `subscription.read` | Tenancy | PLATFORM | — | REQUIRED | — | no | no | no | S04 | View a tenant's subscription periods, with their status today and the current period. |
+| `subscription.renew` | Tenancy | PLATFORM | — | REQUIRED | — | no | no | no | S04 | Renew a tenant's subscription: a new period from the day after the latest one ends, optionally on another plan. |
 | `tenant.access.read` | Tenancy | TENANT | TENANT | REQUIRED | — | no | no | yes | S03 | View the tenant's status and access mode, and why: available while the tenant is suspended or archived. |
 | `tenant.activate` | Tenancy | PLATFORM | — | REQUIRED | — | no | no | no | S02 | Activate a provisioned tenant (PROVISIONING → ACTIVE). |
 | `tenant.archive` | Tenancy | PLATFORM | — | REQUIRED_WITH_REASON | — | no | no | no | S02 | Archive a tenant, with a reason (ACTIVE or SUSPENDED → ARCHIVED). |
