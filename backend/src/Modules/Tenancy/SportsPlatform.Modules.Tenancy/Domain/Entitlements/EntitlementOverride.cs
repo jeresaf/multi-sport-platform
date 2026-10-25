@@ -41,7 +41,7 @@ public sealed class EntitlementOverride : Entity, ITenantOwned
     /// <summary>Why it was granted: free text kept permanently, never personal data, never shown to the tenant.</summary>
     public string Reason { get; private set; } = string.Empty;
 
-    /// <summary>The last day it applies, in the tenant's time zone; null until it is removed.</summary>
+    /// <summary>The last day it applies, in the tenant's time zone; null = until it is removed.</summary>
     public DateOnly? EffectiveUntil { get; private set; }
 
     public DateTimeOffset? RemovedAt { get; private set; }
@@ -60,6 +60,7 @@ public sealed class EntitlementOverride : Entity, ITenantOwned
         ArgumentOutOfRangeException.ThrowIfGreaterThan(entitlementCode.Length, EntitlementCodeMaxLength, nameof(entitlementCode));
         ArgumentNullException.ThrowIfNull(value);
         ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(reason.Trim().Length, ReasonMaxLength, nameof(reason));
         return new EntitlementOverride(entitlementCode, value, reason.Trim(), effectiveUntil);
     }
 
@@ -70,6 +71,7 @@ public sealed class EntitlementOverride : Entity, ITenantOwned
     public void Remove(string reason, ICurrentActor actor, DateTimeOffset now)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(reason.Trim().Length, ReasonMaxLength, nameof(reason));
         ArgumentNullException.ThrowIfNull(actor);
         if (IsRemoved)
         {
