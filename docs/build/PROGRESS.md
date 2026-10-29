@@ -262,6 +262,10 @@ at the start of every review.
   override is `TENANT_OVERRIDE_INVALID_VALUE` on `entitlementCode`; an override applies whatever the period's state
   (step 1 still makes a tenant without a period `READ_ONLY`); D7's cache holds the tenant's time zone with its periods
   and overrides, so a settings update clears it too.
+  T3a2 (plan approved 2026-10-29, defaults taken): the effective plan is the current period's whatever its status
+  (expired or cancelled too; step 1 refuses the writes), a scheduled-only tenant's scheduled plan applies, and tests
+  that write periods or overrides directly between requests clear the cache. Builder: the two bare-app `MapModules`
+  tests register an empty entitlement catalogue (OpenAPI's step-2 errors read it).
 
 ## Tech debt / follow-ups
 
@@ -281,11 +285,6 @@ items are with S04's tasks or their own trigger. Each item names where it gets d
   console's Subscription panel (S04-T2b deferral, D18). (S04-T4a)
 - `GET /plans` sends `value: null` for a declared entitlement the CONFIGURATION seed hasn't written yet (S04-T1b
   pre-review): the console's Plans screen shows it as "not seeded", never as unlimited or none. (S04-T4)
-- `export-catalogues` reads the plans from `TenancyPlans.All`, not `IPlanCatalogue` (S04-T1b pre-review): the same
-  list today; when T3 registers D20's test-only entitlement and plans, keep the export on the declared ones. (S04-T3)
-- `DuplicateEntitlements` and `DuplicateActions` in the integration test assembly break any catalogue built from a
-  module in that assembly (#63 R9): T3 builds D20's test catalogue explicitly (`DeclaredEntitlements(definitions)`), not
-  by scanning the test assembly. (S04-T3)
 
 **Identity and access** (from S03; each names its trigger)
 - OpenAPI list queries (S03-T6c1): `status` and `limit` on `GET …/members`, `…/invitations` and the platform tenant
