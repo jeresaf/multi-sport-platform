@@ -78,6 +78,9 @@ function open(answers: Answers = {}, actions = adminActions, tenant = kmsa) {
   return requests;
 }
 
+const subscriptionReads = (requests: { method: string; path: string }[]) =>
+  requests.filter((request) => request.method === "GET" && request.path === `${base}/subscription`).length;
+
 const panel = async () => within((await screen.findByRole("heading", { name: "Subscription" })).closest("section")!);
 const commandsOffered = async () =>
   (await panel())
@@ -150,6 +153,17 @@ describe("the subscription panel", () => {
     expect(await commandsOffered()).toEqual(["Assign a period", "Renew"]);
   });
 
+  it("says when a suspended tenant without a period will be read-only", async () => {
+    open({ [`GET ${base}/subscription`]: { status: 200, body: noSubscription } }, adminActions, {
+      ...kmsa,
+      status: "SUSPENDED",
+    });
+
+    expect(
+      await (await panel()).findByText("Once restored, the tenant is read-only until a period is assigned."),
+    ).toBeTruthy();
+  });
+
   it("offers no plan change on the highest plan", async () => {
     const onPro = { ...pilotPeriod, planCode: "PRO" };
     open({ [`GET ${base}/subscription`]: { status: 200, body: subscription({ periods: [onPro] }) } });
@@ -194,8 +208,10 @@ describe("the subscription panel", () => {
     expect(screen.getAllByRole("status").map((status) => status.textContent)).toContain("Period assigned.");
   });
 
-  it("keeps an overlap refusal in the dialog", async () => {
-    open({ [`POST ${base}/subscription/periods`]: { status: 409, body: problem("TENANT_SUBSCRIPTION_OVERLAP", 409) } });
+  it("keeps an overlap refusal in the dialog, and reads the subscription again", async () => {
+    const requests = open({
+      [`POST ${base}/subscription/periods`]: { status: 409, body: problem("TENANT_SUBSCRIPTION_OVERLAP", 409) },
+    });
 
     fireEvent.click(await (await panel()).findByRole("button", { name: "Assign a period" }));
     const dialog = within(await screen.findByRole("dialog"));
@@ -205,6 +221,34 @@ describe("the subscription panel", () => {
 
     expect(await dialog.findByText(errorMessage("TENANT_SUBSCRIPTION_OVERLAP")!)).toBeTruthy();
     expect(screen.getByRole("dialog")).toBeTruthy();
+    // A conflict means the panel was out of date (#71 R1).
+    await waitFor(() => expect(subscriptionReads(requests)).toBe(2));
+  });
+
+  it("reads the subscription again when a cancel finds nothing left to cancel", async () => {
+    // Another administrator cancelled meanwhile: the second read shows it.
+    const cancelled = subscription({
+      periods: [{ ...pilotPeriod, status: "CANCELLED", cancelledAt: "2026-10-29T08:00:00Z", cancelReason: "Fees not paid" }],
+    });
+    let reads = 0;
+    const requests = open({
+      [`GET ${base}/subscription`]: () => {
+        reads += 1;
+        return { status: 200, body: reads === 1 ? subscription() : cancelled };
+      },
+      [`POST ${base}/subscription/cancel`]: { status: 409, body: problem("TENANT_SUBSCRIPTION_NOT_FOUND", 409) },
+    });
+
+    fireEvent.click(await (await panel()).findByRole("button", { name: "Cancel subscription" }));
+    const dialog = within(await screen.findByRole("dialog"));
+    fireEvent.change(dialog.getByLabelText("Reason"), { target: { value: "Club wound up" } });
+    fireEvent.click(dialog.getByRole("button", { name: "Cancel subscription" }));
+
+    expect(await dialog.findByText(errorMessage("TENANT_SUBSCRIPTION_NOT_FOUND")!)).toBeTruthy();
+    await waitFor(() => expect(subscriptionReads(requests)).toBe(2));
+    fireEvent.click(dialog.getByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(await commandsOffered()).toEqual(["Assign a period", "Renew"]);
   });
 
   it("puts the API's field errors under their fields", async () => {
@@ -376,7 +420,7 @@ describe("overrides", () => {
     });
     const requests = open({ [`POST ${base}/entitlement-overrides/${staffOverride.id}/remove`]: { status: 200, body: removed } });
 
-    fireEvent.click(await (await panel()).findByRole("button", { name: "Remove" }));
+    fireEvent.click(await (await panel()).findByRole("button", { name: "Remove the override of Staff users" }));
     const dialog = within(await screen.findByRole("dialog"));
     expect(dialog.getByRole("heading", { name: "Remove the override of Staff users?" })).toBeTruthy();
     fireEvent.change(dialog.getByLabelText("Reason"), { target: { value: "Demo finished" } });
@@ -414,6 +458,18 @@ describe("activation", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Activate" }));
     const dialog = within(await screen.findByRole("dialog"));
     expect(dialog.getByText(/No subscription period is in effect today/)).toBeTruthy();
+  });
+
+  it("says when the subscription couldn't be checked", async () => {
+    open({ [`GET ${base}/subscription`]: { status: 500, body: problem("PLATFORM_UNEXPECTED_ERROR", 500) } }, adminActions, {
+      ...kmsa,
+      status: "PROVISIONING",
+    });
+
+    await (await panel()).findByRole("alert");
+    fireEvent.click(await screen.findByRole("button", { name: "Activate" }));
+    const dialog = within(await screen.findByRole("dialog"));
+    expect(dialog.getByText(/Its subscription couldn't be checked/)).toBeTruthy();
   });
 
   it("doesn't warn when the tenant has a period", async () => {

@@ -187,7 +187,12 @@ function TenantDetail({ tenant }: Readonly<{ tenant: Tenant }>) {
   const timeZone = tenant.timeZone;
   // An archived tenant can't be invited to (AUTH_TENANT_ARCHIVED); every other status can.
   const canInvite = can("tenant.owner.invite") && tenant.status !== "ARCHIVED";
-  const withoutSubscription = subscription.isSuccess && !inEffectToday(subscription.data);
+  // Before activating (D9): no period in effect today, or the subscription couldn't be read (yet), says so.
+  const activationNote = subscription.isSuccess
+    ? inEffectToday(subscription.data)
+      ? null
+      : "No subscription period is in effect today: it will be read-only until one starts or is assigned."
+    : "Its subscription couldn't be checked: without a period in effect today, it will be read-only until one starts or is assigned.";
 
   return (
     <div className="grid gap-8">
@@ -299,9 +304,7 @@ function TenantDetail({ tenant }: Readonly<{ tenant: Tenant }>) {
           onOpenChange={(next) => (next ? null : setPending(null))}
           title={`${open.label} ${tenant.displayName}?`}
           description={
-            pending === "activate" && withoutSubscription
-              ? `${open.description} No subscription period is in effect today: it will be read-only until one starts or is assigned.`
-              : open.description
+            pending === "activate" && activationNote ? `${open.description} ${activationNote}` : open.description
           }
           confirmLabel={open.label}
           destructive={open.destructive}

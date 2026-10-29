@@ -24,6 +24,7 @@ import {
   inEffectToday,
   isCancellable,
   useSubscription,
+  useSubscriptionReload,
   useSubscriptionSaved,
   type EntitlementOverride,
   type Subscription,
@@ -31,6 +32,18 @@ import {
 } from "./subscription-data";
 
 type Open = "assign" | "renew" | "change" | "cancel" | "override" | { remove: EntitlementOverride } | null;
+
+/**
+ * When the tenant is read-only for want of a period (S04 D8): an active one now; the others once their own state
+ * machine lets its members work (state-machines.md, Tenant: activated, or restored).
+ */
+const whenReadOnly: Readonly<Record<Tenant["status"], string>> = {
+  ACTIVE: "the tenant is read-only",
+  PROVISIONING: "once activated, the tenant is read-only",
+  SUSPENDED: "once restored, the tenant is read-only",
+  ARCHIVED: "once unarchived and restored, the tenant is read-only",
+};
+const capitalise = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
 /** Columns shown from tablet width up. */
 const wide = "hidden tablet:table-cell";
@@ -98,6 +111,7 @@ function SubscriptionDetail({
 }: Readonly<{ tenant: Tenant; subscription: Subscription; plans: readonly Plan[] }>) {
   const can = usePlatformCan();
   const saved = useSubscriptionSaved();
+  const { reload, reloadOnConflict } = useSubscriptionReload(tenant.id);
   const [open, setOpen] = useState<Open>(null);
   const [announcement, setAnnouncement] = useState("");
   const { current, next } = currentAndNext(subscription);
@@ -141,6 +155,7 @@ function SubscriptionDetail({
             }),
           ),
     onSuccess: (next, { remove }) => onSaved(next, remove ? "Override removed." : "Subscription cancelled."),
+    onError: (error) => void reloadOnConflict(error),
   });
 
   // What each command needs (state-machines.md, S04 D4); the API refuses the rest.
@@ -181,16 +196,12 @@ function SubscriptionDetail({
         ) : null}
         {current && !inEffectToday(subscription) ? (
           <p>
-            {tenant.status === "ACTIVE"
-              ? "No period is in effect today: the tenant is read-only until one starts or is assigned."
-              : "No period is in effect today: once activated, the tenant is read-only until one starts or is assigned."}
+            {`No period is in effect today: ${whenReadOnly[tenant.status]} until one starts or is assigned.`}
           </p>
         ) : null}
         {!current ? (
           <EmptyState title="No subscription">
-            {tenant.status === "ACTIVE"
-              ? "The tenant is read-only until a period is assigned."
-              : "Once the tenant is activated, it is read-only until a period is assigned."}
+            {`${capitalise(whenReadOnly[tenant.status])} until a period is assigned.`}
           </EmptyState>
         ) : null}
         {next && next.id !== current?.id ? (
@@ -318,6 +329,7 @@ function SubscriptionDetail({
               {can("entitlement.override.remove") ? (
                 <Button
                   variant="outline"
+                  aria-label={`Remove the override of ${definition(item.entitlementCode)?.name ?? item.entitlementCode}`}
                   onClick={() => {
                     reasoned.reset();
                     setOpen({ remove: item });
@@ -378,7 +390,10 @@ function SubscriptionDetail({
           onConfirm={(reason) =>
             reasoned.mutate({ reason: reason ?? "", remove: open === "cancel" ? undefined : open.remove })
           }
-          onReload={() => setOpen(null)}
+          onReload={() => {
+            void reload();
+            setOpen(null);
+          }}
           reasonHint="Kept in the audit trail with your name, for platform staff only. Don't include personal details."
         />
       ) : null}
@@ -428,7 +443,7 @@ function Usage({
       Used:{" "}
       {usage.limit === null
         ? `${formatQuantity(usage.used, unit)} (unlimited)`
-        : `${usage.used} of ${formatQuantity(usage.limit, unit)}`}
+        : `${usage.used.toLocaleString("en-GB")} of ${formatQuantity(usage.limit, unit)}`}
       {usage.warning ? (
         <span className="inline-flex items-center gap-1">
           <TriangleAlert aria-hidden="true" className="size-4 text-warning" />

@@ -45,7 +45,7 @@ export default function PlansPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Entitlement</TableHead>
+              <TableHead scope="col">Entitlement</TableHead>
               {list.map((plan) => (
                 <TableHead key={plan.code} scope="col">
                   {plan.name}

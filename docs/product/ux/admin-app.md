@@ -99,16 +99,18 @@ user's capabilities (docs/architecture/authorization.md); the server still enfor
   overrides in place with value, reason and last day, the removed ones under "Earlier overrides". Days are the
   tenant's dates in its time zone. Platform administrators get **Assign a period** (plan, kind, first and last day,
   optional expiring and grace days), **Renew** (says its first day; plan and kind stay unless chosen), **Change plan**
-  (only to a higher plan, while the current period is active or expiring), **Cancel subscription** (reason), **Set an
+  (only to a higher plan, while the current period is active or expiring and its plan is still active), **Cancel subscription** (reason), **Set an
   override** (the value's input follows the entitlement's type: on/off, a number or Unlimited, a level; reason;
   optional last day) and **Remove** (reason). A refusal (`TENANT_SUBSCRIPTION_OVERLAP`, `…_NOT_FOUND`,
   `…_DOWNGRADE_AT_RENEWAL`, a field) stays in its dialog; the panel shows the subscription the command answered with
-  and announces the change. Reasons are platform-only: the dialogs say the tenant sees the value, not the reason.
+  and announces the change; after a conflict refusal (`409`) it reads the subscription again, since someone may have
+  changed it meanwhile. Reasons are platform-only: the dialogs say the tenant sees the value, not the reason.
   Support staff see the panel without controls. Who created, cancelled or removed something isn't shown (the API gives
   user IDs; the audit trail has the names). The rest of the tenant page says its status history, members and domains
   aren't available yet.
 - **Activate** says, for a tenant with no period in effect today (none, scheduled only, expired or cancelled), that it
-  will be read-only until one starts or is assigned (S04 D8, D9).
+  will be read-only until one starts or is assigned (S04 D8, D9); while the subscription can't be read, it says it
+  couldn't be checked.
 
 ## Workspaces and screens
 
