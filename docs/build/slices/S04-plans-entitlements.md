@@ -347,3 +347,11 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   The D20 tests run on `Tenancy/EntitlementTestApp` (test entitlement `FIXTURE_PUBLISHING`, action `fixture.publish`,
   plan values written as the owner and removed after each test). `MapModules` takes the entitlement catalogue from
   the services (OpenAPI's `ENTITLEMENT_REQUIRED`), so bare test apps register one.
+- **T3b1:** usage counters register with `AddQuotaUsage<TCounter>(code)` (Tenancy Contracts), a singleton
+  `QuotaUsageRegistration` the Host checks at startup without creating a counter (they need a database). Identity's
+  `StaffUsers` counts `MAX_STAFF_USERS`; `membership.invite` holds `identity.staff_users:<tenantId>` while it counts and
+  saves, and its endpoint adds "Your plan allows N staff users." (the limit is read again: a `Result` has no detail).
+  `ENTITLEMENT_QUOTA_EXCEEDED` is shared through Tenancy Contracts (`EntitlementFailures`, the same instance as
+  `TenancyErrors.QuotaExceeded`) so Identity can declare it. `GET /api/admin/v1/tenant/subscription` reads the cached
+  access inputs (as step 1 does) and labels entitlements and plans itself, since tenants can't read `/plans` (owner
+  default, plan 2026-10-29); the 80 % warning shows only in the usage reads, not on the invite response (owner default).

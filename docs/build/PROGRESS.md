@@ -7,16 +7,17 @@ at the start of every review.
 
 - **Current slice:** S04 — Plans, subscriptions and entitlements (docs/build/slices/S04-plans-entitlements.md,
   rewritten by the S03 slice review). S00, S01, S02 and S03 are done
-- **Current task:** S04-T3a2 — `IEntitlements`, D7's cache (step 1 on it), step 2, pack spec 07 §30 tests (boolean
-  steps) (plan approved 2026-10-29, defaults taken) — in review (#68)
-- **Next:** S04-T3b — `MAX_STAFF_USERS` quota, capabilities with `unavailable` and `access`, `GET …/tenant/subscription`
+- **Current task:** S04-T3b1 — `MAX_STAFF_USERS` quota on invitations (`IQuotaUsage`, per-tenant lock), usage in the
+  platform read and `GET …/tenant/subscription`, pack spec 07 §30 steps 11–12 (plan approved 2026-10-29, defaults
+  taken: T3b in two PRs)
+- **Next:** S04-T3b2 — capabilities with `unavailable` and `access`, `scopeType` as an enum in OpenAPI
 - **Blocked on:** nothing. The S03 slice review (#61, #62) is merged; Q21–Q26: the owner took the defaults
   (2026-10-21, open-questions.md "Answered")
 
 ## Next up
 
-1. S04-T3a2 — `IEntitlements`, cache, step 2, pack spec 07 §30 tests (boolean steps)
-2. S04-T3b — `MAX_STAFF_USERS` quota, capabilities with `unavailable` and `access`, `GET …/tenant/subscription`
+1. S04-T3b1 — `MAX_STAFF_USERS` quota, usage reads, `GET …/tenant/subscription`
+2. S04-T3b2 — capabilities with `unavailable` and `access`, `scopeType` enum
 3. S04-T4 — Platform and tenant screens (likely two PRs: T4a, T4b)
 
 ## Log
@@ -267,6 +268,16 @@ at the start of every review.
   (expired or cancelled too; step 1 refuses the writes), a scheduled-only tenant's scheduled plan applies, and tests
   that write periods or overrides directly between requests clear the cache. Builder: the two bare-app `MapModules`
   tests register an empty entitlement catalogue (OpenAPI's step-2 errors read it).
+
+- **S04-T3b (owner, plan 2026-10-29, defaults taken):** T3b is two PRs: T3b1 (the `MAX_STAFF_USERS` quota on
+  invitations, `IQuotaUsage`, usage in both subscription reads, `GET …/tenant/subscription`, pack spec 07 §30 steps
+  11–12) and T3b2 (capabilities with `unavailable` and `access`, `scopeType` as an enum in OpenAPI). Defaults: the 80 %
+  warning shows in the usage reads only (the invite response is unchanged; T4's dialog reads `/tenant/subscription`);
+  `/tenant/subscription` carries the entitlement names, types, units and levels and the plan name (tenants can't read
+  `/plans`); the refusal says "Your plan allows N staff users." also when an override sets the limit. Builder: a
+  counter registers with `AddQuotaUsage<TCounter>(code)` (a singleton registration the startup rule reads without
+  creating a counter, which needs a database); `ENTITLEMENT_QUOTA_EXCEEDED` is shared through Tenancy Contracts
+  (`EntitlementFailures`) so Identity's endpoint can declare it.
 
 ## Tech debt / follow-ups
 

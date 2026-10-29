@@ -217,6 +217,22 @@ command and every time-zone change commits) and the plans' values until restart 
 seed); "today" and the statuses are derived on every call. Other API instances catch up within 60 s. The platform's
 `GET …/subscription` lists every declared entitlement's effective value with its source.
 
+**Quotas and usage as built (S04-T3b1, D12, D13, D15).** The module that owns the items counts them: it implements
+`IQuotaUsage` (Tenancy Contracts, `CountAsync` for the scope's tenant) and registers it with
+`AddQuotaUsage<TCounter>(code)`, a singleton `QuotaUsageRegistration` that the Host checks at startup (a declared
+`QUOTA` entitlement, at most one counter per code) without creating a counter. Identity's `StaffUsers` counts
+`MAX_STAFF_USERS`: memberships that aren't removed (`ACTIVE`, `SUSPENDED`) plus pending, unexpired invitations to
+emails that aren't members. `membership.invite` holds `identity.staff_users:<tenantId>` while it counts (leaving out a
+pending invitation to the same email, which the new one replaces), checks `CheckQuotaAsync` and saves; at the limit it
+is `403 ENTITLEMENT_QUOTA_EXCEEDED` with the `detail` "Your plan allows N staff users." The platform's
+`tenant.owner.invite` takes a seat but is never refused; accepting is not checked again. Usage is counted on every
+read, never cached: `GET /api/admin/v1/tenant/subscription` (`tenant.subscription.read`: `TENANT_OWNER`,
+`TENANT_ADMIN`, `VIEWER`; available while read-only; audit `NONE`) and the platform's `GET …/subscription` list every
+quota as `{ code, measured, used, limit, warning }` (`warning` from 80 % of the limit, e.g. 4 of 5; `measured: false`
+and `used: null` while no module counts it). The tenant's read also has the current and next periods (plan code and
+name, kind, status, days) and every entitlement's name, type, unit, levels, value and source; never an override or
+cancel reason.
+
 ### Entitlements and plan values (adopted 2026-10-17 — open question Q2)
 
 Plain-language plan descriptions, indicative prices and the research behind them: docs/product/pricing-and-plans.md.
