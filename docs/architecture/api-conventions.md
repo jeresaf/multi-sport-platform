@@ -90,7 +90,7 @@ Modules call each other in-process through Contracts, never over HTTP.
   signed in; `AUTH_INVALID_CREDENTIALS`: sign-in refused) · 403
   permission/entitlement/access mode · 404 not found (also for other tenants' IDs) · 405 method not allowed ·
   409 state or concurrency conflict · 410 gone for good (an expired invitation) · 415 body is not JSON · 422 semantically invalid domain request · 429
-  rate/quota (with `Retry-After`) · 500 unexpected · 503 dependency unavailable.
+  rate limits (with `Retry-After`; a quota is `403 ENTITLEMENT_QUOTA_EXCEEDED`, since retrying never helps, S04 D11) · 500 unexpected · 503 dependency unavailable.
 - Endpoints turn failures into Problem Details with `result.ToHttpResult(...)` / `error.ToProblem()`
   (`SportsPlatform.BuildingBlocks.Api`); the Host adds `type` and `correlationId`. `title` is the error's
   default message.

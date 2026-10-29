@@ -124,6 +124,16 @@ holds `TENANT_OWNER` or `TENANT_ADMIN` tenant-wide, else `TENANT_PROVISIONING`; 
 tenant fails closed with `AUTH_TENANT_FORBIDDEN`. Platform actions have no step 1: platform staff work on blocked
 tenants (restore, unarchive).
 
+**Step 2 as built (S04-T3a2, D10):** after step 1 and before the evaluator, for a TENANT-scope action that names an
+entitlement (`ActionDefinition.Entitlement`, a code the startup check `EntitlementRules` requires to be declared): a
+`BOOLEAN` or `LEVEL` entitlement → `IEntitlements.CanUseAsync` (on, or any level; a handler that needs a particular
+level checks it) or `403 ENTITLEMENT_REQUIRED`, whose `detail` names the entitlement; a `QUOTA` passes, and the handler
+that creates the item counts it (`CheckQuotaAsync`, D12). So refusals come in the order `TENANT_*` →
+`ENTITLEMENT_REQUIRED` → `AUTH_FORBIDDEN`: a permission without the entitlement and an entitlement without the
+permission are both refused. A denied step 2 is audited like any denial. Platform and account actions have no step 2.
+OpenAPI lists `ENTITLEMENT_REQUIRED` on the endpoints whose action names a boolean or level entitlement (none before
+S05). Step 3 is `IAuthorizationEvaluator` (Identity).
+
 ## Roles and scopes
 
 A **role** = set of action codes. A **role assignment** = (membership, role, scope type, scope id).
@@ -191,7 +201,21 @@ new override") in the same save, so the history is kept. `entitlement.override` 
 (`PLATFORM_ADMIN`, audit `REQUIRED_WITH_REASON`) run under the route's tenant
 (`/api/platform/v1/tenants/{tenantId}/entitlement-overrides`) and hold `tenancy.entitlement_override:<tenantId>`;
 `GET …/subscription` lists them with their reasons and history. Reasons are platform-only: tenants will see the value,
-never the reason. The effective value and its cache arrive with `IEntitlements` (S04-T3a2).
+never the reason.
+
+**Effective values as built (S04-T3a2, D6, D7).** `IEntitlements` (Tenancy Contracts), for the scope's tenant:
+`GetAsync(code)` → value and source (`DEFAULT`, `PLAN`, `OVERRIDE`, with the current period's plan code),
+`CanUseAsync`, `GetLimitAsync` (null = unlimited) and `CheckQuotaAsync(code, used)`. Effective value = the
+definition's default (off, 0, no level) → the current period's plan value → an unremoved override in effect on the
+tenant's date. The plan is the current period's whatever its status (owner, plan 2026-10-29): step 1 already refuses
+writes when the period isn't in effect, and reads keep their plan's gates; an override applies with or without a
+period. A stored value that isn't of the entitlement's type is ignored. `CheckQuotaAsync` takes the count before the
+create: `used >= limit` is `403 ENTITLEMENT_QUOTA_EXCEEDED`; otherwise `QuotaCheck { Limit, Used, Warning }`, with the
+warning when the new item reaches 80 % of the limit. Step 1 and `IEntitlements` read the tenant's time zone, periods
+and unremoved overrides through Tenancy's `TenantAccessCache` (60 s; cleared after every subscription and override
+command and every time-zone change commits) and the plans' values until restart (configuration, changed by a reviewed
+seed); "today" and the statuses are derived on every call. Other API instances catch up within 60 s. The platform's
+`GET …/subscription` lists every declared entitlement's effective value with its source.
 
 ### Entitlements and plan values (adopted 2026-10-17 — open question Q2)
 
