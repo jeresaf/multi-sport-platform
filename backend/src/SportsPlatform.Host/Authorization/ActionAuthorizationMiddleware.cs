@@ -85,9 +85,6 @@ internal sealed class ActionAuthorizationMiddleware(RequestDelegate next)
     }
 
     /// <summary>
-    /// Step 1. Tenant resolution has set a tenant the actor is a member of; without one it fails closed.
-    /// </summary>
-    /// <summary>
     /// Step 2 (S04 D10): the boolean or level entitlement the action names, when the tenant can't use it; null when the
     /// action names none or a quota (the handler counts, D12), or the tenant can use it. Step 1 has passed, so the tenant
     /// is set. The Host's startup check (<see cref="EntitlementRules"/>) makes an undeclared code unreachable.
@@ -110,6 +107,9 @@ internal sealed class ActionAuthorizationMiddleware(RequestDelegate next)
         return await services.GetRequiredService<IEntitlements>().CanUseAsync(code, cancellationToken) ? null : definition;
     }
 
+    /// <summary>
+    /// Step 1. Tenant resolution has set a tenant the actor is a member of; without one it fails closed.
+    /// </summary>
     private static async Task<Error?> AccessModeAsync(IServiceProvider services, ActionDefinition action, CancellationToken cancellationToken)
     {
         if (services.GetRequiredService<ITenantContext>().TenantId is not { } tenantId)

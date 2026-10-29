@@ -46,9 +46,8 @@ internal sealed class TenantEntitlements(TenantAccessReader reader, ITenantConte
         var tenantId = tenantContext.TenantId
             ?? throw new InvalidOperationException("Set the scope's tenant before reading its entitlements.");
         var inputs = await reader.InputsAsync(tenantId, cancellationToken);
-        var today = reader.TodayIn(inputs.TimeZone);
-        var planCode = new TenantSubscription(inputs.Periods).CurrentOn(today)?.PlanCode;
         var planValues = await reader.PlanValuesAsync(cancellationToken);
-        return new EffectiveEntitlements(planCode, planValues.Of(planCode), new TenantEntitlementOverrides(inputs.Overrides).InEffectOn(today));
+        return EffectiveEntitlements.On(
+            reader.TodayIn(inputs.TimeZone), new TenantSubscription(inputs.Periods), new TenantEntitlementOverrides(inputs.Overrides), planValues.Of);
     }
 }

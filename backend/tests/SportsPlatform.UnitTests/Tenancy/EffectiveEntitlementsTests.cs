@@ -2,7 +2,9 @@ using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.BuildingBlocks.Entitlements;
 using SportsPlatform.Modules.Tenancy;
 using SportsPlatform.Modules.Tenancy.Contracts.Entitlements;
+using SportsPlatform.Modules.Tenancy.Contracts.Subscriptions;
 using SportsPlatform.Modules.Tenancy.Domain.Entitlements;
+using SportsPlatform.Modules.Tenancy.Domain.Subscriptions;
 
 namespace SportsPlatform.UnitTests.Tenancy;
 
@@ -96,6 +98,40 @@ public sealed class EffectiveEntitlementsTests
         effective.Of(TenancyEntitlements.Reports).Source.ShouldBe(EntitlementSource.Default);
     }
 
+    // The current period's plan applies whatever its status (owner defaults, plan 2026-10-29): step 1 refuses the writes.
+    public static TheoryData<string, string?, EntitlementSource> PlanCases => new()
+    {
+        { "in effect", "PRO", EntitlementSource.Plan },
+        { "expired", "PRO", EntitlementSource.Plan },
+        { "cancelled", "PRO", EntitlementSource.Plan },
+        { "scheduled only", "PRO", EntitlementSource.Plan },
+        { "expired, then scheduled", "PRO", EntitlementSource.Plan },
+        { "none", null, EntitlementSource.Default },
+    };
+
+    [Theory]
+    [MemberData(nameof(PlanCases))]
+    public void The_current_periods_plan_gives_the_values(string periods, string? planCode, EntitlementSource source)
+    {
+        var subscription = new TenantSubscription(periods switch
+        {
+            "in effect" => [Period("PRO", _today.AddDays(-10), _today.AddDays(100))],
+            "expired" => [Period("PRO", _today.AddDays(-100), _today.AddDays(-30))],
+            "cancelled" => [Period("PRO", _today.AddDays(-10), _today.AddDays(100), cancelled: true)],
+            "scheduled only" => [Period("PRO", _today.AddDays(5), _today.AddDays(100))],
+            "expired, then scheduled" =>
+                [Period("PRO", _today.AddDays(-100), _today.AddDays(-30)), Period("STANDARD", _today.AddDays(5), _today.AddDays(100))],
+            _ => [],
+        });
+        var pro = new Dictionary<string, EntitlementValue>(StringComparer.Ordinal) { ["CUSTOM_DOMAIN"] = EntitlementValue.Flag(true) };
+
+        var effective = EffectiveEntitlements.On(
+            _today, subscription, new TenantEntitlementOverrides([]), code => code == "PRO" ? pro : _standard);
+
+        effective.Of(TenancyEntitlements.CustomDomain).ShouldBe(new EffectiveEntitlement(
+            "CUSTOM_DOMAIN", EntitlementValue.Flag(planCode is not null), source, planCode));
+    }
+
     public static TheoryData<EntitlementValue, bool> Uses => new()
     {
         { EntitlementValue.Flag(true), true },
@@ -136,6 +172,18 @@ public sealed class EffectiveEntitlementsTests
     [Fact]
     public void Only_a_quota_is_checked() =>
         Should.Throw<ArgumentException>(() => EffectiveEntitlements.CheckQuota(EntitlementValue.Flag(true), 0));
+
+    private static SubscriptionPeriod Period(string planCode, DateOnly startsOn, DateOnly endsOn, bool cancelled = false)
+    {
+        var period = SubscriptionPeriod.Create(
+            planCode, SubscriptionKind.Paid, startsOn, endsOn, SubscriptionPeriod.DefaultExpiringWindowDays, SubscriptionPeriod.DefaultGraceDays);
+        if (cancelled)
+        {
+            period.Cancel("Association closed", SystemActor.Instance, _now);
+        }
+
+        return period;
+    }
 
     private static IReadOnlyDictionary<string, EntitlementOverride> Overrides(
         params (EntitlementDefinition Definition, EntitlementValue Value, DateOnly? Until)[] overrides)

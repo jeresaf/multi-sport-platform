@@ -1,6 +1,7 @@
 using SportsPlatform.BuildingBlocks.Entitlements;
 using SportsPlatform.BuildingBlocks.Results;
 using SportsPlatform.Modules.Tenancy.Contracts.Entitlements;
+using SportsPlatform.Modules.Tenancy.Domain.Subscriptions;
 
 namespace SportsPlatform.Modules.Tenancy.Domain.Entitlements;
 
@@ -32,6 +33,24 @@ public sealed class EffectiveEntitlements
         _planCode = planCode;
         _planValues = planValues;
         _overrides = overridesInEffect;
+    }
+
+    /// <summary>
+    /// The tenant's effective entitlements on <paramref name="today"/>: the plan of its current period (the latest one in
+    /// effect; else the latest started, expired or cancelled; else the scheduled one, <see cref="TenantSubscription.CurrentOn"/>),
+    /// and its overrides in effect. <paramref name="planValues"/> gives a plan's values by entitlement code.
+    /// </summary>
+    public static EffectiveEntitlements On(
+        DateOnly today,
+        TenantSubscription subscription,
+        TenantEntitlementOverrides overrides,
+        Func<string?, IReadOnlyDictionary<string, EntitlementValue>> planValues)
+    {
+        ArgumentNullException.ThrowIfNull(subscription);
+        ArgumentNullException.ThrowIfNull(overrides);
+        ArgumentNullException.ThrowIfNull(planValues);
+        var planCode = subscription.CurrentOn(today)?.PlanCode;
+        return new EffectiveEntitlements(planCode, planValues(planCode), overrides.InEffectOn(today));
     }
 
     public EffectiveEntitlement Of(EntitlementDefinition definition)

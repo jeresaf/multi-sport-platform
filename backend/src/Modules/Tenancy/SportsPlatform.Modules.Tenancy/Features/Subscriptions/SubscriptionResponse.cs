@@ -38,7 +38,7 @@ public sealed record SubscriptionResponse(
         PlanValues planValues)
     {
         var current = subscription.CurrentOn(today);
-        var effective = new EffectiveEntitlements(current?.PlanCode, planValues.Of(current?.PlanCode), overrides.InEffectOn(today));
+        var effective = EffectiveEntitlements.On(today, subscription, overrides, planValues.Of);
         return new(
             tenantId,
             today,
