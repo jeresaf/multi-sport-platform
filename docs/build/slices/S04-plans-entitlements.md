@@ -277,9 +277,9 @@ Acceptance:
       renewal → full).
 - [x] Two invitations at the last free seat at the same time: one succeeds, one gets
       `403 ENTITLEMENT_QUOTA_EXCEEDED` (test).
-- [ ] Capabilities match the decision for every system role in `FULL`, `READ_ONLY` and without the entitlement
+- [x] Capabilities match the decision for every system role in `FULL`, `READ_ONLY` and without the entitlement
       (table-driven, extending `CapabilitiesTests`).
-- [ ] The matrix test covers the new endpoints without changes.
+- [x] The matrix test covers the new endpoints without changes.
 
 ### T4 — Platform and tenant screens
 Deliver:
@@ -355,3 +355,11 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   classes); the Host documents `ENTITLEMENT_QUOTA_EXCEEDED` on every tenant action that names a quota. `GET /api/admin/v1/tenant/subscription` reads the cached
   access inputs (as step 1 does) and labels entitlements and plans itself, since tenants can't read `/plans` (owner
   default, plan 2026-10-29); the 80 % warning shows only in the usage reads, not on the invite response (owner default).
+- **T3b2:** `GET /api/admin/v1/me/capabilities` is `TenantCapabilitiesResponse` (`{ actions, unavailable, access,
+  scope }`); the platform list keeps `{ actions, scope }`. For an `ACTIVE` tenant, step 1's rule is `TenantAccess.Admits`
+  (Tenancy Contracts), which `TenantDirectory` uses too; an action both steps refuse shows `TENANT_READ_ONLY` only (the middleware's order).
+  `plans` comes from `IEntitlements.PlansAllowingAsync` (active plans in rank order; empty when only an override could
+  allow). The codes are shared as `TenantAccessErrorCodes.ReadOnly` and `EntitlementErrorCodes.Required`. A text query
+  parameter's values show in OpenAPI through `.DocumentsQueryValues(name, values)` (BuildingBlocks `QueryValues`); only
+  `scopeType` uses it so far. The entitlement case is tested through the handler on `EntitlementTestApp` with the test
+  role `FIXTURE_PUBLISHER` (`MembershipTestData`). Owner defaults, plan 2026-10-29.

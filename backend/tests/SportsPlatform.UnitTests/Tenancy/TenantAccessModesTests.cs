@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Time.Testing;
+using SportsPlatform.BuildingBlocks.Actions;
 using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.Modules.Tenancy.Contracts.Access;
 using SportsPlatform.Modules.Tenancy.Contracts.Subscriptions;
@@ -79,5 +80,29 @@ public sealed class TenantAccessModesTests
         var current = new TenantSubscription([period]).CurrentOn(new DateOnly(2026, 6, 1)).ShouldNotBeNull();
 
         TenantAccessModes.Of(TenantStatus.Active, current.StatusOn(new DateOnly(2026, 6, 1))).ShouldBe(TenantAccessMode.ReadOnly);
+    }
+
+    /// <summary>
+    /// Step 1's rule as the capabilities list shares it (S04 D14): every mode with an action carrying each flag, neither
+    /// or both. A read-only action is a read (<c>fixture.read</c>); a blocked one is the owner's access read.
+    /// </summary>
+    [Theory]
+    [InlineData(TenantAccessMode.Full, false, false, true)]
+    [InlineData(TenantAccessMode.Full, true, true, true)]
+    [InlineData(TenantAccessMode.ReadOnly, false, false, false)]
+    [InlineData(TenantAccessMode.ReadOnly, true, false, true)]
+    [InlineData(TenantAccessMode.ReadOnly, false, true, false)]
+    [InlineData(TenantAccessMode.Blocked, false, false, false)]
+    [InlineData(TenantAccessMode.Blocked, true, false, false)]
+    [InlineData(TenantAccessMode.Blocked, false, true, true)]
+    public void The_access_mode_admits_what_its_flag_allows(
+        TenantAccessMode mode, bool availableWhenReadOnly, bool availableWhenBlocked, bool admitted)
+    {
+        var action = new ActionDefinition(
+            "fixture.read", "Read fixtures.", ActionScope.Tenant, AuditRequirement.None, "S04", [AssignmentScope.Tenant],
+            availableWhenBlocked: availableWhenBlocked, availableWhenReadOnly: availableWhenReadOnly);
+        var access = new TenantAccess(TenantStatus.Active, mode, "Africa/Kampala", Subscription: null);
+
+        access.Admits(action).ShouldBe(admitted);
     }
 }

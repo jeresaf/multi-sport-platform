@@ -1,4 +1,5 @@
 using SportsPlatform.BuildingBlocks.Results;
+using SportsPlatform.Modules.Tenancy.Contracts.Access;
 using SportsPlatform.Modules.Tenancy.Contracts.Entitlements;
 
 namespace SportsPlatform.Modules.Tenancy;
@@ -24,7 +25,7 @@ public static class TenancyErrors
     /// tenant action that isn't available when read-only is refused (S04 D8, D11).
     /// </summary>
     public static readonly Error ReadOnly = new(
-        "TENANT_READ_ONLY", "This tenant is read-only: its subscription has ended or hasn't started.", ErrorKind.Forbidden);
+        TenantAccessErrorCodes.ReadOnly, "This tenant is read-only: its subscription has ended or hasn't started.", ErrorKind.Forbidden);
 
     /// <summary>
     /// A tenant action on a <c>PROVISIONING</c> tenant by a member who doesn't hold <c>TENANT_OWNER</c> or
@@ -79,7 +80,7 @@ public static class TenancyErrors
     /// don't give it (S04 D10, D11). <c>detail</c> names the entitlement.
     /// </summary>
     public static readonly Error EntitlementRequired = new(
-        "ENTITLEMENT_REQUIRED", "The tenant's plan doesn't include this feature.", ErrorKind.Forbidden);
+        EntitlementErrorCodes.Required, "The tenant's plan doesn't include this feature.", ErrorKind.Forbidden);
 
     /// <summary>
     /// A create that would take the tenant past a quota of its plan or override (S04 D11, D12): retrying never helps, so

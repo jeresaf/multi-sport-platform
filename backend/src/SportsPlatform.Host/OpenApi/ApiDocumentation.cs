@@ -36,6 +36,7 @@ public static class ApiDocumentation
             options.AddOperationTransformer(ListErrorCodes);
             options.AddOperationTransformer(DescribeStrictJsonBodyAsync);
             options.AddOperationTransformer(DescribeRowVersionHeaders);
+            options.AddOperationTransformer(DescribeQueryValues);
         });
         return services;
     }
@@ -250,6 +251,25 @@ public static class ApiDocumentation
                     };
                 }
             }
+        }
+
+        return Task.CompletedTask;
+    }
+
+    // QueryValues: a query parameter bound as text that accepts only these values.
+    private static Task DescribeQueryValues(
+        OpenApiOperation operation, OpenApiOperationTransformerContext context, CancellationToken cancellationToken)
+    {
+        foreach (var declared in context.Description.ActionDescriptor.EndpointMetadata.OfType<QueryValuesMetadata>())
+        {
+            var parameter = operation.Parameters?.OfType<OpenApiParameter>()
+                .SingleOrDefault(p => p.In == ParameterLocation.Query && p.Name == declared.Name)
+                ?? throw new InvalidOperationException($"{context.Description.RelativePath} has no query parameter {declared.Name}.");
+            parameter.Schema = new OpenApiSchema
+            {
+                Type = JsonSchemaType.String,
+                Enum = [.. declared.Values.Select(value => (JsonNode)JsonValue.Create(value))],
+            };
         }
 
         return Task.CompletedTask;

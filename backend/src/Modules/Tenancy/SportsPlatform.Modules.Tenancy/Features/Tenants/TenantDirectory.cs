@@ -77,9 +77,10 @@ internal sealed class TenantDirectory(
                 action.AvailableWhenBlocked ? Result.Success() : Result.Failure(TenancyErrors.Blocked),
 
             // Only an active tenant's subscription decides (S04 D8): reads go on while it is READ_ONLY (and skip the
-            // periods), writes wait for a period in effect.
+            // periods), writes wait for a period in effect. For an ACTIVE tenant, TenantAccess.Admits is the rule the
+            // capabilities list shares.
             TenantStatus.Active => action.AvailableWhenReadOnly
-                || (await AccessOfAsync(tenant, cancellationToken)).Mode == TenantAccessMode.Full
+                || (await AccessOfAsync(tenant, cancellationToken)).Admits(action)
                 ? Result.Success()
                 : Result.Failure(TenancyErrors.ReadOnly),
             _ => throw new ArgumentOutOfRangeException(nameof(tenantId)),

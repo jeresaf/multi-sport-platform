@@ -380,8 +380,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List the tenant actions the signed-in user may perform
-         * @description The codes of the tenant actions (docs/generated/actions.md) the signed-in user's roles grant in the tenant named by `X-Tenant-Id`, in ordinal order. Without `scopeType`/`scopeId`, the actions granted tenant-wide; with them (COMPETITION, TEAM or CONTEST and its ID), also those granted on that resource or the scopes above it. The admin app shows only what this list allows; every request is still authorized. A tenant whose access is limited answers this request 403 with the reason (TENANT_BLOCKED, TENANT_PROVISIONING).
+         * List the tenant actions the signed-in user may perform, and those the tenant can't use now
+         * @description What the signed-in user's roles grant in the tenant named by `X-Tenant-Id` (tenant actions, docs/generated/actions.md). Without `scopeType`/`scopeId`, the actions granted tenant-wide; with them (COMPETITION, TEAM or CONTEST and its ID), also those granted on that resource or the scopes above it. `actions`: what the user may perform now, in ordinal order. `unavailable`: what the roles grant but the tenant can't use now, each with the refusal a request would get: TENANT_READ_ONLY (the subscription has ended, was cancelled or hasn't started) or ENTITLEMENT_REQUIRED (with the entitlement and the plans that include it, for "Requires PRO plan"). Actions the roles don't grant are in neither list. `access`: the tenant's access mode, the current subscription period's status and last days (null without a period) and the tenant's time zone, for the banner. The admin app shows only what `actions` allows and disables what `unavailable` lists; every request is still authorized. A read-only tenant answers this request; a blocked one, or a provisioning one for a member who can't set it up, answers 403 with the reason (TENANT_BLOCKED, TENANT_PROVISIONING).
          */
         get: operations["GetTenantCapabilities"];
         put?: never;
@@ -1056,11 +1056,29 @@ export interface components {
         CancelSubscriptionRequest: {
             reason: null | string;
         };
-        /** @description The action codes the caller may perform, in ordinal order; Scope is the resource asked about, if any. */
+        /**
+         * @description The platform action codes the caller may perform, in ordinal order; Scope is always null (kept so
+         *     the platform list has the shape it had in S03). The tenant list is TenantCapabilitiesResponse.
+         */
         CapabilitiesResponse: {
             actions: string[];
             scope: null | components["schemas"]["CapabilityScopeResponse"];
         };
+        /**
+         * @description The tenant's access today, for the shell's banner: the access `mode`; the current subscription period's status
+         *     and its last day and last day of grace (all null without a period); the tenant's `timeZone` (IANA), in which the
+         *     days begin and end. A response of its own, so a field added to Tenancy's contract doesn't change the API.
+         */
+        CapabilityAccessResponse: {
+            mode: components["schemas"]["TenantAccessMode"];
+            subscriptionStatus: null | components["schemas"]["SubscriptionStatus"];
+            /** Format: date */
+            endsOn: null | string;
+            /** Format: date */
+            graceEndsOn: null | string;
+            timeZone: string;
+        };
+        /** @description The resource the capabilities were asked about. */
         CapabilityScopeResponse: {
             type: components["schemas"]["AssignmentScope"];
             /** Format: uuid */
@@ -1624,6 +1642,18 @@ export interface components {
             subscription: null | components["schemas"]["TenantAccessPeriod"];
         };
         /**
+         * @description The tenant capabilities (S04 D14): `actions`, the action codes the caller may perform now (all three steps of
+         *     the decision formula), in ordinal order; `unavailable`, the actions the caller's roles grant but the tenant
+         *     can't use now, with the reason, in ordinal order; `access`, the tenant's access for the banner;
+         *     `scope`, the resource asked about, if any. Actions the roles don't grant are in neither list.
+         */
+        TenantCapabilitiesResponse: {
+            actions: string[];
+            unavailable: components["schemas"]["UnavailableActionResponse"][];
+            access: components["schemas"]["CapabilityAccessResponse"];
+            scope: null | components["schemas"]["CapabilityScopeResponse"];
+        };
+        /**
          * @description One entitlement as the tenant's Subscription page shows it: its name, description, type, unit (quotas) and levels
          *     (level entitlements, lowest first), and the tenant's value today with its source (`DEFAULT`, `PLAN` or
          *     `OVERRIDE`).
@@ -1743,6 +1773,18 @@ export interface components {
         TimeZoneResponse: {
             code: string;
             countryCode: null | string;
+        };
+        /**
+         * @description An action the caller's roles grant that the tenant can't use now. `code` is the refusal the request would get
+         *     first: `TENANT_READ_ONLY` (step 1) or `ENTITLEMENT_REQUIRED` (step 2). For `ENTITLEMENT_REQUIRED`,
+         *     `entitlement` is the entitlement the action names and `plans` the active plans, in rank order, that include
+         *     it (empty when none does); both are null for `TENANT_READ_ONLY`.
+         */
+        UnavailableActionResponse: {
+            action: string;
+            code: string;
+            entitlement: null | string;
+            plans: null | string[];
         };
         /**
          * @description The profile fields to change; a missing or null field stays as it is. The slug and the status can't be changed here
@@ -2855,7 +2897,7 @@ export interface operations {
     GetTenantCapabilities: {
         parameters: {
             query?: {
-                scopeType?: string;
+                scopeType?: "COMPETITION" | "TEAM" | "CONTEST";
                 scopeId?: string;
             };
             header?: never;
@@ -2870,7 +2912,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CapabilitiesResponse"];
+                    "application/json": components["schemas"]["TenantCapabilitiesResponse"];
                 };
             };
             /** @description Problem Details; `code`: `VALIDATION_INVALID_QUERY` */

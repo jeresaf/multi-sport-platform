@@ -1713,14 +1713,19 @@
         "tags": [
           "Capabilities"
         ],
-        "summary": "List the tenant actions the signed-in user may perform",
-        "description": "The codes of the tenant actions (docs/generated/actions.md) the signed-in user's roles grant in the tenant named by `X-Tenant-Id`, in ordinal order. Without `scopeType`/`scopeId`, the actions granted tenant-wide; with them (COMPETITION, TEAM or CONTEST and its ID), also those granted on that resource or the scopes above it. The admin app shows only what this list allows; every request is still authorized. A tenant whose access is limited answers this request 403 with the reason (TENANT_BLOCKED, TENANT_PROVISIONING).",
+        "summary": "List the tenant actions the signed-in user may perform, and those the tenant can't use now",
+        "description": "What the signed-in user's roles grant in the tenant named by `X-Tenant-Id` (tenant actions, docs/generated/actions.md). Without `scopeType`/`scopeId`, the actions granted tenant-wide; with them (COMPETITION, TEAM or CONTEST and its ID), also those granted on that resource or the scopes above it. `actions`: what the user may perform now, in ordinal order. `unavailable`: what the roles grant but the tenant can't use now, each with the refusal a request would get: TENANT_READ_ONLY (the subscription has ended, was cancelled or hasn't started) or ENTITLEMENT_REQUIRED (with the entitlement and the plans that include it, for \"Requires PRO plan\"). Actions the roles don't grant are in neither list. `access`: the tenant's access mode, the current subscription period's status and last days (null without a period) and the tenant's time zone, for the banner. The admin app shows only what `actions` allows and disables what `unavailable` lists; every request is still authorized. A read-only tenant answers this request; a blocked one, or a provisioning one for a member who can't set it up, answers 403 with the reason (TENANT_BLOCKED, TENANT_PROVISIONING).",
         "operationId": "GetTenantCapabilities",
         "parameters": [
           {
             "name": "scopeType",
             "in": "query",
             "schema": {
+              "enum": [
+                "COMPETITION",
+                "TEAM",
+                "CONTEST"
+              ],
               "type": "string"
             }
           },
@@ -1738,7 +1743,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CapabilitiesResponse"
+                  "$ref": "#/components/schemas/TenantCapabilitiesResponse"
                 }
               }
             }
@@ -4997,7 +5002,50 @@
             ]
           }
         },
-        "description": "The action codes the caller may perform, in ordinal order; Scope is the resource asked about, if any."
+        "description": "The platform action codes the caller may perform, in ordinal order; Scope is always null (kept so\nthe platform list has the shape it had in S03). The tenant list is TenantCapabilitiesResponse."
+      },
+      "CapabilityAccessResponse": {
+        "required": [
+          "mode",
+          "subscriptionStatus",
+          "endsOn",
+          "graceEndsOn",
+          "timeZone"
+        ],
+        "type": "object",
+        "properties": {
+          "mode": {
+            "$ref": "#/components/schemas/TenantAccessMode"
+          },
+          "subscriptionStatus": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SubscriptionStatus"
+              }
+            ]
+          },
+          "endsOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "graceEndsOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "timeZone": {
+            "type": "string"
+          }
+        },
+        "description": "The tenant's access today, for the shell's banner: the access `mode`; the current subscription period's status\nand its last day and last day of grace (all null without a period); the tenant's `timeZone` (IANA), in which the\ndays begin and end. A response of its own, so a field added to Tenancy's contract doesn't change the API."
       },
       "CapabilityScopeResponse": {
         "required": [
@@ -5013,7 +5061,8 @@
             "type": "string",
             "format": "uuid"
           }
-        }
+        },
+        "description": "The resource the capabilities were asked about."
       },
       "ChangeMemberStatusRequest": {
         "type": "object",
@@ -6708,6 +6757,43 @@
         },
         "description": "A tenant's access as its owner sees it: `status`; the `accessMode` derived from it and the current\nsubscription period; the `reason` (null when the change needs none, such as an activation) and time\n(`since`) of the change that put the tenant in its status; the tenant's `timeZone` (IANA), in which to show\n`since` and the period's days; and the current period's status and days (`subscription`, null without a\nperiod). A read-only tenant's `subscription` says why; the cancel reason is the platform's and is not shown."
       },
+      "TenantCapabilitiesResponse": {
+        "required": [
+          "actions",
+          "unavailable",
+          "access",
+          "scope"
+        ],
+        "type": "object",
+        "properties": {
+          "actions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "unavailable": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UnavailableActionResponse"
+            }
+          },
+          "access": {
+            "$ref": "#/components/schemas/CapabilityAccessResponse"
+          },
+          "scope": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CapabilityScopeResponse"
+              }
+            ]
+          }
+        },
+        "description": "The tenant capabilities (S04 D14): `actions`, the action codes the caller may perform now (all three steps of\nthe decision formula), in ordinal order; `unavailable`, the actions the caller's roles grant but the tenant\ncan't use now, with the reason, in ordinal order; `access`, the tenant's access for the banner;\n`scope`, the resource asked about, if any. Actions the roles don't grant are in neither list."
+      },
       "TenantEntitlementResponse": {
         "required": [
           "code",
@@ -7033,6 +7119,39 @@
           }
         },
         "description": "An IANA time zone: its ID as `code` (`Africa/Kampala`) and its country; no country for `Etc/UTC`."
+      },
+      "UnavailableActionResponse": {
+        "required": [
+          "action",
+          "code",
+          "entitlement",
+          "plans"
+        ],
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "entitlement": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "plans": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "An action the caller's roles grant that the tenant can't use now. `code` is the refusal the request would get\nfirst: `TENANT_READ_ONLY` (step 1) or `ENTITLEMENT_REQUIRED` (step 2). For `ENTITLEMENT_REQUIRED`,\n`entitlement` is the entitlement the action names and `plans` the active plans, in rank order, that include\nit (empty when none does); both are null for `TENANT_READ_ONLY`."
       },
       "UpdateTenantProfileRequest": {
         "type": "object",

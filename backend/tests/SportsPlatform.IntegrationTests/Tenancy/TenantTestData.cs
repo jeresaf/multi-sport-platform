@@ -169,17 +169,19 @@ internal static class TenantTestData
     }
 
     /// <summary>
-    /// A STANDARD period of the tenant from <paramref name="startsOn"/> to <paramref name="endsOn"/> with the default
-    /// windows, cancelled by the platform when <paramref name="cancelReason"/> is given; saved under that tenant.
+    /// A period of the tenant on <paramref name="planCode"/> (STANDARD by default) from <paramref name="startsOn"/> to
+    /// <paramref name="endsOn"/> with the default windows, cancelled by the platform when <paramref name="cancelReason"/>
+    /// is given; saved under that tenant.
     /// </summary>
     public static async Task<Guid> SavePeriodAsync(
-        IServiceProvider services, Guid tenantId, DateOnly startsOn, DateOnly endsOn, CancellationToken cancellationToken, string? cancelReason = null)
+        IServiceProvider services, Guid tenantId, DateOnly startsOn, DateOnly endsOn, CancellationToken cancellationToken,
+        string? cancelReason = null, string? planCode = null)
     {
         await using var scope = services.CreateAsyncScope();
         scope.ServiceProvider.GetRequiredService<TenantContext>().Set(tenantId);
         var context = scope.ServiceProvider.GetRequiredService<TenancyDbContext>();
         var period = SubscriptionPeriod.Create(
-            TenancyPlans.Standard.Code, SubscriptionKind.Paid, startsOn, endsOn,
+            planCode ?? TenancyPlans.Standard.Code, SubscriptionKind.Paid, startsOn, endsOn,
             SubscriptionPeriod.DefaultExpiringWindowDays, SubscriptionPeriod.DefaultGraceDays);
         if (cancelReason is not null)
         {

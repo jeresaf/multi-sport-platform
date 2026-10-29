@@ -4,6 +4,9 @@ using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using SportsPlatform.BuildingBlocks.Actions;
 using SportsPlatform.BuildingBlocks.Actors;
+using SportsPlatform.BuildingBlocks.Entitlements;
+using SportsPlatform.BuildingBlocks.Persistence;
+using SportsPlatform.BuildingBlocks.Persistence.Messaging;
 using SportsPlatform.BuildingBlocks.Tenancy;
 using SportsPlatform.IntegrationTests.Api;
 using SportsPlatform.IntegrationTests.Authorization;
@@ -15,14 +18,20 @@ using SportsPlatform.Modules.Identity.Domain.Roles;
 using SportsPlatform.Modules.Identity.Features.Authorization;
 using SportsPlatform.Modules.Identity.Features.Capabilities.GetTenantCapabilities;
 using SportsPlatform.Modules.Identity.Infrastructure;
+using SportsPlatform.Modules.Tenancy.Contracts.Access;
+using SportsPlatform.Modules.Tenancy.Contracts.Entitlements;
+using SportsPlatform.Modules.Tenancy.Contracts.Subscriptions;
 using SportsPlatform.Modules.Tenancy.Contracts.Tenants;
+using SportsPlatform.Modules.Tenancy.Domain.Subscriptions;
 using static SportsPlatform.IntegrationTests.Identity.MembershipTestData;
 
 namespace SportsPlatform.IntegrationTests.Identity;
 
 /// <summary>
 /// <c>GET /api/admin/v1/me/capabilities</c> and <c>GET /api/platform/v1/me/capabilities</c> (S03-T5): the actions the
-/// evaluator allows the caller, for every system role (table-driven), tenant-wide or on a resource through its chain.
+/// evaluator allows the caller, for every system role (table-driven), tenant-wide or on a resource through its chain;
+/// with S04 D14, what the roles grant but the tenant can't use (<c>FULL</c>, <c>READ_ONLY</c>, without the entitlement)
+/// and the tenant's access.
 /// </summary>
 public sealed class CapabilitiesTests(PostgresFixture fixture) : DatabaseTest(fixture)
 {
@@ -32,6 +41,15 @@ public sealed class CapabilitiesTests(PostgresFixture fixture) : DatabaseTest(fi
     private static readonly Guid _metroFootballLeague = new("0192a1b2-0000-7000-8000-00000000c001");
     private static readonly Guid _under17Cup = new("0192a1b2-0000-7000-8000-00000000c002");
     private static readonly Guid _metroFootballLeagueOpener = new("0192a1b2-0000-7000-8000-00000000d001");
+    private const string _timeZone = "Africa/Kampala";
+
+    /// <summary>A test read that names D20's test entitlement: available when read-only, still gated by step 2.</summary>
+    private static readonly ActionDefinition _fixtureReportRead = new(
+        "fixture.report.read", "Read the fixtures report.", ActionScope.Tenant, AuditRequirement.None, "S04",
+        [AssignmentScope.Tenant], entitlement: EntitlementTestApp.FixturePublishing.Code, availableWhenReadOnly: true);
+
+    // 2026-10-17 12:00 in Kampala, within the test tenants' period.
+    private static readonly DateTimeOffset _entitlementTestNow = new(2026, 10, 17, 9, 0, 0, TimeSpan.Zero);
 
     /// <summary>Every tenant role that can be held tenant-wide (<c>TEAM_MANAGER</c> can't; a member without one: see below).</summary>
     public static TheoryData<string> TenantWideRoles =>
@@ -59,6 +77,135 @@ public sealed class CapabilitiesTests(PostgresFixture fixture) : DatabaseTest(fi
         // And independently of the shared rule: the role's tenant actions that a tenant-wide assignment can grant.
         ActionsOf(body).ShouldBe(await RoleGrantsAsync(role, action => action.Scope == ActionScope.Tenant && action.ScopableBy.Contains(AssignmentScope.Tenant)));
         body.GetProperty("scope").ValueKind.ShouldBe(JsonValueKind.Null);
+
+        // FULL on STANDARD: nothing the roles grant is unavailable (no action built so far names a boolean entitlement).
+        var capabilities = Typed(body);
+        capabilities.Unavailable.ShouldBeEmpty();
+        capabilities.Access.ShouldBe(new CapabilityAccessResponse(
+            TenantAccessMode.Full, SubscriptionStatus.Active, TenantTestData.PeriodEndsOn, TenantTestData.PeriodEndsOn.AddDays(SubscriptionPeriod.DefaultGraceDays), _timeZone));
+    }
+
+    /// <summary>
+    /// <c>READ_ONLY</c> (S04 D14): the list still answers; the reads stay in <c>actions</c> and the role's other grants
+    /// move to <c>unavailable</c> with <c>TENANT_READ_ONLY</c>, so <c>actions</c> is exactly what steps 1 and 3 allow.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(TenantWideRoles))]
+    public async Task A_read_only_tenants_capabilities_mark_what_the_roles_grant_but_the_tenant_cant_use(string role)
+    {
+        App.Authorization.UseIdentityRoles();
+        var kmsa = await TenantTestData.SaveTenantAsync(
+            App.Services, "kmsa", TenantStatus.Active, publicEnabled: false, withDomain: true, withSubscription: false, Ct);
+        await TenantTestData.SavePeriodAsync(
+            App.Services, kmsa, TenantTestData.PeriodStartsOn, TenantTestData.PeriodEndsOn, Ct, cancelReason: "Association stopped running competitions");
+        var member = await CreateMemberAsync(App.Services, kmsa, MailboxOf(role, "kmsa.example"), Ct, TenantWide(role));
+        using var client = App.ClientFor(member.UserId, kmsa);
+
+        using var response = await client.GetAsync(TenantCapabilitiesPath, Ct);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var capabilities = Typed(await response.Content.ReadFromJsonAsync<JsonElement>(Ct));
+        var granted = await EvaluatorAllowsAsync(member.Actor, ActionScope.Tenant, kmsa);
+        var readOnly = (await ActionsAsync()).Where(action => action.AvailableWhenReadOnly).Select(action => action.Code.Value).ToHashSet();
+        capabilities.Actions.ShouldBe([.. granted.Where(readOnly.Contains)]);
+        capabilities.Actions.ShouldContain(IdentityActions.TenantCapabilitiesRead.Code.Value);
+        capabilities.Unavailable.ShouldBe([.. granted.Where(code => !readOnly.Contains(code))
+            .Select(code => new UnavailableActionResponse(code, "TENANT_READ_ONLY", Entitlement: null, Plans: null))]);
+        capabilities.Access.ShouldBe(new CapabilityAccessResponse(
+            TenantAccessMode.ReadOnly, SubscriptionStatus.Cancelled, TenantTestData.PeriodEndsOn, TenantTestData.PeriodEndsOn.AddDays(SubscriptionPeriod.DefaultGraceDays), _timeZone));
+
+        // For the roles that may invite: the API refuses the marked write as the list says (step 1 answers before the body).
+        if (capabilities.Unavailable.Any(unavailable => unavailable.Action == IdentityActions.MembershipInvite.Code.Value))
+        {
+            await (await client.PostAsJsonAsync(
+                "/api/admin/v1/invitations", new { email = "grace.atim@kmsa.example", roleCodes = new[] { IdentityRoles.Viewer } }, Ct))
+                .ShouldBeProblemAsync(HttpStatusCode.Forbidden, "TENANT_READ_ONLY");
+        }
+    }
+
+    [Fact]
+    public async Task A_provisioning_tenants_owner_reads_full_access_without_a_subscription()
+    {
+        App.Authorization.UseIdentityRoles();
+        var kmsa = await TenantTestData.SaveTenantAsync(App.Services, "kmsa", TenantStatus.Provisioning, Ct);
+        var owner = await CreateMemberAsync(App.Services, kmsa, "sarah.namubiru@kmsa.example", Ct, TenantWide(IdentityRoles.TenantOwner));
+        using var client = App.ClientFor(owner.UserId, kmsa);
+
+        using var response = await client.GetAsync(TenantCapabilitiesPath, Ct);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var capabilities = Typed(await response.Content.ReadFromJsonAsync<JsonElement>(Ct));
+        capabilities.Access.ShouldBe(new CapabilityAccessResponse(TenantAccessMode.Full, SubscriptionStatus: null, EndsOn: null, GraceEndsOn: null, _timeZone));
+        capabilities.Unavailable.ShouldBeEmpty();
+        capabilities.Actions.ShouldBe(await EvaluatorAllowsAsync(owner.Actor, ActionScope.Tenant, kmsa));
+    }
+
+    [Fact]
+    public async Task Without_a_period_the_tenant_is_read_only_and_the_access_has_no_subscription()
+    {
+        App.Authorization.UseIdentityRoles();
+        var kmsa = await TenantTestData.SaveTenantAsync(
+            App.Services, "kmsa", TenantStatus.Active, publicEnabled: false, withDomain: true, withSubscription: false, Ct);
+        var owner = await CreateMemberAsync(App.Services, kmsa, "sarah.namubiru@kmsa.example", Ct, TenantWide(IdentityRoles.TenantOwner));
+        using var client = App.ClientFor(owner.UserId, kmsa);
+
+        using var response = await client.GetAsync(TenantCapabilitiesPath, Ct);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>(Ct);
+        Typed(body).Access.ShouldBe(new CapabilityAccessResponse(TenantAccessMode.ReadOnly, SubscriptionStatus: null, EndsOn: null, GraceEndsOn: null, _timeZone));
+        Typed(body).Unavailable.ShouldContain(new UnavailableActionResponse(
+            IdentityActions.MembershipInvite.Code.Value, "TENANT_READ_ONLY", Entitlement: null, Plans: null));
+        body.GetProperty("access").GetProperty("mode").GetString().ShouldBe("READ_ONLY");
+        body.GetProperty("access").GetProperty("subscriptionStatus").ValueKind.ShouldBe(JsonValueKind.Null);
+    }
+
+    /// <summary>
+    /// Without the entitlement (S04 D14, D20): the test action <c>fixture.publish</c> names the test boolean
+    /// <c>FIXTURE_PUBLISHING</c> (off on STANDARD, on on PRO) and a test role grants it. On STANDARD it is unavailable
+    /// with <c>ENTITLEMENT_REQUIRED</c> and the plans that include it; on PRO it is in <c>actions</c>; on a read-only
+    /// tenant step 1 refuses first, so the reason is <c>TENANT_READ_ONLY</c>, the middleware's order
+    /// (<c>EntitlementPipelineTests</c> proves the middleware's answers over HTTP). The read <see cref="_fixtureReportRead"/>
+    /// names the same entitlement and is available when read-only, so step 1 lets it through and step 2 still gates it
+    /// (#70 R2).
+    /// </summary>
+    [Fact]
+    public async Task An_action_whose_entitlement_the_tenant_lacks_is_unavailable_with_the_plans_that_include_it()
+    {
+        try
+        {
+            await ExecuteAsync(DatabaseRoles.Migrator, EntitlementTestApp.SavePlanValuesSql);
+            await using var app = await EntitlementTestApp.StartAsync(Fixture, _entitlementTestNow, Ct);
+            var kmsa = await TenantTestData.SaveTenantAsync(app.Services, "kmsa", TenantStatus.Active, Ct);
+            var elssc = await TenantTestData.SaveTenantAsync(
+                app.Services, "elssc", TenantStatus.Active, publicEnabled: false, withDomain: true, withSubscription: false, Ct);
+            await TenantTestData.SavePeriodAsync(app.Services, elssc, TenantTestData.PeriodStartsOn, TenantTestData.PeriodEndsOn, Ct, planCode: "PRO");
+            var mbarara = await TenantTestData.SaveTenantAsync(
+                app.Services, "mbarara", TenantStatus.Active, publicEnabled: false, withDomain: true, withSubscription: false, Ct);
+            await TenantTestData.SavePeriodAsync(
+                app.Services, mbarara, TenantTestData.PeriodStartsOn, TenantTestData.PeriodEndsOn, Ct, cancelReason: "Association stopped running competitions");
+
+            var onStandard = await PublisherCapabilitiesAsync(app, kmsa, "peter.okello@kmsa.example");
+            onStandard.Actions.ShouldNotContain(EntitlementTestApp.FixturePublish.Code.Value);
+            onStandard.Actions.ShouldNotContain(_fixtureReportRead.Code.Value);
+            onStandard.Unavailable.Select(EntitlementRequired).ShouldBe([("fixture.publish", "FIXTURE_PUBLISHING", "PRO"), ("fixture.report.read", "FIXTURE_PUBLISHING", "PRO")]);
+
+            var onPro = await PublisherCapabilitiesAsync(app, elssc, "peter.okello@elssc.example");
+            onPro.Actions.ShouldContain(EntitlementTestApp.FixturePublish.Code.Value);
+            onPro.Actions.ShouldContain(_fixtureReportRead.Code.Value);
+            onPro.Unavailable.ShouldBeEmpty();
+
+            // Read-only: the write is refused by step 1 first; the read passes step 1 and is refused by step 2.
+            var readOnly = await PublisherCapabilitiesAsync(app, mbarara, "peter.okello@mbarara.example");
+            readOnly.Actions.ShouldNotContain(_fixtureReportRead.Code.Value);
+            readOnly.Unavailable.Count.ShouldBe(2);
+            readOnly.Unavailable[0].ShouldBe(new UnavailableActionResponse("fixture.publish", "TENANT_READ_ONLY", Entitlement: null, Plans: null));
+            EntitlementRequired(readOnly.Unavailable[1]).ShouldBe(("fixture.report.read", "FIXTURE_PUBLISHING", "PRO"));
+        }
+        finally
+        {
+            await ExecuteAsync(DatabaseRoles.Migrator, EntitlementTestApp.RemovePlanValuesSql);
+        }
     }
 
     [Theory]
@@ -202,6 +349,38 @@ public sealed class CapabilitiesTests(PostgresFixture fixture) : DatabaseTest(fi
         }
     }
 
+    private static TenantCapabilitiesResponse Typed(JsonElement body) =>
+        body.Deserialize<TenantCapabilitiesResponse>(MessageSerialization.Options).ShouldNotBeNull();
+
+    private async Task<IReadOnlyList<ActionDefinition>> ActionsAsync()
+    {
+        await using var serviceScope = App.Services.CreateAsyncScope();
+        return serviceScope.ServiceProvider.GetRequiredService<IActionCatalogue>().All;
+    }
+
+    /// <summary>
+    /// The handler on <paramref name="app"/> (its entitlement catalogue and plan values include <c>FIXTURE_PUBLISHING</c>)
+    /// for a new member holding <see cref="FixturePublisher"/> tenant-wide, with <c>fixture.publish</c> in the catalogue.
+    /// </summary>
+    private static async Task<TenantCapabilitiesResponse> PublisherCapabilitiesAsync(EntitlementTestApp app, Guid tenantId, string email)
+    {
+        var member = await CreateMemberAsync(app.Services, tenantId, email, Ct, TenantWide(FixturePublisher));
+        await using var serviceScope = app.Services.CreateAsyncScope();
+        var services = serviceScope.ServiceProvider;
+        var tenantContext = services.GetRequiredService<TenantContext>();
+        tenantContext.Set(tenantId);
+        var handler = new GetTenantCapabilitiesHandler(
+            new Permissions(services.GetRequiredService<IdentityDbContext>(), Roles, tenantContext),
+            new ScopeChains([]),
+            new TestActions(services.GetRequiredService<IActionCatalogue>(), EntitlementTestApp.FixturePublish, _fixtureReportRead),
+            services.GetRequiredService<IEntitlementCatalogue>(),
+            services.GetRequiredService<ITenantAccess>(),
+            services.GetRequiredService<IEntitlements>(),
+            member.Actor,
+            tenantContext);
+        return await handler.HandleAsync(resource: null, Ct);
+    }
+
     private static List<string> ActionsOf(JsonElement body) =>
         [.. body.GetProperty("actions").EnumerateArray().Select(action => action.GetString()!)];
 
@@ -249,6 +428,9 @@ public sealed class CapabilitiesTests(PostgresFixture fixture) : DatabaseTest(fi
             new Permissions(services.GetRequiredService<IdentityDbContext>(), Roles, tenantContext),
             new ScopeChains([chains]),
             new TestActions(services.GetRequiredService<IActionCatalogue>()),
+            services.GetRequiredService<IEntitlementCatalogue>(),
+            services.GetRequiredService<ITenantAccess>(),
+            services.GetRequiredService<IEntitlements>(),
             member.Actor,
             tenantContext);
         return (await handler.HandleAsync(resource, Ct)).Actions;
@@ -265,10 +447,19 @@ public sealed class CapabilitiesTests(PostgresFixture fixture) : DatabaseTest(fi
         return (await evaluator.AuthorizeAsync(new AuthorizationRequest(action, member.Actor, tenantId, resource), Ct)).IsSuccess;
     }
 
-    /// <summary>The application's actions and the test action <c>fixture.read</c>.</summary>
-    private sealed class TestActions(IActionCatalogue application) : IActionCatalogue
+    /// <summary>
+    /// An <c>ENTITLEMENT_REQUIRED</c> entry as (action, entitlement, plans joined); records compare their lists by reference.
+    /// </summary>
+    private static (string Action, string? Entitlement, string Plans) EntitlementRequired(UnavailableActionResponse unavailable)
+    {
+        unavailable.Code.ShouldBe("ENTITLEMENT_REQUIRED");
+        return (unavailable.Action, unavailable.Entitlement, string.Join(",", unavailable.Plans.ShouldNotBeNull()));
+    }
+
+    /// <summary>The application's actions and test actions (<c>fixture.read</c> unless others are given).</summary>
+    private sealed class TestActions(IActionCatalogue application, params ActionDefinition[] tests) : IActionCatalogue
     {
         public IReadOnlyList<ActionDefinition> All { get; } =
-            [.. application.All.Append(AuthorizationTestActions.FixtureRead).OrderBy(action => action.Code.Value, StringComparer.Ordinal)];
+            [.. application.All.Concat(tests.Length == 0 ? [AuthorizationTestActions.FixtureRead] : tests).OrderBy(action => action.Code.Value, StringComparer.Ordinal)];
     }
 }

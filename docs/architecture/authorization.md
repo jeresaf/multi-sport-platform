@@ -277,11 +277,20 @@ tests compare this table with the code and the seeded rows with the code. Platfo
   `scopeType` (`COMPETITION`, `TEAM`, `CONTEST`) and `scopeId`, those granted on that resource or the scopes above it.
   `GET /api/platform/v1/me/capabilities` (`platform.capabilities.read`, both platform roles) lists the platform
   actions. Both decide with the evaluator's own rule, so the list is exactly what the evaluator allows (step 3); the
-  tenant endpoint answers only when step 1 lets it through (in S03 that means `FULL`; otherwise its 403 says why). S04
-  adds entitlements, `READ_ONLY` (where this read still answers, so writes must be left out or marked) and the reason
-  for each unavailable action. A member with no tenant-wide role can't read them until requests carry resource
+  tenant endpoint answers only when step 1 lets it through (otherwise its 403 says why: `TENANT_BLOCKED`,
+  `TENANT_PROVISIONING`). A member with no tenant-wide role can't read them until requests carry resource
   scopes (S06): `TEAM_MANAGER` (team only), or any role assigned only at a competition or contest, gets `403`, even
   for its own resource (#52 R1).
+- As built (S04-T3b2, D14): the tenant list is `{ actions, unavailable, access, scope }`. It answers under
+  `READ_ONLY` (it is a read). `actions` is what all three steps allow now. `unavailable` is what the caller's roles grant
+  but the tenant can't use now, each `{ action, code, entitlement, plans }` with the refusal a request would get first:
+  `TENANT_READ_ONLY` (step 1; `entitlement` and `plans` null) or `ENTITLEMENT_REQUIRED` (step 2: the entitlement the
+  action names and the active plans, in rank order, that include it, e.g. `["PRO"]` for "Requires PRO plan"). For an
+  `ACTIVE` tenant, step 1's rule is `TenantAccess.Admits` (Tenancy Contracts), shared with the middleware; a quota passes step 2, so usage is
+  read on the Subscription page and in the invite dialog, not here. Actions the roles don't grant are in neither list
+  (hidden in the UI). `access` is `{ mode, subscriptionStatus, endsOn, graceEndsOn, timeZone }` for the banner (the
+  subscription fields null without a period). OpenAPI lists `scopeType`'s values (`COMPETITION`, `TEAM`, `CONTEST`).
+  The platform list is unchanged (`{ actions, scope }`, no steps 1–2).
 - The server remains the only enforcement point.
 
 ## Audit and analytics reuse

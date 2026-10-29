@@ -15,6 +15,12 @@ public interface IEntitlements
     /// <summary>A boolean that is on, or a level entitlement at any level (the caller checks the level it needs).</summary>
     Task<bool> CanUseAsync(string code, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// The codes of the active plans, in rank order, whose values let a tenant use the boolean or level entitlement
+    /// <paramref name="code"/> (for "Requires PRO plan", S04 D14); empty when no plan does (only an override can).
+    /// </summary>
+    Task<IReadOnlyList<string>> PlansAllowingAsync(string code, CancellationToken cancellationToken);
+
     /// <summary>A quota's limit; null is unlimited.</summary>
     Task<int?> GetLimitAsync(string code, CancellationToken cancellationToken);
 
