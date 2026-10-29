@@ -1,6 +1,6 @@
 // The shell's navigation (admin-app.md): every entry names the action its screen needs, and the shell shows only the
 // entries the user's capabilities allow. Entries whose screens come later open a "not available yet" page.
-import { Activity, Building2, LayoutDashboard, Package, ScrollText, Settings, Users, type LucideIcon } from "lucide-react";
+import { Activity, Building2, CreditCard, LayoutDashboard, Package, ScrollText, Settings, Users, type LucideIcon } from "lucide-react";
 import { platformPath, tenantPath } from "./workspace";
 
 export type NavItem = {
@@ -17,6 +17,12 @@ export function tenantNavigation(slug: string): NavItem[] {
     { label: "Overview", href: root, icon: LayoutDashboard },
     { label: "Organisation", href: `${root}/settings/organisation`, icon: Settings, action: "tenant.settings.read" },
     { label: "Members & roles", href: `${root}/settings/members`, icon: Users, action: "membership.read" },
+    {
+      label: "Subscription",
+      href: `${root}/settings/subscription`,
+      icon: CreditCard,
+      action: "tenant.subscription.read",
+    },
   ];
 }
 

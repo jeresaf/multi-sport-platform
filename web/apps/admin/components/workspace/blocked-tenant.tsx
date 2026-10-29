@@ -8,8 +8,9 @@ import { useTenantAccess } from "@/lib/capabilities";
 import { humanizeCode } from "@/lib/codes";
 import type { MeTenant } from "@/lib/workspace";
 
-// UTC until this page reads `tenant/access` (S04-T4): it carries the tenant's time zone since S04-T2b; `/me` doesn't.
-const dateFormat = new Intl.DateTimeFormat("en-GB", { dateStyle: "long", timeZone: "UTC" });
+// In the tenant's time zone, which `tenant/access` carries (S04-T2b); `/me` doesn't.
+const formatSince = (instant: string, timeZone: string) =>
+  new Intl.DateTimeFormat("en-GB", { dateStyle: "long", timeZone }).format(new Date(instant));
 
 /**
  * A suspended or archived tenant's workspace (S03 D11): its status, and — for whoever the server lets read
@@ -26,7 +27,7 @@ export function BlockedTenant({ tenant }: Readonly<{ tenant: MeTenant }>) {
         <dl className="grid gap-1">
           <div>
             <dt className="inline font-medium text-foreground">Since: </dt>
-            <dd className="inline">{dateFormat.format(new Date(access.data.since))}</dd>
+            <dd className="inline">{formatSince(access.data.since, access.data.timeZone)}</dd>
           </div>
           {access.data.reason ? (
             <div>

@@ -7,12 +7,19 @@ describe("tenant navigation", () => {
   const items = tenantNavigation("kmsa");
 
   it("shows an owner every entry", () => {
-    const owner = ["tenant.settings.read", "tenant.settings.update", "membership.read", "membership.invite"];
-    expect(labels(visibleNavigation(items, owner))).toEqual(["Overview", "Organisation", "Members & roles"]);
+    const owner = [
+      "tenant.settings.read",
+      "tenant.settings.update",
+      "membership.read",
+      "membership.invite",
+      "tenant.subscription.read",
+    ];
+    expect(labels(visibleNavigation(items, owner))).toEqual(["Overview", "Organisation", "Members & roles", "Subscription"]);
   });
 
   it("shows a viewer only what their actions allow", () => {
     expect(labels(visibleNavigation(items, ["tenant.settings.read"]))).toEqual(["Overview", "Organisation"]);
+    expect(labels(visibleNavigation(items, ["tenant.subscription.read"]))).toEqual(["Overview", "Subscription"]);
     expect(labels(visibleNavigation(items, []))).toEqual(["Overview"]);
   });
 
