@@ -64,7 +64,7 @@ export default function PlansPage() {
                 {list.map((plan) => {
                   const value = plan.entitlements.find((entitlement) => entitlement.code === row.code)?.value;
                   return (
-                    <TableCell key={plan.code} className="align-top">
+                    <TableCell key={plan.code} className="align-top whitespace-normal">
                       {/* Declared in code but not written by the seed yet: never shown as unlimited or none. */}
                       {value ? formatEntitlementValue(value, row.unit) : "Not seeded"}
                     </TableCell>
