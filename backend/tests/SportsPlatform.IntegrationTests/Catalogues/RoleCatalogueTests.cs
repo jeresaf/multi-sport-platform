@@ -106,7 +106,7 @@ public sealed class RoleCatalogueTests
         [
             "invitation.revoke", "membership.invite", "membership.read", "membership.remove", "membership.restore",
             "membership.suspend", "role.assign", "role.revoke", "tenant.access.read", "tenant.capabilities.read", "tenant.settings.read",
-            "tenant.settings.update",
+            "tenant.settings.update", "tenant.subscription.read",
         ]);
     }
 }
