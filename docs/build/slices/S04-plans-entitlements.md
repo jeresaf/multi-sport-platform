@@ -340,7 +340,8 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
 - **T3a2:** `IEntitlements` (Tenancy Contracts) is `TenantEntitlements` over the domain's `EffectiveEntitlements`;
   the plan is the current period's whatever its status, and a scheduled-only tenant's scheduled plan applies (owner
   defaults, plan 2026-10-29). Step 1 and `IEntitlements` read through `TenantAccessCache` (`TenantAccessReader`);
-  `SubscriptionChanges` clears the tenant after each commit and `UpdateTenantSettingsHandler` on a time-zone change;
+  `SubscriptionChanges` clears the tenant after each commit, and `UpdateTenantSettingsHandler` and the platform's
+  `UpdateTenantProfileHandler` on a time-zone change (#68 R1);
   `DatabaseTest` clears it before each test. `ENTITLEMENT_REQUIRED`'s `detail` names the entitlement; a quota refusal
   is the error alone (a `Result` carries no detail), so T3b's invite endpoint adds "Your plan allows N staff users".
   The D20 tests run on `Tenancy/EntitlementTestApp` (test entitlement `FIXTURE_PUBLISHING`, action `fixture.publish`,
