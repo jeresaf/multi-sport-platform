@@ -363,3 +363,10 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   parameter's values show in OpenAPI through `.DocumentsQueryValues(name, values)` (BuildingBlocks `QueryValues`); only
   `scopeType` uses it so far. The entitlement case is tested through the handler on `EntitlementTestApp` with the test
   role `FIXTURE_PUBLISHER` (`MembershipTestData`). Owner defaults, plan 2026-10-29.
+- **T4b1:** the capabilities' `access` adds `startsOn` and `cancelledOn` (the tenant's date of the cancellation,
+  `TenantCalendar.DayOf`), so the banner says since or until when a tenant is read-only (owner, plan 2026-10-29);
+  an expired period is read-only from the day after its grace. The banner is `AccessBanner` in the tenant layout (every
+  member, every page); Settings → Subscription reads `GET /api/admin/v1/tenant/subscription`; `QuotaUsage` is shared
+  with the console's panel. `describeProblem` shows `ENTITLEMENT_QUOTA_EXCEEDED`'s `detail` (it names the limit).
+  `admin-subscription.spec.ts` walks one tenant of its own through expiring, grace and cancelled; the slice demo e2e
+  (T4b2) also runs on a tenant of its own, since parallel specs share KMSA and ELSSC (owner, plan 2026-10-29).

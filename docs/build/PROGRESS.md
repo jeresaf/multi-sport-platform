@@ -305,6 +305,11 @@ items are with S04's tasks or their own trigger. Each item names where it gets d
   settings (`403 TENANT_BLOCKED`): add the zone to `/tenant/access` or `/me`. Members without `tenant.settings.read`
   also see UTC. (Backend done in S04-T2b: `/tenant/access` carries `timeZone`; T4's blocked page uses it)
 
+- e2e on a reused local database (S04-T4b1): every run adds owners to KMSA (`admin-shell`, `admin-screenshots`), so
+  after enough runs KMSA passes STANDARD's 100 staff users and `inviteMember` on KMSA answers
+  `403 ENTITLEMENT_QUOTA_EXCEEDED` (CI starts empty; `seed --reset` fixes it locally). Move those specs to tenants of
+  their own, or have them remove what they add. (Any task touching those specs)
+
 - The console's renew dialog shows its first day with a client copy of `TenantSubscription.RenewalStartOn`
   (`renewalStart`, `subscription-panel.tsx`; #71 R5). Have `GET …/tenants/{tenantId}/subscription` return
   `renewalStartsOn` and drop the copy. (The next task that changes the platform subscription read)

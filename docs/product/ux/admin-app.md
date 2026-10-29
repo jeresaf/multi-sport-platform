@@ -21,7 +21,7 @@ user's capabilities (docs/architecture/authorization.md); the server still enfor
   in this browser, else the first active tenant, else the console; someone with neither is told they belong to no
   organisation yet.
 - **Navigation follows the capabilities.** Each entry names the action its screen needs (tenant workspace: Organisation
-  `tenant.settings.read`, Members & roles `membership.read`; console: Tenants `tenant.read`, Plans `plan.read`, Diagnostics
+  `tenant.settings.read`, Members & roles `membership.read`, Subscription `tenant.subscription.read`; console: Tenants `tenant.read`, Plans `plan.read`, Diagnostics
   `platform.outbox.read`, Audit `platform.audit.read`); entries the user's capabilities
   (`GET /api/admin/v1/me/capabilities`, `GET /api/platform/v1/me/capabilities`) don't allow are hidden, and their
   addresses answer "You can't open this page". Entries whose screens don't exist yet open "This screen isn't available
@@ -113,6 +113,23 @@ user's capabilities (docs/architecture/authorization.md); the server still enfor
   will be read-only until one starts or is assigned (S04 D8, D9); while the subscription can't be read, it says it
   couldn't be checked.
 
+### As built (S04-T4b1)
+
+- **Subscription** (`/t/{slug}/settings/subscription`, `tenant.subscription.read`: owners, admins and viewers): the
+  current period (plan, kind, status, dates, and the last day of full access while grace applies) or "No subscription";
+  when no period is in effect today, until when the workspace is read-only (the next period's first day, or until the
+  platform team renews it); the next scheduled period; what the plan includes, each entitlement with its description,
+  its value and where it comes from ("Standard plan", "Arranged for your organisation" for an override, whose reason
+  stays the platform's, or "No plan"), and the quotas' usage as in the console. Days are the tenant's, in its time
+  zone. No self-service: the page says to contact the platform team.
+- **Banner** (every member, every page of the tenant workspace, from the capabilities' `access`): "The subscription
+  ends soon" with its last day while `EXPIRING`; "The subscription has ended" with the last day of full access while in
+  `GRACE`; "This workspace is read-only" with why and since or until when (expired: since the day after grace;
+  cancelled: since the day it was cancelled; not started: until its first day; no subscription). Nothing while access
+  is full.
+- **Suspended or archived tenant:** "Since" is in the tenant's time zone (`/tenant/access`).
+- A refusal at a quota shows the limit the server names ("Your plan allows 5 staff users.").
+
 ## Workspaces and screens
 
 ### Platform console (platform staff)
@@ -122,7 +139,7 @@ Diagnostics (failed outbox messages with re-drive, background jobs) · Platform 
 ### Tenant settings
 Organisation profile (name, time zone, locale, currency, public visibility, policies such as minors' consent) ·
 Members & roles (invite, assign roles with scopes) · Sports (enable within entitlement) · Subscription
-(read-only plan, usage vs limits) · Domains and Branding (later).
+(read-only plan, usage vs limits; as built S04-T4b1) · Domains and Branding (later).
 
 ### Registry
 - **People** — directory with filters; **search-first create**: type a name → see matches → open existing or
