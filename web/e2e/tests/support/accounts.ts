@@ -76,7 +76,7 @@ export async function createTenant(request: APIRequestContext, slug: string, dis
 }
 
 /** A date in Kampala `days` from today, as the API's dates (`2026-10-23`): subscription days are the tenant's (S04 D3). */
-function kampalaDate(days: number): string {
+export function kampalaDate(days: number): string {
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Kampala" }).format(new Date());
   const date = new Date(`${today}T00:00:00Z`);
   date.setUTCDate(date.getUTCDate() + days);
@@ -86,8 +86,8 @@ function kampalaDate(days: number): string {
 /**
  * Gives a tenant a STANDARD period from yesterday to 179 days ahead (yesterday, so it has started even if Kampala's date
  * turns between this runner and the API, #66 R7), as the signed-in platform administrator of `request`, so an
- * activated tenant has full access instead of being read-only (S04 D9, D18). The console's Subscription panel comes
- * with S04-T4.
+ * activated tenant has full access instead of being read-only (S04 D9, D18). Specs about the subscription use the
+ * console's Subscription panel instead (admin-demo, admin-platform).
  */
 export async function assignSubscription(request: APIRequestContext, id: string) {
   const assigned = await request.post(`/api/platform/v1/tenants/${id}/subscription/periods`, {

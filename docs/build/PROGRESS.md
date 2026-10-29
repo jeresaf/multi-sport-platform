@@ -302,10 +302,6 @@ items are with S04's tasks or their own trigger. Each item names where it gets d
   pre-review). Other tenant screens use the settings' zone since S03-T6c1, but a blocked tenant can't read its
   settings (`403 TENANT_BLOCKED`): add the zone to `/tenant/access` or `/me`. Members without `tenant.settings.read`
   also see UTC. (Backend done in S04-T2b: `/tenant/access` carries `timeZone`; T4's blocked page uses it)
-- The S03 demo spec (`web/e2e/tests/admin-demo.spec.ts`) assigns its tenant's period through the API; switch it to the
-  console's Subscription panel (S04-T2b deferral, D18). (S04-T4a)
-- `GET /plans` sends `value: null` for a declared entitlement the CONFIGURATION seed hasn't written yet (S04-T1b
-  pre-review): the console's Plans screen shows it as "not seeded", never as unlimited or none. (S04-T4)
 
 **Identity and access** (from S03; each names its trigger)
 - OpenAPI list queries (S03-T6c1): `status` and `limit` on `GET …/members`, `…/invitations` and the platform tenant

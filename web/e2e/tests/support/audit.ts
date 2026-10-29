@@ -10,6 +10,7 @@ export type AuditEntry = {
   tenantId: string | null;
   entityType: string | null;
   entityId: string | null;
+  reason: string | null;
   metadata: unknown;
 };
 
