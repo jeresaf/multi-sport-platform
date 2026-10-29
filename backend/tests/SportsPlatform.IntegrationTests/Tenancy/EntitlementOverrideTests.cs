@@ -289,6 +289,24 @@ public sealed class EntitlementOverrideTests(PostgresFixture fixture) : Database
         (await ReadAsync(read)).Overrides.ShouldBeEmpty();
     }
 
+    // Review #67 R1: the index is D5's guard of its own, whatever the write path (the commands also hold the lock).
+    [Fact]
+    public async Task The_database_allows_one_unremoved_override_per_tenant_and_entitlement()
+    {
+        var kmsa = await TenantAsync("kmsa");
+        var elssc = await TenantAsync("elssc");
+        await InsertOverrideAsync(kmsa, removed: true);
+        await InsertOverrideAsync(kmsa, removed: false);
+        await InsertOverrideAsync(elssc, removed: false);
+
+        var duplicate = await Should.ThrowAsync<PostgresException>(() => InsertOverrideAsync(kmsa, removed: false));
+
+        duplicate.SqlState.ShouldBe(PostgresErrorCodes.UniqueViolation);
+        duplicate.ConstraintName.ShouldBe("ux_tenant_entitlement_overrides_unremoved");
+        (await RowsAsync(kmsa)).Count.ShouldBe(2);
+        (await RowsAsync(elssc)).Count.ShouldBe(1);
+    }
+
     private static Dictionary<string, object?> Grant(string code, object value, string reason = _reason, DateOnly? effectiveUntil = null)
     {
         var body = new Dictionary<string, object?> { ["entitlementCode"] = code, ["value"] = value, ["reason"] = reason };
@@ -337,6 +355,22 @@ public sealed class EntitlementOverrideTests(PostgresFixture fixture) : Database
     {
         await AccountTestData.DeliverOutboxAsync(App.Services, Ct);
         return await AuditTestData.EntriesAsync(App.Services, Ct);
+    }
+
+    /// <summary>
+    /// A <c>MAX_STAFF_USERS</c> override inserted as <c>sp_app</c> under the tenant (RLS), outside the commands and their
+    /// lock: removed, or in place.
+    /// </summary>
+    private Task<int> InsertOverrideAsync(Guid tenantId, bool removed)
+    {
+        var removal = removed ? $"now(), '{TenantTestData.StaffId}', 'Pilot ended'" : "NULL, NULL, NULL";
+        return ExecuteAsync(
+            DatabaseRoles.App,
+            $"SELECT set_config('app.tenant_id', '{tenantId}', false); " +
+            "INSERT INTO tenancy.tenant_entitlement_overrides (id, tenant_id, entitlement_code, value, reason, removed_at, removed_by, " +
+            "remove_reason, created_at, created_by, updated_at, updated_by) " +
+            $"VALUES ('{Guid.CreateVersion7()}', '{tenantId}', 'MAX_STAFF_USERS', '{{\"limit\": 5}}', '{_reason}', {removal}, " +
+            $"now(), '{TenantTestData.StaffId}', now(), '{TenantTestData.StaffId}')");
     }
 
     /// <summary>The tenant's overrides as the platform role reads them (every tenant, no RLS): id, code, removed, why.</summary>
