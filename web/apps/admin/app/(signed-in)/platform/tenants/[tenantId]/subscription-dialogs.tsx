@@ -14,7 +14,7 @@ import {
   DialogTitle,
 } from "@msp/ui/components/dialog";
 import { useMutation } from "@tanstack/react-query";
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { useForm, type FieldValues, type UseFormSetError } from "react-hook-form";
 import { z } from "zod";
 import { FormField } from "@/components/form-field";
@@ -407,6 +407,16 @@ export function ChangePlanDialog({
     resolver: zodResolver(changePlanSchema),
     defaultValues: { planCode: higher[0]?.code ?? "" },
   });
+  // After a re-read the higher plans can change (#71 R11): the select then shows its first option, so the form's value
+  // follows it, and the dialog sends the plan it shows.
+  const higherCodes = higher.map((plan) => plan.code).join(",");
+  const { getValues, setValue } = form;
+  useEffect(() => {
+    const codes = higherCodes.split(",");
+    if (!codes.includes(getValues("planCode"))) {
+      setValue("planCode", codes[0] ?? "");
+    }
+  }, [higherCodes, getValues, setValue]);
   const { command, alert } = useCommand(
     tenantId,
     (values: ChangePlanValues) =>

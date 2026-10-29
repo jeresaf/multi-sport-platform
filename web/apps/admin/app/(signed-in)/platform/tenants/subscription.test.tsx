@@ -10,6 +10,8 @@ import {
   noSubscription,
   pilotPeriod,
   plansAnswer,
+  pro,
+  standard,
   staffOverride,
   subscription,
 } from "@/test/subscriptions";
@@ -176,6 +178,43 @@ describe("the subscription panel", () => {
 
     expect(await dialog.findByText(errorMessage("TENANT_SUBSCRIPTION_NOT_FOUND")!)).toBeTruthy();
     await waitFor(() => expect(confirm(dialog, "Change plan").disabled).toBe(true));
+  });
+
+  it("sends the plan it shows when the re-read leaves other higher plans", async () => {
+    // Three plans: another administrator moved the tenant to Pro meanwhile, so only Elite is higher now (#71 R11).
+    const elite = { ...pro, code: "ELITE", name: "Elite", rank: 3 };
+    const onPro = subscription({
+      periods: [{ ...pilotPeriod, id: "0199a3f0-0000-7000-8000-000000000b03", planCode: "PRO" }, { ...pilotPeriod, status: "CANCELLED", cancelReason: "Changed to PRO", cancelledAt: "2026-10-29T08:00:00Z" }],
+      currentPeriodId: "0199a3f0-0000-7000-8000-000000000b03",
+    });
+    let reads = 0;
+    const requests = open({
+      "GET /api/platform/v1/plans": { status: 200, body: { items: [standard, pro, elite] } },
+      [`GET ${base}/subscription`]: () => {
+        reads += 1;
+        return { status: 200, body: reads === 1 ? subscription() : onPro };
+      },
+      [`POST ${base}/subscription/change-plan`]: (request) =>
+        (request.body as { planCode: string }).planCode === "PRO"
+          ? { status: 409, body: problem("TENANT_SUBSCRIPTION_DOWNGRADE_AT_RENEWAL", 409) }
+          : { status: 200, body: onPro },
+    });
+
+    fireEvent.click(await (await panel()).findByRole("button", { name: "Change plan" }));
+    const dialog = within(await screen.findByRole("dialog"));
+    expect((dialog.getByLabelText("New plan") as HTMLSelectElement).value).toBe("PRO");
+    fireEvent.click(confirm(dialog, "Change plan"));
+    expect(await dialog.findByText(errorMessage("TENANT_SUBSCRIPTION_DOWNGRADE_AT_RENEWAL")!)).toBeTruthy();
+
+    // The re-read leaves Elite only: the select and the form both hold it, and it can be sent.
+    await waitFor(() =>
+      expect(within(dialog.getByLabelText("New plan")).getAllByRole("option").map((option) => option.textContent)).toEqual(["Elite"]),
+    );
+    expect(confirm(dialog, "Change plan").disabled).toBe(false);
+    fireEvent.click(confirm(dialog, "Change plan"));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    const sent = requests.filter((request) => request.path === `${base}/subscription/change-plan`).map((request) => request.body);
+    expect(sent).toEqual([{ planCode: "PRO" }, { planCode: "ELITE" }]);
   });
 
   it("keeps the dialog and its refusal when reading the subscription again fails", async () => {
