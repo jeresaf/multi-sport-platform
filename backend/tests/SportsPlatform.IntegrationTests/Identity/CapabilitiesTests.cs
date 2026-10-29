@@ -22,6 +22,7 @@ using SportsPlatform.Modules.Tenancy.Contracts.Access;
 using SportsPlatform.Modules.Tenancy.Contracts.Entitlements;
 using SportsPlatform.Modules.Tenancy.Contracts.Subscriptions;
 using SportsPlatform.Modules.Tenancy.Contracts.Tenants;
+using SportsPlatform.Modules.Tenancy.Domain.Subscriptions;
 using static SportsPlatform.IntegrationTests.Identity.MembershipTestData;
 
 namespace SportsPlatform.IntegrationTests.Identity;
@@ -41,6 +42,11 @@ public sealed class CapabilitiesTests(PostgresFixture fixture) : DatabaseTest(fi
     private static readonly Guid _under17Cup = new("0192a1b2-0000-7000-8000-00000000c002");
     private static readonly Guid _metroFootballLeagueOpener = new("0192a1b2-0000-7000-8000-00000000d001");
     private const string _timeZone = "Africa/Kampala";
+
+    /// <summary>A test read that names D20's test entitlement: available when read-only, still gated by step 2.</summary>
+    private static readonly ActionDefinition _fixtureReportRead = new(
+        "fixture.report.read", "Read the fixtures report.", ActionScope.Tenant, AuditRequirement.None, "S04",
+        [AssignmentScope.Tenant], entitlement: EntitlementTestApp.FixturePublishing.Code, availableWhenReadOnly: true);
 
     // 2026-10-17 12:00 in Kampala, within the test tenants' period.
     private static readonly DateTimeOffset _entitlementTestNow = new(2026, 10, 17, 9, 0, 0, TimeSpan.Zero);
@@ -76,7 +82,7 @@ public sealed class CapabilitiesTests(PostgresFixture fixture) : DatabaseTest(fi
         var capabilities = Typed(body);
         capabilities.Unavailable.ShouldBeEmpty();
         capabilities.Access.ShouldBe(new CapabilityAccessResponse(
-            TenantAccessMode.Full, SubscriptionStatus.Active, TenantTestData.PeriodEndsOn, TenantTestData.PeriodEndsOn.AddDays(14), _timeZone));
+            TenantAccessMode.Full, SubscriptionStatus.Active, TenantTestData.PeriodEndsOn, TenantTestData.PeriodEndsOn.AddDays(SubscriptionPeriod.DefaultGraceDays), _timeZone));
     }
 
     /// <summary>
@@ -106,7 +112,7 @@ public sealed class CapabilitiesTests(PostgresFixture fixture) : DatabaseTest(fi
         capabilities.Unavailable.ShouldBe([.. granted.Where(code => !readOnly.Contains(code))
             .Select(code => new UnavailableActionResponse(code, "TENANT_READ_ONLY", Entitlement: null, Plans: null))]);
         capabilities.Access.ShouldBe(new CapabilityAccessResponse(
-            TenantAccessMode.ReadOnly, SubscriptionStatus.Cancelled, TenantTestData.PeriodEndsOn, TenantTestData.PeriodEndsOn.AddDays(14), _timeZone));
+            TenantAccessMode.ReadOnly, SubscriptionStatus.Cancelled, TenantTestData.PeriodEndsOn, TenantTestData.PeriodEndsOn.AddDays(SubscriptionPeriod.DefaultGraceDays), _timeZone));
 
         // For the roles that may invite: the API refuses the marked write as the list says (step 1 answers before the body).
         if (capabilities.Unavailable.Any(unavailable => unavailable.Action == IdentityActions.MembershipInvite.Code.Value))
@@ -159,7 +165,9 @@ public sealed class CapabilitiesTests(PostgresFixture fixture) : DatabaseTest(fi
     /// <c>FIXTURE_PUBLISHING</c> (off on STANDARD, on on PRO) and a test role grants it. On STANDARD it is unavailable
     /// with <c>ENTITLEMENT_REQUIRED</c> and the plans that include it; on PRO it is in <c>actions</c>; on a read-only
     /// tenant step 1 refuses first, so the reason is <c>TENANT_READ_ONLY</c>, the middleware's order
-    /// (<c>EntitlementPipelineTests</c> proves the middleware's answers over HTTP).
+    /// (<c>EntitlementPipelineTests</c> proves the middleware's answers over HTTP). The read <see cref="_fixtureReportRead"/>
+    /// names the same entitlement and is available when read-only, so step 1 lets it through and step 2 still gates it
+    /// (#70 R2).
     /// </summary>
     [Fact]
     public async Task An_action_whose_entitlement_the_tenant_lacks_is_unavailable_with_the_plans_that_include_it()
@@ -179,16 +187,20 @@ public sealed class CapabilitiesTests(PostgresFixture fixture) : DatabaseTest(fi
 
             var onStandard = await PublisherCapabilitiesAsync(app, kmsa, "peter.okello@kmsa.example");
             onStandard.Actions.ShouldNotContain(EntitlementTestApp.FixturePublish.Code.Value);
-            var missing = onStandard.Unavailable.ShouldHaveSingleItem();
-            (missing.Action, missing.Code, missing.Entitlement).ShouldBe(("fixture.publish", "ENTITLEMENT_REQUIRED", "FIXTURE_PUBLISHING"));
-            missing.Plans.ShouldBe(["PRO"]);
+            onStandard.Actions.ShouldNotContain(_fixtureReportRead.Code.Value);
+            onStandard.Unavailable.Select(EntitlementRequired).ShouldBe([("fixture.publish", "FIXTURE_PUBLISHING", "PRO"), ("fixture.report.read", "FIXTURE_PUBLISHING", "PRO")]);
 
             var onPro = await PublisherCapabilitiesAsync(app, elssc, "peter.okello@elssc.example");
             onPro.Actions.ShouldContain(EntitlementTestApp.FixturePublish.Code.Value);
+            onPro.Actions.ShouldContain(_fixtureReportRead.Code.Value);
             onPro.Unavailable.ShouldBeEmpty();
 
+            // Read-only: the write is refused by step 1 first; the read passes step 1 and is refused by step 2.
             var readOnly = await PublisherCapabilitiesAsync(app, mbarara, "peter.okello@mbarara.example");
-            readOnly.Unavailable.ShouldBe([new UnavailableActionResponse("fixture.publish", "TENANT_READ_ONLY", Entitlement: null, Plans: null)]);
+            readOnly.Actions.ShouldNotContain(_fixtureReportRead.Code.Value);
+            readOnly.Unavailable.Count.ShouldBe(2);
+            readOnly.Unavailable[0].ShouldBe(new UnavailableActionResponse("fixture.publish", "TENANT_READ_ONLY", Entitlement: null, Plans: null));
+            EntitlementRequired(readOnly.Unavailable[1]).ShouldBe(("fixture.report.read", "FIXTURE_PUBLISHING", "PRO"));
         }
         finally
         {
@@ -360,7 +372,7 @@ public sealed class CapabilitiesTests(PostgresFixture fixture) : DatabaseTest(fi
         var handler = new GetTenantCapabilitiesHandler(
             new Permissions(services.GetRequiredService<IdentityDbContext>(), Roles, tenantContext),
             new ScopeChains([]),
-            new TestActions(services.GetRequiredService<IActionCatalogue>(), EntitlementTestApp.FixturePublish),
+            new TestActions(services.GetRequiredService<IActionCatalogue>(), EntitlementTestApp.FixturePublish, _fixtureReportRead),
             services.GetRequiredService<IEntitlementCatalogue>(),
             services.GetRequiredService<ITenantAccess>(),
             services.GetRequiredService<IEntitlements>(),
@@ -435,10 +447,19 @@ public sealed class CapabilitiesTests(PostgresFixture fixture) : DatabaseTest(fi
         return (await evaluator.AuthorizeAsync(new AuthorizationRequest(action, member.Actor, tenantId, resource), Ct)).IsSuccess;
     }
 
-    /// <summary>The application's actions and a test action (<c>fixture.read</c> unless another is given).</summary>
-    private sealed class TestActions(IActionCatalogue application, ActionDefinition? test = null) : IActionCatalogue
+    /// <summary>
+    /// An <c>ENTITLEMENT_REQUIRED</c> entry as (action, entitlement, plans joined); records compare their lists by reference.
+    /// </summary>
+    private static (string Action, string? Entitlement, string Plans) EntitlementRequired(UnavailableActionResponse unavailable)
+    {
+        unavailable.Code.ShouldBe("ENTITLEMENT_REQUIRED");
+        return (unavailable.Action, unavailable.Entitlement, string.Join(",", unavailable.Plans.ShouldNotBeNull()));
+    }
+
+    /// <summary>The application's actions and test actions (<c>fixture.read</c> unless others are given).</summary>
+    private sealed class TestActions(IActionCatalogue application, params ActionDefinition[] tests) : IActionCatalogue
     {
         public IReadOnlyList<ActionDefinition> All { get; } =
-            [.. application.All.Append(test ?? AuthorizationTestActions.FixtureRead).OrderBy(action => action.Code.Value, StringComparer.Ordinal)];
+            [.. application.All.Concat(tests.Length == 0 ? [AuthorizationTestActions.FixtureRead] : tests).OrderBy(action => action.Code.Value, StringComparer.Ordinal)];
     }
 }
