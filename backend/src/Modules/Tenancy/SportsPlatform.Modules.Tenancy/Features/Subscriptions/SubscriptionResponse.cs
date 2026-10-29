@@ -52,8 +52,8 @@ public sealed record SubscriptionResponse(
 }
 
 /// <summary>
-/// A tenant's value of one entitlement today and where it comes from: <c>DEFAULT</c>, <c>PLAN</c> (the current period's,
-/// <c>planCode</c>) or <c>OVERRIDE</c> (an unremoved override in effect).
+/// A tenant's value of one entitlement today and where it comes from: <c>DEFAULT</c>, <c>PLAN</c> (the current period's
+/// plan) or <c>OVERRIDE</c> (an unremoved override in effect).
 /// </summary>
 public sealed record EffectiveEntitlementResponse(string Code, EntitlementValue Value, EntitlementSource Source)
 {
