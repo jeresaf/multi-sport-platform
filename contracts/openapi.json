@@ -5189,6 +5189,26 @@
         },
         "description": "An ISO 4217 currency: alphabetic `code` (`UGX`), numeric code, English name, minor units (UGX 0)."
       },
+      "EffectiveEntitlementResponse": {
+        "required": [
+          "code",
+          "value",
+          "source"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "value": {
+            "$ref": "#/components/schemas/EntitlementValue"
+          },
+          "source": {
+            "$ref": "#/components/schemas/EntitlementSource"
+          }
+        },
+        "description": "A tenant's value of one entitlement today and where it comes from: `DEFAULT`, `PLAN` (the current period's\nplan) or `OVERRIDE` (an unremoved override in effect)."
+      },
       "EntitlementOverrideResponse": {
         "required": [
           "id",
@@ -5258,6 +5278,14 @@
           }
         },
         "description": "One entitlement override: `value` in place of the plan's for `entitlementCode`, until `effectiveUntil`\n(included; none = until removed). `inEffect`: it applies on the response's `today` (not removed, not past\nits last day). The removal fields are set together."
+      },
+      "EntitlementSource": {
+        "enum": [
+          "DEFAULT",
+          "PLAN",
+          "OVERRIDE"
+        ],
+        "description": "Where a tenant's effective value of an entitlement comes from (S04 D6)."
       },
       "EntitlementType": {
         "enum": [
@@ -6445,7 +6473,8 @@
           "currentPeriodId",
           "nextPeriodId",
           "periods",
-          "overrides"
+          "overrides",
+          "entitlements"
         ],
         "type": "object",
         "properties": {
@@ -6485,9 +6514,15 @@
             "items": {
               "$ref": "#/components/schemas/EntitlementOverrideResponse"
             }
+          },
+          "entitlements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EffectiveEntitlementResponse"
+            }
           }
         },
-        "description": "A tenant's subscription as the platform sees it (S04 D16): every period, latest start first, with its status on\n`today`, the tenant's date in `timeZone`. `currentPeriodId` is the period that decides access (none\nwithout periods); `nextPeriodId` the next scheduled one. `overrides` are the tenant's entitlement overrides\nwith their reasons and history, unremoved first (S04 D5): platform-only. Effective entitlements and usage arrive with\nS04-T3a2 and T3b."
+        "description": "A tenant's subscription as the platform sees it (S04 D16): every period, latest start first, with its status on\n`today`, the tenant's date in `timeZone`. `currentPeriodId` is the period that decides access (none\nwithout periods); `nextPeriodId` the next scheduled one. `overrides` are the tenant's entitlement overrides\nwith their reasons and history, unremoved first (S04 D5): platform-only. `entitlements` are every declared\nentitlement's effective value today, by code, with its source (D6). Usage arrives with S04-T3b."
       },
       "SubscriptionStatus": {
         "enum": [

@@ -157,6 +157,18 @@
       "owner": "Identity"
     },
     {
+      "code": "ENTITLEMENT_QUOTA_EXCEEDED",
+      "status": 403,
+      "message": "The tenant has reached a limit of its plan.",
+      "owner": "Tenancy"
+    },
+    {
+      "code": "ENTITLEMENT_REQUIRED",
+      "status": 403,
+      "message": "The tenant's plan doesn't include this feature.",
+      "owner": "Tenancy"
+    },
+    {
       "code": "PLATFORM_CONCURRENCY_CONFLICT",
       "status": 409,
       "message": "The record was changed by someone else. Reload and try again.",
