@@ -7,17 +7,16 @@ at the start of every review.
 
 - **Current slice:** S04 — Plans, subscriptions and entitlements (docs/build/slices/S04-plans-entitlements.md,
   rewritten by the S03 slice review). S00, S01, S02 and S03 are done
-- **Current task:** S04-T3b1 — `MAX_STAFF_USERS` quota on invitations, usage reads, `GET …/tenant/subscription`, pack
-  spec 07 §30 steps 11–12 (plan approved 2026-10-29, defaults taken) — in review (#69)
-- **Next:** S04-T3b2 — capabilities with `unavailable` and `access`, `scopeType` as an enum in OpenAPI
+- **Current task:** S04-T3b2 — capabilities with `unavailable` and `access`, `scopeType` as an enum in OpenAPI (plan
+  approved 2026-10-29, defaults taken)
+- **Next:** S04-T4 — Platform and tenant screens
 - **Blocked on:** nothing. The S03 slice review (#61, #62) is merged; Q21–Q26: the owner took the defaults
   (2026-10-21, open-questions.md "Answered")
 
 ## Next up
 
-1. S04-T3b2 — capabilities with `unavailable` and `access`, `scopeType` enum
-2. S04-T3b1 — in review: address the review
-3. S04-T4 — Platform and tenant screens (likely two PRs: T4a, T4b)
+1. S04-T3b2 — in progress
+2. S04-T4 — Platform and tenant screens (likely two PRs: T4a, T4b)
 
 ## Log
 
