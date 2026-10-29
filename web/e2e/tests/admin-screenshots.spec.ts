@@ -43,6 +43,10 @@ test("screenshots of the platform console", async ({ page }) => {
   await shoot(page, "user-menu", widths);
   await page.keyboard.press("Escape");
 
+  await page.goto("/platform/plans");
+  await expect(page.getByRole("columnheader", { name: "Pro" })).toBeVisible();
+  await shoot(page, "plans", [phone, ...widths]);
+
   // Screens that come later answer "not available yet".
   await page.goto("/platform/diagnostics");
   await expect(page.getByText("This screen isn't available yet.")).toBeVisible();
@@ -72,6 +76,8 @@ test("screenshots of the platform console's tenants", async ({ page, request }) 
   await page.goto(`/platform/tenants/${kmsa}`);
   await expect(page.getByRole("heading", { level: 1, name: "Kampala Metro Sports Association" })).toBeVisible();
   await expect(page.getByText("Uganda")).toBeVisible();
+  // With its Subscription panel (S04-T4a): the demo period on STANDARD.
+  await expect(page.getByRole("heading", { name: "Current period" })).toBeVisible();
   await shoot(page, "tenant-detail", [phone, ...widths]);
 
   // The dialogs only: the demo tenant stays active for the other tests.
@@ -83,6 +89,17 @@ test("screenshots of the platform console's tenants", async ({ page, request }) 
   await page.getByRole("button", { name: "Invite an owner" }).click();
   await expect(page.getByRole("dialog").getByLabel("Email")).toBeVisible();
   await shoot(page, "owner-invite-dialog", [phone, ...widths]);
+  await page.keyboard.press("Escape");
+
+  await page.getByRole("button", { name: "Assign a period" }).click();
+  await expect(page.getByRole("dialog").getByLabel("Last day")).toBeVisible();
+  await shoot(page, "subscription-assign-dialog", [phone, ...widths]);
+  await page.keyboard.press("Escape");
+
+  await page.getByRole("button", { name: "Set an override" }).click();
+  await page.getByRole("dialog").getByLabel("Entitlement").selectOption("MAX_STAFF_USERS");
+  await expect(page.getByRole("dialog").getByLabel("Limit (users)")).toBeVisible();
+  await shoot(page, "subscription-override-dialog", [phone, ...widths]);
   await page.keyboard.press("Escape");
 });
 

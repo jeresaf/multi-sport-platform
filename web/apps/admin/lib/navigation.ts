@@ -1,6 +1,6 @@
 // The shell's navigation (admin-app.md): every entry names the action its screen needs, and the shell shows only the
 // entries the user's capabilities allow. Entries whose screens come later open a "not available yet" page.
-import { Activity, Building2, LayoutDashboard, ScrollText, Settings, Users, type LucideIcon } from "lucide-react";
+import { Activity, Building2, LayoutDashboard, Package, ScrollText, Settings, Users, type LucideIcon } from "lucide-react";
 import { platformPath, tenantPath } from "./workspace";
 
 export type NavItem = {
@@ -24,6 +24,7 @@ export function platformNavigation(): NavItem[] {
   return [
     { label: "Overview", href: platformPath, icon: LayoutDashboard },
     { label: "Tenants", href: `${platformPath}/tenants`, icon: Building2, action: "tenant.read" },
+    { label: "Plans", href: `${platformPath}/plans`, icon: Package, action: "plan.read" },
     { label: "Diagnostics", href: `${platformPath}/diagnostics`, icon: Activity, action: "platform.outbox.read" },
     { label: "Audit", href: `${platformPath}/audit`, icon: ScrollText, action: "platform.audit.read" },
   ];

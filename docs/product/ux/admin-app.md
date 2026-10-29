@@ -21,7 +21,7 @@ user's capabilities (docs/architecture/authorization.md); the server still enfor
   in this browser, else the first active tenant, else the console; someone with neither is told they belong to no
   organisation yet.
 - **Navigation follows the capabilities.** Each entry names the action its screen needs (tenant workspace: Organisation
-  `tenant.settings.read`, Members & roles `membership.read`; console: Tenants `tenant.read`, Diagnostics
+  `tenant.settings.read`, Members & roles `membership.read`; console: Tenants `tenant.read`, Plans `plan.read`, Diagnostics
   `platform.outbox.read`, Audit `platform.audit.read`); entries the user's capabilities
   (`GET /api/admin/v1/me/capabilities`, `GET /api/platform/v1/me/capabilities`) don't allow are hidden, and their
   addresses answer "You can't open this page". Entries whose screens don't exist yet open "This screen isn't available
@@ -83,6 +83,35 @@ user's capabilities (docs/architecture/authorization.md); the server still enfor
   reason and history, members, domains and subscription say they aren't available yet; profile editing
   (`tenant.update`) is not offered.
 - Diagnostics and Audit are still "not available yet".
+
+### As built (S04-T4a)
+
+- **Plans** (`/platform/plans`, `plan.read`): every entitlement (name, description, the module that enforces it)
+  against every active plan in rank order, read-only: "Included" / "Not included", a limit with its unit ("100
+  users") or "Unlimited", a level by name or "None". A value the configuration seed hasn't written yet says "Not
+  seeded", never unlimited or none. Plans change by a reviewed seed, not here.
+- **A tenant's Subscription panel** (on its page, `subscription.read` and `plan.read`, for the definitions): the current
+  period (plan, kind, status, dates, expiring from, grace until; cancelled with when and why) or "No subscription"
+  (read-only once active), and when no period is in effect today (scheduled only, expired, cancelled) that the tenant
+  is read-only until one starts or is assigned; the next scheduled period, every period with its status and cancel reason, the effective
+  entitlements with their source (the plan, an override, or the default without a plan) and the quotas' usage ("Used:
+  4 of 5 users", "Near the limit" from 80 %, "At the limit"; "not measured yet" where no module counts), and the
+  overrides in place with value, reason and last day, the removed ones under "Earlier overrides". Days are the
+  tenant's dates in its time zone. Platform administrators get **Assign a period** (plan, kind, first and last day,
+  optional expiring and grace days), **Renew** (says its first day; plan and kind stay unless chosen), **Change plan**
+  (only to a higher plan, while the current period is active or expiring and its plan is still active), **Cancel subscription** (reason), **Set an
+  override** (the value's input follows the entitlement's type: on/off, a number or Unlimited, a level; reason;
+  optional last day) and **Remove** (reason). A refusal (`TENANT_SUBSCRIPTION_OVERLAP`, `…_NOT_FOUND`,
+  `…_DOWNGRADE_AT_RENEWAL`, a field) stays in its dialog; the panel shows the subscription the command answered with
+  and announces the change; after a refusal that means someone changed the subscription meanwhile (a `409`, or an
+  override already removed) it reads the subscription again, and the dialog's button is disabled when the command no
+  longer applies (nothing to cancel, no plan to change, the override gone). Reasons are platform-only: the dialogs say the tenant sees the value, not the reason.
+  Support staff see the panel without controls. Who created, cancelled or removed something isn't shown (the API gives
+  user IDs; the audit trail has the names). The rest of the tenant page says its status history, members and domains
+  aren't available yet.
+- **Activate** says, for a tenant with no period in effect today (none, scheduled only, expired or cancelled), that it
+  will be read-only until one starts or is assigned (S04 D8, D9); while the subscription can't be read, it says it
+  couldn't be checked.
 
 ## Workspaces and screens
 

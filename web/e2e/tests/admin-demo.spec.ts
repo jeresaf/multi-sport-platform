@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { auditEntries, myUserId, type AuditEntry } from "./support/audit";
-import { assignSubscription, newPassword, personEmail, platformAdmin, signIn, signInByApi } from "./support/accounts";
+import { kampalaDate, newPassword, personEmail, platformAdmin, signIn, signInByApi } from "./support/accounts";
 import { linkFromEmail } from "./support/mailpit";
 import { open } from "./support/pages";
 import { shoot, widths } from "./support/screenshots";
@@ -47,12 +47,20 @@ test("slice demo: platform admin → owner → viewer, with the audit trail", as
   await expect(page).toHaveURL(/\/platform\/tenants\/[0-9a-f-]{36}$/);
   const tenantId = page.url().split("/").at(-1)!;
 
-  // … activates it and invites its owner.
+  // … activates it (without a subscription it would be read-only, S04 D9: the dialog says so), assigns it a period
+  // (from yesterday, so it has started even if Kampala's date turns meanwhile, #66 R7) and invites its owner.
   await page.getByRole("button", { name: "Activate" }).click();
+  await expect(page.getByRole("dialog")).toContainText("No subscription period is in effect today");
   await page.getByRole("dialog").getByRole("button", { name: "Activate" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Activated." })).toBeAttached();
-  // An active tenant without a subscription is read-only (S04 D9); the console assigns one from S04-T4.
-  await assignSubscription(page.request, tenantId);
+  await page.getByRole("button", { name: "Assign a period" }).click();
+  const period = page.getByRole("dialog");
+  await period.getByLabel("Plan").selectOption("STANDARD");
+  await period.getByLabel("First day").fill(kampalaDate(-1));
+  await period.getByLabel("Last day").fill(kampalaDate(179));
+  await period.getByRole("button", { name: "Assign period" }).click();
+  await expect(period).toBeHidden();
+  await expect(page.getByRole("heading", { name: "Current period" })).toBeVisible();
   await page.getByRole("button", { name: "Invite an owner" }).click();
   await page.getByRole("dialog").getByLabel("Email").fill(owner.email);
   await page.getByRole("dialog").getByRole("button", { name: "Send invitation" }).click();

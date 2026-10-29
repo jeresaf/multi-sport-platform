@@ -27,7 +27,7 @@ describe("tenant navigation", () => {
 
 describe("platform navigation", () => {
   it("shows support staff the read screens they hold", () => {
-    const support = ["tenant.read", "platform.audit.read"];
-    expect(labels(visibleNavigation(platformNavigation(), support))).toEqual(["Overview", "Tenants", "Audit"]);
+    const support = ["tenant.read", "plan.read", "platform.audit.read"];
+    expect(labels(visibleNavigation(platformNavigation(), support))).toEqual(["Overview", "Tenants", "Plans", "Audit"]);
   });
 });
