@@ -148,6 +148,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/v1/tenant/subscription": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the tenant's subscription
+         * @description The subscription of the tenant named by `X-Tenant-Id`: the current period (plan, kind, status today and days, all in the tenant's time zone; `null` without a period) and the next scheduled one; every entitlement's value today with its source (DEFAULT, PLAN or OVERRIDE); and every quota's usage (`used` of `limit`, `null` = unlimited; `warning` from 80 % of the limit; `measured: false` while no module counts it yet). Available while the tenant is read-only. To change the plan, the tenant contacts the platform.
+         */
+        get: operations["GetTenantSubscription"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/v1/members": {
         parameters: {
             query?: never;
@@ -303,7 +323,7 @@ export interface paths {
         put?: never;
         /**
          * Invite a person to the tenant
-         * @description Invites `email` to join the tenant named by `X-Tenant-Id` with `roleCodes` (tenant roles, tenant-wide). Only an owner invites with TENANT_OWNER or replaces a pending invitation that has it. A person who is already a member (active or suspended) can't be invited. The invitation lasts 7 days; the email with its link goes out shortly after (one link at a time: a resent email's link replaces the earlier one). A pending invitation to the same email is revoked and replaced.
+         * @description Invites `email` to join the tenant named by `X-Tenant-Id` with `roleCodes` (tenant roles, tenant-wide). Only an owner invites with TENANT_OWNER or replaces a pending invitation that has it. A person who is already a member (active or suspended) can't be invited. Every member who isn't removed and every pending invitation takes one of the plan's staff users (MAX_STAFF_USERS); an invitation past the limit is ENTITLEMENT_QUOTA_EXCEEDED, and one that replaces a pending invitation to the same email adds no one. The invitation lasts 7 days; the email with its link goes out shortly after (one link at a time: a resent email's link replaces the earlier one). A pending invitation to the same email is revoked and replaced.
          */
         post: operations["InviteMember"];
         delete?: never;
@@ -1436,6 +1456,20 @@ export interface components {
             }[];
         };
         /**
+         * @description One quota's usage (S04 D15): `used` of `limit` (null = unlimited) when a module measures it
+         *     (`measured`); otherwise `used` is null: not measured yet. `warning`: the tenant uses 80 % of the
+         *     limit or more.
+         */
+        QuotaUsageResponse: {
+            code: string;
+            measured: boolean;
+            /** Format: int32 */
+            used: null | number;
+            /** Format: int32 */
+            limit: null | number;
+            warning: boolean;
+        };
+        /**
          * @description Why the message is re-driven; the audit entry records it (action audit `REQUIRED_WITH_REASON`). Kept permanently
          *     and not redacted, so it must not contain personal data.
          */
@@ -1530,7 +1564,8 @@ export interface components {
          *     `today`, the tenant's date in `timeZone`. `currentPeriodId` is the period that decides access (none
          *     without periods); `nextPeriodId` the next scheduled one. `overrides` are the tenant's entitlement overrides
          *     with their reasons and history, unremoved first (S04 D5): platform-only. `entitlements` are every declared
-         *     entitlement's effective value today, by code, with its source (D6). Usage arrives with S04-T3b.
+         *     entitlement's effective value today, by code, with its source (D6). `usage` is every quota's usage, as the
+         *     owning module counts it (D15; "not measured yet" when none does).
          */
         SubscriptionResponse: {
             /** Format: uuid */
@@ -1545,6 +1580,7 @@ export interface components {
             periods: components["schemas"]["SubscriptionPeriodResponse"][];
             overrides: components["schemas"]["EntitlementOverrideResponse"][];
             entitlements: components["schemas"]["EffectiveEntitlementResponse"][];
+            usage: components["schemas"]["QuotaUsageResponse"][];
         };
         /**
          * @description A subscription period's status, derived from its stored dates on a given day (docs/domain/state-machines.md,
@@ -1586,6 +1622,21 @@ export interface components {
             since: string;
             timeZone: string;
             subscription: null | components["schemas"]["TenantAccessPeriod"];
+        };
+        /**
+         * @description One entitlement as the tenant's Subscription page shows it: its name, description, type, unit (quotas) and levels
+         *     (level entitlements, lowest first), and the tenant's value today with its source (`DEFAULT`, `PLAN` or
+         *     `OVERRIDE`).
+         */
+        TenantEntitlementResponse: {
+            code: string;
+            name: string;
+            description: string;
+            type: components["schemas"]["EntitlementType"];
+            unit: null | string;
+            levels: string[];
+            value: components["schemas"]["EntitlementValue"];
+            source: components["schemas"]["EntitlementSource"];
         };
         /**
          * @description A tenant in the platform list. No settings: the list runs under no tenant, and settings are tenant-owned (read one
@@ -1655,6 +1706,39 @@ export interface components {
          * @enum {unknown}
          */
         TenantStatus: "PROVISIONING" | "ACTIVE" | "SUSPENDED" | "ARCHIVED";
+        /**
+         * @description A period's plan (code and name), kind and status today, and its days, all included: `expiringFrom` is the first
+         *     day of `EXPIRING` (after `endsOn` when the window is 0), `graceEndsOn` the last day of `GRACE`.
+         */
+        TenantSubscriptionPeriod: {
+            planCode: string;
+            planName: string;
+            kind: components["schemas"]["SubscriptionKind"];
+            status: components["schemas"]["SubscriptionStatus"];
+            /** Format: date */
+            startsOn: string;
+            /** Format: date */
+            endsOn: string;
+            /** Format: date */
+            expiringFrom: string;
+            /** Format: date */
+            graceEndsOn: string;
+        };
+        /**
+         * @description A tenant's subscription as its members see it (S04 D15): `today` in the tenant's `timeZone`; the
+         *     `current` period (the one that decides access; null without periods) and the `next` scheduled one; every
+         *     declared entitlement's effective value with its source; and every quota's usage. No override reasons, cancel
+         *     reasons or who made a change: those are the platform's.
+         */
+        TenantSubscriptionResponse: {
+            /** Format: date */
+            today: string;
+            timeZone: string;
+            current: null | components["schemas"]["TenantSubscriptionPeriod"];
+            next: null | components["schemas"]["TenantSubscriptionPeriod"];
+            entitlements: components["schemas"]["TenantEntitlementResponse"][];
+            usage: components["schemas"]["QuotaUsageResponse"][];
+        };
         /** @description An IANA time zone: its ID as `code` (`Africa/Kampala`) and its country; no country for `Etc/UTC`. */
         TimeZoneResponse: {
             code: string;
@@ -1997,6 +2081,44 @@ export interface operations {
                 };
             };
             /** @description Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_PROVISIONING` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetTenantSubscription: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TenantSubscriptionResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING` */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -2583,7 +2705,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_OWNER_REQUIRED`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY` */
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_OWNER_REQUIRED`, `AUTH_TENANT_FORBIDDEN`, `ENTITLEMENT_QUOTA_EXCEEDED`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY` */
             403: {
                 headers: {
                     [name: string]: unknown;

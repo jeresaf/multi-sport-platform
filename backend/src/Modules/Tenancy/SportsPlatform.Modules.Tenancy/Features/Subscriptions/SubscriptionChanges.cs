@@ -8,6 +8,7 @@ using SportsPlatform.Modules.Tenancy.Domain.Settings;
 using SportsPlatform.Modules.Tenancy.Domain.Subscriptions;
 using SportsPlatform.Modules.Tenancy.Domain.Tenants;
 using SportsPlatform.Modules.Tenancy.Features.Access;
+using SportsPlatform.Modules.Tenancy.Features.Entitlements;
 using SportsPlatform.Modules.Tenancy.Infrastructure;
 
 namespace SportsPlatform.Modules.Tenancy.Features.Subscriptions;
@@ -25,7 +26,8 @@ public sealed class SubscriptionChanges(
     TimeProvider timeProvider,
     TenantAccessCache accessCache,
     TenantAccessReader accessReader,
-    IEntitlementCatalogue entitlements)
+    IEntitlementCatalogue entitlements,
+    QuotaUsages usages)
 {
     public const string AuditEntityType = "SubscriptionPeriod";
     public const string OverrideAuditEntityType = "EntitlementOverride";
@@ -136,8 +138,11 @@ public sealed class SubscriptionChanges(
         return Result.Success(await RespondAsync(tenantId, loaded, CancellationToken.None));
     }
 
-    private async Task<SubscriptionResponse> RespondAsync(Guid tenantId, Loaded loaded, CancellationToken cancellationToken) =>
-        SubscriptionResponse.From(
+    private async Task<SubscriptionResponse> RespondAsync(Guid tenantId, Loaded loaded, CancellationToken cancellationToken)
+    {
+        var planValues = await accessReader.PlanValuesAsync(cancellationToken);
+        var effective = EffectiveEntitlements.On(loaded.Today, loaded.Subscription, loaded.Overrides, planValues.Of);
+        return SubscriptionResponse.From(
             context,
             tenantId,
             loaded.Subscription,
@@ -145,7 +150,9 @@ public sealed class SubscriptionChanges(
             loaded.Today,
             loaded.TimeZone,
             entitlements.All,
-            await accessReader.PlanValuesAsync(cancellationToken));
+            effective,
+            await usages.ReadAsync(entitlements.All, effective, cancellationToken));
+    }
 
     private async Task<Loaded> LoadAsync(Guid tenantId, CancellationToken cancellationToken)
     {

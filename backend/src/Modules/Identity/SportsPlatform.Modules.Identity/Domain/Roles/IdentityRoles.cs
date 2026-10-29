@@ -30,6 +30,9 @@ public static class IdentityRoles
 
     private const string _membershipRead = "membership.read";
 
+    // The plan, its limits and their usage (S04 D15): those who run the tenant and its read-only admins.
+    private const string _subscriptionRead = "tenant.subscription.read";
+
     // Every role assigned tenant-wide reads the settings (time zone, locale, currency) its screens need (owner, S03-T3)
     // and what it may do there (S03-T5). Held only below the tenant, it grants neither until requests carry resource
     // scopes (S06, #52 R1).
@@ -39,7 +42,7 @@ public static class IdentityRoles
     [
         _tenantSettingsRead, _tenantSettingsUpdate, _capabilitiesRead,
         _membershipRead, "membership.suspend", "membership.restore", "membership.remove", "role.assign", "role.revoke",
-        "membership.invite", "invitation.revoke",
+        "membership.invite", "invitation.revoke", _subscriptionRead,
     ];
 
     // Only the owner sees a blocked tenant's status and why (S03 D11): the actions available when blocked.
@@ -108,6 +111,6 @@ public static class IdentityRoles
             _tenantContext, [AssignmentScope.Tenant, AssignmentScope.Competition]),
         new(Viewer, RoleScope.Tenant,
             "Read-only admin.",
-            [.. _tenantContext, _membershipRead], [AssignmentScope.Tenant]),
+            [.. _tenantContext, _membershipRead, _subscriptionRead], [AssignmentScope.Tenant]),
     ];
 }

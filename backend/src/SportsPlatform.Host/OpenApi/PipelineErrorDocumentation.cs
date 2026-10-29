@@ -16,7 +16,7 @@ namespace SportsPlatform.Host.OpenApi;
 /// also <c>AUTH_TENANT_FORBIDDEN</c> (tenant resolution), <c>TENANT_PROVISIONING</c> and, unless the action is available
 /// when blocked, <c>TENANT_BLOCKED</c> (access mode, Tenancy's codes; S03 D11), unless available when read-only,
 /// <c>TENANT_READ_ONLY</c> (S04 D8) and, when it names a boolean or level entitlement, <c>ENTITLEMENT_REQUIRED</c> (step 2,
-/// S04 D10). An endpoint that runs under its route's
+/// S04 D10); when it names a quota, <c>ENTITLEMENT_QUOTA_EXCEEDED</c> (the handler counts, D12). An endpoint that runs under its route's
 /// tenant can be <c>TENANT_NOT_FOUND</c> (tenant resolution), whichever module maps it. An endpoint that reads a body or
 /// <c>If-Match</c> can be <c>VALIDATION_MALFORMED_REQUEST</c> (binding, or a header that doesn't parse).
 /// </summary>
@@ -36,9 +36,9 @@ internal static class PipelineErrorDocumentation
 
             var methods = endpoint.Metadata.OfType<IHttpMethodMetadata>().LastOrDefault()?.HttpMethods ?? [];
             var errors = Errors(action, changesState: methods.Any(method => !CsrfProtection.IsSafe(method))).ToList();
-            if (action.Entitlement is { } code && entitlements.Find(code) is { Type: not EntitlementType.Quota })
+            if (action.Entitlement is { } code && entitlements.Find(code) is { } entitlement)
             {
-                errors.Add(TenancyErrors.EntitlementRequired);
+                errors.Add(entitlement.Type == EntitlementType.Quota ? TenancyErrors.QuotaExceeded : TenancyErrors.EntitlementRequired);
             }
 
             if (endpoint.Metadata.OfType<IAcceptsMetadata>().Any() || endpoint.Metadata.OfType<AcceptsIfMatchMetadata>().Any())

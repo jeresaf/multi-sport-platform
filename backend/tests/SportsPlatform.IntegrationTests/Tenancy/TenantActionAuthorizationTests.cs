@@ -25,6 +25,7 @@ public sealed class TenantActionAuthorizationTests(PostgresFixture fixture) : Da
         GetSettings,
         UpdateSettings,
         GetAccess,
+        GetTenantSubscription,
         ListPlans,
         GetSubscription,
         AssignPeriod,
@@ -39,7 +40,7 @@ public sealed class TenantActionAuthorizationTests(PostgresFixture fixture) : Da
     [
         TenancyActions.TenantCreate, TenancyActions.TenantRead, TenancyActions.TenantUpdate, TenancyActions.TenantActivate,
         TenancyActions.TenantSuspend, TenancyActions.TenantRestore, TenancyActions.TenantArchive, TenancyActions.TenantUnarchive,
-        TenancyActions.TenantSettingsRead, TenancyActions.TenantSettingsUpdate, TenancyActions.TenantAccessRead,
+        TenancyActions.TenantSettingsRead, TenancyActions.TenantSettingsUpdate, TenancyActions.TenantAccessRead, TenancyActions.TenantSubscriptionRead,
         TenancyActions.PlanRead, TenancyActions.SubscriptionRead, TenancyActions.SubscriptionAssign, TenancyActions.SubscriptionRenew,
         TenancyActions.SubscriptionChangePlan, TenancyActions.SubscriptionCancel, TenancyActions.EntitlementOverride,
         TenancyActions.EntitlementOverrideRemove,
@@ -63,6 +64,7 @@ public sealed class TenantActionAuthorizationTests(PostgresFixture fixture) : Da
     [InlineData(Endpoint.GetSettings, "tenant.settings.read", HttpStatusCode.OK)]
     [InlineData(Endpoint.UpdateSettings, "tenant.settings.update", HttpStatusCode.OK)]
     [InlineData(Endpoint.GetAccess, "tenant.access.read", HttpStatusCode.OK)]
+    [InlineData(Endpoint.GetTenantSubscription, "tenant.subscription.read", HttpStatusCode.OK)]
     [InlineData(Endpoint.ListPlans, "plan.read", HttpStatusCode.OK)]
     [InlineData(Endpoint.GetSubscription, "subscription.read", HttpStatusCode.OK)]
     [InlineData(Endpoint.AssignPeriod, "subscription.assign", HttpStatusCode.Created)]
@@ -102,6 +104,7 @@ public sealed class TenantActionAuthorizationTests(PostgresFixture fixture) : Da
     [InlineData(Endpoint.GetSettings, "tenant.settings.update")]
     [InlineData(Endpoint.UpdateSettings, "tenant.settings.read")]
     [InlineData(Endpoint.GetAccess, "tenant.settings.read")]
+    [InlineData(Endpoint.GetTenantSubscription, "tenant.access.read")]
     [InlineData(Endpoint.ListPlans, "tenant.read")]
     [InlineData(Endpoint.GetSubscription, "plan.read")]
     [InlineData(Endpoint.AssignPeriod, "subscription.read")]
@@ -139,7 +142,7 @@ public sealed class TenantActionAuthorizationTests(PostgresFixture fixture) : Da
     {
         // A signed-in user (anonymous is 401, S03 D4); tenant actions: a member of the tenant, named in X-Tenant-Id.
         using var client = App.CreateClient().AsUser(TenantTestData.StaffId, tenantId);
-        if (endpoint is Endpoint.GetSettings or Endpoint.UpdateSettings or Endpoint.GetAccess)
+        if (endpoint is Endpoint.GetSettings or Endpoint.UpdateSettings or Endpoint.GetAccess or Endpoint.GetTenantSubscription)
         {
             client.DefaultRequestHeaders.Add("X-Tenant-Id", tenantId.ToString());
         }
@@ -157,6 +160,7 @@ public sealed class TenantActionAuthorizationTests(PostgresFixture fixture) : Da
             Endpoint.Activate => await client.PostAsync(new Uri($"{tenant}/activate", UriKind.Relative), null, Ct),
             Endpoint.Restore => await client.PostAsync(new Uri($"{tenant}/restore", UriKind.Relative), null, Ct),
             Endpoint.GetAccess => await client.GetAsync(new Uri("/api/admin/v1/tenant/access", UriKind.Relative), Ct),
+            Endpoint.GetTenantSubscription => await client.GetAsync(new Uri("/api/admin/v1/tenant/subscription", UriKind.Relative), Ct),
             Endpoint.ListPlans => await client.GetAsync(new Uri("/api/platform/v1/plans", UriKind.Relative), Ct),
             Endpoint.GetSubscription => await client.GetAsync(new Uri($"{tenant}/subscription", UriKind.Relative), Ct),
             Endpoint.AssignPeriod => await client.PostAsJsonAsync(

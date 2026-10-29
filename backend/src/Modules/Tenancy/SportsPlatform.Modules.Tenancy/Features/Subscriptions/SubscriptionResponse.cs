@@ -4,7 +4,7 @@ using SportsPlatform.Modules.Tenancy.Contracts.Entitlements;
 using SportsPlatform.Modules.Tenancy.Contracts.Subscriptions;
 using SportsPlatform.Modules.Tenancy.Domain.Entitlements;
 using SportsPlatform.Modules.Tenancy.Domain.Subscriptions;
-using SportsPlatform.Modules.Tenancy.Features.Access;
+using SportsPlatform.Modules.Tenancy.Features.Entitlements;
 using SportsPlatform.Modules.Tenancy.Infrastructure;
 
 namespace SportsPlatform.Modules.Tenancy.Features.Subscriptions;
@@ -14,7 +14,8 @@ namespace SportsPlatform.Modules.Tenancy.Features.Subscriptions;
 /// <c>today</c>, the tenant's date in <c>timeZone</c>. <c>currentPeriodId</c> is the period that decides access (none
 /// without periods); <c>nextPeriodId</c> the next scheduled one. <c>overrides</c> are the tenant's entitlement overrides
 /// with their reasons and history, unremoved first (S04 D5): platform-only. <c>entitlements</c> are every declared
-/// entitlement's effective value today, by code, with its source (D6). Usage arrives with S04-T3b.
+/// entitlement's effective value today, by code, with its source (D6). <c>usage</c> is every quota's usage, as the
+/// owning module counts it (D15; "not measured yet" when none does).
 /// </summary>
 public sealed record SubscriptionResponse(
     Guid TenantId,
@@ -24,7 +25,8 @@ public sealed record SubscriptionResponse(
     Guid? NextPeriodId,
     IReadOnlyList<SubscriptionPeriodResponse> Periods,
     IReadOnlyList<EntitlementOverrideResponse> Overrides,
-    IReadOnlyList<EffectiveEntitlementResponse> Entitlements)
+    IReadOnlyList<EffectiveEntitlementResponse> Entitlements,
+    IReadOnlyList<QuotaUsageResponse> Usage)
 {
     /// <summary>The periods and overrides must be tracked by <paramref name="context"/> (their audit columns are read from it).</summary>
     internal static SubscriptionResponse From(
@@ -35,10 +37,10 @@ public sealed record SubscriptionResponse(
         DateOnly today,
         string timeZone,
         IReadOnlyList<EntitlementDefinition> definitions,
-        PlanValues planValues)
+        EffectiveEntitlements effective,
+        IReadOnlyList<QuotaUsageResponse> usage)
     {
         var current = subscription.CurrentOn(today);
-        var effective = EffectiveEntitlements.On(today, subscription, overrides, planValues.Of);
         return new(
             tenantId,
             today,
@@ -47,7 +49,8 @@ public sealed record SubscriptionResponse(
             subscription.NextScheduledOn(today)?.Id,
             [.. subscription.Periods.Select(period => SubscriptionPeriodResponse.From(context, period, today))],
             [.. overrides.Overrides.Select(entitlementOverride => EntitlementOverrideResponse.From(context, entitlementOverride, today))],
-            [.. definitions.Select(definition => EffectiveEntitlementResponse.From(effective.Of(definition)))]);
+            [.. definitions.Select(definition => EffectiveEntitlementResponse.From(effective.Of(definition)))],
+            usage);
     }
 }
 

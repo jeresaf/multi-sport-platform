@@ -271,11 +271,11 @@ Deliver:
 - Likely two PRs (T3a overrides, `IEntitlements`, step 2; T3b quota, capabilities, tenant read).
 
 Acceptance:
-- [ ] Pack spec 07's §30 steps 1–16 pass as integration tests, with the D20 test-only action for the boolean steps
+- [x] Pack spec 07's §30 steps 1–16 pass as integration tests, with the D20 test-only action for the boolean steps
       (two plans with different values, a permission without the entitlement denied, an entitlement without the
       permission denied, an override applied and audited, the quota warning then the stop, expiry → read-only,
       renewal → full).
-- [ ] Two invitations at the last free seat at the same time: one succeeds, one gets
+- [x] Two invitations at the last free seat at the same time: one succeeds, one gets
       `403 ENTITLEMENT_QUOTA_EXCEEDED` (test).
 - [ ] Capabilities match the decision for every system role in `FULL`, `READ_ONLY` and without the entitlement
       (table-driven, extending `CapabilitiesTests`).
@@ -347,3 +347,11 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   The D20 tests run on `Tenancy/EntitlementTestApp` (test entitlement `FIXTURE_PUBLISHING`, action `fixture.publish`,
   plan values written as the owner and removed after each test). `MapModules` takes the entitlement catalogue from
   the services (OpenAPI's `ENTITLEMENT_REQUIRED`), so bare test apps register one.
+- **T3b1:** usage counters register with `AddQuotaUsage<TCounter>(code)` (Tenancy Contracts), a singleton
+  `QuotaUsageRegistration` the Host checks at startup without creating a counter (they need a database). Identity's
+  `StaffUsers` counts `MAX_STAFF_USERS`; `membership.invite` holds `identity.staff_users:<tenantId>` while it counts and
+  saves, and its endpoint adds "Your plan allows N staff users." (the limit is read again: a `Result` has no detail).
+  Tenancy Contracts shares the code `EntitlementErrorCodes.QuotaExceeded` (errors are declared only in module `*Errors`
+  classes); the Host documents `ENTITLEMENT_QUOTA_EXCEEDED` on every tenant action that names a quota. `GET /api/admin/v1/tenant/subscription` reads the cached
+  access inputs (as step 1 does) and labels entitlements and plans itself, since tenants can't read `/plans` (owner
+  default, plan 2026-10-29); the 80 % warning shows only in the usage reads, not on the invite response (owner default).

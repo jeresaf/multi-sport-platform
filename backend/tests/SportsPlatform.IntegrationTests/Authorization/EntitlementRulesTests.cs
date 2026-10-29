@@ -6,7 +6,9 @@ using SportsPlatform.Host.Authorization;
 using SportsPlatform.Host.Catalogues;
 using SportsPlatform.Host.Modules;
 using SportsPlatform.IntegrationTests.Infrastructure;
+using SportsPlatform.Modules.Identity.Features.Invitations;
 using SportsPlatform.Modules.Tenancy;
+using SportsPlatform.Modules.Tenancy.Contracts.Entitlements;
 using SportsPlatform.Modules.Tenancy.Domain.Plans;
 
 namespace SportsPlatform.IntegrationTests.Authorization;
@@ -90,7 +92,7 @@ public sealed class EntitlementRulesTests
 
         var exception = Should.Throw<InvalidOperationException>(() => app.Services);
 
-        exception.Message.ShouldStartWith("Actions and plans must name declared entitlements:");
+        exception.Message.ShouldStartWith("Actions, plans and usage counters must name declared entitlements:");
         exception.Message.ShouldContain("Action 'membership.invite' names entitlement MAX_STAFF_USERS");
     }
 
@@ -104,8 +106,39 @@ public sealed class EntitlementRulesTests
 
         var exception = Should.Throw<InvalidOperationException>(() => app.Services);
 
-        exception.Message.ShouldStartWith("Actions and plans must name declared entitlements:");
+        exception.Message.ShouldStartWith("Actions, plans and usage counters must name declared entitlements:");
         exception.Message.ShouldContain("Plan PRO gives entitlement MAX_TEAMS no value.");
+    }
+
+    // S04 D15: each quota has at most one usage counter, and only a declared quota is counted.
+    [Fact]
+    public void Usage_counters_count_declared_quotas_once_each()
+    {
+        EntitlementRules.ValidateQuotaUsages([StaffUsers.Code], _entitlements).ShouldBeEmpty();
+
+        EntitlementRules.ValidateQuotaUsages(["MAX_STAFF_USERS", "MAX_STAFF_USERS", "CUSTOM_DOMAIN", "MAX_REFEREES"], _entitlements).ShouldBe(
+        [
+            "A usage counter counts CUSTOM_DOMAIN, a Boolean entitlement; only quotas are counted.",
+            "A usage counter counts MAX_REFEREES, which is not a declared entitlement.",
+            "MAX_STAFF_USERS has more than one usage counter.",
+        ]);
+    }
+
+    [Fact]
+    public void A_second_usage_counter_for_a_quota_stops_the_Host_at_startup()
+    {
+        using var app = new HostOnlyApp().WithWebHostBuilder(builder => builder.ConfigureTestServices(services =>
+            services.AddQuotaUsage<SecondStaffUserCounter>(StaffUsers.Code)));
+
+        var exception = Should.Throw<InvalidOperationException>(() => app.Services);
+
+        exception.Message.ShouldStartWith("Actions, plans and usage counters must name declared entitlements:");
+        exception.Message.ShouldContain("MAX_STAFF_USERS has more than one usage counter.");
+    }
+
+    private sealed class SecondStaffUserCounter : IQuotaUsage
+    {
+        public Task<int> CountAsync(CancellationToken cancellationToken) => Task.FromResult(0);
     }
 
     private static ActionCatalogueEntry Tenant(string code, string entitlement) =>

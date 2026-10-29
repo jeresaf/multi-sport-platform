@@ -394,6 +394,57 @@
         }
       }
     },
+    "/api/admin/v1/tenant/subscription": {
+      "get": {
+        "tags": [
+          "Subscriptions"
+        ],
+        "summary": "Get the tenant's subscription",
+        "description": "The subscription of the tenant named by `X-Tenant-Id`: the current period (plan, kind, status today and days, all in the tenant's time zone; `null` without a period) and the next scheduled one; every entitlement's value today with its source (DEFAULT, PLAN or OVERRIDE); and every quota's usage (`used` of `limit`, `null` = unlimited; `warning` from 80 % of the limit; `measured: false` while no module counts it yet). Available while the tenant is read-only. To change the plan, the tenant contacts the platform.",
+        "operationId": "GetTenantSubscription",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TenantSubscriptionResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING"
+            ]
+          }
+        }
+      }
+    },
     "/api/admin/v1/members": {
       "get": {
         "tags": [
@@ -1256,7 +1307,7 @@
           "Invitations"
         ],
         "summary": "Invite a person to the tenant",
-        "description": "Invites `email` to join the tenant named by `X-Tenant-Id` with `roleCodes` (tenant roles, tenant-wide). Only an owner invites with TENANT_OWNER or replaces a pending invitation that has it. A person who is already a member (active or suspended) can't be invited. The invitation lasts 7 days; the email with its link goes out shortly after (one link at a time: a resent email's link replaces the earlier one). A pending invitation to the same email is revoked and replaced.",
+        "description": "Invites `email` to join the tenant named by `X-Tenant-Id` with `roleCodes` (tenant roles, tenant-wide). Only an owner invites with TENANT_OWNER or replaces a pending invitation that has it. A person who is already a member (active or suspended) can't be invited. Every member who isn't removed and every pending invitation takes one of the plan's staff users (MAX_STAFF_USERS); an invitation past the limit is ENTITLEMENT_QUOTA_EXCEEDED, and one that replaces a pending invitation to the same email adds no one. The invitation lasts 7 days; the email with its link goes out shortly after (one link at a time: a resent email's link replaces the earlier one). A pending invitation to the same email is revoked and replaced.",
         "operationId": "InviteMember",
         "requestBody": {
           "content": {
@@ -1303,7 +1354,7 @@
             ]
           },
           "403": {
-            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_OWNER_REQUIRED`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY`",
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_OWNER_REQUIRED`, `AUTH_TENANT_FORBIDDEN`, `ENTITLEMENT_QUOTA_EXCEEDED`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY`",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1316,6 +1367,7 @@
               "AUTH_FORBIDDEN",
               "AUTH_OWNER_REQUIRED",
               "AUTH_TENANT_FORBIDDEN",
+              "ENTITLEMENT_QUOTA_EXCEEDED",
               "TENANT_BLOCKED",
               "TENANT_PROVISIONING",
               "TENANT_READ_ONLY"
@@ -6220,6 +6272,42 @@
           }
         }
       },
+      "QuotaUsageResponse": {
+        "required": [
+          "code",
+          "measured",
+          "used",
+          "limit",
+          "warning"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "measured": {
+            "type": "boolean"
+          },
+          "used": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "limit": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "warning": {
+            "type": "boolean"
+          }
+        },
+        "description": "One quota's usage (S04 D15): `used` of `limit` (null = unlimited) when a module measures it\n(`measured`); otherwise `used` is null: not measured yet. `warning`: the tenant uses 80 % of the\nlimit or more."
+      },
       "RedriveOutboxMessageRequest": {
         "required": [
           "reason"
@@ -6474,7 +6562,8 @@
           "nextPeriodId",
           "periods",
           "overrides",
-          "entitlements"
+          "entitlements",
+          "usage"
         ],
         "type": "object",
         "properties": {
@@ -6520,9 +6609,15 @@
             "items": {
               "$ref": "#/components/schemas/EffectiveEntitlementResponse"
             }
+          },
+          "usage": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuotaUsageResponse"
+            }
           }
         },
-        "description": "A tenant's subscription as the platform sees it (S04 D16): every period, latest start first, with its status on\n`today`, the tenant's date in `timeZone`. `currentPeriodId` is the period that decides access (none\nwithout periods); `nextPeriodId` the next scheduled one. `overrides` are the tenant's entitlement overrides\nwith their reasons and history, unremoved first (S04 D5): platform-only. `entitlements` are every declared\nentitlement's effective value today, by code, with its source (D6). Usage arrives with S04-T3b."
+        "description": "A tenant's subscription as the platform sees it (S04 D16): every period, latest start first, with its status on\n`today`, the tenant's date in `timeZone`. `currentPeriodId` is the period that decides access (none\nwithout periods); `nextPeriodId` the next scheduled one. `overrides` are the tenant's entitlement overrides\nwith their reasons and history, unremoved first (S04 D5): platform-only. `entitlements` are every declared\nentitlement's effective value today, by code, with its source (D6). `usage` is every quota's usage, as the\nowning module counts it (D15; \"not measured yet\" when none does)."
       },
       "SubscriptionStatus": {
         "enum": [
@@ -6612,6 +6707,52 @@
           }
         },
         "description": "A tenant's access as its owner sees it: `status`; the `accessMode` derived from it and the current\nsubscription period; the `reason` (null when the change needs none, such as an activation) and time\n(`since`) of the change that put the tenant in its status; the tenant's `timeZone` (IANA), in which to show\n`since` and the period's days; and the current period's status and days (`subscription`, null without a\nperiod). A read-only tenant's `subscription` says why; the cancel reason is the platform's and is not shown."
+      },
+      "TenantEntitlementResponse": {
+        "required": [
+          "code",
+          "name",
+          "description",
+          "type",
+          "unit",
+          "levels",
+          "value",
+          "source"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/EntitlementType"
+          },
+          "unit": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "levels": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "value": {
+            "$ref": "#/components/schemas/EntitlementValue"
+          },
+          "source": {
+            "$ref": "#/components/schemas/EntitlementSource"
+          }
+        },
+        "description": "One entitlement as the tenant's Subscription page shows it: its name, description, type, unit (quotas) and levels\n(level entitlements, lowest first), and the tenant's value today with its source (`DEFAULT`, `PLAN` or\n`OVERRIDE`)."
       },
       "TenantListItem": {
         "required": [
@@ -6777,6 +6918,103 @@
         ],
         "description": "A tenant's stored lifecycle status (docs/domain/state-machines.md, \"Tenant\")."
       },
+      "TenantSubscriptionPeriod": {
+        "required": [
+          "planCode",
+          "planName",
+          "kind",
+          "status",
+          "startsOn",
+          "endsOn",
+          "expiringFrom",
+          "graceEndsOn"
+        ],
+        "type": "object",
+        "properties": {
+          "planCode": {
+            "type": "string"
+          },
+          "planName": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/SubscriptionKind"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SubscriptionStatus"
+          },
+          "startsOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "endsOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "expiringFrom": {
+            "type": "string",
+            "format": "date"
+          },
+          "graceEndsOn": {
+            "type": "string",
+            "format": "date"
+          }
+        },
+        "description": "A period's plan (code and name), kind and status today, and its days, all included: `expiringFrom` is the first\nday of `EXPIRING` (after `endsOn` when the window is 0), `graceEndsOn` the last day of `GRACE`."
+      },
+      "TenantSubscriptionResponse": {
+        "required": [
+          "today",
+          "timeZone",
+          "current",
+          "next",
+          "entitlements",
+          "usage"
+        ],
+        "type": "object",
+        "properties": {
+          "today": {
+            "type": "string",
+            "format": "date"
+          },
+          "timeZone": {
+            "type": "string"
+          },
+          "current": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/TenantSubscriptionPeriod"
+              }
+            ]
+          },
+          "next": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/TenantSubscriptionPeriod"
+              }
+            ]
+          },
+          "entitlements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TenantEntitlementResponse"
+            }
+          },
+          "usage": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuotaUsageResponse"
+            }
+          }
+        },
+        "description": "A tenant's subscription as its members see it (S04 D15): `today` in the tenant's `timeZone`; the\n`current` period (the one that decides access; null without periods) and the `next` scheduled one; every\ndeclared entitlement's effective value with its source; and every quota's usage. No override reasons, cancel\nreasons or who made a change: those are the platform's."
+      },
       "TimeZoneResponse": {
         "required": [
           "code",
@@ -6921,6 +7159,9 @@
       "name": "Tenant access"
     },
     {
+      "name": "Subscriptions"
+    },
+    {
       "name": "Members"
     },
     {
@@ -6937,9 +7178,6 @@
     },
     {
       "name": "Tenants"
-    },
-    {
-      "name": "Subscriptions"
     },
     {
       "name": "Plans"

@@ -29,6 +29,9 @@ internal static class MembershipTestData
     /// <summary>A role held tenant-wide.</summary>
     public static (string Role, AssignmentScope Scope, Guid? ScopeId) TenantWide(string role) => (role, AssignmentScope.Tenant, null);
 
+    /// <summary>A mailbox named after a role, e.g. <c>tenant.owner@kmsa.example</c>, for table-driven tests over roles.</summary>
+    public static string MailboxOf(string role, string domain) => $"{role.ToLowerInvariant().Replace('_', '.')}@{domain}";
+
     /// <summary>A new user, an active member of <paramref name="tenantId"/> with <paramref name="roles"/>.</summary>
     public static async Task<Member> CreateMemberAsync(
         IServiceProvider services, Guid tenantId, string email, CancellationToken cancellationToken,
