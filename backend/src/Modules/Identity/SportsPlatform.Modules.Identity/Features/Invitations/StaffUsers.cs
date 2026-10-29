@@ -27,13 +27,14 @@ public sealed class StaffUsers(IdentityDbContext context, TimeProvider timeProvi
         var now = timeProvider.GetUtcNow();
         var members = context.Set<TenantMembership>().Where(m => m.Status != MembershipStatus.Removed);
         var memberEmails = members.Join(context.Set<User>(), m => m.UserId, u => u.Id, (_, u) => u.NormalizedEmail);
-        var memberCount = await members.CountAsync(cancellationToken);
-        var invitationCount = await context.Set<Invitation>().CountAsync(
-            i => i.Status == InvitationStatus.Pending
-                && i.ExpiresAt > now
-                && i.NormalizedEmail != exceptNormalizedEmail
-                && !memberEmails.Contains(i.NormalizedEmail),
-            cancellationToken);
-        return memberCount + invitationCount;
+        var invitations = context.Set<Invitation>().Where(i => i.Status == InvitationStatus.Pending
+            && i.ExpiresAt > now
+            && i.NormalizedEmail != exceptNormalizedEmail
+            && !memberEmails.Contains(i.NormalizedEmail));
+
+        // One statement (UNION ALL), so one snapshot: an acceptance (membership added, invitation accepted in one save)
+        // that commits meanwhile is counted once, before or after, never missed by both counts (#69 R1). Accepting
+        // doesn't take the staff-user lock: its seat was reserved.
+        return await members.Select(m => m.Id).Concat(invitations.Select(i => i.Id)).CountAsync(cancellationToken);
     }
 }
