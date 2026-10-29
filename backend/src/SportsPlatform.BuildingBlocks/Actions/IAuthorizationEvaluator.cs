@@ -13,8 +13,8 @@ public sealed record AuthorizationRequest(ActionDefinition Action, ICurrentActor
 public sealed record ScopeRef(AssignmentScope Type, Guid Id);
 
 /// <summary>
-/// Decides whether the actor may perform the action: access mode, entitlement, scoped permission
-/// (docs/architecture/authorization.md, "Decision formula"). The Host's default denies everything.
+/// Step 3 of the decision formula (docs/architecture/authorization.md): whether the actor's scoped permissions allow the
+/// action. The Host runs steps 1 (access mode) and 2 (entitlement) before it; Identity implements it.
 /// </summary>
 public interface IAuthorizationEvaluator
 {

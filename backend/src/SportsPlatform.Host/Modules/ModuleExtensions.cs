@@ -1,4 +1,5 @@
 using SportsPlatform.BuildingBlocks.Api;
+using SportsPlatform.BuildingBlocks.Entitlements;
 using SportsPlatform.BuildingBlocks.Modules;
 using SportsPlatform.Host.OpenApi;
 
@@ -29,11 +30,12 @@ public static class ModuleExtensions
     /// </summary>
     public static IEndpointRouteBuilder MapModules(this IEndpointRouteBuilder endpoints, IEnumerable<IModule> modules)
     {
+        var entitlements = endpoints.ServiceProvider.GetRequiredService<IEntitlementCatalogue>();
         var groups = new ApiEndpointGroups(
             Public: endpoints.MapGroup(PublicPrefix).AllowPublic(),
-            Admin: endpoints.MapGroup(AdminPrefix).DocumentPipelineErrors(),
-            Platform: endpoints.MapGroup(PlatformPrefix).DocumentPipelineErrors(),
-            Account: endpoints.MapGroup(AccountPrefix).DocumentPipelineErrors().AddEndpointFilter(static (context, next) =>
+            Admin: endpoints.MapGroup(AdminPrefix).DocumentPipelineErrors(entitlements),
+            Platform: endpoints.MapGroup(PlatformPrefix).DocumentPipelineErrors(entitlements),
+            Account: endpoints.MapGroup(AccountPrefix).DocumentPipelineErrors(entitlements).AddEndpointFilter(static (context, next) =>
             {
                 context.HttpContext.Response.Headers.CacheControl = "no-store";
                 return next(context);
