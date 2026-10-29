@@ -356,8 +356,8 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   access inputs (as step 1 does) and labels entitlements and plans itself, since tenants can't read `/plans` (owner
   default, plan 2026-10-29); the 80 % warning shows only in the usage reads, not on the invite response (owner default).
 - **T3b2:** `GET /api/admin/v1/me/capabilities` is `TenantCapabilitiesResponse` (`{ actions, unavailable, access,
-  scope }`); the platform list keeps `{ actions, scope }`. Step 1's rule is `TenantAccess.Admits` (Tenancy Contracts),
-  which `TenantDirectory` uses too; an action both steps refuse shows `TENANT_READ_ONLY` only (the middleware's order).
+  scope }`); the platform list keeps `{ actions, scope }`. For an `ACTIVE` tenant, step 1's rule is `TenantAccess.Admits`
+  (Tenancy Contracts), which `TenantDirectory` uses too; an action both steps refuse shows `TENANT_READ_ONLY` only (the middleware's order).
   `plans` comes from `IEntitlements.PlansAllowingAsync` (active plans in rank order; empty when only an override could
   allow). The codes are shared as `TenantAccessErrorCodes.ReadOnly` and `EntitlementErrorCodes.Required`. A text query
   parameter's values show in OpenAPI through `.DocumentsQueryValues(name, values)` (BuildingBlocks `QueryValues`); only

@@ -285,8 +285,8 @@ tests compare this table with the code and the seeded rows with the code. Platfo
   `READ_ONLY` (it is a read). `actions` is what all three steps allow now. `unavailable` is what the caller's roles grant
   but the tenant can't use now, each `{ action, code, entitlement, plans }` with the refusal a request would get first:
   `TENANT_READ_ONLY` (step 1; `entitlement` and `plans` null) or `ENTITLEMENT_REQUIRED` (step 2: the entitlement the
-  action names and the active plans, in rank order, that include it, e.g. `["PRO"]` for "Requires PRO plan"). Step 1's
-  rule is `TenantAccess.Admits` (Tenancy Contracts), shared with the middleware; a quota passes step 2, so usage is
+  action names and the active plans, in rank order, that include it, e.g. `["PRO"]` for "Requires PRO plan"). For an
+  `ACTIVE` tenant, step 1's rule is `TenantAccess.Admits` (Tenancy Contracts), shared with the middleware; a quota passes step 2, so usage is
   read on the Subscription page and in the invite dialog, not here. Actions the roles don't grant are in neither list
   (hidden in the UI). `access` is `{ mode, subscriptionStatus, endsOn, graceEndsOn, timeZone }` for the banner (the
   subscription fields null without a period). OpenAPI lists `scopeType`'s values (`COMPETITION`, `TEAM`, `CONTEST`).
