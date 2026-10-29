@@ -173,6 +173,27 @@ public sealed class EntitlementPipelineTests(PostgresFixture fixture) : Database
         });
     }
 
+    // The platform's tenant update can change the time zone too, and clears the cached inputs the same way (#68 R1).
+    [Fact]
+    public async Task A_time_zone_change_by_the_platform_counts_from_the_next_request()
+    {
+        await RunAsync(async app =>
+        {
+            var periodStartsOn = new DateOnly(2026, 10, 19);
+            app.Clock.SetUtcNow(new DateTimeOffset(2026, 10, 19, 2, 0, 0, TimeSpan.Zero));
+            var elssc = await TenantOnProAsync(app, "elssc", periodStartsOn, periodStartsOn.AddYears(1).AddDays(-1));
+            app.Authorization.Allow(EntitlementTestApp.FixturePublish, TenancyActions.TenantUpdate);
+            (await PublishAsync(app, elssc)).StatusCode.ShouldBe(HttpStatusCode.OK);
+
+            using var platform = PlatformClient(app);
+            (await platform.PatchAsJsonAsync(
+                new Uri($"{TenantTestData.TenantsPath}/{elssc}", UriKind.Relative), new { timeZone = "America/Los_Angeles" }, Ct))
+                .StatusCode.ShouldBe(HttpStatusCode.OK);
+
+            await (await PublishAsync(app, elssc)).ShouldBeProblemAsync(HttpStatusCode.Forbidden, "TENANT_READ_ONLY");
+        });
+    }
+
     /// <summary>
     /// Writes the test entitlement's plan values, starts the app on them (its plan values are cached until restart),
     /// runs <paramref name="test"/> and removes the values: the plan tables outlive the reset (PostgresFixture).
