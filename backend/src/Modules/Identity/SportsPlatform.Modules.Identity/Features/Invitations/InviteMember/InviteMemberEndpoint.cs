@@ -23,10 +23,7 @@ internal static class InviteMemberEndpoint
         .ReturnsETag()
         .ValidateRequest<InviteMemberRequest>(CommonErrors.InvalidRequest)
         .ProducesErrors(
-            IdentityErrors.RoleNotAssignable,
-            IdentityErrors.OwnerRequired,
-            IdentityErrors.AlreadyMember,
-            IdentityErrors.ConcurrencyConflict);
+            IdentityErrors.RoleNotAssignable, IdentityErrors.OwnerRequired, IdentityErrors.AlreadyMember, IdentityErrors.ConcurrencyConflict);
 
     private static async Task<Results<Created<InvitationResponse>, ProblemHttpResult>> HandleAsync(
         InviteMemberRequest request,
