@@ -50,6 +50,7 @@ using SportsPlatform.Modules.Identity.Infrastructure.RateLimiting;
 using SportsPlatform.Modules.Identity.Infrastructure.Sessions;
 using SportsPlatform.Modules.Identity.Infrastructure.Users;
 using SportsPlatform.Modules.Identity.Seed.Demo;
+using SportsPlatform.Modules.Tenancy.Contracts.Entitlements;
 
 namespace SportsPlatform.Modules.Identity;
 
@@ -131,6 +132,7 @@ public sealed class IdentityModule : IModule
 
         // T4c: invitations to the request's tenant (D12), and a tenant's owner from the platform console.
         services.AddScoped<InviteHandler>();
+        services.AddQuotaUsage<StaffUsers>(StaffUsers.Code);
         services.AddScoped<GetInvitationHandler>();
         services.AddScoped<ListInvitationsHandler>();
         services.AddScoped<RevokeInvitationHandler>();

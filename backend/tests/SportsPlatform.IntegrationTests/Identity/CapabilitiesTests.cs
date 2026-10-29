@@ -202,9 +202,6 @@ public sealed class CapabilitiesTests(PostgresFixture fixture) : DatabaseTest(fi
         }
     }
 
-    /// <summary>A role's mailbox, e.g. <c>results.officer@kmsa.example</c>.</summary>
-    private static string MailboxOf(string role, string domain) => $"{role.ToLowerInvariant().Replace('_', '.')}@{domain}";
-
     private static List<string> ActionsOf(JsonElement body) =>
         [.. body.GetProperty("actions").EnumerateArray().Select(action => action.GetString()!)];
 
