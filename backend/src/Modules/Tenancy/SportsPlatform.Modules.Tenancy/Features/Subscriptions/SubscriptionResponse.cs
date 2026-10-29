@@ -1,8 +1,10 @@
 using SportsPlatform.BuildingBlocks.Entitlements;
 using SportsPlatform.BuildingBlocks.Persistence;
+using SportsPlatform.Modules.Tenancy.Contracts.Entitlements;
 using SportsPlatform.Modules.Tenancy.Contracts.Subscriptions;
 using SportsPlatform.Modules.Tenancy.Domain.Entitlements;
 using SportsPlatform.Modules.Tenancy.Domain.Subscriptions;
+using SportsPlatform.Modules.Tenancy.Features.Access;
 using SportsPlatform.Modules.Tenancy.Infrastructure;
 
 namespace SportsPlatform.Modules.Tenancy.Features.Subscriptions;
@@ -11,8 +13,8 @@ namespace SportsPlatform.Modules.Tenancy.Features.Subscriptions;
 /// A tenant's subscription as the platform sees it (S04 D16): every period, latest start first, with its status on
 /// <c>today</c>, the tenant's date in <c>timeZone</c>. <c>currentPeriodId</c> is the period that decides access (none
 /// without periods); <c>nextPeriodId</c> the next scheduled one. <c>overrides</c> are the tenant's entitlement overrides
-/// with their reasons and history, unremoved first (S04 D5): platform-only. Effective entitlements and usage arrive with
-/// S04-T3a2 and T3b.
+/// with their reasons and history, unremoved first (S04 D5): platform-only. <c>entitlements</c> are every declared
+/// entitlement's effective value today, by code, with its source (D6). Usage arrives with S04-T3b.
 /// </summary>
 public sealed record SubscriptionResponse(
     Guid TenantId,
@@ -21,7 +23,8 @@ public sealed record SubscriptionResponse(
     Guid? CurrentPeriodId,
     Guid? NextPeriodId,
     IReadOnlyList<SubscriptionPeriodResponse> Periods,
-    IReadOnlyList<EntitlementOverrideResponse> Overrides)
+    IReadOnlyList<EntitlementOverrideResponse> Overrides,
+    IReadOnlyList<EffectiveEntitlementResponse> Entitlements)
 {
     /// <summary>The periods and overrides must be tracked by <paramref name="context"/> (their audit columns are read from it).</summary>
     internal static SubscriptionResponse From(
@@ -30,14 +33,32 @@ public sealed record SubscriptionResponse(
         TenantSubscription subscription,
         TenantEntitlementOverrides overrides,
         DateOnly today,
-        string timeZone) => new(
-        tenantId,
-        today,
-        timeZone,
-        subscription.CurrentOn(today)?.Id,
-        subscription.NextScheduledOn(today)?.Id,
-        [.. subscription.Periods.Select(period => SubscriptionPeriodResponse.From(context, period, today))],
-        [.. overrides.Overrides.Select(entitlementOverride => EntitlementOverrideResponse.From(context, entitlementOverride, today))]);
+        string timeZone,
+        IReadOnlyList<EntitlementDefinition> definitions,
+        PlanValues planValues)
+    {
+        var current = subscription.CurrentOn(today);
+        var effective = new EffectiveEntitlements(current?.PlanCode, planValues.Of(current?.PlanCode), overrides.InEffectOn(today));
+        return new(
+            tenantId,
+            today,
+            timeZone,
+            current?.Id,
+            subscription.NextScheduledOn(today)?.Id,
+            [.. subscription.Periods.Select(period => SubscriptionPeriodResponse.From(context, period, today))],
+            [.. overrides.Overrides.Select(entitlementOverride => EntitlementOverrideResponse.From(context, entitlementOverride, today))],
+            [.. definitions.Select(definition => EffectiveEntitlementResponse.From(effective.Of(definition)))]);
+    }
+}
+
+/// <summary>
+/// A tenant's value of one entitlement today and where it comes from: <c>DEFAULT</c>, <c>PLAN</c> (the current period's,
+/// <c>planCode</c>) or <c>OVERRIDE</c> (an unremoved override in effect).
+/// </summary>
+public sealed record EffectiveEntitlementResponse(string Code, EntitlementValue Value, EntitlementSource Source)
+{
+    internal static EffectiveEntitlementResponse From(EffectiveEntitlement entitlement) =>
+        new(entitlement.Code, entitlement.Value, entitlement.Source);
 }
 
 /// <summary>

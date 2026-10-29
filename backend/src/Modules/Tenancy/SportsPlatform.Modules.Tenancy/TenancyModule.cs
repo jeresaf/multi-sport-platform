@@ -7,10 +7,12 @@ using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Persistence.Messaging;
 using SportsPlatform.BuildingBlocks.Persistence.Seeding;
 using SportsPlatform.Modules.Tenancy.Contracts.Access;
+using SportsPlatform.Modules.Tenancy.Contracts.Entitlements;
 using SportsPlatform.Modules.Tenancy.Contracts.Tenants;
 using SportsPlatform.Modules.Tenancy.Domain.Domains;
 using SportsPlatform.Modules.Tenancy.Domain.Plans;
 using SportsPlatform.Modules.Tenancy.Domain.Tenants;
+using SportsPlatform.Modules.Tenancy.Features.Access;
 using SportsPlatform.Modules.Tenancy.Features.Access.GetTenantAccess;
 using SportsPlatform.Modules.Tenancy.Features.Domains;
 using SportsPlatform.Modules.Tenancy.Features.Entitlements;
@@ -74,6 +76,9 @@ public sealed class TenancyModule : IModule
         services.AddSingleton<TenantHostCache>();
         services.AddPostMigrationStep<BackfillPlatformSubdomains>();
 
+        services.AddSingleton<TenantAccessCache>();
+        services.AddScoped<TenantAccessReader>();
+        services.AddScoped<IEntitlements, TenantEntitlements>();
         services.AddScoped<TenantDirectory>();
         services.AddScoped<ITenantDirectory>(provider => provider.GetRequiredService<TenantDirectory>());
         services.AddScoped<ITenantAccess>(provider => provider.GetRequiredService<TenantDirectory>());
