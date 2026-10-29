@@ -101,9 +101,10 @@ people above get roles scoped to competitions, teams or contests, which arrive w
 
 **Demo subscriptions (S04 D18).** The DEMO seed (`tenancy.demo.subscriptions`, through `subscription.assign` as the
 system) gives KMSA a STANDARD period, `COMPLIMENTARY`, for six months from the seed date (the pilot offer), and ELSSC a
-STANDARD period, `PAID`, for 45 days (the event pass; its `MAX_ACTIVE_EDITIONS` override arrives with overrides,
-S04-T3). Days are in `Africa/Kampala`. A tenant that already has a period is left alone, so once a demo period has
-ended (the tenant is read-only), run `seed --reset` to start again.
+STANDARD period, `PAID`, for 45 days (the event pass), with the override `MAX_ACTIVE_EDITIONS = 1` until the
+period's last day (through `entitlement.override`, reason "Event pass: one active edition, the Inter-Schools Football
+Festival"). Days are in `Africa/Kampala`. A tenant that already has a period (or, for the override, any override) is
+left alone, so once a demo period has ended (the tenant is read-only), run `seed --reset` to start again.
 
 ## Second tenant (isolation and multi-tenant demos)
 

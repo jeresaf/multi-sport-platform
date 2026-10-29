@@ -3745,6 +3745,210 @@
         }
       }
     },
+    "/api/platform/v1/tenants/{tenantId}/entitlement-overrides": {
+      "post": {
+        "tags": [
+          "Subscriptions"
+        ],
+        "summary": "Give a tenant its own value of an entitlement",
+        "description": "`value` in place of the plan's for `entitlementCode` (a declared entitlement, GET /api/platform/v1/plans), of its type: `{\"enabled\": true}`, `{\"limit\": 5}` (`null` = unlimited) or `{\"level\": \"FULL\"}` (`null` = none); otherwise TENANT_OVERRIDE_INVALID_VALUE on the field. It applies until `effectiveUntil` (the tenant's date, included; on or after its today, else VALIDATION_INVALID_REQUEST on the field) or, without one, until it is removed. An override already in place for the entitlement is removed (\"Replaced by a new override\") in the same change; the history keeps both. The reason is kept permanently on the override and in the audit trail, and tenants never see it: don't include personal data.",
+        "operationId": "GrantEntitlementOverride",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GrantOverrideRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_REQUEST",
+              "VALIDATION_MALFORMED_REQUEST"
+            ]
+          },
+          "404": {
+            "description": "Problem Details; `code`: `TENANT_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "TENANT_NOT_FOUND"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
+              "AUTH_FORBIDDEN"
+            ]
+          }
+        }
+      }
+    },
+    "/api/platform/v1/tenants/{tenantId}/entitlement-overrides/{overrideId}/remove": {
+      "post": {
+        "tags": [
+          "Subscriptions"
+        ],
+        "summary": "Remove a tenant's entitlement override",
+        "description": "Removes the override now, with `reason`: the plan's value applies again. An override the tenant doesn't have, or one already removed (or replaced), is TENANT_OVERRIDE_NOT_FOUND. The reason is kept permanently on the override and in the audit trail, and tenants never see it: don't include personal data.",
+        "operationId": "RemoveEntitlementOverride",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "overrideId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemoveOverrideRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_MALFORMED_REQUEST`, `VALIDATION_REASON_REQUIRED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_MALFORMED_REQUEST",
+              "VALIDATION_REASON_REQUIRED"
+            ]
+          },
+          "404": {
+            "description": "Problem Details; `code`: `TENANT_NOT_FOUND`, `TENANT_OVERRIDE_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "TENANT_NOT_FOUND",
+              "TENANT_OVERRIDE_NOT_FOUND"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
+              "AUTH_FORBIDDEN"
+            ]
+          }
+        }
+      }
+    },
     "/api/platform/v1/plans": {
       "get": {
         "tags": [
@@ -4985,6 +5189,76 @@
         },
         "description": "An ISO 4217 currency: alphabetic `code` (`UGX`), numeric code, English name, minor units (UGX 0)."
       },
+      "EntitlementOverrideResponse": {
+        "required": [
+          "id",
+          "entitlementCode",
+          "value",
+          "reason",
+          "effectiveUntil",
+          "inEffect",
+          "grantedAt",
+          "grantedBy",
+          "removedAt",
+          "removedBy",
+          "removeReason"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "entitlementCode": {
+            "type": "string"
+          },
+          "value": {
+            "$ref": "#/components/schemas/EntitlementValue"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "effectiveUntil": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "inEffect": {
+            "type": "boolean"
+          },
+          "grantedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "grantedBy": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "removedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "removedBy": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "removeReason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "One entitlement override: `value` in place of the plan's for `entitlementCode`, until `effectiveUntil`\n(included; none = until removed). `inEffect`: it applies on the response's `today` (not removed, not past\nits last day). The removal fields are set together."
+      },
       "EntitlementType": {
         "enum": [
           "BOOLEAN",
@@ -5059,6 +5333,47 @@
         },
         "additionalProperties": false,
         "description": "Ask for a password reset email."
+      },
+      "GrantOverrideRequest": {
+        "required": [
+          "entitlementCode",
+          "value",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "entitlementCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "value": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/EntitlementValue"
+              }
+            ]
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "effectiveUntil": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          }
+        },
+        "additionalProperties": false,
+        "description": "The body of `entitlement.override` (audit `REQUIRED_WITH_REASON`): `value` in place of the plan's for\n`entitlementCode`, until `effectiveUntil` (the tenant's date, included; none = until removed). The reason\nis kept permanently in the override and the audit trail and is not redacted: it must not contain personal data."
       },
       "InvitationResponse": {
         "required": [
@@ -5892,6 +6207,22 @@
         },
         "description": "Why the message is re-driven; the audit entry records it (action audit `REQUIRED_WITH_REASON`). Kept permanently\nand not redacted, so it must not contain personal data."
       },
+      "RemoveOverrideRequest": {
+        "required": [
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "description": "The body of `entitlement.override.remove` (audit `REQUIRED_WITH_REASON`). The reason is kept permanently on\nthe override and in the audit trail and is not redacted: it must not contain personal data."
+      },
       "RenewSubscriptionRequest": {
         "required": [
           "endsOn"
@@ -6113,7 +6444,8 @@
           "timeZone",
           "currentPeriodId",
           "nextPeriodId",
-          "periods"
+          "periods",
+          "overrides"
         ],
         "type": "object",
         "properties": {
@@ -6147,9 +6479,15 @@
             "items": {
               "$ref": "#/components/schemas/SubscriptionPeriodResponse"
             }
+          },
+          "overrides": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntitlementOverrideResponse"
+            }
           }
         },
-        "description": "A tenant's subscription as the platform sees it (S04 D16): every period, latest start first, with its status on\n`today`, the tenant's date in `timeZone`. `currentPeriodId` is the period that decides access (none\nwithout periods); `nextPeriodId` the next scheduled one. Overrides, effective entitlements and usage arrive with\nS04-T3."
+        "description": "A tenant's subscription as the platform sees it (S04 D16): every period, latest start first, with its status on\n`today`, the tenant's date in `timeZone`. `currentPeriodId` is the period that decides access (none\nwithout periods); `nextPeriodId` the next scheduled one. `overrides` are the tenant's entitlement overrides\nwith their reasons and history, unremoved first (S04 D5): platform-only. Effective entitlements and usage arrive with\nS04-T3a2 and T3b."
       },
       "SubscriptionStatus": {
         "enum": [

@@ -129,4 +129,18 @@ public static class TenancyActions
         ActionScope.Platform,
         AuditRequirement.RequiredWithReason,
         since: "S04");
+
+    public static readonly ActionDefinition EntitlementOverride = new(
+        "entitlement.override",
+        "Give a tenant its own value of an entitlement in place of its plan's, with a reason, optionally until a date; replaces an earlier override of it.",
+        ActionScope.Platform,
+        AuditRequirement.RequiredWithReason,
+        since: "S04");
+
+    public static readonly ActionDefinition EntitlementOverrideRemove = new(
+        "entitlement.override.remove",
+        "Remove a tenant's entitlement override, with a reason: its plan's value applies again.",
+        ActionScope.Platform,
+        AuditRequirement.RequiredWithReason,
+        since: "S04");
 }

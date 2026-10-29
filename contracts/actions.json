@@ -85,6 +85,34 @@
       "since": "S03"
     },
     {
+      "code": "entitlement.override",
+      "module": "Tenancy",
+      "description": "Give a tenant its own value of an entitlement in place of its plan's, with a reason, optionally until a date; replaces an earlier override of it.",
+      "scope": "PLATFORM",
+      "scopableBy": [],
+      "audit": "REQUIRED_WITH_REASON",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S04"
+    },
+    {
+      "code": "entitlement.override.remove",
+      "module": "Tenancy",
+      "description": "Remove a tenant's entitlement override, with a reason: its plan's value applies again.",
+      "scope": "PLATFORM",
+      "scopableBy": [],
+      "audit": "REQUIRED_WITH_REASON",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S04"
+    },
+    {
       "code": "invitation.accept",
       "module": "Identity",
       "description": "Accept an invitation with its token: join the tenant with the invited roles, setting a password if the email has no account yet (signed in as that user otherwise). Does not sign in.",

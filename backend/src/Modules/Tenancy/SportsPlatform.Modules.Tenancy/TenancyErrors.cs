@@ -59,4 +59,17 @@ public static class TenancyErrors
         "TENANT_SUBSCRIPTION_DOWNGRADE_AT_RENEWAL",
         "The plan can only change now to a higher plan. Choose a lower plan when renewing.",
         ErrorKind.Conflict);
+
+    /// <summary>
+    /// An override that names no declared entitlement, or whose value isn't of the entitlement's type or one of its levels
+    /// (S04 D5, D11); on the field.
+    /// </summary>
+    public static readonly Error OverrideInvalidValue = new(
+        "TENANT_OVERRIDE_INVALID_VALUE",
+        "The override must name a declared entitlement and give a value of its type.",
+        ErrorKind.Validation);
+
+    /// <summary>No override of the tenant has this ID, or it has already been removed (S04 D5).</summary>
+    public static readonly Error OverrideNotFound = new(
+        "TENANT_OVERRIDE_NOT_FOUND", "The tenant has no such entitlement override in place.", ErrorKind.NotFound);
 }

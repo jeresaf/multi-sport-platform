@@ -3,9 +3,11 @@
     {
       "code": "PLATFORM_ADMIN",
       "scope": "PLATFORM",
-      "description": "Platform staff: tenants and their lifecycle, plans and subscriptions, platform administrators, audit and outbox.",
+      "description": "Platform staff: tenants and their lifecycle, plans, subscriptions and entitlement overrides, platform administrators, audit and outbox.",
       "assignableAt": [],
       "actions": [
+        "entitlement.override",
+        "entitlement.override.remove",
         "plan.read",
         "platform.admin.create",
         "platform.audit.read",

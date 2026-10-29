@@ -331,3 +331,9 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   uncached (T3 adds D7's cache). DEMO: ELSSC's `MAX_ACTIVE_EDITIONS` override waits for overrides (T3). The e2e specs
   assign periods through the API until the console's panel (T4). Capabilities still list writes under `READ_ONLY`
   until T3 (D14).
+- **T3a1:** overrides live in `tenancy.tenant_entitlement_overrides` with a partial unique index (one unremoved per
+  tenant and entitlement) and the lock `tenancy.entitlement_override:<tenantId>`; a replacement removes the earlier row
+  ("Replaced by a new override") and adds the new one in one save. The override commands answer with the whole
+  subscription, like the period commands; `GET …/subscription` gains `overrides` (reasons, history, `inEffect` today).
+  `effectiveUntil` before the tenant's today is `VALIDATION_INVALID_REQUEST` on the field. ELSSC's DEMO override runs
+  in `tenancy.demo.subscriptions` (version 2). Effective values, the cache and step 2 are T3a2.

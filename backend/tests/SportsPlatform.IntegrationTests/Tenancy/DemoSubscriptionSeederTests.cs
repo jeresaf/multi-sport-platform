@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.BuildingBlocks.Auditing;
+using SportsPlatform.BuildingBlocks.Entitlements;
 using SportsPlatform.BuildingBlocks.Persistence.Messaging;
 using SportsPlatform.BuildingBlocks.Persistence.Seeding;
 using SportsPlatform.BuildingBlocks.Tenancy;
@@ -12,6 +13,7 @@ using SportsPlatform.IntegrationTests.Infrastructure;
 using SportsPlatform.Modules.Platform.Domain.Audit;
 using SportsPlatform.Modules.Tenancy.Contracts.Access;
 using SportsPlatform.Modules.Tenancy.Contracts.Subscriptions;
+using SportsPlatform.Modules.Tenancy.Domain.Entitlements;
 using SportsPlatform.Modules.Tenancy.Domain.Subscriptions;
 using SportsPlatform.Modules.Tenancy.Infrastructure;
 using SportsPlatform.Modules.Tenancy.Seed.Demo;
@@ -20,7 +22,8 @@ namespace SportsPlatform.IntegrationTests.Tenancy;
 
 /// <summary>
 /// The DEMO seeder's subscriptions (S04 D18, pilot-customer.md): KMSA complimentary for six months, ELSSC paid for 45
-/// days, both on STANDARD from the seed date, through <c>subscription.assign</c> as <c>SYSTEM</c>; a tenant with a period
+/// days, both on STANDARD from the seed date, through <c>subscription.assign</c> as <c>SYSTEM</c>; ELSSC's event pass
+/// allows one active edition until its period ends (<c>entitlement.override</c>). A tenant with a period (or an override)
 /// is left alone.
 /// </summary>
 public sealed class DemoSubscriptionSeederTests(PostgresFixture fixture) : DatabaseTest(fixture)
@@ -35,7 +38,7 @@ public sealed class DemoSubscriptionSeederTests(PostgresFixture fixture) : Datab
     {
         var report = await SeedDemoAsync(App);
 
-        report.Seeders.Single(s => s.Key == "tenancy.demo.subscriptions").Outcome.ShouldBe(new SeedOutcome(Inserted: 2, Updated: 0, Deactivated: 0));
+        report.Seeders.Single(s => s.Key == "tenancy.demo.subscriptions").Outcome.ShouldBe(new SeedOutcome(Inserted: 3, Updated: 0, Deactivated: 0));
         var kmsa = (await PeriodsAsync(_kmsaId)).ShouldHaveSingleItem();
         (kmsa.PlanCode, kmsa.Kind, kmsa.StartsOn, kmsa.EndsOn).ShouldBe(("STANDARD", SubscriptionKind.Complimentary, Today, Today.AddMonths(6).AddDays(-1)));
         var elssc = (await PeriodsAsync(_elsscId)).ShouldHaveSingleItem();
@@ -48,6 +51,20 @@ public sealed class DemoSubscriptionSeederTests(PostgresFixture fixture) : Datab
 
         (await AccessAsync(_kmsaId)).Mode.ShouldBe(TenantAccessMode.Full);
         (await AccessAsync(_elsscId)).Mode.ShouldBe(TenantAccessMode.Full);
+    }
+
+    [Fact]
+    public async Task ELSSCs_event_pass_allows_one_active_edition_until_its_period_ends()
+    {
+        await SeedDemoAsync(App);
+
+        (await OverridesAsync(_kmsaId)).ShouldBeEmpty();
+        var eventPass = (await OverridesAsync(_elsscId)).ShouldHaveSingleItem();
+        (eventPass.EntitlementCode, eventPass.Value, eventPass.EffectiveUntil, eventPass.IsRemoved)
+            .ShouldBe(("MAX_ACTIVE_EDITIONS", EntitlementValue.Quota(1), Today.AddDays(44), false));
+        var entry = (await AuditEntriesAsync("entitlement.override")).ShouldHaveSingleItem();
+        (entry.TenantId, entry.ActorKind, entry.Source, entry.EntityId, entry.Reason)
+            .ShouldBe((_elsscId, ActorKind.System, AuditSource.System, eventPass.Id, eventPass.Reason));
     }
 
     [Fact]
@@ -76,7 +93,9 @@ public sealed class DemoSubscriptionSeederTests(PostgresFixture fixture) : Datab
         report.Seeders.Single(s => s.Key == RerunSeeder.SeederKey).Outcome.ShouldBe(SeedOutcome.None);
         (await PeriodsAsync(_kmsaId)).Count.ShouldBe(1);
         (await PeriodsAsync(_elsscId)).Count.ShouldBe(1);
+        (await OverridesAsync(_elsscId)).Count.ShouldBe(1);
         (await SubscriptionAuditEntriesAsync()).Count.ShouldBe(2);
+        (await AuditEntriesAsync("entitlement.override")).Count.ShouldBe(1);
     }
 
     private static Task<SeedReport> SeedDemoAsync(WebApplicationFactory<Program> app) =>
@@ -90,6 +109,13 @@ public sealed class DemoSubscriptionSeederTests(PostgresFixture fixture) : Datab
         return await scope.ServiceProvider.GetRequiredService<TenancyDbContext>().Set<SubscriptionPeriod>().AsNoTracking().ToListAsync(Ct);
     }
 
+    private async Task<List<EntitlementOverride>> OverridesAsync(Guid tenantId)
+    {
+        await using var scope = App.Services.CreateAsyncScope();
+        scope.ServiceProvider.GetRequiredService<TenantContext>().Set(tenantId);
+        return await scope.ServiceProvider.GetRequiredService<TenancyDbContext>().Set<EntitlementOverride>().AsNoTracking().ToListAsync(Ct);
+    }
+
     private async Task<TenantAccess> AccessAsync(Guid tenantId)
     {
         await using var scope = App.Services.CreateAsyncScope();
@@ -97,12 +123,14 @@ public sealed class DemoSubscriptionSeederTests(PostgresFixture fixture) : Datab
         return (await scope.ServiceProvider.GetRequiredService<ITenantAccess>().GetAccessAsync(tenantId, Ct)).ShouldNotBeNull();
     }
 
-    private async Task<List<AuditEntry>> SubscriptionAuditEntriesAsync()
+    private Task<List<AuditEntry>> SubscriptionAuditEntriesAsync() => AuditEntriesAsync("subscription.");
+
+    private async Task<List<AuditEntry>> AuditEntriesAsync(string actionPrefix)
     {
         var processor = App.Services.GetRequiredService<OutboxProcessor>();
         await processor.ProcessOnceAsync(Ct);
         await processor.ProcessOnceAsync(Ct);
-        return [.. (await AuditTestData.EntriesAsync(App.Services, Ct)).Where(e => e.ActionCode.StartsWith("subscription.", StringComparison.Ordinal))];
+        return [.. (await AuditTestData.EntriesAsync(App.Services, Ct)).Where(e => e.ActionCode.StartsWith(actionPrefix, StringComparison.Ordinal))];
     }
 
     private sealed class RerunSeeder : ISeeder

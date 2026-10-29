@@ -217,6 +217,18 @@
       "owner": "Tenancy"
     },
     {
+      "code": "TENANT_OVERRIDE_INVALID_VALUE",
+      "status": 400,
+      "message": "The override must name a declared entitlement and give a value of its type.",
+      "owner": "Tenancy"
+    },
+    {
+      "code": "TENANT_OVERRIDE_NOT_FOUND",
+      "status": 404,
+      "message": "The tenant has no such entitlement override in place.",
+      "owner": "Tenancy"
+    },
+    {
       "code": "TENANT_PLAN_NOT_FOUND",
       "status": 400,
       "message": "No active plan has this code.",

@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore.Metadata;
 using SportsPlatform.BuildingBlocks.Actions;
 using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.BuildingBlocks.Domain;
+using SportsPlatform.BuildingBlocks.Entitlements;
 using SportsPlatform.IntegrationTests.Messaging;
 using SportsPlatform.IntegrationTests.Persistence;
 using SportsPlatform.Modules.Identity.Domain.Invitations;
@@ -10,6 +11,7 @@ using SportsPlatform.Modules.Identity.Domain.Memberships;
 using SportsPlatform.Modules.Identity.Domain.Roles;
 using SportsPlatform.Modules.Identity.Infrastructure.Users;
 using SportsPlatform.Modules.Tenancy.Contracts.Subscriptions;
+using SportsPlatform.Modules.Tenancy.Domain.Entitlements;
 using SportsPlatform.Modules.Tenancy.Domain.Settings;
 using SportsPlatform.Modules.Tenancy.Domain.Subscriptions;
 using SportsPlatform.Modules.Tenancy.Domain.Tenants;
@@ -46,6 +48,7 @@ public static class IsolationSamples
         new TenantStatusChangeSample(),
         new TenantSettingsSample(),
         new SubscriptionPeriodSample(),
+        new EntitlementOverrideSample(),
         new TenantProbeSample(),
         new TenantProbeNoteSample(),
         new ConsumedNoteSample(),
@@ -108,6 +111,24 @@ public static class IsolationSamples
             context.AddRange(tenant, period);
             context.Entry(period).Property(p => p.TenantId).CurrentValue = tenant.Id;
             return period;
+        }
+
+        public Entity? Referencing(IForeignKey foreignKey, Guid principalId) => null;
+    }
+
+    private sealed class EntitlementOverrideSample : IIsolationSample
+    {
+        public Type EntityType => typeof(EntitlementOverride);
+
+        public Entity Add(DbContext context)
+        {
+            var profile = new TenantProfile("Eastern Lakes Schools Sports Council", "ELSSC", "UG");
+            var tenant = Tenant.Create("elssc", profile, SystemActor.Instance, new DateTimeOffset(2026, 10, 1, 8, 0, 0, TimeSpan.Zero));
+            var entitlementOverride = EntitlementOverride.Create(
+                "MAX_ACTIVE_EDITIONS", EntitlementValue.Quota(1), "Event pass: one edition", new DateOnly(2026, 11, 14));
+            context.AddRange(tenant, entitlementOverride);
+            context.Entry(entitlementOverride).Property(o => o.TenantId).CurrentValue = tenant.Id;
+            return entitlementOverride;
         }
 
         public Entity? Referencing(IForeignKey foreignKey, Guid principalId) => null;

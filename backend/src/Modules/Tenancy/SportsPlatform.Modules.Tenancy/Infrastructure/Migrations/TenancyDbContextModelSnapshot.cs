@@ -240,6 +240,82 @@ namespace SportsPlatform.Modules.Tenancy.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("SportsPlatform.Modules.Tenancy.Domain.Entitlements.EntitlementOverride", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateOnly?>("EffectiveUntil")
+                        .HasColumnType("date")
+                        .HasColumnName("effective_until");
+
+                    b.Property<string>("EntitlementCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("entitlement_code");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("reason");
+
+                    b.Property<string>("RemoveReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("remove_reason");
+
+                    b.Property<DateTimeOffset?>("RemovedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("removed_at");
+
+                    b.Property<Guid?>("RemovedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("removed_by");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("value");
+
+                    b.HasKey("Id")
+                        .HasName("pk_tenant_entitlement_overrides");
+
+                    b.HasIndex("TenantId", "EntitlementCode")
+                        .IsUnique()
+                        .HasDatabaseName("ux_tenant_entitlement_overrides_unremoved")
+                        .HasFilter("removed_at IS NULL");
+
+                    b.ToTable("tenant_entitlement_overrides", "tenancy", t =>
+                        {
+                            t.HasCheckConstraint("ck_tenant_entitlement_overrides_entitlement_code", "entitlement_code ~ '^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$'");
+
+                            t.HasCheckConstraint("ck_tenant_entitlement_overrides_removed", "(removed_at IS NULL AND removed_by IS NULL AND remove_reason IS NULL) OR (removed_at IS NOT NULL AND removed_by IS NOT NULL AND remove_reason IS NOT NULL)");
+                        });
+                });
+
             modelBuilder.Entity("SportsPlatform.Modules.Tenancy.Domain.Plans.Plan", b =>
                 {
                     b.Property<Guid>("Id")
@@ -667,6 +743,16 @@ namespace SportsPlatform.Modules.Tenancy.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_tenant_domains_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("SportsPlatform.Modules.Tenancy.Domain.Entitlements.EntitlementOverride", b =>
+                {
+                    b.HasOne("SportsPlatform.Modules.Tenancy.Domain.Tenants.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_tenant_entitlement_overrides_tenant_tenant_id");
                 });
 
             modelBuilder.Entity("SportsPlatform.Modules.Tenancy.Domain.Plans.PlanEntitlement", b =>

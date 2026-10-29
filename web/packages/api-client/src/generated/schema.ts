@@ -700,6 +700,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/platform/v1/tenants/{tenantId}/entitlement-overrides": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Give a tenant its own value of an entitlement
+         * @description `value` in place of the plan's for `entitlementCode` (a declared entitlement, GET /api/platform/v1/plans), of its type: `{"enabled": true}`, `{"limit": 5}` (`null` = unlimited) or `{"level": "FULL"}` (`null` = none); otherwise TENANT_OVERRIDE_INVALID_VALUE on the field. It applies until `effectiveUntil` (the tenant's date, included; on or after its today, else VALIDATION_INVALID_REQUEST on the field) or, without one, until it is removed. An override already in place for the entitlement is removed ("Replaced by a new override") in the same change; the history keeps both. The reason is kept permanently on the override and in the audit trail, and tenants never see it: don't include personal data.
+         */
+        post: operations["GrantEntitlementOverride"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/v1/tenants/{tenantId}/entitlement-overrides/{overrideId}/remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Remove a tenant's entitlement override
+         * @description Removes the override now, with `reason`: the plan's value applies again. An override the tenant doesn't have, or one already removed (or replaced), is TENANT_OVERRIDE_NOT_FOUND. The reason is kept permanently on the override and in the audit trail, and tenants never see it: don't include personal data.
+         */
+        post: operations["RemoveEntitlementOverride"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/platform/v1/plans": {
         parameters: {
             query?: never;
@@ -1073,6 +1113,30 @@ export interface components {
             minorUnits: number;
         };
         /**
+         * @description One entitlement override: `value` in place of the plan's for `entitlementCode`, until `effectiveUntil`
+         *     (included; none = until removed). `inEffect`: it applies on the response's `today` (not removed, not past
+         *     its last day). The removal fields are set together.
+         */
+        EntitlementOverrideResponse: {
+            /** Format: uuid */
+            id: string;
+            entitlementCode: string;
+            value: components["schemas"]["EntitlementValue"];
+            reason: string;
+            /** Format: date */
+            effectiveUntil: null | string;
+            inEffect: boolean;
+            /** Format: date-time */
+            grantedAt: string;
+            /** Format: uuid */
+            grantedBy: string;
+            /** Format: date-time */
+            removedAt: null | string;
+            /** Format: uuid */
+            removedBy: null | string;
+            removeReason: null | string;
+        };
+        /**
          * @description What kind of value an entitlement has (docs/architecture/authorization.md, "Entitlements").
          * @enum {unknown}
          */
@@ -1091,6 +1155,18 @@ export interface components {
         /** @description Ask for a password reset email. */
         ForgotPasswordRequest: {
             email: null | string;
+        };
+        /**
+         * @description The body of `entitlement.override` (audit `REQUIRED_WITH_REASON`): `value` in place of the plan's for
+         *     `entitlementCode`, until `effectiveUntil` (the tenant's date, included; none = until removed). The reason
+         *     is kept permanently in the override and the audit trail and is not redacted: it must not contain personal data.
+         */
+        GrantOverrideRequest: {
+            entitlementCode: null | string;
+            value: null | components["schemas"]["EntitlementValue"];
+            reason: null | string;
+            /** Format: date */
+            effectiveUntil?: null | string;
         };
         /**
          * @description An invitation as the admin API shows it. `status` is `EXPIRED` for a pending one past `expiresAt`. The
@@ -1353,6 +1429,13 @@ export interface components {
             reason: null | string;
         };
         /**
+         * @description The body of `entitlement.override.remove` (audit `REQUIRED_WITH_REASON`). The reason is kept permanently on
+         *     the override and in the audit trail and is not redacted: it must not contain personal data.
+         */
+        RemoveOverrideRequest: {
+            reason: null | string;
+        };
+        /**
          * @description A renewal up to `endsOn` (included). The plan, kind and windows not sent are the latest period's; a lower plan
          *     is chosen here.
          */
@@ -1431,8 +1514,9 @@ export interface components {
         /**
          * @description A tenant's subscription as the platform sees it (S04 D16): every period, latest start first, with its status on
          *     `today`, the tenant's date in `timeZone`. `currentPeriodId` is the period that decides access (none
-         *     without periods); `nextPeriodId` the next scheduled one. Overrides, effective entitlements and usage arrive with
-         *     S04-T3.
+         *     without periods); `nextPeriodId` the next scheduled one. `overrides` are the tenant's entitlement overrides
+         *     with their reasons and history, unremoved first (S04 D5): platform-only. Effective entitlements and usage arrive with
+         *     S04-T3a2 and T3b.
          */
         SubscriptionResponse: {
             /** Format: uuid */
@@ -1445,6 +1529,7 @@ export interface components {
             /** Format: uuid */
             nextPeriodId: null | string;
             periods: components["schemas"]["SubscriptionPeriodResponse"][];
+            overrides: components["schemas"]["EntitlementOverrideResponse"][];
         };
         /**
          * @description A subscription period's status, derived from its stored dates on a given day (docs/domain/state-machines.md,
@@ -3880,6 +3965,131 @@ export interface operations {
             };
             /** @description Problem Details; `code`: `TENANT_SUBSCRIPTION_NOT_FOUND` */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GrantEntitlementOverride: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenantId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GrantOverrideRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubscriptionResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TENANT_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    RemoveEntitlementOverride: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenantId: string;
+                overrideId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RemoveOverrideRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubscriptionResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_MALFORMED_REQUEST`, `VALIDATION_REASON_REQUIRED` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TENANT_NOT_FOUND`, `TENANT_OVERRIDE_NOT_FOUND` */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

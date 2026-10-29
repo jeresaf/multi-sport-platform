@@ -13,6 +13,9 @@ using SportsPlatform.Modules.Tenancy.Domain.Plans;
 using SportsPlatform.Modules.Tenancy.Domain.Tenants;
 using SportsPlatform.Modules.Tenancy.Features.Access.GetTenantAccess;
 using SportsPlatform.Modules.Tenancy.Features.Domains;
+using SportsPlatform.Modules.Tenancy.Features.Entitlements;
+using SportsPlatform.Modules.Tenancy.Features.Entitlements.GrantOverride;
+using SportsPlatform.Modules.Tenancy.Features.Entitlements.RemoveOverride;
 using SportsPlatform.Modules.Tenancy.Features.Plans;
 using SportsPlatform.Modules.Tenancy.Features.Plans.ListPlans;
 using SportsPlatform.Modules.Tenancy.Features.Settings;
@@ -40,7 +43,7 @@ namespace SportsPlatform.Modules.Tenancy;
 
 /// <summary>
 /// Tenancy &amp; Commercial: tenants and their lifecycle, domains, settings and the public site (S02); entitlements and plans
-/// and subscriptions (S04) (docs/architecture/modules.md).
+/// subscriptions and overrides (S04) (docs/architecture/modules.md).
 /// </summary>
 public sealed class TenancyModule : IModule
 {
@@ -100,6 +103,10 @@ public sealed class TenancyModule : IModule
         services.AddScoped<IValidator<ChangePlanRequest>, ChangePlanRequestValidator>();
         services.AddScoped<CancelSubscriptionHandler>();
         services.AddSingleton<IValidator<CancelSubscriptionRequest>, CancelSubscriptionRequestValidator>();
+        services.AddScoped<GrantOverrideHandler>();
+        services.AddSingleton<IValidator<GrantOverrideRequest>, GrantOverrideRequestValidator>();
+        services.AddScoped<RemoveOverrideHandler>();
+        services.AddSingleton<IValidator<RemoveOverrideRequest>, RemoveOverrideRequestValidator>();
         services.AddSeeder<PlanSeeder>();
         services.AddSeeder<DemoTenantSeeder>();
         services.AddSeeder<DemoSubscriptionSeeder>();
@@ -117,6 +124,7 @@ public sealed class TenancyModule : IModule
         UpdateTenantProfileEndpoint.Map(tenants);
         ChangeTenantStatusEndpoints.Map(tenants);
         SubscriptionEndpoints.Map(tenants);
+        EntitlementOverrideEndpoints.Map(tenants);
         GetSiteEndpoint.Map(groups.Public);
         var settings = TenantSettingsEndpoints.Group(groups.Admin);
         GetTenantSettingsEndpoint.Map(settings);
