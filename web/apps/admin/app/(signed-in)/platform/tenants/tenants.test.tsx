@@ -320,7 +320,7 @@ describe("a tenant's detail", () => {
     // Created 22:30 UTC on 17 October: the 18th in Kampala.
     expect(screen.getByText("18 Oct 2026")).toBeTruthy();
     expect(screen.getByText("On")).toBeTruthy();
-    expect(screen.getByText(/status history and reasons, members, domains and subscription aren.t available here yet/)).toBeTruthy();
+    expect(screen.getByText(/status history and reasons, members and domains aren.t available here yet/)).toBeTruthy();
   });
 
   it("offers support staff no change and no invitation", async () => {

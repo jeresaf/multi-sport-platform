@@ -1,5 +1,16 @@
 import { Badge } from "@msp/ui/components/badge";
-import { CircleCheck, CircleDashed, CircleMinus, CirclePause, CircleX, Clock, type LucideIcon } from "lucide-react";
+import {
+  AlarmClock,
+  CalendarClock,
+  CircleCheck,
+  CircleDashed,
+  CircleMinus,
+  CirclePause,
+  CircleX,
+  Clock,
+  Hourglass,
+  type LucideIcon,
+} from "lucide-react";
 import { humanizeCode } from "@/lib/codes";
 
 // Every status has an icon and its label, never colour alone (design-system.md).
@@ -13,9 +24,13 @@ const icons: Readonly<Record<string, LucideIcon>> = {
   ARCHIVED: CircleMinus,
   REMOVED: CircleX,
   REVOKED: CircleX,
+  SCHEDULED: CalendarClock,
+  EXPIRING: AlarmClock,
+  GRACE: Hourglass,
+  CANCELLED: CircleX,
 };
 
-/** A record's status (membership, invitation, tenant) as an icon and its name. */
+/** A record's status (membership, invitation, tenant, subscription period) as an icon and its name. */
 export function StatusBadge({ status }: Readonly<{ status: string }>) {
   const Icon = icons[status] ?? CircleDashed;
   return (

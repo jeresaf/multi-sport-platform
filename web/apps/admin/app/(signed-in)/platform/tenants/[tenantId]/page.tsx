@@ -19,6 +19,8 @@ import { formatDate, formatDateTime } from "@/lib/tenant-settings";
 import { platformPath } from "@/lib/workspace";
 import { tenantQueryKey, useTenant, useTenantSaved, type Tenant, type TenantStatus } from "../tenants-data";
 import { OwnerInviteDialog, type OwnerInvitation } from "./owner-invite-dialog";
+import { useSubscription } from "./subscription-data";
+import { SubscriptionPanel } from "./subscription-panel";
 
 type Change = "activate" | "suspend" | "restore" | "archive" | "unarchive";
 
@@ -101,7 +103,7 @@ function Detail({ label, children }: Readonly<{ label: string; children: ReactNo
   );
 }
 
-/** Platform console → a tenant (admin-app.md): its profile, its lifecycle and its owner's invitation. */
+/** Platform console → a tenant (admin-app.md): its profile, its lifecycle, its owner's invitation and its subscription. */
 export default function TenantPage() {
   const { tenantId } = useParams<{ tenantId: string }>();
   const can = usePlatformCan();
@@ -128,6 +130,8 @@ function TenantDetail({ tenant }: Readonly<{ tenant: Tenant }>) {
   const queryClient = useQueryClient();
   const saved = useTenantSaved();
   const countries = useCountries();
+  // Shared with the Subscription panel (one request): activating a tenant without a period leaves it read-only (D9).
+  const subscription = useSubscription(tenant.id, can("subscription.read"));
   const [pending, setPending] = useState<Change | null>(null);
   const [inviting, setInviting] = useState(false);
   const [invited, setInvited] = useState<OwnerInvitation | null>(null);
@@ -182,6 +186,8 @@ function TenantDetail({ tenant }: Readonly<{ tenant: Tenant }>) {
   const timeZone = tenant.timeZone;
   // An archived tenant can't be invited to (AUTH_TENANT_ARCHIVED); every other status can.
   const canInvite = can("tenant.owner.invite") && tenant.status !== "ARCHIVED";
+  const withoutSubscription =
+    subscription.isSuccess && subscription.data.currentPeriodId === null && subscription.data.nextPeriodId === null;
 
   return (
     <div className="grid gap-8">
@@ -273,12 +279,14 @@ function TenantDetail({ tenant }: Readonly<{ tenant: Tenant }>) {
         </p>
       </section>
 
+      <SubscriptionPanel tenant={tenant} />
+
       <section className="grid gap-2" aria-labelledby="later-heading">
         <h2 id="later-heading" className="text-xl font-semibold">
           More about this tenant
         </h2>
         <p className="text-muted-foreground">
-          Its status history and reasons, members, domains and subscription aren&apos;t available here yet.
+          Its status history and reasons, members and domains aren&apos;t available here yet.
         </p>
       </section>
 
@@ -290,7 +298,11 @@ function TenantDetail({ tenant }: Readonly<{ tenant: Tenant }>) {
           open
           onOpenChange={(next) => (next ? null : setPending(null))}
           title={`${open.label} ${tenant.displayName}?`}
-          description={open.description}
+          description={
+            pending === "activate" && withoutSubscription
+              ? `${open.description} It has no subscription: it will be read-only until you assign a period.`
+              : open.description
+          }
           confirmLabel={open.label}
           destructive={open.destructive}
           withReason={open.withReason}
