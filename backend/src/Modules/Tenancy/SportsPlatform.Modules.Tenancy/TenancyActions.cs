@@ -88,6 +88,15 @@ public static class TenancyActions
         availableWhenBlocked: true,
         availableWhenReadOnly: true);
 
+    public static readonly ActionDefinition TenantSubscriptionRead = new(
+        "tenant.subscription.read",
+        "View the tenant's plan, subscription dates, what the plan includes and the usage of its limits: available while read-only.",
+        ActionScope.Tenant,
+        AuditRequirement.None,
+        since: "S04",
+        scopableBy: [AssignmentScope.Tenant],
+        availableWhenReadOnly: true);
+
     public static readonly ActionDefinition PlanRead = new(
         "plan.read",
         "View the plans and each entitlement's value on them.",

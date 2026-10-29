@@ -1,4 +1,5 @@
 using SportsPlatform.BuildingBlocks.Results;
+using SportsPlatform.Modules.Tenancy.Contracts.Entitlements;
 
 namespace SportsPlatform.Modules.Tenancy;
 
@@ -82,8 +83,7 @@ public static class TenancyErrors
 
     /// <summary>
     /// A create that would take the tenant past a quota of its plan or override (S04 D11, D12): retrying never helps, so
-    /// it is 403, not 429.
+    /// it is 403, not 429. Shared with the counting modules through Tenancy's contracts.
     /// </summary>
-    public static readonly Error QuotaExceeded = new(
-        "ENTITLEMENT_QUOTA_EXCEEDED", "The tenant has reached a limit of its plan.", ErrorKind.Forbidden);
+    public static readonly Error QuotaExceeded = EntitlementFailures.QuotaExceeded;
 }

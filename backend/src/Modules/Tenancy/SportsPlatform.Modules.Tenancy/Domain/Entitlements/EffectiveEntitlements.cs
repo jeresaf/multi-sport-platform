@@ -101,6 +101,12 @@ public sealed class EffectiveEntitlements
             return TenancyErrors.QuotaExceeded;
         }
 
-        return Result.Success(new QuotaCheck(limit, used, Warning: (long)(used + 1) * 100 >= (long)limit * WarningPercent));
+        return Result.Success(new QuotaCheck(limit, used, Warning: IsNearLimit(limit, used + 1)));
     }
+
+    /// <summary>
+    /// Whether <paramref name="used"/> items are <see cref="WarningPercent"/> % of <paramref name="limit"/> or more (S04 D15:
+    /// "4 of 5" warns); never for an unlimited quota.
+    /// </summary>
+    public static bool IsNearLimit(int? limit, int used) => limit is { } max && (long)used * 100 >= (long)max * WarningPercent;
 }

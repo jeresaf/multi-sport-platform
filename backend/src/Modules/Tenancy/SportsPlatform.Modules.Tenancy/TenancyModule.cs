@@ -29,6 +29,7 @@ using SportsPlatform.Modules.Tenancy.Features.Subscriptions.AssignPeriod;
 using SportsPlatform.Modules.Tenancy.Features.Subscriptions.CancelSubscription;
 using SportsPlatform.Modules.Tenancy.Features.Subscriptions.ChangePlan;
 using SportsPlatform.Modules.Tenancy.Features.Subscriptions.GetSubscription;
+using SportsPlatform.Modules.Tenancy.Features.Subscriptions.GetTenantSubscription;
 using SportsPlatform.Modules.Tenancy.Features.Subscriptions.RenewSubscription;
 using SportsPlatform.Modules.Tenancy.Features.Tenants;
 using SportsPlatform.Modules.Tenancy.Features.Tenants.ChangeTenantStatus;
@@ -100,6 +101,8 @@ public sealed class TenancyModule : IModule
         services.AddScoped<ListPlansHandler>();
         services.AddScoped<SubscriptionChanges>();
         services.AddScoped<GetSubscriptionHandler>();
+        services.AddScoped<GetTenantSubscriptionHandler>();
+        services.AddScoped<QuotaUsages>();
         services.AddScoped<AssignPeriodHandler>();
         services.AddScoped<IValidator<AssignPeriodRequest>, AssignPeriodRequestValidator>();
         services.AddScoped<RenewSubscriptionHandler>();
@@ -135,6 +138,7 @@ public sealed class TenancyModule : IModule
         GetTenantSettingsEndpoint.Map(settings);
         UpdateTenantSettingsEndpoint.Map(settings);
         GetTenantAccessEndpoint.Map(groups.Admin);
+        GetTenantSubscriptionEndpoint.Map(groups.Admin);
         ListPlansEndpoint.Map(PlanEndpoints.Group(groups.Platform));
     }
 }

@@ -169,6 +169,16 @@ public sealed class EffectiveEntitlementsTests
     public void An_unlimited_quota_never_warns_or_refuses() =>
         EffectiveEntitlements.CheckQuota(EntitlementValue.UnlimitedQuota, 100_000).Value.ShouldBe(new QuotaCheck(null, 100_000, false));
 
+    // The usage reads (S04 D15): 4 of 5 is 80 %, so it warns; so does a tenant past a lowered limit; never unlimited.
+    [Theory]
+    [InlineData(5, 3, false)]
+    [InlineData(5, 4, true)]
+    [InlineData(5, 7, true)]
+    [InlineData(0, 0, true)]
+    [InlineData(null, 1_000, false)]
+    public void Usage_is_near_the_limit_from_80_percent(int? limit, int used, bool near) =>
+        EffectiveEntitlements.IsNearLimit(limit, used).ShouldBe(near);
+
     [Fact]
     public void Only_a_quota_is_checked() =>
         Should.Throw<ArgumentException>(() => EffectiveEntitlements.CheckQuota(EntitlementValue.Flag(true), 0));
