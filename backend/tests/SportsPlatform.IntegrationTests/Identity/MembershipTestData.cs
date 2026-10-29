@@ -18,12 +18,16 @@ internal static class MembershipTestData
     /// <summary>A test-only role granting the test action <c>fixture.read</c> (TENANT, COMPETITION) at three scope types.</summary>
     public const string FixtureReader = "FIXTURE_READER";
 
-    /// <summary>The application's roles and <see cref="FixtureReader"/>.</summary>
+    /// <summary>A test-only role granting S04 D20's test action <c>fixture.publish</c> tenant-wide.</summary>
+    public const string FixturePublisher = "FIXTURE_PUBLISHER";
+
+    /// <summary>The application's roles, <see cref="FixtureReader"/> and <see cref="FixturePublisher"/>.</summary>
     public static RoleCatalogue Roles { get; } = new(
     [
         .. IdentityRoles.All,
         new RoleDefinition(FixtureReader, RoleScope.Tenant, "Reads fixtures.", ["fixture.read"],
             [AssignmentScope.Tenant, AssignmentScope.Competition, AssignmentScope.Team]),
+        new RoleDefinition(FixturePublisher, RoleScope.Tenant, "Publishes fixtures.", ["fixture.publish"], [AssignmentScope.Tenant]),
     ]);
 
     /// <summary>A role held tenant-wide.</summary>
