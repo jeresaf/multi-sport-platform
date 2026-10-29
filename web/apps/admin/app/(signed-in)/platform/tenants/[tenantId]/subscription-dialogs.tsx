@@ -252,14 +252,19 @@ export function AssignPeriodDialog({
 }
 
 const sameAsBefore = "";
-const renewSchema = z.object({
-  endsOn: z.string().min(1, "Choose the last day."),
-  planCode: z.string(),
-  kind: z.string(),
-  expiringWindowDays: days,
-  graceDays: days,
-});
-type RenewValues = z.infer<typeof renewSchema>;
+/** The renewal's last day can't be before its first day (`startsOn`, the API's `RenewalStartOn`). */
+const renewSchema = (startsOn: string) =>
+  z.object({
+    endsOn: z
+      .string()
+      .min(1, "Choose the last day.")
+      .refine((endsOn) => endsOn >= startsOn, `The last day can't be before ${formatDay(startsOn)}.`),
+    planCode: z.string(),
+    kind: z.string(),
+    expiringWindowDays: days,
+    graceDays: days,
+  });
+type RenewValues = z.infer<ReturnType<typeof renewSchema>>;
 const renewFields = {
   endsOn: "endsOn",
   planCode: "planCode",
@@ -283,7 +288,7 @@ export function RenewDialog({
   onSaved,
 }: Readonly<SubscriptionDialogProps & { latest: SubscriptionPeriod; startsOn: string }>) {
   const form = useForm<RenewValues>({
-    resolver: zodResolver(renewSchema),
+    resolver: zodResolver(renewSchema(startsOn)),
     defaultValues: { endsOn: "", planCode: sameAsBefore, kind: sameAsBefore, expiringWindowDays: "", graceDays: "" },
   });
   const { command, alert } = useCommand(

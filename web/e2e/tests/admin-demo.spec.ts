@@ -50,7 +50,7 @@ test("slice demo: platform admin → owner → viewer, with the audit trail", as
   // … activates it (without a subscription it would be read-only, S04 D9: the dialog says so), assigns it a period
   // (from yesterday, so it has started even if Kampala's date turns meanwhile, #66 R7) and invites its owner.
   await page.getByRole("button", { name: "Activate" }).click();
-  await expect(page.getByRole("dialog")).toContainText("It has no subscription");
+  await expect(page.getByRole("dialog")).toContainText("No subscription period is in effect today");
   await page.getByRole("dialog").getByRole("button", { name: "Activate" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Activated." })).toBeAttached();
   await page.getByRole("button", { name: "Assign a period" }).click();

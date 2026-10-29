@@ -19,7 +19,7 @@ import { formatDate, formatDateTime } from "@/lib/tenant-settings";
 import { platformPath } from "@/lib/workspace";
 import { tenantQueryKey, useTenant, useTenantSaved, type Tenant, type TenantStatus } from "../tenants-data";
 import { OwnerInviteDialog, type OwnerInvitation } from "./owner-invite-dialog";
-import { useSubscription } from "./subscription-data";
+import { inEffectToday, useSubscription } from "./subscription-data";
 import { SubscriptionPanel } from "./subscription-panel";
 
 type Change = "activate" | "suspend" | "restore" | "archive" | "unarchive";
@@ -130,8 +130,9 @@ function TenantDetail({ tenant }: Readonly<{ tenant: Tenant }>) {
   const queryClient = useQueryClient();
   const saved = useTenantSaved();
   const countries = useCountries();
-  // Shared with the Subscription panel (one request): activating a tenant without a period leaves it read-only (D9).
-  const subscription = useSubscription(tenant.id, can("subscription.read"));
+  // Shared with the Subscription panel (one request): activating a tenant without a period in effect leaves it
+  // read-only (D8, D9).
+  const subscription = useSubscription(tenant.id, can("subscription.read") && can("plan.read"));
   const [pending, setPending] = useState<Change | null>(null);
   const [inviting, setInviting] = useState(false);
   const [invited, setInvited] = useState<OwnerInvitation | null>(null);
@@ -186,8 +187,7 @@ function TenantDetail({ tenant }: Readonly<{ tenant: Tenant }>) {
   const timeZone = tenant.timeZone;
   // An archived tenant can't be invited to (AUTH_TENANT_ARCHIVED); every other status can.
   const canInvite = can("tenant.owner.invite") && tenant.status !== "ARCHIVED";
-  const withoutSubscription =
-    subscription.isSuccess && subscription.data.currentPeriodId === null && subscription.data.nextPeriodId === null;
+  const withoutSubscription = subscription.isSuccess && !inEffectToday(subscription.data);
 
   return (
     <div className="grid gap-8">
@@ -300,7 +300,7 @@ function TenantDetail({ tenant }: Readonly<{ tenant: Tenant }>) {
           title={`${open.label} ${tenant.displayName}?`}
           description={
             pending === "activate" && withoutSubscription
-              ? `${open.description} It has no subscription: it will be read-only until you assign a period.`
+              ? `${open.description} No subscription period is in effect today: it will be read-only until one starts or is assigned.`
               : open.description
           }
           confirmLabel={open.label}

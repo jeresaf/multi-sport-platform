@@ -21,6 +21,7 @@ import { OverrideDialog } from "./override-dialog";
 import { AssignPeriodDialog, ChangePlanDialog, RenewDialog } from "./subscription-dialogs";
 import {
   currentAndNext,
+  inEffectToday,
   isCancellable,
   useSubscription,
   useSubscriptionSaved,
@@ -50,10 +51,13 @@ function Detail({ label, children }: Readonly<{ label: string; children: ReactNo
  */
 export function SubscriptionPanel({ tenant }: Readonly<{ tenant: Tenant }>) {
   const can = usePlatformCan();
-  const subscription = useSubscription(tenant.id, can("subscription.read"));
-  const plans = usePlans(can("plan.read"));
+  // The panel needs both reads: the plans give the entitlements' names, units and types. Every platform role that
+  // reads subscriptions also reads plans.
+  const readable = can("subscription.read") && can("plan.read");
+  const subscription = useSubscription(tenant.id, readable);
+  const plans = usePlans(readable);
 
-  if (!can("subscription.read")) {
+  if (!readable) {
     return null;
   }
   return (
@@ -103,6 +107,7 @@ function SubscriptionDetail({
   // Every plan lists every declared entitlement: the first gives the definitions.
   const definitions: readonly EntitlementDefinition[] = plans[0]?.entitlements ?? [];
   const definition = (code: string) => definitions.find((item) => item.code === code);
+  // Change plan is offered from an active plan only: a period on a plan since deactivated is renewed instead.
   const currentRank = plans.find((plan) => plan.code === current?.planCode)?.rank;
   const higher = currentRank === undefined ? [] : plans.filter((plan) => plan.rank > currentRank);
 
@@ -173,13 +178,21 @@ function SubscriptionDetail({
             planName={planName(current.planCode)}
             timeZone={timeZone}
           />
-        ) : (
+        ) : null}
+        {current && !inEffectToday(subscription) ? (
+          <p>
+            {tenant.status === "ACTIVE"
+              ? "No period is in effect today: the tenant is read-only until one starts or is assigned."
+              : "No period is in effect today: once activated, the tenant is read-only until one starts or is assigned."}
+          </p>
+        ) : null}
+        {!current ? (
           <EmptyState title="No subscription">
             {tenant.status === "ACTIVE"
               ? "The tenant is read-only until a period is assigned."
               : "Once the tenant is activated, it is read-only until a period is assigned."}
           </EmptyState>
-        )}
+        ) : null}
         {next && next.id !== current?.id ? (
           <p>
             {`Next: ${planName(next.planCode)}, ${humanizeCode(next.kind).toLowerCase()}, from ${formatDay(next.startsOn)}`}

@@ -83,7 +83,7 @@ export const kmsaId = "0199a3f0-0000-7000-8000-00000000000a";
 
 /** KMSA's pilot period on STANDARD (pilot-customer.md): 1 Oct 2026 to 31 Mar 2027, active on 29 Oct 2026. */
 export const pilotPeriod: Period = {
-  id: "0199a3f0-0000-7000-8000-0000000000p1",
+  id: "0199a3f0-0000-7000-8000-000000000b01",
   planCode: "STANDARD",
   kind: "COMPLIMENTARY",
   status: "ACTIVE",
@@ -104,7 +104,7 @@ type Override = components["schemas"]["EntitlementOverrideResponse"];
 
 /** The staff-user override in place (the slice demo's), and the one it replaced. */
 export const staffOverride: Override = {
-  id: "0199a3f0-0000-7000-8000-0000000000o2",
+  id: "0199a3f0-0000-7000-8000-000000000c02",
   entitlementCode: "MAX_STAFF_USERS",
   value: { limit: 5 },
   reason: "Pilot offer: five staff seats while the association trials the platform",
@@ -118,7 +118,7 @@ export const staffOverride: Override = {
 };
 export const replacedOverride: Override = {
   ...staffOverride,
-  id: "0199a3f0-0000-7000-8000-0000000000o1",
+  id: "0199a3f0-0000-7000-8000-000000000c01",
   value: { limit: 3 },
   reason: "Pilot offer: three staff seats",
   effectiveUntil: null,

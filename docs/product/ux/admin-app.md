@@ -90,9 +90,10 @@ user's capabilities (docs/architecture/authorization.md); the server still enfor
   against every active plan in rank order, read-only: "Included" / "Not included", a limit with its unit ("100
   users") or "Unlimited", a level by name or "None". A value the configuration seed hasn't written yet says "Not
   seeded", never unlimited or none. Plans change by a reviewed seed, not here.
-- **A tenant's Subscription panel** (on its page, `subscription.read`; definitions from `plan.read`): the current
+- **A tenant's Subscription panel** (on its page, `subscription.read` and `plan.read`, for the definitions): the current
   period (plan, kind, status, dates, expiring from, grace until; cancelled with when and why) or "No subscription"
-  (read-only once active), the next scheduled period, every period with its status and cancel reason, the effective
+  (read-only once active), and when no period is in effect today (scheduled only, expired, cancelled) that the tenant
+  is read-only until one starts or is assigned; the next scheduled period, every period with its status and cancel reason, the effective
   entitlements with their source (the plan, an override, or the default without a plan) and the quotas' usage ("Used:
   4 of 5 users", "Near the limit" from 80 %, "At the limit"; "not measured yet" where no module counts), and the
   overrides in place with value, reason and last day, the removed ones under "Earlier overrides". Days are the
@@ -106,8 +107,8 @@ user's capabilities (docs/architecture/authorization.md); the server still enfor
   Support staff see the panel without controls. Who created, cancelled or removed something isn't shown (the API gives
   user IDs; the audit trail has the names). The rest of the tenant page says its status history, members and domains
   aren't available yet.
-- **Activate** says, for a tenant without a current or scheduled period, that it will be read-only until a period is
-  assigned (S04 D9).
+- **Activate** says, for a tenant with no period in effect today (none, scheduled only, expired or cancelled), that it
+  will be read-only until one starts or is assigned (S04 D8, D9).
 
 ## Workspaces and screens
 

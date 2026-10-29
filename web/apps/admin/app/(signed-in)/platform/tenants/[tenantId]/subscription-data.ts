@@ -38,6 +38,15 @@ export function currentAndNext(subscription: Subscription) {
   return { current: byId(subscription.currentPeriodId), next: byId(subscription.nextPeriodId) };
 }
 
+/**
+ * Whether a period is in effect today, so an active tenant has full access (S04 D8): the current period is ACTIVE,
+ * EXPIRING or GRACE. Without one (none, scheduled only, expired, cancelled) an active tenant is read-only.
+ */
+export function inEffectToday(subscription: Subscription): boolean {
+  const { current } = currentAndNext(subscription);
+  return current?.status === "ACTIVE" || current?.status === "EXPIRING" || current?.status === "GRACE";
+}
+
 /** A period that cancelling would end (state-machines.md): not cancelled, not expired. */
 export function isCancellable(period: SubscriptionPeriod): boolean {
   return period.status !== "CANCELLED" && period.status !== "EXPIRED";

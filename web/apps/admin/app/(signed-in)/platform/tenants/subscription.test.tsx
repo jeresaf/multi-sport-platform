@@ -139,6 +139,17 @@ describe("the subscription panel", () => {
     expect(await commandsOffered()).toEqual(["Assign a period"]);
   });
 
+  it("says an active tenant whose period has expired is read-only", async () => {
+    const expired = { ...pilotPeriod, status: "EXPIRED" as const };
+    open({ [`GET ${base}/subscription`]: { status: 200, body: subscription({ periods: [expired] }) } });
+
+    const section = await panel();
+    expect(await section.findByRole("heading", { name: "Current period" })).toBeTruthy();
+    expect(section.getByText("No period is in effect today: the tenant is read-only until one starts or is assigned.")).toBeTruthy();
+    // Nothing left to cancel or move to another plan.
+    expect(await commandsOffered()).toEqual(["Assign a period", "Renew"]);
+  });
+
   it("offers no plan change on the highest plan", async () => {
     const onPro = { ...pilotPeriod, planCode: "PRO" };
     open({ [`GET ${base}/subscription`]: { status: 200, body: subscription({ periods: [onPro] }) } });
@@ -148,9 +159,9 @@ describe("the subscription panel", () => {
   });
 
   it("assigns a period with the chosen dates and default windows, and shows the answer", async () => {
-    const assigned = subscription({ nextPeriodId: "0199a3f0-0000-7000-8000-0000000000p2" });
+    const assigned = subscription({ nextPeriodId: "0199a3f0-0000-7000-8000-000000000b02" });
     assigned.periods = [
-      { ...pilotPeriod, id: "0199a3f0-0000-7000-8000-0000000000p2", kind: "PAID", status: "SCHEDULED", startsOn: "2027-04-01", endsOn: "2028-03-31" },
+      { ...pilotPeriod, id: "0199a3f0-0000-7000-8000-000000000b02", kind: "PAID", status: "SCHEDULED", startsOn: "2027-04-01", endsOn: "2028-03-31" },
       pilotPeriod,
     ];
     const requests = open({ [`POST ${base}/subscription/periods`]: { status: 201, body: assigned } });
@@ -228,6 +239,10 @@ describe("the subscription panel", () => {
     fireEvent.click(await (await panel()).findByRole("button", { name: "Renew" }));
     const dialog = within(await screen.findByRole("dialog"));
     expect(dialog.getByText(/starts on 1 Apr 2027/)).toBeTruthy();
+    // Checked here first: the API would refuse it without naming the field.
+    fireEvent.change(dialog.getByLabelText("Last day"), { target: { value: "2027-03-31" } });
+    fireEvent.click(dialog.getByRole("button", { name: "Renew" }));
+    expect(await dialog.findByText("The last day can't be before 1 Apr 2027.")).toBeTruthy();
     fireEvent.change(dialog.getByLabelText("Last day"), { target: { value: "2028-03-31" } });
     fireEvent.click(dialog.getByRole("button", { name: "Renew" }));
 
@@ -384,7 +399,21 @@ describe("activation", () => {
     await (await panel()).findByText("No subscription");
     fireEvent.click(await screen.findByRole("button", { name: "Activate" }));
     const dialog = within(await screen.findByRole("dialog"));
-    expect(dialog.getByText(/It has no subscription: it will be read-only until you assign a period\./)).toBeTruthy();
+    expect(dialog.getByText(/No subscription period is in effect today: it will be read-only until one starts or/)).toBeTruthy();
+  });
+
+  it("warns when the tenant's only period hasn't started yet", async () => {
+    const scheduled = { ...pilotPeriod, status: "SCHEDULED" as const, startsOn: "2026-11-01" };
+    open(
+      { [`GET ${base}/subscription`]: { status: 200, body: subscription({ periods: [scheduled], nextPeriodId: scheduled.id }) } },
+      adminActions,
+      { ...kmsa, status: "PROVISIONING" },
+    );
+
+    expect(await (await panel()).findByText(/No period is in effect today: once activated/)).toBeTruthy();
+    fireEvent.click(await screen.findByRole("button", { name: "Activate" }));
+    const dialog = within(await screen.findByRole("dialog"));
+    expect(dialog.getByText(/No subscription period is in effect today/)).toBeTruthy();
   });
 
   it("doesn't warn when the tenant has a period", async () => {
@@ -393,7 +422,7 @@ describe("activation", () => {
     await (await panel()).findByRole("heading", { name: "Current period" });
     fireEvent.click(await screen.findByRole("button", { name: "Activate" }));
     const dialog = within(await screen.findByRole("dialog"));
-    expect(dialog.queryByText(/It has no subscription/)).toBeNull();
+    expect(dialog.queryByText(/No subscription period is in effect today/)).toBeNull();
   });
 });
 
