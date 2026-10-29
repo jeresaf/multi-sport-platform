@@ -4,9 +4,11 @@ using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.IntegrationTests.Api;
+using SportsPlatform.IntegrationTests.Audit;
 using SportsPlatform.IntegrationTests.Infrastructure;
 using SportsPlatform.IntegrationTests.Tenancy;
 using SportsPlatform.Modules.Identity.Domain.PlatformRoles;
+using SportsPlatform.Modules.Platform.Domain.Audit;
 using SportsPlatform.Modules.Identity.Domain.Roles;
 using SportsPlatform.Modules.Tenancy.Contracts.Tenants;
 using SportsPlatform.Modules.Tenancy.Features.Access;
@@ -47,6 +49,8 @@ public sealed class StaffUserQuotaTests(PostgresFixture fixture) : DatabaseTest(
 
         var problem = await refused.ShouldBeProblemAsync(HttpStatusCode.Forbidden, "ENTITLEMENT_QUOTA_EXCEEDED");
         problem.GetProperty("detail").GetString().ShouldBe("Your plan allows 5 staff users.");
+        var denied = (await AuditTestData.EntriesAsync(App.Services, Ct)).Single(e => e.ActionCode == "membership.invite" && e.Outcome != AuditOutcome.Success);
+        (denied.TenantId, denied.ErrorCode).ShouldBe((kmsa, "ENTITLEMENT_QUOTA_EXCEEDED"));
         (await StaffUsageAsync(owner)).ShouldBe(new QuotaUsageResponse("MAX_STAFF_USERS", Measured: true, Used: 5, Limit: 5, Warning: true));
         (await owner.InviteAsync("agnes.akello@kmsa.example", Ct, IdentityRoles.Registrar)).StatusCode.ShouldBe(HttpStatusCode.Created);
     }
@@ -86,15 +90,13 @@ public sealed class StaffUserQuotaTests(PostgresFixture fixture) : DatabaseTest(
         var responses = await Task.WhenAll(
             owner.InviteAsync("brian.ssemakula@kmsa.example", Ct, IdentityRoles.Registrar),
             owner.InviteAsync("agnes.akello@kmsa.example", Ct, IdentityRoles.Viewer));
+        using var first = responses[0];
+        using var second = responses[1];
 
         responses.Count(r => r.StatusCode == HttpStatusCode.Created).ShouldBe(1);
         await responses.Single(r => r.StatusCode != HttpStatusCode.Created)
             .ShouldBeProblemAsync(HttpStatusCode.Forbidden, "ENTITLEMENT_QUOTA_EXCEEDED");
         (await StaffUsageAsync(owner)).Used.ShouldBe(2);
-        foreach (var response in responses)
-        {
-            response.Dispose();
-        }
     }
 
     // S04 D13: staff can always give a tenant an owner; the invitation still takes a seat.
