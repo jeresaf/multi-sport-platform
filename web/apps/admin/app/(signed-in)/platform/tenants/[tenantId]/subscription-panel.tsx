@@ -81,7 +81,8 @@ export function SubscriptionPanel({ tenant }: Readonly<{ tenant: Tenant }>) {
       {subscription.isPending || plans.isPending ? <Loading /> : null}
       {subscription.isError ? <ProblemAlert error={subscription.error} /> : null}
       {plans.isError ? <ProblemAlert error={plans.error} /> : null}
-      {subscription.isSuccess && plans.isSuccess ? (
+      {/* Kept while a later read fails (TanStack keeps the data), so an open dialog and its refusal stay. */}
+      {subscription.data && plans.data ? (
         <SubscriptionDetail tenant={tenant} subscription={subscription.data} plans={plans.data.items} />
       ) : null}
     </section>
@@ -366,7 +367,14 @@ function SubscriptionDetail({
       {open === "renew" && latest ? (
         <RenewDialog {...dialogProps} latest={latest} startsOn={renewalStart(subscription)} />
       ) : null}
-      {open === "change" && current ? <ChangePlanDialog {...dialogProps} current={current} higher={higher} /> : null}
+      {open === "change" && current ? (
+        <ChangePlanDialog
+          {...dialogProps}
+          current={current}
+          higher={higher}
+          available={allowed.some((command) => command.name === "change")}
+        />
+      ) : null}
       {open === "override" ? <OverrideDialog {...dialogProps} definitions={definitions} /> : null}
       {open === "cancel" || (typeof open === "object" && open !== null) ? (
         <ActionDialog
@@ -383,6 +391,12 @@ function SubscriptionDetail({
               : "The plan's value applies again from now. The override stays in the history with this reason."
           }
           confirmLabel={open === "cancel" ? "Cancel subscription" : "Remove override"}
+          // After a refusal the subscription is read again: what it shows no longer to cancel or remove can't be sent.
+          confirmDisabled={
+            open === "cancel"
+              ? !allowed.some((command) => command.name === "cancel")
+              : !overrides.some((item) => item.id === open.remove.id)
+          }
           destructive
           withReason
           pending={reasoned.isPending}

@@ -103,8 +103,9 @@ user's capabilities (docs/architecture/authorization.md); the server still enfor
   override** (the value's input follows the entitlement's type: on/off, a number or Unlimited, a level; reason;
   optional last day) and **Remove** (reason). A refusal (`TENANT_SUBSCRIPTION_OVERLAP`, `…_NOT_FOUND`,
   `…_DOWNGRADE_AT_RENEWAL`, a field) stays in its dialog; the panel shows the subscription the command answered with
-  and announces the change; after a conflict refusal (`409`) it reads the subscription again, since someone may have
-  changed it meanwhile. Reasons are platform-only: the dialogs say the tenant sees the value, not the reason.
+  and announces the change; after a refusal that means someone changed the subscription meanwhile (a `409`, or an
+  override already removed) it reads the subscription again, and the dialog's button is disabled when the command no
+  longer applies (nothing to cancel, no plan to change, the override gone). Reasons are platform-only: the dialogs say the tenant sees the value, not the reason.
   Support staff see the panel without controls. Who created, cancelled or removed something isn't shown (the API gives
   user IDs; the audit trail has the names). The rest of the tenant page says its status history, members and domains
   aren't available yet.

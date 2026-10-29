@@ -33,15 +33,19 @@ export function useSubscriptionSaved() {
 }
 
 /**
- * Reads the subscription again: after a conflict refusal (409: overlap, nothing to renew or cancel, a downgrade) the
- * panel was out of date, e.g. another administrator changed it meanwhile. The refusal stays in its dialog.
+ * Reads the subscription again after a refusal that means the panel was out of date, e.g. another administrator changed
+ * it meanwhile: a conflict (409: overlap, nothing to renew or cancel, a downgrade) or an override already removed
+ * (`TENANT_OVERRIDE_NOT_FOUND`, 404). The refusal stays in its dialog.
  */
 export function useSubscriptionReload(tenantId: string) {
   const queryClient = useQueryClient();
   const reload = () => queryClient.invalidateQueries({ queryKey: subscriptionQueryKey(tenantId) });
   return {
     reload,
-    reloadOnConflict: (error: unknown) => (isApiProblem(error) && error.status === 409 ? reload() : undefined),
+    reloadOnConflict: (error: unknown) =>
+      isApiProblem(error) && (error.status === 409 || error.problem.code === "TENANT_OVERRIDE_NOT_FOUND")
+        ? reload()
+        : undefined,
   };
 }
 

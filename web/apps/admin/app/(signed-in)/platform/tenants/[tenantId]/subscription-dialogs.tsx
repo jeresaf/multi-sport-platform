@@ -81,6 +81,7 @@ export function CommandDialog({
   pending,
   error,
   showAlert,
+  confirmDisabled = false,
   onSubmit,
   onOpenChange,
   children,
@@ -91,6 +92,8 @@ export function CommandDialog({
   pending: boolean;
   error: unknown;
   showAlert: boolean;
+  /** The command no longer applies (the subscription was read again after a refusal): its refusal stays, sending doesn't. */
+  confirmDisabled?: boolean;
   onSubmit: () => void;
   onOpenChange: (open: boolean) => void;
   children: ReactNode;
@@ -116,7 +119,7 @@ export function CommandDialog({
             <Button variant="outline" disabled={pending} onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={pending}>
+            <Button type="submit" disabled={pending || confirmDisabled}>
               {pending ? "Saving…" : submitLabel}
             </Button>
           </DialogFooter>
@@ -389,9 +392,17 @@ export function ChangePlanDialog({
   subscription,
   current,
   higher,
+  available,
   onOpenChange,
   onSaved,
-}: Readonly<Omit<SubscriptionDialogProps, "plans"> & { current: SubscriptionPeriod; higher: readonly Plan[] }>) {
+}: Readonly<
+  Omit<SubscriptionDialogProps, "plans"> & {
+    current: SubscriptionPeriod;
+    higher: readonly Plan[];
+    /** Whether the panel still offers the change (it can't after a refusal showed the subscription had changed). */
+    available: boolean;
+  }
+>) {
   const form = useForm<ChangePlanValues>({
     resolver: zodResolver(changePlanSchema),
     defaultValues: { planCode: higher[0]?.code ?? "" },
@@ -418,6 +429,7 @@ export function ChangePlanDialog({
       pending={command.isPending}
       error={command.error}
       showAlert={alert}
+      confirmDisabled={!available}
       onSubmit={form.handleSubmit((values) => command.mutate(values))}
       onOpenChange={onOpenChange}
     >
