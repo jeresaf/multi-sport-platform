@@ -32,7 +32,7 @@ internal sealed class TenantEntitlements(TenantAccessReader reader, ITenantConte
             throw new ArgumentException($"Entitlement {code} is a quota: it is counted, not allowed.", nameof(code));
         }
 
-        return (await reader.PlanValuesAsync(cancellationToken)).PlansAllowing(code);
+        return (await reader.PlanValuesAsync(cancellationToken)).PlansAllowing(definition);
     }
 
     public async Task<int?> GetLimitAsync(string code, CancellationToken cancellationToken)

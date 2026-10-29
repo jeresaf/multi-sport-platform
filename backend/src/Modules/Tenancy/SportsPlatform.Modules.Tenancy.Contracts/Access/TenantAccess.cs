@@ -26,7 +26,7 @@ public sealed record TenantAccess(TenantStatus Status, TenantAccessMode Mode, st
             TenantAccessMode.Full => true,
             TenantAccessMode.ReadOnly => action.AvailableWhenReadOnly,
             TenantAccessMode.Blocked => action.AvailableWhenBlocked,
-            _ => throw new ArgumentOutOfRangeException(nameof(action), Mode, "Unknown access mode."),
+            _ => throw new InvalidOperationException($"Unknown access mode {Mode}."),
         };
     }
 }

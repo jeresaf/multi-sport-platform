@@ -109,9 +109,15 @@ public sealed class PlanValues(
         planCode is not null && byPlan.TryGetValue(planCode, out var values) ? values : _none;
 
     /// <summary>
-    /// The active plans, in rank order, whose value of the boolean or level entitlement <paramref name="code"/> lets a
-    /// tenant use it (<see cref="EffectiveEntitlements.Allows"/>); a plan without a value for it uses the default (off).
+    /// The active plans, in rank order, whose value of the boolean or level entitlement <paramref name="definition"/> lets
+    /// a tenant use it, as step 2 decides (<see cref="EffectiveEntitlements.Of"/>): a stored value the definition doesn't
+    /// accept (another type, a level it no longer has) counts as the default (off), like a plan without a value.
     /// </summary>
-    public IReadOnlyList<string> PlansAllowing(string code) =>
-        [.. activeInRankOrder.Where(plan => Of(plan).TryGetValue(code, out var value) && EffectiveEntitlements.Allows(value))];
+    public IReadOnlyList<string> PlansAllowing(EntitlementDefinition definition)
+    {
+        ArgumentNullException.ThrowIfNull(definition);
+        return [.. activeInRankOrder.Where(plan => Of(plan).TryGetValue(definition.Code, out var value)
+            && definition.Accepts(value)
+            && EffectiveEntitlements.Allows(value))];
+    }
 }
