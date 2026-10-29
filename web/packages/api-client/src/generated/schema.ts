@@ -1113,6 +1113,15 @@ export interface components {
             minorUnits: number;
         };
         /**
+         * @description A tenant's value of one entitlement today and where it comes from: `DEFAULT`, `PLAN` (the current period's
+         *     plan) or `OVERRIDE` (an unremoved override in effect).
+         */
+        EffectiveEntitlementResponse: {
+            code: string;
+            value: components["schemas"]["EntitlementValue"];
+            source: components["schemas"]["EntitlementSource"];
+        };
+        /**
          * @description One entitlement override: `value` in place of the plan's for `entitlementCode`, until `effectiveUntil`
          *     (included; none = until removed). `inEffect`: it applies on the response's `today` (not removed, not past
          *     its last day). The removal fields are set together.
@@ -1136,6 +1145,11 @@ export interface components {
             removedBy: null | string;
             removeReason: null | string;
         };
+        /**
+         * @description Where a tenant's effective value of an entitlement comes from (S04 D6).
+         * @enum {unknown}
+         */
+        EntitlementSource: "DEFAULT" | "PLAN" | "OVERRIDE";
         /**
          * @description What kind of value an entitlement has (docs/architecture/authorization.md, "Entitlements").
          * @enum {unknown}
@@ -1515,8 +1529,8 @@ export interface components {
          * @description A tenant's subscription as the platform sees it (S04 D16): every period, latest start first, with its status on
          *     `today`, the tenant's date in `timeZone`. `currentPeriodId` is the period that decides access (none
          *     without periods); `nextPeriodId` the next scheduled one. `overrides` are the tenant's entitlement overrides
-         *     with their reasons and history, unremoved first (S04 D5): platform-only. Effective entitlements and usage arrive with
-         *     S04-T3a2 and T3b.
+         *     with their reasons and history, unremoved first (S04 D5): platform-only. `entitlements` are every declared
+         *     entitlement's effective value today, by code, with its source (D6). Usage arrives with S04-T3b.
          */
         SubscriptionResponse: {
             /** Format: uuid */
@@ -1530,6 +1544,7 @@ export interface components {
             nextPeriodId: null | string;
             periods: components["schemas"]["SubscriptionPeriodResponse"][];
             overrides: components["schemas"]["EntitlementOverrideResponse"][];
+            entitlements: components["schemas"]["EffectiveEntitlementResponse"][];
         };
         /**
          * @description A subscription period's status, derived from its stored dates on a given day (docs/domain/state-machines.md,

@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
+using SportsPlatform.Modules.Tenancy.Features.Access;
 using SportsPlatform.Modules.Tenancy.Features.Domains;
 
 namespace SportsPlatform.IntegrationTests.Infrastructure;
@@ -31,6 +32,9 @@ public abstract class DatabaseTest(PostgresFixture fixture) : IAsyncLifetime
 
         // The host cache outlives the reset: a host cached by an earlier test would resolve to a deleted tenant.
         App.Services.GetRequiredService<TenantHostCache>().Clear();
+
+        // Likewise a tenant's cached periods, overrides and time zone, and the plans' values (S04 D7).
+        App.Services.GetRequiredService<TenantAccessCache>().Clear();
     }
 
     /// <summary>Runs a query as one of the roles from <c>01-roles.sh</c>, outside the app.</summary>

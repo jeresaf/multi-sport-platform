@@ -72,4 +72,18 @@ public static class TenancyErrors
     /// <summary>No override of the tenant has this ID, or it has already been removed (S04 D5).</summary>
     public static readonly Error OverrideNotFound = new(
         "TENANT_OVERRIDE_NOT_FOUND", "The tenant has no such entitlement override in place.", ErrorKind.NotFound);
+
+    /// <summary>
+    /// Step 2 of the decision formula: the action names a boolean or level entitlement the tenant's plan and overrides
+    /// don't give it (S04 D10, D11). <c>detail</c> names the entitlement.
+    /// </summary>
+    public static readonly Error EntitlementRequired = new(
+        "ENTITLEMENT_REQUIRED", "The tenant's plan doesn't include this feature.", ErrorKind.Forbidden);
+
+    /// <summary>
+    /// A create that would take the tenant past a quota of its plan or override (S04 D11, D12): retrying never helps, so
+    /// it is 403, not 429.
+    /// </summary>
+    public static readonly Error QuotaExceeded = new(
+        "ENTITLEMENT_QUOTA_EXCEEDED", "The tenant has reached a limit of its plan.", ErrorKind.Forbidden);
 }

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SportsPlatform.BuildingBlocks.Api;
+using SportsPlatform.BuildingBlocks.Entitlements;
 using SportsPlatform.BuildingBlocks.Modules;
 using SportsPlatform.Host.Authorization;
 using SportsPlatform.Host.Catalogues;
@@ -105,7 +106,9 @@ public sealed class EndpointActionRulesTests
     [Fact]
     public async Task Module_endpoints_are_public_only_in_the_public_family()
     {
-        await using var app = WebApplication.CreateSlimBuilder().Build();
+        var builder = WebApplication.CreateSlimBuilder();
+        builder.Services.AddSingleton<IEntitlementCatalogue>(new DeclaredEntitlements(Array.Empty<EntitlementDefinition>())); // MapModules documents step 2 from it
+        await using var app = builder.Build();
         app.MapModules([new ProbeModule()]);
 
         Validate(app).ShouldBe(

@@ -10,6 +10,7 @@ using SportsPlatform.Modules.Tenancy.Domain.Domains;
 using SportsPlatform.Modules.Tenancy.Domain.Settings;
 using SportsPlatform.Modules.Tenancy.Domain.Subscriptions;
 using SportsPlatform.Modules.Tenancy.Domain.Tenants;
+using SportsPlatform.Modules.Tenancy.Features.Access;
 using SportsPlatform.Modules.Tenancy.Features.Domains;
 using SportsPlatform.Modules.Tenancy.Infrastructure;
 
@@ -25,7 +26,7 @@ internal sealed class TenantDirectory(
     TenantHostCache hostCache,
     ITenantContext tenantContext,
     ITenantSetupAccess setupAccess,
-    TimeProvider timeProvider)
+    TenantAccessReader accessReader)
     : ITenantDirectory, ITenantAccess
 {
     public async Task<Result<TenantSummary>> GetByIdAsync(Guid tenantId, CancellationToken cancellationToken) =>
@@ -105,28 +106,18 @@ internal sealed class TenantDirectory(
 
     /// <summary>
     /// The tenant's access today (S04 D8): the current period on the tenant's date, from its time zone and the app's clock.
-    /// Settings and periods are tenant-owned, so the scope's tenant must be this one. Read without tracking: the request's
-    /// handler shares this context. Not cached: the dates decide, so a renewal counts from the next request.
+    /// Settings and periods are tenant-owned, so the scope's tenant must be this one. They are cached for up to a minute
+    /// and cleared when they change (D7); the date and the statuses are derived on every call, so a renewal counts from
+    /// the next request.
     /// </summary>
     private async Task<TenantAccess> AccessOfAsync(TenantSummary tenant, CancellationToken cancellationToken)
     {
-        if (tenantContext.TenantId != tenant.Id)
-        {
-            throw new InvalidOperationException("Set the scope's tenant to this tenant before reading its access.");
-        }
-
-        var timeZone = await context.Set<TenantSettings>().AsNoTracking()
-            .Where(s => s.TenantId == tenant.Id)
-            .Select(s => s.TimeZone)
-            .SingleAsync(cancellationToken);
-        var periods = await context.Set<SubscriptionPeriod>().AsNoTracking()
-            .Where(p => p.TenantId == tenant.Id)
-            .ToListAsync(cancellationToken);
-        var today = TenantCalendar.Today(timeProvider, timeZone);
-        var subscription = new TenantSubscription(periods).CurrentOn(today) is { } current
+        var inputs = await accessReader.InputsAsync(tenant.Id, cancellationToken);
+        var today = accessReader.TodayIn(inputs.TimeZone);
+        var subscription = new TenantSubscription(inputs.Periods).CurrentOn(today) is { } current
             ? new SubscriptionAccess(current.StatusOn(today), current.StartsOn, current.EndsOn, current.GraceEndsOn)
             : null;
-        return new TenantAccess(tenant.Status, TenantAccessModes.Of(tenant.Status, subscription?.Status), timeZone, subscription);
+        return new TenantAccess(tenant.Status, TenantAccessModes.Of(tenant.Status, subscription?.Status), inputs.TimeZone, subscription);
     }
 
     private static Result<TenantSummary> Found(TenantSummary? tenant) =>

@@ -3,7 +3,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using SportsPlatform.BuildingBlocks.Entitlements;
 using SportsPlatform.BuildingBlocks.Modules;
+using SportsPlatform.Host.Catalogues;
 using SportsPlatform.Host.Modules;
 
 namespace SportsPlatform.IntegrationTests.Modules;
@@ -13,7 +15,9 @@ public sealed class EndpointGroupTests
     [Fact]
     public async Task Module_endpoints_are_mapped_under_their_API_family_prefix()
     {
-        await using var app = WebApplication.CreateSlimBuilder().Build();
+        var builder = WebApplication.CreateSlimBuilder();
+        builder.Services.AddSingleton<IEntitlementCatalogue>(new DeclaredEntitlements(Array.Empty<EntitlementDefinition>())); // MapModules documents step 2 from it
+        await using var app = builder.Build();
         var probe = new ProbeModule();
 
         app.MapModules([probe]);

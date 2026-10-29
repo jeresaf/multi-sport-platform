@@ -209,7 +209,9 @@ action is `403 TENANT_READ_ONLY`. The exceptions in the table above (live contes
 the flag with the slices that build them and check their own window. `ITenantAccess.GetAccessAsync` gives handlers
 the status, mode, time zone and current period; `GET /api/admin/v1/tenant/access` shows the owner the same, with the
 reason for the tenant's status. Read under the tenant (settings and periods are tenant-owned, RLS); the mode and "today"
-are derived on every request, and the stored periods are read uncached until S04-T3 caches them for up to 60 s (D7).
+are derived on every request. The stored inputs (time zone, periods, unremoved overrides) are cached in process for
+up to 60 s in `TenantAccessCache` and cleared after a subscription, override or time-zone change commits (S04-T3a2,
+D7); plan values are cached until restart. Other API instances catch up within 60 s, as for hosts.
 
 ## Platform staff and support
 

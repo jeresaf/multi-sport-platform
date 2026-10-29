@@ -5,6 +5,7 @@ using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Results;
 using SportsPlatform.Modules.Tenancy.Domain.Settings;
 using SportsPlatform.Modules.Tenancy.Domain.Tenants;
+using SportsPlatform.Modules.Tenancy.Features.Access;
 using SportsPlatform.Modules.Tenancy.Features.Domains;
 using SportsPlatform.Modules.Tenancy.Infrastructure;
 
@@ -19,7 +20,8 @@ namespace SportsPlatform.Modules.Tenancy.Features.Tenants.UpdateTenantProfile;
 /// write wins; accepted by the owner, S02-T4 plan). A request that changes nothing saves nothing (the Host still audits
 /// it).
 /// </summary>
-public sealed class UpdateTenantProfileHandler(TenancyDbContext context, AuditScope audit, TenantHostCache hostCache)
+public sealed class UpdateTenantProfileHandler(
+    TenancyDbContext context, AuditScope audit, TenantHostCache hostCache, TenantAccessCache accessCache)
 {
     public async Task<Result<TenantResponse>> HandleAsync(
         Guid tenantId, UpdateTenantProfileRequest request, IfMatch ifMatch, CancellationToken cancellationToken)
@@ -62,6 +64,12 @@ public sealed class UpdateTenantProfileHandler(TenancyDbContext context, AuditSc
             {
                 return saved.Error;
             }
+        }
+
+        if (!string.Equals(currentSettings.TimeZone, settings.TimeZone, StringComparison.Ordinal))
+        {
+            // The time zone decides the tenant's date, so its subscription status and overrides in effect (S04 D7).
+            accessCache.Clear(tenantId);
         }
 
         if (currentSettings.PublicEnabled != settings.PublicEnabled)

@@ -4,6 +4,7 @@ using SportsPlatform.BuildingBlocks.Auditing;
 using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Results;
 using SportsPlatform.Modules.Tenancy.Domain.Settings;
+using SportsPlatform.Modules.Tenancy.Features.Access;
 using SportsPlatform.Modules.Tenancy.Features.Domains;
 using SportsPlatform.Modules.Tenancy.Infrastructure;
 
@@ -14,7 +15,8 @@ namespace SportsPlatform.Modules.Tenancy.Features.Settings.UpdateTenantSettings;
 /// <c>version</c> or <c>If-Match</c> that is not the settings' current version, or a change saved by someone else in
 /// between, is <c>TENANT_CONCURRENCY_CONFLICT</c>. A request that changes nothing saves nothing (the Host still audits it).
 /// </summary>
-public sealed class UpdateTenantSettingsHandler(TenancyDbContext context, AuditScope audit, TenantHostCache hostCache)
+public sealed class UpdateTenantSettingsHandler(
+    TenancyDbContext context, AuditScope audit, TenantHostCache hostCache, TenantAccessCache accessCache)
 {
     public async Task<Result<TenantSettingsResponse>> HandleAsync(
         UpdateTenantSettingsRequest request, IfMatch ifMatch, CancellationToken cancellationToken)
@@ -46,6 +48,12 @@ public sealed class UpdateTenantSettingsHandler(TenancyDbContext context, AuditS
             {
                 return saved.Error;
             }
+        }
+
+        if (!string.Equals(current.TimeZone, settings.TimeZone, StringComparison.Ordinal))
+        {
+            // The time zone decides the tenant's date, so its subscription status and overrides in effect (S04 D7).
+            accessCache.Clear(settings.TenantId);
         }
 
         if (current.PublicEnabled != settings.PublicEnabled)

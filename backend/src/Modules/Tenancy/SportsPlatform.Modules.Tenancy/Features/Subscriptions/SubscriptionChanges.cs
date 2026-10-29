@@ -7,6 +7,7 @@ using SportsPlatform.Modules.Tenancy.Domain.Plans;
 using SportsPlatform.Modules.Tenancy.Domain.Settings;
 using SportsPlatform.Modules.Tenancy.Domain.Subscriptions;
 using SportsPlatform.Modules.Tenancy.Domain.Tenants;
+using SportsPlatform.Modules.Tenancy.Features.Access;
 using SportsPlatform.Modules.Tenancy.Infrastructure;
 
 namespace SportsPlatform.Modules.Tenancy.Features.Subscriptions;
@@ -16,9 +17,15 @@ namespace SportsPlatform.Modules.Tenancy.Features.Subscriptions;
 /// the periods, overrides and settings are read under RLS and the audit entry carries the tenant. A change takes the
 /// tenant's lock for what it changes first (periods or overrides), then reads: two changes of one kind to one tenant
 /// queue on the lock, so the second sees the first's rows and both can't pass the overlap check or add a second
-/// override of one entitlement. One save, then the commit.
+/// override of one entitlement. One save, then the commit, then the tenant's cached access inputs are cleared (D7).
 /// </summary>
-public sealed class SubscriptionChanges(TenancyDbContext context, AuditScope audit, TimeProvider timeProvider)
+public sealed class SubscriptionChanges(
+    TenancyDbContext context,
+    AuditScope audit,
+    TimeProvider timeProvider,
+    TenantAccessCache accessCache,
+    TenantAccessReader accessReader,
+    IEntitlementCatalogue entitlements)
 {
     public const string AuditEntityType = "SubscriptionPeriod";
     public const string OverrideAuditEntityType = "EntitlementOverride";
@@ -31,7 +38,7 @@ public sealed class SubscriptionChanges(TenancyDbContext context, AuditScope aud
             return TenancyErrors.NotFound;
         }
 
-        return Result.Success(Respond(tenantId, await LoadAsync(tenantId, cancellationToken)));
+        return Result.Success(await RespondAsync(tenantId, await LoadAsync(tenantId, cancellationToken), cancellationToken));
     }
 
     /// <summary>
@@ -125,11 +132,20 @@ public sealed class SubscriptionChanges(TenancyDbContext context, AuditScope aud
 
         // The audit counts as recorded once saved: a client hanging up now must not roll the change back unaudited.
         await transaction.CommitAsync(CancellationToken.None);
-        return Result.Success(Respond(tenantId, loaded));
+        accessCache.Clear(tenantId);
+        return Result.Success(await RespondAsync(tenantId, loaded, CancellationToken.None));
     }
 
-    private SubscriptionResponse Respond(Guid tenantId, Loaded loaded) =>
-        SubscriptionResponse.From(context, tenantId, loaded.Subscription, loaded.Overrides, loaded.Today, loaded.TimeZone);
+    private async Task<SubscriptionResponse> RespondAsync(Guid tenantId, Loaded loaded, CancellationToken cancellationToken) =>
+        SubscriptionResponse.From(
+            context,
+            tenantId,
+            loaded.Subscription,
+            loaded.Overrides,
+            loaded.Today,
+            loaded.TimeZone,
+            entitlements.All,
+            await accessReader.PlanValuesAsync(cancellationToken));
 
     private async Task<Loaded> LoadAsync(Guid tenantId, CancellationToken cancellationToken)
     {
