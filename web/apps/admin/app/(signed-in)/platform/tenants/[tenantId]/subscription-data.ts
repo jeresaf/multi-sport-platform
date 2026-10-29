@@ -4,7 +4,7 @@
 // command answers with the whole subscription, which replaces the one shown.
 import type { components } from "@msp/api-client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, call } from "@/lib/api";
+import { api, call, isApiProblem } from "@/lib/api";
 import { tenantsQueryKey } from "../tenants-data";
 
 export type Subscription = components["schemas"]["SubscriptionResponse"];
@@ -30,6 +30,19 @@ export function useSubscriptionSaved() {
   const queryClient = useQueryClient();
   return (subscription: Subscription) =>
     queryClient.setQueryData(subscriptionQueryKey(subscription.tenantId), subscription);
+}
+
+/**
+ * Reads the subscription again: after a conflict refusal (409: overlap, nothing to renew or cancel, a downgrade) the
+ * panel was out of date, e.g. another administrator changed it meanwhile. The refusal stays in its dialog.
+ */
+export function useSubscriptionReload(tenantId: string) {
+  const queryClient = useQueryClient();
+  const reload = () => queryClient.invalidateQueries({ queryKey: subscriptionQueryKey(tenantId) });
+  return {
+    reload,
+    reloadOnConflict: (error: unknown) => (isApiProblem(error) && error.status === 409 ? reload() : undefined),
+  };
 }
 
 /** The period that decides access, and the next scheduled one. */

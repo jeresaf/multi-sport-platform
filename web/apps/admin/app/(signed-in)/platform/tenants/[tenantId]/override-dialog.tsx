@@ -16,7 +16,7 @@ import { api, call } from "@/lib/api";
 import { humanizeCode } from "@/lib/codes";
 import { formatEntitlementValue, type EntitlementDefinition, type EntitlementValue } from "@/lib/entitlements";
 import { applyFieldErrors, needsAlert } from "@/lib/form-errors";
-import type { Subscription } from "./subscription-data";
+import { useSubscriptionReload, type Subscription } from "./subscription-data";
 import { CommandDialog } from "./subscription-dialogs";
 
 const schema = (definitions: readonly EntitlementDefinition[]) =>
@@ -93,6 +93,7 @@ export function OverrideDialog({
     reason: "reason",
     effectiveUntil: "effectiveUntil",
   } as const;
+  const { reloadOnConflict } = useSubscriptionReload(tenantId);
   const effective = subscription.entitlements.find((item) => item.code === definition?.code);
 
   const grant = useMutation({
@@ -109,7 +110,10 @@ export function OverrideDialog({
         }),
       ),
     onSuccess: (saved) => onSaved(saved, "Override set."),
-    onError: (error) => applyFieldErrors(error, fields, form.setError),
+    onError: (error) => {
+      applyFieldErrors(error, fields, form.setError);
+      void reloadOnConflict(error);
+    },
   });
   const errors = form.formState.errors;
 

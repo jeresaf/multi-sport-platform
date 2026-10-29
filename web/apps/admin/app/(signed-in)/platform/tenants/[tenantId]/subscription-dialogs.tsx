@@ -25,7 +25,13 @@ import { humanizeCode } from "@/lib/codes";
 import { formatDay } from "@/lib/entitlements";
 import { applyFieldErrors, needsAlert, type ApiFields } from "@/lib/form-errors";
 import type { Plan } from "../../plans/plans-data";
-import { subscriptionKinds, type Subscription, type SubscriptionKind, type SubscriptionPeriod } from "./subscription-data";
+import {
+  subscriptionKinds,
+  useSubscriptionReload,
+  type Subscription,
+  type SubscriptionKind,
+  type SubscriptionPeriod,
+} from "./subscription-data";
 
 export type SubscriptionDialogProps = {
   tenantId: string;
@@ -48,15 +54,20 @@ const daysOrNull = (value: string) => (value.trim() === "" ? null : Number(value
 
 /** A command from a form: the field errors under their fields, the rest in the dialog's alert. */
 function useCommand<T extends FieldValues, V>(
+  tenantId: string,
   send: (values: V) => Promise<Subscription>,
   fields: ApiFields<T>,
   setError: UseFormSetError<T>,
   onSaved: (subscription: Subscription) => void,
 ) {
+  const { reloadOnConflict } = useSubscriptionReload(tenantId);
   const command = useMutation({
     mutationFn: send,
     onSuccess: onSaved,
-    onError: (error) => applyFieldErrors(error, fields, setError),
+    onError: (error) => {
+      applyFieldErrors(error, fields, setError);
+      void reloadOnConflict(error);
+    },
   });
   const alert = command.isError && needsAlert(command.error, fields);
   return { command, alert };
@@ -177,6 +188,7 @@ export function AssignPeriodDialog({
     },
   });
   const { command, alert } = useCommand(
+    tenantId,
     (values: AssignValues) =>
       call(
         api.POST("/api/platform/v1/tenants/{tenantId}/subscription/periods", {
@@ -292,6 +304,7 @@ export function RenewDialog({
     defaultValues: { endsOn: "", planCode: sameAsBefore, kind: sameAsBefore, expiringWindowDays: "", graceDays: "" },
   });
   const { command, alert } = useCommand(
+    tenantId,
     (values: RenewValues) =>
       call(
         api.POST("/api/platform/v1/tenants/{tenantId}/subscription/renew", {
@@ -384,6 +397,7 @@ export function ChangePlanDialog({
     defaultValues: { planCode: higher[0]?.code ?? "" },
   });
   const { command, alert } = useCommand(
+    tenantId,
     (values: ChangePlanValues) =>
       call(
         api.POST("/api/platform/v1/tenants/{tenantId}/subscription/change-plan", {
