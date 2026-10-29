@@ -45,6 +45,7 @@ admin endpoint requires one of these; the code is stable and is what roles grant
 | `tenant.restore` | Tenancy | PLATFORM | — | REQUIRED | — | no | no | no | no | S02 | Restore a suspended tenant (SUSPENDED → ACTIVE). |
 | `tenant.settings.read` | Tenancy | TENANT | TENANT | REQUIRED | — | no | no | no | yes | S02 | View the tenant's settings: time zone, locale, currency, public site, starting-soon window, minor consent policy. |
 | `tenant.settings.update` | Tenancy | TENANT | TENANT | REQUIRED | — | no | no | no | no | S02 | Change the tenant's settings: time zone, locale, currency, public site, starting-soon window, minor consent policy. |
+| `tenant.subscription.read` | Tenancy | TENANT | TENANT | NONE | — | no | no | no | yes | S04 | View the tenant's plan, subscription dates, what the plan includes and the usage of its limits: available while read-only. |
 | `tenant.suspend` | Tenancy | PLATFORM | — | REQUIRED_WITH_REASON | — | no | no | no | no | S02 | Suspend an active tenant, with a reason (ACTIVE → SUSPENDED). |
 | `tenant.unarchive` | Tenancy | PLATFORM | — | REQUIRED_WITH_REASON | — | no | no | no | no | S02 | Bring an archived tenant back, with a reason (ARCHIVED → SUSPENDED). |
 | `tenant.update` | Tenancy | PLATFORM | — | REQUIRED | — | no | no | no | no | S02 | Change a tenant's profile: names, country, time zone, locale, currency, public site. |

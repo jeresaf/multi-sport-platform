@@ -63,7 +63,8 @@
         "tenant.access.read",
         "tenant.capabilities.read",
         "tenant.settings.read",
-        "tenant.settings.update"
+        "tenant.settings.update",
+        "tenant.subscription.read"
       ]
     },
     {
@@ -84,7 +85,8 @@
         "role.revoke",
         "tenant.capabilities.read",
         "tenant.settings.read",
-        "tenant.settings.update"
+        "tenant.settings.update",
+        "tenant.subscription.read"
       ]
     },
     {
@@ -171,7 +173,8 @@
       "actions": [
         "membership.read",
         "tenant.capabilities.read",
-        "tenant.settings.read"
+        "tenant.settings.read",
+        "tenant.subscription.read"
       ]
     }
   ]

@@ -571,6 +571,22 @@
       "since": "S02"
     },
     {
+      "code": "tenant.subscription.read",
+      "module": "Tenancy",
+      "description": "View the tenant's plan, subscription dates, what the plan includes and the usage of its limits: available while read-only.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "NONE",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": true,
+      "since": "S04"
+    },
+    {
       "code": "tenant.suspend",
       "module": "Tenancy",
       "description": "Suspend an active tenant, with a reason (ACTIVE → SUSPENDED).",

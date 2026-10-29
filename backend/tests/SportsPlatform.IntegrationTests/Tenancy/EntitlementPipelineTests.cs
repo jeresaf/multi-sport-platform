@@ -22,7 +22,7 @@ namespace SportsPlatform.IntegrationTests.Tenancy;
 /// <c>FIXTURE_PUBLISHING</c> (off on STANDARD, on on PRO) and the test action <c>fixture.publish</c> that names it:
 /// step 2 refuses what the plan or an override doesn't give, after step 1 and before the evaluator; overrides, expiry,
 /// renewal and a time-zone change count from the next request (the cache is cleared, D7). Quota steps 11–12 are
-/// S04-T3b's (<c>MAX_STAFF_USERS</c>). Dates are the tenant's (Africa/Kampala, UTC+3).
+/// in <c>Identity/StaffUserQuotaTests</c> (<c>MAX_STAFF_USERS</c>). Dates are the tenant's (Africa/Kampala, UTC+3).
 /// </summary>
 public sealed class EntitlementPipelineTests(PostgresFixture fixture) : DatabaseTest(fixture)
 {
