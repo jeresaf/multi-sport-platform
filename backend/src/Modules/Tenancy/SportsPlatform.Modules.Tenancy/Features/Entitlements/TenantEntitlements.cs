@@ -24,6 +24,17 @@ internal sealed class TenantEntitlements(TenantAccessReader reader, ITenantConte
     public async Task<bool> CanUseAsync(string code, CancellationToken cancellationToken) =>
         EffectiveEntitlements.Allows((await GetAsync(code, cancellationToken)).Value);
 
+    public async Task<IReadOnlyList<string>> PlansAllowingAsync(string code, CancellationToken cancellationToken)
+    {
+        var definition = Definition(code);
+        if (definition.Type == EntitlementType.Quota)
+        {
+            throw new ArgumentException($"Entitlement {code} is a quota: it is counted, not allowed.", nameof(code));
+        }
+
+        return (await reader.PlanValuesAsync(cancellationToken)).PlansAllowing(code);
+    }
+
     public async Task<int?> GetLimitAsync(string code, CancellationToken cancellationToken)
     {
         var value = (await GetAsync(code, cancellationToken)).Value;

@@ -95,12 +95,23 @@ public sealed class TenantAccessCache : IDisposable
 /// </summary>
 public sealed record TenantAccessInputs(string TimeZone, IReadOnlyList<SubscriptionPeriod> Periods, IReadOnlyList<EntitlementOverride> Overrides);
 
-/// <summary>Every stored plan's values, active or not (a tenant may still be on a deactivated plan).</summary>
-public sealed class PlanValues(IReadOnlyDictionary<string, IReadOnlyDictionary<string, EntitlementValue>> byPlan)
+/// <summary>
+/// Every stored plan's values, active or not (a tenant may still be on a deactivated plan), and the active plans' codes
+/// in rank order.
+/// </summary>
+public sealed class PlanValues(
+    IReadOnlyDictionary<string, IReadOnlyDictionary<string, EntitlementValue>> byPlan, IReadOnlyList<string> activeInRankOrder)
 {
     private static readonly IReadOnlyDictionary<string, EntitlementValue> _none = new Dictionary<string, EntitlementValue>();
 
     /// <summary>The plan's values by entitlement code; empty for no plan or an unknown one.</summary>
     public IReadOnlyDictionary<string, EntitlementValue> Of(string? planCode) =>
         planCode is not null && byPlan.TryGetValue(planCode, out var values) ? values : _none;
+
+    /// <summary>
+    /// The active plans, in rank order, whose value of the boolean or level entitlement <paramref name="code"/> lets a
+    /// tenant use it (<see cref="EffectiveEntitlements.Allows"/>); a plan without a value for it uses the default (off).
+    /// </summary>
+    public IReadOnlyList<string> PlansAllowing(string code) =>
+        [.. activeInRankOrder.Where(plan => Of(plan).TryGetValue(code, out var value) && EffectiveEntitlements.Allows(value))];
 }

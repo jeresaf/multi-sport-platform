@@ -60,7 +60,7 @@ public sealed class TenantAccessCacheTests : IDisposable
         Task<PlanValues> LoadPlans()
         {
             loads++;
-            return Task.FromResult(new PlanValues(new Dictionary<string, IReadOnlyDictionary<string, EntitlementValue>>()));
+            return Task.FromResult(new PlanValues(new Dictionary<string, IReadOnlyDictionary<string, EntitlementValue>>(), []));
         }
 
         await _cache.GetOrLoadPlanValuesAsync(LoadPlans);

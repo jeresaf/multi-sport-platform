@@ -43,12 +43,19 @@ public sealed class TenantAccessReader(
             var rows = await context.Set<PlanEntitlement>().AsNoTracking()
                 .Join(context.Set<Plan>(), e => e.PlanId, p => p.Id, (e, p) => new { PlanCode = p.Code, e.EntitlementCode, e.Value })
                 .ToListAsync(cancellationToken);
-            return new PlanValues(rows
-                .GroupBy(row => row.PlanCode, StringComparer.Ordinal)
-                .ToDictionary(
-                    plan => plan.Key,
-                    plan => (IReadOnlyDictionary<string, EntitlementValue>)plan.ToDictionary(row => row.EntitlementCode, row => row.Value, StringComparer.Ordinal),
-                    StringComparer.Ordinal));
+            var active = await context.Set<Plan>().AsNoTracking()
+                .Where(p => p.IsActive)
+                .OrderBy(p => p.Rank)
+                .Select(p => p.Code)
+                .ToListAsync(cancellationToken);
+            return new PlanValues(
+                rows
+                    .GroupBy(row => row.PlanCode, StringComparer.Ordinal)
+                    .ToDictionary(
+                        plan => plan.Key,
+                        plan => (IReadOnlyDictionary<string, EntitlementValue>)plan.ToDictionary(row => row.EntitlementCode, row => row.Value, StringComparer.Ordinal),
+                        StringComparer.Ordinal),
+                active);
         });
 
     /// <summary>The tenant's date (<see cref="TenantCalendar"/>), never cached.</summary>
