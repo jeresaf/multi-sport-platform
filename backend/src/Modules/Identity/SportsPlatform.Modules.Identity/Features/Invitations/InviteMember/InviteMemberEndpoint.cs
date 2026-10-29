@@ -26,8 +26,7 @@ internal static class InviteMemberEndpoint
             IdentityErrors.RoleNotAssignable,
             IdentityErrors.OwnerRequired,
             IdentityErrors.AlreadyMember,
-            IdentityErrors.ConcurrencyConflict,
-            EntitlementFailures.QuotaExceeded);
+            IdentityErrors.ConcurrencyConflict);
 
     private static async Task<Results<Created<InvitationResponse>, ProblemHttpResult>> HandleAsync(
         InviteMemberRequest request,
@@ -39,8 +38,9 @@ internal static class InviteMemberEndpoint
         var result = await handler.InviteMemberAsync(request, cancellationToken);
         if (result.IsFailure)
         {
-            // A Result carries no detail (S04-T3a2): the limit is read again for the message.
-            return result.Error == EntitlementFailures.QuotaExceeded
+            // A Result carries no detail (S04-T3a2): the limit is read again for the message. The Host documents the
+            // error, as for every action that names a quota.
+            return result.Error.Code == EntitlementErrorCodes.QuotaExceeded
                 ? result.Error.ToProblem(
                     $"Your plan allows {await entitlements.GetLimitAsync(StaffUsers.Code, cancellationToken)} staff users.")
                 : result.Error.ToProblem();

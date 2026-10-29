@@ -88,7 +88,7 @@ public sealed class RoleCatalogueTests
         var json = RoleCatalogueExport.ToJson(_roles);
 
         markdown.ShouldContain("**Actions** is what a role grants today; **Description** is the role's purpose");
-        markdown.ShouldContain("| `VIEWER` | TENANT | TENANT | `membership.read`, `tenant.capabilities.read`, `tenant.settings.read` | Read-only admin. |\n");
+        markdown.ShouldContain("| `VIEWER` | TENANT | TENANT | `membership.read`, `tenant.capabilities.read`, `tenant.settings.read`, `tenant.subscription.read` | Read-only admin. |\n");
         markdown.ShouldContain("| `SCORER` | TENANT | TENANT, COMPETITION, CONTEST | `tenant.capabilities.read`, `tenant.settings.read` |");
         markdown.ShouldContain("| `TEAM_MANAGER` | TENANT | TEAM | — |");
         markdown.ShouldContain("| `PLATFORM_SUPPORT` | PLATFORM | — | `plan.read`, `platform.audit.read`, `platform.capabilities.read`, `platform.outbox.read`, `subscription.read`, `tenant.read` |");
