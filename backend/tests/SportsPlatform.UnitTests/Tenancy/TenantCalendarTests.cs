@@ -17,4 +17,13 @@ public sealed class TenantCalendarTests
 
         TenantCalendar.Today(clock, timeZone).ShouldBe(DateOnly.Parse(expected, null));
     }
+
+    [Theory]
+    [InlineData("2026-10-31T20:59:59Z", "Africa/Kampala", "2026-10-31")]
+    [InlineData("2026-10-31T21:00:00Z", "Africa/Kampala", "2026-11-01")]
+    [InlineData("2026-10-31T21:00:00Z", "UTC", "2026-10-31")]
+    public void An_instant_falls_on_the_date_in_the_tenants_time_zone(string instant, string timeZone, string expected)
+    {
+        TenantCalendar.DayOf(DateTimeOffset.Parse(instant, null), timeZone).ShouldBe(DateOnly.Parse(expected, null));
+    }
 }

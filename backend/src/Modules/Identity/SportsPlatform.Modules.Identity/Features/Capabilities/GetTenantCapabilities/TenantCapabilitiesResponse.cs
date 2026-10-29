@@ -24,16 +24,25 @@ public sealed record TenantCapabilitiesResponse(
 public sealed record UnavailableActionResponse(string Action, string Code, string? Entitlement, IReadOnlyList<string>? Plans);
 
 /// <summary>
-/// The tenant's access today, for the shell's banner: the access <c>mode</c>; the current subscription period's status
-/// and its last day and last day of grace (all null without a period); the tenant's <c>timeZone</c> (IANA), in which the
-/// days begin and end. A response of its own, so a field added to Tenancy's contract doesn't change the API.
+/// The tenant's access today, for the shell's banner: the access <c>mode</c>; the current subscription period's status,
+/// first day, last day, last day of grace and the day it was cancelled (all null without a period; <c>cancelledOn</c>
+/// null unless it was cancelled), so the banner can say since when a tenant is read-only; the tenant's <c>timeZone</c>
+/// (IANA), in which the days begin and end. A response of its own, so a field added to Tenancy's contract doesn't change
+/// the API.
 /// </summary>
 public sealed record CapabilityAccessResponse(
-    TenantAccessMode Mode, SubscriptionStatus? SubscriptionStatus, DateOnly? EndsOn, DateOnly? GraceEndsOn, string TimeZone)
+    TenantAccessMode Mode,
+    SubscriptionStatus? SubscriptionStatus,
+    DateOnly? StartsOn,
+    DateOnly? EndsOn,
+    DateOnly? GraceEndsOn,
+    DateOnly? CancelledOn,
+    string TimeZone)
 {
     public static CapabilityAccessResponse From(TenantAccess access)
     {
         ArgumentNullException.ThrowIfNull(access);
-        return new(access.Mode, access.Subscription?.Status, access.Subscription?.EndsOn, access.Subscription?.GraceEndsOn, access.TimeZone);
+        var period = access.Subscription;
+        return new(access.Mode, period?.Status, period?.StartsOn, period?.EndsOn, period?.GraceEndsOn, period?.CancelledOn, access.TimeZone);
     }
 }

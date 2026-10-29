@@ -1065,17 +1065,23 @@ export interface components {
             scope: null | components["schemas"]["CapabilityScopeResponse"];
         };
         /**
-         * @description The tenant's access today, for the shell's banner: the access `mode`; the current subscription period's status
-         *     and its last day and last day of grace (all null without a period); the tenant's `timeZone` (IANA), in which the
-         *     days begin and end. A response of its own, so a field added to Tenancy's contract doesn't change the API.
+         * @description The tenant's access today, for the shell's banner: the access `mode`; the current subscription period's status,
+         *     first day, last day, last day of grace and the day it was cancelled (all null without a period; `cancelledOn`
+         *     null unless it was cancelled), so the banner can say since when a tenant is read-only; the tenant's `timeZone`
+         *     (IANA), in which the days begin and end. A response of its own, so a field added to Tenancy's contract doesn't change
+         *     the API.
          */
         CapabilityAccessResponse: {
             mode: components["schemas"]["TenantAccessMode"];
             subscriptionStatus: null | components["schemas"]["SubscriptionStatus"];
             /** Format: date */
+            startsOn: null | string;
+            /** Format: date */
             endsOn: null | string;
             /** Format: date */
             graceEndsOn: null | string;
+            /** Format: date */
+            cancelledOn: null | string;
             timeZone: string;
         };
         /** @description The resource the capabilities were asked about. */

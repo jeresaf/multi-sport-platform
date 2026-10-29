@@ -5008,8 +5008,10 @@
         "required": [
           "mode",
           "subscriptionStatus",
+          "startsOn",
           "endsOn",
           "graceEndsOn",
+          "cancelledOn",
           "timeZone"
         ],
         "type": "object",
@@ -5027,6 +5029,13 @@
               }
             ]
           },
+          "startsOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
           "endsOn": {
             "type": [
               "null",
@@ -5041,11 +5050,18 @@
             ],
             "format": "date"
           },
+          "cancelledOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
           "timeZone": {
             "type": "string"
           }
         },
-        "description": "The tenant's access today, for the shell's banner: the access `mode`; the current subscription period's status\nand its last day and last day of grace (all null without a period); the tenant's `timeZone` (IANA), in which the\ndays begin and end. A response of its own, so a field added to Tenancy's contract doesn't change the API."
+        "description": "The tenant's access today, for the shell's banner: the access `mode`; the current subscription period's status,\nfirst day, last day, last day of grace and the day it was cancelled (all null without a period; `cancelledOn`\nnull unless it was cancelled), so the banner can say since when a tenant is read-only; the tenant's `timeZone`\n(IANA), in which the days begin and end. A response of its own, so a field added to Tenancy's contract doesn't change\nthe API."
       },
       "CapabilityScopeResponse": {
         "required": [
