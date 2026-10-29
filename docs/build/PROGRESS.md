@@ -7,16 +7,17 @@ at the start of every review.
 
 - **Current slice:** S04 — Plans, subscriptions and entitlements (docs/build/slices/S04-plans-entitlements.md,
   rewritten by the S03 slice review). S00, S01, S02 and S03 are done
-- **Current task:** S04-T3b2 — capabilities with `unavailable` and `access`, `scopeType` as an enum in OpenAPI (plan
-  approved 2026-10-29, defaults taken) — in review (#70)
-- **Next:** S04-T4 — Platform and tenant screens
+- **Current task:** S04-T4a — console screens: Plans page, the tenant's Subscription panel, the activation warning
+  (plan approved 2026-10-29, defaults taken)
+- **Next:** S04-T4b — tenant Subscription page, banner, disabled controls, slice demo e2e, slice close
 - **Blocked on:** nothing. The S03 slice review (#61, #62) is merged; Q21–Q26: the owner took the defaults
   (2026-10-21, open-questions.md "Answered")
 
 ## Next up
 
-1. S04-T4 — Platform and tenant screens (likely two PRs: T4a console, T4b tenant screens, banner, demo e2e, slice close)
-2. S04-T3b2 — in review: address the review
+1. S04-T4a — in progress
+2. S04-T4b — tenant Settings → Subscription, the shell's banner, disabled controls with their reason, the blocked
+   page's time zone, the slice demo e2e, slice close
 
 ## Log
 
@@ -268,6 +269,12 @@ at the start of every review.
   (expired or cancelled too; step 1 refuses the writes), a scheduled-only tenant's scheduled plan applies, and tests
   that write periods or overrides directly between requests clear the cache. Builder: the two bare-app `MapModules`
   tests register an empty entitlement catalogue (OpenAPI's step-2 errors read it).
+
+- **S04-T4 (owner, plan 2026-10-29, defaults taken):** T4 is two PRs: T4a (console: Plans, the tenant's
+  Subscription panel, the activation warning, the S03 demo spec through the panel) and T4b (tenant screens, banner,
+  disabled controls, the blocked page's time zone, the slice demo e2e, slice close). The console shows when a period
+  or override was created, cancelled or removed but not by whom: the API gives user IDs and the console has no
+  platform-user lookup; the audit trail has the names.
 
 - **S04-T3b2 (owner, plan 2026-10-29, defaults taken):** `plans` lists the active plans in rank order (empty when only
   an override could allow); an action refused by steps 1 and 2 shows only `TENANT_READ_ONLY` (the middleware's order);
