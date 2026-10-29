@@ -12,11 +12,15 @@ public sealed record GetTenantCapabilitiesRequest(
     [FromQuery(Name = "scopeType")] string? ScopeType,
     [FromQuery(Name = "scopeId")] string? ScopeId)
 {
-    private static readonly Dictionary<string, AssignmentScope> _types = Enum.GetValues<AssignmentScope>()
+    // In declaration order (COMPETITION, TEAM, CONTEST): the validator's message and OpenAPI's enum list them so.
+    private static readonly (string Name, AssignmentScope Type)[] _ordered = [.. Enum.GetValues<AssignmentScope>()
         .Where(type => type != AssignmentScope.Tenant)
-        .ToDictionary(type => MessageSerialization.EnumNamingPolicy.ConvertName(type.ToString()), StringComparer.Ordinal);
+        .Select(type => (MessageSerialization.EnumNamingPolicy.ConvertName(type.ToString()), type))];
 
-    public static IReadOnlyCollection<string> ScopeTypes => _types.Keys;
+    private static readonly Dictionary<string, AssignmentScope> _types =
+        _ordered.ToDictionary(entry => entry.Name, entry => entry.Type, StringComparer.Ordinal);
+
+    public static IReadOnlyList<string> ScopeTypes { get; } = [.. _ordered.Select(entry => entry.Name)];
 
     public static bool TryParseScopeType(string value, out AssignmentScope type) => _types.TryGetValue(value, out type);
 

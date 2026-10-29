@@ -108,13 +108,30 @@ public sealed class CapabilitiesTests(PostgresFixture fixture) : DatabaseTest(fi
         capabilities.Access.ShouldBe(new CapabilityAccessResponse(
             TenantAccessMode.ReadOnly, SubscriptionStatus.Cancelled, TenantTestData.PeriodEndsOn, TenantTestData.PeriodEndsOn.AddDays(14), _timeZone));
 
-        // Each one is what the API answers: a write the list marks is refused as it says.
+        // For the roles that may invite: the API refuses the marked write as the list says (step 1 answers before the body).
         if (capabilities.Unavailable.Any(unavailable => unavailable.Action == IdentityActions.MembershipInvite.Code.Value))
         {
             await (await client.PostAsJsonAsync(
                 "/api/admin/v1/invitations", new { email = "grace.atim@kmsa.example", roleCodes = new[] { IdentityRoles.Viewer } }, Ct))
                 .ShouldBeProblemAsync(HttpStatusCode.Forbidden, "TENANT_READ_ONLY");
         }
+    }
+
+    [Fact]
+    public async Task A_provisioning_tenants_owner_reads_full_access_without_a_subscription()
+    {
+        App.Authorization.UseIdentityRoles();
+        var kmsa = await TenantTestData.SaveTenantAsync(App.Services, "kmsa", TenantStatus.Provisioning, Ct);
+        var owner = await CreateMemberAsync(App.Services, kmsa, "sarah.namubiru@kmsa.example", Ct, TenantWide(IdentityRoles.TenantOwner));
+        using var client = App.ClientFor(owner.UserId, kmsa);
+
+        using var response = await client.GetAsync(TenantCapabilitiesPath, Ct);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var capabilities = Typed(await response.Content.ReadFromJsonAsync<JsonElement>(Ct));
+        capabilities.Access.ShouldBe(new CapabilityAccessResponse(TenantAccessMode.Full, SubscriptionStatus: null, EndsOn: null, GraceEndsOn: null, _timeZone));
+        capabilities.Unavailable.ShouldBeEmpty();
+        capabilities.Actions.ShouldBe(await EvaluatorAllowsAsync(owner.Actor, ActionScope.Tenant, kmsa));
     }
 
     [Fact]
@@ -141,7 +158,8 @@ public sealed class CapabilitiesTests(PostgresFixture fixture) : DatabaseTest(fi
     /// Without the entitlement (S04 D14, D20): the test action <c>fixture.publish</c> names the test boolean
     /// <c>FIXTURE_PUBLISHING</c> (off on STANDARD, on on PRO) and a test role grants it. On STANDARD it is unavailable
     /// with <c>ENTITLEMENT_REQUIRED</c> and the plans that include it; on PRO it is in <c>actions</c>; on a read-only
-    /// tenant step 1 refuses first, so the reason is <c>TENANT_READ_ONLY</c>, as the middleware answers.
+    /// tenant step 1 refuses first, so the reason is <c>TENANT_READ_ONLY</c>, the middleware's order
+    /// (<c>EntitlementPipelineTests</c> proves the middleware's answers over HTTP).
     /// </summary>
     [Fact]
     public async Task An_action_whose_entitlement_the_tenant_lacks_is_unavailable_with_the_plans_that_include_it()
