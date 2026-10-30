@@ -315,4 +315,5 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   `Number`, `Text` (`enum`, `bool`, `int`, `string` in the files), and `derive.where` values are text as written. The
   model refuses keys it doesn't map. Generic event types are a separate list with English labels written from their
   codes. Nothing is cached before the first seed. The module's concurrency error is `SPORT_CONCURRENCY_CONFLICT`
-  (`SPORT_` is a documented area).
+  (`SPORT_` is a documented area). The records carry the file's JSON names (`short`, `enum`, …) and hide the hash and
+  the generic types from the file reader, so T1b2's endpoints map them to response DTOs of their own.
