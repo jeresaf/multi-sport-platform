@@ -18,11 +18,15 @@ export function errorMessage(code: string): string | undefined {
   return messages.get(code);
 }
 
+// Codes whose `detail` is written for people and says more than the catalogue's message: a quota refusal names the
+// limit ("Your plan allows 5 staff users.", S04 D11).
+const detailedCodes: ReadonlySet<string> = new Set(["ENTITLEMENT_QUOTA_EXCEEDED"]);
+
 export function describeProblem(problem: ProblemDetails): ProblemDescription {
   const known = errorMessage(problem.code);
   const serverFailed = (problem.status ?? 0) >= 500;
   if (known && !serverFailed) {
-    return { message: known };
+    return { message: detailedCodes.has(problem.code) && problem.detail ? problem.detail : known };
   }
 
   return {

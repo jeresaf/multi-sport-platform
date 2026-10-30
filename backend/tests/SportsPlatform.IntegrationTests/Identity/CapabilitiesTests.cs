@@ -82,7 +82,8 @@ public sealed class CapabilitiesTests(PostgresFixture fixture) : DatabaseTest(fi
         var capabilities = Typed(body);
         capabilities.Unavailable.ShouldBeEmpty();
         capabilities.Access.ShouldBe(new CapabilityAccessResponse(
-            TenantAccessMode.Full, SubscriptionStatus.Active, TenantTestData.PeriodEndsOn, TenantTestData.PeriodEndsOn.AddDays(SubscriptionPeriod.DefaultGraceDays), _timeZone));
+            TenantAccessMode.Full, SubscriptionStatus.Active, TenantTestData.PeriodStartsOn, TenantTestData.PeriodEndsOn,
+            TenantTestData.PeriodEndsOn.AddDays(SubscriptionPeriod.DefaultGraceDays), CancelledOn: null, _timeZone));
     }
 
     /// <summary>
@@ -111,8 +112,10 @@ public sealed class CapabilitiesTests(PostgresFixture fixture) : DatabaseTest(fi
         capabilities.Actions.ShouldContain(IdentityActions.TenantCapabilitiesRead.Code.Value);
         capabilities.Unavailable.ShouldBe([.. granted.Where(code => !readOnly.Contains(code))
             .Select(code => new UnavailableActionResponse(code, "TENANT_READ_ONLY", Entitlement: null, Plans: null))]);
+        // Cancelled at 08:00 UTC on 1 October (TenantTestData): that day in Kampala, for "read-only since".
         capabilities.Access.ShouldBe(new CapabilityAccessResponse(
-            TenantAccessMode.ReadOnly, SubscriptionStatus.Cancelled, TenantTestData.PeriodEndsOn, TenantTestData.PeriodEndsOn.AddDays(SubscriptionPeriod.DefaultGraceDays), _timeZone));
+            TenantAccessMode.ReadOnly, SubscriptionStatus.Cancelled, TenantTestData.PeriodStartsOn, TenantTestData.PeriodEndsOn,
+            TenantTestData.PeriodEndsOn.AddDays(SubscriptionPeriod.DefaultGraceDays), new DateOnly(2026, 10, 1), _timeZone));
 
         // For the roles that may invite: the API refuses the marked write as the list says (step 1 answers before the body).
         if (capabilities.Unavailable.Any(unavailable => unavailable.Action == IdentityActions.MembershipInvite.Code.Value))
@@ -135,7 +138,8 @@ public sealed class CapabilitiesTests(PostgresFixture fixture) : DatabaseTest(fi
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var capabilities = Typed(await response.Content.ReadFromJsonAsync<JsonElement>(Ct));
-        capabilities.Access.ShouldBe(new CapabilityAccessResponse(TenantAccessMode.Full, SubscriptionStatus: null, EndsOn: null, GraceEndsOn: null, _timeZone));
+        capabilities.Access.ShouldBe(new CapabilityAccessResponse(
+            TenantAccessMode.Full, SubscriptionStatus: null, StartsOn: null, EndsOn: null, GraceEndsOn: null, CancelledOn: null, _timeZone));
         capabilities.Unavailable.ShouldBeEmpty();
         capabilities.Actions.ShouldBe(await EvaluatorAllowsAsync(owner.Actor, ActionScope.Tenant, kmsa));
     }
@@ -153,7 +157,8 @@ public sealed class CapabilitiesTests(PostgresFixture fixture) : DatabaseTest(fi
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var body = await response.Content.ReadFromJsonAsync<JsonElement>(Ct);
-        Typed(body).Access.ShouldBe(new CapabilityAccessResponse(TenantAccessMode.ReadOnly, SubscriptionStatus: null, EndsOn: null, GraceEndsOn: null, _timeZone));
+        Typed(body).Access.ShouldBe(new CapabilityAccessResponse(
+            TenantAccessMode.ReadOnly, SubscriptionStatus: null, StartsOn: null, EndsOn: null, GraceEndsOn: null, CancelledOn: null, _timeZone));
         Typed(body).Unavailable.ShouldContain(new UnavailableActionResponse(
             IdentityActions.MembershipInvite.Code.Value, "TENANT_READ_ONLY", Entitlement: null, Plans: null));
         body.GetProperty("access").GetProperty("mode").GetString().ShouldBe("READ_ONLY");

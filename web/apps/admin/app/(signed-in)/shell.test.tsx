@@ -2,6 +2,7 @@
 // tenants, the switcher and the user menu.
 import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { fullAccess, tenantCapabilities } from "@/test/capabilities";
 import { fakeApi, problem, renderWithQuery, type Answer } from "@/test/render";
 import SignedInLayout from "./layout";
 import PlatformLayout from "./platform/layout";
@@ -34,7 +35,7 @@ const me = (platformRoles: string[] = []): Answer => ({
   status: 200,
   body: { id: "0199a3f0-0000-7000-8000-000000000001", email: "grace.nakato@kmsa.example", platformRoles, tenants: [elssc, kmsa] },
 });
-const capabilities = (actions: string[]): Answer => ({ status: 200, body: { actions, scope: null } });
+const capabilities = (actions: string[]): Answer => ({ status: 200, body: tenantCapabilities(actions) });
 
 function openTenant(slug: string, pathname = `/t/${slug}`) {
   navigation.params = { tenantSlug: slug };
@@ -131,6 +132,54 @@ describe("tenant workspace", () => {
     expect(within(workspaceNav()).queryByRole("link", { name: "Members & roles" })).toBeNull();
   });
 
+  it("shows no subscription banner while access is full", async () => {
+    fakeApi({
+      "GET /api/account/v1/me": me(),
+      "GET /api/admin/v1/me/capabilities": capabilities(["tenant.settings.read"]),
+    });
+
+    openTenant("kmsa");
+
+    await screen.findByText("Workspace page");
+    expect(screen.queryByRole("region", { name: "Subscription" })).toBeNull();
+  });
+
+  it("shows every member the banner of a read-only workspace, with why and since when", async () => {
+    fakeApi({
+      "GET /api/account/v1/me": me(),
+      // A viewer's reads stay available; the banner needs no other action.
+      "GET /api/admin/v1/me/capabilities": {
+        status: 200,
+        body: tenantCapabilities([], {
+          access: { ...fullAccess, mode: "READ_ONLY", subscriptionStatus: "CANCELLED", cancelledOn: "2026-10-20" },
+        }),
+      },
+    });
+
+    openTenant("kmsa");
+
+    await screen.findByText("Workspace page");
+    const banner = screen.getByRole("region", { name: "Subscription" });
+    expect(within(banner).getByText("This workspace is read-only")).toBeTruthy();
+    expect(within(banner).getByText(/^Since 20 Oct 2026: the subscription was cancelled\./)).toBeTruthy();
+  });
+
+  it("warns while the subscription is in grace, until when full access lasts", async () => {
+    fakeApi({
+      "GET /api/account/v1/me": me(),
+      "GET /api/admin/v1/me/capabilities": {
+        status: 200,
+        body: tenantCapabilities([], { access: { ...fullAccess, subscriptionStatus: "GRACE" } }),
+      },
+    });
+
+    openTenant("kmsa");
+
+    const banner = await screen.findByRole("region", { name: "Subscription" });
+    expect(within(banner).getByText("The subscription has ended")).toBeTruthy();
+    expect(within(banner).getByText(/Full access continues until 14 Apr 2027/)).toBeTruthy();
+  });
+
   it("answers an unknown tenant with a 404", async () => {
     fakeApi({ "GET /api/account/v1/me": me() });
 
@@ -163,6 +212,28 @@ describe("tenant workspace", () => {
     expect(screen.getByText("12 October 2026")).toBeTruthy();
     expect(screen.queryByText("Workspace page")).toBeNull();
     expect(requests.some((request) => request.path === "/api/admin/v1/me/capabilities")).toBe(false);
+  });
+
+  it("says since when a tenant is suspended in the tenant's time zone, not UTC", async () => {
+    fakeApi({
+      "GET /api/account/v1/me": me(),
+      "GET /api/admin/v1/tenant/access": {
+        status: 200,
+        body: {
+          status: "SUSPENDED",
+          accessMode: "BLOCKED",
+          reason: "Subscription unpaid",
+          // 11 October in UTC, already 12 October in Kampala (UTC+3).
+          since: "2026-10-11T22:00:00Z",
+          timeZone: "Africa/Kampala",
+          subscription: null,
+        },
+      },
+    });
+
+    openTenant("elssc");
+
+    expect(await screen.findByText("12 October 2026")).toBeTruthy();
   });
 
   it("shows a failure to load why a tenant is suspended, with its reference", async () => {

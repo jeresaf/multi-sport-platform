@@ -30,7 +30,8 @@ public sealed class GetTenantSubscriptionHandler(
         var effective = EffectiveEntitlements.On(today, subscription, new TenantEntitlementOverrides(inputs.Overrides), planValues.Of);
 
         var current = subscription.CurrentOn(today);
-        var next = subscription.NextScheduledOn(today);
+        // With no period started, the current period is a scheduled one: it isn't the next as well (#72 R1).
+        var next = subscription.NextScheduledOn(today) is { } scheduled && scheduled != current ? scheduled : null;
         return new TenantSubscriptionResponse(
             today,
             inputs.TimeZone,

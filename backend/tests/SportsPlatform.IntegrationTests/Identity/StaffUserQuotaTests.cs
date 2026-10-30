@@ -181,6 +181,27 @@ public sealed class StaffUserQuotaTests(PostgresFixture fixture) : DatabaseTest(
             .ShouldBeProblemAsync(HttpStatusCode.Forbidden, "TENANT_READ_ONLY");
     }
 
+    // A period that hasn't started is the current one when none has (state-machines.md), so it isn't also the next
+    // (#72 R1): the page would show it twice.
+    [Fact]
+    public async Task A_tenant_whose_only_period_is_scheduled_reads_it_as_current_not_also_as_next()
+    {
+        App.Authorization.UseIdentityRoles();
+        var kmsa = await TenantTestData.SaveTenantAsync(
+            App.Services, "kmsa", TenantStatus.Active, publicEnabled: false, withDomain: true, withSubscription: false, Ct);
+        await TenantTestData.SavePeriodAsync(App.Services, kmsa, new DateOnly(2028, 1, 1), new DateOnly(2028, 12, 31), Ct);
+        var grace = await CreateMemberAsync(App.Services, kmsa, "grace.nakato@kmsa.example", Ct, TenantWide(IdentityRoles.TenantOwner));
+        using var owner = App.ClientFor(grace.UserId, kmsa);
+
+        using var response = await owner.GetAsync(TenantSubscriptionPath, Ct);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>(Ct);
+        var current = body.GetProperty("current");
+        (current.GetProperty("status").GetString(), current.GetProperty("startsOn").GetString()).ShouldBe(("SCHEDULED", "2028-01-01"));
+        body.GetProperty("next").ValueKind.ShouldBe(JsonValueKind.Null);
+    }
+
     /// <summary>KMSA (test data's STANDARD period) with its owner and an override setting <c>MAX_STAFF_USERS</c> to <paramref name="limit"/>.</summary>
     private async Task<(Guid Tenant, Member Owner)> KmsaWithOwnerAsync(int limit)
     {

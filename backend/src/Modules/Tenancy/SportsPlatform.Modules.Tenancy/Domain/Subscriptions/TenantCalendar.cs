@@ -10,8 +10,14 @@ public static class TenantCalendar
     public static DateOnly Today(TimeProvider timeProvider, string timeZone)
     {
         ArgumentNullException.ThrowIfNull(timeProvider);
+        return DayOf(timeProvider.GetUtcNow(), timeZone);
+    }
+
+    /// <summary>The tenant's date at <paramref name="instant"/> in <paramref name="timeZone"/>, e.g. the day a period was cancelled.</summary>
+    public static DateOnly DayOf(DateTimeOffset instant, string timeZone)
+    {
         ArgumentException.ThrowIfNullOrWhiteSpace(timeZone);
         var zone = TimeZoneInfo.FindSystemTimeZoneById(timeZone);
-        return DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(timeProvider.GetUtcNow(), zone).DateTime);
+        return DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(instant, zone).DateTime);
     }
 }

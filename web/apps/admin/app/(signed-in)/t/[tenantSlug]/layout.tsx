@@ -7,6 +7,7 @@ import { Loading } from "@/components/loading";
 import { ProblemAlert } from "@/components/problem-alert";
 import { AppShell } from "@/components/shell/app-shell";
 import { ForbiddenView, NotFoundView } from "@/components/status-page";
+import { AccessBanner } from "@/components/workspace/access-banner";
 import { BlockedTenant } from "@/components/workspace/blocked-tenant";
 import { meQueryKey, useMe } from "@/lib/account";
 import { isApiProblem, isUnauthenticated } from "@/lib/api";
@@ -18,7 +19,8 @@ import { WorkspaceProvider } from "@/lib/workspace-context";
 
 /**
  * A tenant's workspace (`/t/{slug}`): one of the user's tenants from `/me`, its navigation filtered by the user's
- * capabilities there. An unknown slug is a 404; a suspended or archived tenant says why; a refusal says why.
+ * capabilities there. An unknown slug is a 404; a suspended or archived tenant says why; a refusal says why. Every
+ * member sees the banner for an ending subscription or a read-only workspace (S04 D19).
  */
 export default function TenantWorkspaceLayout({ children }: Readonly<{ children: ReactNode }>) {
   const { tenantSlug } = useParams<{ tenantSlug: string }>();
@@ -72,10 +74,11 @@ export default function TenantWorkspaceLayout({ children }: Readonly<{ children:
     );
   }
 
-  const { actions } = capabilities.data;
+  const { actions, access } = capabilities.data;
   return (
     <WorkspaceProvider value={{ items, actions }}>
       <AppShell workspace={tenant.displayName} navigation={visibleNavigation(items, actions)}>
+        <AccessBanner access={access} />
         <TenantProvider tenant={tenant}>{children}</TenantProvider>
       </AppShell>
     </WorkspaceProvider>

@@ -3,6 +3,7 @@
 import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { errorMessage } from "@msp/api-client/errors";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { tenantCapabilities } from "@/test/capabilities";
 import { fakeApi, problem, renderWithQuery, type Answer } from "@/test/render";
 import TenantWorkspaceLayout from "../../layout";
 import MembersPage from "./page";
@@ -77,7 +78,7 @@ const ownerActions = [
 function open(roles: string[], actions: string[], answers: Record<string, Answer | (() => Answer)> = {}) {
   const requests = fakeApi({
     "GET /api/account/v1/me": me(roles),
-    "GET /api/admin/v1/me/capabilities": { status: 200, body: { actions, scope: null } },
+    "GET /api/admin/v1/me/capabilities": { status: 200, body: tenantCapabilities(actions) },
     "GET /api/admin/v1/members": members([brian]),
     "GET /api/admin/v1/invitations": members([ownerInvitation, viewerInvitation]),
     ...answers,
@@ -357,7 +358,7 @@ describe("members & roles: refusals and the owner's own rules", () => {
         return suspended ? { ...answer, body: { ...(answer.body as object), tenants: [] } } : answer;
       },
       "GET /api/admin/v1/me/capabilities": () =>
-        suspended ? gone : { status: 200, body: { actions: ownerActions, scope: null } },
+        suspended ? gone : { status: 200, body: tenantCapabilities(ownerActions) },
       "GET /api/admin/v1/members": () => (suspended ? gone : members([self])),
       "GET /api/admin/v1/invitations": () => (suspended ? gone : members([])),
       [`POST /api/admin/v1/members/${self.membershipId}/suspend`]: () => {

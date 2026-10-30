@@ -116,7 +116,9 @@ internal sealed class TenantDirectory(
         var inputs = await accessReader.InputsAsync(tenant.Id, cancellationToken);
         var today = accessReader.TodayIn(inputs.TimeZone);
         var subscription = new TenantSubscription(inputs.Periods).CurrentOn(today) is { } current
-            ? new SubscriptionAccess(current.StatusOn(today), current.StartsOn, current.EndsOn, current.GraceEndsOn)
+            ? new SubscriptionAccess(
+                current.StatusOn(today), current.StartsOn, current.EndsOn, current.GraceEndsOn,
+                current.CancelledAt is { } cancelledAt ? TenantCalendar.DayOf(cancelledAt, inputs.TimeZone) : null)
             : null;
         return new TenantAccess(tenant.Status, TenantAccessModes.Of(tenant.Status, subscription?.Status), inputs.TimeZone, subscription);
     }

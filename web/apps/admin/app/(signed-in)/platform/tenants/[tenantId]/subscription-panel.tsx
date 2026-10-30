@@ -3,16 +3,16 @@
 import { Button } from "@msp/ui/components/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@msp/ui/components/table";
 import { useMutation } from "@tanstack/react-query";
-import { TriangleAlert } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { ActionDialog } from "@/components/action-dialog";
 import { EmptyState } from "@/components/empty-state";
 import { Loading } from "@/components/loading";
 import { ProblemAlert } from "@/components/problem-alert";
+import { QuotaUsage } from "@/components/quota-usage";
 import { StatusBadge } from "@/components/status-badge";
 import { api, call } from "@/lib/api";
 import { humanizeCode } from "@/lib/codes";
-import { formatDay, formatEntitlementValue, formatQuantity, type EntitlementDefinition } from "@/lib/entitlements";
+import { formatDay, formatEntitlementValue, type EntitlementDefinition } from "@/lib/entitlements";
 import { usePlatformCan } from "@/lib/platform-workspace";
 import { formatDate } from "@/lib/tenant-settings";
 import { usePlans, type Plan } from "../../plans/plans-data";
@@ -292,7 +292,7 @@ function SubscriptionDetail({
                         : "Default (no plan)"}
                   </span>
                 </p>
-                {usage ? <Usage usage={usage} unit={item?.unit} /> : null}
+                {usage ? <QuotaUsage usage={usage} unit={item?.unit} /> : null}
               </li>
             );
           })}
@@ -442,28 +442,5 @@ function PeriodSummary({
         ) : null}
       </dl>
     </div>
-  );
-}
-
-function Usage({
-  usage,
-  unit,
-}: Readonly<{ usage: Subscription["usage"][number]; unit: string | null | undefined }>) {
-  if (!usage.measured || usage.used === null) {
-    return <p className="text-sm text-muted-foreground">Usage: not measured yet</p>;
-  }
-  return (
-    <p className="flex flex-wrap items-center gap-1 text-sm">
-      Used:{" "}
-      {usage.limit === null
-        ? `${formatQuantity(usage.used, unit)} (unlimited)`
-        : `${usage.used.toLocaleString("en-GB")} of ${formatQuantity(usage.limit, unit)}`}
-      {usage.warning ? (
-        <span className="inline-flex items-center gap-1">
-          <TriangleAlert aria-hidden="true" className="size-4 text-warning" />
-          {usage.limit !== null && usage.used >= usage.limit ? "At the limit" : "Near the limit"}
-        </span>
-      ) : null}
-    </p>
   );
 }

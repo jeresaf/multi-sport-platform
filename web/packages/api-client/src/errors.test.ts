@@ -24,6 +24,16 @@ describe("describeProblem", () => {
     expect(describeProblem(problem({ code: "FIXTURE_UNKNOWN" })).message).toBe(genericErrorMessage);
   });
 
+  it("shows a quota refusal's detail, which names the limit", () => {
+    const quota = { code: "ENTITLEMENT_QUOTA_EXCEEDED", status: 403 };
+    expect(describeProblem(problem({ ...quota, detail: "Your plan allows 5 staff users." }))).toEqual({
+      message: "Your plan allows 5 staff users.",
+    });
+    expect(describeProblem(problem(quota)).message).toBe(errorMessage("ENTITLEMENT_QUOTA_EXCEEDED"));
+    // Other known codes keep the catalogue's message whatever the detail says.
+    expect(describeProblem(problem({ detail: "ignored" })).message).toBe(errorMessage("AUTH_INVALID_CREDENTIALS"));
+  });
+
   it("adds the correlation ID when the server failed", () => {
     expect(describeProblem(problem({ code: "PLATFORM_UNEXPECTED_ERROR", status: 500 })).correlationId).toBe(
       "kmsa-admin.42",
