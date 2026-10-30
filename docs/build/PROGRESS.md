@@ -7,13 +7,13 @@ at the start of every review.
 
 - **Current slice:** S05 — Sports configuration (docs/build/slices/S05-sports-configuration.md, rewritten by the S04
   slice review). S00–S04 are done
-- **Current task:** S05-T1a — in review; next is `/next-task` for S05-T1b — Table, seeder, hash, reads, catalogues
-- **Next:** S05-T2 — ADDITIVE engine, fold and scenarios
+- **Current task:** S05-T1b1 — Table, hash, seeder, `ISportDefinitions` (in progress)
+- **Next:** S05-T1b2 — Sport actions, reads, catalogues
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S05-T1b — Table, seeder, hash, reads, catalogues
+1. S05-T1b2 — Sport actions, reads (`GET …/sports`, `…/sports/{variant}`, platform pair), catalogues
 2. S05-T2 — ADDITIVE engine, fold and scenarios (likely T2a–T2c)
 3. S05-T3 — Formats and generators
 4. S05-T4 — Ruleset templates and resolver
@@ -301,6 +301,12 @@ at the start of every review.
   counter registers with `AddQuotaUsage<TCounter>(code)` (a singleton registration the startup rule reads without
   creating a counter, which needs a database); Tenancy Contracts shares the code `EntitlementErrorCodes.QuotaExceeded`
   (errors are declared only in module `*Errors` classes) and the Host documents the error on every action naming a quota.
+
+- **S05-T1b (owner, plan 2026-10-30):** T1b is two PRs: T1b1 (`config.sport_definitions`, the RFC 8785 hash, the
+  `config.configuration.sports` seeder with `SPORT_DEFINITION_IMMUTABLE`, `ISportDefinitions`) and T1b2 (`sport.read`,
+  `platform.sport.read`, `SPORT_DEFINITION_NOT_FOUND`, the four reads with `ETag`, catalogues, OpenAPI). The hash covers
+  the content only (D4): a comment or whitespace edit in a definition file doesn't change it, so T1's "any byte" means
+  any byte that carries content; the docs-copy test still keeps both copies byte-equal.
 
 - **S05-T1a (owner, 2026-10-30):** D2 names JsonSchema.Net as MIT, but only releases up to 8.0.5 are. From 9.0.0,
   JsonSchema.Net, Json.More.Net 3.x and JsonPointer.Net 7.x ship under the Open Source Maintenance Fee EULA, a
