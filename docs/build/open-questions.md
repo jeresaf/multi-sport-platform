@@ -6,7 +6,6 @@ the date and where the decision is recorded.
 
 | # | Question | Why it matters | Default (used until decided) | Needed by |
 |---|---|---|---|---|
-| Q27 | With two scheduled periods and none started, should the current period be the earliest scheduled one, not the latest (#72 R2)? | The rule ("with none started, the latest period", state-machines.md) makes the read-only banner say "until" the later start, though full access returns on the earlier one, the later period's plan applies meanwhile (S04-T3a2), and the tenant's Subscription page shows the later period as current and the earlier one under "Next period". Rare: two future periods, none started | Keep the rule; the tenant's Subscription page shows the earlier start (S04-T4b1); the banner's date is tech debt | The S04 slice review |
 
 ## Answered
 
@@ -38,3 +37,4 @@ the date and where the decision is recorded.
 | Q24 | What counts toward `MAX_STAFF_USERS`? | The default: Active and suspended memberships plus pending, unexpired invitations (an invitation reserves a seat); the platform's owner invitation counts but is never refused; accepting is not checked again | 2026-10-21 (owner: the defaults) | docs/build/slices/S04-plans-entitlements.md (T3) |
 | Q25 | No action is PRO-only before S05/S22. Is S04's demo acceptable without one ("tenant A on STANDARD and tenant B on PRO see different capabilities")? | The default: Yes: plans differ on the Plans and Subscription pages and in quotas; the boolean gate is proven with a test-only action; S05's sport quota is the first real "Requires PRO" | 2026-10-21 (owner: the defaults) | docs/build/slices/S04-plans-entitlements.md (D20, T3) |
 | Q26 | Who sees a tenant's subscription? | The default: Every member sees the banner (status and until when); owner, admin and viewer see the Subscription page (plan, kind, dates, usage); override reasons stay with platform staff | 2026-10-21 (owner: the defaults) | docs/build/slices/S04-plans-entitlements.md (D14, T3) |
+| Q27 | With two scheduled periods and none started, should the current period be the earliest scheduled one, not the latest (#72 R2)? | Yes: with none started, the current period is the earliest non-cancelled scheduled period; if every period is cancelled, the latest of any kind | 2026-10-30 (owner, S04 slice review) | docs/build/slices/S05-sports-configuration.md (D21, T5a); state-machines.md when built |

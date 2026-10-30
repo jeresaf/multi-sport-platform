@@ -21,7 +21,7 @@ Status legend: ☐ not started · ◐ in progress · ☑ done. Claude Code updat
 
 | Slice | Goal | Spec | Status |
 |---|---|---|---|
-| S05 | Sports configuration: football definition, ADDITIVE engine, formats (single, round robin, knockout), ruleset templates, tenant sport enablement | [S05](slices/S05-sports-configuration.md) | ☐ |
+| S05 | Sports configuration: football definition, ADDITIVE engine, formats (single, round robin, knockout), ruleset templates, tenant sport enablement | [S05](slices/S05-sports-configuration.md) (rewritten by the S04 slice review) | ☐ |
 
 ## Phase 2 — Registry and teams
 

@@ -1,104 +1,293 @@
 # S05 — Sports configuration (football first)
 
-**Goal:** sports become data plus an engine: the football definition is seeded and immutable, the ADDITIVE
-engine computes scores and outcomes from events, fixture generators work, ruleset templates resolve into an
-effective-rules snapshot, and tenants enable football within their plan.
-**Modules touched:** Sports Configuration (new), Tenancy (sport enablement), admin web.
-**Depends on:** S04.
-**Demo:** admin browses the football definition (periods, events, positions, roles, statistics, scorer pad
-preview); engine scenario tests read like match reports; a round-robin draw for 7 teams is generated
-deterministically; the football league template resolves with edited points into a snapshot; tenant enables
-football and hits the sport quota on a STANDARD plan.
+> Rewritten by the S04 slice review (2026-10-30) to match what S01–S04 actually built. It replaces the kit's version.
+> Changes from the kit's version: the decisions below (D1–D22) are written out; only football is seeded, so the
+> sport quota is proven with test-only definitions and shown in the demo through an override (owner, 2026-10-30;
+> D18); definitions, formats and templates can be read in the tenant workspace and in the console, and the public
+> renderer metadata waits for S12/S14 (owner, 2026-10-30; D16); the engine works on in-memory events with types of
+> its own, since timelines arrive in S12 (D7); the YAML and JSON Schema libraries are named with their licences
+> (D2); Q27's new current-period rule rides T5, which touches Tenancy (owner, 2026-10-30); task sizes are estimated
+> and the likely PR splits named.
 
-Read first: ADR-0003, ADR-0006, docs/architecture/sport-engine.md, docs/domain/sports/README.md and
-football.yaml, docs/domain/formats.md, docs/domain/rulesets.md.
+**Goal:** sports become data plus an engine: the football definition is seeded, hashed and immutable; the ADDITIVE
+engine computes scores and outcomes from events; the fixture generators are pure and deterministic; ruleset templates
+resolve into an effective-rules snapshot; tenants enable football within their plan.
+**Modules touched:** Sports Configuration (new: definitions, engines, formats, generators, templates, resolver),
+Tenancy (sport enablement, `MAX_ENABLED_SPORTS`, Q27), Identity (roles for the new actions), Host (catalogues,
+startup rules), admin web.
+**Depends on:** S04.
+**Demo:** a tenant administrator of KMSA opens **Sports** in the workspace → opens Football: Overview, Periods,
+Events, Positions & roles, Statistics, and the scorer pad preview built from the definition → Formats (single
+contest, round robin, knockout) and Rules templates (`FOOTBALL_LEAGUE`, `FOOTBALL_CUP`) with their editable
+parameters → Settings → Sports: enables football ("1 of 3 sports") → a platform administrator opens ELSSC and sets
+the override `MAX_ENABLED_SPORTS = 0` with a reason → ELSSC's owner tries to enable football and is refused with
+"Your plan allows 0 sports" (`403 ENTITLEMENT_QUOTA_EXCEEDED`) → the admin removes the override and the enable
+goes through → the KMSA administrator disables football with a reason and enables it again. The engine, generators
+and resolver are shown by their tests: football scenarios that read like match reports, a round robin for 7 teams
+drawn twice with one seed and giving one hash, the league template resolved with 4 points for a win into a snapshot
+whose hash is stable.
+
+Read first: ADR-0003, ADR-0006, docs/architecture/sport-engine.md, docs/domain/sports/README.md and football.yaml,
+docs/domain/formats.md, docs/domain/rulesets.md, docs/architecture/rules.md (AR-11–AR-14, AR-29, AR-30),
+docs/architecture/data-conventions.md ("Seeding"), docs/architecture/authorization.md ("Entitlements").
+
+## What S01–S04 give you (use it, don't rebuild it)
+
+- **Modules:** `IModule`, module registration in the Host, one schema and DbContext per module
+  (`ModuleDbContext`, its own migrations history), `ReadOnlyForRuntimeRoles` + `TableAccessPolicies` for global
+  tables, `ITenantOwned` + `EnableTenantRls` + isolation samples (`IsolationSamples`, `RlsCoverageTests`) for tenant
+  tables, `RowVersion`/`If-Match`. Architecture tests: `ModuleBoundaryTests` (only `*.Contracts` across modules),
+  `LayeringTests` (Domain free of EF Core and ASP.NET Core).
+- **Seeding:** `ISeeder`/`AddSeeder<T>()`, categories, `Checksum`, `DeterministicIds`, `platform.seed_runs`. The
+  first `CONFIGURATION` seeder is Tenancy's `PlanSeeder` (`tenancy.configuration.plans`, as the owner);
+  `PostgresFixture` seeds `REFERENCE` and `CONFIGURATION` once and keeps their tables across resets.
+- **Actions and catalogues:** `ActionDefinition` (`Entitlement`, `AvailableWhenBlocked`, `AvailableWhenReadOnly`; a
+  startup rule requires `availableWhenReadOnly` on every tenant `.read`), `EntitlementRules`, `export-catalogues`
+  (actions, entitlements, roles, errors, events), the `Contracts` CI job. Roles are explicit lists in Identity's
+  `IdentityRoles`; an action no role grants fails the matrix test.
+- **Entitlements:** `MAX_ENABLED_SPORTS` (QUOTA, unit `sports`, STANDARD 3, PRO unlimited, enforced by "Tenancy &
+  Commercial") is declared and seeded; no action names it yet. `IEntitlements.CheckQuotaAsync(code, used)` refuses
+  at the limit with `ENTITLEMENT_QUOTA_EXCEEDED` and warns at 80 %; `AddQuotaUsage<TCounter>(code)` registers the
+  counter the usage reads use (Identity's `StaffUsers` is the model, with its lock `identity.staff_users:<tenantId>`
+  and the endpoint adding "Your plan allows N staff users."). The Host documents `ENTITLEMENT_QUOTA_EXCEEDED` on every
+  action naming a quota. Overrides (`entitlement.override`) already let platform staff set any quota.
+- **Pipeline:** steps 1–3 run for every tenant action; capabilities list `actions` and `unavailable` (read-only,
+  entitlement) and `access`.
+- **Admin web:** shell and navigation filtered by capabilities (`lib/navigation.ts`), `useTenantWorkspace().can()`
+  and `.unavailable()` with `UnavailableNote`, `ActionDialog` (reasons), `ConflictAlert`, `describeProblem` (shows a
+  quota refusal's `detail`), `QuotaUsage`, the console's Plans page and tenant Subscription panel, Settings →
+  Subscription. Playwright against the real API; test tenants of their own per spec (pilot-customer.md).
+
+## Decisions (reviewer defaults; confirm or change in each task's plan)
+
+- **D1 — The module.** `Modules/SportsConfiguration/SportsPlatform.Modules.SportsConfiguration` (+ `.Contracts`),
+  schema `sports_config`, depending on Platform only (modules.md). Global data only: no `tenant_id`, no RLS. Tenancy
+  references `SportsConfiguration.Contracts` (modules.md: "read: sport variants for enablement"); nothing else does
+  yet.
+- **D2 — Files and libraries.** The backend's copy of `docs/domain/sports/football.yaml` and the format and template
+  files are embedded resources under `Definitions/Sports`, `Definitions/Formats`, `Definitions/Rulesets`. YAML is
+  read with **YamlDotNet** (MIT) into a JSON tree and checked against JSON Schema files (`*.schema.json`, embedded
+  next to them) with **JsonSchema.Net** (MIT), as ADR-0006 asks; semantic checks are plain code (D3). The PR lists
+  both packages with their licences. The docs copy and the backend copy are kept equal by a test (a difference is
+  allowed only with the reason written in docs/domain/sports/README.md, as it already says).
+- **D3 — Validation.** Shape by JSON Schema; then semantic rules in code: unique codes per list; every reference
+  resolves (event → actor role, period, position group, statistic → event and actor role, scorer pad → event,
+  follow-up and `reversible_by` → event, `supports.tie_resolutions` → known values); a `SHOOTOUT` tie resolution
+  needs a `SHOOTOUT` period; a component other than `main` is used by some event. Every error names the file, the
+  JSON path and the problem (`football.yaml: $.event_types[3].actors[0].role: unknown actor role "SCORERR"`). The
+  seeder, the startup check and a unit test all run the same validator; a bad file stops the Host at startup.
+- **D4 — Stored, hashed, immutable.** `sports_config.sport_definitions` (variant, sport, version, name, scoring
+  family, shape, status `PUBLISHED`, content `jsonb`, content hash, published at; unique `(variant, version)`), and
+  the same pattern for `format_definitions` (code, version) and `ruleset_templates` (code, version, sport variant,
+  formats). Read-only for runtime roles. The hash is SHA-256 over canonical JSON (keys sorted, no insignificant
+  whitespace, numbers as written) with the scheme in the stored value (`sha256:…`). The `CONFIGURATION` seeders
+  (`sports_config.configuration.sports`, `.formats`, `.rulesets`; order sports → formats → rulesets) insert a missing
+  `(code, version)` and fail loudly with `SPORT_DEFINITION_IMMUTABLE` (`FORMAT_DEFINITION_IMMUTABLE`,
+  `RULESET_TEMPLATE_IMMUTABLE`) when one exists with a different hash; seeders never update or delete. A test changes
+  one byte of the embedded football file without bumping `version` and expects the failure. A unit test pins
+  football@1's hash, so an accidental edit fails before any database.
+- **D5 — Queries in Contracts.** `ISportDefinitions` (list variants with name, sport, family, shape, latest version;
+  get a resolved definition by variant and optional version, generic event types merged in from README.md's table;
+  terminology), `IFormatDefinitions`, `IRulesetTemplates`. Read from the database (seeded rows are the truth),
+  cached in process until restart (configuration never changes at runtime). The resolved definition is a typed,
+  read-only model (records), never `JsonElement` in Contracts.
+- **D6 — No sport words in generic code.** Generic code reads variants as data. An architecture test fails on string
+  literals of the known sport and variant codes (`FOOTBALL`, `FOOTBALL_ASSOCIATION`, `RUGBY_UNION_15`, …, read from
+  the definition files and README.md's table) outside `Definitions/`, the engines, renderers and tests (AR-11). The
+  web gets the same rule through ESLint (`no-restricted-syntax` on those literals in `apps/` outside renderers).
+- **D7 — The engine and its own event types.** `IScoringEngine` per sport-engine.md §4 in Sports Configuration
+  Contracts, with engine-owned input types (`EngineEvent`: sequence, type, side, period code and occurrence, clock,
+  actors by role, payload, `supersedes`/`reverses`; `ContestContext`: definition, rules snapshot, sides, coverage,
+  lineups), since timeline rows don't exist until S12 (Match Operations maps its rows to them then).
+  `IScoringEngines` picks the engine by the definition's `scoring_family`, never by sport. The generic `Fold`, phase
+  tracker, personnel tracker, follow-up and limit checks live next to the engines (shared by every family). Engines
+  have no I/O, clock or randomness: an architecture test allows them only BuildingBlocks' `Result`/`Error` and the
+  module's Contracts.
+- **D8 — Validation errors.** The engine returns `Error`s from `SportsConfigurationErrors` in the `TIMELINE_` area
+  (the codes the scorer will see in S12): `TIMELINE_EVENT_UNKNOWN`, `TIMELINE_EVENT_NOT_ALLOWED_IN_PHASE`,
+  `TIMELINE_ACTOR_REQUIRED`, `TIMELINE_ACTOR_NOT_ON_FIELD`, `TIMELINE_ACTOR_INVALID`, `TIMELINE_FOLLOW_UP_MISSING`,
+  `TIMELINE_LIMIT_REACHED`, plus `TIMELINE_CONTEST_NOT_LIVE` and `TIMELINE_REFERENCE_INVALID` (a `supersedes` or
+  `reverses` to an unknown or already reversed event) if the scenarios need them (all 422). They're in the error
+  catalogue from S05; no endpoint returns them yet.
+- **D9 — Scenarios.** YAML under `backend/tests/SportsPlatform.UnitTests/Engines/Scenarios/football/`: definition
+  version, rule overrides, coverage, lineups, events (with minute, side, actors by name), expected score summary,
+  outcome and validation errors per event. Names are KMSA's fictional clubs and invented players
+  (pilot-customer.md), so the owner and federation experts can read them (sport-engine.md §11). Each of §5's rules
+  has a passing and a rejecting scenario; a test lists the rules and fails when one has neither.
+- **D10 — Formats and generators.** Format files for `SINGLE_CONTEST`, `ROUND_ROBIN`, `KNOCKOUT` (formats.md), seeded
+  and hashed like definitions. `IFormatGenerators` (Contracts): pure functions of ordered entrant keys, parameters
+  and a seed → stages, rounds, pairings (home, away or bye) and slots (`Winner of QF1`), with an output hash. The
+  seed is an input (`RANDOM` seeding uses a seeded PRNG of the module's own, not `System.Random`'s unspecified
+  algorithm, so a stored seed reproduces the draw across .NET versions). A count the format can't handle is
+  `FORMAT_PARTICIPANT_COUNT_INVALID`; unknown or out-of-range parameters are `FORMAT_PARAMETER_INVALID`.
+  `GROUPS_THEN_KNOCKOUT` waits for S15 and `SERIES` for S16 (their sports need them first).
+- **D11 — Templates and the resolver.** `FOOTBALL_LEAGUE` and `FOOTBALL_CUP` (rulesets.md), with typed parameters,
+  defaults and editable bounds; the tiebreaker catalogue's codes are declared in Sports Configuration (Standings
+  computes them in S13). `IRulesetResolver.Resolve(template, overrides, formatParameters)` → `Result<RulesSnapshot>`
+  (canonical JSON, hash, exact sport/format/template versions). Errors: `RULESET_PARAMETER_UNKNOWN`,
+  `RULESET_PARAMETER_OUT_OF_RANGE`, `RULESET_INCOMPATIBLE_FORMAT`, `RULESET_UNKNOWN_TIEBREAKER`,
+  `RULESET_TIE_RESOLUTION_UNSUPPORTED` (each names the parameter). Same inputs → same hash. Snapshots are not stored
+  in S05 (editions freeze them in S09); a preview endpoint returns one (D16).
+- **D12 — Sport enablement in Tenancy.** `tenancy.tenant_sports` (tenant-owned, RLS, isolation sample): variant,
+  status `ENABLED`/`DISABLED`, enabled by/at, disabled by/at and why. One row per tenant and variant; enabling a
+  disabled variant enables the same row again and the history goes to the audit trail (each change is audited with
+  its reason). Actions `tenant.sport.enable` (names `MAX_ENABLED_SPORTS`; audit `REQUIRED`) and
+  `tenant.sport.disable` (`REQUIRED_WITH_REASON`), for `TENANT_OWNER` and `TENANT_ADMIN`. The variant is checked
+  through `ISportDefinitions` (`TENANT_SPORT_VARIANT_UNKNOWN`, 400 on the field). Enabling an enabled variant or
+  disabling a disabled one is `409 TENANT_SPORT_ALREADY_ENABLED` / `TENANT_SPORT_NOT_ENABLED`. Disabling never touches
+  history (S09 blocks new editions of a disabled variant). Tenancy provides `IEnabledSports` (Contracts) for S06–S09.
+- **D13 — `MAX_ENABLED_SPORTS`.** Counts distinct `sport` values of the tenant's `ENABLED` variants, read through
+  `ISportDefinitions` (`RUGBY_UNION_15` + `RUGBY_UNION_7` = 1). Enable holds `tenancy.tenant_sports:<tenantId>` while
+  it counts and saves; enabling a variant whose sport is already counted adds nothing, so it is never refused.
+  Tenancy registers the counter with `AddQuotaUsage`, so the Subscription page and the console's panel show "1 of 3
+  sports" as they do for staff users. The refusal's `detail` says "Your plan allows N sports." (as for staff).
+  Lowering the limit never disables a sport.
+- **D14 — Actions and roles.** Tenant reads: `sport.read`, `format.read`, `ruleset.read` (definitions, formats,
+  templates and the preview; every tenant role, like `tenant.settings.read`, since everyone works with the sport's
+  words; available when read-only; audit `NONE`), `tenant.sport.read` (the tenant's enabled variants; every tenant
+  role). Platform reads: `platform.sport.read` (definitions, formats, templates; `PLATFORM_ADMIN`,
+  `PLATFORM_SUPPORT`; audit `NONE`: global configuration, no tenant data). Names follow docs/generated/actions.md's
+  existing patterns; the T1 plan confirms them.
+- **D15 — The tenant's sports read.** `GET /api/admin/v1/tenant/sports`: every published variant with its name,
+  sport, family and whether the tenant has it enabled (and since when), plus the sport quota's usage for those who
+  may read the subscription (`tenant.subscription.read`) — others see the list only.
+- **D16 — Endpoints.** Admin (tenant): `GET /api/admin/v1/sports`, `GET …/sports/{variant}` (`?version=`, latest by
+  default), `GET …/formats`, `GET …/formats/{code}`, `GET …/ruleset-templates`, `GET …/ruleset-templates/{code}`,
+  `POST …/ruleset-templates/{code}/preview` (body: overrides and format parameters → the snapshot or the resolver's
+  errors on their fields; a read: `ruleset.read`, no save), `GET …/tenant/sports`,
+  `POST …/tenant/sports/{variant}/enable`, `POST …/tenant/sports/{variant}/disable` (reason). Platform: `GET
+  /api/platform/v1/sports`, `…/sports/{variant}`, `…/formats`, `…/ruleset-templates` (same DTOs). Definitions answer
+  with `ETag` from the content hash. No public endpoint in S05: the renderers' metadata comes with its first
+  consumer, the live match page (S12) or the public pages (S14) (owner, 2026-10-30; AR-30). List query parameters are
+  typed in OpenAPI from the start (S03 follow-up).
+- **D17 — Screens.** Tenant workspace: **Sports** (navigation; `sport.read`) → variant page with tabs Overview,
+  Periods, Events, Positions & roles, Statistics, Scorer pad; **Formats** and **Rules templates** pages (parameters
+  with type, default and bounds) — all read-only. Settings → **Sports** (`tenant.sport.read`): each variant with
+  Enable/Disable (reason), the quota's usage and the 80 % warning, Enable disabled with "Your plan allows N sports."
+  at the limit (as T4b2 did for invitations). Console: **Sports** with the same viewer, read-only. Labels and
+  terminology come from the definition (AR-29); nothing in the UI names football.
+- **D18 — The sport quota without a second sport (owner, 2026-10-30).** Only football is seeded in S05; rugby,
+  basketball and cricket definitions are seeded by S15–S17 with their templates and scenarios. Integration tests
+  prove the counting with test-only definitions registered by a test app (two variants of one test sport and a second
+  test sport, as `EntitlementTestApp` registers `FIXTURE_PUBLISHING`): enable both variants of one sport on a limit
+  of 1, and the second sport is refused. The demo shows the refusal through the override `MAX_ENABLED_SPORTS = 0`.
+  S04's D20 and Q25 said S05's sport quota would be the first real "Requires PRO": it can't be (a quota refusal says
+  the limit, not a plan, D14 of S04; and no tenant reaches 3 sports before S16). The first real "Requires PRO" is
+  `tenant.domain.add` (S22).
+- **D19 — Seeds and test data.** DEMO: `tenancy.demo.sports` (after `tenancy.demo.subscriptions`, through
+  `tenant.sport.enable` as `SYSTEM`) enables football for KMSA and ELSSC; skipped when enabled. Tests:
+  `TenantTestData` can enable sports for a tenant; `PostgresFixture` keeps `sports_config`'s tables with the other
+  configuration tables. e2e: the demo spec runs on a test tenant of its own (as `admin-plans-demo.spec.ts` does).
+- **D20 — No jobs, no integration events.** Nothing consumes sport enablement yet (S09 reads `IEnabledSports`
+  directly); add an event with its first consumer.
+- **D21 — Q27: the current period with none started (owner, 2026-10-30).** With no period started, the current
+  period is the **earliest** non-cancelled scheduled period; if every period is cancelled, the latest of any kind, as
+  today. T5 changes `TenantSubscription`, state-machines.md, the tests of the current-period table, and checks the
+  banner and the Subscription page against two scheduled periods; the PROGRESS.md tech-debt item goes.
+- **D22 — Docs.** sport-engine.md "as built" notes (engine input types, where the trackers live, the hash scheme),
+  formats.md and rulesets.md where the build clarified them, modules.md (Sports Configuration provides as built;
+  Tenancy's `IEnabledSports`), authorization.md (the sport actions and `MAX_ENABLED_SPORTS` as built),
+  admin-app.md (Sports screens), docs/domain/sports/README.md (the backend copy and the equality test),
+  pilot-customer.md (demo sports), CLAUDE.md (any new command).
 
 ## Out of scope
 
-Persisted timelines and contests (S10–S12), other sports (S15–S17; their reference YAML stays in docs until then),
-in-app editors (ADR-0006).
+Persisted timelines, contests and snapshots (S09–S12); other sports' definitions, templates and scenarios
+(S15–S17); `GROUPS_THEN_KNOCKOUT` (S15), `SERIES` (S16); in-app editors (ADR-0006); public sport endpoints (D16);
+statistics computation (S13+); `LIST` entitlements such as `ALLOWED_SPORTS`; tenant-custom sports.
 
 ## Tasks
 
-### T1 — Definition schema, loader and immutability
+### T1 — Module, definition schema, loader, seeding and reads (~3 PRs)
 Deliver:
-- `Modules/SportsConfiguration` (+ Contracts). Backend copy of `football.yaml` as an embedded resource.
-- JSON Schema for definitions (from docs/domain/sports/README.md) + semantic validation: unique codes; every
-  referenced event, actor role, period, position group and statistic exists; scorer pad references defined events;
-  follow-up and reversal references valid.
-- `config.sport_definitions` (variant, sport, version, status, content `jsonb`, content_hash, published_at).
-  CONFIGURATION seeder: parse → validate → canonical JSON → SHA-256 → insert; if `(variant, version)` exists with
-  a **different** hash, fail loudly (`SPORT_DEFINITION_IMMUTABLE`) — CI test.
-- Queries (`ISportDefinitions`): list variants, get resolved definition by variant (+ version), terminology.
-  Read endpoints for admin (`sport.read`) and public metadata needed by renderers.
+- The module (D1), football's backend copy, JSON Schema, validator (D2, D3), the three tables' first one
+  (`sport_definitions`), the sports seeder with the immutability check (D4), `ISportDefinitions` (D5), the
+  architecture test on sport literals (D6, backend part).
+- Reads: `GET /api/admin/v1/sports`, `…/sports/{variant}`, the platform pair (D14, D16); new actions in the roles.
+- Likely T1a (module, schema, validator, unit tests, the docs-copy test), T1b (table, seeder, hash, reads,
+  catalogues).
 
 Acceptance:
-- [ ] Changing any byte of the published football definition without bumping `version` fails a test.
-- [ ] Validation errors name the file, path and problem.
+- [ ] Changing any byte of the published football definition without bumping `version` fails a test (seeder and
+      pinned hash).
+- [ ] Validation errors name the file, path and problem (one test per rule in D3).
+- [ ] A bad definition stops the Host at startup (test).
 
-### T2 — ADDITIVE engine, fold and scenario runner
+### T2 — ADDITIVE engine, fold and scenarios (~3 PRs)
 Deliver:
-- `IScoringEngine` + generic `Fold` + `ScoreSummary` per sport-engine.md; `AdditiveEngine` implementing §5:
-  points/side/component, phase rules, actor requirements by coverage, personnel tracker (lineup, substitution,
-  send-off, temporary suspension, return), follow-up constraints, rule limits, tie resolution incl.
-  `extra_period_sequence`, sudden death and shoot-out.
-- Scenario runner: YAML files under `tests/SportsPlatform.UnitTests/Engines/Scenarios/football/` with definition
-  version, rule overrides, events and expected summary/outcome/validation errors.
-- At least 25 football scenarios, including: normal win; draw; own goal; penalty goal and miss; VAR overturn
-  (reversal); scorer correction (supersede); assist equals scorer (rejected); scoring during half-time (rejected);
-  shoot-out event during play (rejected); actor not on the field at STANDARD (rejected) but allowed at BASIC;
-  substitution limit; red card then sent-off player as scorer (rejected); cup tie → extra time → shoot-out win;
-  league draw stays a draw; sudden-death rule using a test-only definition with a `sudden_death` period.
-- Error codes: `TIMELINE_EVENT_UNKNOWN`, `TIMELINE_EVENT_NOT_ALLOWED_IN_PHASE`, `TIMELINE_ACTOR_REQUIRED`,
-  `TIMELINE_ACTOR_NOT_ON_FIELD`, `TIMELINE_ACTOR_INVALID`, `TIMELINE_FOLLOW_UP_MISSING`, `TIMELINE_LIMIT_REACHED`.
+- `IScoringEngine`, `IScoringEngines`, engine input types, `Fold`, `ScoreSummary` (D7); the phase and personnel
+  trackers, follow-ups and limits; `AdditiveEngine` per sport-engine.md §5 including tie resolution with
+  `extra_period_sequence`, sudden death and shoot-out; the errors (D8).
+- The scenario runner and at least 25 football scenarios (D9), including: normal win; draw; own goal; penalty goal
+  and miss; VAR overturn (reversal); scorer correction (supersede); assist equals scorer (rejected); scoring at
+  half-time (rejected); shoot-out event during play (rejected); actor not on the field at `STANDARD` (rejected) but
+  allowed at `BASIC`; substitution limit; sent-off player as scorer (rejected); cup tie → extra time → shoot-out
+  win; league draw stays a draw; sudden death with a test-only definition that has a `sudden_death` period.
+- Likely T2a (contract, fold, trackers, runner), T2b (scoring, phases, actors, follow-ups, limits), T2c (outcome
+  and tie resolution).
 
 Acceptance:
-- [ ] Engine has no I/O, clock or randomness (architecture test on dependencies).
-- [ ] Every rule in sport-engine.md §5 has a passing and a rejecting scenario.
+- [ ] The engines have no I/O, clock or randomness (architecture test on dependencies).
+- [ ] Every rule in sport-engine.md §5 has a passing and a rejecting scenario (a test lists them).
 
-### T3 — Formats and generators
+### T3 — Formats and generators (~2 PRs)
 Deliver:
-- Format definitions as embedded YAML: `SINGLE_CONTEST`, `ROUND_ROBIN`, `KNOCKOUT` (docs/domain/formats.md);
-  seeded like sport definitions (hash-checked).
-- Pure generators: round robin (circle method, byes, cycles, home/away balance), knockout (bracket size, byes to
-  top seeds, standard seed placement, optional third-place contest), single contest. Inputs: ordered entrants,
-  parameters, seed. Output: stages/rounds/pairings/slots + output hash.
-- Tests: for n = 2…20 round robin — each pair meets `cycles` times, one contest per entrant per round (except bye),
-  home/away difference ≤ 1 per cycle, deterministic for a seed; knockout n = 2…64 — seeds 1 and 2 only meet in the
-  final, byes only to top seeds, slot references consistent.
+- Format files, schema, table, seeder (D4, D10); `IFormatDefinitions`; the reads (D16).
+- Generators: round robin (circle method, byes, cycles, home/away balance), knockout (bracket size, byes to top
+  seeds, standard seed placement, optional third-place contest, slots), single contest; output hash.
+- Tests: round robin for n = 2…20 (each pair meets `cycles` times, one contest per entrant per round except a bye,
+  home/away difference ≤ 1 per cycle, deterministic for a seed); knockout for n = 2…64 (seeds 1 and 2 meet only in
+  the final, byes only to top seeds, slot references consistent); a pinned hash for a 7-entrant round robin.
 
 Acceptance:
-- [ ] Generators exposed via Contracts (`IFormatGenerators`) with no dependency on other modules.
+- [ ] Generators are exposed through Contracts (`IFormatGenerators`) and depend on no other module (architecture
+      test).
+- [ ] A stored seed reproduces the same draw and hash (test).
 
-### T4 — Ruleset templates and resolver
+### T4 — Ruleset templates and resolver (~2 PRs)
 Deliver:
-- Templates as embedded YAML: `FOOTBALL_LEAGUE`, `FOOTBALL_CUP` (docs/domain/rulesets.md) with parameter types,
-  defaults and editable bounds; tiebreaker catalogue codes defined.
-- `IRulesetResolver.Resolve(template, overrides, formatParameters)` → validated effective-rules snapshot (JSON +
-  hash + exact versions). Validation errors: `RULESET_PARAMETER_UNKNOWN`, `RULESET_PARAMETER_OUT_OF_RANGE`,
-  `RULESET_INCOMPATIBLE_FORMAT`, `RULESET_UNKNOWN_TIEBREAKER`, `RULESET_TIE_RESOLUTION_UNSUPPORTED`.
-- Admin endpoint to preview a resolution (used by the S09 wizard).
+- Template files, schema, table, seeder (D4, D11); the tiebreaker catalogue codes; `IRulesetTemplates`,
+  `IRulesetResolver`; the reads and the preview endpoint (D16).
 
 Acceptance:
-- [ ] Same inputs → same snapshot hash (test); invalid combinations rejected with the right codes.
+- [ ] Same inputs → same snapshot hash (test); every invalid combination is refused with its code, naming the
+      parameter (table-driven).
 
-### T5 — Tenant sport enablement and admin views
+### T5 — Tenant sport enablement, Q27 and the screens (~3 PRs)
 Deliver:
-- `tenancy.tenant_sports` (tenant-owned, RLS): `tenant.sport.enable` / `tenant.sport.disable` gated by
-  `MAX_ENABLED_SPORTS`, which counts distinct sports (two variants of the same sport, e.g. rugby 15s and 7s,
-  count once); disabling never invalidates history (only blocks new editions).
-- Admin screens: Sports (list) → definition viewer (tabs: Overview, Periods, Events, Positions & roles,
-  Statistics, Scorer pad preview rendered from metadata), Formats, Rules templates — all read-only; tenant
-  settings → Sports (enable/disable).
-- Architecture test: no sport codes (e.g. `"FOOTBALL"`) as string literals outside definitions, engines,
-  renderers and tests.
+- `tenancy.tenant_sports` (isolation sample), enable/disable with the quota under the lock, the usage counter,
+  `IEnabledSports`, `GET …/tenant/sports` (D12, D13, D15); the D18 test app; DEMO seeder and test data (D19).
+- Q27's rule (D21).
+- Screens (D17): Sports and the variant viewer, Formats, Rules templates, Settings → Sports, the console's Sports;
+  generated client; `describeProblem` for the new codes; ESLint sport-literal rule (D6).
+- Playwright: the slice demo against the real API; screenshots of the new screens at phone, tablet and desktop
+  widths, light and dark. Slice close.
+- Likely T5a (enablement, quota, Q27), T5b1 (viewer screens), T5b2 (settings, console, demo e2e, slice close).
 
 Acceptance:
-- [ ] STANDARD tenant can enable up to its limit; the next enable shows "Requires PRO" (or limit reached).
-- [ ] Scorer pad preview is built from the YAML, not hard-coded.
+- [ ] A STANDARD tenant enables up to its limit; two variants of one sport count once; the next sport is refused
+      with `403 ENTITLEMENT_QUOTA_EXCEEDED` and "Your plan allows N sports." (integration tests, D18).
+- [ ] Two enables at the last free sport at the same time: one succeeds, one is refused (test).
+- [ ] The scorer pad preview is built from the definition, not hard-coded (Vitest with a test definition).
+- [ ] With two scheduled periods and none started, the current period is the earlier one (table test), and the
+      banner and the Subscription page say so (Vitest).
+
+## Carried over from S04 (slice review 2026-10-30)
+
+Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task merges.
+- Q27: with two scheduled periods and none started, the banner says "until" the later start (#72 R2, R4) — T5a (D21).
+- `renewalStartsOn` in the platform subscription read (#71 R5) stays with its own trigger (the next task that changes
+  that read); S05 doesn't touch it.
 
 ## Slice acceptance
 
-- [ ] Football is fully described by data; the ADDITIVE engine passes all scenarios; generators and resolver are
-      deterministic; tenants enable sports within entitlements.
-- [ ] docs/architecture/sport-engine.md updated if implementation clarified anything.
+- [ ] Football is fully described by data; the ADDITIVE engine passes all scenarios; generators and the resolver are
+      deterministic; tenants enable sports within their entitlement.
+- [ ] Sport definitions, formats and templates are immutable once seeded (tests); tenant sports are covered by the
+      isolation harness; the RLS exception list is unchanged.
+- [ ] No sport code appears in generic backend or web code (architecture test, ESLint).
+- [ ] Docs updated (D22); the S04 carry-overs above are done and removed from PROGRESS.md.
+
+## Implementation notes
+
+(The builder adds notes here as tasks merge.)
