@@ -6,6 +6,7 @@ the date and where the decision is recorded.
 
 | # | Question | Why it matters | Default (used until decided) | Needed by |
 |---|---|---|---|---|
+| Q33 | May a cup's extra substitution (`substitutions.extra_in_extra_time`) be used before extra time starts (`AWAITING_EXTRA_TIME`, a break the definition doesn't flag `overtime`)? IFAB allows it | A scorer changing players just before extra time is refused the extra one | Counted from the first overtime `PLAY` period's start; a definition flag or a rule later if needed | S12 (or the T4 template) |
 
 ## Answered
 
@@ -42,3 +43,4 @@ the date and where the decision is recorded.
 | Q29 | Should an event type need a participant unless it is contest-wide? Football's `CORNER` names no actors, so a corner without a team is accepted and counts for nobody (#79 Q4) | The default: a participant is required only for types that score, name people, have effects, limits or a follow-up; a definition flag (T2b2 or a schema version) if the owner wants more | 2026-10-30 (owner: the defaults) | docs/build/open-questions.md (this row); needed by S05-T2b2 |
 | Q30 | Should validation refuse an event type above the contest's coverage (a `DETAILED` `SHOT` at `BASIC`)? (#79 Q5) | The default: accepted (the pad decides what to offer) | 2026-10-30 (owner: the defaults) | docs/build/open-questions.md (this row); needed by S12 |
 | Q31 | May a correction change the event type to any type of the definition (`GOAL` → `YELLOW_CARD`), or only within one category? (#79 Q6) | The default: any type of the definition (documented in sport-engine.md) | 2026-10-30 (owner: the defaults) | docs/build/open-questions.md (this row); needed by S12 |
+| Q32 | Football's `VAR_DECISION` should carry `reverses` only when its outcome is `DECISION_OVERTURNED` (review #78 Q1); generic code can't read a payload value's meaning, so the definition must declare it (e.g. `reference: { by: outcome, reverses: [DECISION_OVERTURNED] }`, rugby's `TMO_DECISION` alike), which means football@2 | Moved to S12: it adds the field with football@2 when the scorer pad needs it; until then `VAR_DECISION` is accepted with or without `reverses`, whatever its outcome | 2026-10-30 (owner, S05-T2b2 plan) | docs/build/slices/S05-sports-configuration.md (T2b2 notes); needed by S12 |

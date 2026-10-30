@@ -155,6 +155,33 @@ first group that fails answers (all 422):
   (else `TIMELINE_ACTOR_NOT_ON_FIELD`), `BENCH`, `STAFF`, `SQUAD` (field, bench, suspended, temporarily replaced or
   replaced), `SQUAD_OR_STAFF` (else `TIMELINE_ACTOR_INVALID`); a dismissed person is in no pool.
 
+**As built (S05-T2b2).** `FollowUpsAndLimits` is the last group, run once the actors are valid; both errors are
+reported when both fail (422):
+- **Follow-up:** the event needs an earlier active event of a type in `requires_preceding`; with `same_side` the
+  same participant's, with `same_period` in the same period and occurrence, with `unconsumed` one no event of a
+  `consumes` type has used yet. An event that consumes takes the latest earlier event its follow-up accepts. A
+  correction is checked as at the event it replaces (the try it converted is unused there)
+  (`TIMELINE_FOLLOW_UP_MISSING`). Reversing a try doesn't take back the conversion that used it (S12 or S15 decides).
+- **Limits:** each `{ rule }` on the type is read from `ContestRules`; a rule the rules don't set is no limit. The
+  kind is the rule's last segment: `…max` counts the participant's events of every type with that limit, the draft
+  included, and adds `<group>.extra_in_extra_time` once an overtime `PLAY` period has started (so not yet in
+  `AWAITING_EXTRA_TIME`, a plain break); `…windows` counts the participant's runs of such events in `PLAY`. A run ends
+  at a period's start or end, at another event of the definition (any participant's events with the limit don't end
+  it), or when the participant's next one is at another game-clock minute (owner, 2026-10-30; without a clock the
+  order alone decides); events in a break use no window. `extra_in_extra_time` adds no window (owner, 2026-10-30). A
+  correction counts in the place of the event it replaces, a reversed event frees its place
+  (`TIMELINE_LIMIT_REACHED`). Any other kind (basketball's `timeouts.per_period_group`) throws until its sport's
+  slice.
+- **Points override:** Apply uses `scoring.points.<EVENT_TYPE>` from the rules for a type whose definition gives it
+  points other than 0; a type worth 0 (a missed attempt) or none never scores. Whether a template lets tenants change
+  it is the resolver's check (T4).
+- **Purity:** besides the type-level rule, `EngineDependencyTests` reads the `Engines` source for calls that make ids
+  or read the clock (`Guid.NewGuid`, `DateTime.UtcNow`, `Random.`, `Environment.`, …).
+- **Scenarios:** each file names the rules it shows (`covers`); `ScenarioRuleCoverageTests` fails when a rule of
+  `ScenarioRules` has no scenario that records an event under it or, unless it can't refuse anything (Apply), none that
+  refuses one. Rugby 15s scenarios read the reference file in docs/domain/sports until S15 seeds rugby. A scenario may
+  leave out `expect.outcome` until tie resolution (T2c).
+
 ## 5. `ADDITIVE` family (football, rugby 15s/7s, basketball; later netball, hockey, handball)
 
 **State:** per side: `total`, `by_period` (period code + occurrence → points), and named components
