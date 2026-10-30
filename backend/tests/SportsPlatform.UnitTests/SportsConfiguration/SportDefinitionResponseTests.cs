@@ -115,6 +115,7 @@ public sealed class SportDefinitionResponseTests
                 Actors = [new EventActorDefinition("R") { RequiredFrom = CoverageLevel.Standard, Optional = true, DistinctFrom = "S" }],
                 Metadata = new Dictionary<string, MetadataFieldDefinition> { ["m"] = new(MetadataFieldType.Number) { Min = 3, Max = 7 } },
             })],
+            Lineup = _football.Lineup with { PositionConstraints = [new PositionConstraintDefinition("BACK") { Min = 2, Max = 5 }] },
             Statistics = [new StatisticDefinition("PCT", "Pct", ["TEAM"], StatisticAggregation.Ratio, true, CoverageLevel.Detailed, new StatisticDerivation
             {
                 Builtin = "RATIO",
@@ -134,6 +135,7 @@ public sealed class SportDefinitionResponseTests
         response.EventTypes[0].Actors.ShouldBe([new SportEventActorResponse("R", CoverageLevel.Standard, Optional: true, DistinctFrom: "S")]);
         var field = response.EventTypes[0].Metadata["m"];
         (field.Type, field.Min, field.Max, field.Optional).ShouldBe((SportMetadataFieldType.Number, 3L, 7L, false));
+        response.Lineup.PositionConstraints.ShouldBe([new SportPositionConstraintResponse("BACK", Min: 2, Max: 5)]);
         var derive = response.Statistics.ShouldHaveSingleItem().Derive;
         (derive.Builtin, derive.Numerator, derive.Denominator, derive.Manual).ShouldBe(("RATIO", "MADE", "ATTEMPTED", false));
     }
