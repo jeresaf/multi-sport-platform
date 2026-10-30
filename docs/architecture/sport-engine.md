@@ -34,6 +34,14 @@ side, actor roles, metadata schema, follow-up constraints, effects, coverage lev
 official roles · statistics (with derivation) · lineup defaults · scorer pad layout · rule parameters the
 family understands, with defaults.
 
+**As built (S05-T1b1).** The seeder `config.configuration.sports` stores each embedded file in
+`config.sport_definitions` (one row per variant and version) with its content as RFC 8785 canonical JSON and the hash
+`sha256:<hex>` of that text (`CanonicalJson`). The hash covers content, not the file: comments and layout don't
+change it. A stored `(variant, version)` whose file now hashes differently fails the seed with
+`SPORT_DEFINITION_IMMUTABLE`; a unit test pins football@1's hash. `ISportDefinitions` (Contracts) reads the rows once
+into typed records (`SportDefinition`; the generic event types in `GenericEventTypes`, separate from `EventTypes`
+because README.md gives them no importance, coverage or phases) and keeps them until restart.
+
 ## 3. Timeline event (Match Operations)
 
 | Field | Notes |

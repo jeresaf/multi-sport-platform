@@ -216,8 +216,9 @@ Deliver:
   catalogues).
 
 Acceptance:
-- [ ] Changing any byte of the published football definition without bumping `version` fails a test (seeder and
-      pinned hash).
+- [x] Changing any byte of the published football definition without bumping `version` fails a test (seeder and
+      pinned hash). (T1b1: `SportDefinitionSeedTests`, `ReferenceSportFilesTests`; content bytes, not comments: owner,
+      2026-10-30)
 - [x] Validation errors name the file, path and problem (one test per rule in D3). (T1a: `SportDefinitionValidatorTests`)
 - [x] A bad definition stops the Host at startup (test). (T1a: `DefinitionStartupCheckTests`)
 
@@ -306,3 +307,12 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   rules also accept the rugby and basketball reference files (a test checks this). The scoring families the
   validator knows, their score components and their tie resolutions are in `Definitions/ScoringFamilies`; T2's
   engines should read them from there.
+- **T1b1:** `config.sport_definitions` stores the content as canonical JSON (`jsonb`) with its hash; the hash ignores
+  comments and layout (owner, 2026-10-30). The seeder validates each file and throws `SPORT_DEFINITION_IMMUTABLE: …`
+  (a seed failure, not a catalogue error, like T1a's definition problems). `ISportDefinitions` resolves rows into
+  `SportDefinition` records: closed vocabularies are enums (`CoverageLevel` is ordered), `scoring_family` stays a
+  string (it keys `ScoringFamilies`), the file's `short` is `ShortLabel`, `metadata` field types are `Choice`, `Flag`,
+  `Number`, `Text` (`enum`, `bool`, `int`, `string` in the files), and `derive.where` values are text as written. The
+  model refuses keys it doesn't map. Generic event types are a separate list with English labels written from their
+  codes. Nothing is cached before the first seed. The module's concurrency error is `SPORT_CONCURRENCY_CONFLICT`
+  (`SPORT_` is a documented area).
