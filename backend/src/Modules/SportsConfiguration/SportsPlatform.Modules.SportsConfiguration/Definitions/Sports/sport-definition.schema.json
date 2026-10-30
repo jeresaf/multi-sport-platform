@@ -1,0 +1,292 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://msp.example/schemas/sport-definition/1",
+  "title": "Sport definition, schema version 1 (docs/domain/sports/README.md)",
+  "description": "The shape only. References between lists (roles, events, periods, statistics) are checked in code by SportDefinitionValidator.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "variant", "sport", "version", "name", "scoring_family", "shape", "participant_types",
+    "coverage_levels", "terminology", "supports", "periods", "actor_roles", "event_types", "positions",
+    "staff_roles", "official_roles", "lineup", "statistics", "scorer_pad"
+  ],
+  "if": { "properties": { "shape": { "const": "HEAD_TO_HEAD" } } },
+  "then": { "required": ["sides"] },
+  "properties": {
+    "schema_version": { "const": 1 },
+    "variant": { "$ref": "#/$defs/code" },
+    "sport": { "$ref": "#/$defs/code" },
+    "version": { "type": "integer", "minimum": 1 },
+    "name": { "$ref": "#/$defs/text" },
+    "scoring_family": { "enum": ["ADDITIVE", "INNINGS", "SETS", "RANKED_METRIC", "COMBAT"] },
+    "shape": { "enum": ["HEAD_TO_HEAD", "FIELD"] },
+    "participant_types": { "$ref": "#/$defs/nonEmptyList", "items": { "enum": ["TEAM", "INDIVIDUAL", "PAIR"] } },
+    "sides": { "$ref": "#/$defs/nonEmptyList", "items": { "enum": ["HOME", "AWAY"] } },
+    "coverage_levels": { "$ref": "#/$defs/nonEmptyList", "items": { "$ref": "#/$defs/coverage" } },
+    "terminology": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contest", "contest_plural", "period", "participant", "athlete", "score_unit"],
+      "properties": {
+        "contest": { "$ref": "#/$defs/text" },
+        "contest_plural": { "$ref": "#/$defs/text" },
+        "period": { "$ref": "#/$defs/text" },
+        "participant": { "$ref": "#/$defs/text" },
+        "athlete": { "$ref": "#/$defs/text" },
+        "score_unit": { "$ref": "#/$defs/text" }
+      }
+    },
+    "supports": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tie_resolutions"],
+      "properties": {
+        "tie_resolutions": { "$ref": "#/$defs/nonEmptyList", "items": { "$ref": "#/$defs/code" } }
+      }
+    },
+    "periods": { "$ref": "#/$defs/nonEmptyList", "items": { "$ref": "#/$defs/period" } },
+    "actor_roles": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": { "$ref": "#/$defs/code" },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["who", "side"],
+        "properties": {
+          "who": { "enum": ["ON_FIELD", "BENCH", "SQUAD", "STAFF", "SQUAD_OR_STAFF"] },
+          "side": { "$ref": "#/$defs/side" }
+        }
+      }
+    },
+    "event_types": { "$ref": "#/$defs/nonEmptyList", "items": { "$ref": "#/$defs/eventType" } },
+    "positions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "label", "group"],
+        "properties": {
+          "code": { "$ref": "#/$defs/code" },
+          "label": { "$ref": "#/$defs/text" },
+          "group": { "$ref": "#/$defs/code" }
+        }
+      }
+    },
+    "staff_roles": { "type": "array", "items": { "$ref": "#/$defs/labelledCode" } },
+    "official_roles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "label", "default_minimum"],
+        "properties": {
+          "code": { "$ref": "#/$defs/code" },
+          "label": { "$ref": "#/$defs/text" },
+          "default_minimum": { "type": "integer", "minimum": 0 },
+          "max": { "type": "integer", "minimum": 1 }
+        }
+      }
+    },
+    "lineup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["starters", "bench_max"],
+      "properties": {
+        "starters": { "type": "integer", "minimum": 1 },
+        "bench_max": { "type": "integer", "minimum": 0 },
+        "position_constraints": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["group"],
+            "properties": {
+              "group": { "$ref": "#/$defs/code" },
+              "min": { "type": "integer", "minimum": 0 },
+              "max": { "type": "integer", "minimum": 0 }
+            }
+          }
+        },
+        "special_roles": { "type": "array", "items": { "$ref": "#/$defs/code" } },
+        "minimum_players_to_continue": { "type": "integer", "minimum": 1 },
+        "shirt_numbers_follow_positions": { "type": "boolean" }
+      }
+    },
+    "statistics": { "type": "array", "items": { "$ref": "#/$defs/statistic" } },
+    "scorer_pad": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "groups"],
+      "properties": {
+        "kind": { "enum": ["BUTTONS", "DELIVERY_PAD"] },
+        "groups": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["label", "buttons"],
+            "properties": {
+              "label": { "$ref": "#/$defs/text" },
+              "buttons": { "$ref": "#/$defs/nonEmptyList", "items": { "$ref": "#/$defs/code" } },
+              "phases": { "$ref": "#/$defs/nonEmptyList", "items": { "$ref": "#/$defs/phaseKind" } },
+              "coverage": { "$ref": "#/$defs/coverage" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "code": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+    "text": { "type": "string", "minLength": 1 },
+    "nonEmptyList": { "type": "array", "minItems": 1 },
+    "codeList": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/code" } },
+    "coverage": { "enum": ["RESULT_ONLY", "BASIC", "STANDARD", "DETAILED"] },
+    "side": { "enum": ["OWN", "OPPONENT"] },
+    "phaseKind": { "enum": ["PLAY", "BREAK", "SHOOTOUT"] },
+    "labelledCode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "label"],
+      "properties": {
+        "code": { "$ref": "#/$defs/code" },
+        "label": { "$ref": "#/$defs/text" }
+      }
+    },
+    "period": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "label", "short", "kind", "clock"],
+      "properties": {
+        "code": { "$ref": "#/$defs/code" },
+        "label": { "$ref": "#/$defs/text" },
+        "short": { "$ref": "#/$defs/text" },
+        "kind": { "$ref": "#/$defs/phaseKind" },
+        "clock": { "enum": ["COUNT_UP", "COUNT_DOWN", "NONE"] },
+        "default_seconds": { "type": "integer", "minimum": 1 },
+        "clock_starts_at_seconds": { "type": "integer", "minimum": 0 },
+        "allows_added_time": { "type": "boolean" },
+        "overtime": { "type": "boolean" },
+        "repeatable": { "type": "boolean" },
+        "sudden_death": { "type": "boolean" }
+      }
+    },
+    "eventType": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "category", "importance", "coverage", "label", "phases"],
+      "properties": {
+        "code": { "$ref": "#/$defs/code" },
+        "category": {
+          "enum": ["SYSTEM", "PERIOD", "SCORING", "DISCIPLINE", "PERSONNEL", "PLAY", "REVIEW", "STOPPAGE", "STATISTIC", "COMMENTARY", "CORRECTION"]
+        },
+        "importance": { "enum": ["KEY", "STANDARD", "DETAILED", "TECHNICAL"] },
+        "coverage": { "$ref": "#/$defs/coverage" },
+        "label": { "$ref": "#/$defs/text" },
+        "points": { "type": "integer", "minimum": 0 },
+        "side": { "$ref": "#/$defs/side" },
+        "component": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+        "phases": { "$ref": "#/$defs/nonEmptyList", "items": { "$ref": "#/$defs/phaseKind" } },
+        "actors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["role"],
+            "properties": {
+              "role": { "$ref": "#/$defs/code" },
+              "required_from": { "$ref": "#/$defs/coverage" },
+              "optional": { "type": "boolean" },
+              "distinct_from": { "$ref": "#/$defs/code" }
+            }
+          }
+        },
+        "metadata": {
+          "type": "object",
+          "propertyNames": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+          "additionalProperties": { "$ref": "#/$defs/metadataField" }
+        },
+        "effects": {
+          "type": "array",
+          "items": {
+            "enum": ["SEND_OFF", "TEMPORARY_SUSPENSION", "SUBSTITUTE", "TEMPORARY_SUBSTITUTE", "RETURN", "DISQUALIFY", "FOUL_COUNT"]
+          }
+        },
+        "follow_up": {
+          "type": ["object", "null"],
+          "additionalProperties": false,
+          "required": ["requires_preceding"],
+          "properties": {
+            "requires_preceding": { "$ref": "#/$defs/codeList" },
+            "same_side": { "type": "boolean" },
+            "same_period": { "type": "boolean" },
+            "unconsumed": { "type": "boolean" },
+            "consumes": { "type": "boolean" }
+          }
+        },
+        "limits": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["rule"],
+            "properties": {
+              "rule": { "type": "string", "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+$" }
+            }
+          }
+        },
+        "reversible_by": { "$ref": "#/$defs/codeList" }
+      }
+    },
+    "metadataField": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type": { "enum": ["enum", "bool", "int", "string"] },
+        "values": { "$ref": "#/$defs/codeList" },
+        "min": { "type": "integer" },
+        "max": { "type": "integer" },
+        "optional": { "type": "boolean" }
+      },
+      "if": { "properties": { "type": { "const": "enum" } } },
+      "then": { "required": ["values"] },
+      "else": { "not": { "required": ["values"] } }
+    },
+    "statistic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "label", "scopes", "aggregation", "higher_is_better", "coverage", "derive"],
+      "properties": {
+        "code": { "$ref": "#/$defs/code" },
+        "label": { "$ref": "#/$defs/text" },
+        "scopes": { "$ref": "#/$defs/nonEmptyList", "items": { "enum": ["PLAYER", "TEAM"] } },
+        "aggregation": { "enum": ["SUM", "MAX", "MIN", "RATIO", "BUILTIN"] },
+        "higher_is_better": { "type": "boolean" },
+        "coverage": { "$ref": "#/$defs/coverage" },
+        "derive": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "count_events": { "$ref": "#/$defs/codeList" },
+            "sum_points": { "$ref": "#/$defs/codeList" },
+            "actor_roles": { "$ref": "#/$defs/codeList" },
+            "where": { "type": "object", "minProperties": 1 },
+            "builtin": { "$ref": "#/$defs/code" },
+            "numerator": { "$ref": "#/$defs/code" },
+            "denominator": { "$ref": "#/$defs/code" },
+            "manual": { "const": true }
+          },
+          "oneOf": [
+            { "required": ["count_events"], "not": { "anyOf": [{ "required": ["sum_points"] }, { "required": ["builtin"] }, { "required": ["manual"] }] } },
+            { "required": ["sum_points"], "not": { "anyOf": [{ "required": ["count_events"] }, { "required": ["builtin"] }, { "required": ["manual"] }] } },
+            { "required": ["builtin"], "not": { "anyOf": [{ "required": ["count_events"] }, { "required": ["sum_points"] }, { "required": ["manual"] }] } },
+            { "required": ["manual"], "not": { "anyOf": [{ "required": ["count_events"] }, { "required": ["sum_points"] }, { "required": ["builtin"] }] } }
+          ],
+          "dependentRequired": { "numerator": ["denominator", "builtin"], "denominator": ["numerator"] }
+        }
+      }
+    }
+  }
+}

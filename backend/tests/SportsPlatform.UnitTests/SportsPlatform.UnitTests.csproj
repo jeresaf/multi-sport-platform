@@ -8,6 +8,7 @@
     <ProjectReference Include="..\..\src\SportsPlatform.BuildingBlocks\SportsPlatform.BuildingBlocks.csproj" />
     <ProjectReference Include="..\..\src\SportsPlatform.BuildingBlocks.Persistence\SportsPlatform.BuildingBlocks.Persistence.csproj" />
     <ProjectReference Include="..\..\src\Modules\Identity\SportsPlatform.Modules.Identity\SportsPlatform.Modules.Identity.csproj" />
+    <ProjectReference Include="..\..\src\Modules\SportsConfiguration\SportsPlatform.Modules.SportsConfiguration\SportsPlatform.Modules.SportsConfiguration.csproj" />
     <ProjectReference Include="..\..\src\Modules\Platform\SportsPlatform.Modules.Platform\SportsPlatform.Modules.Platform.csproj" />
     <ProjectReference Include="..\..\src\Modules\Tenancy\SportsPlatform.Modules.Tenancy\SportsPlatform.Modules.Tenancy.csproj" />
   </ItemGroup>

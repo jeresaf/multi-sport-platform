@@ -22,6 +22,7 @@
     <ProjectReference Include="..\Modules\Platform\SportsPlatform.Modules.Platform\SportsPlatform.Modules.Platform.csproj" />
     <ProjectReference Include="..\Modules\Tenancy\SportsPlatform.Modules.Tenancy\SportsPlatform.Modules.Tenancy.csproj" />
     <ProjectReference Include="..\Modules\Identity\SportsPlatform.Modules.Identity\SportsPlatform.Modules.Identity.csproj" />
+    <ProjectReference Include="..\Modules\SportsConfiguration\SportsPlatform.Modules.SportsConfiguration\SportsPlatform.Modules.SportsConfiguration.csproj" />
   </ItemGroup>
 
 </Project>
