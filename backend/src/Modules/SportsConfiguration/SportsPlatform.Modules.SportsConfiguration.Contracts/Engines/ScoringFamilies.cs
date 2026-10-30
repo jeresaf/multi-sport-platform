@@ -1,4 +1,4 @@
-namespace SportsPlatform.Modules.SportsConfiguration.Definitions;
+namespace SportsPlatform.Modules.SportsConfiguration.Contracts.Engines;
 
 /// <summary>
 /// What each scoring family's engine understands: the score components beyond <c>main</c> and the tie resolutions

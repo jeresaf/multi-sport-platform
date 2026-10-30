@@ -86,7 +86,7 @@ public sealed class ReferenceSportFilesTests
 
     private const string _footballVersion1Hash = "sha256:2884e551a7d6855359e4bb7e7599e7308611896947f902370746ddb4ce10918e";
 
-    private static string RepositoryRoot()
+    internal static string RepositoryRoot()
     {
         for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
         {
