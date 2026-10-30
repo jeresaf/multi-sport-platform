@@ -7,13 +7,13 @@ at the start of every review.
 
 - **Current slice:** S05 — Sports configuration (docs/build/slices/S05-sports-configuration.md, rewritten by the S04
   slice review). S00–S04 are done
-- **Current task:** S05-T1b2 — Sport actions, reads, catalogues — in review; next is `/next-task` for S05-T2
-- **Next:** S05-T2 — ADDITIVE engine, fold and scenarios
+- **Current task:** S05-T2a — Engine contract, fold, trackers and scenario runner — in progress
+- **Next:** S05-T2b — Validation rules, phases, actors, follow-ups and limits
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S05-T2 — ADDITIVE engine, fold and scenarios (likely T2a–T2c)
+1. S05-T2b, T2c — ADDITIVE validation rules; outcome and tie resolution
 2. S05-T3 — Formats and generators (with `format.read` and its reads)
 3. S05-T4 — Ruleset templates and resolver (with `ruleset.read`, its reads and the preview)
 4. S05-T5 — Tenant sport enablement, Q27 and the screens (likely T5a, T5b1, T5b2)
