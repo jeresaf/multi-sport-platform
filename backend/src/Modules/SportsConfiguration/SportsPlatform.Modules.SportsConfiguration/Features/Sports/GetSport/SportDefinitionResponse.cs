@@ -22,16 +22,16 @@ public sealed record SportDefinitionResponse(
     IReadOnlyList<string> Sides,
     SportTerminologyResponse Terminology,
     IReadOnlyList<string> TieResolutions,
-    IReadOnlyList<PeriodResponse> Periods,
-    IReadOnlyDictionary<string, ActorRoleResponse> ActorRoles,
-    IReadOnlyList<EventTypeResponse> EventTypes,
-    IReadOnlyList<GenericEventTypeResponse> GenericEventTypes,
-    IReadOnlyList<PositionResponse> Positions,
-    IReadOnlyList<StaffRoleResponse> StaffRoles,
-    IReadOnlyList<OfficialRoleResponse> OfficialRoles,
-    LineupResponse Lineup,
-    IReadOnlyList<StatisticResponse> Statistics,
-    ScorerPadResponse ScorerPad)
+    IReadOnlyList<SportPeriodResponse> Periods,
+    IReadOnlyDictionary<string, SportActorRoleResponse> ActorRoles,
+    IReadOnlyList<SportEventTypeResponse> EventTypes,
+    IReadOnlyList<SportGenericEventTypeResponse> GenericEventTypes,
+    IReadOnlyList<SportPositionResponse> Positions,
+    IReadOnlyList<SportStaffRoleResponse> StaffRoles,
+    IReadOnlyList<SportOfficialRoleResponse> OfficialRoles,
+    SportLineupResponse Lineup,
+    IReadOnlyList<SportStatisticResponse> Statistics,
+    SportScorerPadResponse ScorerPad)
 {
     public static SportDefinitionResponse From(SportDefinition definition)
     {
@@ -54,24 +54,24 @@ public sealed record SportDefinitionResponse(
             new SportTerminologyResponse(
                 terminology.Contest, terminology.ContestPlural, terminology.Period, terminology.Participant, terminology.Athlete, terminology.ScoreUnit),
             definition.Supports.TieResolutions,
-            [.. definition.Periods.Select(PeriodResponse.From)],
-            definition.ActorRoles.ToDictionary(entry => entry.Key, entry => new ActorRoleResponse(entry.Value.Who, entry.Value.Side), StringComparer.Ordinal),
-            [.. definition.EventTypes.Select(EventTypeResponse.From)],
-            [.. definition.GenericEventTypes.Select(type => new GenericEventTypeResponse(type.Code, type.Category, type.Label))],
-            [.. definition.Positions.Select(position => new PositionResponse(position.Code, position.Label, position.Group))],
-            [.. definition.StaffRoles.Select(role => new StaffRoleResponse(role.Code, role.Label))],
-            [.. definition.OfficialRoles.Select(role => new OfficialRoleResponse(role.Code, role.Label, role.DefaultMinimum, role.Max))],
-            new LineupResponse(
+            [.. definition.Periods.Select(SportPeriodResponse.From)],
+            definition.ActorRoles.ToDictionary(entry => entry.Key, entry => new SportActorRoleResponse(entry.Value.Who, entry.Value.Side), StringComparer.Ordinal),
+            [.. definition.EventTypes.Select(SportEventTypeResponse.From)],
+            [.. definition.GenericEventTypes.Select(type => new SportGenericEventTypeResponse(type.Code, type.Category, type.Label))],
+            [.. definition.Positions.Select(position => new SportPositionResponse(position.Code, position.Label, position.Group))],
+            [.. definition.StaffRoles.Select(role => new SportStaffRoleResponse(role.Code, role.Label))],
+            [.. definition.OfficialRoles.Select(role => new SportOfficialRoleResponse(role.Code, role.Label, role.DefaultMinimum, role.Max))],
+            new SportLineupResponse(
                 lineup.Starters,
                 lineup.BenchMax,
-                [.. lineup.PositionConstraints.Select(constraint => new PositionConstraintResponse(constraint.Group, constraint.Min, constraint.Max))],
+                [.. lineup.PositionConstraints.Select(constraint => new SportPositionConstraintResponse(constraint.Group, constraint.Min, constraint.Max))],
                 lineup.SpecialRoles,
                 lineup.MinimumPlayersToContinue,
                 lineup.ShirtNumbersFollowPositions),
-            [.. definition.Statistics.Select(StatisticResponse.From)],
-            new ScorerPadResponse(
+            [.. definition.Statistics.Select(SportStatisticResponse.From)],
+            new SportScorerPadResponse(
                 definition.ScorerPad.Kind,
-                [.. definition.ScorerPad.Groups.Select(group => new ScorerPadGroupResponse(group.Label, group.Buttons, group.Phases, group.Coverage))]));
+                [.. definition.ScorerPad.Groups.Select(group => new SportScorerPadGroupResponse(group.Label, group.Buttons, group.Phases, group.Coverage))]));
     }
 }
 
@@ -84,7 +84,7 @@ public sealed record SportTerminologyResponse(
     string ScoreUnit);
 
 /// <summary>A period; <c>shortLabel</c> is the definition's short form (<c>1H</c>).</summary>
-public sealed record PeriodResponse(
+public sealed record SportPeriodResponse(
     string Code,
     string Label,
     string ShortLabel,
@@ -97,18 +97,18 @@ public sealed record PeriodResponse(
     bool Repeatable,
     bool SuddenDeath)
 {
-    public static PeriodResponse From(PeriodDefinition period)
+    public static SportPeriodResponse From(PeriodDefinition period)
     {
         ArgumentNullException.ThrowIfNull(period);
-        return new PeriodResponse(
+        return new SportPeriodResponse(
             period.Code, period.Label, period.ShortLabel, period.Kind, period.Clock, period.DefaultSeconds, period.ClockStartsAtSeconds,
             period.AllowsAddedTime, period.Overtime, period.Repeatable, period.SuddenDeath);
     }
 }
 
-public sealed record ActorRoleResponse(ActorPool Who, ActorSide Side);
+public sealed record SportActorRoleResponse(ActorPool Who, ActorSide Side);
 
-public sealed record EventTypeResponse(
+public sealed record SportEventTypeResponse(
     string Code,
     EventCategory Category,
     EventImportance Importance,
@@ -118,17 +118,17 @@ public sealed record EventTypeResponse(
     int? Points,
     ActorSide? Side,
     string? Component,
-    IReadOnlyList<EventActorResponse> Actors,
-    IReadOnlyDictionary<string, MetadataFieldResponse> Metadata,
+    IReadOnlyList<SportEventActorResponse> Actors,
+    IReadOnlyDictionary<string, SportMetadataFieldResponse> Metadata,
     IReadOnlyList<EventEffect> Effects,
-    FollowUpResponse? FollowUp,
+    SportFollowUpResponse? FollowUp,
     IReadOnlyList<string> Limits,
     IReadOnlyList<string> ReversibleBy)
 {
-    public static EventTypeResponse From(EventTypeDefinition type)
+    public static SportEventTypeResponse From(EventTypeDefinition type)
     {
         ArgumentNullException.ThrowIfNull(type);
-        return new EventTypeResponse(
+        return new SportEventTypeResponse(
             type.Code,
             type.Category,
             type.Importance,
@@ -138,34 +138,34 @@ public sealed record EventTypeResponse(
             type.Points,
             type.Side,
             type.Component,
-            [.. type.Actors.Select(actor => new EventActorResponse(actor.Role, actor.RequiredFrom, actor.Optional, actor.DistinctFrom))],
-            type.Metadata.ToDictionary(entry => entry.Key, entry => MetadataFieldResponse.From(entry.Value), StringComparer.Ordinal),
+            [.. type.Actors.Select(actor => new SportEventActorResponse(actor.Role, actor.RequiredFrom, actor.Optional, actor.DistinctFrom))],
+            type.Metadata.ToDictionary(entry => entry.Key, entry => SportMetadataFieldResponse.From(entry.Value), StringComparer.Ordinal),
             type.Effects,
             type.FollowUp is { } followUp
-                ? new FollowUpResponse(followUp.RequiresPreceding, followUp.SameSide, followUp.SamePeriod, followUp.Unconsumed, followUp.Consumes)
+                ? new SportFollowUpResponse(followUp.RequiresPreceding, followUp.SameSide, followUp.SamePeriod, followUp.Unconsumed, followUp.Consumes)
                 : null,
             [.. type.Limits.Select(limit => limit.Rule)],
             type.ReversibleBy);
     }
 }
 
-public sealed record EventActorResponse(string Role, CoverageLevel? RequiredFrom, bool Optional, string? DistinctFrom);
+public sealed record SportEventActorResponse(string Role, CoverageLevel? RequiredFrom, bool Optional, string? DistinctFrom);
 
 /// <summary>A metadata field: <c>values</c> for a choice, <c>min</c> and <c>max</c> for a number.</summary>
-public sealed record MetadataFieldResponse(MetadataValueType Type, IReadOnlyList<string> Values, long? Min, long? Max, bool Optional)
+public sealed record SportMetadataFieldResponse(SportMetadataFieldType Type, IReadOnlyList<string> Values, long? Min, long? Max, bool Optional)
 {
-    public static MetadataFieldResponse From(MetadataFieldDefinition field)
+    public static SportMetadataFieldResponse From(MetadataFieldDefinition field)
     {
         ArgumentNullException.ThrowIfNull(field);
         var type = field.Type switch
         {
-            MetadataFieldType.Choice => MetadataValueType.Choice,
-            MetadataFieldType.Flag => MetadataValueType.Flag,
-            MetadataFieldType.Number => MetadataValueType.Number,
-            MetadataFieldType.Text => MetadataValueType.Text,
+            MetadataFieldType.Choice => SportMetadataFieldType.Choice,
+            MetadataFieldType.Flag => SportMetadataFieldType.Flag,
+            MetadataFieldType.Number => SportMetadataFieldType.Number,
+            MetadataFieldType.Text => SportMetadataFieldType.Text,
             _ => throw new InvalidOperationException($"Unknown metadata field type {field.Type}."),
         };
-        return new MetadataFieldResponse(type, field.Values, field.Min, field.Max, field.Optional);
+        return new SportMetadataFieldResponse(type, field.Values, field.Min, field.Max, field.Optional);
     }
 }
 
@@ -173,7 +173,7 @@ public sealed record MetadataFieldResponse(MetadataValueType Type, IReadOnlyList
 /// A metadata field's type in the API (<c>CHOICE</c>, <c>FLAG</c>, <c>NUMBER</c>, <c>TEXT</c>); the files write
 /// <c>enum</c>, <c>bool</c>, <c>int</c> and <c>string</c>.
 /// </summary>
-public enum MetadataValueType
+public enum SportMetadataFieldType
 {
     Choice,
     Flag,
@@ -181,53 +181,53 @@ public enum MetadataValueType
     Text,
 }
 
-public sealed record FollowUpResponse(IReadOnlyList<string> RequiresPreceding, bool SameSide, bool SamePeriod, bool Unconsumed, bool Consumes);
+public sealed record SportFollowUpResponse(IReadOnlyList<string> RequiresPreceding, bool SameSide, bool SamePeriod, bool Unconsumed, bool Consumes);
 
-public sealed record GenericEventTypeResponse(string Code, EventCategory Category, string Label);
+public sealed record SportGenericEventTypeResponse(string Code, EventCategory Category, string Label);
 
-public sealed record PositionResponse(string Code, string Label, string Group);
+public sealed record SportPositionResponse(string Code, string Label, string Group);
 
-public sealed record StaffRoleResponse(string Code, string Label);
+public sealed record SportStaffRoleResponse(string Code, string Label);
 
-public sealed record OfficialRoleResponse(string Code, string Label, int DefaultMinimum, int? Max);
+public sealed record SportOfficialRoleResponse(string Code, string Label, int DefaultMinimum, int? Max);
 
-public sealed record LineupResponse(
+public sealed record SportLineupResponse(
     int Starters,
     int BenchMax,
-    IReadOnlyList<PositionConstraintResponse> PositionConstraints,
+    IReadOnlyList<SportPositionConstraintResponse> PositionConstraints,
     IReadOnlyList<string> SpecialRoles,
     int? MinimumPlayersToContinue,
     bool ShirtNumbersFollowPositions);
 
-public sealed record PositionConstraintResponse(string Group, int? Min, int? Max);
+public sealed record SportPositionConstraintResponse(string Group, int? Min, int? Max);
 
-public sealed record StatisticResponse(
+public sealed record SportStatisticResponse(
     string Code,
     string Label,
     IReadOnlyList<string> Scopes,
     StatisticAggregation Aggregation,
     bool HigherIsBetter,
     CoverageLevel Coverage,
-    StatisticDerivationResponse Derive)
+    SportStatisticDerivationResponse Derive)
 {
-    public static StatisticResponse From(StatisticDefinition statistic)
+    public static SportStatisticResponse From(StatisticDefinition statistic)
     {
         ArgumentNullException.ThrowIfNull(statistic);
         var derive = statistic.Derive;
-        return new StatisticResponse(
+        return new SportStatisticResponse(
             statistic.Code,
             statistic.Label,
             statistic.Scopes,
             statistic.Aggregation,
             statistic.HigherIsBetter,
             statistic.Coverage,
-            new StatisticDerivationResponse(
+            new SportStatisticDerivationResponse(
                 derive.CountEvents, derive.SumPoints, derive.ActorRoles, derive.Where, derive.Builtin, derive.Numerator, derive.Denominator, derive.Manual));
     }
 }
 
 /// <summary>How a statistic is derived; <c>where</c> holds metadata conditions, each value as written.</summary>
-public sealed record StatisticDerivationResponse(
+public sealed record SportStatisticDerivationResponse(
     IReadOnlyList<string> CountEvents,
     IReadOnlyList<string> SumPoints,
     IReadOnlyList<string> ActorRoles,
@@ -237,6 +237,6 @@ public sealed record StatisticDerivationResponse(
     string? Denominator,
     bool Manual);
 
-public sealed record ScorerPadResponse(ScorerPadKind Kind, IReadOnlyList<ScorerPadGroupResponse> Groups);
+public sealed record SportScorerPadResponse(ScorerPadKind Kind, IReadOnlyList<SportScorerPadGroupResponse> Groups);
 
-public sealed record ScorerPadGroupResponse(string Label, IReadOnlyList<string> Buttons, IReadOnlyList<PhaseKind> Phases, CoverageLevel? Coverage);
+public sealed record SportScorerPadGroupResponse(string Label, IReadOnlyList<string> Buttons, IReadOnlyList<PhaseKind> Phases, CoverageLevel? Coverage);

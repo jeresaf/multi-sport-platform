@@ -5059,21 +5059,6 @@
         ],
         "description": "Who may fill an actor role."
       },
-      "ActorRoleResponse": {
-        "required": [
-          "who",
-          "side"
-        ],
-        "type": "object",
-        "properties": {
-          "who": {
-            "$ref": "#/components/schemas/ActorPool"
-          },
-          "side": {
-            "$ref": "#/components/schemas/ActorSide"
-          }
-        }
-      },
       "ActorSide": {
         "enum": [
           "OWN",
@@ -5812,39 +5797,6 @@
         ],
         "description": "An entitlement's value, by its type: `{ enabled }` (BOOLEAN), `{ limit }` (QUOTA; null = unlimited) or `{ level }` (LEVEL; null = none)."
       },
-      "EventActorResponse": {
-        "required": [
-          "role",
-          "requiredFrom",
-          "optional",
-          "distinctFrom"
-        ],
-        "type": "object",
-        "properties": {
-          "role": {
-            "type": "string"
-          },
-          "requiredFrom": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/CoverageLevel"
-              }
-            ]
-          },
-          "optional": {
-            "type": "boolean"
-          },
-          "distinctFrom": {
-            "type": [
-              "null",
-              "string"
-            ]
-          }
-        }
-      },
       "EventCategory": {
         "enum": [
           "SYSTEM",
@@ -5879,142 +5831,6 @@
           "TECHNICAL"
         ]
       },
-      "EventTypeResponse": {
-        "required": [
-          "code",
-          "category",
-          "importance",
-          "coverage",
-          "label",
-          "phases",
-          "points",
-          "side",
-          "component",
-          "actors",
-          "metadata",
-          "effects",
-          "followUp",
-          "limits",
-          "reversibleBy"
-        ],
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "string"
-          },
-          "category": {
-            "$ref": "#/components/schemas/EventCategory"
-          },
-          "importance": {
-            "$ref": "#/components/schemas/EventImportance"
-          },
-          "coverage": {
-            "$ref": "#/components/schemas/CoverageLevel"
-          },
-          "label": {
-            "type": "string"
-          },
-          "phases": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/PhaseKind"
-            }
-          },
-          "points": {
-            "type": [
-              "null",
-              "integer"
-            ],
-            "format": "int32"
-          },
-          "side": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/ActorSide"
-              }
-            ]
-          },
-          "component": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "actors": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/EventActorResponse"
-            }
-          },
-          "metadata": {
-            "type": "object",
-            "additionalProperties": {
-              "$ref": "#/components/schemas/MetadataFieldResponse"
-            }
-          },
-          "effects": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/EventEffect"
-            }
-          },
-          "followUp": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/FollowUpResponse"
-              }
-            ]
-          },
-          "limits": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "reversibleBy": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        }
-      },
-      "FollowUpResponse": {
-        "required": [
-          "requiresPreceding",
-          "sameSide",
-          "samePeriod",
-          "unconsumed",
-          "consumes"
-        ],
-        "type": "object",
-        "properties": {
-          "requiresPreceding": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "sameSide": {
-            "type": "boolean"
-          },
-          "samePeriod": {
-            "type": "boolean"
-          },
-          "unconsumed": {
-            "type": "boolean"
-          },
-          "consumes": {
-            "type": "boolean"
-          }
-        }
-      },
       "ForgotPasswordRequest": {
         "required": [
           "email"
@@ -6030,25 +5846,6 @@
         },
         "additionalProperties": false,
         "description": "Ask for a password reset email."
-      },
-      "GenericEventTypeResponse": {
-        "required": [
-          "code",
-          "category",
-          "label"
-        ],
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "string"
-          },
-          "category": {
-            "$ref": "#/components/schemas/EventCategory"
-          },
-          "label": {
-            "type": "string"
-          }
-        }
       },
       "GrantOverrideRequest": {
         "required": [
@@ -6222,49 +6019,6 @@
           }
         },
         "description": "An ISO 639-1 language: two-letter `code` (`sw`) and English name."
-      },
-      "LineupResponse": {
-        "required": [
-          "starters",
-          "benchMax",
-          "positionConstraints",
-          "specialRoles",
-          "minimumPlayersToContinue",
-          "shirtNumbersFollowPositions"
-        ],
-        "type": "object",
-        "properties": {
-          "starters": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "benchMax": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "positionConstraints": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/PositionConstraintResponse"
-            }
-          },
-          "specialRoles": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "minimumPlayersToContinue": {
-            "type": [
-              "null",
-              "integer"
-            ],
-            "format": "int32"
-          },
-          "shirtNumbersFollowPositions": {
-            "type": "boolean"
-          }
-        }
       },
       "ListAuditEntriesResponse": {
         "required": [
@@ -6650,54 +6404,6 @@
         },
         "description": "The signed-in user: their own email, platform roles and the tenants they are an active member of."
       },
-      "MetadataFieldResponse": {
-        "required": [
-          "type",
-          "values",
-          "min",
-          "max",
-          "optional"
-        ],
-        "type": "object",
-        "properties": {
-          "type": {
-            "$ref": "#/components/schemas/MetadataValueType"
-          },
-          "values": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "min": {
-            "type": [
-              "null",
-              "integer"
-            ],
-            "format": "int64"
-          },
-          "max": {
-            "type": [
-              "null",
-              "integer"
-            ],
-            "format": "int64"
-          },
-          "optional": {
-            "type": "boolean"
-          }
-        },
-        "description": "A metadata field: `values` for a choice, `min` and `max` for a number."
-      },
-      "MetadataValueType": {
-        "enum": [
-          "CHOICE",
-          "FLAG",
-          "NUMBER",
-          "TEXT"
-        ],
-        "description": "A metadata field's type in the API (`CHOICE`, `FLAG`, `NUMBER`, `TEXT`); the files write\n`enum`, `bool`, `int` and `string`."
-      },
       "MeTenantResponse": {
         "required": [
           "tenantId",
@@ -6737,34 +6443,6 @@
           "OFF"
         ],
         "description": "Whether a guardian's consent is needed before a minor is registered for a competition (Q11). Consent before public\nexposure is always required, whatever this says."
-      },
-      "OfficialRoleResponse": {
-        "required": [
-          "code",
-          "label",
-          "defaultMinimum",
-          "max"
-        ],
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "string"
-          },
-          "label": {
-            "type": "string"
-          },
-          "defaultMinimum": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "max": {
-            "type": [
-              "null",
-              "integer"
-            ],
-            "format": "int32"
-          }
-        }
       },
       "OutboxMessageResponse": {
         "required": [
@@ -6897,66 +6575,6 @@
           "NONE"
         ]
       },
-      "PeriodResponse": {
-        "required": [
-          "code",
-          "label",
-          "shortLabel",
-          "kind",
-          "clock",
-          "defaultSeconds",
-          "clockStartsAtSeconds",
-          "allowsAddedTime",
-          "overtime",
-          "repeatable",
-          "suddenDeath"
-        ],
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "string"
-          },
-          "label": {
-            "type": "string"
-          },
-          "shortLabel": {
-            "type": "string"
-          },
-          "kind": {
-            "$ref": "#/components/schemas/PhaseKind"
-          },
-          "clock": {
-            "$ref": "#/components/schemas/PeriodClock"
-          },
-          "defaultSeconds": {
-            "type": [
-              "null",
-              "integer"
-            ],
-            "format": "int32"
-          },
-          "clockStartsAtSeconds": {
-            "type": [
-              "null",
-              "integer"
-            ],
-            "format": "int32"
-          },
-          "allowsAddedTime": {
-            "type": "boolean"
-          },
-          "overtime": {
-            "type": "boolean"
-          },
-          "repeatable": {
-            "type": "boolean"
-          },
-          "suddenDeath": {
-            "type": "boolean"
-          }
-        },
-        "description": "A period; `shortLabel` is the definition's short form (`1H`)."
-      },
       "PhaseKind": {
         "enum": [
           "PLAY",
@@ -7045,52 +6663,6 @@
             "items": {
               "$ref": "#/components/schemas/PlanEntitlementResponse"
             }
-          }
-        }
-      },
-      "PositionConstraintResponse": {
-        "required": [
-          "group",
-          "min",
-          "max"
-        ],
-        "type": "object",
-        "properties": {
-          "group": {
-            "type": "string"
-          },
-          "min": {
-            "type": [
-              "null",
-              "integer"
-            ],
-            "format": "int32"
-          },
-          "max": {
-            "type": [
-              "null",
-              "integer"
-            ],
-            "format": "int32"
-          }
-        }
-      },
-      "PositionResponse": {
-        "required": [
-          "code",
-          "label",
-          "group"
-        ],
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "string"
-          },
-          "label": {
-            "type": "string"
-          },
-          "group": {
-            "type": "string"
           }
         }
       },
@@ -7326,65 +6898,11 @@
         "additionalProperties": false,
         "description": "The optional body of `revoke`: `version`, when sent, must be the membership's current one."
       },
-      "ScorerPadGroupResponse": {
-        "required": [
-          "label",
-          "buttons",
-          "phases",
-          "coverage"
-        ],
-        "type": "object",
-        "properties": {
-          "label": {
-            "type": "string"
-          },
-          "buttons": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "phases": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/PhaseKind"
-            }
-          },
-          "coverage": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/CoverageLevel"
-              }
-            ]
-          }
-        }
-      },
       "ScorerPadKind": {
         "enum": [
           "BUTTONS",
           "DELIVERY_PAD"
         ]
-      },
-      "ScorerPadResponse": {
-        "required": [
-          "kind",
-          "groups"
-        ],
-        "type": "object",
-        "properties": {
-          "kind": {
-            "$ref": "#/components/schemas/ScorerPadKind"
-          },
-          "groups": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ScorerPadGroupResponse"
-            }
-          }
-        }
       },
       "SiteResponse": {
         "required": [
@@ -7405,6 +6923,21 @@
           }
         },
         "description": "The public site's identity: `PUBLIC` fields only. PrimaryDomain is the host the site\nprefers, which may differ from the host the request came in on."
+      },
+      "SportActorRoleResponse": {
+        "required": [
+          "who",
+          "side"
+        ],
+        "type": "object",
+        "properties": {
+          "who": {
+            "$ref": "#/components/schemas/ActorPool"
+          },
+          "side": {
+            "$ref": "#/components/schemas/ActorSide"
+          }
+        }
       },
       "SportDefinitionResponse": {
         "required": [
@@ -7495,59 +7028,640 @@
           "periods": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/PeriodResponse"
+              "$ref": "#/components/schemas/SportPeriodResponse"
             }
           },
           "actorRoles": {
             "type": "object",
             "additionalProperties": {
-              "$ref": "#/components/schemas/ActorRoleResponse"
+              "$ref": "#/components/schemas/SportActorRoleResponse"
             }
           },
           "eventTypes": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/EventTypeResponse"
+              "$ref": "#/components/schemas/SportEventTypeResponse"
             }
           },
           "genericEventTypes": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/GenericEventTypeResponse"
+              "$ref": "#/components/schemas/SportGenericEventTypeResponse"
             }
           },
           "positions": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/PositionResponse"
+              "$ref": "#/components/schemas/SportPositionResponse"
             }
           },
           "staffRoles": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/StaffRoleResponse"
+              "$ref": "#/components/schemas/SportStaffRoleResponse"
             }
           },
           "officialRoles": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/OfficialRoleResponse"
+              "$ref": "#/components/schemas/SportOfficialRoleResponse"
             }
           },
           "lineup": {
-            "$ref": "#/components/schemas/LineupResponse"
+            "$ref": "#/components/schemas/SportLineupResponse"
           },
           "statistics": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/StatisticResponse"
+              "$ref": "#/components/schemas/SportStatisticResponse"
             }
           },
           "scorerPad": {
-            "$ref": "#/components/schemas/ScorerPadResponse"
+            "$ref": "#/components/schemas/SportScorerPadResponse"
           }
         },
         "description": "A published sport definition as the API shows it: the definition's content (docs/domain/sports/README.md) in the API's\nnames (camelCase, UPPER_SNAKE values), with its version's hash and publication time and the generic event types.\nActor roles and metadata fields stay maps keyed by their codes, as in the file."
+      },
+      "SportEventActorResponse": {
+        "required": [
+          "role",
+          "requiredFrom",
+          "optional",
+          "distinctFrom"
+        ],
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string"
+          },
+          "requiredFrom": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CoverageLevel"
+              }
+            ]
+          },
+          "optional": {
+            "type": "boolean"
+          },
+          "distinctFrom": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "SportEventTypeResponse": {
+        "required": [
+          "code",
+          "category",
+          "importance",
+          "coverage",
+          "label",
+          "phases",
+          "points",
+          "side",
+          "component",
+          "actors",
+          "metadata",
+          "effects",
+          "followUp",
+          "limits",
+          "reversibleBy"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "category": {
+            "$ref": "#/components/schemas/EventCategory"
+          },
+          "importance": {
+            "$ref": "#/components/schemas/EventImportance"
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/CoverageLevel"
+          },
+          "label": {
+            "type": "string"
+          },
+          "phases": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PhaseKind"
+            }
+          },
+          "points": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "side": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ActorSide"
+              }
+            ]
+          },
+          "component": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "actors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SportEventActorResponse"
+            }
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/SportMetadataFieldResponse"
+            }
+          },
+          "effects": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventEffect"
+            }
+          },
+          "followUp": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SportFollowUpResponse"
+              }
+            ]
+          },
+          "limits": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "reversibleBy": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "SportFollowUpResponse": {
+        "required": [
+          "requiresPreceding",
+          "sameSide",
+          "samePeriod",
+          "unconsumed",
+          "consumes"
+        ],
+        "type": "object",
+        "properties": {
+          "requiresPreceding": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "sameSide": {
+            "type": "boolean"
+          },
+          "samePeriod": {
+            "type": "boolean"
+          },
+          "unconsumed": {
+            "type": "boolean"
+          },
+          "consumes": {
+            "type": "boolean"
+          }
+        }
+      },
+      "SportGenericEventTypeResponse": {
+        "required": [
+          "code",
+          "category",
+          "label"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "category": {
+            "$ref": "#/components/schemas/EventCategory"
+          },
+          "label": {
+            "type": "string"
+          }
+        }
+      },
+      "SportLineupResponse": {
+        "required": [
+          "starters",
+          "benchMax",
+          "positionConstraints",
+          "specialRoles",
+          "minimumPlayersToContinue",
+          "shirtNumbersFollowPositions"
+        ],
+        "type": "object",
+        "properties": {
+          "starters": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "benchMax": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "positionConstraints": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SportPositionConstraintResponse"
+            }
+          },
+          "specialRoles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "minimumPlayersToContinue": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "shirtNumbersFollowPositions": {
+            "type": "boolean"
+          }
+        }
+      },
+      "SportMetadataFieldResponse": {
+        "required": [
+          "type",
+          "values",
+          "min",
+          "max",
+          "optional"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "$ref": "#/components/schemas/SportMetadataFieldType"
+          },
+          "values": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "min": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "max": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "optional": {
+            "type": "boolean"
+          }
+        },
+        "description": "A metadata field: `values` for a choice, `min` and `max` for a number."
+      },
+      "SportMetadataFieldType": {
+        "enum": [
+          "CHOICE",
+          "FLAG",
+          "NUMBER",
+          "TEXT"
+        ],
+        "description": "A metadata field's type in the API (`CHOICE`, `FLAG`, `NUMBER`, `TEXT`); the files write\n`enum`, `bool`, `int` and `string`."
+      },
+      "SportOfficialRoleResponse": {
+        "required": [
+          "code",
+          "label",
+          "defaultMinimum",
+          "max"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "defaultMinimum": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "max": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "SportPeriodResponse": {
+        "required": [
+          "code",
+          "label",
+          "shortLabel",
+          "kind",
+          "clock",
+          "defaultSeconds",
+          "clockStartsAtSeconds",
+          "allowsAddedTime",
+          "overtime",
+          "repeatable",
+          "suddenDeath"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "shortLabel": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/PhaseKind"
+          },
+          "clock": {
+            "$ref": "#/components/schemas/PeriodClock"
+          },
+          "defaultSeconds": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "clockStartsAtSeconds": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "allowsAddedTime": {
+            "type": "boolean"
+          },
+          "overtime": {
+            "type": "boolean"
+          },
+          "repeatable": {
+            "type": "boolean"
+          },
+          "suddenDeath": {
+            "type": "boolean"
+          }
+        },
+        "description": "A period; `shortLabel` is the definition's short form (`1H`)."
+      },
+      "SportPositionConstraintResponse": {
+        "required": [
+          "group",
+          "min",
+          "max"
+        ],
+        "type": "object",
+        "properties": {
+          "group": {
+            "type": "string"
+          },
+          "min": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "max": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "SportPositionResponse": {
+        "required": [
+          "code",
+          "label",
+          "group"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "group": {
+            "type": "string"
+          }
+        }
+      },
+      "SportScorerPadGroupResponse": {
+        "required": [
+          "label",
+          "buttons",
+          "phases",
+          "coverage"
+        ],
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "buttons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "phases": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PhaseKind"
+            }
+          },
+          "coverage": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CoverageLevel"
+              }
+            ]
+          }
+        }
+      },
+      "SportScorerPadResponse": {
+        "required": [
+          "kind",
+          "groups"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/ScorerPadKind"
+          },
+          "groups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SportScorerPadGroupResponse"
+            }
+          }
+        }
+      },
+      "SportStaffRoleResponse": {
+        "required": [
+          "code",
+          "label"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        }
+      },
+      "SportStatisticDerivationResponse": {
+        "required": [
+          "countEvents",
+          "sumPoints",
+          "actorRoles",
+          "where",
+          "builtin",
+          "numerator",
+          "denominator",
+          "manual"
+        ],
+        "type": "object",
+        "properties": {
+          "countEvents": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "sumPoints": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "actorRoles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "where": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "builtin": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "numerator": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "denominator": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "manual": {
+            "type": "boolean"
+          }
+        },
+        "description": "How a statistic is derived; `where` holds metadata conditions, each value as written."
+      },
+      "SportStatisticResponse": {
+        "required": [
+          "code",
+          "label",
+          "scopes",
+          "aggregation",
+          "higherIsBetter",
+          "coverage",
+          "derive"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "aggregation": {
+            "$ref": "#/components/schemas/StatisticAggregation"
+          },
+          "higherIsBetter": {
+            "type": "boolean"
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/CoverageLevel"
+          },
+          "derive": {
+            "$ref": "#/components/schemas/SportStatisticDerivationResponse"
+          }
+        }
       },
       "SportTerminologyResponse": {
         "required": [
@@ -7612,21 +7726,6 @@
           }
         }
       },
-      "StaffRoleResponse": {
-        "required": [
-          "code",
-          "label"
-        ],
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "string"
-          },
-          "label": {
-            "type": "string"
-          }
-        }
-      },
       "StatisticAggregation": {
         "enum": [
           "SUM",
@@ -7635,105 +7734,6 @@
           "RATIO",
           "BUILTIN"
         ]
-      },
-      "StatisticDerivationResponse": {
-        "required": [
-          "countEvents",
-          "sumPoints",
-          "actorRoles",
-          "where",
-          "builtin",
-          "numerator",
-          "denominator",
-          "manual"
-        ],
-        "type": "object",
-        "properties": {
-          "countEvents": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "sumPoints": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "actorRoles": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "where": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string"
-            }
-          },
-          "builtin": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "numerator": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "denominator": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "manual": {
-            "type": "boolean"
-          }
-        },
-        "description": "How a statistic is derived; `where` holds metadata conditions, each value as written."
-      },
-      "StatisticResponse": {
-        "required": [
-          "code",
-          "label",
-          "scopes",
-          "aggregation",
-          "higherIsBetter",
-          "coverage",
-          "derive"
-        ],
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "string"
-          },
-          "label": {
-            "type": "string"
-          },
-          "scopes": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "aggregation": {
-            "$ref": "#/components/schemas/StatisticAggregation"
-          },
-          "higherIsBetter": {
-            "type": "boolean"
-          },
-          "coverage": {
-            "$ref": "#/components/schemas/CoverageLevel"
-          },
-          "derive": {
-            "$ref": "#/components/schemas/StatisticDerivationResponse"
-          }
-        }
       },
       "SubscriptionKind": {
         "enum": [

@@ -1066,10 +1066,6 @@ export interface components {
          * @enum {unknown}
          */
         ActorPool: "ON_FIELD" | "BENCH" | "SQUAD" | "STAFF" | "SQUAD_OR_STAFF";
-        ActorRoleResponse: {
-            who: components["schemas"]["ActorPool"];
-            side: components["schemas"]["ActorSide"];
-        };
         /**
          * @description Whose side, relative to the event's side.
          * @enum {unknown}
@@ -1311,53 +1307,15 @@ export interface components {
             /** @description LEVEL: a level code; null = none. */
             level: null | string;
         };
-        EventActorResponse: {
-            role: string;
-            requiredFrom: null | components["schemas"]["CoverageLevel"];
-            optional: boolean;
-            distinctFrom: null | string;
-        };
         /** @enum {unknown} */
         EventCategory: "SYSTEM" | "PERIOD" | "SCORING" | "DISCIPLINE" | "PERSONNEL" | "PLAY" | "REVIEW" | "STOPPAGE" | "STATISTIC" | "COMMENTARY" | "CORRECTION";
         /** @enum {unknown} */
         EventEffect: "SEND_OFF" | "TEMPORARY_SUSPENSION" | "SUBSTITUTE" | "TEMPORARY_SUBSTITUTE" | "RETURN" | "DISQUALIFY" | "FOUL_COUNT";
         /** @enum {unknown} */
         EventImportance: "KEY" | "STANDARD" | "DETAILED" | "TECHNICAL";
-        EventTypeResponse: {
-            code: string;
-            category: components["schemas"]["EventCategory"];
-            importance: components["schemas"]["EventImportance"];
-            coverage: components["schemas"]["CoverageLevel"];
-            label: string;
-            phases: components["schemas"]["PhaseKind"][];
-            /** Format: int32 */
-            points: null | number;
-            side: null | components["schemas"]["ActorSide"];
-            component: null | string;
-            actors: components["schemas"]["EventActorResponse"][];
-            metadata: {
-                [key: string]: components["schemas"]["MetadataFieldResponse"];
-            };
-            effects: components["schemas"]["EventEffect"][];
-            followUp: null | components["schemas"]["FollowUpResponse"];
-            limits: string[];
-            reversibleBy: string[];
-        };
-        FollowUpResponse: {
-            requiresPreceding: string[];
-            sameSide: boolean;
-            samePeriod: boolean;
-            unconsumed: boolean;
-            consumes: boolean;
-        };
         /** @description Ask for a password reset email. */
         ForgotPasswordRequest: {
             email: null | string;
-        };
-        GenericEventTypeResponse: {
-            code: string;
-            category: components["schemas"]["EventCategory"];
-            label: string;
         };
         /**
          * @description The body of `entitlement.override` (audit `REQUIRED_WITH_REASON`): `value` in place of the plan's for
@@ -1415,17 +1373,6 @@ export interface components {
         LanguageResponse: {
             code: string;
             name: string;
-        };
-        LineupResponse: {
-            /** Format: int32 */
-            starters: number;
-            /** Format: int32 */
-            benchMax: number;
-            positionConstraints: components["schemas"]["PositionConstraintResponse"][];
-            specialRoles: string[];
-            /** Format: int32 */
-            minimumPlayersToContinue: null | number;
-            shirtNumbersFollowPositions: boolean;
         };
         ListAuditEntriesResponse: {
             items: components["schemas"]["AuditEntryResponse"][];
@@ -1534,22 +1481,6 @@ export interface components {
             platformRoles: string[];
             tenants: components["schemas"]["MeTenantResponse"][];
         };
-        /** @description A metadata field: `values` for a choice, `min` and `max` for a number. */
-        MetadataFieldResponse: {
-            type: components["schemas"]["MetadataValueType"];
-            values: string[];
-            /** Format: int64 */
-            min: null | number;
-            /** Format: int64 */
-            max: null | number;
-            optional: boolean;
-        };
-        /**
-         * @description A metadata field's type in the API (`CHOICE`, `FLAG`, `NUMBER`, `TEXT`); the files write
-         *     `enum`, `bool`, `int` and `string`.
-         * @enum {unknown}
-         */
-        MetadataValueType: "CHOICE" | "FLAG" | "NUMBER" | "TEXT";
         /**
          * @description A tenant the user is an active member of: its slug (the workspace URL), display name and status, and the codes of the
          *     roles they hold there (any scope). Every status is listed. A `SUSPENDED` or `ARCHIVED` tenant's workspace is
@@ -1570,14 +1501,6 @@ export interface components {
          * @enum {unknown}
          */
         MinorRegistrationConsent: "REQUIRED" | "RECOMMENDED" | "OFF";
-        OfficialRoleResponse: {
-            code: string;
-            label: string;
-            /** Format: int32 */
-            defaultMinimum: number;
-            /** Format: int32 */
-            max: null | number;
-        };
         /**
          * @description One outbox message in the platform diagnostics: envelope and delivery state, no payload. `heldBackBy` is set on
          *     a `PENDING` message that waits for an earlier, not yet processed message of its aggregate.
@@ -1625,22 +1548,6 @@ export interface components {
         };
         /** @enum {unknown} */
         PeriodClock: "COUNT_UP" | "COUNT_DOWN" | "NONE";
-        /** @description A period; `shortLabel` is the definition's short form (`1H`). */
-        PeriodResponse: {
-            code: string;
-            label: string;
-            shortLabel: string;
-            kind: components["schemas"]["PhaseKind"];
-            clock: components["schemas"]["PeriodClock"];
-            /** Format: int32 */
-            defaultSeconds: null | number;
-            /** Format: int32 */
-            clockStartsAtSeconds: null | number;
-            allowsAddedTime: boolean;
-            overtime: boolean;
-            repeatable: boolean;
-            suddenDeath: boolean;
-        };
         /** @enum {unknown} */
         PhaseKind: "PLAY" | "BREAK" | "SHOOTOUT";
         /**
@@ -1664,18 +1571,6 @@ export interface components {
             /** Format: int32 */
             rank: number;
             entitlements: components["schemas"]["PlanEntitlementResponse"][];
-        };
-        PositionConstraintResponse: {
-            group: string;
-            /** Format: int32 */
-            min: null | number;
-            /** Format: int32 */
-            max: null | number;
-        };
-        PositionResponse: {
-            code: string;
-            label: string;
-            group: string;
         };
         ProblemDetails: {
             type?: null | string;
@@ -1751,18 +1646,8 @@ export interface components {
             /** Format: uint32 */
             version?: null | number;
         };
-        ScorerPadGroupResponse: {
-            label: string;
-            buttons: string[];
-            phases: components["schemas"]["PhaseKind"][];
-            coverage: null | components["schemas"]["CoverageLevel"];
-        };
         /** @enum {unknown} */
         ScorerPadKind: "BUTTONS" | "DELIVERY_PAD";
-        ScorerPadResponse: {
-            kind: components["schemas"]["ScorerPadKind"];
-            groups: components["schemas"]["ScorerPadGroupResponse"][];
-        };
         /**
          * @description The public site's identity: `PUBLIC` fields only. PrimaryDomain is the host the site
          *     prefers, which may differ from the host the request came in on.
@@ -1771,6 +1656,10 @@ export interface components {
             slug: string;
             displayName: string;
             primaryDomain: string;
+        };
+        SportActorRoleResponse: {
+            who: components["schemas"]["ActorPool"];
+            side: components["schemas"]["ActorSide"];
         };
         /**
          * @description A published sport definition as the API shows it: the definition's content (docs/domain/sports/README.md) in the API's
@@ -1795,18 +1684,155 @@ export interface components {
             sides: string[];
             terminology: components["schemas"]["SportTerminologyResponse"];
             tieResolutions: string[];
-            periods: components["schemas"]["PeriodResponse"][];
+            periods: components["schemas"]["SportPeriodResponse"][];
             actorRoles: {
-                [key: string]: components["schemas"]["ActorRoleResponse"];
+                [key: string]: components["schemas"]["SportActorRoleResponse"];
             };
-            eventTypes: components["schemas"]["EventTypeResponse"][];
-            genericEventTypes: components["schemas"]["GenericEventTypeResponse"][];
-            positions: components["schemas"]["PositionResponse"][];
-            staffRoles: components["schemas"]["StaffRoleResponse"][];
-            officialRoles: components["schemas"]["OfficialRoleResponse"][];
-            lineup: components["schemas"]["LineupResponse"];
-            statistics: components["schemas"]["StatisticResponse"][];
-            scorerPad: components["schemas"]["ScorerPadResponse"];
+            eventTypes: components["schemas"]["SportEventTypeResponse"][];
+            genericEventTypes: components["schemas"]["SportGenericEventTypeResponse"][];
+            positions: components["schemas"]["SportPositionResponse"][];
+            staffRoles: components["schemas"]["SportStaffRoleResponse"][];
+            officialRoles: components["schemas"]["SportOfficialRoleResponse"][];
+            lineup: components["schemas"]["SportLineupResponse"];
+            statistics: components["schemas"]["SportStatisticResponse"][];
+            scorerPad: components["schemas"]["SportScorerPadResponse"];
+        };
+        SportEventActorResponse: {
+            role: string;
+            requiredFrom: null | components["schemas"]["CoverageLevel"];
+            optional: boolean;
+            distinctFrom: null | string;
+        };
+        SportEventTypeResponse: {
+            code: string;
+            category: components["schemas"]["EventCategory"];
+            importance: components["schemas"]["EventImportance"];
+            coverage: components["schemas"]["CoverageLevel"];
+            label: string;
+            phases: components["schemas"]["PhaseKind"][];
+            /** Format: int32 */
+            points: null | number;
+            side: null | components["schemas"]["ActorSide"];
+            component: null | string;
+            actors: components["schemas"]["SportEventActorResponse"][];
+            metadata: {
+                [key: string]: components["schemas"]["SportMetadataFieldResponse"];
+            };
+            effects: components["schemas"]["EventEffect"][];
+            followUp: null | components["schemas"]["SportFollowUpResponse"];
+            limits: string[];
+            reversibleBy: string[];
+        };
+        SportFollowUpResponse: {
+            requiresPreceding: string[];
+            sameSide: boolean;
+            samePeriod: boolean;
+            unconsumed: boolean;
+            consumes: boolean;
+        };
+        SportGenericEventTypeResponse: {
+            code: string;
+            category: components["schemas"]["EventCategory"];
+            label: string;
+        };
+        SportLineupResponse: {
+            /** Format: int32 */
+            starters: number;
+            /** Format: int32 */
+            benchMax: number;
+            positionConstraints: components["schemas"]["SportPositionConstraintResponse"][];
+            specialRoles: string[];
+            /** Format: int32 */
+            minimumPlayersToContinue: null | number;
+            shirtNumbersFollowPositions: boolean;
+        };
+        /** @description A metadata field: `values` for a choice, `min` and `max` for a number. */
+        SportMetadataFieldResponse: {
+            type: components["schemas"]["SportMetadataFieldType"];
+            values: string[];
+            /** Format: int64 */
+            min: null | number;
+            /** Format: int64 */
+            max: null | number;
+            optional: boolean;
+        };
+        /**
+         * @description A metadata field's type in the API (`CHOICE`, `FLAG`, `NUMBER`, `TEXT`); the files write
+         *     `enum`, `bool`, `int` and `string`.
+         * @enum {unknown}
+         */
+        SportMetadataFieldType: "CHOICE" | "FLAG" | "NUMBER" | "TEXT";
+        SportOfficialRoleResponse: {
+            code: string;
+            label: string;
+            /** Format: int32 */
+            defaultMinimum: number;
+            /** Format: int32 */
+            max: null | number;
+        };
+        /** @description A period; `shortLabel` is the definition's short form (`1H`). */
+        SportPeriodResponse: {
+            code: string;
+            label: string;
+            shortLabel: string;
+            kind: components["schemas"]["PhaseKind"];
+            clock: components["schemas"]["PeriodClock"];
+            /** Format: int32 */
+            defaultSeconds: null | number;
+            /** Format: int32 */
+            clockStartsAtSeconds: null | number;
+            allowsAddedTime: boolean;
+            overtime: boolean;
+            repeatable: boolean;
+            suddenDeath: boolean;
+        };
+        SportPositionConstraintResponse: {
+            group: string;
+            /** Format: int32 */
+            min: null | number;
+            /** Format: int32 */
+            max: null | number;
+        };
+        SportPositionResponse: {
+            code: string;
+            label: string;
+            group: string;
+        };
+        SportScorerPadGroupResponse: {
+            label: string;
+            buttons: string[];
+            phases: components["schemas"]["PhaseKind"][];
+            coverage: null | components["schemas"]["CoverageLevel"];
+        };
+        SportScorerPadResponse: {
+            kind: components["schemas"]["ScorerPadKind"];
+            groups: components["schemas"]["SportScorerPadGroupResponse"][];
+        };
+        SportStaffRoleResponse: {
+            code: string;
+            label: string;
+        };
+        /** @description How a statistic is derived; `where` holds metadata conditions, each value as written. */
+        SportStatisticDerivationResponse: {
+            countEvents: string[];
+            sumPoints: string[];
+            actorRoles: string[];
+            where: {
+                [key: string]: string;
+            };
+            builtin: null | string;
+            numerator: null | string;
+            denominator: null | string;
+            manual: boolean;
+        };
+        SportStatisticResponse: {
+            code: string;
+            label: string;
+            scopes: string[];
+            aggregation: components["schemas"]["StatisticAggregation"];
+            higherIsBetter: boolean;
+            coverage: components["schemas"]["CoverageLevel"];
+            derive: components["schemas"]["SportStatisticDerivationResponse"];
         };
         SportTerminologyResponse: {
             contest: string;
@@ -1825,34 +1851,8 @@ export interface components {
             /** Format: int32 */
             latestVersion: number;
         };
-        StaffRoleResponse: {
-            code: string;
-            label: string;
-        };
         /** @enum {unknown} */
         StatisticAggregation: "SUM" | "MAX" | "MIN" | "RATIO" | "BUILTIN";
-        /** @description How a statistic is derived; `where` holds metadata conditions, each value as written. */
-        StatisticDerivationResponse: {
-            countEvents: string[];
-            sumPoints: string[];
-            actorRoles: string[];
-            where: {
-                [key: string]: string;
-            };
-            builtin: null | string;
-            numerator: null | string;
-            denominator: null | string;
-            manual: boolean;
-        };
-        StatisticResponse: {
-            code: string;
-            label: string;
-            scopes: string[];
-            aggregation: components["schemas"]["StatisticAggregation"];
-            higherIsBetter: boolean;
-            coverage: components["schemas"]["CoverageLevel"];
-            derive: components["schemas"]["StatisticDerivationResponse"];
-        };
         /**
          * @description How a period was granted; for reporting only, never affects its status or access (state-machines.md).
          * @enum {unknown}
