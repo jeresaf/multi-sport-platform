@@ -1,0 +1,28 @@
+title: A shoot-out penalty entered in the second half is refused — Kansanga Harriers FC and Nakawa Nomads FC draw 1–1
+# Shoot-out kicks count only in a penalty shoot-out; a league match has none.
+definition: { variant: FOOTBALL_ASSOCIATION, version: 1 }
+rules: FOOTBALL_LEAGUE
+coverage: STANDARD
+home:
+  team: Kansanga Harriers FC
+  starters: [Abdul Ssenyonga, Dennis Okwir, Francis Mubiru, George Opio, Ismail Kayondo, Jacob Ouma, Kevin Ssebunya, Lawrence Ekwaro, Mark Nakibinge, Nathan Odongo, Oscar Kiggundu]
+  bench: [Quentin Mayanja, Rashid Otim, Steven Lukwago]
+  staff: [Victor Kalule]
+away:
+  team: Nakawa Nomads FC
+  starters: [Abel Mutebi, Brian Okumu, Cyrus Nsereko, David Ocen, Elijah Kyambadde, Felix Amolo, Gerald Ssekandi, Hamza Oryem, Ibrahim Wamala, Jonah Ekou, Kizza Bbosa]
+  bench: [Lameck Ochola, Mike Ssekyewa, Norman Adriko]
+  staff: [Owen Kabuye]
+events:
+  - { minute: 0, type: PERIOD_START, period: FIRST_HALF }
+  - { minute: 19, type: GOAL, team: Kansanga Harriers FC, actors: { SCORER: Mark Nakibinge } }
+  - { minute: 45, type: PERIOD_END }
+  - { minute: 45, type: PERIOD_START, period: SECOND_HALF }
+  - { minute: 66, type: GOAL, team: Nakawa Nomads FC, actors: { SCORER: Kizza Bbosa } }
+  - { minute: 88, type: SHOOTOUT_GOAL, team: Nakawa Nomads FC, actors: { TAKER: Kizza Bbosa }, rejected: [TIMELINE_EVENT_NOT_ALLOWED_IN_PHASE] }
+  - { minute: 90+5, type: PERIOD_END }
+expect:
+  score:
+    Kansanga Harriers FC: { total: 1, periods: { 1H: 1, 2H: 0 } }
+    Nakawa Nomads FC: { total: 1, periods: { 1H: 0, 2H: 1 } }
+  outcome: { draw: true }

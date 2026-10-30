@@ -51,7 +51,7 @@ public sealed class ScenarioTests
         {
             var where = $"{file}: {step.Describe(index)}";
             var draft = Draft(step, teams, ids, where);
-            var live = _engines.Fold(ctx, scenario.Status, timeline);
+            var live = _engines.Fold(ctx, scenario.Status, timeline) with { CorrectionWindowOpen = scenario.CorrectionWindowOpen };
             var errors = engine.Validate(ctx, live, draft).Errors.Select(error => error.Code).ToList();
             errors.ShouldBe(step.Rejected, where);
             if (errors.Count > 0)
@@ -98,7 +98,7 @@ public sealed class ScenarioTests
     private static TimelineEventDraft Draft(ScenarioEvent step, Dictionary<string, Guid> teams, Dictionary<string, Guid> ids, string where)
     {
         var (clock, added) = step.Clock();
-        return new TimelineEventDraft(step.Type, TimelineSource.Live)
+        return new TimelineEventDraft(step.Type, step.Source)
         {
             ParticipantId = step.Team is { } team
                 ? teams.TryGetValue(team, out var participant) ? participant : throw new InvalidOperationException($"{where}: \"{team}\" is not one of the two teams.")
@@ -115,11 +115,14 @@ public sealed class ScenarioTests
 
     // What Match Operations will do from S12: an id, the next sequence, and the period from the live phase. A start
     // opens the next occurrence of the period it names, counted over every recorded start (reversed ones too), so a
-    // stored occurrence is never given twice (review #78 N2).
+    // stored occurrence is never given twice (review #78 N2). A correction belongs to the period of the event it replaces.
     private static TimelineEvent Record(TimelineEventDraft draft, List<TimelineEvent> timeline, ContestPhase phase)
     {
         var sequence = timeline.Count + 1L;
-        var (period, occurrence) = draft.EventType == GenericEventCodes.PeriodStart
+        var replaced = timeline.FirstOrDefault(evt => evt.Id == draft.SupersedesEventId);
+        var (period, occurrence) = replaced is not null
+            ? (replaced.PeriodCode, replaced.PeriodOccurrence)
+            : draft.EventType == GenericEventCodes.PeriodStart
             ? (draft.PeriodCode, timeline
                 .Where(evt => evt.EventType == GenericEventCodes.PeriodStart && evt.PeriodCode == draft.PeriodCode)
                 .Select(evt => evt.PeriodOccurrence)

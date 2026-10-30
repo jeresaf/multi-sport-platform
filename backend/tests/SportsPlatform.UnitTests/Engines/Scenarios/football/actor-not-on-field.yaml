@@ -1,0 +1,32 @@
+title: Only players on the field can score — Kansanga Harriers FC beat Nakawa Nomads FC 1–0
+# With lineups (STANDARD coverage) a scorer must be on the field for his own team: not on the bench, not substituted
+# off, not an opponent. A player who has come off can't come back on.
+definition: { variant: FOOTBALL_ASSOCIATION, version: 1 }
+rules: FOOTBALL_LEAGUE
+coverage: STANDARD
+home:
+  team: Kansanga Harriers FC
+  starters: [Abdul Ssenyonga, Dennis Okwir, Francis Mubiru, George Opio, Ismail Kayondo, Jacob Ouma, Kevin Ssebunya, Lawrence Ekwaro, Mark Nakibinge, Nathan Odongo, Oscar Kiggundu]
+  bench: [Quentin Mayanja, Rashid Otim, Steven Lukwago]
+  staff: [Victor Kalule]
+away:
+  team: Nakawa Nomads FC
+  starters: [Abel Mutebi, Brian Okumu, Cyrus Nsereko, David Ocen, Elijah Kyambadde, Felix Amolo, Gerald Ssekandi, Hamza Oryem, Ibrahim Wamala, Jonah Ekou, Kizza Bbosa]
+  bench: [Lameck Ochola, Mike Ssekyewa, Norman Adriko]
+  staff: [Owen Kabuye]
+events:
+  - { minute: 0, type: PERIOD_START, period: FIRST_HALF }
+  - { minute: 12, type: GOAL, team: Kansanga Harriers FC, actors: { SCORER: Rashid Otim }, rejected: [TIMELINE_ACTOR_NOT_ON_FIELD] }
+  - { minute: 30, type: GOAL, team: Kansanga Harriers FC, actors: { SCORER: Jonah Ekou }, rejected: [TIMELINE_ACTOR_NOT_ON_FIELD] }
+  - { minute: 45, type: PERIOD_END }
+  - { minute: 45, type: SUBSTITUTION, team: Kansanga Harriers FC, actors: { PLAYER_OFF: Oscar Kiggundu, PLAYER_ON: Rashid Otim } }
+  - { minute: 45, type: PERIOD_START, period: SECOND_HALF }
+  - { minute: 61, type: GOAL, team: Kansanga Harriers FC, actors: { SCORER: Rashid Otim } }
+  - { minute: 70, type: GOAL, team: Kansanga Harriers FC, actors: { SCORER: Oscar Kiggundu }, rejected: [TIMELINE_ACTOR_NOT_ON_FIELD] }
+  - { minute: 75, type: SUBSTITUTION, team: Kansanga Harriers FC, actors: { PLAYER_OFF: Nathan Odongo, PLAYER_ON: Oscar Kiggundu }, rejected: [TIMELINE_ACTOR_INVALID] }
+  - { minute: 90+1, type: PERIOD_END }
+expect:
+  score:
+    Kansanga Harriers FC: { total: 1, periods: { 1H: 0, 2H: 1 } }
+    Nakawa Nomads FC: { total: 0, periods: { 1H: 0, 2H: 0 } }
+  outcome: { winner: Kansanga Harriers FC, method: REGULATION }

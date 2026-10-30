@@ -11,7 +11,15 @@ public sealed record ContestLiveState(
     ScoreState Score,
     ContestPhase Phase,
     ContestPersonnel Personnel,
-    IReadOnlyList<TimelineEntry> Timeline);
+    IReadOnlyList<TimelineEntry> Timeline)
+{
+    /// <summary>
+    /// Whether scorers may still record events after the contest <c>ENDED</c>. Engines have no clock, so the caller
+    /// decides from the end time and the rules' correction window (Match Operations from S12) and sets it on the folded
+    /// state; the fold leaves it false.
+    /// </summary>
+    public bool CorrectionWindowOpen { get; init; }
+}
 
 /// <summary>An event of the timeline and its effective status.</summary>
 public sealed record TimelineEntry(TimelineEvent Event, EffectiveStatus Status);

@@ -56,7 +56,14 @@ the message is the default title and may change.
 | `TENANT_SUBSCRIPTION_NOT_FOUND` | 409 | The tenant has no subscription period this change applies to. | Tenancy |
 | `TENANT_SUBSCRIPTION_OVERLAP` | 409 | The period overlaps another subscription period of the tenant. | Tenancy |
 | `TENANT_UNAVAILABLE` | 403 | This site is not available. | Tenancy |
+| `TIMELINE_ACTOR_INVALID` | 422 | A person named on the event can't fill that role. | SportsConfiguration |
+| `TIMELINE_ACTOR_NOT_ON_FIELD` | 422 | A person named on the event is not on the field. | SportsConfiguration |
+| `TIMELINE_ACTOR_REQUIRED` | 422 | The event needs a person in each of its required roles. | SportsConfiguration |
+| `TIMELINE_CONTEST_NOT_LIVE` | 422 | Events can be recorded only while the contest is live, or within the correction window after it ended. | SportsConfiguration |
+| `TIMELINE_EVENT_NOT_ALLOWED_IN_PHASE` | 422 | This event can't be recorded in the current phase of the contest. | SportsConfiguration |
 | `TIMELINE_EVENT_UNKNOWN` | 422 | The sport definition has no event type with this code. | SportsConfiguration |
+| `TIMELINE_PARTICIPANT_INVALID` | 422 | The event needs one of the contest's participants, and only one of them. | SportsConfiguration |
+| `TIMELINE_REFERENCE_INVALID` | 422 | The event this one corrects or reverses doesn't exist, no longer stands, or can't be corrected or reversed this way. | SportsConfiguration |
 | `VALIDATION_INVALID_QUERY` | 400 | A query parameter is not valid. | BuildingBlocks |
 | `VALIDATION_INVALID_REQUEST` | 400 | A field of the request is not valid. | BuildingBlocks |
 | `VALIDATION_MALFORMED_REQUEST` | 400 | The request could not be read. | BuildingBlocks |

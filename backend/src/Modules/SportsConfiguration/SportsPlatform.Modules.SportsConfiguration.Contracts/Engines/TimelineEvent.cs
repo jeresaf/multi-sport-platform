@@ -1,8 +1,10 @@
 namespace SportsPlatform.Modules.SportsConfiguration.Contracts.Engines;
 
 /// <summary>
-/// An event the scorer wants to record (sport-engine.md §3), before Match Operations gives it an id, a sequence and the
-/// current period. <see cref="PeriodCode"/> is only for <c>PERIOD_START</c>: the period it starts.
+/// An event the scorer wants to record (sport-engine.md §3), before Match Operations gives it an id, a sequence and its
+/// period: the current one, or for a correction (<see cref="SupersedesEventId"/>) the period and occurrence of the
+/// event its chain of corrections started from. <see cref="PeriodCode"/> is only for <c>PERIOD_START</c>: the period
+/// it starts.
 /// </summary>
 public sealed record TimelineEventDraft(string EventType, TimelineSource Source)
 {
@@ -34,7 +36,10 @@ public sealed record TimelineEvent(Guid Id, long Sequence, string EventType, Tim
 {
     public Guid? ParticipantId { get; init; }
 
-    /// <summary>The period the event belongs to (for <c>PERIOD_START</c>, the one it starts); null before any.</summary>
+    /// <summary>
+    /// The period the event belongs to (for <c>PERIOD_START</c>, the one it starts; for a correction, that of the event
+    /// its chain of corrections started from); null before any.
+    /// </summary>
     public string? PeriodCode { get; init; }
 
     /// <summary>Which occurrence of <see cref="PeriodCode"/> (a repeatable overtime's second occurrence is 2).</summary>

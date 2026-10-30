@@ -1,0 +1,35 @@
+title: VAR overturns a goal once, and a substitution entered in error is withdrawn — Kansanga Harriers FC and Nakawa Nomads FC draw 0–0
+# VAR may overturn only what football lets it (goals, penalties, cards); anything entered in error is withdrawn with
+# EVENT_REVERSED, which must name the event. An event already overturned can't be overturned again.
+definition: { variant: FOOTBALL_ASSOCIATION, version: 1 }
+rules: FOOTBALL_LEAGUE
+coverage: STANDARD
+home:
+  team: Kansanga Harriers FC
+  starters: [Abdul Ssenyonga, Dennis Okwir, Francis Mubiru, George Opio, Ismail Kayondo, Jacob Ouma, Kevin Ssebunya, Lawrence Ekwaro, Mark Nakibinge, Nathan Odongo, Oscar Kiggundu]
+  bench: [Quentin Mayanja, Rashid Otim, Steven Lukwago]
+  staff: [Victor Kalule]
+away:
+  team: Nakawa Nomads FC
+  starters: [Abel Mutebi, Brian Okumu, Cyrus Nsereko, David Ocen, Elijah Kyambadde, Felix Amolo, Gerald Ssekandi, Hamza Oryem, Ibrahim Wamala, Jonah Ekou, Kizza Bbosa]
+  bench: [Lameck Ochola, Mike Ssekyewa, Norman Adriko]
+  staff: [Owen Kabuye]
+events:
+  - { minute: 0, type: PERIOD_START, period: FIRST_HALF }
+  - { id: offside-goal, minute: 22, type: GOAL, team: Nakawa Nomads FC, actors: { SCORER: David Ocen } }
+  - { minute: 23, type: VAR_DECISION, reverses: offside-goal, payload: { outcome: DECISION_OVERTURNED } }
+  - { minute: 24, type: VAR_DECISION, reverses: offside-goal, payload: { outcome: DECISION_OVERTURNED }, rejected: [TIMELINE_REFERENCE_INVALID] }
+  - { id: wrong-sub, minute: 30, type: SUBSTITUTION, team: Nakawa Nomads FC, actors: { PLAYER_OFF: David Ocen, PLAYER_ON: Lameck Ochola } }
+  - { minute: 31, type: VAR_DECISION, reverses: wrong-sub, payload: { outcome: DECISION_OVERTURNED }, rejected: [TIMELINE_REFERENCE_INVALID] }
+  - { minute: 31, type: EVENT_REVERSED, rejected: [TIMELINE_REFERENCE_INVALID] }
+  - { minute: 31, type: EVENT_REVERSED, reverses: wrong-sub, payload: { reason: Entered for the wrong team } }
+  - { minute: 40, type: GOAL, team: Nakawa Nomads FC, actors: { SCORER: David Ocen, ASSIST: Elijah Kyambadde }, id: second }
+  - { minute: 41, type: VAR_DECISION, reverses: second, payload: { outcome: DECISION_OVERTURNED } }
+  - { minute: 45, type: PERIOD_END }
+  - { minute: 45, type: PERIOD_START, period: SECOND_HALF }
+  - { minute: 90+4, type: PERIOD_END }
+expect:
+  score:
+    Kansanga Harriers FC: { total: 0, periods: { 1H: 0, 2H: 0 } }
+    Nakawa Nomads FC: { total: 0, periods: { 1H: 0, 2H: 0 } }
+  outcome: { draw: true }

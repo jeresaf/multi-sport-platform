@@ -301,9 +301,51 @@
       "owner": "Tenancy"
     },
     {
+      "code": "TIMELINE_ACTOR_INVALID",
+      "status": 422,
+      "message": "A person named on the event can't fill that role.",
+      "owner": "SportsConfiguration"
+    },
+    {
+      "code": "TIMELINE_ACTOR_NOT_ON_FIELD",
+      "status": 422,
+      "message": "A person named on the event is not on the field.",
+      "owner": "SportsConfiguration"
+    },
+    {
+      "code": "TIMELINE_ACTOR_REQUIRED",
+      "status": 422,
+      "message": "The event needs a person in each of its required roles.",
+      "owner": "SportsConfiguration"
+    },
+    {
+      "code": "TIMELINE_CONTEST_NOT_LIVE",
+      "status": 422,
+      "message": "Events can be recorded only while the contest is live, or within the correction window after it ended.",
+      "owner": "SportsConfiguration"
+    },
+    {
+      "code": "TIMELINE_EVENT_NOT_ALLOWED_IN_PHASE",
+      "status": 422,
+      "message": "This event can't be recorded in the current phase of the contest.",
+      "owner": "SportsConfiguration"
+    },
+    {
       "code": "TIMELINE_EVENT_UNKNOWN",
       "status": 422,
       "message": "The sport definition has no event type with this code.",
+      "owner": "SportsConfiguration"
+    },
+    {
+      "code": "TIMELINE_PARTICIPANT_INVALID",
+      "status": 422,
+      "message": "The event needs one of the contest's participants, and only one of them.",
+      "owner": "SportsConfiguration"
+    },
+    {
+      "code": "TIMELINE_REFERENCE_INVALID",
+      "status": 422,
+      "message": "The event this one corrects or reverses doesn't exist, no longer stands, or can't be corrected or reversed this way.",
       "owner": "SportsConfiguration"
     },
     {

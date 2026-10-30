@@ -1,0 +1,29 @@
+title: The scorer can't assist his own goal — Kansanga Harriers FC beat Nakawa Nomads FC 1–0
+# A goal's assist must be someone other than its scorer; the scorer re-enters it with the right assist. A goal names
+# only a scorer and an assist, so a goalkeeper named on it is refused too.
+definition: { variant: FOOTBALL_ASSOCIATION, version: 1 }
+rules: FOOTBALL_LEAGUE
+coverage: STANDARD
+home:
+  team: Kansanga Harriers FC
+  starters: [Abdul Ssenyonga, Dennis Okwir, Francis Mubiru, George Opio, Ismail Kayondo, Jacob Ouma, Kevin Ssebunya, Lawrence Ekwaro, Mark Nakibinge, Nathan Odongo, Oscar Kiggundu]
+  bench: [Quentin Mayanja, Rashid Otim, Steven Lukwago]
+  staff: [Victor Kalule]
+away:
+  team: Nakawa Nomads FC
+  starters: [Abel Mutebi, Brian Okumu, Cyrus Nsereko, David Ocen, Elijah Kyambadde, Felix Amolo, Gerald Ssekandi, Hamza Oryem, Ibrahim Wamala, Jonah Ekou, Kizza Bbosa]
+  bench: [Lameck Ochola, Mike Ssekyewa, Norman Adriko]
+  staff: [Owen Kabuye]
+events:
+  - { minute: 0, type: PERIOD_START, period: FIRST_HALF }
+  - { minute: 34, type: GOAL, team: Kansanga Harriers FC, actors: { SCORER: Nathan Odongo, ASSIST: Nathan Odongo }, rejected: [TIMELINE_ACTOR_INVALID] }
+  - { minute: 34, type: GOAL, team: Kansanga Harriers FC, actors: { SCORER: Nathan Odongo, ASSIST: Mark Nakibinge } }
+  - { minute: 45, type: PERIOD_END }
+  - { minute: 45, type: PERIOD_START, period: SECOND_HALF }
+  - { minute: 52, type: GOAL, team: Kansanga Harriers FC, actors: { SCORER: Oscar Kiggundu, GOALKEEPER: Nathan Odongo }, rejected: [TIMELINE_ACTOR_INVALID] }
+  - { minute: 90+3, type: PERIOD_END }
+expect:
+  score:
+    Kansanga Harriers FC: { total: 1, periods: { 1H: 1, 2H: 0 } }
+    Nakawa Nomads FC: { total: 0, periods: { 1H: 0, 2H: 0 } }
+  outcome: { winner: Kansanga Harriers FC, method: REGULATION }

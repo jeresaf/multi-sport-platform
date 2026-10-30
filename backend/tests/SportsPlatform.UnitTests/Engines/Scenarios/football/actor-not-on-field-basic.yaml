@@ -1,0 +1,21 @@
+title: Without lineups any named scorer is taken as given — Kansanga Harriers FC beat Nakawa Nomads FC 2–0
+# At BASIC coverage nobody records lineups, so scorers aren't checked against the field and may be left out.
+definition: { variant: FOOTBALL_ASSOCIATION, version: 1 }
+rules: FOOTBALL_LEAGUE
+coverage: BASIC
+home:
+  team: Kansanga Harriers FC
+away:
+  team: Nakawa Nomads FC
+events:
+  - { minute: 0, type: PERIOD_START, period: FIRST_HALF }
+  - { minute: 12, type: GOAL, team: Kansanga Harriers FC, actors: { SCORER: Rashid Otim } }
+  - { minute: 45, type: PERIOD_END }
+  - { minute: 45, type: PERIOD_START, period: SECOND_HALF }
+  - { minute: 83, type: GOAL, team: Kansanga Harriers FC }
+  - { minute: 90+2, type: PERIOD_END }
+expect:
+  score:
+    Kansanga Harriers FC: { total: 2, periods: { 1H: 1, 2H: 1 } }
+    Nakawa Nomads FC: { total: 0, periods: { 1H: 0, 2H: 0 } }
+  outcome: { winner: Kansanga Harriers FC, method: REGULATION }

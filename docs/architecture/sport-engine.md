@@ -128,6 +128,33 @@ can't see `Guid.NewGuid()`; review does). As built:
   started; the summary shows `main` as primary text, the `shootout` component as secondary text once a `SHOOTOUT`
   period has started, and one entry per `PLAY` period started (its `short` label).
 
+**As built (S05-T2b1).** `TimelineChecks` (next to the trackers) runs the checks every family shares, in groups; the
+first group that fails answers (all 422):
+- **Type:** the definition's or a generic one (`TIMELINE_EVENT_UNKNOWN`).
+- **Status:** `LIVE`; `ENDED` while the caller says the correction window is open
+  (`ContestLiveState.CorrectionWindowOpen`, set on the folded state by Match Operations, which has the clock; the fold
+  leaves it false), for corrections and reversals only, and never a reversal of a `PERIOD_START` or `PERIOD_END` (§9;
+  a new period or goal, or a period running again, would reopen the contest, which is `ENDED → LIVE`); any status for
+  `BACKFILL` and `ADMIN` (`TIMELINE_CONTEST_NOT_LIVE`).
+- **References:** a reversal names an active event and is `EVENT_REVERSED` or a type in that event's `reversible_by`;
+  `EVENT_REVERSED` needs one; a correction replaces an active event of the definition with another (generic events
+  are reversed, never corrected), of any of the definition's types; never both (`TIMELINE_REFERENCE_INVALID`). A
+  correction is checked **as at the event it replaces** (owner, 2026-10-30): phase and people are folded from the
+  active events before the first event of its chain of corrections, each standing where its own chain started (an
+  earlier event corrected later counts in its corrected form), and Match Operations records it in that event's
+  period and occurrence. A reversal is checked in the current phase: a type that lists only `PLAY` (football's
+  `VAR_DECISION`) can't reverse at half-time or after the end, `EVENT_REVERSED` can.
+- **Phase:** a definition's type must list the current phase kind (the running period's, or `BREAK` between
+  periods; nothing before the first start); `PERIOD_START` needs a period of the definition and none running;
+  `PERIOD_END` needs one running; other generic events come any time (`TIMELINE_EVENT_NOT_ALLOWED_IN_PHASE`).
+- **Participant:** a type that scores, names people, has effects, limits or a follow-up needs a participant; any
+  participant named must be the contest's (`TIMELINE_PARTICIPANT_INVALID`).
+- **Actors:** a role is required from its `required_from` coverage, or always when neither optional nor given one
+  (`TIMELINE_ACTOR_REQUIRED`); a role the type doesn't declare, or one equal to its `distinct_from`, is
+  `TIMELINE_ACTOR_INVALID`. From `STANDARD`, each person must be in the role's pool on the role's side: `ON_FIELD`
+  (else `TIMELINE_ACTOR_NOT_ON_FIELD`), `BENCH`, `STAFF`, `SQUAD` (field, bench, suspended, temporarily replaced or
+  replaced), `SQUAD_OR_STAFF` (else `TIMELINE_ACTOR_INVALID`); a dismissed person is in no pool.
+
 ## 5. `ADDITIVE` family (football, rugby 15s/7s, basketball; later netball, hockey, handball)
 
 **State:** per side: `total`, `by_period` (period code + occurrence → points), and named components
