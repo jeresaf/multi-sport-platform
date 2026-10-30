@@ -3,10 +3,16 @@ using System.Text.RegularExpressions;
 namespace SportsPlatform.ArchitectureTests;
 
 // AR-11 and S05 D6: generic code reads sports as data. Sport and variant codes may appear as string literals only in
-// definitions, engines and renderers (and in tests, which are outside backend/src).
+// Sports Configuration's definitions, engines and renderers (and in tests, which are outside backend/src).
 public sealed partial class SportLiteralTests
 {
-    private static readonly string[] _allowedFolders = ["Definitions", "Engines", "Renderers"];
+    // Only Sports Configuration's own folders; a generic module's Definitions folder is still scanned.
+    private static readonly string[] _allowedFolders =
+    [
+        Path.Combine("src", "Modules", "SportsConfiguration", "SportsPlatform.Modules.SportsConfiguration", "Definitions"),
+        Path.Combine("src", "Modules", "SportsConfiguration", "SportsPlatform.Modules.SportsConfiguration", "Engines"),
+        Path.Combine("src", "Modules", "SportsConfiguration", "SportsPlatform.Modules.SportsConfiguration", "Renderers"),
+    ];
 
     private static readonly string[] _scannedFolders = ["src", "tools"];
 
@@ -38,7 +44,8 @@ public sealed partial class SportLiteralTests
         var violations = _scannedFolders
             .SelectMany(folder => Directory.EnumerateFiles(Path.Combine(SolutionAssemblies.BackendDirectory, folder), "*.cs", SearchOption.AllDirectories))
             .Select(path => Path.GetRelativePath(SolutionAssemblies.BackendDirectory, path))
-            .Where(path => !Segments(path).Any(segment => segment is "bin" or "obj" || _allowedFolders.Contains(segment)))
+            .Where(path => !Segments(path).Any(segment => segment is "bin" or "obj")
+                && !_allowedFolders.Any(folder => path.StartsWith(folder + Path.DirectorySeparatorChar, StringComparison.Ordinal)))
             .SelectMany(path => Literals(File.ReadAllText(Path.Combine(SolutionAssemblies.BackendDirectory, path)), codes).Select(code => $"{path}: \"{code}\""))
             .ToList();
 

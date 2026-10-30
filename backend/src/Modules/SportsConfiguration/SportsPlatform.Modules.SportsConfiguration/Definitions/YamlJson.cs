@@ -47,13 +47,14 @@ public static partial class YamlJson
             "" or "~" or "null" or "Null" or "NULL" => null,
             "true" or "True" or "TRUE" => JsonValue.Create(true),
             "false" or "False" or "FALSE" => JsonValue.Create(false),
-            _ when IntegerPattern().IsMatch(value) => JsonValue.Create(long.Parse(value, CultureInfo.InvariantCulture)),
-            _ when DecimalPattern().IsMatch(value) => JsonValue.Create(decimal.Parse(value, CultureInfo.InvariantCulture)),
+            // A number too large for long or decimal stays text, so the schema reports the wrong type at its path.
+            _ when IntegerPattern().IsMatch(value) && long.TryParse(value, CultureInfo.InvariantCulture, out var integer) => JsonValue.Create(integer),
+            _ when DecimalPattern().IsMatch(value) && decimal.TryParse(value, CultureInfo.InvariantCulture, out var number) => JsonValue.Create(number),
             _ => JsonValue.Create(value),
         };
     }
 
-    [GeneratedRegex("^[-+]?[0-9]{1,18}$")]
+    [GeneratedRegex("^[-+]?[0-9]+$")]
     private static partial Regex IntegerPattern();
 
     [GeneratedRegex(@"^[-+]?[0-9]+\.[0-9]+$")]

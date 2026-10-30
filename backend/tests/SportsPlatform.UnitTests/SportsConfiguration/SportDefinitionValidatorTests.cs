@@ -50,6 +50,14 @@ public sealed class SportDefinitionValidatorTests
     }
 
     [Fact]
+    public void A_number_too_large_to_read_is_a_shape_problem_at_its_path()
+    {
+        var yaml = _files.Read(_file).Replace("\nversion: 1\n", "\nversion: 99999999999999999999999999999999\n", StringComparison.Ordinal);
+
+        SportDefinitionValidator.Validate(_file, yaml).ShouldHaveSingleItem().Path.ShouldBe("$.version");
+    }
+
+    [Fact]
     public void A_missing_member_is_a_shape_problem()
     {
         var problems = Validate(root => root.Remove("scoring_family"));
@@ -158,6 +166,15 @@ public sealed class SportDefinitionValidatorTests
             "scorer pad buttons",
             root => root["scorer_pad"]!["groups"]![0]!["buttons"]![0] = "GOALL",
             "football.yaml: $.scorer_pad.groups[0].buttons[0]: unknown event type \"GOALL\""
+        },
+        {
+            "scorer pad phases are kinds some period has",
+            root =>
+            {
+                RemovePeriods(root, "SHOOTOUT");
+                root["scorer_pad"]!["groups"]![3]!["phases"] = new JsonArray("SHOOTOUT");
+            },
+            "football.yaml: $.scorer_pad.groups[3].phases[0]: unknown period kind \"SHOOTOUT\""
         },
         {
             "scorer pad coverage",
