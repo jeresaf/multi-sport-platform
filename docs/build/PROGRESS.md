@@ -7,17 +7,16 @@ at the start of every review.
 
 - **Current slice:** S04 — Plans, subscriptions and entitlements (docs/build/slices/S04-plans-entitlements.md,
   rewritten by the S03 slice review). S00, S01, S02 and S03 are done
-- **Current task:** S04-T4b1 — tenant Settings → Subscription, the shell's banner, the blocked page's time zone — in
-  review (#72)
-- **Next:** S04-T4b2 — disabled controls with their reason, invite at the staff limit, slice demo e2e, slice close
-- **Blocked on:** nothing. The S03 slice review (#61, #62) is merged; Q21–Q26: the owner took the defaults
-  (2026-10-21, open-questions.md "Answered")
+- **Current task:** S04-T4b2 — disabled controls with their reason (every write control while read-only, the invite
+  button at the staff limit), the slice demo e2e on a tenant of its own, screenshots, slice close — in progress
+- **Next:** the S04 slice review
+- **Blocked on:** nothing. #72 (S04-T4b1) is merged; owner approved the T4b2 plan (2026-10-30: one PR; the KMSA e2e
+  drift stays tech debt)
 
 ## Next up
 
-1. S04-T4b1 — in review (#72): address the review
-2. S04-T4b2 — disabled controls with their reason (every write control while read-only, the invite button at the staff
-   limit), the slice demo e2e on a tenant of its own (KMSA and ELSSC stay the manual demo), screenshots, slice close
+1. S04-T4b2 — in progress
+2. The S04 slice review (reviewer)
 
 ## Log
 
