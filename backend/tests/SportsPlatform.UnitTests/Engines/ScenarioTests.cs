@@ -54,16 +54,19 @@ public sealed class ScenarioTests
             var live = _engines.Fold(ctx, scenario.Status, timeline) with { CorrectionWindowOpen = scenario.CorrectionWindowOpen };
             var errors = engine.Validate(ctx, live, draft).Errors.Select(error => error.Code).ToList();
             errors.ShouldBe(step.Rejected, where);
-            if (errors.Count > 0)
+            if (errors.Count == 0)
             {
-                continue;
+                var recorded = Record(draft, timeline, live.Phase);
+                timeline.Add(recorded);
+                if (step.Id is { } label)
+                {
+                    ids.Add(label, recorded.Id);
+                }
             }
 
-            var recorded = Record(draft, timeline, live.Phase);
-            timeline.Add(recorded);
-            if (step.Id is { } label)
+            if (step.Outcome is { } expectedNow)
             {
-                ids.Add(label, recorded.Id);
+                Check(engine.ProposeOutcome(ctx, _engines.Fold(ctx, scenario.Status, timeline).Score), expectedNow, teams, $"{where}: outcome");
             }
         }
 
@@ -82,21 +85,25 @@ public sealed class ScenarioTests
             }
         }
 
-        if (scenario.Expect.Outcome is not { } expectedOutcome)
-        {
-            return;
-        }
+        scenario.Expect.Outcome.ShouldNotBeNull($"{file}: expect.outcome");
+        Check(engine.ProposeOutcome(ctx, final.Score), scenario.Expect.Outcome, teams, $"{file}: outcome");
+    }
 
-        var outcome = engine.ProposeOutcome(ctx, final.Score);
-        if (expectedOutcome.Draw)
+    private static void Check(OutcomeProposal outcome, ExpectedOutcome expected, Dictionary<string, Guid> teams, string where)
+    {
+        var kind = expected switch
         {
-            outcome.Kind.ShouldBe(OutcomeKind.Draw, $"{file}: outcome");
-        }
-        else
-        {
-            (outcome.Kind, outcome.WinnerParticipantId, outcome.Method)
-                .ShouldBe((OutcomeKind.Winner, (Guid?)teams[expectedOutcome.Winner!], expectedOutcome.Method), $"{file}: outcome");
-        }
+            { Draw: true } => OutcomeKind.Draw,
+            { Requires: ScenarioRequirement.ExtraTime } => OutcomeKind.RequiresExtraTime,
+            { Requires: ScenarioRequirement.Shootout } => OutcomeKind.RequiresShootout,
+            { Winner: not null } => OutcomeKind.Winner,
+            _ => throw new InvalidOperationException($"{where}: say a winner, draw: true or what it requires."),
+        };
+        Guid? winner = expected.Winner is { } team
+            ? teams.TryGetValue(team, out var participant) ? participant : throw new InvalidOperationException($"{where}: \"{team}\" is not one of the two teams.")
+            : null;
+        (outcome.Kind, outcome.WinnerParticipantId, outcome.Method, outcome.RequiresEnd, outcome.NextPeriodCode)
+            .ShouldBe((kind, winner, expected.Method, expected.RequiresEnd, expected.NextPeriod), where);
     }
 
     private static TimelineEventDraft Draft(ScenarioEvent step, Dictionary<string, Guid> teams, Dictionary<string, Guid> ids, string where)

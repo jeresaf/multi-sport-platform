@@ -1,0 +1,33 @@
+title: Kyebando Ravens FC beat Kisaasi Kestrels FC 1–0 in the second half of extra time after a goalless 90 minutes
+# A cup tie decided in extra time: the method is EXTRA_TIME, and the shoot-out isn't needed.
+definition: { variant: FOOTBALL_ASSOCIATION, version: 1 }
+covers: [OUTCOME_WINNER, OUTCOME_EXTRA_PERIODS]
+rules: FOOTBALL_CUP
+coverage: STANDARD
+home:
+  team: Kyebando Ravens FC
+  starters: [Ambrose Ssenyonjo, Benjamin Okot, Charles Kiiza, David Mulindwa, Edward Ochola, Francis Ssekyewa, Godfrey Atim, Hassan Kizito, Ivan Ruhweza, Jacob Ssentamu, Kenneth Olweny]
+  bench: [Lawrence Mayanja, Martin Obua]
+away:
+  team: Kisaasi Kestrels FC
+  starters: [Nathan Ssemujju, Oscar Ekwang, Paul Ssozi, Richard Byaruhanga, Simon Odur, Thomas Kawuma, Ulrich Kato, Vincent Nyanzi, Wycliffe Ocaya, Yasin Sebuufu, Zachary Lumu]
+  bench: [Andrew Kasirye, Brian Odong]
+events:
+  - { minute: 0, type: PERIOD_START, period: FIRST_HALF }
+  - { minute: 45+1, type: PERIOD_END }
+  - { minute: 45, type: PERIOD_START, period: SECOND_HALF }
+  - { minute: 90+3, type: PERIOD_END, outcome: { requires: EXTRA_TIME, next_period: AWAITING_EXTRA_TIME } }
+  - { minute: 90, type: PERIOD_START, period: AWAITING_EXTRA_TIME }
+  - { minute: 90, type: PERIOD_END }
+  - { minute: 90, type: PERIOD_START, period: EXTRA_TIME_FIRST_HALF }
+  - { minute: 105, type: PERIOD_END, outcome: { requires: EXTRA_TIME, next_period: EXTRA_TIME_HALF_TIME } }
+  - { minute: 105, type: PERIOD_START, period: EXTRA_TIME_HALF_TIME }
+  - { minute: 105, type: PERIOD_END }
+  - { minute: 105, type: PERIOD_START, period: EXTRA_TIME_SECOND_HALF }
+  - { minute: 112, type: GOAL, team: Kyebando Ravens FC, actors: { SCORER: Ivan Ruhweza, ASSIST: Hassan Kizito } }
+  - { minute: 120+1, type: PERIOD_END }
+expect:
+  score:
+    Kyebando Ravens FC: { total: 1, periods: { 1H: 0, 2H: 0, ET1: 0, ET2: 1 } }
+    Kisaasi Kestrels FC: { total: 0, periods: { 1H: 0, 2H: 0, ET1: 0, ET2: 0 } }
+  outcome: { winner: Kyebando Ravens FC, method: EXTRA_TIME }

@@ -17,6 +17,9 @@ internal static class EngineTestData
     // Not seeded until S15, but its sin bin and temporary replacements exercise effects football doesn't have.
     public static SportDefinition RugbyUnion15 { get; } = Read(File.ReadAllText(Path.Combine(ReferenceSportFilesTests.RepositoryRoot(), "docs", "domain", "sports", "rugby-union-15.yaml")));
 
+    // Not seeded until S17, but its repeatable overtime shows the tie resolution football doesn't have.
+    public static SportDefinition Basketball { get; } = Read(File.ReadAllText(Path.Combine(ReferenceSportFilesTests.RepositoryRoot(), "docs", "domain", "sports", "basketball.yaml")));
+
     public static ContestContext Context(SportDefinition definition, params ContestLineup[] lineups) =>
         new(definition, ContestRules.None, [new ContestSide("HOME", Home), new ContestSide("AWAY", Away)], CoverageLevel.Standard)
         {

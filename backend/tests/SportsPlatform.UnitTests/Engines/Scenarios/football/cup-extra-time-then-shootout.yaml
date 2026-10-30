@@ -1,0 +1,51 @@
+title: Seeta Sparrows FC and Mutundwe Meteors FC are level 1–1 after 90 minutes and 2–2 after extra time; Seeta Sparrows FC win the shoot-out 4–3
+# A cup tie (EXTRA_PERIODS_THEN_SHOOTOUT): level after normal time it needs extra time, level after extra time the
+# shoot-out, which goes on while it is level and is won on its own score.
+definition: { variant: FOOTBALL_ASSOCIATION, version: 1 }
+covers: [OUTCOME_EXTRA_PERIODS, OUTCOME_SHOOTOUT]
+rules: FOOTBALL_CUP
+coverage: STANDARD
+home:
+  team: Seeta Sparrows FC
+  starters: [Aloysius Kateregga, Brian Mukasa, Collins Opolot, Denis Ssali, Emmanuel Okello, Fred Nsubuga, George Atuhaire, Henry Lubega, Isaac Ochieng, Joseph Wasswa, Keith Nabimanya]
+  bench: [Lucky Ssemakula, Moses Ebong]
+away:
+  team: Mutundwe Meteors FC
+  starters: [Noah Kibuuka, Owen Agaba, Peter Lwanga, Quinto Ojok, Ronald Sserwadda, Samuel Twinomujuni, Trevor Ouma, Usama Kalanzi, Victor Ssekitoleko, Walter Odoi, Yokana Mpanga]
+  bench: [Zziwa Kakande, Alex Otim]
+events:
+  - { minute: 0, type: PERIOD_START, period: FIRST_HALF }
+  - { minute: 21, type: GOAL, team: Mutundwe Meteors FC, actors: { SCORER: Victor Ssekitoleko } }
+  - { minute: 45+2, type: PERIOD_END }
+  - { minute: 45, type: PERIOD_START, period: SECOND_HALF }
+  - { minute: 68, type: PENALTY_GOAL, team: Seeta Sparrows FC, actors: { TAKER: Joseph Wasswa }, outcome: { requires: EXTRA_TIME, next_period: AWAITING_EXTRA_TIME } }
+  - { minute: 90+4, type: PERIOD_END }
+  - { minute: 90, type: PERIOD_START, period: AWAITING_EXTRA_TIME, outcome: { requires: EXTRA_TIME, next_period: EXTRA_TIME_FIRST_HALF } }
+  - { minute: 90, type: PERIOD_END }
+  - { minute: 90, type: PERIOD_START, period: EXTRA_TIME_FIRST_HALF }
+  - { minute: 99, type: GOAL, team: Seeta Sparrows FC, actors: { SCORER: Keith Nabimanya, ASSIST: Henry Lubega } }
+  - { minute: 105+1, type: PERIOD_END }
+  - { minute: 105, type: PERIOD_START, period: EXTRA_TIME_HALF_TIME }
+  - { minute: 105, type: PERIOD_END }
+  - { minute: 105, type: PERIOD_START, period: EXTRA_TIME_SECOND_HALF }
+  - { minute: 117, type: GOAL, team: Mutundwe Meteors FC, actors: { SCORER: Walter Odoi } }
+  - { minute: 120+2, type: PERIOD_END, outcome: { requires: SHOOTOUT, next_period: AWAITING_SHOOTOUT } }
+  - { minute: 120, type: PERIOD_START, period: AWAITING_SHOOTOUT }
+  - { minute: 120, type: PERIOD_END }
+  - { type: PERIOD_START, period: PENALTY_SHOOTOUT, outcome: { requires: SHOOTOUT } }
+  - { type: SHOOTOUT_GOAL, team: Seeta Sparrows FC, actors: { TAKER: Joseph Wasswa } }
+  - { type: SHOOTOUT_GOAL, team: Mutundwe Meteors FC, actors: { TAKER: Victor Ssekitoleko } }
+  - { type: SHOOTOUT_GOAL, team: Seeta Sparrows FC, actors: { TAKER: Henry Lubega } }
+  - { type: SHOOTOUT_MISS, team: Mutundwe Meteors FC, actors: { TAKER: Walter Odoi }, payload: { outcome: SAVED } }
+  - { type: SHOOTOUT_MISS, team: Seeta Sparrows FC, actors: { TAKER: Isaac Ochieng }, payload: { outcome: HIT_WOODWORK } }
+  - { type: SHOOTOUT_GOAL, team: Mutundwe Meteors FC, actors: { TAKER: Usama Kalanzi }, outcome: { requires: SHOOTOUT } }
+  - { type: SHOOTOUT_GOAL, team: Seeta Sparrows FC, actors: { TAKER: Keith Nabimanya } }
+  - { type: SHOOTOUT_GOAL, team: Mutundwe Meteors FC, actors: { TAKER: Trevor Ouma } }
+  - { type: SHOOTOUT_GOAL, team: Seeta Sparrows FC, actors: { TAKER: George Atuhaire } }
+  - { type: SHOOTOUT_MISS, team: Mutundwe Meteors FC, actors: { TAKER: Peter Lwanga }, payload: { outcome: MISSED } }
+  - { type: PERIOD_END }
+expect:
+  score:
+    Seeta Sparrows FC: { total: 2, shootout: 4, periods: { 1H: 0, 2H: 1, ET1: 1, ET2: 0 } }
+    Mutundwe Meteors FC: { total: 2, shootout: 3, periods: { 1H: 1, 2H: 0, ET1: 0, ET2: 1 } }
+  outcome: { winner: Seeta Sparrows FC, method: SHOOTOUT }

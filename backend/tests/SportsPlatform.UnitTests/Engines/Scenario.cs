@@ -160,6 +160,9 @@ internal sealed record ScenarioEvent(string Type)
 
     public IReadOnlyList<string> Rejected { get; init; } = [];
 
+    /// <summary>The outcome the engine proposes once this event has been recorded (or refused), as at the end.</summary>
+    public ExpectedOutcome? Outcome { get; init; }
+
     /// <summary>The clock in seconds and the added time in seconds (<c>45+2</c> → 2700 and 120).</summary>
     public (int? Clock, int? Added) Clock()
     {
@@ -176,10 +179,7 @@ internal sealed record ScenarioEvent(string Type)
     public string Describe(int index) => $"event {index + 1} ({Type}{(Minute is { } minute ? $", {minute}'" : string.Empty)})";
 }
 
-/// <summary>
-/// The score per team and the outcome when the last event has been recorded; a scenario that goes to extra time leaves
-/// the outcome out until tie resolution (S05-T2c).
-/// </summary>
+/// <summary>The score per team and the outcome when the last event has been recorded.</summary>
 internal sealed record ScenarioExpectation(Dictionary<string, ExpectedScore> Score)
 {
     public ExpectedOutcome? Outcome { get; init; }
@@ -193,12 +193,28 @@ internal sealed record ExpectedScore(int Total)
     public Dictionary<string, int> Periods { get; init; } = [];
 }
 
-/// <summary>Either a winner and the method, or a draw.</summary>
+/// <summary>
+/// A winner and the method (with <see cref="RequiresEnd"/> when a sudden-death score ends the contest), a draw, or what
+/// a level score requires next (<c>EXTRA_TIME</c> or <c>SHOOTOUT</c>) and from which period (none while the shoot-out
+/// is under way).
+/// </summary>
 internal sealed record ExpectedOutcome
 {
     public string? Winner { get; init; }
 
     public OutcomeMethod? Method { get; init; }
 
+    public bool RequiresEnd { get; init; }
+
     public bool Draw { get; init; }
+
+    public ScenarioRequirement? Requires { get; init; }
+
+    public string? NextPeriod { get; init; }
+}
+
+internal enum ScenarioRequirement
+{
+    ExtraTime,
+    Shootout,
 }

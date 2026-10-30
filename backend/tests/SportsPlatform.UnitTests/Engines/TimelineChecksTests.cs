@@ -133,6 +133,22 @@ public sealed class TimelineChecksTests
             .ShouldBe([SportsConfigurationErrors.TimelineReferenceInvalid.Code]);
     }
 
+    [Fact]
+    public void The_score_that_decides_a_sudden_death_period_can_still_be_corrected_or_reversed()
+    {
+        var ctx = Context(RugbyUnion15, _home, _away);
+        var timeline = new[]
+        {
+            Start(1, "SUDDEN_DEATH"),
+            Event(2, "TRY", Home) with { Actors = Scorer(Person(1)), PeriodCode = "SUDDEN_DEATH", PeriodOccurrence = 1 },
+        };
+
+        Validate(ctx, timeline, Draft("TRY") with { ParticipantId = Home, Actors = Scorer(Person(2)), SupersedesEventId = Id(2) }).IsValid.ShouldBeTrue();
+        Validate(ctx, timeline, Draft("EVENT_REVERSED") with { ReversesEventId = Id(2) }).IsValid.ShouldBeTrue();
+        Codes(Validate(ctx, timeline, Draft("PENALTY_GOAL") with { ParticipantId = Away, Actors = Roles(("KICKER", Person(11))) }))
+            .ShouldBe([SportsConfigurationErrors.TimelineEventNotAllowedInPhase.Code]);
+    }
+
     private static ValidationResult Validate(ContestStatus status, TimelineEvent[] timeline, TimelineEventDraft draft) =>
         Validate(Ctx, timeline, draft, status);
 
