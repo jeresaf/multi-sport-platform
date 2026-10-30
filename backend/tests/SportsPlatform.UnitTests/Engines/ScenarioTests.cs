@@ -59,7 +59,7 @@ public sealed class ScenarioTests
                 continue;
             }
 
-            var recorded = Record(draft, timeline.Count + 1, live.Phase);
+            var recorded = Record(draft, timeline, live.Phase);
             timeline.Add(recorded);
             if (step.Id is { } label)
             {
@@ -113,12 +113,18 @@ public sealed class ScenarioTests
         };
     }
 
-    // What Match Operations will do from S12: an id, the next sequence, and the period from the live phase (a start
-    // opens the next occurrence of the period it names).
-    private static TimelineEvent Record(TimelineEventDraft draft, long sequence, ContestPhase phase)
+    // What Match Operations will do from S12: an id, the next sequence, and the period from the live phase. A start
+    // opens the next occurrence of the period it names, counted over every recorded start (reversed ones too), so a
+    // stored occurrence is never given twice (review #78 N2).
+    private static TimelineEvent Record(TimelineEventDraft draft, List<TimelineEvent> timeline, ContestPhase phase)
     {
+        var sequence = timeline.Count + 1L;
         var (period, occurrence) = draft.EventType == GenericEventCodes.PeriodStart
-            ? (draft.PeriodCode, phase.Played.Count(played => played.PeriodCode == draft.PeriodCode) + 1)
+            ? (draft.PeriodCode, timeline
+                .Where(evt => evt.EventType == GenericEventCodes.PeriodStart && evt.PeriodCode == draft.PeriodCode)
+                .Select(evt => evt.PeriodOccurrence)
+                .DefaultIfEmpty(0)
+                .Max() + 1)
             : (phase.PeriodCode, phase.Occurrence);
         return new TimelineEvent(EngineTestData.Id(sequence), sequence, draft.EventType, draft.Source)
         {

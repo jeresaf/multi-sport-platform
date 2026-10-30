@@ -109,9 +109,17 @@ public static class PersonnelTracker
         // Where each suspended person was, so they return there: a bench player or staff member is never put on the field.
         private Dictionary<Guid, HashSet<Guid>> SuspendedFrom { get; } = [];
 
+        // Someone already off for good or for a while (replaced, dismissed, temporarily replaced) stays where they are:
+        // suspending them would lose that, and their return would put them on the field (review #78 N1). Someone the
+        // lineup doesn't name (below STANDARD) is taken to be on the field.
         public void Suspend(Guid person)
         {
-            var from = OnField.Contains(person) ? OnField : Bench.Contains(person) ? Bench : Staff.Contains(person) ? Staff : OnField;
+            if (Replaced.Contains(person) || Dismissed.Contains(person) || TemporarilyReplaced.ContainsKey(person))
+            {
+                return;
+            }
+
+            var from = Bench.Contains(person) ? Bench : Staff.Contains(person) ? Staff : OnField;
             MoveTo(Suspended, person);
             SuspendedFrom[person] = from;
         }

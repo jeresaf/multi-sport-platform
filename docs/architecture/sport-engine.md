@@ -120,7 +120,8 @@ can't see `Guid.NewGuid()`; review does). As built:
   `PERIOD_END` closes the running one, and until the next start the phase kind is `BREAK`.
 - **Personnel:** roles are read from the definition, never by name. An effect applies to the event's first
   declared actor role that is filled; a substitution takes off the player in the role drawn `ON_FIELD` and brings
-  on the one drawn from the `BENCH`. `RETURN` brings a suspended person back where they were (field, bench or staff),
+  on the one drawn from the `BENCH`. A suspension doesn't touch someone already replaced, dismissed or temporarily
+  replaced. `RETURN` brings a suspended person back where they were (field, bench or staff),
   or a temporarily replaced player back on (named either way), whose replacement goes back to the bench if still
   on the field. `FOUL_COUNT` counts per person.
 - **ADDITIVE state:** per participant, points per component and `main` points per period, plus every period

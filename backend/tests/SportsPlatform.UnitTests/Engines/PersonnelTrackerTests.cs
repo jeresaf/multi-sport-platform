@@ -86,6 +86,28 @@ public sealed class PersonnelTrackerTests
         home.OnField.ShouldBe([_starter, _otherStarter], ignoreOrder: true);
     }
 
+    // Review #78 N1: a card to someone already off doesn't bring them back on when the sin bin ends.
+    [Fact]
+    public void A_replaced_or_temporarily_replaced_player_stays_off_after_a_sin_bin()
+    {
+        var replaced = Track(
+            RugbyUnion15,
+            Event(1, "REPLACEMENT", Home) with { Actors = Actors(("PLAYER_OFF", _starter), ("PLAYER_ON", _substitute)) },
+            Event(2, "YELLOW_CARD", Home) with { Actors = Actors(("OFFENDER", _starter)) },
+            Event(3, "SIN_BIN_RETURN", Home) with { Actors = Actors(("OFFENDER", _starter)) });
+        var temporarilyReplaced = Track(
+            RugbyUnion15,
+            Event(1, "TEMPORARY_REPLACEMENT", Home) with { Actors = Actors(("PLAYER_OFF", _starter), ("PLAYER_ON", _substitute)) },
+            Event(2, "YELLOW_CARD", Home) with { Actors = Actors(("OFFENDER", _starter)) },
+            Event(3, "SIN_BIN_RETURN", Home) with { Actors = Actors(("OFFENDER", _starter)) },
+            Event(4, "TEMPORARY_REPLACEMENT_END", Home) with { Actors = Actors(("PLAYER_ON", _starter)) });
+
+        replaced.Replaced.ShouldBe([_starter]);
+        replaced.OnField.ShouldBe([_otherStarter, _substitute], ignoreOrder: true);
+        temporarilyReplaced.OnField.ShouldBe([_starter, _otherStarter], ignoreOrder: true);
+        temporarilyReplaced.Bench.ShouldBe([_substitute]);
+    }
+
     [Fact]
     public void After_a_temporary_substitution_the_player_returns_and_the_replacement_goes_back_to_the_bench()
     {
