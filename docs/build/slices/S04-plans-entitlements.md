@@ -293,10 +293,16 @@ Deliver:
 - Likely two PRs (T4a console; T4b tenant screens, banner, demo e2e, slice close).
 
 Acceptance:
-- [ ] The demo flow passes in CI against the real API, including the API's `403 TENANT_READ_ONLY` and
-      `403 ENTITLEMENT_QUOTA_EXCEEDED` when called directly.
-- [ ] A read-only tenant shows the banner and no enabled write control; every member sees the banner.
-- [ ] Every new screen works at phone, tablet and desktop widths (screenshots).
+- [x] The demo flow passes in CI against the real API, including the API's `403 TENANT_READ_ONLY` and
+      `403 ENTITLEMENT_QUOTA_EXCEEDED` when called directly. Evidence: `admin-plans-demo.spec.ts` (T4b2; with the audit
+      trail, the override and both refusals), `admin-platform.spec.ts` (the console's panel, T4a), CI job `e2e`.
+- [x] A read-only tenant shows the banner and no enabled write control; every member sees the banner. Evidence:
+      `admin-plans-demo.spec.ts` (no enabled button on Members & roles or Organisation; the viewer's banner),
+      `admin-subscription.spec.ts` (T4b1), Vitest `members.test.tsx` and `organisation.test.tsx` (read-only cases).
+- [x] Every new screen works at phone, tablet and desktop widths (screenshots). Evidence: `admin-screenshots.spec.ts`
+      and `admin-platform.spec.ts` (console, T4a), `admin-subscription.spec.ts` (Subscription page and banners, T4b1),
+      `admin-plans-demo.spec.ts` (invite at the limit, read-only Members & roles and Organisation, T4b2); the CI
+      artifact `screenshots`.
 
 ## Carried over from S03 (slice review 2026-10-20)
 
@@ -312,14 +318,21 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
 
 ## Slice acceptance
 
-- [ ] Steps 1–3 of the decision formula run on every admin request; the commercial rules are enforced server-side
-      and visible in the UI.
-- [ ] Seeded STANDARD and PRO values match authorization.md's table (test).
-- [ ] Subscription periods and overrides are covered by the isolation harness; the RLS exception list is unchanged.
-- [ ] Docs updated: authorization.md, state-machines.md (current period, read-only), multi-tenancy.md,
+- [x] Steps 1–3 of the decision formula run on every admin request; the commercial rules are enforced server-side
+      and visible in the UI. Evidence: `ActionAuthorizationMiddleware` (T2b step 1, T3a2 step 2),
+      `EntitlementPipelineTests`, `StaffUserQuotaTests`, `CapabilitiesTests`, `AuthorizationMatrixTests`;
+      `admin-plans-demo.spec.ts`.
+- [x] Seeded STANDARD and PRO values match authorization.md's table (test). Evidence:
+      `AuthorizationEntitlementTableTests` (code vs the table, T1a), `PlanSeedTests` and `PlanTests` (seeded rows vs the
+      code, T1b).
+- [x] Subscription periods and overrides are covered by the isolation harness; the RLS exception list is unchanged.
+      Evidence: `IsolationSamples` (`SubscriptionPeriodSample`, `EntitlementOverrideSample`); `RlsCoverageTests`'
+      exceptions are still `outbox_messages` and `tenant_domains`.
+- [x] Docs updated: authorization.md, state-machines.md (current period, read-only), multi-tenancy.md,
       api-conventions.md, data-conventions.md, modules.md, admin-app.md (as built), pilot-customer.md (demo
       subscriptions), CLAUDE.md commands, `docs/generated/entitlements.md`.
-- [ ] The S03 carry-overs above are done and removed from PROGRESS.md "Tech debt / follow-ups".
+- [x] The S03 carry-overs above are done and removed from PROGRESS.md "Tech debt / follow-ups" (T2a, T2b, T3b2,
+      T4b1).
 
 ## Implementation notes
 
@@ -370,3 +383,11 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   with the console's panel. `describeProblem` shows `ENTITLEMENT_QUOTA_EXCEEDED`'s `detail` (it names the limit).
   `admin-subscription.spec.ts` walks one tenant of its own through expiring, grace and cancelled; the slice demo e2e
   (T4b2) also runs on a tenant of its own, since parallel specs share KMSA and ELSSC (owner, plan 2026-10-29).
+- **T4b2:** a control the roles allow but the tenant can't use now is disabled with one visible line saying why
+  (`UnavailableNote`, pointed to by `aria-describedby`): `useTenantWorkspace().unavailable(action)` turns the
+  capabilities' `unavailable` into "Read-only: …" (from the current period's status) or "Requires PRO plan" (the first
+  plan of `plans`; "Not included in your plan" when none). The staff limit is the client's reading of
+  `GET /api/admin/v1/tenant/subscription`'s `MAX_STAFF_USERS` usage, for whoever can read it (owners and
+  administrators): "Your plan allows N staff users." as the API says it; the invite dialog shows the usage but doesn't
+  refuse, since a re-invitation takes no seat. The slice demo e2e runs on Hornbill Volleyball Club, a test tenant of
+  its own (pilot-customer.md); KMSA and ELSSC stay the manual demo. No backend change (owner, plan 2026-10-30).
