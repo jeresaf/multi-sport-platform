@@ -7,8 +7,9 @@ namespace SportsPlatform.Modules.SportsConfiguration.Engines;
 public static class PhaseTracker
 {
     /// <summary>
-    /// Follows the active events in sequence order. A start opens the period it names, as the next occurrence of that
-    /// code; an end closes the running period. Whether a start or an end was allowed is the engine's check, not this.
+    /// Follows the active events in sequence order. A start opens the period it names, in the occurrence recorded on it
+    /// (the stored <c>period_occurrence</c>, which the score's periods use too); an end closes the running period.
+    /// Whether a start or an end was allowed is the engine's check, not this.
     /// </summary>
     public static ContestPhase Track(SportDefinition definition, IEnumerable<TimelineEvent> active)
     {
@@ -21,9 +22,8 @@ public static class PhaseTracker
             if (evt.EventType == GenericEventCodes.PeriodStart)
             {
                 var period = Period(definition, evt.PeriodCode);
-                var occurrence = played.Count(item => item.PeriodCode == period.Code) + 1;
-                played.Add(new PlayedPeriod(period.Code, occurrence));
-                phase = new ContestPhase(period.Code, occurrence, Running: true, period.Kind) { Played = [.. played] };
+                played.Add(new PlayedPeriod(period.Code, evt.PeriodOccurrence));
+                phase = new ContestPhase(period.Code, evt.PeriodOccurrence, Running: true, period.Kind) { Played = [.. played] };
             }
             else if (evt.EventType == GenericEventCodes.PeriodEnd && phase.Running)
             {

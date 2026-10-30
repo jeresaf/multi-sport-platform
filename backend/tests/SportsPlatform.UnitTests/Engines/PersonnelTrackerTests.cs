@@ -70,6 +70,22 @@ public sealed class PersonnelTrackerTests
         returned.OnField.ShouldContain(_starter);
     }
 
+    // Review #78 R1: a sin bin ends where it started; a bench player or staff member is never put on the field.
+    [Fact]
+    public void A_suspended_bench_player_or_staff_member_returns_to_where_they_were()
+    {
+        var home = Track(
+            RugbyUnion15,
+            Event(1, "YELLOW_CARD", Home) with { Actors = Actors(("OFFENDER", _substitute)) },
+            Event(2, "YELLOW_CARD", Home) with { Actors = Actors(("OFFENDER", _coach)) },
+            Event(3, "SIN_BIN_RETURN", Home) with { Actors = Actors(("OFFENDER", _substitute)) },
+            Event(4, "SIN_BIN_RETURN", Home) with { Actors = Actors(("OFFENDER", _coach)) });
+
+        home.Bench.ShouldBe([_substitute]);
+        home.Staff.ShouldBe([_coach]);
+        home.OnField.ShouldBe([_starter, _otherStarter], ignoreOrder: true);
+    }
+
     [Fact]
     public void After_a_temporary_substitution_the_player_returns_and_the_replacement_goes_back_to_the_bench()
     {

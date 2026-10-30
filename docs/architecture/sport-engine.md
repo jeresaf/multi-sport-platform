@@ -115,12 +115,14 @@ can't see `Guid.NewGuid()`; review does). As built:
 - **Effective status:** only a later event that still stands counts. An event is `REVERSED` by a later *active*
   event that reverses it, else `SUPERSEDED` by a later event that supersedes it and is not itself reversed (so a
   chain of corrections ends at its last one). Reversing a reversal or a correction restores what it had undone.
-- **Phase:** a `PERIOD_START` names any period, breaks included, as the next occurrence of its code; a
+- **Phase:** a `PERIOD_START` names any period, breaks included, in the occurrence recorded on it (the stored
+  `period_occurrence`, which the score's periods read too, so reversing an earlier start renumbers nothing); a
   `PERIOD_END` closes the running one, and until the next start the phase kind is `BREAK`.
 - **Personnel:** roles are read from the definition, never by name. An effect applies to the event's first
   declared actor role that is filled; a substitution takes off the player in the role drawn `ON_FIELD` and brings
-  on the one drawn from the `BENCH`. `RETURN` brings back a suspended player, or a temporarily replaced one (named
-  either way), whose replacement goes back to the bench. `FOUL_COUNT` counts per person.
+  on the one drawn from the `BENCH`. `RETURN` brings a suspended person back where they were (field, bench or staff),
+  or a temporarily replaced player back on (named either way), whose replacement goes back to the bench if still
+  on the field. `FOUL_COUNT` counts per person.
 - **ADDITIVE state:** per participant, points per component and `main` points per period, plus every period
   started; the summary shows `main` as primary text, the `shootout` component as secondary text once a `SHOOTOUT`
   period has started, and one entry per `PLAY` period started (its `short` label).

@@ -42,7 +42,7 @@ public static class PersonnelTracker
                 side.MoveTo(side.Dismissed, dismissed);
                 break;
             case EventEffect.TemporarySuspension when subject is { } suspended:
-                side.MoveTo(side.Suspended, suspended);
+                side.Suspend(suspended);
                 break;
             case EventEffect.Substitute or EventEffect.TemporarySubstitute:
                 var off = ActorFrom(definition, type, evt, ActorPool.OnField);
@@ -106,6 +106,16 @@ public static class PersonnelTracker
 
         public Dictionary<Guid, int> Fouls { get; } = [];
 
+        // Where each suspended person was, so they return there: a bench player or staff member is never put on the field.
+        private Dictionary<Guid, HashSet<Guid>> SuspendedFrom { get; } = [];
+
+        public void Suspend(Guid person)
+        {
+            var from = OnField.Contains(person) ? OnField : Bench.Contains(person) ? Bench : Staff.Contains(person) ? Staff : OnField;
+            MoveTo(Suspended, person);
+            SuspendedFrom[person] = from;
+        }
+
         public void MoveTo(HashSet<Guid> target, Guid person)
         {
             Remove(person);
@@ -121,6 +131,7 @@ public static class PersonnelTracker
             Replaced.Remove(person);
             Dismissed.Remove(person);
             TemporarilyReplaced.Remove(person);
+            SuspendedFrom.Remove(person);
         }
 
         // Back from suspension, or from a temporary substitution: named either as the player who left or as the one
@@ -130,7 +141,7 @@ public static class PersonnelTracker
         {
             if (Suspended.Contains(person))
             {
-                MoveTo(OnField, person);
+                MoveTo(SuspendedFrom.GetValueOrDefault(person, OnField), person);
                 return;
             }
 
