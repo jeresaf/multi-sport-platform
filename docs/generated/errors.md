@@ -40,6 +40,7 @@ the message is the default title and may change.
 | `PLATFORM_OUTBOX_MESSAGE_NOT_FOUND` | 404 | No outbox message with this ID in this module. | Platform |
 | `PLATFORM_ROUTE_NOT_FOUND` | 404 | No endpoint matches this path. | BuildingBlocks |
 | `PLATFORM_UNEXPECTED_ERROR` | 500 | An unexpected error occurred. Quote the correlation ID when reporting it. | BuildingBlocks |
+| `SPORT_CONCURRENCY_CONFLICT` | 409 | The configuration was changed by someone else. Reload and try again. | SportsConfiguration |
 | `TENANT_BLOCKED` | 403 | This tenant is suspended or archived. | Tenancy |
 | `TENANT_CONCURRENCY_CONFLICT` | 409 | The tenant was changed by someone else. Reload and try again. | Tenancy |
 | `TENANT_INVALID_TRANSITION` | 409 | The tenant's status does not allow this change. | Tenancy |
