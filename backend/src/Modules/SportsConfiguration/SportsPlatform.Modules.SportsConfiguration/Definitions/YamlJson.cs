@@ -9,8 +9,8 @@ namespace SportsPlatform.Modules.SportsConfiguration.Definitions;
 /// <summary>
 /// Reads a YAML document into a JSON tree, so JSON Schema can check it (ADR-0006). Plain scalars are typed by a subset
 /// of YAML 1.2's core schema (null, true/false, decimal integers, decimals with a fraction; hexadecimal, exponents and
-/// <c>.inf</c> stay text, which the schema refuses where it wants a number). Quoted scalars and <c>!!str</c> are
-/// strings; any other explicit tag is refused.
+/// <c>.inf</c> stay text, which the schema refuses where it wants a number). Quoted scalars, <c>!!str</c> and the
+/// non-specific tag <c>!</c> (YAML 1.2: a string) are strings; any other explicit tag is refused.
 /// </summary>
 public static partial class YamlJson
 {
@@ -36,7 +36,7 @@ public static partial class YamlJson
         _ => throw new YamlException(node.Start, node.End, $"Unsupported YAML node {node.NodeType}."),
     };
 
-    private static bool IsStringTag(YamlNode node) => !node.Tag.IsEmpty && node.Tag.Value == _stringTag;
+    private static bool IsStringTag(YamlNode node) => !node.Tag.IsEmpty && node.Tag.Value is _stringTag or "!";
 
     private static string Key(YamlNode key) => key is YamlScalarNode { Value: { } value }
         ? value

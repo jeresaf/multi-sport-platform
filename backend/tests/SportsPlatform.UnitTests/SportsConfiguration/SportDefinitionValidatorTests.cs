@@ -53,6 +53,7 @@ public sealed class SportDefinitionValidatorTests
     public void A_str_tag_keeps_a_scalar_text_and_other_tags_are_refused()
     {
         YamlJson.Parse("a: !!str 1\n")!["a"]!.GetValue<string>().ShouldBe("1");
+        YamlJson.Parse("a: ! 1\n")!["a"]!.GetValue<string>().ShouldBe("1");
 
         SportDefinitionValidator.Validate(_file, "version: !!int 1\n").ShouldHaveSingleItem().Message.ShouldContain("tag:yaml.org,2002:int is not supported");
     }
@@ -224,6 +225,11 @@ public sealed class SportDefinitionValidatorTests
             "a ratio has both parts and builtin RATIO",
             root => Statistic(root, "POSSESSION_PERCENT")["derive"] = new JsonObject { ["builtin"] = "RATIO", ["numerator"] = "SHOTS_ON_TARGET" },
             ["football.yaml: $.statistics[16].derive: numerator and denominator go together, with builtin RATIO"]
+        },
+        {
+            "a ratio without builtin is one problem",
+            root => Statistic(root, "POSSESSION_PERCENT")["derive"] = new JsonObject { ["numerator"] = "SHOTS_ON_TARGET", ["denominator"] = "SHOTS" },
+            ["football.yaml: $.statistics[16].derive: needs exactly one of count_events, sum_points, builtin, manual"]
         },
         {
             "a statistic is derived one way",

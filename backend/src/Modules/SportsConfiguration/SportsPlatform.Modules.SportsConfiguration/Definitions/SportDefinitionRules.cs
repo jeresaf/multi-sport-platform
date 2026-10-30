@@ -178,8 +178,9 @@ internal sealed class SportDefinitionRules
                     + (forms.Count > 1 ? $" (found {string.Join(", ", forms)})" : string.Empty));
             }
 
+            // Only once the form is clear: a ratio without builtin is already "needs exactly one of …".
             var ratio = derive.ContainsKey("numerator") || derive.ContainsKey("denominator");
-            if (ratio && !(derive.ContainsKey("numerator") && derive.ContainsKey("denominator") && OptionalText(derive, "builtin") == "RATIO"))
+            if (forms.Count == 1 && ratio && !(derive.ContainsKey("numerator") && derive.ContainsKey("denominator") && OptionalText(derive, "builtin") == "RATIO"))
             {
                 Problem($"{path}.derive", "numerator and denominator go together, with builtin RATIO");
             }
