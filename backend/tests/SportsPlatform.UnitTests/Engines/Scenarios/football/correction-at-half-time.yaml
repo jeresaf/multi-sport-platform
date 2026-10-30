@@ -3,6 +3,7 @@ title: At half-time the scorer corrects who scored the opener — Kansanga Harri
 # scorer has been substituted at half-time, yet the correction stands; a bench player could not have scored. A goal
 # already corrected is corrected through its latest version, still as at the first-half goal.
 definition: { variant: FOOTBALL_ASSOCIATION, version: 1 }
+covers: [CORRECTIONS_AND_REVERSALS]
 rules: FOOTBALL_LEAGUE
 coverage: STANDARD
 home:

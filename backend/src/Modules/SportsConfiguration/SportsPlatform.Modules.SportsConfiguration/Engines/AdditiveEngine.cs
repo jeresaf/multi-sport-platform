@@ -8,13 +8,16 @@ namespace SportsPlatform.Modules.SportsConfiguration.Engines;
 /// <summary>
 /// The <c>ADDITIVE</c> family (sport-engine.md §5): each active event's <c>points</c> go to the acting participant or
 /// its opponent, in the score component the event type names. Validation runs the checks every family shares
-/// (<see cref="TimelineChecks"/>); follow-ups and limits follow in S05-T2b2, tie resolution in T2c.
+/// (<see cref="TimelineChecks"/>); tie resolution follows in S05-T2c.
 /// </summary>
 public sealed class AdditiveEngine : IScoringEngine
 {
     public const string FamilyCode = ScoringFamilies.Additive;
 
     public const string ShootoutComponent = "shootout";
+
+    /// <summary>The rule that overrides an event type's points: <c>scoring.points.&lt;EVENT_TYPE&gt;</c>.</summary>
+    public const string PointsRulePrefix = "scoring.points.";
 
     public string Family => FamilyCode;
 
@@ -42,7 +45,15 @@ public sealed class AdditiveEngine : IScoringEngine
         }
 
         var type = ctx.Definition.EventTypes.FirstOrDefault(candidate => candidate.Code == evt.EventType);
-        if (type is not { Points: { } points and not 0 })
+        // The rules may change what a scoring type is worth (sport-engine.md §5, Apply), never make another type score
+        // (a missed attempt is worth 0 by definition); whether a template lets tenants change it is the resolver's check.
+        if (type is not { Points: { } defined and not 0 })
+        {
+            return score;
+        }
+
+        var points = ctx.Rules.Number(PointsRulePrefix + type.Code) is { } overridden ? checked((int)overridden) : defined;
+        if (points == 0)
         {
             return score;
         }

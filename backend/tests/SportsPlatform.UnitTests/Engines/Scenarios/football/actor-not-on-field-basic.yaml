@@ -1,6 +1,7 @@
 title: Without lineups any named scorer is taken as given — Kansanga Harriers FC beat Nakawa Nomads FC 2–0
 # At BASIC coverage nobody records lineups, so scorers aren't checked against the field and may be left out.
 definition: { variant: FOOTBALL_ASSOCIATION, version: 1 }
+covers: [VALIDATE_ACTORS]
 rules: FOOTBALL_LEAGUE
 coverage: BASIC
 home:

@@ -1,6 +1,7 @@
 title: An own goal by Bukoto Comets FC's defender wins it for Ntinda Swifts FC
 # The own goal is recorded against Bukoto Comets FC, whose player scored it; the goal counts for Ntinda Swifts FC.
 definition: { variant: FOOTBALL_ASSOCIATION, version: 1 }
+covers: [APPLY]
 rules: FOOTBALL_LEAGUE
 coverage: STANDARD
 home:

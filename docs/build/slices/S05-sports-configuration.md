@@ -236,7 +236,8 @@ Deliver:
   and tie resolution).
 
 Acceptance:
-- [ ] The engines have no I/O, clock or randomness (architecture test on dependencies).
+- [x] The engines have no I/O, clock or randomness (architecture test on dependencies). (T2a: `EngineDependencyTests`;
+      T2b2 also reads the source for `Guid.NewGuid()`, `DateTime.UtcNow` and the like)
 - [ ] Every rule in sport-engine.md §5 has a passing and a rejecting scenario (a test lists them).
 
 ### T3 — Formats and generators (~2 PRs)
@@ -351,4 +352,12 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   Review #79 (owner, 2026-10-30: the defaults): after `ENDED` the open window takes only corrections and reversals, and
   never a reversal that would bring back or undo a period's start or end; Q28–Q31 (open-questions.md) keep the defaults
   the code follows.
-
+- **T2b2:** plan approved with the recommended answers (owner, 2026-10-30): `VAR_DECISION`'s `reverses` by outcome
+  (review #78 Q1) moves to S12 (Q32); `substitutions.extra_in_extra_time` raises `max` only, not `windows`; follow-ups
+  are shown with rugby 15s scenarios reading its reference file. While building, the owner added: a window also ends
+  when the side's next substitution is at another game-clock minute. Follow-ups and limits are in
+  `Engines/FollowUpsAndLimits` (sport-engine.md, "As built (S05-T2b2)"); errors `TIMELINE_FOLLOW_UP_MISSING`,
+  `TIMELINE_LIMIT_REACHED`. Scenario files gain `covers` (`ScenarioRules`); T2c adds the outcome rules to the list
+  and the outcome of `football/extra-time-substitution.yaml`. Rule files `rules/FOOTBALL_CUP.yaml` and
+  `rules/RUGBY15_LEAGUE.yaml` hold rulesets.md's values until T4's resolver. Q33: the extra substitution counts from
+  the first overtime `PLAY` period, not in `AWAITING_EXTRA_TIME`.

@@ -1,6 +1,7 @@
 title: VAR rules out Bukoto Comets FC's late equaliser, so Ntinda Swifts FC win 1–0
 # The overturned goal stays on the timeline as reversed; it no longer counts.
 definition: { variant: FOOTBALL_ASSOCIATION, version: 1 }
+covers: [CORRECTIONS_AND_REVERSALS]
 rules: FOOTBALL_LEAGUE
 coverage: STANDARD
 home:

@@ -62,6 +62,8 @@ the message is the default title and may change.
 | `TIMELINE_CONTEST_NOT_LIVE` | 422 | Events can be recorded only while the contest is live, or within the correction window after it ended. | SportsConfiguration |
 | `TIMELINE_EVENT_NOT_ALLOWED_IN_PHASE` | 422 | This event can't be recorded in the current phase of the contest. | SportsConfiguration |
 | `TIMELINE_EVENT_UNKNOWN` | 422 | The sport definition has no event type with this code. | SportsConfiguration |
+| `TIMELINE_FOLLOW_UP_MISSING` | 422 | This event needs an earlier event it follows, and there is none it can follow. | SportsConfiguration |
+| `TIMELINE_LIMIT_REACHED` | 422 | The rules allow no more of these events for this participant. | SportsConfiguration |
 | `TIMELINE_PARTICIPANT_INVALID` | 422 | The event needs one of the contest's participants, and only one of them. | SportsConfiguration |
 | `TIMELINE_REFERENCE_INVALID` | 422 | The event this one corrects or reverses doesn't exist, no longer stands, or can't be corrected or reversed this way. | SportsConfiguration |
 | `VALIDATION_INVALID_QUERY` | 400 | A query parameter is not valid. | BuildingBlocks |

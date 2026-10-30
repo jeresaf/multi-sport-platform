@@ -1,6 +1,7 @@
 title: Goals entered before kick-off and at half-time are refused — Kansanga Harriers FC and Nakawa Nomads FC draw 1–1
 # Goals count only while a half is being played.
 definition: { variant: FOOTBALL_ASSOCIATION, version: 1 }
+covers: [VALIDATE_PHASE]
 rules: FOOTBALL_LEAGUE
 coverage: STANDARD
 home:

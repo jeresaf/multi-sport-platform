@@ -82,8 +82,12 @@ public sealed class ScenarioTests
             }
         }
 
+        if (scenario.Expect.Outcome is not { } expectedOutcome)
+        {
+            return;
+        }
+
         var outcome = engine.ProposeOutcome(ctx, final.Score);
-        var expectedOutcome = scenario.Expect.Outcome;
         if (expectedOutcome.Draw)
         {
             outcome.Kind.ShouldBe(OutcomeKind.Draw, $"{file}: outcome");

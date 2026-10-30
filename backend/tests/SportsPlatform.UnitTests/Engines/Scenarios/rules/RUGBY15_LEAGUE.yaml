@@ -1,0 +1,14 @@
+# The RUGBY15_LEAGUE template's contest values as docs/domain/rulesets.md describes them (2×40 minutes, 15 starters
+# and 8 replacements), until rugby's templates come with S15. Only the sections a contest plays by.
+contest:
+  period_seconds: { FIRST_HALF: 2400, HALF_TIME: 900, SECOND_HALF: 2400 }
+  tie_resolution: DRAW
+  extra_period_sequence: []
+  coverage_default: STANDARD
+lineup:
+  starters: 15
+  bench_max: 8
+  requires_approval: false
+substitutions: { max: 8 }
+operations:
+  scorer_correction_window_minutes: 60

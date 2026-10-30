@@ -5,6 +5,7 @@ using System.Text.Json.Serialization;
 using SportsPlatform.Modules.SportsConfiguration.Contracts.Engines;
 using SportsPlatform.Modules.SportsConfiguration.Contracts.Sports;
 using SportsPlatform.Modules.SportsConfiguration.Definitions;
+using SportsPlatform.UnitTests.SportsConfiguration;
 
 namespace SportsPlatform.UnitTests.Engines;
 
@@ -30,6 +31,9 @@ internal sealed record Scenario(
 
     /// <summary>Whether the caller says the correction window is still open after the contest ended.</summary>
     public bool CorrectionWindowOpen { get; init; }
+
+    /// <summary>The sport-engine.md rules the scenario shows (<see cref="ScenarioRules"/>).</summary>
+    public IReadOnlyList<string> Covers { get; init; } = [];
 
     private static readonly JsonSerializerOptions _options = new()
     {
@@ -65,14 +69,24 @@ internal sealed record Scenario(
         return new ContestRules(values);
     }
 
+    /// <summary>
+    /// The embedded definition, or for a variant not seeded yet (rugby until S15) its reference file in
+    /// docs/domain/sports (<c>RUGBY_UNION_15</c> → <c>rugby-union-15.yaml</c>), so the follow-ups football lacks can be
+    /// shown.
+    /// </summary>
     public SportDefinition SportDefinition()
     {
         var files = new SportDefinitionFiles();
-        var definition = files.Names
-            .Select(name => SportDefinitionContent.Read(YamlJson.Parse(files.Read(name))!))
-            .SingleOrDefault(candidate => candidate.Variant == Definition.Variant && candidate.Version == Definition.Version)
-            ?? throw new InvalidOperationException($"No embedded definition {Definition.Variant}@{Definition.Version}.");
+        var reference = Path.Combine(
+            ReferenceSportFilesTests.RepositoryRoot(), "docs", "domain", "sports", $"{Definition.Variant.ToLowerInvariant().Replace('_', '-')}.yaml");
+        var definition = Matching(files.Names.Select(files.Read))
+            ?? Matching(File.Exists(reference) ? [File.ReadAllText(reference)] : [])
+            ?? throw new InvalidOperationException($"No embedded or reference definition {Definition.Variant}@{Definition.Version}.");
         return definition with { GenericEventTypes = GenericEventTypes.All };
+
+        SportDefinition? Matching(IEnumerable<string> yaml) => yaml
+            .Select(text => SportDefinitionContent.Read(YamlJson.Parse(text)!))
+            .SingleOrDefault(candidate => candidate.Variant == Definition.Variant && candidate.Version == Definition.Version);
     }
 
     // Objects become dotted paths; lists of text stay lists; numbers, flags and text are values.
@@ -162,8 +176,14 @@ internal sealed record ScenarioEvent(string Type)
     public string Describe(int index) => $"event {index + 1} ({Type}{(Minute is { } minute ? $", {minute}'" : string.Empty)})";
 }
 
-/// <summary>The score per team and the outcome when the last event has been recorded.</summary>
-internal sealed record ScenarioExpectation(Dictionary<string, ExpectedScore> Score, ExpectedOutcome Outcome);
+/// <summary>
+/// The score per team and the outcome when the last event has been recorded; a scenario that goes to extra time leaves
+/// the outcome out until tie resolution (S05-T2c).
+/// </summary>
+internal sealed record ScenarioExpectation(Dictionary<string, ExpectedScore> Score)
+{
+    public ExpectedOutcome? Outcome { get; init; }
+}
 
 /// <summary>A team's <c>main</c> total, its shoot-out score when there was one, and its points per period short label.</summary>
 internal sealed record ExpectedScore(int Total)

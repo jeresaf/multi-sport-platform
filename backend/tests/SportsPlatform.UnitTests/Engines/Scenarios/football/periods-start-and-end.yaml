@@ -1,6 +1,7 @@
 title: The scorer starts and ends the halves in order — Kansanga Harriers FC and Nakawa Nomads FC draw 0–0
 # A half starts only when none is running and must be one of football's periods; only a running half can end.
 definition: { variant: FOOTBALL_ASSOCIATION, version: 1 }
+covers: [VALIDATE_PHASE]
 rules: FOOTBALL_LEAGUE
 coverage: BASIC
 home:

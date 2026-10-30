@@ -1,5 +1,6 @@
 title: With lineups a goal needs its scorer and its team — Nakawa Nomads FC beat Kansanga Harriers FC 1–0
 definition: { variant: FOOTBALL_ASSOCIATION, version: 1 }
+covers: [VALIDATE_ACTORS, VALIDATE_PARTICIPANT]
 rules: FOOTBALL_LEAGUE
 coverage: STANDARD
 home:

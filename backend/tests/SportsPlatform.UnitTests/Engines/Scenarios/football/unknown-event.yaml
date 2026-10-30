@@ -1,5 +1,6 @@
 title: A pad sends an event football doesn't have; it is refused and the match carries on
 definition: { variant: FOOTBALL_ASSOCIATION, version: 1 }
+covers: [VALIDATE_EVENT_TYPE]
 rules: FOOTBALL_LEAGUE
 coverage: BASIC
 home:

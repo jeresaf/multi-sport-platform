@@ -34,6 +34,12 @@ public static class SportsConfigurationErrors
     public static readonly Error TimelineActorInvalid = new(
         "TIMELINE_ACTOR_INVALID", "A person named on the event can't fill that role.", ErrorKind.Unprocessable);
 
+    public static readonly Error TimelineFollowUpMissing = new(
+        "TIMELINE_FOLLOW_UP_MISSING", "This event needs an earlier event it follows, and there is none it can follow.", ErrorKind.Unprocessable);
+
+    public static readonly Error TimelineLimitReached = new(
+        "TIMELINE_LIMIT_REACHED", "The rules allow no more of these events for this participant.", ErrorKind.Unprocessable);
+
     public static readonly Error TimelineReferenceInvalid = new(
         "TIMELINE_REFERENCE_INVALID", "The event this one corrects or reverses doesn't exist, no longer stands, or can't be corrected or reversed this way.", ErrorKind.Unprocessable);
 }

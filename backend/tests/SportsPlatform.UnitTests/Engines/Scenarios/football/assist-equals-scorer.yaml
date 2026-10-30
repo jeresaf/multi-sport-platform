@@ -2,6 +2,7 @@ title: The scorer can't assist his own goal — Kansanga Harriers FC beat Nakawa
 # A goal's assist must be someone other than its scorer; the scorer re-enters it with the right assist. A goal names
 # only a scorer and an assist, so a goalkeeper named on it is refused too.
 definition: { variant: FOOTBALL_ASSOCIATION, version: 1 }
+covers: [VALIDATE_ACTORS]
 rules: FOOTBALL_LEAGUE
 coverage: STANDARD
 home:

@@ -7,7 +7,8 @@ namespace SportsPlatform.Modules.SportsConfiguration.Engines;
 /// <summary>
 /// The checks every family runs before an event may be recorded (sport-engine.md §5, Validate 1–3, and the corrections
 /// of §9), each read from the definition, never by sport. They run in groups, and the first group that fails answers:
-/// the event type, the contest status, the corrected or reversed event, the phase, the participant, the actors. A
+/// the event type, the contest status, the corrected or reversed event, the phase, the participant, the actors, then
+/// the follow-up and the limits (<see cref="FollowUpsAndLimits"/>). A
 /// correction (<c>supersedes</c>) is checked as at the event it replaces: the phase and the people are folded from the
 /// active events before it (owner, 2026-10-30), so a first-half scorer can be corrected at half-time.
 /// </summary>
@@ -29,12 +30,12 @@ public static class TimelineChecks
             return ValidationResult.Invalid(SportsConfigurationErrors.TimelineContestNotLive);
         }
 
-        if (References(ctx, live, draft) is not var (phase, personnel))
+        if (References(ctx, live, draft) is not { } basis)
         {
             return ValidationResult.Invalid(SportsConfigurationErrors.TimelineReferenceInvalid);
         }
 
-        if (!PhaseAllows(ctx.Definition, phase, type, draft))
+        if (!PhaseAllows(ctx.Definition, basis.Phase, type, draft))
         {
             return ValidationResult.Invalid(SportsConfigurationErrors.TimelineEventNotAllowedInPhase);
         }
@@ -44,7 +45,28 @@ public static class TimelineChecks
             return ValidationResult.Invalid(SportsConfigurationErrors.TimelineParticipantInvalid);
         }
 
-        return new ValidationResult(ActorErrors(ctx, personnel, type, draft));
+        var actorErrors = ActorErrors(ctx, basis.Personnel, type, draft);
+        if (actorErrors.Count > 0 || type is null)
+        {
+            return new ValidationResult(actorErrors);
+        }
+
+        // §5.4. A correction belongs to the period of the event it replaces, a new event to the current one.
+        var period = basis.Replaced is { PeriodCode: { } code } replaced
+            ? new PlayedPeriod(code, replaced.PeriodOccurrence)
+            : basis.Phase.PeriodCode is { } current ? new PlayedPeriod(current, basis.Phase.Occurrence) : null;
+        var active = ByOrigin(live);
+        return new ValidationResult([.. new[]
+        {
+            FollowUpsAndLimits.FollowUpError(ctx.Definition, draft, period, active, basis.Replaced),
+            FollowUpsAndLimits.LimitError(ctx, draft, active, basis.Replaced),
+        }.OfType<Error>()]);
+    }
+
+    // What the later checks read: the phase and the people, and for a correction the event it replaces.
+    private sealed record Basis(ContestPhase Phase, ContestPersonnel Personnel)
+    {
+        public TimelineEvent? Replaced { get; init; }
     }
 
     // §5.1 with §9: live; or ended with the correction window still open, for corrections and for reversals of anything
@@ -72,10 +94,10 @@ public static class TimelineChecks
     // §9: a reversal names an active event whose type lists the reversing type in reversible_by (EVENT_REVERSED
     // reverses anything) and is checked in the current phase; a correction replaces an active event of the definition
     // with another one of any of its types, never a generic event (a period start isn't corrected, it is reversed).
-    // Null when the reference is invalid; otherwise the phase and the people the later checks read: the current ones,
-    // or for a correction those just before the event its chain of corrections started from. There, every active event
-    // stands where its own chain started, so an earlier event corrected later still counts, in its corrected form.
-    private static (ContestPhase Phase, ContestPersonnel Personnel)? References(ContestContext ctx, ContestLiveState live, TimelineEventDraft draft)
+    // Null when the reference is invalid; otherwise what the later checks read: the current state, or for a correction
+    // the state just before the event its chain of corrections started from. There, every active event stands where
+    // its own chain started, so an earlier event corrected later still counts, in its corrected form.
+    private static Basis? References(ContestContext ctx, ContestLiveState live, TimelineEventDraft draft)
     {
         if (draft.ReversesEventId is { } reverses)
         {
@@ -84,7 +106,7 @@ public static class TimelineChecks
                 && target is not null
                 && (draft.EventType == GenericEventCodes.EventReversed
                     || (Type(ctx.Definition, target.EventType)?.ReversibleBy.Contains(draft.EventType) ?? false));
-            return allowed ? (live.Phase, live.Personnel) : null;
+            return allowed ? Current(live) : null;
         }
 
         if (draft.EventType == GenericEventCodes.EventReversed)
@@ -101,17 +123,19 @@ public static class TimelineChecks
             }
 
             var original = Original(live, target).Sequence;
-            var before = TimelineFold.Active(live.Timeline)
-                .Select(evt => (Event: evt, Origin: Original(live, evt).Sequence))
-                .Where(item => item.Origin < original)
-                .OrderBy(item => item.Origin)
-                .Select(item => item.Event)
-                .ToList();
-            return (PhaseTracker.Track(ctx.Definition, before), PersonnelTracker.Track(ctx, before));
+            var before = ByOrigin(live).Where(evt => Original(live, evt).Sequence < original).ToList();
+            return new Basis(PhaseTracker.Track(ctx.Definition, before), PersonnelTracker.Track(ctx, before)) { Replaced = target };
         }
 
-        return (live.Phase, live.Personnel);
+        return Current(live);
     }
+
+    private static Basis Current(ContestLiveState live) => new(live.Phase, live.Personnel);
+
+    // The active events, each where its chain of corrections started: a try corrected after its conversion still comes
+    // before it, and a corrected substitution stays in its window.
+    private static List<TimelineEvent> ByOrigin(ContestLiveState live) =>
+        [.. TimelineFold.Active(live.Timeline).OrderBy(evt => Original(live, evt).Sequence)];
 
     // §5.2: a definition's event type lists the phase kinds it may be recorded in; nothing of the sport happens before
     // the first period starts. A start needs a period of the definition and none running; an end needs one running.

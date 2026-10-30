@@ -1,5 +1,6 @@
 title: Kisaasi Kestrels FC score their penalty, Seeta Sparrows FC miss theirs
 definition: { variant: FOOTBALL_ASSOCIATION, version: 1 }
+covers: [APPLY]
 rules: FOOTBALL_LEAGUE
 coverage: STANDARD
 home:

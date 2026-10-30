@@ -2,6 +2,7 @@ title: After the correction window the scorer can't change the result, an admini
 # The match is entered afterwards from the referee's report (BACKFILL). It has ended and the window is closed, so the
 # scorer can neither correct a scorer nor add a late goal; the administrator's correction goes through.
 definition: { variant: FOOTBALL_ASSOCIATION, version: 1 }
+covers: [VALIDATE_STATUS]
 rules: FOOTBALL_LEAGUE
 coverage: STANDARD
 status: ENDED
