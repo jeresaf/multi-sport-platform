@@ -391,3 +391,12 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   administrators): "Your plan allows N staff users." as the API says it; the invite dialog shows the usage but doesn't
   refuse, since a re-invitation takes no seat. The slice demo e2e runs on Hornbill Volleyball Club, a test tenant of
   its own (pilot-customer.md); KMSA and ELSSC stay the manual demo. No backend change (owner, plan 2026-10-30).
+
+**Slice review (2026-10-30).** All acceptance items are met on main (5f9b31e, #73): each task's evidence is named
+above and the tests exist; the RLS exception list is unchanged (`outbox_messages`, `tenant_domains`). The slice demo
+runs in CI as `admin-plans-demo.spec.ts` on a test tenant of its own; the owner's manual demo on KMSA and ELSSC is not
+recorded. No ADR drift. The S03 drift handed to S04 is fixed: api-conventions.md says a quota is `403`, and
+`IAuthorizationEvaluator`'s comment says step 3 only. Correction: D20 and Q25 expected S05's sport quota to be the
+first real "Requires PRO"; it can't be, since S05 seeds only football and a quota refusal names the limit, not a plan.
+The first is `tenant.domain.add` (S22); S05 proves the sport quota with test definitions and an override (S05 D18,
+owner). Q27 is decided: with none started, the current period is the earliest scheduled one (S05 D21, T5a).
