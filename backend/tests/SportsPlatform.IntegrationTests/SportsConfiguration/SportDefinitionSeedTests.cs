@@ -85,6 +85,9 @@ public sealed class SportDefinitionSeedTests(PostgresFixture fixture) : Database
             (await QueryAsync(DatabaseRoles.App, "SELECT version, name FROM config.sport_definitions ORDER BY version",
                 reader => (reader.GetInt32(0), reader.GetString(1))))
                 .ShouldBe([(1, "Football"), (2, "Association football")]);
+            // Published at the test clock's fixed time, not the machine's.
+            (await QueryAsync(DatabaseRoles.App, "SELECT published_at FROM config.sport_definitions WHERE version = 2",
+                reader => reader.GetFieldValue<DateTimeOffset>(0))).ShouldHaveSingleItem().ShouldBe(App.Clock.GetUtcNow());
             await using var scope = edited.Services.CreateAsyncScope();
             var definitions = scope.ServiceProvider.GetRequiredService<ISportDefinitions>();
             (await definitions.ListAsync(Ct)).ShouldHaveSingleItem().ShouldBe(
@@ -99,15 +102,20 @@ public sealed class SportDefinitionSeedTests(PostgresFixture fixture) : Database
         }
     }
 
-    [Fact]
-    public async Task An_invalid_definition_fails_the_seed()
+    // The CLI's seed runs no startup check: the seeder reports the validator's problems itself, before anything is
+    // written, for a broken reference as for a file that isn't YAML.
+    [Theory]
+    [InlineData("role: SCORER,", "role: SCORERR,", "football.yaml: $.event_types[0].actors[0].role: unknown actor role \"SCORERR\"")]
+    [InlineData("\nscorer_pad:", "\nscorer_pad: [\nbroken:", "football.yaml: $: not valid YAML")]
+    public async Task An_invalid_definition_fails_the_seed_with_its_problems(string text, string replacement, string problem)
     {
         var before = await SnapshotAsync();
-        await using var edited = WithFootball(yaml => yaml.Replace("role: SCORER,", "role: SCORERR,", StringComparison.Ordinal), startupCheck: false);
+        await using var edited = WithFootball(yaml => yaml.Replace(text, replacement, StringComparison.Ordinal), startupCheck: false);
 
         var exception = await Should.ThrowAsync<InvalidOperationException>(() => RunAsync(edited));
 
-        exception.Message.ShouldContain("football.yaml: $.event_types[0].actors[0].role: unknown actor role \"SCORERR\"");
+        exception.Message.ShouldStartWith("Sport definitions are invalid:");
+        exception.Message.ShouldContain(problem);
         (await SnapshotAsync()).ShouldBe(before);
     }
 
@@ -121,7 +129,7 @@ public sealed class SportDefinitionSeedTests(PostgresFixture fixture) : Database
 
         var exception = await Should.ThrowAsync<InvalidOperationException>(() => RunAsync(doubled));
 
-        exception.Message.ShouldBe("soccer.yaml and football.yaml both declare FOOTBALL_ASSOCIATION@1.");
+        exception.Message.ShouldStartWith($"{SportDefinitionSeeder.DuplicateVersionCode}: soccer.yaml and football.yaml both declare");
         (await SnapshotAsync()).ShouldBe(before);
     }
 

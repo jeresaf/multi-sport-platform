@@ -31,6 +31,15 @@ public sealed class SportDefinitionValidatorTests
     }
 
     [Fact]
+    public void YAML_the_scanner_gives_up_on_is_one_problem_at_the_root()
+    {
+        var problem = SportDefinitionValidator.Validate(_file, "name: Football\nscorer_pad: [\nbroken: true\n").ShouldHaveSingleItem();
+
+        problem.Path.ShouldBe("$");
+        problem.Message.ShouldStartWith("not valid YAML");
+    }
+
+    [Fact]
     public void A_duplicate_key_is_invalid_YAML()
     {
         SportDefinitionValidator.Validate(_file, "version: 1\nversion: 2\n").ShouldHaveSingleItem().Message.ShouldStartWith("not valid YAML");

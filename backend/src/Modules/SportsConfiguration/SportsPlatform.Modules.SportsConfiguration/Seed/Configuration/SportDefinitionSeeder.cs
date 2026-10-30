@@ -21,6 +21,8 @@ public sealed class SportDefinitionSeeder(SportDefinitionFiles files, TimeProvid
 
     public const string ImmutableCode = "SPORT_DEFINITION_IMMUTABLE";
 
+    public const string DuplicateVersionCode = "SPORT_DEFINITION_DUPLICATE_VERSION";
+
     /// <summary>Bump when the seeder writes something different from the same files.</summary>
     private const int _version = 1;
 
@@ -31,7 +33,13 @@ public sealed class SportDefinitionSeeder(SportDefinitionFiles files, TimeProvid
     // Sports before formats and rulesets (D4); their seeders come with S05-T3 and T4.
     public int Order => 0;
 
-    public string Checksum => ComputeChecksum(files.Names.Select(file => (file, Hash: CanonicalJson.Hash(YamlJson.Parse(files.Read(file))))));
+    // The runner reads it before RunAsync: the files are validated here, so a bad one fails with the validator's problems.
+    public string Checksum => ComputeChecksum(Loaded.Select(d => (d.File, Hash: d.Row.ContentHash)));
+
+    // Validated and resolved once per run (the runner uses one instance for the checksum and the run).
+    private IReadOnlyList<(string File, PublishedSportDefinition Row)> Loaded => _loaded ??= LoadAll();
+
+    private IReadOnlyList<(string File, PublishedSportDefinition Row)>? _loaded;
 
     public async Task<SeedOutcome> RunAsync(SeedContext context, CancellationToken cancellationToken)
     {
@@ -43,14 +51,13 @@ public sealed class SportDefinitionSeeder(SportDefinitionFiles files, TimeProvid
 
         var inserted = 0;
         var declaredIn = new Dictionary<(string, int), string>();
-        foreach (var file in files.Names)
+        foreach (var (file, definition) in Loaded)
         {
-            var definition = Load(file);
             var key = (definition.Variant, definition.Version);
             if (!declaredIn.TryAdd(key, file))
             {
                 throw new InvalidOperationException(
-                    $"{file} and {declaredIn[key]} both declare {definition.Variant}@{definition.Version}.");
+                    $"{DuplicateVersionCode}: {file} and {declaredIn[key]} both declare {definition.Variant}@{definition.Version}.");
             }
 
             if (stored.TryGetValue(key, out var storedHash))
@@ -74,17 +81,21 @@ public sealed class SportDefinitionSeeder(SportDefinitionFiles files, TimeProvid
         return new SeedOutcome(inserted, 0, 0);
     }
 
-    private PublishedSportDefinition Load(string file)
+    private List<(string File, PublishedSportDefinition Row)> LoadAll()
     {
-        var yaml = files.Read(file);
-        var problems = SportDefinitionValidator.Validate(file, yaml);
+        var texts = files.Names.Select(file => (File: file, Yaml: files.Read(file))).ToList();
+        var problems = texts.SelectMany(text => SportDefinitionValidator.Validate(text.File, text.Yaml)).ToList();
         if (problems.Count > 0)
         {
             throw new InvalidOperationException(
                 $"Sport definitions are invalid:{Environment.NewLine}{string.Join(Environment.NewLine, problems)}");
         }
 
-        var content = YamlJson.Parse(yaml)!;
+        return [.. texts.Select(text => (text.File, Resolve(YamlJson.Parse(text.Yaml)!)))];
+    }
+
+    private PublishedSportDefinition Resolve(JsonNode content)
+    {
         // The typed model must read it, or every read of this row would fail later.
         var model = SportDefinitionContent.Read(content);
         return new PublishedSportDefinition(
