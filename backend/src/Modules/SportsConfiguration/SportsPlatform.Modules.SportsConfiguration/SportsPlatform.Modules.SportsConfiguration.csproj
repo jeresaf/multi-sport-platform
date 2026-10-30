@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The module's own readers: other projects get the assemblies at run time but don't compile against them
+         (JsonSchema.Net's root namespace "Json" would clash with members named Json elsewhere). -->
+    <PackageReference Include="JsonSchema.Net" PrivateAssets="compile" />
+    <PackageReference Include="YamlDotNet" PrivateAssets="compile" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\SportsPlatform.BuildingBlocks\SportsPlatform.BuildingBlocks.csproj" />
+    <ProjectReference Include="..\SportsPlatform.Modules.SportsConfiguration.Contracts\SportsPlatform.Modules.SportsConfiguration.Contracts.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Sport definitions and their schema (Definitions/Sports; docs/domain/sports/README.md keeps the docs copy). -->
+    <EmbeddedResource Include="Definitions/Sports/*.yaml;Definitions/Sports/*.schema.json" LogicalName="SportsPlatform.Modules.SportsConfiguration.Definitions.Sports.%(Filename)%(Extension)" />
+  </ItemGroup>
+
+</Project>

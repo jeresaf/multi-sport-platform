@@ -84,7 +84,8 @@ counters.
 ## 4. Sports Configuration
 
 **Purpose:** what sports and competition formats are, and the rules templates that combine them.
-**Owns (platform-global, no tenant_id):** sport definitions (versioned, hashed; seeded from repo YAML),
+**Owns (platform-global, no tenant_id):** sport definitions (versioned, hashed; seeded from repo YAML embedded under
+`Definitions/Sports`, checked by JSON Schema and the reference rules in code at Host startup, S05-T1a),
 scoring-family engine registry, format definitions + fixture generators, ruleset templates and their parameter
 schemas, tiebreaker catalogue.
 **Provides:** `ISportDefinitions` (resolved definition by variant + version), `IScoringEngines`,
