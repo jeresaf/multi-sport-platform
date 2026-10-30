@@ -1,0 +1,197 @@
+using SportsPlatform.BuildingBlocks.Results;
+using SportsPlatform.Modules.SportsConfiguration.Contracts.Engines;
+using SportsPlatform.Modules.SportsConfiguration.Contracts.Sports;
+
+namespace SportsPlatform.Modules.SportsConfiguration.Engines;
+
+/// <summary>
+/// sport-engine.md §5, Validate 4: an event type's follow-up (it needs an earlier event, such as a conversion after a
+/// try) and its limits (rules such as <c>substitutions.max</c>), both read from the definition and the rules, never by
+/// sport. <see cref="TimelineChecks"/> runs them last.
+/// </summary>
+public static class FollowUpsAndLimits
+{
+    /// <summary>The limit kinds the engines know, by the rule's last segment (<c>substitutions.max</c>).</summary>
+    public const string MaxKind = "max";
+
+    public const string WindowsKind = "windows";
+
+    /// <summary>A rule next to a <c>max</c> limit that adds to it once an overtime period has started.</summary>
+    public const string ExtraInExtraTime = "extra_in_extra_time";
+
+    /// <summary>
+    /// A follow-up needs an earlier active event of a type it lists, by the same participant or in the same period when
+    /// it says so, and not yet used by an event that consumes one when it says so. <paramref name="before"/> are the
+    /// active events before the draft: all of them, or for a correction those before the event it replaces.
+    /// </summary>
+    public static Error? FollowUpError(
+        SportDefinition definition, EventTypeDefinition type, TimelineEventDraft draft, PlayedPeriod? period, IReadOnlyList<TimelineEvent> before)
+    {
+        ArgumentNullException.ThrowIfNull(definition);
+        ArgumentNullException.ThrowIfNull(type);
+        ArgumentNullException.ThrowIfNull(draft);
+        ArgumentNullException.ThrowIfNull(before);
+        if (type.FollowUp is not { } followUp)
+        {
+            return null;
+        }
+
+        var consumed = Consumed(definition, before);
+        var found = Preceding(followUp, draft.ParticipantId, period, before, consumed);
+        return found is null ? SportsConfigurationErrors.TimelineFollowUpMissing : null;
+    }
+
+    /// <summary>
+    /// Each limit on the type, from the rules; a rule the rules don't set is no limit. <c>…max</c> counts the
+    /// participant's events of every type with that limit, the draft included, plus <c>…extra_in_extra_time</c> once
+    /// an overtime period has started. <c>…windows</c> counts the participant's runs of such events in play: a run ends
+    /// at a period's start or end, at another event of the definition (any participant's events with the limit don't
+    /// end it), or when the participant's next one has another game-clock minute (owner, 2026-10-30; without a clock,
+    /// the order alone decides), and events in a break use no window. <paramref name="active"/> is the active timeline in sequence order;
+    /// a correction (<paramref name="replaced"/>) counts in the place of the event it replaces, a new event at the end.
+    /// </summary>
+    public static Error? LimitError(
+        ContestContext ctx, EventTypeDefinition type, TimelineEventDraft draft, IReadOnlyList<TimelineEvent> active, TimelineEvent? replaced)
+    {
+        ArgumentNullException.ThrowIfNull(ctx);
+        ArgumentNullException.ThrowIfNull(type);
+        ArgumentNullException.ThrowIfNull(draft);
+        ArgumentNullException.ThrowIfNull(active);
+        if (type.Limits.Count == 0 || draft.ParticipantId is not { } participant)
+        {
+            return null;
+        }
+
+        // The draft has no id or sequence yet; it only needs its type and participant here.
+        var candidate = new TimelineEvent(Guid.Empty, long.MaxValue, draft.EventType, draft.Source)
+        {
+            ParticipantId = participant,
+            GameClockSeconds = draft.GameClockSeconds,
+            AddedTimeSeconds = draft.AddedTimeSeconds,
+        };
+        var timeline = replaced is not null && active.Contains(replaced)
+            ? [.. active.Select(evt => evt == replaced ? candidate : evt)]
+            : active.Append(candidate).ToList();
+        var steps = InPhase(ctx.Definition, timeline);
+        var at = steps.FindIndex(step => step.Event == candidate);
+
+        foreach (var limit in type.Limits)
+        {
+            if (ctx.Rules.Number(limit.Rule) is not { } value)
+            {
+                continue;
+            }
+
+            var cut = limit.Rule.LastIndexOf('.');
+            var (group, kind) = cut < 0 ? (string.Empty, limit.Rule) : (limit.Rule[..cut], limit.Rule[(cut + 1)..]);
+            var limited = steps.Select(step => Limited(ctx.Definition, step.Event, limit.Rule) && step.Event.ParticipantId == participant).ToList();
+            var used = kind switch
+            {
+                MaxKind => limited.Count(flag => flag),
+                WindowsKind => Windows(ctx.Definition, steps, limited, limit.Rule),
+                _ => throw new InvalidOperationException(
+                    $"Limit {limit.Rule} on {type.Code}: the engines don't know the kind \"{kind}\" (it comes with its sport's slice)."),
+            };
+            var allowed = kind == MaxKind && steps.Take(at + 1).Any(step => StartsOvertime(ctx.Definition, step.Event))
+                ? value + (ctx.Rules.Number($"{group}.{ExtraInExtraTime}") ?? 0)
+                : value;
+            if (used > allowed)
+            {
+                return SportsConfigurationErrors.TimelineLimitReached;
+            }
+        }
+
+        return null;
+    }
+
+    // Walks the events in order; each one that consumes takes the latest earlier event its follow-up accepts.
+    private static HashSet<Guid> Consumed(SportDefinition definition, IReadOnlyList<TimelineEvent> events)
+    {
+        var consumed = new HashSet<Guid>();
+        for (var index = 0; index < events.Count; index++)
+        {
+            var evt = events[index];
+            if (Type(definition, evt.EventType)?.FollowUp is { Consumes: true } followUp
+                && Preceding(followUp, evt.ParticipantId, Period(evt), events.Take(index).ToList(), consumed) is { } used)
+            {
+                consumed.Add(used.Id);
+            }
+        }
+
+        return consumed;
+    }
+
+    private static TimelineEvent? Preceding(
+        FollowUpDefinition followUp, Guid? participant, PlayedPeriod? period, IReadOnlyList<TimelineEvent> before, HashSet<Guid> consumed) =>
+        before.LastOrDefault(evt => followUp.RequiresPreceding.Contains(evt.EventType)
+            && (!followUp.SameSide || evt.ParticipantId == participant)
+            && (!followUp.SamePeriod || Period(evt) == period)
+            && (!followUp.Unconsumed || !consumed.Contains(evt.Id)));
+
+    private static int Windows(SportDefinition definition, List<(TimelineEvent Event, PhaseKind? Kind)> steps, List<bool> limited, string rule)
+    {
+        var windows = 0;
+        var open = false;
+        int? minute = null;
+        for (var index = 0; index < steps.Count; index++)
+        {
+            var (evt, kind) = steps[index];
+            if (limited[index])
+            {
+                var at = Minute(evt);
+                if (kind == PhaseKind.Play && (!open || (at is not null && minute is not null && at != minute)))
+                {
+                    windows++;
+                    open = true;
+                }
+
+                minute = at;
+            }
+            else if (evt.EventType is GenericEventCodes.PeriodStart or GenericEventCodes.PeriodEnd
+                || (Type(definition, evt.EventType) is not null && !Limited(definition, evt, rule)))
+            {
+                open = false;
+            }
+        }
+
+        return windows;
+    }
+
+    // Each event with the phase kind it was recorded in, as the phase tracker reads the starts and ends.
+    private static List<(TimelineEvent Event, PhaseKind? Kind)> InPhase(SportDefinition definition, IReadOnlyList<TimelineEvent> events)
+    {
+        var steps = new List<(TimelineEvent, PhaseKind?)>();
+        PhaseKind? kind = null;
+        foreach (var evt in events)
+        {
+            if (evt.EventType == GenericEventCodes.PeriodStart)
+            {
+                kind = PhaseTracker.Period(definition, evt.PeriodCode).Kind;
+            }
+            else if (evt.EventType == GenericEventCodes.PeriodEnd && kind is not null)
+            {
+                kind = PhaseKind.Break;
+            }
+
+            steps.Add((evt, kind));
+        }
+
+        return steps;
+    }
+
+    // The minute on the game clock, added time included (45+2 is the 47th); null when the event has no clock.
+    private static int? Minute(TimelineEvent evt) =>
+        evt.GameClockSeconds is { } clock ? (clock + (evt.AddedTimeSeconds ?? 0)) / 60 : null;
+
+    private static bool Limited(SportDefinition definition, TimelineEvent evt, string rule) =>
+        Type(definition, evt.EventType)?.Limits.Any(limit => limit.Rule == rule) ?? false;
+
+    private static bool StartsOvertime(SportDefinition definition, TimelineEvent evt) =>
+        evt.EventType == GenericEventCodes.PeriodStart && PhaseTracker.Period(definition, evt.PeriodCode) is { Overtime: true, Kind: PhaseKind.Play };
+
+    private static PlayedPeriod? Period(TimelineEvent evt) =>
+        evt.PeriodCode is { } code ? new PlayedPeriod(code, evt.PeriodOccurrence) : null;
+
+    private static EventTypeDefinition? Type(SportDefinition definition, string code) =>
+        definition.EventTypes.FirstOrDefault(candidate => candidate.Code == code);
+}

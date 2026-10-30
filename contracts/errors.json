@@ -337,6 +337,18 @@
       "owner": "SportsConfiguration"
     },
     {
+      "code": "TIMELINE_FOLLOW_UP_MISSING",
+      "status": 422,
+      "message": "This event needs an earlier event it follows, and there is none it can follow.",
+      "owner": "SportsConfiguration"
+    },
+    {
+      "code": "TIMELINE_LIMIT_REACHED",
+      "status": 422,
+      "message": "The rules allow no more of these events for this participant.",
+      "owner": "SportsConfiguration"
+    },
+    {
       "code": "TIMELINE_PARTICIPANT_INVALID",
       "status": 422,
       "message": "The event needs one of the contest's participants, and only one of them.",
