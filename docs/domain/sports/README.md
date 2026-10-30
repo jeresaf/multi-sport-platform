@@ -1,9 +1,12 @@
 # Sport definitions — reference files
 
-These YAML files are the **reference source** for the five flagship sport variants (ADR-0003, ADR-0006). In S05
-the backend gets its own seed copies (e.g. `backend/src/Modules/SportsConfiguration/.../Definitions/*.yaml`),
-validated by a JSON Schema, versioned and hashed. When the backend copy and these files diverge, the PR must say
-why and update both.
+These YAML files are the **reference source** for the five flagship sport variants (ADR-0003, ADR-0006). The
+backend embeds its own copies of the seeded ones in
+`backend/src/Modules/SportsConfiguration/SportsPlatform.Modules.SportsConfiguration/Definitions/Sports/` (football
+from S05). They are checked against `sport-definition.schema.json` next to them, then by the reference rules in
+`SportDefinitionValidator`, which run in the tests and at Host startup. A unit test (`ReferenceSportFilesTests`)
+fails when a backend copy differs from its file here, so a change updates both. The same test checks that the
+ADDITIVE files not seeded yet (rugby, basketball) pass the schema and the rules.
 
 | File | Variant | Family |
 |---|---|---|

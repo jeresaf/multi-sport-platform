@@ -301,6 +301,17 @@ at the start of every review.
   creating a counter, which needs a database); Tenancy Contracts shares the code `EntitlementErrorCodes.QuotaExceeded`
   (errors are declared only in module `*Errors` classes) and the Host documents the error on every action naming a quota.
 
+- **S05-T1a (owner, 2026-10-30):** D2 names JsonSchema.Net as MIT, but only releases up to 8.0.5 are. From 9.0.0,
+  JsonSchema.Net, Json.More.Net 3.x and JsonPointer.Net 7.x ship under the Open Source Maintenance Fee EULA, a
+  commercial licence. The owner chose to pin 8.0.5 (with JsonPointer.Net 6.0.1 and Json.More.Net 2.2.0, all MIT); the
+  pin has a comment in `Directory.Packages.props`. Both libraries are private to the module (`PrivateAssets="compile"`):
+  JsonSchema.Net's root namespace `Json` clashes with test members named `Json`. Plan defaults taken: the schema
+  covers README.md's whole v1 shape, and a test also validates rugby 15s, rugby 7s and basketball (not seeded; all
+  pass). Cricket waits for its engine (S17). The tie-resolution rule goes further than D3's shoot-out case: an
+  extra-periods resolution needs an overtime PLAY period, sudden death needs a `sudden_death` period, and
+  `REPEAT_EXTRA_PERIOD` needs a repeatable overtime period. The sport-literal test scans source text, so it needs no
+  new dependency but misses a code assembled at run time.
+
 ## Tech debt / follow-ups
 
 Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or trigger) at S01 acceptance

@@ -218,8 +218,8 @@ Deliver:
 Acceptance:
 - [ ] Changing any byte of the published football definition without bumping `version` fails a test (seeder and
       pinned hash).
-- [ ] Validation errors name the file, path and problem (one test per rule in D3).
-- [ ] A bad definition stops the Host at startup (test).
+- [x] Validation errors name the file, path and problem (one test per rule in D3). (T1a: `SportDefinitionValidatorTests`)
+- [x] A bad definition stops the Host at startup (test). (T1a: `DefinitionStartupCheckTests`)
 
 ### T2 — ADDITIVE engine, fold and scenarios (~3 PRs)
 Deliver:
@@ -300,3 +300,9 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
 ## Implementation notes
 
 (The builder adds notes here as tasks merge.)
+
+- **T1a:** JsonSchema.Net is pinned to 8.0.5, its last MIT release (owner, 2026-10-30; PROGRESS.md "Deviations").
+  Definition problems are bugs in shipped files, not API errors, so they have no catalogue code. The schema and the
+  rules also accept the rugby and basketball reference files (a test checks this). The scoring families the
+  validator knows, their score components and their tie resolutions are in `Definitions/ScoringFamilies`; T2's
+  engines should read them from there.
