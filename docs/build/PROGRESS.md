@@ -7,14 +7,13 @@ at the start of every review.
 
 - **Current slice:** S05 — Sports configuration (docs/build/slices/S05-sports-configuration.md, rewritten by the S04
   slice review). S00–S04 are done
-- **Current task:** S05-T1 — Module, definition schema, loader, seeding and reads — not started; next is `/next-task`
-- **Next:** S05-T2 — ADDITIVE engine, fold and scenarios
-- **Blocked on:** the owner's review of the S04 slice review (S05 decisions D1–D22; the owner already chose D16, D18
-  and D21 on 2026-10-30)
+- **Current task:** S05-T1a — Module, definition schema, validator, startup check (plan approved 2026-10-30)
+- **Next:** S05-T1b — Table, seeder, hash, reads, catalogues
+- **Blocked on:** nothing
 
 ## Next up
 
-1. S05-T1 — Module, definition schema, loader, seeding and reads (likely T1a, T1b)
+1. S05-T1b — Table, seeder, hash, reads, catalogues
 2. S05-T2 — ADDITIVE engine, fold and scenarios (likely T2a–T2c)
 3. S05-T3 — Formats and generators
 4. S05-T4 — Ruleset templates and resolver
