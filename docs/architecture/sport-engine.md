@@ -161,20 +161,22 @@ draft in its place: a correction where the event it replaces stood, a new event 
 - **Follow-up:** an event needs an earlier active event of a type in `requires_preceding`; with `same_side` the
   same participant's, with `same_period` in the same period and occurrence, with `unconsumed` one no event of a
   `consumes` type has used yet. An event that consumes takes the latest earlier event its follow-up accepts. The
-  whole timeline is walked: the draft must find its earlier event, and every follow-up that had one must keep it
-  (`TIMELINE_FOLLOW_UP_MISSING`). So a try corrected after its conversion is still converted, but a correction can't
-  give a try a second conversion, nor move a converted try to the other team, another period or another type: the
-  scorer reverses the conversion first (review #80, owner 2026-10-30). Reversing a try doesn't take back the
+  whole timeline is walked: the draft must find its earlier event, and every follow-up that had one must keep the
+  same one (`TIMELINE_FOLLOW_UP_MISSING`). So a try corrected after its conversion is still converted, but a
+  correction can't give a try a second conversion, move a converted try to the other team or another type, or move
+  a conversion onto another try: the scorer reverses the conversion first (review #80, owner 2026-10-30). Reversing a try doesn't take back the
   conversion that used it (S12 or S15 decides); such a conversion blocks nothing else.
-- **Limits:** each `{ rule }` is read from `ContestRules`; a rule the rules don't set is no limit. The draft's limits
-  are checked for its participant, and for a correction also the replaced event's for its participant (changing a
-  substitution into a card can split a window; review #80). The kind is the rule's last segment: `…max` counts the
+- **Limits:** each `{ rule }` is read from `ContestRules`; a rule the rules don't set is no limit. A new event's
+  limits are checked for its participant; a correction's, and the replaced event's, for every participant (changing
+  a substitution into a card can split a window, the other team's too: its substitutions keep a run open; review
+  #80). The kind is the rule's last segment: `…max` counts the
   participant's events of every type with that limit and adds `<group>.extra_in_extra_time` once an overtime `PLAY`
   period has started (so not yet in `AWAITING_EXTRA_TIME`, a plain break; Q33), for corrections of earlier events
   too (owner, 2026-10-30); `…windows` counts the participant's runs of such events in `PLAY`. A run ends at a
   period's start or end, at another event of the definition (any participant's events with the limit don't end it),
   or when the participant's next one is at another game-clock minute than the last one with a clock (owner,
-  2026-10-30; an event without a clock neither ends a run nor starts one); events in a break use no window.
+  2026-10-30; an event without a clock doesn't end a run, nor start a new one by its minute); events in a break use
+  no window.
   `extra_in_extra_time` adds no window (owner, 2026-10-30). A reversed event frees its place
   (`TIMELINE_LIMIT_REACHED`). Any other kind (basketball's `timeouts.per_period_group`) throws until its sport's
   slice.
