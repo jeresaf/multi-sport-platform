@@ -47,8 +47,8 @@ public static class FollowUpsAndLimits
     /// an overtime period has started. <c>…windows</c> counts the participant's runs of such events in play: a run ends
     /// at a period's start or end, at another event of the definition (any participant's events with the limit don't
     /// end it), or when the participant's next one has another game-clock minute (owner, 2026-10-30; without a clock,
-    /// the order alone decides), and events in a break use no window. <paramref name="active"/> is the active timeline in sequence order;
-    /// a correction (<paramref name="replaced"/>) counts in the place of the event it replaces, a new event at the end.
+    /// the order alone decides), and events in a break use no window. <paramref name="active"/> is the active timeline,
+    /// each event where its chain of corrections started; a correction (<paramref name="replaced"/>) counts in the place of the event it replaces, a new event at the end.
     /// </summary>
     public static Error? LimitError(
         ContestContext ctx, EventTypeDefinition type, TimelineEventDraft draft, IReadOnlyList<TimelineEvent> active, TimelineEvent? replaced)
@@ -73,7 +73,6 @@ public static class FollowUpsAndLimits
             ? [.. active.Select(evt => evt == replaced ? candidate : evt)]
             : active.Append(candidate).ToList();
         var steps = InPhase(ctx.Definition, timeline);
-        var at = steps.FindIndex(step => step.Event == candidate);
 
         foreach (var limit in type.Limits)
         {
@@ -92,7 +91,9 @@ public static class FollowUpsAndLimits
                 _ => throw new InvalidOperationException(
                     $"Limit {limit.Rule} on {type.Code}: the engines don't know the kind \"{kind}\" (it comes with its sport's slice)."),
             };
-            var allowed = kind == MaxKind && steps.Take(at + 1).Any(step => StartsOvertime(ctx.Definition, step.Event))
+            // Once extra time has started, the extra one applies to the whole contest, so a correction of an earlier event
+            // is counted against the same limit as a new one.
+            var allowed = kind == MaxKind && steps.Any(step => StartsOvertime(ctx.Definition, step.Event))
                 ? value + (ctx.Rules.Number($"{group}.{ExtraInExtraTime}") ?? 0)
                 : value;
             if (used > allowed)

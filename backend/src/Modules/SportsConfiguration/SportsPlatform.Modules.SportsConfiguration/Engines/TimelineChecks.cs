@@ -58,7 +58,7 @@ public static class TimelineChecks
         return new ValidationResult([.. new[]
         {
             FollowUpsAndLimits.FollowUpError(ctx.Definition, type, draft, period, basis.Before),
-            FollowUpsAndLimits.LimitError(ctx, type, draft, TimelineFold.Active(live.Timeline), basis.Replaced),
+            FollowUpsAndLimits.LimitError(ctx, type, draft, ByOrigin(live), basis.Replaced),
         }.OfType<Error>()]);
     }
 
@@ -123,19 +123,19 @@ public static class TimelineChecks
             }
 
             var original = Original(live, target).Sequence;
-            var before = TimelineFold.Active(live.Timeline)
-                .Select(evt => (Event: evt, Origin: Original(live, evt).Sequence))
-                .Where(item => item.Origin < original)
-                .OrderBy(item => item.Origin)
-                .Select(item => item.Event)
-                .ToList();
+            var before = ByOrigin(live).Where(evt => Original(live, evt).Sequence < original).ToList();
             return new Basis(PhaseTracker.Track(ctx.Definition, before), PersonnelTracker.Track(ctx, before), before) { Replaced = target };
         }
 
         return Current(live);
     }
 
-    private static Basis Current(ContestLiveState live) => new(live.Phase, live.Personnel, TimelineFold.Active(live.Timeline));
+    private static Basis Current(ContestLiveState live) => new(live.Phase, live.Personnel, ByOrigin(live));
+
+    // The active events, each where its chain of corrections started: a try corrected after its conversion still comes
+    // before it, and a corrected substitution stays in its window.
+    private static List<TimelineEvent> ByOrigin(ContestLiveState live) =>
+        [.. TimelineFold.Active(live.Timeline).OrderBy(evt => Original(live, evt).Sequence)];
 
     // §5.2: a definition's event type lists the phase kinds it may be recorded in; nothing of the sport happens before
     // the first period starts. A start needs a period of the definition and none running; an end needs one running.

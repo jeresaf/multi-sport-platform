@@ -59,6 +59,74 @@ public sealed class FollowUpsAndLimitsTests
     }
 
     [Fact]
+    public void A_try_corrected_after_its_conversion_is_still_converted()
+    {
+        var ctx = Context(RugbyUnion15) with { Coverage = CoverageLevel.Basic };
+        TimelineEvent[] timeline =
+        [
+            Start(1, "FIRST_HALF"), Played(2, "TRY", Home), Played(3, "CONVERSION_MADE", Home),
+            Played(4, "TRY", Home) with { SupersedesEventId = Id(2) },
+        ];
+
+        Codes(ctx, timeline, Scored("CONVERSION_MADE", Home)).ShouldBe([_missing]);
+    }
+
+    [Fact]
+    public void A_substitution_corrected_after_a_later_goal_stays_in_its_window()
+    {
+        var ctx = Context(Football) with { Coverage = CoverageLevel.Basic, Rules = Rules(("substitutions.windows", 1L)) };
+        TimelineEvent[] timeline =
+        [
+            Start(1, "FIRST_HALF"), At(Played(2, "SUBSTITUTION", Home), 30), At(Played(3, "SUBSTITUTION", Home), 30),
+            At(Played(4, "GOAL", Away), 32), At(Played(5, "SUBSTITUTION", Home), 30) with { SupersedesEventId = Id(2) },
+        ];
+
+        Codes(ctx, timeline, At(Scored("SUBSTITUTION", Home), 30) with { SupersedesEventId = Id(3) }).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void A_first_half_substitution_corrected_at_half_time_still_used_a_window()
+    {
+        var ctx = Context(Football) with { Coverage = CoverageLevel.Basic, Rules = Rules(("substitutions.windows", 1L)) };
+        TimelineEvent[] timeline =
+        [
+            Start(1, "FIRST_HALF"), At(Played(2, "SUBSTITUTION", Home), 30), End(3),
+            At(Played(4, "SUBSTITUTION", Home), 30) with { SupersedesEventId = Id(2) }, Start(5, "SECOND_HALF"),
+        ];
+
+        Codes(ctx, timeline, At(Scored("SUBSTITUTION", Home), 60)).ShouldBe([_reached]);
+    }
+
+    [Fact]
+    public void Once_extra_time_has_started_a_substitution_from_normal_time_can_still_be_corrected()
+    {
+        var ctx = Context(Football) with
+        {
+            Coverage = CoverageLevel.Basic,
+            Rules = Rules(("substitutions.max", 2L), ("substitutions.extra_in_extra_time", 1L)),
+        };
+        TimelineEvent[] timeline =
+        [
+            Start(1, "FIRST_HALF"), Played(2, "SUBSTITUTION", Home), Played(3, "SUBSTITUTION", Home), End(4),
+            Start(5, "EXTRA_TIME_FIRST_HALF"), Played(6, "SUBSTITUTION", Home, "EXTRA_TIME_FIRST_HALF"),
+        ];
+
+        Codes(ctx, timeline, Scored("SUBSTITUTION", Home) with { SupersedesEventId = Id(2) }).ShouldBeEmpty();
+        Codes(ctx, timeline, Scored("SUBSTITUTION", Home)).ShouldBe([_reached]);
+    }
+
+    [Fact]
+    public void A_substitution_at_another_minute_is_another_window_even_with_nothing_between()
+    {
+        var ctx = Context(Football) with { Coverage = CoverageLevel.Basic, Rules = Rules(("substitutions.windows", 1L)) };
+        TimelineEvent[] timeline = [Start(1, "FIRST_HALF"), At(Played(2, "SUBSTITUTION", Home), 60)];
+
+        Codes(ctx, timeline, At(Scored("SUBSTITUTION", Home), 60)).ShouldBeEmpty();
+        Codes(ctx, timeline, At(Scored("SUBSTITUTION", Home), 70)).ShouldBe([_reached]);
+        Codes(ctx, timeline, Scored("SUBSTITUTION", Home)).ShouldBeEmpty();
+    }
+
+    [Fact]
     public void A_limit_of_a_kind_the_engines_dont_know_is_a_bug()
     {
         var type = Football.EventTypes.Single(candidate => candidate.Code == "SUBSTITUTION");
@@ -79,6 +147,10 @@ public sealed class FollowUpsAndLimitsTests
 
     private static TimelineEvent Played(long sequence, string type, Guid participant, string period = "FIRST_HALF") =>
         Event(sequence, type, participant) with { PeriodCode = period, PeriodOccurrence = 1 };
+
+    private static TimelineEvent At(TimelineEvent evt, int minute) => evt with { GameClockSeconds = minute * 60 };
+
+    private static TimelineEventDraft At(TimelineEventDraft draft, int minute) => draft with { GameClockSeconds = minute * 60 };
 
     private static TimelineEvent End(long sequence) => Event(sequence, GenericEventCodes.PeriodEnd);
 
