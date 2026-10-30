@@ -34,7 +34,7 @@
     {
       "code": "PLATFORM_SUPPORT",
       "scope": "PLATFORM",
-      "description": "Platform staff, read-only: tenants, plans, subscriptions, audit, outbox and sport definitions (every read of tenant or platform data is audited).",
+      "description": "Platform staff, read-only: tenants, plans, subscriptions, audit, outbox and sport definitions (reads of tenants, plans, subscriptions, audit and outbox are audited).",
       "assignableAt": [],
       "actions": [
         "plan.read",

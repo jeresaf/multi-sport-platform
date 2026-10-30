@@ -83,7 +83,7 @@ public static class IdentityRoles
                 "tenant.update",
             ]),
         new(PlatformRoleCodes.Support, RoleScope.Platform,
-            "Platform staff, read-only: tenants, plans, subscriptions, audit, outbox and sport definitions (every read of tenant or platform data is audited).",
+            "Platform staff, read-only: tenants, plans, subscriptions, audit, outbox and sport definitions (reads of tenants, plans, subscriptions, audit and outbox are audited).",
             _platformReads),
 
         new(TenantOwner, RoleScope.Tenant,

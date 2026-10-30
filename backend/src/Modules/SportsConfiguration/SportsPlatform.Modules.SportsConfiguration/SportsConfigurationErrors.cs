@@ -10,5 +10,5 @@ public static class SportsConfigurationErrors
         "SPORT_CONCURRENCY_CONFLICT", "The configuration was changed by someone else. Reload and try again.", ErrorKind.Conflict);
 
     public static readonly Error SportDefinitionNotFound = new(
-        "SPORT_DEFINITION_NOT_FOUND", "No published sport definition has this variant and version.", ErrorKind.NotFound);
+        "SPORT_DEFINITION_NOT_FOUND", "No published sport definition matches this variant, or this version of it.", ErrorKind.NotFound);
 }

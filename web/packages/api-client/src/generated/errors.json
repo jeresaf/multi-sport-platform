@@ -213,7 +213,7 @@
     {
       "code": "SPORT_DEFINITION_NOT_FOUND",
       "status": 404,
-      "message": "No published sport definition has this variant and version.",
+      "message": "No published sport definition matches this variant, or this version of it.",
       "owner": "SportsConfiguration"
     },
     {
