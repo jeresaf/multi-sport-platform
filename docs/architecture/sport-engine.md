@@ -131,14 +131,17 @@ can't see `Guid.NewGuid()`; review does). As built:
 **As built (S05-T2b1).** `TimelineChecks` (next to the trackers) runs the checks every family shares, in groups; the
 first group that fails answers (all 422):
 - **Type:** the definition's or a generic one (`TIMELINE_EVENT_UNKNOWN`).
-- **Status:** `LIVE`; `ENDED` while the caller says the correction window is open (`ContestLiveState.CorrectionWindowOpen`,
-  set on the folded state by Match Operations, which has the clock; the fold leaves it false); any status for
-  `BACKFILL` and `ADMIN` (`TIMELINE_CONTEST_NOT_LIVE`).
+- **Status:** `LIVE`; `ENDED` while the caller says the correction window is open
+  (`ContestLiveState.CorrectionWindowOpen`, set on the folded state by Match Operations, which has the clock; the fold
+  leaves it false), for corrections and reversals only (§9; a new period or goal would reopen the contest); any status
+  for `BACKFILL` and `ADMIN` (`TIMELINE_CONTEST_NOT_LIVE`).
 - **References:** a reversal names an active event and is `EVENT_REVERSED` or a type in that event's `reversible_by`;
   `EVENT_REVERSED` needs one; a correction replaces an active event of the definition with another (generic events
-  are reversed, never corrected); never both (`TIMELINE_REFERENCE_INVALID`). A correction is checked **as at the
-  event it replaces** (owner, 2026-10-30): phase and people are folded from the active events before it, and it
-  belongs to that event's period.
+  are reversed, never corrected), of any of the definition's types; never both (`TIMELINE_REFERENCE_INVALID`). A
+  correction is checked **as at the event it replaces** (owner, 2026-10-30): phase and people are folded from the
+  active events before the first event of its chain of corrections, and it belongs to that event's period. A
+  reversal is checked in the current phase: a type that lists only `PLAY` (football's `VAR_DECISION`) can't reverse
+  at half-time or after the end, `EVENT_REVERSED` can.
 - **Phase:** a definition's type must list the current phase kind (the running period's, or `BREAK` between
   periods; nothing before the first start); `PERIOD_START` needs a period of the definition and none running; `PERIOD_END` needs one running; other
   generic events come any time (`TIMELINE_EVENT_NOT_ALLOWED_IN_PHASE`).
