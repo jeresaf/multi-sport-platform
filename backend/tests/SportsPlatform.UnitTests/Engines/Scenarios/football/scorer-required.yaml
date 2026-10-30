@@ -1,0 +1,27 @@
+title: With lineups a goal needs its scorer and its team — Nakawa Nomads FC beat Kansanga Harriers FC 1–0
+definition: { variant: FOOTBALL_ASSOCIATION, version: 1 }
+rules: FOOTBALL_LEAGUE
+coverage: STANDARD
+home:
+  team: Kansanga Harriers FC
+  starters: [Abdul Ssenyonga, Dennis Okwir, Francis Mubiru, George Opio, Ismail Kayondo, Jacob Ouma, Kevin Ssebunya, Lawrence Ekwaro, Mark Nakibinge, Nathan Odongo, Oscar Kiggundu]
+  bench: [Quentin Mayanja, Rashid Otim, Steven Lukwago]
+  staff: [Victor Kalule]
+away:
+  team: Nakawa Nomads FC
+  starters: [Abel Mutebi, Brian Okumu, Cyrus Nsereko, David Ocen, Elijah Kyambadde, Felix Amolo, Gerald Ssekandi, Hamza Oryem, Ibrahim Wamala, Jonah Ekou, Kizza Bbosa]
+  bench: [Lameck Ochola, Mike Ssekyewa, Norman Adriko]
+  staff: [Owen Kabuye]
+events:
+  - { minute: 0, type: PERIOD_START, period: FIRST_HALF }
+  - { minute: 9, type: GOAL, team: Nakawa Nomads FC, rejected: [TIMELINE_ACTOR_REQUIRED] }
+  - { minute: 9, type: GOAL, actors: { SCORER: Ibrahim Wamala }, rejected: [TIMELINE_PARTICIPANT_INVALID] }
+  - { minute: 9, type: GOAL, team: Nakawa Nomads FC, actors: { SCORER: Ibrahim Wamala } }
+  - { minute: 45, type: PERIOD_END }
+  - { minute: 45, type: PERIOD_START, period: SECOND_HALF }
+  - { minute: 90, type: PERIOD_END }
+expect:
+  score:
+    Kansanga Harriers FC: { total: 0, periods: { 1H: 0, 2H: 0 } }
+    Nakawa Nomads FC: { total: 1, periods: { 1H: 1, 2H: 0 } }
+  outcome: { winner: Nakawa Nomads FC, method: REGULATION }

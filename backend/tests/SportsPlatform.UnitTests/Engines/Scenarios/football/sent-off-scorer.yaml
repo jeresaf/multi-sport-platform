@@ -1,0 +1,31 @@
+title: A player sent off can't score — Nakawa Nomads FC and Kansanga Harriers FC draw 0–0
+# Cards may go to anyone in the squad or the staff, but not to someone already sent off; a sent-off player is no longer
+# on the field.
+definition: { variant: FOOTBALL_ASSOCIATION, version: 1 }
+rules: FOOTBALL_LEAGUE
+coverage: STANDARD
+home:
+  team: Kansanga Harriers FC
+  starters: [Abdul Ssenyonga, Dennis Okwir, Francis Mubiru, George Opio, Ismail Kayondo, Jacob Ouma, Kevin Ssebunya, Lawrence Ekwaro, Mark Nakibinge, Nathan Odongo, Oscar Kiggundu]
+  bench: [Quentin Mayanja, Rashid Otim, Steven Lukwago]
+  staff: [Victor Kalule]
+away:
+  team: Nakawa Nomads FC
+  starters: [Abel Mutebi, Brian Okumu, Cyrus Nsereko, David Ocen, Elijah Kyambadde, Felix Amolo, Gerald Ssekandi, Hamza Oryem, Ibrahim Wamala, Jonah Ekou, Kizza Bbosa]
+  bench: [Lameck Ochola, Mike Ssekyewa, Norman Adriko]
+  staff: [Owen Kabuye]
+events:
+  - { minute: 0, type: PERIOD_START, period: FIRST_HALF }
+  - { minute: 28, type: RED_CARD, team: Nakawa Nomads FC, actors: { OFFENDER: Hamza Oryem }, payload: { reason: SERIOUS_FOUL_PLAY } }
+  - { minute: 31, type: YELLOW_CARD, team: Nakawa Nomads FC, actors: { OFFENDER: Owen Kabuye }, payload: { reason: DISSENT } }
+  - { minute: 31, type: RED_CARD, team: Nakawa Nomads FC, actors: { OFFENDER: Hamza Oryem }, rejected: [TIMELINE_ACTOR_INVALID] }
+  - { minute: 40, type: GOAL, team: Nakawa Nomads FC, actors: { SCORER: Hamza Oryem }, rejected: [TIMELINE_ACTOR_NOT_ON_FIELD] }
+  - { minute: 45, type: PERIOD_END }
+  - { minute: 45, type: YELLOW_CARD, team: Kansanga Harriers FC, actors: { OFFENDER: Steven Lukwago } }
+  - { minute: 45, type: PERIOD_START, period: SECOND_HALF }
+  - { minute: 90+3, type: PERIOD_END }
+expect:
+  score:
+    Kansanga Harriers FC: { total: 0, periods: { 1H: 0, 2H: 0 } }
+    Nakawa Nomads FC: { total: 0, periods: { 1H: 0, 2H: 0 } }
+  outcome: { draw: true }

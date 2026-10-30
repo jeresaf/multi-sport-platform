@@ -1,0 +1,26 @@
+title: The scorer starts and ends the halves in order — Kansanga Harriers FC and Nakawa Nomads FC draw 0–0
+# A half starts only when none is running and must be one of football's periods; only a running half can end.
+definition: { variant: FOOTBALL_ASSOCIATION, version: 1 }
+rules: FOOTBALL_LEAGUE
+coverage: BASIC
+home:
+  team: Kansanga Harriers FC
+away:
+  team: Nakawa Nomads FC
+events:
+  - { minute: 0, type: PERIOD_END, rejected: [TIMELINE_EVENT_NOT_ALLOWED_IN_PHASE] }
+  - { minute: 0, type: PERIOD_START, period: FIRST_QUARTER, rejected: [TIMELINE_EVENT_NOT_ALLOWED_IN_PHASE] }
+  - { minute: 0, type: PERIOD_START, period: FIRST_HALF }
+  - { minute: 3, type: PERIOD_START, period: SECOND_HALF, rejected: [TIMELINE_EVENT_NOT_ALLOWED_IN_PHASE] }
+  - { minute: 45+2, type: PERIOD_END }
+  - { minute: 45+2, type: PERIOD_END, rejected: [TIMELINE_EVENT_NOT_ALLOWED_IN_PHASE] }
+  - { minute: 45+2, type: PERIOD_START, period: HALF_TIME }
+  - { minute: 45+2, type: NOTE, payload: { text: Rain delays the restart } }
+  - { minute: 45+2, type: PERIOD_END }
+  - { minute: 45, type: PERIOD_START, period: SECOND_HALF }
+  - { minute: 90+4, type: PERIOD_END }
+expect:
+  score:
+    Kansanga Harriers FC: { total: 0, periods: { 1H: 0, 2H: 0 } }
+    Nakawa Nomads FC: { total: 0, periods: { 1H: 0, 2H: 0 } }
+  outcome: { draw: true }

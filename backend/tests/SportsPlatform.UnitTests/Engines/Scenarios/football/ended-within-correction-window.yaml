@@ -1,0 +1,28 @@
+title: Within the correction window the scorer fixes a scorer after the final whistle — Kansanga Harriers FC beat Nakawa Nomads FC 1–0
+definition: { variant: FOOTBALL_ASSOCIATION, version: 1 }
+rules: FOOTBALL_LEAGUE
+coverage: STANDARD
+status: ENDED
+correction_window_open: true
+home:
+  team: Kansanga Harriers FC
+  starters: [Abdul Ssenyonga, Dennis Okwir, Francis Mubiru, George Opio, Ismail Kayondo, Jacob Ouma, Kevin Ssebunya, Lawrence Ekwaro, Mark Nakibinge, Nathan Odongo, Oscar Kiggundu]
+  bench: [Quentin Mayanja, Rashid Otim, Steven Lukwago]
+  staff: [Victor Kalule]
+away:
+  team: Nakawa Nomads FC
+  starters: [Abel Mutebi, Brian Okumu, Cyrus Nsereko, David Ocen, Elijah Kyambadde, Felix Amolo, Gerald Ssekandi, Hamza Oryem, Ibrahim Wamala, Jonah Ekou, Kizza Bbosa]
+  bench: [Lameck Ochola, Mike Ssekyewa, Norman Adriko]
+  staff: [Owen Kabuye]
+events:
+  - { source: BACKFILL, minute: 0, type: PERIOD_START, period: FIRST_HALF }
+  - { source: BACKFILL, minute: 45, type: PERIOD_END }
+  - { source: BACKFILL, minute: 45, type: PERIOD_START, period: SECOND_HALF }
+  - { source: BACKFILL, id: winner, minute: 64, type: GOAL, team: Kansanga Harriers FC, actors: { SCORER: George Opio } }
+  - { source: BACKFILL, minute: 90+1, type: PERIOD_END }
+  - { minute: 64, type: GOAL, team: Kansanga Harriers FC, supersedes: winner, actors: { SCORER: Ismail Kayondo } }
+expect:
+  score:
+    Kansanga Harriers FC: { total: 1, periods: { 1H: 0, 2H: 1 } }
+    Nakawa Nomads FC: { total: 0, periods: { 1H: 0, 2H: 0 } }
+  outcome: { winner: Kansanga Harriers FC, method: REGULATION }

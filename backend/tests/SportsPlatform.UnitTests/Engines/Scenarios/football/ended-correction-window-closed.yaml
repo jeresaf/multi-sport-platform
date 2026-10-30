@@ -1,0 +1,32 @@
+title: After the correction window the scorer can't change the result, an administrator can — Nakawa Nomads FC beat Kansanga Harriers FC 2–1
+# The match is entered afterwards from the referee's report (BACKFILL). It has ended and the window is closed, so the
+# scorer's late goal is refused; the administrator's correction of a scorer goes through.
+definition: { variant: FOOTBALL_ASSOCIATION, version: 1 }
+rules: FOOTBALL_LEAGUE
+coverage: STANDARD
+status: ENDED
+home:
+  team: Kansanga Harriers FC
+  starters: [Abdul Ssenyonga, Dennis Okwir, Francis Mubiru, George Opio, Ismail Kayondo, Jacob Ouma, Kevin Ssebunya, Lawrence Ekwaro, Mark Nakibinge, Nathan Odongo, Oscar Kiggundu]
+  bench: [Quentin Mayanja, Rashid Otim, Steven Lukwago]
+  staff: [Victor Kalule]
+away:
+  team: Nakawa Nomads FC
+  starters: [Abel Mutebi, Brian Okumu, Cyrus Nsereko, David Ocen, Elijah Kyambadde, Felix Amolo, Gerald Ssekandi, Hamza Oryem, Ibrahim Wamala, Jonah Ekou, Kizza Bbosa]
+  bench: [Lameck Ochola, Mike Ssekyewa, Norman Adriko]
+  staff: [Owen Kabuye]
+events:
+  - { source: BACKFILL, minute: 0, type: PERIOD_START, period: FIRST_HALF }
+  - { source: BACKFILL, minute: 14, type: GOAL, team: Nakawa Nomads FC, actors: { SCORER: Felix Amolo } }
+  - { source: BACKFILL, id: equaliser, minute: 38, type: GOAL, team: Kansanga Harriers FC, actors: { SCORER: Lawrence Ekwaro } }
+  - { source: BACKFILL, minute: 45, type: PERIOD_END }
+  - { source: BACKFILL, minute: 45, type: PERIOD_START, period: SECOND_HALF }
+  - { source: BACKFILL, minute: 73, type: GOAL, team: Nakawa Nomads FC, actors: { SCORER: Kizza Bbosa } }
+  - { source: BACKFILL, minute: 90+3, type: PERIOD_END }
+  - { minute: 90+3, type: GOAL, team: Kansanga Harriers FC, actors: { SCORER: Oscar Kiggundu }, rejected: [TIMELINE_CONTEST_NOT_LIVE] }
+  - { source: ADMIN, minute: 38, type: GOAL, team: Kansanga Harriers FC, supersedes: equaliser, actors: { SCORER: Kevin Ssebunya } }
+expect:
+  score:
+    Kansanga Harriers FC: { total: 1, periods: { 1H: 1, 2H: 0 } }
+    Nakawa Nomads FC: { total: 2, periods: { 1H: 1, 2H: 1 } }
+  outcome: { winner: Nakawa Nomads FC, method: REGULATION }

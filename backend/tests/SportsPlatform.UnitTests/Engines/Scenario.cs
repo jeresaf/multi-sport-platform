@@ -28,6 +28,9 @@ internal sealed record Scenario(
 
     public ContestStatus Status { get; init; } = ContestStatus.Live;
 
+    /// <summary>Whether the caller says the correction window is still open after the contest ended.</summary>
+    public bool CorrectionWindowOpen { get; init; }
+
     private static readonly JsonSerializerOptions _options = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
@@ -118,7 +121,7 @@ internal sealed record ScenarioTeam(string Team)
 /// <summary>
 /// One event. <see cref="Minute"/> is the match clock as written (<c>23</c>, <c>45+2</c>); <see cref="Id"/> names the
 /// event for a later <see cref="Supersedes"/> or <see cref="Reverses"/>; <see cref="Rejected"/> lists the error codes
-/// the engine must answer with, and a rejected event is not recorded.
+/// the engine must answer with, in order, and a rejected event is not recorded.
 /// </summary>
 internal sealed record ScenarioEvent(string Type)
 {
@@ -127,6 +130,9 @@ internal sealed record ScenarioEvent(string Type)
     public JsonElement? Minute { get; init; }
 
     public string? Team { get; init; }
+
+    /// <summary>Where the event comes from: <c>LIVE</c> (the scorer) unless the file says <c>BACKFILL</c> or <c>ADMIN</c>.</summary>
+    public TimelineSource Source { get; init; } = TimelineSource.Live;
 
     public string? Period { get; init; }
 
