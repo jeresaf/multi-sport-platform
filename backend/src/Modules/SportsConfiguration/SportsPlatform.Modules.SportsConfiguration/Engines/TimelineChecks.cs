@@ -47,19 +47,25 @@ public static class TimelineChecks
         return new ValidationResult(ActorErrors(ctx, personnel, type, draft));
     }
 
-    // §5.1 with §9: live; or ended with the correction window still open, for corrections and reversals only (a new
-    // period or goal after the end would reopen the contest); a backfill or an administrator records at any time.
+    // §5.1 with §9: live; or ended with the correction window still open, for corrections and for reversals of anything
+    // but a period's start or end (a new period or goal after the end, or a period running again, would reopen the
+    // contest, which is ENDED → LIVE); a backfill or an administrator records at any time.
     private static bool StatusAllows(ContestLiveState live, TimelineEventDraft draft) =>
         draft.Source is TimelineSource.Backfill or TimelineSource.Admin
             || live.Status == ContestStatus.Live
             || (live.Status == ContestStatus.Ended && live.CorrectionWindowOpen
-                && (draft.ReversesEventId is not null || draft.SupersedesEventId is not null));
+                && (draft.SupersedesEventId is not null
+                    || (draft.ReversesEventId is { } reverses && !ReversesPeriod(live, reverses))));
+
+    private static bool ReversesPeriod(ContestLiveState live, Guid id) =>
+        live.Timeline.FirstOrDefault(entry => entry.Event.Id == id)?.Event.EventType is GenericEventCodes.PeriodStart or GenericEventCodes.PeriodEnd;
 
     // §9: a reversal names an active event whose type lists the reversing type in reversible_by (EVENT_REVERSED
     // reverses anything) and is checked in the current phase; a correction replaces an active event of the definition
     // with another one of any of its types, never a generic event (a period start isn't corrected, it is reversed).
     // Null when the reference is invalid; otherwise the phase and the people the later checks read: the current ones,
-    // or for a correction those just before the event its chain of corrections started from.
+    // or for a correction those just before the event its chain of corrections started from. There, every active event
+    // stands where its own chain started, so an earlier event corrected later still counts, in its corrected form.
     private static (ContestPhase Phase, ContestPersonnel Personnel)? References(ContestContext ctx, ContestLiveState live, TimelineEventDraft draft)
     {
         if (draft.ReversesEventId is { } reverses)
@@ -85,8 +91,13 @@ public static class TimelineChecks
                 return null;
             }
 
-            var original = Original(live, target);
-            var before = TimelineFold.Active(live.Timeline.Where(entry => entry.Event.Sequence < original.Sequence));
+            var original = Original(live, target).Sequence;
+            var before = TimelineFold.Active(live.Timeline)
+                .Select(evt => (Event: evt, Origin: Original(live, evt).Sequence))
+                .Where(item => item.Origin < original)
+                .OrderBy(item => item.Origin)
+                .Select(item => item.Event)
+                .ToList();
             return (PhaseTracker.Track(ctx.Definition, before), PersonnelTracker.Track(ctx, before));
         }
 
