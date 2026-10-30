@@ -1,0 +1,32 @@
+title: Ggaba Gulls RFC convert one of their two tries and beat Muyenga Mambas RFC 12–10
+# A conversion follows its own team's try in the same half, made or missed. Rugby is seeded in S15; this scenario reads
+# its reference definition to show the follow-ups football doesn't have.
+definition: { variant: RUGBY_UNION_15, version: 1 }
+covers: [APPLY, VALIDATE_FOLLOW_UPS]
+rules: RUGBY15_LEAGUE
+coverage: STANDARD
+home:
+  team: Ggaba Gulls RFC
+  starters: [Aggrey Nkuutu, Bernard Ssekatawa, Calvin Onen, Dan Mpiima, Edgar Tumwine, Fahad Ssenkubuge, Godwin Akena, Hillary Mukiibi, Innocent Lutalo, Jimmy Ekiring, Kizza Ssemwogerere, Lameck Okidi, Musa Kakande, Norman Ssenyange, Obed Atwine]
+  bench: [Phillip Kyeyune, Reagan Ochan, Solomon Nakabaale]
+away:
+  team: Muyenga Mambas RFC
+  starters: [Timothy Kabugo, Ubaldo Ogwang, Vianney Ssebunnya, Wilson Ainebyona, Yasin Kateregga, Zephaniah Omoding, Ambrose Kiyimba, Brian Opiyo, Caleb Ssentongo, Duncan Ariong, Elijah Bukenya, Fortunate Okwi, Gideon Lubowa, Humphrey Ekirapa, Isaiah Nkangi]
+  bench: [Jordan Kaweesi, Kenneth Odyek, Lukman Ssozi]
+events:
+  - { minute: 0, type: PERIOD_START, period: FIRST_HALF }
+  - { minute: 14, type: TRY, team: Ggaba Gulls RFC, actors: { SCORER: Kizza Ssemwogerere } }
+  - { minute: 15, type: CONVERSION_MADE, team: Ggaba Gulls RFC, actors: { KICKER: Godwin Akena } }
+  - { minute: 27, type: PENALTY_GOAL, team: Muyenga Mambas RFC, actors: { KICKER: Ambrose Kiyimba } }
+  - { minute: 40+1, type: PERIOD_END }
+  - { minute: 40, type: PERIOD_START, period: SECOND_HALF }
+  - { minute: 55, type: TRY, team: Muyenga Mambas RFC, actors: { SCORER: Isaiah Nkangi } }
+  - { minute: 56, type: CONVERSION_MADE, team: Muyenga Mambas RFC, actors: { KICKER: Ambrose Kiyimba } }
+  - { minute: 71, type: TRY, team: Ggaba Gulls RFC, actors: { SCORER: Obed Atwine } }
+  - { minute: 72, type: CONVERSION_MISSED, team: Ggaba Gulls RFC, actors: { KICKER: Godwin Akena } }
+  - { minute: 80+2, type: PERIOD_END }
+expect:
+  score:
+    Ggaba Gulls RFC: { total: 12, periods: { 1H: 7, 2H: 5 } }
+    Muyenga Mambas RFC: { total: 10, periods: { 1H: 3, 2H: 7 } }
+  outcome: { winner: Ggaba Gulls RFC, method: REGULATION }

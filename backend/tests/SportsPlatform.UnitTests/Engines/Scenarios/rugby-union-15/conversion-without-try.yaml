@@ -1,0 +1,32 @@
+title: Conversions without a try of their own are refused — Muyenga Mambas RFC beat Ggaba Gulls RFC 12–0
+# A conversion needs an unconverted try by its own team in the same half: not before any try, not after the other
+# team's try, not twice for one try, and not for a try in the half before.
+definition: { variant: RUGBY_UNION_15, version: 1 }
+covers: [VALIDATE_FOLLOW_UPS]
+rules: RUGBY15_LEAGUE
+coverage: STANDARD
+home:
+  team: Ggaba Gulls RFC
+  starters: [Aggrey Nkuutu, Bernard Ssekatawa, Calvin Onen, Dan Mpiima, Edgar Tumwine, Fahad Ssenkubuge, Godwin Akena, Hillary Mukiibi, Innocent Lutalo, Jimmy Ekiring, Kizza Ssemwogerere, Lameck Okidi, Musa Kakande, Norman Ssenyange, Obed Atwine]
+  bench: [Phillip Kyeyune, Reagan Ochan, Solomon Nakabaale]
+away:
+  team: Muyenga Mambas RFC
+  starters: [Timothy Kabugo, Ubaldo Ogwang, Vianney Ssebunnya, Wilson Ainebyona, Yasin Kateregga, Zephaniah Omoding, Ambrose Kiyimba, Brian Opiyo, Caleb Ssentongo, Duncan Ariong, Elijah Bukenya, Fortunate Okwi, Gideon Lubowa, Humphrey Ekirapa, Isaiah Nkangi]
+  bench: [Jordan Kaweesi, Kenneth Odyek, Lukman Ssozi]
+events:
+  - { minute: 0, type: PERIOD_START, period: FIRST_HALF }
+  - { minute: 6, type: CONVERSION_MADE, team: Ggaba Gulls RFC, actors: { KICKER: Godwin Akena }, rejected: [TIMELINE_FOLLOW_UP_MISSING] }
+  - { minute: 21, type: TRY, team: Muyenga Mambas RFC, actors: { SCORER: Gideon Lubowa } }
+  - { minute: 22, type: CONVERSION_MADE, team: Ggaba Gulls RFC, actors: { KICKER: Godwin Akena }, rejected: [TIMELINE_FOLLOW_UP_MISSING] }
+  - { minute: 22, type: CONVERSION_MADE, team: Muyenga Mambas RFC, actors: { KICKER: Ambrose Kiyimba } }
+  - { minute: 22, type: CONVERSION_MADE, team: Muyenga Mambas RFC, actors: { KICKER: Ambrose Kiyimba }, rejected: [TIMELINE_FOLLOW_UP_MISSING] }
+  - { minute: 39, type: TRY, team: Muyenga Mambas RFC, actors: { SCORER: Isaiah Nkangi } }
+  - { minute: 40+1, type: PERIOD_END }
+  - { minute: 40, type: PERIOD_START, period: SECOND_HALF }
+  - { minute: 40, type: CONVERSION_MADE, team: Muyenga Mambas RFC, actors: { KICKER: Ambrose Kiyimba }, rejected: [TIMELINE_FOLLOW_UP_MISSING] }
+  - { minute: 80+1, type: PERIOD_END }
+expect:
+  score:
+    Ggaba Gulls RFC: { total: 0, periods: { 1H: 0, 2H: 0 } }
+    Muyenga Mambas RFC: { total: 12, periods: { 1H: 12, 2H: 0 } }
+  outcome: { winner: Muyenga Mambas RFC, method: REGULATION }

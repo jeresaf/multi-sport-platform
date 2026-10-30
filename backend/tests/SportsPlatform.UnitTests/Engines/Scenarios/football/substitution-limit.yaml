@@ -1,0 +1,35 @@
+title: Kireka Kingfishers FC make their five substitutions, a sixth is refused until one entered in error is withdrawn — they beat Bunga Breakers FC 1–0
+# A league allows five substitutions per team (substitutions.max). A substitution that was withdrawn doesn't count.
+definition: { variant: FOOTBALL_ASSOCIATION, version: 1 }
+covers: [VALIDATE_LIMITS]
+rules: FOOTBALL_LEAGUE
+coverage: STANDARD
+home:
+  team: Kireka Kingfishers FC
+  starters: [Abel Nsereko, Benon Kiwanuka, Cosmas Oryem, Daniel Ssempijja, Elvis Akol, Felix Mutebi, Gerald Ojara, Hamza Lule, Ibrahim Kasozi, Jonan Twesigye, Kassim Muwanga]
+  bench: [Livingstone Ocen, Mathias Kakooza, Nicholas Byamugisha, Oliver Ssenoga, Patrick Wandera, Raymond Kibuuka, Silas Obbo]
+away:
+  team: Bunga Breakers FC
+  starters: [Tonny Kalyango, Umar Ssali, Vincent Odeke, William Kayiwa, Xavier Mbabazi, Yusuf Galabuzi, Zakaria Okumu, Adrian Muhumuza, Bosco Ssekandi, Cyprian Acema, Dickson Nalumu]
+  bench: [Eric Kamya, Frank Oloya, Gilbert Ssebaggala, Herbert Ekwang]
+events:
+  - { minute: 0, type: PERIOD_START, period: FIRST_HALF }
+  - { minute: 45+1, type: PERIOD_END }
+  - { minute: 45, type: PERIOD_START, period: SECOND_HALF }
+  - { minute: 52, type: GOAL, team: Kireka Kingfishers FC, actors: { SCORER: Kassim Muwanga } }
+  - { minute: 60, type: SUBSTITUTION, team: Kireka Kingfishers FC, actors: { PLAYER_OFF: Jonan Twesigye, PLAYER_ON: Livingstone Ocen } }
+  - { minute: 60, type: SUBSTITUTION, team: Kireka Kingfishers FC, actors: { PLAYER_OFF: Ibrahim Kasozi, PLAYER_ON: Mathias Kakooza } }
+  - { minute: 70, type: SUBSTITUTION, team: Kireka Kingfishers FC, actors: { PLAYER_OFF: Hamza Lule, PLAYER_ON: Nicholas Byamugisha } }
+  - { minute: 70, type: SUBSTITUTION, team: Kireka Kingfishers FC, actors: { PLAYER_OFF: Gerald Ojara, PLAYER_ON: Oliver Ssenoga } }
+  - { minute: 80, id: fifth, type: SUBSTITUTION, team: Kireka Kingfishers FC, actors: { PLAYER_OFF: Felix Mutebi, PLAYER_ON: Patrick Wandera } }
+  - { minute: 80, type: SUBSTITUTION, team: Kireka Kingfishers FC, actors: { PLAYER_OFF: Elvis Akol, PLAYER_ON: Raymond Kibuuka }, rejected: [TIMELINE_LIMIT_REACHED] }
+  # The fifth was entered for the wrong player; the scorer withdraws it, and the right one is a fifth again.
+  - { minute: 80, type: EVENT_REVERSED, reverses: fifth }
+  - { minute: 80, type: SUBSTITUTION, team: Kireka Kingfishers FC, actors: { PLAYER_OFF: Elvis Akol, PLAYER_ON: Raymond Kibuuka } }
+  - { minute: 85, type: SUBSTITUTION, team: Bunga Breakers FC, actors: { PLAYER_OFF: Dickson Nalumu, PLAYER_ON: Eric Kamya } }
+  - { minute: 90+3, type: PERIOD_END }
+expect:
+  score:
+    Kireka Kingfishers FC: { total: 1, periods: { 1H: 0, 2H: 1 } }
+    Bunga Breakers FC: { total: 0, periods: { 1H: 0, 2H: 0 } }
+  outcome: { winner: Kireka Kingfishers FC, method: REGULATION }

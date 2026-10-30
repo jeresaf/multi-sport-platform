@@ -1,0 +1,29 @@
+title: In a competition that counts each goal as two points, Kireka Kingfishers FC beat Bunga Breakers FC 4–2
+# The rules may change what a scoring event is worth (scoring.points.GOAL); events that score nothing still score nothing.
+definition: { variant: FOOTBALL_ASSOCIATION, version: 1 }
+covers: [APPLY_POINTS_OVERRIDE]
+rules: FOOTBALL_LEAGUE
+rule_overrides: { scoring.points.GOAL: 2 }
+coverage: STANDARD
+home:
+  team: Kireka Kingfishers FC
+  starters: [Abel Nsereko, Benon Kiwanuka, Cosmas Oryem, Daniel Ssempijja, Elvis Akol, Felix Mutebi, Gerald Ojara, Hamza Lule, Ibrahim Kasozi, Jonan Twesigye, Kassim Muwanga]
+  bench: [Livingstone Ocen, Mathias Kakooza, Nicholas Byamugisha, Oliver Ssenoga, Patrick Wandera, Raymond Kibuuka, Silas Obbo]
+away:
+  team: Bunga Breakers FC
+  starters: [Tonny Kalyango, Umar Ssali, Vincent Odeke, William Kayiwa, Xavier Mbabazi, Yusuf Galabuzi, Zakaria Okumu, Adrian Muhumuza, Bosco Ssekandi, Cyprian Acema, Dickson Nalumu]
+  bench: [Eric Kamya, Frank Oloya, Gilbert Ssebaggala, Herbert Ekwang]
+events:
+  - { minute: 0, type: PERIOD_START, period: FIRST_HALF }
+  - { minute: 12, type: GOAL, team: Kireka Kingfishers FC, actors: { SCORER: Kassim Muwanga } }
+  - { minute: 34, type: GOAL, team: Bunga Breakers FC, actors: { SCORER: Dickson Nalumu } }
+  - { minute: 45+1, type: PERIOD_END }
+  - { minute: 45, type: PERIOD_START, period: SECOND_HALF }
+  - { minute: 67, type: PENALTY_MISSED, team: Bunga Breakers FC, actors: { TAKER: Cyprian Acema } }
+  - { minute: 79, type: GOAL, team: Kireka Kingfishers FC, actors: { SCORER: Jonan Twesigye } }
+  - { minute: 90+2, type: PERIOD_END }
+expect:
+  score:
+    Kireka Kingfishers FC: { total: 4, periods: { 1H: 2, 2H: 2 } }
+    Bunga Breakers FC: { total: 2, periods: { 1H: 2, 2H: 0 } }
+  outcome: { winner: Kireka Kingfishers FC, method: REGULATION }

@@ -2,6 +2,7 @@ title: A player sent off can't score — Kansanga Harriers FC and Nakawa Nomads 
 # Cards may go to anyone in the squad or the staff, but not to someone already sent off; a sent-off player is no longer
 # on the field.
 definition: { variant: FOOTBALL_ASSOCIATION, version: 1 }
+covers: [VALIDATE_ACTORS]
 rules: FOOTBALL_LEAGUE
 coverage: STANDARD
 home:

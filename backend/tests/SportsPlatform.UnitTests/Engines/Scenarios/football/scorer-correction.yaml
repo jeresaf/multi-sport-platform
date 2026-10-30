@@ -1,6 +1,7 @@
 title: The scorer recorded the winner for the wrong team and corrects it — Mutundwe Meteors FC win 1–0
 # A correction is a full replacement event: the first entry is superseded and only the corrected goal counts.
 definition: { variant: FOOTBALL_ASSOCIATION, version: 1 }
+covers: [CORRECTIONS_AND_REVERSALS]
 rules: FOOTBALL_LEAGUE
 coverage: STANDARD
 home:

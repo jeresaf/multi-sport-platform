@@ -1,0 +1,37 @@
+title: Kireka Kingfishers FC use their two substitution windows, and a third stop to change players is refused — 1–1 with Bunga Breakers FC
+# This league allows two windows (substitutions.windows) in play. Changes at half-time use no window, and the team's
+# changes at one stoppage are one window, even when the other team changes players at the same time.
+definition: { variant: FOOTBALL_ASSOCIATION, version: 1 }
+covers: [VALIDATE_LIMITS]
+rules: FOOTBALL_LEAGUE
+rule_overrides: { substitutions.windows: 2 }
+coverage: STANDARD
+home:
+  team: Kireka Kingfishers FC
+  starters: [Abel Nsereko, Benon Kiwanuka, Cosmas Oryem, Daniel Ssempijja, Elvis Akol, Felix Mutebi, Gerald Ojara, Hamza Lule, Ibrahim Kasozi, Jonan Twesigye, Kassim Muwanga]
+  bench: [Livingstone Ocen, Mathias Kakooza, Nicholas Byamugisha, Oliver Ssenoga, Patrick Wandera, Raymond Kibuuka, Silas Obbo]
+away:
+  team: Bunga Breakers FC
+  starters: [Tonny Kalyango, Umar Ssali, Vincent Odeke, William Kayiwa, Xavier Mbabazi, Yusuf Galabuzi, Zakaria Okumu, Adrian Muhumuza, Bosco Ssekandi, Cyprian Acema, Dickson Nalumu]
+  bench: [Eric Kamya, Frank Oloya, Gilbert Ssebaggala, Herbert Ekwang]
+events:
+  - { minute: 0, type: PERIOD_START, period: FIRST_HALF }
+  - { minute: 45+2, type: PERIOD_END }
+  - { minute: 45, type: SUBSTITUTION, team: Kireka Kingfishers FC, actors: { PLAYER_OFF: Jonan Twesigye, PLAYER_ON: Livingstone Ocen } }
+  - { minute: 45, type: PERIOD_START, period: SECOND_HALF }
+  - { minute: 58, type: GOAL, team: Bunga Breakers FC, actors: { SCORER: Cyprian Acema } }
+  - { minute: 65, type: SUBSTITUTION, team: Kireka Kingfishers FC, actors: { PLAYER_OFF: Ibrahim Kasozi, PLAYER_ON: Mathias Kakooza } }
+  - { minute: 65, type: SUBSTITUTION, team: Bunga Breakers FC, actors: { PLAYER_OFF: Bosco Ssekandi, PLAYER_ON: Eric Kamya } }
+  - { minute: 65, type: SUBSTITUTION, team: Kireka Kingfishers FC, actors: { PLAYER_OFF: Hamza Lule, PLAYER_ON: Nicholas Byamugisha } }
+  - { minute: 71, type: GOAL, team: Kireka Kingfishers FC, actors: { SCORER: Nicholas Byamugisha } }
+  - { minute: 80, type: SUBSTITUTION, team: Kireka Kingfishers FC, actors: { PLAYER_OFF: Gerald Ojara, PLAYER_ON: Oliver Ssenoga } }
+  - { minute: 84, type: YELLOW_CARD, team: Bunga Breakers FC, actors: { OFFENDER: Umar Ssali } }
+  # A fifth substitution is within the limit, but it would be a third window.
+  - { minute: 88, type: SUBSTITUTION, team: Kireka Kingfishers FC, actors: { PLAYER_OFF: Elvis Akol, PLAYER_ON: Raymond Kibuuka }, rejected: [TIMELINE_LIMIT_REACHED] }
+  - { minute: 88, type: SUBSTITUTION, team: Bunga Breakers FC, actors: { PLAYER_OFF: Dickson Nalumu, PLAYER_ON: Frank Oloya } }
+  - { minute: 90+4, type: PERIOD_END }
+expect:
+  score:
+    Kireka Kingfishers FC: { total: 1, periods: { 1H: 0, 2H: 1 } }
+    Bunga Breakers FC: { total: 1, periods: { 1H: 0, 2H: 1 } }
+  outcome: { draw: true }

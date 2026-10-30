@@ -3,6 +3,7 @@ title: A substitution is corrected, then the goal of the player who came on — 
 # correction is checked as the match stood at the event it replaces, with earlier corrections in place: the substitute
 # was on the field at 30', so his goal can be corrected.
 definition: { variant: FOOTBALL_ASSOCIATION, version: 1 }
+covers: [CORRECTIONS_AND_REVERSALS]
 rules: FOOTBALL_LEAGUE
 coverage: STANDARD
 home:

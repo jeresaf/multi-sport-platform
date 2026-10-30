@@ -3,6 +3,7 @@ title: Within the correction window the scorer fixes a scorer after the final wh
 # final whistle, as both would reopen the match. Undoing the withdrawal of a stray period start would start that period
 # again, so it is refused too. A correction can itself be corrected.
 definition: { variant: FOOTBALL_ASSOCIATION, version: 1 }
+covers: [VALIDATE_STATUS, CORRECTIONS_AND_REVERSALS]
 rules: FOOTBALL_LEAGUE
 coverage: STANDARD
 status: ENDED

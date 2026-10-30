@@ -1,0 +1,40 @@
+title: In a cup tie Kireka Kingfishers FC use their extra substitution in extra time, and a seventh is refused — 1–1 at the extra-time break against Bunga Breakers FC
+# A cup gives one more substitution once extra time has started (substitutions.extra_in_extra_time), but no more
+# windows: three windows in normal time leave only the extra-time break. Who goes through comes with tie resolution.
+definition: { variant: FOOTBALL_ASSOCIATION, version: 1 }
+covers: [VALIDATE_LIMITS]
+rules: FOOTBALL_CUP
+coverage: STANDARD
+home:
+  team: Kireka Kingfishers FC
+  starters: [Abel Nsereko, Benon Kiwanuka, Cosmas Oryem, Daniel Ssempijja, Elvis Akol, Felix Mutebi, Gerald Ojara, Hamza Lule, Ibrahim Kasozi, Jonan Twesigye, Kassim Muwanga]
+  bench: [Livingstone Ocen, Mathias Kakooza, Nicholas Byamugisha, Oliver Ssenoga, Patrick Wandera, Raymond Kibuuka, Silas Obbo]
+away:
+  team: Bunga Breakers FC
+  starters: [Tonny Kalyango, Umar Ssali, Vincent Odeke, William Kayiwa, Xavier Mbabazi, Yusuf Galabuzi, Zakaria Okumu, Adrian Muhumuza, Bosco Ssekandi, Cyprian Acema, Dickson Nalumu]
+  bench: [Eric Kamya, Frank Oloya, Gilbert Ssebaggala, Herbert Ekwang]
+events:
+  - { minute: 0, type: PERIOD_START, period: FIRST_HALF }
+  - { minute: 30, type: GOAL, team: Kireka Kingfishers FC, actors: { SCORER: Kassim Muwanga } }
+  - { minute: 45+1, type: PERIOD_END }
+  - { minute: 45, type: PERIOD_START, period: SECOND_HALF }
+  - { minute: 60, type: SUBSTITUTION, team: Kireka Kingfishers FC, actors: { PLAYER_OFF: Jonan Twesigye, PLAYER_ON: Livingstone Ocen } }
+  - { minute: 60, type: SUBSTITUTION, team: Kireka Kingfishers FC, actors: { PLAYER_OFF: Ibrahim Kasozi, PLAYER_ON: Mathias Kakooza } }
+  - { minute: 70, type: SUBSTITUTION, team: Kireka Kingfishers FC, actors: { PLAYER_OFF: Hamza Lule, PLAYER_ON: Nicholas Byamugisha } }
+  - { minute: 77, type: GOAL, team: Bunga Breakers FC, actors: { SCORER: Bosco Ssekandi } }
+  - { minute: 80, type: SUBSTITUTION, team: Kireka Kingfishers FC, actors: { PLAYER_OFF: Gerald Ojara, PLAYER_ON: Oliver Ssenoga } }
+  - { minute: 80, type: SUBSTITUTION, team: Kireka Kingfishers FC, actors: { PLAYER_OFF: Felix Mutebi, PLAYER_ON: Patrick Wandera } }
+  - { minute: 90+5, type: PERIOD_END }
+  - { minute: 90, type: PERIOD_START, period: AWAITING_EXTRA_TIME }
+  - { minute: 90, type: PERIOD_END }
+  - { minute: 90, type: PERIOD_START, period: EXTRA_TIME_FIRST_HALF }
+  # The sixth substitution is allowed now, but not as a fourth window in play.
+  - { minute: 98, type: SUBSTITUTION, team: Kireka Kingfishers FC, actors: { PLAYER_OFF: Elvis Akol, PLAYER_ON: Raymond Kibuuka }, rejected: [TIMELINE_LIMIT_REACHED] }
+  - { minute: 105+1, type: PERIOD_END }
+  - { minute: 105, type: PERIOD_START, period: EXTRA_TIME_HALF_TIME }
+  - { minute: 105, type: SUBSTITUTION, team: Kireka Kingfishers FC, actors: { PLAYER_OFF: Elvis Akol, PLAYER_ON: Raymond Kibuuka } }
+  - { minute: 105, type: SUBSTITUTION, team: Kireka Kingfishers FC, actors: { PLAYER_OFF: Daniel Ssempijja, PLAYER_ON: Silas Obbo }, rejected: [TIMELINE_LIMIT_REACHED] }
+expect:
+  score:
+    Kireka Kingfishers FC: { total: 1, periods: { 1H: 1, 2H: 0, ET1: 0 } }
+    Bunga Breakers FC: { total: 1, periods: { 1H: 0, 2H: 1, ET1: 0 } }

@@ -1,6 +1,7 @@
 title: A shoot-out penalty entered in the second half is refused — Kansanga Harriers FC and Nakawa Nomads FC draw 1–1
 # Shoot-out kicks count only in a penalty shoot-out; a league match has none.
 definition: { variant: FOOTBALL_ASSOCIATION, version: 1 }
+covers: [VALIDATE_PHASE]
 rules: FOOTBALL_LEAGUE
 coverage: STANDARD
 home:

@@ -1,0 +1,15 @@
+# The FOOTBALL_CUP template's values as docs/domain/rulesets.md shows them (the league's, plus extra time, the
+# shoot-out and one extra substitution in extra time), until the resolver (S05-T4) resolves the template itself.
+contest:
+  period_seconds: { FIRST_HALF: 2700, HALF_TIME: 900, SECOND_HALF: 2700, EXTRA_TIME_FIRST_HALF: 900, EXTRA_TIME_SECOND_HALF: 900 }
+  tie_resolution: EXTRA_PERIODS_THEN_SHOOTOUT
+  extra_period_sequence: [AWAITING_EXTRA_TIME, EXTRA_TIME_FIRST_HALF, EXTRA_TIME_HALF_TIME, EXTRA_TIME_SECOND_HALF, AWAITING_SHOOTOUT, PENALTY_SHOOTOUT]
+  coverage_default: STANDARD
+lineup:
+  starters: 11
+  bench_max: 9
+  requires_approval: false
+  positions: { GK: { min: 1, max: 1 } }
+substitutions: { max: 5, windows: 3, extra_in_extra_time: 1 }
+operations:
+  scorer_correction_window_minutes: 60

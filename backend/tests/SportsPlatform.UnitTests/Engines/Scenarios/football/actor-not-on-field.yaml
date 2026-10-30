@@ -2,6 +2,7 @@ title: Only players on the field can score — Kansanga Harriers FC beat Nakawa 
 # With lineups (STANDARD coverage) a scorer must be on the field for his own team: not on the bench, not substituted
 # off, not an opponent. A player who has come off can't come back on.
 definition: { variant: FOOTBALL_ASSOCIATION, version: 1 }
+covers: [VALIDATE_ACTORS]
 rules: FOOTBALL_LEAGUE
 coverage: STANDARD
 home:
