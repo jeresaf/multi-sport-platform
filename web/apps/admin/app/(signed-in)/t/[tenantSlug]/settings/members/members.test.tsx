@@ -320,11 +320,18 @@ describe("members & roles: what the tenant can't do now (S04 D19)", () => {
   });
 
   it("keeps the changes hidden from a viewer of a read-only tenant: their roles don't allow them", async () => {
-    open(["VIEWER"], [], {
-      "GET /api/admin/v1/me/capabilities": { status: 200, body: readOnlyCapabilities(["membership.read"], []) },
+    const requests = open(["VIEWER"], [], {
+      "GET /api/admin/v1/me/capabilities": {
+        status: 200,
+        body: readOnlyCapabilities(["membership.read", "tenant.subscription.read"], []),
+      },
+      "GET /api/admin/v1/tenant/subscription": staffUsage(2, 100),
     });
 
     await screen.findByText(brian.email);
+    await screen.findByText(viewerInvitation.email);
+    // Someone who can't invite doesn't pay for the usage count (#73 R3).
+    expect(requests.some((request) => request.path === "/api/admin/v1/tenant/subscription")).toBe(false);
     expect(screen.queryByRole("button", { name: `Change ${brian.email}` })).toBeNull();
     expect(screen.queryByRole("button", { name: "Invite someone" })).toBeNull();
     expect(document.getElementById("members-unavailable")).toBeNull();

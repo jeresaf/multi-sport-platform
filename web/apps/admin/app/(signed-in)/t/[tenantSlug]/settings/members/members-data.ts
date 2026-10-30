@@ -63,11 +63,12 @@ export function useRefreshMembership() {
 }
 
 /**
- * The tenant's staff users against its plan (`MAX_STAFF_USERS`, S04 D13), from the Subscription read; undefined while it
- * loads or for a user who can't read it (the server still refuses an invitation past the limit).
+ * The tenant's staff users against its plan (`MAX_STAFF_USERS`, S04 D13), from the Subscription read, when `enabled`
+ * (only someone who can invite needs it); undefined while it loads or for a user who can't read it (the server still
+ * refuses an invitation past the limit).
  */
-export function useStaffUsage(): QuotaUsageValue | undefined {
-  const subscription = useTenantSubscription();
+export function useStaffUsage(enabled: boolean): QuotaUsageValue | undefined {
+  const subscription = useTenantSubscription(enabled);
   return subscription.data?.usage.find((usage) => usage.code === "MAX_STAFF_USERS");
 }
 

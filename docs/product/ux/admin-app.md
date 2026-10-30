@@ -143,6 +143,9 @@ user's capabilities (docs/architecture/authorization.md); the server still enfor
   limit" from 80 %); once every seat is taken, **Invite someone** is disabled with "Your plan allows 5 staff users."
   (from `GET /api/admin/v1/tenant/subscription`, for whoever can read it; the server refuses past the limit anyway).
   Revoking an invitation frees a seat, so it stays enabled. Inviting, revoking or a member change reads the usage again.
+  At the limit a pending address can't be invited again from the screen either, although the server would allow it
+  (it takes no new seat, S04 D13); "Invite again for a new link" isn't offered then. Only someone who can invite reads
+  the usage on this page.
 
 ## Workspaces and screens
 

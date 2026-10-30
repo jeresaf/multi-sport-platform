@@ -188,10 +188,15 @@ test("slice demo: plans, the staff quota by override, read-only and back, with t
     ["entitlement.override", "Committee and coaches only until the league starts"],
     ["entitlement.override.remove", "League fixtures confirmed"],
     ["subscription.cancel", "Season fee not paid"],
-    ["subscription.assign", undefined],
   ] as const) {
     await auditEntries(audit, { tenantId, action }, [by(action, reason)]);
   }
+  // Two periods assigned: the setup's (createTenant, through the API) and the console's new one (#73 R1).
+  const assigned = async () =>
+    (await auditEntries(audit, { tenantId, action: "subscription.assign" }, [])).filter(by("subscription.assign")).length;
+  await expect
+    .poll(assigned, { message: "subscription.assign entries", intervals: [2_000, 3_000], timeout: 30_000 })
+    .toBe(2);
   const denied = (actionCode: string, errorCode: string) => (entry: AuditEntry) =>
     entry.actionCode === actionCode &&
     entry.outcome === "DENIED" &&

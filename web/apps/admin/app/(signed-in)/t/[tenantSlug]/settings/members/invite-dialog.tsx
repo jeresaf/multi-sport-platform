@@ -37,7 +37,8 @@ const fields = { email: "email", roleCodes: "roleCodes" } as const;
 
 /**
  * Invites a person by email with tenant-wide roles; they get a link that lasts 7 days. Shows the staff users against
- * the plan (S04 D15) without refusing at the limit itself: a re-invitation to a pending address takes no new seat.
+ * the plan (S04 D15); the server decides at the limit. The section disables its button once every seat is taken, so a
+ * re-invitation to a pending address (which takes no new seat, D13) waits for a free seat too (tech debt, #73 R2).
  */
 export function InviteDialog({
   isOwner,
@@ -45,7 +46,7 @@ export function InviteDialog({
 }: Readonly<{ isOwner: boolean; onOpenChange: (open: boolean) => void }>) {
   const { tenant, client } = useTenantWorkspace();
   const refresh = useRefreshMembership();
-  const staffUsage = useStaffUsage();
+  const staffUsage = useStaffUsage(true);
   const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues: { email: "", roleCodes: [] } });
 
   const invite = useMutation({

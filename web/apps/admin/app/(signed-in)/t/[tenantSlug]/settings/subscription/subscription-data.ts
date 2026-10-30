@@ -10,11 +10,12 @@ import { useTenantWorkspace } from "@/lib/tenant-workspace";
 export type TenantSubscription = components["schemas"]["TenantSubscriptionResponse"];
 export type TenantSubscriptionPeriod = components["schemas"]["TenantSubscriptionPeriod"];
 
-export function useTenantSubscription() {
+/** `enabled: false` skips the read where the page won't use it (it counts the usage on the server). */
+export function useTenantSubscription(enabled = true) {
   const { tenant, client, can } = useTenantWorkspace();
   return useQuery({
     queryKey: ["tenant-subscription", tenant.tenantId],
     queryFn: () => call(client.GET("/api/admin/v1/tenant/subscription")),
-    enabled: can("tenant.subscription.read"),
+    enabled: enabled && can("tenant.subscription.read"),
   });
 }

@@ -48,7 +48,7 @@ const wide = "hidden tablet:table-cell";
 /** Invitations: who was asked to join with which roles, inviting someone, and revoking a pending invitation. */
 export function InvitationsSection({ isOwner }: Readonly<{ isOwner: boolean }>) {
   const { client, can, unavailable } = useTenantWorkspace();
-  const staffUsage = useStaffUsage();
+  const staffUsage = useStaffUsage(can("membership.invite"));
   const refresh = useRefreshMembership();
   const timeZone = useTenantTimeZone();
   const [filter, setFilter] = useState<Filter>("OPEN");
@@ -212,7 +212,7 @@ export function InvitationsSection({ isOwner }: Readonly<{ isOwner: boolean }>) 
                     >
                       Revoke
                     </Button>
-                  ) : invitation.status === "EXPIRED" && can("membership.invite") ? (
+                  ) : invitation.status === "EXPIRED" && can("membership.invite") && !inviteRefusal ? (
                     <span className="text-sm whitespace-normal text-muted-foreground">Invite again for a new link</span>
                   ) : null}
                 </TableCell>
