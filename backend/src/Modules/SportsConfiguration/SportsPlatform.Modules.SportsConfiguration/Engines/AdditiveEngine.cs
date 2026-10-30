@@ -51,7 +51,12 @@ public sealed class AdditiveEngine : IScoringEngine
             return score;
         }
 
-        var actor = evt.ParticipantId ?? throw new InvalidOperationException($"Event {evt.Id} scores but has no participant.");
+        // T2b's checks refuse these drafts; a recorded one is a bug.
+        if (evt.ParticipantId is not { } actor || !ctx.Sides.Any(side => side.ParticipantId == actor))
+        {
+            throw new InvalidOperationException($"Event {evt.Id} scores but its participant is not in the contest.");
+        }
+
         var receiver = type.Side == ActorSide.Opponent ? ctx.OpponentOf(actor) : actor;
         var period = evt.PeriodCode is { } code ? new PlayedPeriod(code, evt.PeriodOccurrence) : null;
         var component = type.Component ?? ScoringFamilies.MainComponent;

@@ -87,6 +87,20 @@ public sealed class PersonnelTrackerTests
     }
 
     [Fact]
+    public void A_replacement_sent_off_meanwhile_stays_dismissed_when_the_player_returns()
+    {
+        var home = Track(
+            RugbyUnion15,
+            Event(1, "TEMPORARY_REPLACEMENT", Home) with { Actors = Actors(("PLAYER_OFF", _starter), ("PLAYER_ON", _substitute)) },
+            Event(2, "RED_CARD", Home) with { Actors = Actors(("OFFENDER", _substitute)) },
+            Event(3, "TEMPORARY_REPLACEMENT_END", Home) with { Actors = Actors(("PLAYER_ON", _starter)) });
+
+        home.Dismissed.ShouldBe([_substitute]);
+        home.Bench.ShouldBeEmpty();
+        home.OnField.ShouldBe([_starter, _otherStarter], ignoreOrder: true);
+    }
+
+    [Fact]
     public void Without_a_lineup_people_appear_where_events_put_them()
     {
         var home = PersonnelTracker.Track(Context(Football), [Event(1, "RED_CARD", Home) with { Actors = Actors(("OFFENDER", _starter)) }]).For(Home);

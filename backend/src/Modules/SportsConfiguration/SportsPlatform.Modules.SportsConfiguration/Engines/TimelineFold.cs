@@ -21,6 +21,12 @@ public static class TimelineFold
             throw new ArgumentException("Timeline events must have distinct ids and sequences.", nameof(timeline));
         }
 
+        // Periods are counted from 1; an event in a period without its occurrence was mapped wrongly.
+        if (ordered.Any(evt => evt.PeriodCode is not null && evt.PeriodOccurrence < 1))
+        {
+            throw new ArgumentException("An event with a period code needs its occurrence (1 or more).", nameof(timeline));
+        }
+
         var reversed = new HashSet<Guid>();
         var superseded = new HashSet<Guid>();
         var statuses = new EffectiveStatus[ordered.Count];

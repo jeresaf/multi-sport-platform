@@ -124,7 +124,8 @@ public static class PersonnelTracker
         }
 
         // Back from suspension, or from a temporary substitution: named either as the player who left or as the one
-        // who replaced them, the player who left comes back and the replacement returns to the bench.
+        // who replaced them, the player who left comes back. The replacement returns to the bench only from the field:
+        // one sent off, suspended or replaced meanwhile stays where that left them.
         public void Return(Guid person)
         {
             if (Suspended.Contains(person))
@@ -136,7 +137,11 @@ public static class PersonnelTracker
             var pair = TemporarilyReplaced.FirstOrDefault(item => item.Key == person || item.Value == person);
             if (TemporarilyReplaced.ContainsKey(pair.Key))
             {
-                MoveTo(Bench, pair.Value);
+                if (OnField.Contains(pair.Value))
+                {
+                    MoveTo(Bench, pair.Value);
+                }
+
                 MoveTo(OnField, pair.Key);
             }
         }

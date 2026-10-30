@@ -50,7 +50,12 @@ internal sealed record Scenario(
         Flatten(YamlJson.Parse(File.ReadAllText(Path.Combine(Folder, "rules", $"{Rules}.yaml"))), null, values);
         foreach (var (path, value) in RuleOverrides)
         {
-            values.Remove(path);
+            // An override replaces the rule or the whole section it names (contest.period_seconds).
+            foreach (var replaced in values.Keys.Where(key => key == path || key.StartsWith(path + ".", StringComparison.Ordinal)).ToList())
+            {
+                values.Remove(replaced);
+            }
+
             Flatten(JsonNode.Parse(value.GetRawText()), path, values);
         }
 

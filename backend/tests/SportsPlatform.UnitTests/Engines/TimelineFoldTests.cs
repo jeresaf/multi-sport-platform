@@ -97,5 +97,11 @@ public sealed class TimelineFoldTests
         Should.Throw<ArgumentException>(() => TimelineFold.Resolve([Event(1, "GOAL", Home), Event(1, "GOAL", Away) with { Id = Id(2) }]));
     }
 
+    [Fact]
+    public void An_event_in_a_period_without_its_occurrence_is_a_bug()
+    {
+        Should.Throw<ArgumentException>(() => TimelineFold.Resolve([Event(1, "GOAL", Home) with { PeriodCode = "FIRST_HALF" }]));
+    }
+
     private static List<EffectiveStatus> Statuses(IEnumerable<TimelineEntry> entries) => [.. entries.Select(entry => entry.Status)];
 }

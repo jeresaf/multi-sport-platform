@@ -3,8 +3,9 @@ using NetArchTest.Rules;
 
 namespace SportsPlatform.ArchitectureTests;
 
-// S05 D7 and sport-engine.md §4: engines are pure. They may use BuildingBlocks' results, the module's Contracts, each
-// other and the module's errors; nothing that reads files, the network, the clock or a random source.
+// S05 D7 and sport-engine.md §4: engines are pure. Of the application they may use BuildingBlocks' results, the
+// module's Contracts, each other and the module's errors; of the base library, nothing that reads files, resources,
+// the network, the environment, the clock or a random source. A type-level rule can't see Guid.NewGuid(): review does.
 public sealed class EngineDependencyTests
 {
     private const string _module = "SportsPlatform.Modules.SportsConfiguration";
@@ -21,7 +22,9 @@ public sealed class EngineDependencyTests
     private static readonly string[] _impure =
     [
         "System.IO", "System.Net", "System.Random", "System.DateTime", "System.TimeProvider", "System.Environment",
-        "System.Threading", "System.Diagnostics.Stopwatch", "System.Diagnostics.Process", "System.Security.Cryptography",
+        "System.Threading", "System.Diagnostics.Stopwatch", "System.Diagnostics.Process", "System.Diagnostics.Debug",
+        "System.Diagnostics.Trace", "System.Diagnostics.Activity", "System.Security.Cryptography", "System.Console", "System.AppContext",
+        "System.Reflection", "System.Resources", "System.GC", "System.Runtime.InteropServices", "System.Activator",
         "Microsoft",
     ];
 
@@ -49,7 +52,7 @@ public sealed class EngineDependencyTests
     }
 
     // Every application type outside the allowed namespaces, by full name (a namespace like SportsPlatform.BuildingBlocks
-    // can't be listed: the rule matches by prefix, so it would also refuse BuildingBlocks.Results).
+    // can't be listed: the rule matches a namespace and everything under it, so it would also refuse BuildingBlocks.Results).
     private static string[] ForbiddenApplicationTypes() =>
     [
         .. SolutionAssemblies.All

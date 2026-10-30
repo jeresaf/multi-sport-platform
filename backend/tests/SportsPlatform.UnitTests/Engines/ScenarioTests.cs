@@ -100,7 +100,9 @@ public sealed class ScenarioTests
         var (clock, added) = step.Clock();
         return new TimelineEventDraft(step.Type, TimelineSource.Live)
         {
-            ParticipantId = step.Team is { } team ? teams.GetValueOrDefault(team, Name(team)) : null,
+            ParticipantId = step.Team is { } team
+                ? teams.TryGetValue(team, out var participant) ? participant : throw new InvalidOperationException($"{where}: \"{team}\" is not one of the two teams.")
+                : null,
             PeriodCode = step.Period,
             GameClockSeconds = clock,
             AddedTimeSeconds = added,

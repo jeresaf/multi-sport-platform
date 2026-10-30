@@ -7,8 +7,9 @@ at the start of every review.
 
 - **Current slice:** S05 — Sports configuration (docs/build/slices/S05-sports-configuration.md, rewritten by the S04
   slice review). S00–S04 are done
-- **Current task:** S05-T2a — Engine contract, fold, trackers and scenario runner — in progress
-- **Next:** S05-T2b — Validation rules, phases, actors, follow-ups and limits
+- **Current task:** S05-T2a — Engine contract, fold, trackers and scenario runner — in review; next is `/next-task`
+  for S05-T2b
+- **Next:** S05-T2b — ADDITIVE validation: phases, actors, follow-ups and limits
 - **Blocked on:** nothing
 
 ## Next up
@@ -311,6 +312,16 @@ at the start of every review.
   handling until a consumer needs it. Review #77 Q1 (owner, 2026-10-30): the API's metadata field types are `CHOICE`, `FLAG`,
   `NUMBER`, `TEXT` (the files' `enum`, `bool`, `int`, `string`), stable from here.
 
+- **S05-T2a (owner, plan 2026-10-30):** `ScoringFamilies` moved from `Definitions` to Contracts' `Engines` (engines and
+  the validator share it; D7's architecture test allows only Contracts). Family state is behind the abstract
+  `ScoreState`. Until T4's resolver, scenarios start from `Scenarios/rules/FOOTBALL_LEAGUE.yaml` (rulesets.md's values)
+  plus their own overrides. The "every §5 rule has a passing and a rejecting scenario" test lands with T2c, when every
+  rule exists (no pending markers). Only `TIMELINE_EVENT_UNKNOWN` is declared now; the other D8 codes come with T2b's
+  checks. The branch is the session's (`claude/dazzling-wright-km7ldq`), not `s05/t2a-…`. Effective status (owner,
+  pre-review 2026-10-30): only a later event that still stands counts — `REVERSED` by a later `ACTIVE` reverser,
+  `SUPERSEDED` by a later superseder that isn't `REVERSED` — so undoing a reversal or a correction restores what it
+  undid; sport-engine.md §3 and state-machines.md say so. `IScoringEngines.EngineFor` (CA1716 refuses `For`).
+
 - **S05-T1b (owner, plan 2026-10-30):** T1b is two PRs: T1b1 (`config.sport_definitions`, the RFC 8785 hash, the
   `config.configuration.sports` seeder with `SPORT_DEFINITION_IMMUTABLE`, `ISportDefinitions`) and T1b2 (`sport.read`,
   `platform.sport.read`, `SPORT_DEFINITION_NOT_FOUND`, the four reads with `ETag`, catalogues, OpenAPI). The hash covers
@@ -341,6 +352,12 @@ S05-T5a. Each item names where it gets done.
 - Q27 (#72 R2, R4): with two scheduled periods and none started, the read-only banner says "until" the later start and
   the Subscription page shows the later period as current. Owner: the current period becomes the earliest scheduled
   one. (S05-T5a, D21)
+
+- S05-T2b: refuse a `supersedes` or `reverses` aimed at an event that isn't `ACTIVE` (`TIMELINE_REFERENCE_INVALID`),
+  so two corrections of one event, or a reversed correction inside a chain, can't count twice (pre-review T2a #4);
+  refuse a scoring event without a participant of the contest (Apply throws on one); points overrides by rule
+  (sport-engine.md §5, "Apply"). The engine architecture test is type-level: `Guid.NewGuid()` and `DateTime.UtcNow`
+  aren't caught (review).
 
 **From S04** (each names its trigger)
 - e2e on a reused local database (S04-T4b1; owner 2026-10-30: kept until then): every run adds owners to KMSA
