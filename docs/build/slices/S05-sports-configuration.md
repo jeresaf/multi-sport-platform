@@ -318,3 +318,10 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   codes. Nothing is cached before the first seed. The module's concurrency error is `SPORT_CONCURRENCY_CONFLICT`
   (`SPORT_` is a documented area). The records carry the file's JSON names (`short`, `enum`, …) and hide the hash and
   the generic types from the file reader, so T1b2's endpoints map them to response DTOs of their own.
+- **T1b2:** the reads are `GET /api/admin/v1/sports` and `…/sports/{variant}?version=` (`sport.read`) and the same
+  under `/api/platform/v1` (`platform.sport.read`), one handler and one DTO each. `SportDefinitionResponse` maps the
+  typed definition into API names: camelCase, UPPER_SNAKE values, `shortLabel` for the file's `short`, metadata types
+  `CHOICE`, `FLAG`, `NUMBER`, `TEXT`, ruleset limits as their rule strings; actor roles, metadata fields and `derive.where`
+  stay maps keyed by code. The definition's `ETag` is its quoted `contentHash` (no `If-None-Match` handling yet). An
+  unknown variant or version is `SPORT_DEFINITION_NOT_FOUND`; variant codes match exactly. `TEAM_MANAGER` has no
+  `sport.read` until S06; `format.read` and `ruleset.read` come with T3 and T4 (owner, 2026-10-30).
