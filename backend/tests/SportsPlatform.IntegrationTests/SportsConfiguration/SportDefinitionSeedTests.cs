@@ -112,6 +112,20 @@ public sealed class SportDefinitionSeedTests(PostgresFixture fixture) : Database
     }
 
     [Fact]
+    public async Task Two_files_declaring_the_same_version_fail_the_seed()
+    {
+        var before = await SnapshotAsync();
+        await using var doubled = App.WithWebHostBuilder(builder => builder
+            .ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(new Dictionary<string, string?> { ["Outbox:Enabled"] = "false" }))
+            .ConfigureTestServices(services => services.AddSingleton<SportDefinitionFiles>(new DoubledFiles())));
+
+        var exception = await Should.ThrowAsync<InvalidOperationException>(() => RunAsync(doubled));
+
+        exception.Message.ShouldBe("soccer.yaml and football.yaml both declare FOOTBALL_ASSOCIATION@1.");
+        (await SnapshotAsync()).ShouldBe(before);
+    }
+
+    [Fact]
     public void The_checksum_changes_with_the_content_only()
     {
         var shipped = new SportDefinitionSeeder(new SportDefinitionFiles(), TimeProvider.System).Checksum;
@@ -151,6 +165,13 @@ public sealed class SportDefinitionSeedTests(PostgresFixture fixture) : Database
             reader => reader.GetString(0));
         rows.ShouldNotBeEmpty();
         return rows;
+    }
+
+    private sealed class DoubledFiles : SportDefinitionFiles
+    {
+        public override IReadOnlyList<string> Names => [.. base.Names, "soccer.yaml"];
+
+        public override string Read(string file) => base.Read(file == "soccer.yaml" ? _football : file);
     }
 
     private sealed class EditedFiles(Func<string, string> edit) : SportDefinitionFiles

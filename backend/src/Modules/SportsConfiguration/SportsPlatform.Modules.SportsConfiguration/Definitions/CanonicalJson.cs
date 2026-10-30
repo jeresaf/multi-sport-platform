@@ -15,6 +15,9 @@ public static class CanonicalJson
 {
     private const string _hashScheme = "sha256:";
 
+    // A lone surrogate has no UTF-8 form (RFC 8785 §3.2.2.2); replacing it with U+FFFD would let two strings collide.
+    private static readonly UTF8Encoding _utf8 = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
+
     /// <summary>The canonical text of <paramref name="node"/>.</summary>
     public static string Serialize(JsonNode? node)
     {
@@ -25,7 +28,7 @@ public static class CanonicalJson
 
     /// <summary><c>sha256:</c> and the lower-case hex SHA-256 of the canonical text's UTF-8 bytes.</summary>
     public static string Hash(JsonNode? node) =>
-        _hashScheme + Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(Serialize(node))));
+        _hashScheme + Convert.ToHexStringLower(SHA256.HashData(_utf8.GetBytes(Serialize(node))));
 
     private static void Write(StringBuilder builder, JsonNode? node)
     {

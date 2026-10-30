@@ -110,7 +110,7 @@ public sealed class PostgresFixture : IAsyncLifetime
     /// <summary>Tenancy's plan tables (CONFIGURATION, S04 D18): seeded and kept like <see cref="ReferenceTables"/>.</summary>
     public static IReadOnlyList<string> PlanTables { get; } = ["plans", "plan_entitlements"];
 
-    /// <summary>Sports Configuration's tables (CONFIGURATION, S05 D19): seeded and kept like <see cref="ReferenceTables"/>.</summary>
+    /// <summary>Sports Configuration's tables (CONFIGURATION, S05 D4): seeded and kept like <see cref="ReferenceTables"/>.</summary>
     public static IReadOnlyList<string> ConfigurationTables { get; } = ["sport_definitions"];
 
     /// <summary>

@@ -42,10 +42,17 @@ public sealed class SportDefinitionSeeder(SportDefinitionFiles files, TimeProvid
             .ToDictionaryAsync(d => (d.Variant, d.Version), d => d.ContentHash, cancellationToken);
 
         var inserted = 0;
+        var declaredIn = new Dictionary<(string, int), string>();
         foreach (var file in files.Names)
         {
             var definition = Load(file);
             var key = (definition.Variant, definition.Version);
+            if (!declaredIn.TryAdd(key, file))
+            {
+                throw new InvalidOperationException(
+                    $"{file} and {declaredIn[key]} both declare {definition.Variant}@{definition.Version}.");
+            }
+
             if (stored.TryGetValue(key, out var storedHash))
             {
                 if (!string.Equals(storedHash, definition.ContentHash, StringComparison.Ordinal))

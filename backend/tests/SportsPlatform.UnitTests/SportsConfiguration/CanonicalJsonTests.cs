@@ -63,6 +63,10 @@ public sealed class CanonicalJsonTests
     }
 
     [Fact]
+    public void A_lone_surrogate_has_no_hash() =>
+        Should.Throw<System.Text.EncoderFallbackException>(() => CanonicalJson.Hash(JsonValue.Create("goal\uD800")));
+
+    [Fact]
     public void The_hash_names_its_scheme_and_ignores_how_the_content_was_written()
     {
         var block = YamlJson.Parse(
