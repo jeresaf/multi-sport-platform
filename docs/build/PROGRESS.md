@@ -7,9 +7,9 @@ at the start of every review.
 
 - **Current slice:** S05 — Sports configuration (docs/build/slices/S05-sports-configuration.md, rewritten by the S04
   slice review). S00–S04 are done
-- **Current task:** S05-T2b2 — follow-ups, limits, the points override and the rule list — in review (#80); next is
-  `/next-task` for S05-T2c
-- **Next:** S05-T2c — outcome and tie resolution
+- **Current task:** S05-T2c — outcome and tie resolution — in progress (plan approved with the recommended answers,
+  owner 2026-10-30)
+- **Next:** S05-T3 — formats and generators
 - **Blocked on:** nothing
 
 ## Next up
