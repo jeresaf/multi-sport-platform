@@ -325,3 +325,15 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   stay maps keyed by code. The definition's `ETag` is its quoted `contentHash` (no `If-None-Match` handling yet). An
   unknown variant or version is `SPORT_DEFINITION_NOT_FOUND`; variant codes match exactly. `TEAM_MANAGER` has no
   `sport.read` until S06; `format.read` and `ruleset.read` come with T3 and T4 (owner, 2026-10-30).
+- **T2a:** the engine contract and its input types are in Contracts' `Engines` (sport-engine.md §4, "As built
+  (S05-T2a)"); `ScoringFamilies` moved there from `Definitions` so the engines and the validator share it
+  (owner, 2026-10-30). `IScoringEngines.EngineFor(definition)` (CA1716 refuses `For`) and `Fold(ctx, status,
+  timeline)`. Family state is behind the abstract `ScoreState`; `AdditiveScoreState` is public in the module for tests
+  only. `ContestRules` is the effective rules flattened to dotted paths. Until T4's resolver, scenarios start from
+  `Scenarios/rules/<TEMPLATE>.yaml` (the rulesets.md values) plus their own `rule_overrides` (owner, 2026-10-30).
+  Scenario files: `title`, `definition`, `rules`, `rule_overrides`, `coverage`, `status` (default `LIVE`), `home` and
+  `away` (team, starters, bench, staff), `events` (`minute` as `23` or `45+2`, `type`, `team`, `period`, `actors` by
+  role, `payload`, `id`, `supersedes`/`reverses` by id, `rejected` error codes), `expect` (score per team: `total`,
+  `shootout`, `periods` by short label; `outcome`: `winner` and `method`, or `draw`). T2a declares only
+  `TIMELINE_EVENT_UNKNOWN`; the other D8 codes come with T2b's checks. T2b: points overrides by rule, and a participant
+  that isn't in the contest (Apply throws on a scoring event without one).

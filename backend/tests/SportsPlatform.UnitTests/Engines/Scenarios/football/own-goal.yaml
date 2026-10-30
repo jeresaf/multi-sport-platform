@@ -1,0 +1,24 @@
+title: An own goal by Bukoto Comets FC's defender wins it for Ntinda Swifts FC
+# The own goal is recorded against Bukoto Comets FC, whose player scored it; the goal counts for Ntinda Swifts FC.
+definition: { variant: FOOTBALL_ASSOCIATION, version: 1 }
+rules: FOOTBALL_LEAGUE
+coverage: STANDARD
+home:
+  team: Ntinda Swifts FC
+  starters: [Ivan Ssekitoleko, Brian Kato, Moses Okello, Ronald Mugisha, Isaac Waiswa, Alex Byaruhanga, Joseph Ochieng, Denis Mukasa, Emmanuel Lubega, Hassan Kizito, Peter Ojok]
+  bench: [Samuel Tumusiime, Henry Kawooya, Paul Etyang]
+away:
+  team: Bukoto Comets FC
+  starters: [Godfrey Nsubuga, Allan Wasswa, Kenneth Ouma, Julius Atuhaire, Simon Kigozi, Richard Okot, Fred Ssali, Martin Opolot, Collins Tusiime, Edward Mwesigwa, Robert Lwanga]
+  bench: [Charles Nyanzi, Derrick Akena, Ali Semakula]
+events:
+  - { minute: 0, type: PERIOD_START, period: FIRST_HALF }
+  - { minute: 45, type: PERIOD_END }
+  - { minute: 45, type: PERIOD_START, period: SECOND_HALF }
+  - { minute: 67, type: OWN_GOAL, team: Bukoto Comets FC, actors: { PLAYER: Kenneth Ouma } }
+  - { minute: 90+2, type: PERIOD_END }
+expect:
+  score:
+    Ntinda Swifts FC: { total: 1, periods: { 1H: 0, 2H: 1 } }
+    Bukoto Comets FC: { total: 0, periods: { 1H: 0, 2H: 0 } }
+  outcome: { winner: Ntinda Swifts FC, method: REGULATION }

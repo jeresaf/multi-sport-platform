@@ -92,7 +92,8 @@ schemas, tiebreaker catalogue.
 **Provides:** `ISportDefinitions` (as built: published variants at their latest version; the resolved, typed
 definition by variant and optional version, kept in memory until restart; over HTTP, S05-T1b2: `GET
 /api/admin/v1/sports` and `…/sports/{variant}?version=` with `sport.read`, the same under `/api/platform/v1` with
-`platform.sport.read`, the definition's `ETag` its content hash, `SPORT_DEFINITION_NOT_FOUND`), `IScoringEngines`,
+`platform.sport.read`, the definition's `ETag` its content hash, `SPORT_DEFINITION_NOT_FOUND`), `IScoringEngines` (as built, S05-T2a: the engine by `scoring_family` and the generic
+`Fold` of a timeline into `ContestLiveState`; the engine contract and its input types are in Contracts' `Engines`),
 `IFormatGenerators` (pure functions: participants + parameters → structure/pairings),
 `IRulesetResolver` (template + overrides → validated effective rules snapshot).
 **Does not own:** any tenant data, competitions, fixtures, results.

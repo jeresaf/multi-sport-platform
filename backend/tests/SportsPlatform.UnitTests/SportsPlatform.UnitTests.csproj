@@ -5,6 +5,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Engine scenarios (S05 D9) and the rules they start from, read from the test output. -->
+    <None Include="Engines/Scenarios/**/*.yaml" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\SportsPlatform.BuildingBlocks\SportsPlatform.BuildingBlocks.csproj" />
     <ProjectReference Include="..\..\src\SportsPlatform.BuildingBlocks.Persistence\SportsPlatform.BuildingBlocks.Persistence.csproj" />
     <ProjectReference Include="..\..\src\Modules\Identity\SportsPlatform.Modules.Identity\SportsPlatform.Modules.Identity.csproj" />

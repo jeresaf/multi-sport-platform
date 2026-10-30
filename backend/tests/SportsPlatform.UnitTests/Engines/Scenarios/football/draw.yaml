@@ -1,0 +1,24 @@
+title: Kansanga Harriers FC and Nakawa Nomads FC share the points 1–1
+definition: { variant: FOOTBALL_ASSOCIATION, version: 1 }
+rules: FOOTBALL_LEAGUE
+coverage: STANDARD
+home:
+  team: Kansanga Harriers FC
+  starters: [Patrick Wamala, Jonathan Ssebuliba, Arthur Mutebi, Gerald Kakooza, Steven Okwir, Andrew Nuwagaba, Bosco Ainebyona, Timothy Kiggundu, Vincent Oryem, Ibrahim Lukwago, Daniel Tumwine]
+  bench: [Francis Ocen, Rashid Bbosa]
+away:
+  team: Nakawa Nomads FC
+  starters: [Herbert Kasozi, Nelson Akol, Geoffrey Muwonge, Joel Kateregga, Kenneth Odongo, Abdul Ssenyonga, Michael Ekwaru, Lawrence Kibirige, Edwin Ayebare, Jimmy Okumu, Eric Ssemanda]
+  bench: [Tonny Kisitu, Wilberforce Opio]
+events:
+  - { minute: 0, type: PERIOD_START, period: FIRST_HALF }
+  - { minute: 45+1, type: PERIOD_END }
+  - { minute: 45, type: PERIOD_START, period: SECOND_HALF }
+  - { minute: 62, type: GOAL, team: Nakawa Nomads FC, actors: { SCORER: Jimmy Okumu, ASSIST: Edwin Ayebare } }
+  - { minute: 77, type: GOAL, team: Kansanga Harriers FC, actors: { SCORER: Ibrahim Lukwago } }
+  - { minute: 90+3, type: PERIOD_END }
+expect:
+  score:
+    Kansanga Harriers FC: { total: 1, periods: { 1H: 0, 2H: 1 } }
+    Nakawa Nomads FC: { total: 1, periods: { 1H: 0, 2H: 1 } }
+  outcome: { draw: true }

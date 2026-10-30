@@ -1,0 +1,27 @@
+title: VAR rules out Bukoto Comets FC's late equaliser, so Ntinda Swifts FC win 1–0
+# The overturned goal stays on the timeline as reversed; it no longer counts.
+definition: { variant: FOOTBALL_ASSOCIATION, version: 1 }
+rules: FOOTBALL_LEAGUE
+coverage: STANDARD
+home:
+  team: Ntinda Swifts FC
+  starters: [Ivan Ssekitoleko, Brian Kato, Moses Okello, Ronald Mugisha, Isaac Waiswa, Alex Byaruhanga, Joseph Ochieng, Denis Mukasa, Emmanuel Lubega, Hassan Kizito, Peter Ojok]
+  bench: [Samuel Tumusiime, Henry Kawooya, Paul Etyang]
+away:
+  team: Bukoto Comets FC
+  starters: [Godfrey Nsubuga, Allan Wasswa, Kenneth Ouma, Julius Atuhaire, Simon Kigozi, Richard Okot, Fred Ssali, Martin Opolot, Collins Tusiime, Edward Mwesigwa, Robert Lwanga]
+  bench: [Charles Nyanzi, Derrick Akena, Ali Semakula]
+events:
+  - { minute: 0, type: PERIOD_START, period: FIRST_HALF }
+  - { minute: 12, type: GOAL, team: Ntinda Swifts FC, actors: { SCORER: Peter Ojok } }
+  - { minute: 45, type: PERIOD_END }
+  - { minute: 45, type: PERIOD_START, period: SECOND_HALF }
+  - { id: equaliser, minute: 89, type: GOAL, team: Bukoto Comets FC, actors: { SCORER: Edward Mwesigwa } }
+  - { minute: 89, type: VAR_REVIEW, payload: { subject: GOAL } }
+  - { minute: 90+1, type: VAR_DECISION, reverses: equaliser, payload: { outcome: DECISION_OVERTURNED } }
+  - { minute: 90+4, type: PERIOD_END }
+expect:
+  score:
+    Ntinda Swifts FC: { total: 1, periods: { 1H: 1, 2H: 0 } }
+    Bukoto Comets FC: { total: 0, periods: { 1H: 0, 2H: 0 } }
+  outcome: { winner: Ntinda Swifts FC, method: REGULATION }

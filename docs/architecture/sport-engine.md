@@ -99,6 +99,29 @@ public interface IScoringEngine
   same side in the same period.
 - **Limits** — declared rule parameters such as maximum substitutions or timeouts per period group.
 
+**As built (S05-T2a).** The contract and its input types are in Sports Configuration Contracts (`Engines`), named as
+in ADR-0003, until Match Operations maps its timeline rows to them (S12): `TimelineEventDraft`, `TimelineEvent`
+(id, sequence, type, source, participant, period code and occurrence, clock and added time, actors by role, payload
+as text, `supersedes`/`reverses` by event id), `ContestContext` (definition, `ContestRules`, sides, coverage,
+lineups), `ContestLiveState` (stored `ContestStatus`, score, `ContestPhase`, `ContestPersonnel`, every event with its
+effective status). `ContestRules` holds the effective rules flattened to dotted paths (`substitutions.max`,
+`contest.period_seconds.FIRST_HALF`), the names the definitions' `limits` and the templates' editable parameters
+use. `IScoringEngines` picks the engine by `scoring_family` and folds a timeline. The fold and the trackers live next
+to the engines in the module's `Engines` folder; an architecture test (`EngineDependencyTests`) lets that folder use
+only BuildingBlocks' results, the module's Contracts and its errors. As built:
+- **Effective status:** only a later event that still stands counts. An event is `REVERSED` by a later *active*
+  event that reverses it, else `SUPERSEDED` by a later event that supersedes it and is not itself reversed (so a
+  chain of corrections ends at its last one). Reversing a reversal or a correction restores what it had undone.
+- **Phase:** a `PERIOD_START` names any period, breaks included, as the next occurrence of its code; a
+  `PERIOD_END` closes the running one, and until the next start the phase kind is `BREAK`.
+- **Personnel:** roles are read from the definition, never by name. An effect applies to the event's first
+  declared actor role that is filled; a substitution takes off the player in the role drawn `ON_FIELD` and brings
+  on the one drawn from the `BENCH`. `RETURN` brings back a suspended player, or a temporarily replaced one (named
+  either way), whose replacement goes back to the bench. `FOUL_COUNT` counts per person.
+- **ADDITIVE state:** per participant, points per component and `main` points per period, plus every period
+  started; the summary shows `main` as primary text, the `shootout` component as secondary text once a `SHOOTOUT`
+  period has started, and one entry per `PLAY` period started (its `short` label).
+
 ## 5. `ADDITIVE` family (football, rugby 15s/7s, basketball; later netball, hockey, handball)
 
 **State:** per side: `total`, `by_period` (period code + occurrence → points), and named components
