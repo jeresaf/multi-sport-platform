@@ -392,6 +392,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/v1/sports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List sport variants
+         * @description Every published sport variant at its latest version, ordered by name, then variant code: its sport, scoring family, contest shape and latest version. Not paginated. Not audited (global configuration).
+         */
+        get: operations["ListSports"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/sports/{variant}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a sport definition
+         * @description A variant's published definition (docs/domain/sports/README.md) at `version`, the latest when left out: terminology, periods, actor roles, event types and the generic event types every definition has, positions, staff and official roles, lineup, statistics and the scorer pad. A published version never changes. Labels are the definition's; show them as given. Not audited (global configuration).
+         */
+        get: operations["GetSport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/platform/v1/diagnostics/outbox": {
         parameters: {
             query?: never;
@@ -800,6 +840,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/platform/v1/sports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List sport variants
+         * @description Every published sport variant at its latest version, ordered by name, then variant code: its sport, scoring family, contest shape and latest version. Not paginated. Not audited (global configuration).
+         */
+        get: operations["ListPlatformSports"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/v1/sports/{variant}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a sport definition
+         * @description A variant's published definition (docs/domain/sports/README.md) at `version`, the latest when left out: terminology, periods, actor roles, event types and the generic event types every definition has, positions, staff and official roles, lineup, statistics and the scorer pad. A published version never changes. Labels are the definition's; show them as given. Not audited (global configuration).
+         */
+        get: operations["GetPlatformSport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/account/v1/login": {
         parameters: {
             query?: never;
@@ -982,6 +1062,20 @@ export interface components {
         /** @enum {unknown} */
         ActorKind: "USER" | "SYSTEM" | "ANONYMOUS";
         /**
+         * @description Who may fill an actor role.
+         * @enum {unknown}
+         */
+        ActorPool: "ON_FIELD" | "BENCH" | "SQUAD" | "STAFF" | "SQUAD_OR_STAFF";
+        ActorRoleResponse: {
+            who: components["schemas"]["ActorPool"];
+            side: components["schemas"]["ActorSide"];
+        };
+        /**
+         * @description Whose side, relative to the event's side.
+         * @enum {unknown}
+         */
+        ActorSide: "OWN" | "OPPONENT";
+        /**
          * @description A role assignment scope that can grant a tenant action.
          * @enum {unknown}
          */
@@ -1127,6 +1221,8 @@ export interface components {
             /** Format: uint32 */
             version?: null | number;
         };
+        /** @enum {unknown} */
+        ContestShape: "HEAD_TO_HEAD" | "FIELD";
         /** @description An ISO 3166-1 country: alpha-2 `code` (`UG`), alpha-3, numeric code and English name. */
         CountryResponse: {
             code: string;
@@ -1134,6 +1230,11 @@ export interface components {
             numericCode: string;
             name: string;
         };
+        /**
+         * @description In order: a level includes every level before it.
+         * @enum {unknown}
+         */
+        CoverageLevel: "RESULT_ONLY" | "BASIC" | "STANDARD" | "DETAILED";
         /**
          * @description A new tenant. Every field but `publicEnabled` (default false) is required; unknown members are rejected,
          *     so a status can't be sent (a new tenant is always `PROVISIONING`).
@@ -1210,9 +1311,53 @@ export interface components {
             /** @description LEVEL: a level code; null = none. */
             level: null | string;
         };
+        EventActorResponse: {
+            role: string;
+            requiredFrom: null | components["schemas"]["CoverageLevel"];
+            optional: boolean;
+            distinctFrom: null | string;
+        };
+        /** @enum {unknown} */
+        EventCategory: "SYSTEM" | "PERIOD" | "SCORING" | "DISCIPLINE" | "PERSONNEL" | "PLAY" | "REVIEW" | "STOPPAGE" | "STATISTIC" | "COMMENTARY" | "CORRECTION";
+        /** @enum {unknown} */
+        EventEffect: "SEND_OFF" | "TEMPORARY_SUSPENSION" | "SUBSTITUTE" | "TEMPORARY_SUBSTITUTE" | "RETURN" | "DISQUALIFY" | "FOUL_COUNT";
+        /** @enum {unknown} */
+        EventImportance: "KEY" | "STANDARD" | "DETAILED" | "TECHNICAL";
+        EventTypeResponse: {
+            code: string;
+            category: components["schemas"]["EventCategory"];
+            importance: components["schemas"]["EventImportance"];
+            coverage: components["schemas"]["CoverageLevel"];
+            label: string;
+            phases: components["schemas"]["PhaseKind"][];
+            /** Format: int32 */
+            points: null | number;
+            side: null | components["schemas"]["ActorSide"];
+            component: null | string;
+            actors: components["schemas"]["EventActorResponse"][];
+            metadata: {
+                [key: string]: components["schemas"]["MetadataFieldResponse"];
+            };
+            effects: components["schemas"]["EventEffect"][];
+            followUp: null | components["schemas"]["FollowUpResponse"];
+            limits: string[];
+            reversibleBy: string[];
+        };
+        FollowUpResponse: {
+            requiresPreceding: string[];
+            sameSide: boolean;
+            samePeriod: boolean;
+            unconsumed: boolean;
+            consumes: boolean;
+        };
         /** @description Ask for a password reset email. */
         ForgotPasswordRequest: {
             email: null | string;
+        };
+        GenericEventTypeResponse: {
+            code: string;
+            category: components["schemas"]["EventCategory"];
+            label: string;
         };
         /**
          * @description The body of `entitlement.override` (audit `REQUIRED_WITH_REASON`): `value` in place of the plan's for
@@ -1271,6 +1416,17 @@ export interface components {
             code: string;
             name: string;
         };
+        LineupResponse: {
+            /** Format: int32 */
+            starters: number;
+            /** Format: int32 */
+            benchMax: number;
+            positionConstraints: components["schemas"]["PositionConstraintResponse"][];
+            specialRoles: string[];
+            /** Format: int32 */
+            minimumPlayersToContinue: null | number;
+            shirtNumbersFollowPositions: boolean;
+        };
         ListAuditEntriesResponse: {
             items: components["schemas"]["AuditEntryResponse"][];
             page: components["schemas"]["PageInfo"];
@@ -1298,6 +1454,9 @@ export interface components {
         };
         ListPlansResponse: {
             items: components["schemas"]["PlanResponse"][];
+        };
+        ListSportsResponse: {
+            items: components["schemas"]["SportVariantResponse"][];
         };
         ListTenantsResponse: {
             items: components["schemas"]["TenantListItem"][];
@@ -1375,6 +1534,22 @@ export interface components {
             platformRoles: string[];
             tenants: components["schemas"]["MeTenantResponse"][];
         };
+        /** @description A metadata field: `values` for a choice, `min` and `max` for a number. */
+        MetadataFieldResponse: {
+            type: components["schemas"]["MetadataValueType"];
+            values: string[];
+            /** Format: int64 */
+            min: null | number;
+            /** Format: int64 */
+            max: null | number;
+            optional: boolean;
+        };
+        /**
+         * @description A metadata field's type in the API (`CHOICE`, `FLAG`, `NUMBER`, `TEXT`); the files write
+         *     `enum`, `bool`, `int` and `string`.
+         * @enum {unknown}
+         */
+        MetadataValueType: "CHOICE" | "FLAG" | "NUMBER" | "TEXT";
         /**
          * @description A tenant the user is an active member of: its slug (the workspace URL), display name and status, and the codes of the
          *     roles they hold there (any scope). Every status is listed. A `SUSPENDED` or `ARCHIVED` tenant's workspace is
@@ -1395,6 +1570,14 @@ export interface components {
          * @enum {unknown}
          */
         MinorRegistrationConsent: "REQUIRED" | "RECOMMENDED" | "OFF";
+        OfficialRoleResponse: {
+            code: string;
+            label: string;
+            /** Format: int32 */
+            defaultMinimum: number;
+            /** Format: int32 */
+            max: null | number;
+        };
         /**
          * @description One outbox message in the platform diagnostics: envelope and delivery state, no payload. `heldBackBy` is set on
          *     a `PENDING` message that waits for an earlier, not yet processed message of its aggregate.
@@ -1440,6 +1623,26 @@ export interface components {
             nextCursor: null | string;
             hasMore: boolean;
         };
+        /** @enum {unknown} */
+        PeriodClock: "COUNT_UP" | "COUNT_DOWN" | "NONE";
+        /** @description A period; `shortLabel` is the definition's short form (`1H`). */
+        PeriodResponse: {
+            code: string;
+            label: string;
+            shortLabel: string;
+            kind: components["schemas"]["PhaseKind"];
+            clock: components["schemas"]["PeriodClock"];
+            /** Format: int32 */
+            defaultSeconds: null | number;
+            /** Format: int32 */
+            clockStartsAtSeconds: null | number;
+            allowsAddedTime: boolean;
+            overtime: boolean;
+            repeatable: boolean;
+            suddenDeath: boolean;
+        };
+        /** @enum {unknown} */
+        PhaseKind: "PLAY" | "BREAK" | "SHOOTOUT";
         /**
          * @description An entitlement's definition and its Value on the plan: null when the stored plan has no value for
          *     it yet (the code declares an entitlement that `seed --category CONFIGURATION` hasn't written).
@@ -1461,6 +1664,18 @@ export interface components {
             /** Format: int32 */
             rank: number;
             entitlements: components["schemas"]["PlanEntitlementResponse"][];
+        };
+        PositionConstraintResponse: {
+            group: string;
+            /** Format: int32 */
+            min: null | number;
+            /** Format: int32 */
+            max: null | number;
+        };
+        PositionResponse: {
+            code: string;
+            label: string;
+            group: string;
         };
         ProblemDetails: {
             type?: null | string;
@@ -1536,6 +1751,18 @@ export interface components {
             /** Format: uint32 */
             version?: null | number;
         };
+        ScorerPadGroupResponse: {
+            label: string;
+            buttons: string[];
+            phases: components["schemas"]["PhaseKind"][];
+            coverage: null | components["schemas"]["CoverageLevel"];
+        };
+        /** @enum {unknown} */
+        ScorerPadKind: "BUTTONS" | "DELIVERY_PAD";
+        ScorerPadResponse: {
+            kind: components["schemas"]["ScorerPadKind"];
+            groups: components["schemas"]["ScorerPadGroupResponse"][];
+        };
         /**
          * @description The public site's identity: `PUBLIC` fields only. PrimaryDomain is the host the site
          *     prefers, which may differ from the host the request came in on.
@@ -1544,6 +1771,87 @@ export interface components {
             slug: string;
             displayName: string;
             primaryDomain: string;
+        };
+        /**
+         * @description A published sport definition as the API shows it: the definition's content (docs/domain/sports/README.md) in the API's
+         *     names (camelCase, UPPER_SNAKE values), with its version's hash and publication time and the generic event types.
+         *     Actor roles and metadata fields stay maps keyed by their codes, as in the file.
+         */
+        SportDefinitionResponse: {
+            variant: string;
+            sport: string;
+            /** Format: int32 */
+            version: number;
+            name: string;
+            scoringFamily: string;
+            shape: components["schemas"]["ContestShape"];
+            /** Format: int32 */
+            schemaVersion: number;
+            contentHash: string;
+            /** Format: date-time */
+            publishedAt: string;
+            participantTypes: string[];
+            coverageLevels: components["schemas"]["CoverageLevel"][];
+            sides: string[];
+            terminology: components["schemas"]["SportTerminologyResponse"];
+            tieResolutions: string[];
+            periods: components["schemas"]["PeriodResponse"][];
+            actorRoles: {
+                [key: string]: components["schemas"]["ActorRoleResponse"];
+            };
+            eventTypes: components["schemas"]["EventTypeResponse"][];
+            genericEventTypes: components["schemas"]["GenericEventTypeResponse"][];
+            positions: components["schemas"]["PositionResponse"][];
+            staffRoles: components["schemas"]["StaffRoleResponse"][];
+            officialRoles: components["schemas"]["OfficialRoleResponse"][];
+            lineup: components["schemas"]["LineupResponse"];
+            statistics: components["schemas"]["StatisticResponse"][];
+            scorerPad: components["schemas"]["ScorerPadResponse"];
+        };
+        SportTerminologyResponse: {
+            contest: string;
+            contestPlural: string;
+            period: string;
+            participant: string;
+            athlete: string;
+            scoreUnit: string;
+        };
+        SportVariantResponse: {
+            variant: string;
+            sport: string;
+            name: string;
+            scoringFamily: string;
+            shape: components["schemas"]["ContestShape"];
+            /** Format: int32 */
+            latestVersion: number;
+        };
+        StaffRoleResponse: {
+            code: string;
+            label: string;
+        };
+        /** @enum {unknown} */
+        StatisticAggregation: "SUM" | "MAX" | "MIN" | "RATIO" | "BUILTIN";
+        /** @description How a statistic is derived; `where` holds metadata conditions, each value as written. */
+        StatisticDerivationResponse: {
+            countEvents: string[];
+            sumPoints: string[];
+            actorRoles: string[];
+            where: {
+                [key: string]: string;
+            };
+            builtin: null | string;
+            numerator: null | string;
+            denominator: null | string;
+            manual: boolean;
+        };
+        StatisticResponse: {
+            code: string;
+            label: string;
+            scopes: string[];
+            aggregation: components["schemas"]["StatisticAggregation"];
+            higherIsBetter: boolean;
+            coverage: components["schemas"]["CoverageLevel"];
+            derive: components["schemas"]["StatisticDerivationResponse"];
         };
         /**
          * @description How a period was granted; for reporting only, never affects its status or access (state-machines.md).
@@ -2941,6 +3249,106 @@ export interface operations {
             };
             /** @description Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING` */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListSports: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListSportsResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetSport: {
+        parameters: {
+            query?: {
+                version?: number;
+            };
+            header?: never;
+            path: {
+                variant: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The definition's `contentHash`, quoted: it changes only with a new version. */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SportDefinitionResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_QUERY` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `SPORT_DEFINITION_NOT_FOUND` */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4351,6 +4759,106 @@ export interface operations {
             };
             /** @description Problem Details; `code`: `AUTH_FORBIDDEN` */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListPlatformSports: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListSportsResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_FORBIDDEN` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetPlatformSport: {
+        parameters: {
+            query?: {
+                version?: number;
+            };
+            header?: never;
+            path: {
+                variant: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The definition's `contentHash`, quoted: it changes only with a new version. */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SportDefinitionResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_QUERY` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_FORBIDDEN` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `SPORT_DEFINITION_NOT_FOUND` */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -1793,6 +1793,160 @@
         }
       }
     },
+    "/api/admin/v1/sports": {
+      "get": {
+        "tags": [
+          "Sports"
+        ],
+        "summary": "List sport variants",
+        "description": "Every published sport variant at its latest version, ordered by name, then variant code: its sport, scoring family, contest shape and latest version. Not paginated. Not audited (global configuration).",
+        "operationId": "ListSports",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListSportsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING"
+            ]
+          }
+        }
+      }
+    },
+    "/api/admin/v1/sports/{variant}": {
+      "get": {
+        "tags": [
+          "Sports"
+        ],
+        "summary": "Get a sport definition",
+        "description": "A variant's published definition (docs/domain/sports/README.md) at `version`, the latest when left out: terminology, periods, actor roles, event types and the generic event types every definition has, positions, staff and official roles, lineup, statistics and the scorer pad. A published version never changes. Labels are the definition's; show them as given. Not audited (global configuration).",
+        "operationId": "GetSport",
+        "parameters": [
+          {
+            "name": "variant",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "version",
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The definition's `contentHash`, quoted: it changes only with a new version.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SportDefinitionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_QUERY`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_QUERY"
+            ]
+          },
+          "404": {
+            "description": "Problem Details; `code`: `SPORT_DEFINITION_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "SPORT_DEFINITION_NOT_FOUND"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING"
+            ]
+          }
+        }
+      }
+    },
     "/api/platform/v1/diagnostics/outbox": {
       "get": {
         "tags": [
@@ -4102,6 +4256,154 @@
         }
       }
     },
+    "/api/platform/v1/sports": {
+      "get": {
+        "tags": [
+          "Sports"
+        ],
+        "summary": "List sport variants",
+        "description": "Every published sport variant at its latest version, ordered by name, then variant code: its sport, scoring family, contest shape and latest version. Not paginated. Not audited (global configuration).",
+        "operationId": "ListPlatformSports",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListSportsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_FORBIDDEN"
+            ]
+          }
+        }
+      }
+    },
+    "/api/platform/v1/sports/{variant}": {
+      "get": {
+        "tags": [
+          "Sports"
+        ],
+        "summary": "Get a sport definition",
+        "description": "A variant's published definition (docs/domain/sports/README.md) at `version`, the latest when left out: terminology, periods, actor roles, event types and the generic event types every definition has, positions, staff and official roles, lineup, statistics and the scorer pad. A published version never changes. Labels are the definition's; show them as given. Not audited (global configuration).",
+        "operationId": "GetPlatformSport",
+        "parameters": [
+          {
+            "name": "variant",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "version",
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The definition's `contentHash`, quoted: it changes only with a new version.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SportDefinitionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_QUERY`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_QUERY"
+            ]
+          },
+          "404": {
+            "description": "Problem Details; `code`: `SPORT_DEFINITION_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "SPORT_DEFINITION_NOT_FOUND"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_FORBIDDEN"
+            ]
+          }
+        }
+      }
+    },
     "/api/account/v1/login": {
       "post": {
         "tags": [
@@ -4747,6 +5049,38 @@
           "ANONYMOUS"
         ]
       },
+      "ActorPool": {
+        "enum": [
+          "ON_FIELD",
+          "BENCH",
+          "SQUAD",
+          "STAFF",
+          "SQUAD_OR_STAFF"
+        ],
+        "description": "Who may fill an actor role."
+      },
+      "ActorRoleResponse": {
+        "required": [
+          "who",
+          "side"
+        ],
+        "type": "object",
+        "properties": {
+          "who": {
+            "$ref": "#/components/schemas/ActorPool"
+          },
+          "side": {
+            "$ref": "#/components/schemas/ActorSide"
+          }
+        }
+      },
+      "ActorSide": {
+        "enum": [
+          "OWN",
+          "OPPONENT"
+        ],
+        "description": "Whose side, relative to the event's side."
+      },
       "AssignmentScope": {
         "enum": [
           "TENANT",
@@ -5193,6 +5527,12 @@
         "additionalProperties": false,
         "description": "The body of `suspend`, `archive` and `unarchive` (audit `REQUIRED_WITH_REASON`). The reason is kept\npermanently in the status history and the audit trail and is not redacted: it must not contain personal data."
       },
+      "ContestShape": {
+        "enum": [
+          "HEAD_TO_HEAD",
+          "FIELD"
+        ]
+      },
       "CountryResponse": {
         "required": [
           "code",
@@ -5216,6 +5556,15 @@
           }
         },
         "description": "An ISO 3166-1 country: alpha-2 `code` (`UG`), alpha-3, numeric code and English name."
+      },
+      "CoverageLevel": {
+        "enum": [
+          "RESULT_ONLY",
+          "BASIC",
+          "STANDARD",
+          "DETAILED"
+        ],
+        "description": "In order: a level includes every level before it."
       },
       "CreateTenantRequest": {
         "required": [
@@ -5463,6 +5812,209 @@
         ],
         "description": "An entitlement's value, by its type: `{ enabled }` (BOOLEAN), `{ limit }` (QUOTA; null = unlimited) or `{ level }` (LEVEL; null = none)."
       },
+      "EventActorResponse": {
+        "required": [
+          "role",
+          "requiredFrom",
+          "optional",
+          "distinctFrom"
+        ],
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string"
+          },
+          "requiredFrom": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CoverageLevel"
+              }
+            ]
+          },
+          "optional": {
+            "type": "boolean"
+          },
+          "distinctFrom": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "EventCategory": {
+        "enum": [
+          "SYSTEM",
+          "PERIOD",
+          "SCORING",
+          "DISCIPLINE",
+          "PERSONNEL",
+          "PLAY",
+          "REVIEW",
+          "STOPPAGE",
+          "STATISTIC",
+          "COMMENTARY",
+          "CORRECTION"
+        ]
+      },
+      "EventEffect": {
+        "enum": [
+          "SEND_OFF",
+          "TEMPORARY_SUSPENSION",
+          "SUBSTITUTE",
+          "TEMPORARY_SUBSTITUTE",
+          "RETURN",
+          "DISQUALIFY",
+          "FOUL_COUNT"
+        ]
+      },
+      "EventImportance": {
+        "enum": [
+          "KEY",
+          "STANDARD",
+          "DETAILED",
+          "TECHNICAL"
+        ]
+      },
+      "EventTypeResponse": {
+        "required": [
+          "code",
+          "category",
+          "importance",
+          "coverage",
+          "label",
+          "phases",
+          "points",
+          "side",
+          "component",
+          "actors",
+          "metadata",
+          "effects",
+          "followUp",
+          "limits",
+          "reversibleBy"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "category": {
+            "$ref": "#/components/schemas/EventCategory"
+          },
+          "importance": {
+            "$ref": "#/components/schemas/EventImportance"
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/CoverageLevel"
+          },
+          "label": {
+            "type": "string"
+          },
+          "phases": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PhaseKind"
+            }
+          },
+          "points": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "side": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ActorSide"
+              }
+            ]
+          },
+          "component": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "actors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventActorResponse"
+            }
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/MetadataFieldResponse"
+            }
+          },
+          "effects": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventEffect"
+            }
+          },
+          "followUp": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/FollowUpResponse"
+              }
+            ]
+          },
+          "limits": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "reversibleBy": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "FollowUpResponse": {
+        "required": [
+          "requiresPreceding",
+          "sameSide",
+          "samePeriod",
+          "unconsumed",
+          "consumes"
+        ],
+        "type": "object",
+        "properties": {
+          "requiresPreceding": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "sameSide": {
+            "type": "boolean"
+          },
+          "samePeriod": {
+            "type": "boolean"
+          },
+          "unconsumed": {
+            "type": "boolean"
+          },
+          "consumes": {
+            "type": "boolean"
+          }
+        }
+      },
       "ForgotPasswordRequest": {
         "required": [
           "email"
@@ -5478,6 +6030,25 @@
         },
         "additionalProperties": false,
         "description": "Ask for a password reset email."
+      },
+      "GenericEventTypeResponse": {
+        "required": [
+          "code",
+          "category",
+          "label"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "category": {
+            "$ref": "#/components/schemas/EventCategory"
+          },
+          "label": {
+            "type": "string"
+          }
+        }
       },
       "GrantOverrideRequest": {
         "required": [
@@ -5652,6 +6223,49 @@
         },
         "description": "An ISO 639-1 language: two-letter `code` (`sw`) and English name."
       },
+      "LineupResponse": {
+        "required": [
+          "starters",
+          "benchMax",
+          "positionConstraints",
+          "specialRoles",
+          "minimumPlayersToContinue",
+          "shirtNumbersFollowPositions"
+        ],
+        "type": "object",
+        "properties": {
+          "starters": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "benchMax": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "positionConstraints": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PositionConstraintResponse"
+            }
+          },
+          "specialRoles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "minimumPlayersToContinue": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "shirtNumbersFollowPositions": {
+            "type": "boolean"
+          }
+        }
+      },
       "ListAuditEntriesResponse": {
         "required": [
           "items",
@@ -5776,6 +6390,20 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PlanResponse"
+            }
+          }
+        }
+      },
+      "ListSportsResponse": {
+        "required": [
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SportVariantResponse"
             }
           }
         }
@@ -6022,6 +6650,54 @@
         },
         "description": "The signed-in user: their own email, platform roles and the tenants they are an active member of."
       },
+      "MetadataFieldResponse": {
+        "required": [
+          "type",
+          "values",
+          "min",
+          "max",
+          "optional"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "$ref": "#/components/schemas/MetadataValueType"
+          },
+          "values": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "min": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "max": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "optional": {
+            "type": "boolean"
+          }
+        },
+        "description": "A metadata field: `values` for a choice, `min` and `max` for a number."
+      },
+      "MetadataValueType": {
+        "enum": [
+          "CHOICE",
+          "FLAG",
+          "NUMBER",
+          "TEXT"
+        ],
+        "description": "A metadata field's type in the API (`CHOICE`, `FLAG`, `NUMBER`, `TEXT`); the files write\n`enum`, `bool`, `int` and `string`."
+      },
       "MeTenantResponse": {
         "required": [
           "tenantId",
@@ -6061,6 +6737,34 @@
           "OFF"
         ],
         "description": "Whether a guardian's consent is needed before a minor is registered for a competition (Q11). Consent before public\nexposure is always required, whatever this says."
+      },
+      "OfficialRoleResponse": {
+        "required": [
+          "code",
+          "label",
+          "defaultMinimum",
+          "max"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "defaultMinimum": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "max": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        }
       },
       "OutboxMessageResponse": {
         "required": [
@@ -6186,6 +6890,80 @@
         },
         "description": "The `page` member of a cursor-paginated list (docs/architecture/api-conventions.md): pass\nNextCursor as `cursor` to get the next page; it is null on the last page."
       },
+      "PeriodClock": {
+        "enum": [
+          "COUNT_UP",
+          "COUNT_DOWN",
+          "NONE"
+        ]
+      },
+      "PeriodResponse": {
+        "required": [
+          "code",
+          "label",
+          "shortLabel",
+          "kind",
+          "clock",
+          "defaultSeconds",
+          "clockStartsAtSeconds",
+          "allowsAddedTime",
+          "overtime",
+          "repeatable",
+          "suddenDeath"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "shortLabel": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/PhaseKind"
+          },
+          "clock": {
+            "$ref": "#/components/schemas/PeriodClock"
+          },
+          "defaultSeconds": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "clockStartsAtSeconds": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "allowsAddedTime": {
+            "type": "boolean"
+          },
+          "overtime": {
+            "type": "boolean"
+          },
+          "repeatable": {
+            "type": "boolean"
+          },
+          "suddenDeath": {
+            "type": "boolean"
+          }
+        },
+        "description": "A period; `shortLabel` is the definition's short form (`1H`)."
+      },
+      "PhaseKind": {
+        "enum": [
+          "PLAY",
+          "BREAK",
+          "SHOOTOUT"
+        ]
+      },
       "PlanEntitlementResponse": {
         "required": [
           "code",
@@ -6267,6 +7045,52 @@
             "items": {
               "$ref": "#/components/schemas/PlanEntitlementResponse"
             }
+          }
+        }
+      },
+      "PositionConstraintResponse": {
+        "required": [
+          "group",
+          "min",
+          "max"
+        ],
+        "type": "object",
+        "properties": {
+          "group": {
+            "type": "string"
+          },
+          "min": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "max": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "PositionResponse": {
+        "required": [
+          "code",
+          "label",
+          "group"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "group": {
+            "type": "string"
           }
         }
       },
@@ -6502,6 +7326,66 @@
         "additionalProperties": false,
         "description": "The optional body of `revoke`: `version`, when sent, must be the membership's current one."
       },
+      "ScorerPadGroupResponse": {
+        "required": [
+          "label",
+          "buttons",
+          "phases",
+          "coverage"
+        ],
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "buttons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "phases": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PhaseKind"
+            }
+          },
+          "coverage": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CoverageLevel"
+              }
+            ]
+          }
+        }
+      },
+      "ScorerPadKind": {
+        "enum": [
+          "BUTTONS",
+          "DELIVERY_PAD"
+        ]
+      },
+      "ScorerPadResponse": {
+        "required": [
+          "kind",
+          "groups"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/ScorerPadKind"
+          },
+          "groups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScorerPadGroupResponse"
+            }
+          }
+        }
+      },
       "SiteResponse": {
         "required": [
           "slug",
@@ -6521,6 +7405,335 @@
           }
         },
         "description": "The public site's identity: `PUBLIC` fields only. PrimaryDomain is the host the site\nprefers, which may differ from the host the request came in on."
+      },
+      "SportDefinitionResponse": {
+        "required": [
+          "variant",
+          "sport",
+          "version",
+          "name",
+          "scoringFamily",
+          "shape",
+          "schemaVersion",
+          "contentHash",
+          "publishedAt",
+          "participantTypes",
+          "coverageLevels",
+          "sides",
+          "terminology",
+          "tieResolutions",
+          "periods",
+          "actorRoles",
+          "eventTypes",
+          "genericEventTypes",
+          "positions",
+          "staffRoles",
+          "officialRoles",
+          "lineup",
+          "statistics",
+          "scorerPad"
+        ],
+        "type": "object",
+        "properties": {
+          "variant": {
+            "type": "string"
+          },
+          "sport": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string"
+          },
+          "scoringFamily": {
+            "type": "string"
+          },
+          "shape": {
+            "$ref": "#/components/schemas/ContestShape"
+          },
+          "schemaVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "contentHash": {
+            "type": "string"
+          },
+          "publishedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "participantTypes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "coverageLevels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CoverageLevel"
+            }
+          },
+          "sides": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "terminology": {
+            "$ref": "#/components/schemas/SportTerminologyResponse"
+          },
+          "tieResolutions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "periods": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PeriodResponse"
+            }
+          },
+          "actorRoles": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ActorRoleResponse"
+            }
+          },
+          "eventTypes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventTypeResponse"
+            }
+          },
+          "genericEventTypes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GenericEventTypeResponse"
+            }
+          },
+          "positions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PositionResponse"
+            }
+          },
+          "staffRoles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StaffRoleResponse"
+            }
+          },
+          "officialRoles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OfficialRoleResponse"
+            }
+          },
+          "lineup": {
+            "$ref": "#/components/schemas/LineupResponse"
+          },
+          "statistics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StatisticResponse"
+            }
+          },
+          "scorerPad": {
+            "$ref": "#/components/schemas/ScorerPadResponse"
+          }
+        },
+        "description": "A published sport definition as the API shows it: the definition's content (docs/domain/sports/README.md) in the API's\nnames (camelCase, UPPER_SNAKE values), with its version's hash and publication time and the generic event types.\nActor roles and metadata fields stay maps keyed by their codes, as in the file."
+      },
+      "SportTerminologyResponse": {
+        "required": [
+          "contest",
+          "contestPlural",
+          "period",
+          "participant",
+          "athlete",
+          "scoreUnit"
+        ],
+        "type": "object",
+        "properties": {
+          "contest": {
+            "type": "string"
+          },
+          "contestPlural": {
+            "type": "string"
+          },
+          "period": {
+            "type": "string"
+          },
+          "participant": {
+            "type": "string"
+          },
+          "athlete": {
+            "type": "string"
+          },
+          "scoreUnit": {
+            "type": "string"
+          }
+        }
+      },
+      "SportVariantResponse": {
+        "required": [
+          "variant",
+          "sport",
+          "name",
+          "scoringFamily",
+          "shape",
+          "latestVersion"
+        ],
+        "type": "object",
+        "properties": {
+          "variant": {
+            "type": "string"
+          },
+          "sport": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "scoringFamily": {
+            "type": "string"
+          },
+          "shape": {
+            "$ref": "#/components/schemas/ContestShape"
+          },
+          "latestVersion": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "StaffRoleResponse": {
+        "required": [
+          "code",
+          "label"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        }
+      },
+      "StatisticAggregation": {
+        "enum": [
+          "SUM",
+          "MAX",
+          "MIN",
+          "RATIO",
+          "BUILTIN"
+        ]
+      },
+      "StatisticDerivationResponse": {
+        "required": [
+          "countEvents",
+          "sumPoints",
+          "actorRoles",
+          "where",
+          "builtin",
+          "numerator",
+          "denominator",
+          "manual"
+        ],
+        "type": "object",
+        "properties": {
+          "countEvents": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "sumPoints": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "actorRoles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "where": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "builtin": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "numerator": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "denominator": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "manual": {
+            "type": "boolean"
+          }
+        },
+        "description": "How a statistic is derived; `where` holds metadata conditions, each value as written."
+      },
+      "StatisticResponse": {
+        "required": [
+          "code",
+          "label",
+          "scopes",
+          "aggregation",
+          "higherIsBetter",
+          "coverage",
+          "derive"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "aggregation": {
+            "$ref": "#/components/schemas/StatisticAggregation"
+          },
+          "higherIsBetter": {
+            "type": "boolean"
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/CoverageLevel"
+          },
+          "derive": {
+            "$ref": "#/components/schemas/StatisticDerivationResponse"
+          }
+        }
       },
       "SubscriptionKind": {
         "enum": [
@@ -7304,6 +8517,9 @@
     },
     {
       "name": "Capabilities"
+    },
+    {
+      "name": "Sports"
     },
     {
       "name": "Diagnostics"
