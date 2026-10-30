@@ -7,14 +7,16 @@ at the start of every review.
 
 - **Current slice:** S05 — Sports configuration (docs/build/slices/S05-sports-configuration.md, rewritten by the S04
   slice review). S00–S04 are done
-- **Current task:** S05-T2a — Engine contract, fold, trackers and scenario runner — in review; next is `/next-task`
-  for S05-T2b
-- **Next:** S05-T2b — ADDITIVE validation: phases, actors, follow-ups and limits
+- **Current task:** S05-T2b1 — ADDITIVE validation: status, phase, participant, actors and references (plan
+  approved by the owner, 2026-10-30, with the recommended answers: the caller says whether the correction window is
+  open; a substitution window is one side's consecutive substitutions in play; a correction is checked as at the event
+  it replaces; `TIMELINE_PARTICIPANT_INVALID`, `scoring.points.<EVENT_TYPE>`, split T2b1/T2b2)
+- **Next:** S05-T2b2 — follow-ups, limits, the points override and the rule list
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S05-T2b, T2c — ADDITIVE validation rules; outcome and tie resolution
+1. S05-T2b2, T2c — follow-ups, limits and points overrides; outcome and tie resolution
 2. S05-T3 — Formats and generators (with `format.read` and its reads)
 3. S05-T4 — Ruleset templates and resolver (with `ruleset.read`, its reads and the preview)
 4. S05-T5 — Tenant sport enablement, Q27 and the screens (likely T5a, T5b1, T5b2)

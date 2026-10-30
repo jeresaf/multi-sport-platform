@@ -7,8 +7,8 @@ namespace SportsPlatform.Modules.SportsConfiguration.Engines;
 
 /// <summary>
 /// The <c>ADDITIVE</c> family (sport-engine.md §5): each active event's <c>points</c> go to the acting participant or
-/// its opponent, in the score component the event type names. S05-T2a: validation knows event types only, and the
-/// outcome compares <c>main</c> totals; the §5 checks and tie resolution follow in T2b and T2c.
+/// its opponent, in the score component the event type names. Validation runs the checks every family shares
+/// (<see cref="TimelineChecks"/>); follow-ups and limits follow in S05-T2b2, tie resolution in T2c.
 /// </summary>
 public sealed class AdditiveEngine : IScoringEngine
 {
@@ -28,11 +28,7 @@ public sealed class AdditiveEngine : IScoringEngine
 
     public ValidationResult Validate(ContestContext ctx, ContestLiveState live, TimelineEventDraft draft)
     {
-        ArgumentNullException.ThrowIfNull(ctx);
-        ArgumentNullException.ThrowIfNull(draft);
-        var known = ctx.Definition.EventTypes.Any(type => type.Code == draft.EventType)
-            || ctx.Definition.GenericEventTypes.Any(type => type.Code == draft.EventType);
-        return known ? ValidationResult.Valid : ValidationResult.Invalid(SportsConfigurationErrors.TimelineEventUnknown);
+        return TimelineChecks.Validate(ctx, live, draft);
     }
 
     public ScoreState Apply(ContestContext ctx, ScoreState state, TimelineEvent evt)
@@ -51,7 +47,7 @@ public sealed class AdditiveEngine : IScoringEngine
             return score;
         }
 
-        // T2b's checks refuse these drafts; a recorded one is a bug.
+        // Validation refuses these drafts (TIMELINE_PARTICIPANT_INVALID); a recorded one is a bug.
         if (evt.ParticipantId is not { } actor || !ctx.Sides.Any(side => side.ParticipantId == actor))
         {
             throw new InvalidOperationException($"Event {evt.Id} scores but its participant is not in the contest.");
