@@ -337,3 +337,15 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   `shootout`, `periods` by short label; `outcome`: `winner` and `method`, or `draw`). T2a declares only
   `TIMELINE_EVENT_UNKNOWN`; the other D8 codes come with T2b's checks. T2b: points overrides by rule, and a participant
   that isn't in the contest (Apply throws on a scoring event without one).
+- **T2b1:** plan approved with the recommended answers (owner, 2026-10-30): the caller says whether the correction
+  window is open (`ContestLiveState.CorrectionWindowOpen`); a correction is checked as at the event it replaces; the
+  new code `TIMELINE_PARTICIPANT_INVALID`; T2b split into T2b1 (status, references, phase, participant, actors) and
+  T2b2 (follow-ups, limits with windows as one side's consecutive substitutions in play, the points override at
+  `scoring.points.<EVENT_TYPE>`, the rule list). The checks are in `Engines/TimelineChecks` (sport-engine.md, "As built
+  (S05-T2b1)"). Scenario files gain `correction_window_open` and an event `source` (`BACKFILL`, `ADMIN`); the runner
+  records a correction in the period of the event it replaces. For later: football's `VAR_DECISION` must carry
+  `reverses` when its outcome is `DECISION_OVERTURNED` (a comment in the file, a payload meaning generic code can't
+  read; S12 decides); rugby's `TEMPORARY_REPLACEMENT_END` names its returning player as `PLAYER_ON`, drawn from the
+  `BENCH`, which the pool check refuses (S15 fixes the file or the rule); reversing a scoring event doesn't release
+  a follow-up that consumed it (T2b2 notes it).
+
