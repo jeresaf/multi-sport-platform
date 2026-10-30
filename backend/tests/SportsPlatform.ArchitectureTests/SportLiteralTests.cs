@@ -3,13 +3,13 @@ using System.Text.RegularExpressions;
 namespace SportsPlatform.ArchitectureTests;
 
 // AR-11 and S05 D6: generic code reads sports as data. Sport and variant codes may appear as string literals only in
-// Sports Configuration's definitions, engines and renderers (and in tests, which are outside backend/src).
+// Sports Configuration's engines and renderers (and in tests, which are outside backend/src).
 public sealed partial class SportLiteralTests
 {
-    // Only Sports Configuration's own folders; a generic module's Definitions folder is still scanned.
+    // Only Sports Configuration's engines and renderers. Definitions are YAML, never scanned; the C# next to them (the
+    // validator, the seeders) is generic and is scanned like any other code.
     private static readonly string[] _allowedFolders =
     [
-        Path.Combine("src", "Modules", "SportsConfiguration", "SportsPlatform.Modules.SportsConfiguration", "Definitions"),
         Path.Combine("src", "Modules", "SportsConfiguration", "SportsPlatform.Modules.SportsConfiguration", "Engines"),
         Path.Combine("src", "Modules", "SportsConfiguration", "SportsPlatform.Modules.SportsConfiguration", "Renderers"),
     ];
@@ -19,14 +19,26 @@ public sealed partial class SportLiteralTests
     private static readonly string _repositoryRoot = Path.GetDirectoryName(SolutionAssemblies.BackendDirectory)!;
 
     [Fact]
-    public void Sport_and_variant_codes_are_read_from_the_reference_files()
+    public void Every_reference_file_gives_one_variant_and_one_sport_and_every_table_row_a_variant()
     {
-        var codes = SportCodes();
+        var files = Directory.EnumerateFiles(SportsFolder, "*.yaml").ToList();
+        files.ShouldNotBeEmpty();
+        foreach (var file in files)
+        {
+            var keys = CodeLines(file).Select(match => match.Groups["key"].Value).Order(StringComparer.Ordinal).ToList();
+            keys.ShouldBe(["sport", "variant"], Path.GetFileName(file));
+        }
 
-        codes.ShouldContain("FOOTBALL_ASSOCIATION");
-        codes.ShouldContain("FOOTBALL");
-        codes.ShouldContain("RUGBY_UNION_7");
-        codes.ShouldContain("CRICKET_T20");
+        var rows = File.ReadLines(Path.Combine(SportsFolder, "README.md")).Where(line => line.StartsWith("| ", StringComparison.Ordinal) && line.Contains(".yaml", StringComparison.Ordinal)).ToList();
+        rows.Count.ShouldBe(files.Count);
+        rows.ShouldAllBe(row => TableVariant().IsMatch(row));
+        SportCodes().ShouldContain("FOOTBALL_ASSOCIATION");
+    }
+
+    [Fact]
+    public void A_code_line_may_end_with_a_comment()
+    {
+        CodeLine().Match("variant: FOOTBALL_ASSOCIATION   # never reused").Groups["code"].Value.ShouldBe("FOOTBALL_ASSOCIATION");
     }
 
     [Fact]
@@ -52,16 +64,18 @@ public sealed partial class SportLiteralTests
         violations.ShouldBeEmpty();
     }
 
+    private static string SportsFolder => Path.Combine(_repositoryRoot, "docs", "domain", "sports");
+
+    private static IEnumerable<Match> CodeLines(string file) =>
+        File.ReadLines(file).Select(line => CodeLine().Match(line)).Where(match => match.Success);
+
     // Variant and sport codes from every reference definition, plus the variants in README.md's table.
     private static HashSet<string> SportCodes()
     {
-        var folder = Path.Combine(_repositoryRoot, "docs", "domain", "sports");
-        var fromFiles = Directory.EnumerateFiles(folder, "*.yaml")
-            .SelectMany(File.ReadLines)
-            .Select(line => CodeLine().Match(line))
-            .Where(match => match.Success)
+        var fromFiles = Directory.EnumerateFiles(SportsFolder, "*.yaml")
+            .SelectMany(CodeLines)
             .Select(match => match.Groups["code"].Value);
-        var fromTable = File.ReadLines(Path.Combine(folder, "README.md"))
+        var fromTable = File.ReadLines(Path.Combine(SportsFolder, "README.md"))
             .Where(line => line.StartsWith("| ", StringComparison.Ordinal))
             .Select(line => TableVariant().Match(line))
             .Where(match => match.Success)
@@ -74,7 +88,7 @@ public sealed partial class SportLiteralTests
 
     private static string[] Segments(string path) => path.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 
-    [GeneratedRegex("^(variant|sport):\\s*(?<code>[A-Z][A-Z0-9_]*)\\s*$")]
+    [GeneratedRegex("^(?<key>variant|sport):\\s*(?<code>[A-Z][A-Z0-9_]*)\\s*(#.*)?$")]
     private static partial Regex CodeLine();
 
     [GeneratedRegex("^\\|[^|]+\\|\\s*`(?<code>[A-Z][A-Z0-9_]*)`")]
