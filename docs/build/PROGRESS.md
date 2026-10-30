@@ -313,7 +313,8 @@ items are with S04's tasks or their own trigger. Each item names where it gets d
 
 - With two scheduled periods and none started, the read-only banner says "until" the later start (the capabilities'
   `access` is the current period's, and the current period is then the latest, state-machines.md); full access returns
-  on the earlier one. The Subscription page shows the earlier start (#72 R2). Owner: tech debt; Q27. (The S04 slice
+  on the earlier one. The Subscription page says "until" the earlier start, but shows the later period as current and
+  the earlier one under "Next period" (#72 R2, R4). Owner: tech debt; Q27. (The S04 slice
   review)
 
 - The console's renew dialog shows its first day with a client copy of `TenantSubscription.RenewalStartOn`

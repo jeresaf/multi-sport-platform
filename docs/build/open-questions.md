@@ -6,7 +6,7 @@ the date and where the decision is recorded.
 
 | # | Question | Why it matters | Default (used until decided) | Needed by |
 |---|---|---|---|---|
-| Q27 | With two scheduled periods and none started, should the current period be the earliest scheduled one, not the latest (#72 R2)? | The rule ("with none started, the latest period", state-machines.md) makes the read-only banner say "until" the later start, though full access returns on the earlier one, and the later period's plan applies meanwhile (S04-T3a2). Rare: two future periods, none started | Keep the rule; the tenant's Subscription page shows the earlier start (S04-T4b1); the banner's date is tech debt | The S04 slice review |
+| Q27 | With two scheduled periods and none started, should the current period be the earliest scheduled one, not the latest (#72 R2)? | The rule ("with none started, the latest period", state-machines.md) makes the read-only banner say "until" the later start, though full access returns on the earlier one, the later period's plan applies meanwhile (S04-T3a2), and the tenant's Subscription page shows the later period as current and the earlier one under "Next period". Rare: two future periods, none started | Keep the rule; the tenant's Subscription page shows the earlier start (S04-T4b1); the banner's date is tech debt | The S04 slice review |
 
 ## Answered
 
