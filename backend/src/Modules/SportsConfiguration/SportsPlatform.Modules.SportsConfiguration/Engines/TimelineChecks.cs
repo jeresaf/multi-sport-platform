@@ -55,16 +55,16 @@ public static class TimelineChecks
         var period = basis.Replaced is { PeriodCode: { } code } replaced
             ? new PlayedPeriod(code, replaced.PeriodOccurrence)
             : basis.Phase.PeriodCode is { } current ? new PlayedPeriod(current, basis.Phase.Occurrence) : null;
+        var active = ByOrigin(live);
         return new ValidationResult([.. new[]
         {
-            FollowUpsAndLimits.FollowUpError(ctx.Definition, type, draft, period, basis.Before),
-            FollowUpsAndLimits.LimitError(ctx, type, draft, ByOrigin(live), basis.Replaced),
+            FollowUpsAndLimits.FollowUpError(ctx.Definition, draft, period, active, basis.Replaced),
+            FollowUpsAndLimits.LimitError(ctx, draft, active, basis.Replaced),
         }.OfType<Error>()]);
     }
 
-    // What the later checks read: the phase and the people, the active events before the draft, and for a correction
-    // the event it replaces.
-    private sealed record Basis(ContestPhase Phase, ContestPersonnel Personnel, IReadOnlyList<TimelineEvent> Before)
+    // What the later checks read: the phase and the people, and for a correction the event it replaces.
+    private sealed record Basis(ContestPhase Phase, ContestPersonnel Personnel)
     {
         public TimelineEvent? Replaced { get; init; }
     }
@@ -124,13 +124,13 @@ public static class TimelineChecks
 
             var original = Original(live, target).Sequence;
             var before = ByOrigin(live).Where(evt => Original(live, evt).Sequence < original).ToList();
-            return new Basis(PhaseTracker.Track(ctx.Definition, before), PersonnelTracker.Track(ctx, before), before) { Replaced = target };
+            return new Basis(PhaseTracker.Track(ctx.Definition, before), PersonnelTracker.Track(ctx, before)) { Replaced = target };
         }
 
         return Current(live);
     }
 
-    private static Basis Current(ContestLiveState live) => new(live.Phase, live.Personnel, ByOrigin(live));
+    private static Basis Current(ContestLiveState live) => new(live.Phase, live.Personnel);
 
     // The active events, each where its chain of corrections started: a try corrected after its conversion still comes
     // before it, and a corrected substitution stays in its window.

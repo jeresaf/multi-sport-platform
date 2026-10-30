@@ -72,6 +72,69 @@ public sealed class FollowUpsAndLimitsTests
     }
 
     [Fact]
+    public void A_correction_cant_give_a_converted_try_a_second_conversion()
+    {
+        var ctx = Context(RugbyUnion15) with { Coverage = CoverageLevel.Basic };
+        TimelineEvent[] timeline =
+        [
+            Start(1, "FIRST_HALF"), Played(2, "TRY", Home), Played(3, "PENALTY_GOAL", Home), Played(4, "CONVERSION_MADE", Home),
+        ];
+
+        Codes(ctx, timeline, Scored("CONVERSION_MADE", Home) with { SupersedesEventId = Id(3) }).ShouldBe([_missing]);
+    }
+
+    [Fact]
+    public void A_converted_try_keeps_its_conversion()
+    {
+        var ctx = Context(RugbyUnion15) with { Coverage = CoverageLevel.Basic };
+        TimelineEvent[] timeline = [Start(1, "FIRST_HALF"), Played(2, "TRY", Home), Played(3, "CONVERSION_MADE", Home)];
+
+        // Moving the try to the other team or changing its type is refused; the scorer reverses the conversion first
+        // (owner, 2026-10-30). Correcting who scored it is fine.
+        Codes(ctx, timeline, Scored("TRY", Away) with { SupersedesEventId = Id(2) }).ShouldBe([_missing]);
+        Codes(ctx, timeline, Scored("PENALTY_GOAL", Home) with { SupersedesEventId = Id(2) }).ShouldBe([_missing]);
+        Codes(ctx, timeline, Scored("TRY", Home) with { SupersedesEventId = Id(2) }).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void A_conversion_left_without_its_try_by_a_reversal_blocks_nothing_else()
+    {
+        var ctx = Context(RugbyUnion15) with { Coverage = CoverageLevel.Basic };
+        TimelineEvent[] timeline =
+        [
+            Start(1, "FIRST_HALF"), Played(2, "TRY", Home), Played(3, "CONVERSION_MADE", Home),
+            Event(4, GenericEventCodes.EventReversed) with { ReversesEventId = Id(2) }, Played(5, "TRY", Away),
+        ];
+
+        Codes(ctx, timeline, Scored("CONVERSION_MADE", Away)).ShouldBeEmpty();
+        Codes(ctx, timeline, Scored("TRY", Away) with { SupersedesEventId = Id(5) }).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void A_correction_cant_split_a_substitution_window()
+    {
+        var ctx = Context(Football) with { Coverage = CoverageLevel.Basic, Rules = Rules(("substitutions.windows", 1L)) };
+        TimelineEvent[] timeline =
+        [
+            Start(1, "FIRST_HALF"), At(Played(2, "SUBSTITUTION", Home), 30), At(Played(3, "SUBSTITUTION", Home), 30),
+            At(Played(4, "SUBSTITUTION", Home), 30),
+        ];
+
+        Codes(ctx, timeline, At(Scored("YELLOW_CARD", Home), 30) with { SupersedesEventId = Id(3) }).ShouldBe([_reached]);
+        Codes(ctx, timeline, At(Scored("YELLOW_CARD", Home), 30) with { SupersedesEventId = Id(4) }).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void A_substitution_without_a_clock_neither_ends_a_window_nor_starts_one()
+    {
+        var ctx = Context(Football) with { Coverage = CoverageLevel.Basic, Rules = Rules(("substitutions.windows", 1L)) };
+        TimelineEvent[] timeline = [Start(1, "FIRST_HALF"), At(Played(2, "SUBSTITUTION", Home), 60), Played(3, "SUBSTITUTION", Home)];
+
+        Codes(ctx, timeline, At(Scored("SUBSTITUTION", Home), 60)).ShouldBeEmpty();
+        Codes(ctx, timeline, At(Scored("SUBSTITUTION", Home), 70)).ShouldBe([_reached]);
+    }
+
+    [Fact]
     public void A_substitution_corrected_after_a_later_goal_stays_in_its_window()
     {
         var ctx = Context(Football) with { Coverage = CoverageLevel.Basic, Rules = Rules(("substitutions.windows", 1L)) };
