@@ -171,10 +171,13 @@ export function MembersSection({ isOwner }: Readonly<{ isOwner: boolean }>) {
         (change) => unavailable(changes[change].action) !== null && changes[change].from.includes(member.status),
       )) ||
     (!canChangeRoles && member.status !== "REMOVED" && (unavailable("role.assign") ?? unavailable("role.revoke")) !== null);
-  const refusal = [...Object.values(changes).map((change) => change.action), "role.assign", "role.revoke"]
-    .map(unavailable)
-    .find((reason) => reason !== null);
   const rows = members.data?.pages.flatMap((page) => page.items) ?? [];
+  // Said only where a row shows a disabled menu for it to explain.
+  const refusal = rows.some(refusedChanges)
+    ? [...Object.values(changes).map((change) => change.action), "role.assign", "role.revoke"]
+        .map(unavailable)
+        .find((reason) => reason !== null)
+    : undefined;
   const open = pending ? changes[pending.change] : null;
 
   return (
@@ -204,7 +207,11 @@ export function MembersSection({ isOwner }: Readonly<{ isOwner: boolean }>) {
       {members.isError ? <ProblemAlert error={members.error} /> : null}
       {members.isSuccess && rows.length === 0 ? (
         <EmptyState title={`No ${humanizeCode(status).toLowerCase()} members`}>
-          {status === "ACTIVE" ? "Invite someone below to get started." : "Choose another status to see others."}
+          {status !== "ACTIVE"
+            ? "Choose another status to see others."
+            : can("membership.invite")
+              ? "Invite someone below to get started."
+              : null}
         </EmptyState>
       ) : null}
       {rows.length > 0 ? (

@@ -16,6 +16,8 @@ describe("unavailableReason", () => {
     ["CANCELLED", "Read-only: the subscription was cancelled"],
     ["SCHEDULED", "Read-only: the subscription hasn't started yet"],
     [null, "Read-only: the organisation has no subscription"],
+    // Not a read-only status today: no cause rather than a wrong one.
+    ["ACTIVE", "Read-only"],
   ] as const)("says why the workspace is read-only (%s)", (status, reason) => {
     const access = { ...cancelledAccess, subscriptionStatus: status };
     expect(unavailableReason("membership.invite", [readOnly("membership.invite")], access)).toBe(reason);

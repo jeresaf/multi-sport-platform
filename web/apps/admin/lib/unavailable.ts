@@ -17,7 +17,8 @@ export function unavailableReason(
     return null;
   }
   if (entry.code === "TENANT_READ_ONLY") {
-    return `Read-only: ${readOnlyCause(access.subscriptionStatus)}`;
+    const cause = readOnlyCause(access.subscriptionStatus);
+    return cause ? `Read-only: ${cause}` : "Read-only";
   }
   if (entry.code === "ENTITLEMENT_REQUIRED") {
     // The plans come in rank order: the lowest that includes it is the one to ask for.
@@ -27,7 +28,8 @@ export function unavailableReason(
   return "Not available now";
 }
 
-function readOnlyCause(status: CapabilityAccess["subscriptionStatus"]): string {
+/** Why the workspace is read-only, or null for a status that doesn't make it so (none does today). */
+function readOnlyCause(status: CapabilityAccess["subscriptionStatus"]): string | null {
   switch (status) {
     case "EXPIRED":
       return "the subscription has ended";
@@ -35,7 +37,9 @@ function readOnlyCause(status: CapabilityAccess["subscriptionStatus"]): string {
       return "the subscription was cancelled";
     case "SCHEDULED":
       return "the subscription hasn't started yet";
-    default:
+    case null:
       return "the organisation has no subscription";
+    default:
+      return null;
   }
 }
