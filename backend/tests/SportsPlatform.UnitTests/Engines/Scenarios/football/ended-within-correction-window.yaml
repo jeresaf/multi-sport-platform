@@ -1,6 +1,7 @@
 title: Within the correction window the scorer fixes a scorer after the final whistle — Kansanga Harriers FC beat Nakawa Nomads FC 1–0
 # After the end only corrections and reversals are taken: a goal the scorer forgot is refused, and so is withdrawing the
-# final whistle, as both would reopen the match. A correction can itself be corrected.
+# final whistle, as both would reopen the match. Undoing the withdrawal of a stray period start would start that period
+# again, so it is refused too. A correction can itself be corrected.
 definition: { variant: FOOTBALL_ASSOCIATION, version: 1 }
 rules: FOOTBALL_LEAGUE
 coverage: STANDARD
@@ -22,10 +23,13 @@ events:
   - { source: BACKFILL, minute: 45, type: PERIOD_START, period: SECOND_HALF }
   - { source: BACKFILL, id: winner, minute: 64, type: GOAL, team: Kansanga Harriers FC, actors: { SCORER: George Opio } }
   - { source: BACKFILL, id: final-whistle, minute: 90+1, type: PERIOD_END }
+  - { source: BACKFILL, id: stray-start, minute: 90+1, type: PERIOD_START, period: HALF_TIME }
+  - { source: BACKFILL, id: stray-withdrawn, minute: 90+1, type: EVENT_REVERSED, reverses: stray-start, payload: { reason: Entered by mistake } }
   - { id: fixed, minute: 64, type: GOAL, team: Kansanga Harriers FC, supersedes: winner, actors: { SCORER: Ismail Kayondo } }
   - { minute: 64, type: GOAL, team: Kansanga Harriers FC, supersedes: fixed, actors: { SCORER: Ismail Kayondo, ASSIST: George Opio } }
   - { minute: 88, type: GOAL, team: Nakawa Nomads FC, actors: { SCORER: Kizza Bbosa }, rejected: [TIMELINE_CONTEST_NOT_LIVE] }
   - { minute: 90+1, type: EVENT_REVERSED, reverses: final-whistle, payload: { reason: Whistle entered too early }, rejected: [TIMELINE_CONTEST_NOT_LIVE] }
+  - { minute: 90+1, type: EVENT_REVERSED, reverses: stray-withdrawn, payload: { reason: Withdrawn by mistake }, rejected: [TIMELINE_CONTEST_NOT_LIVE] }
 expect:
   score:
     Kansanga Harriers FC: { total: 1, periods: { 1H: 0, 2H: 1 } }

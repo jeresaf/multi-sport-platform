@@ -57,8 +57,17 @@ public static class TimelineChecks
                 && (draft.SupersedesEventId is not null
                     || (draft.ReversesEventId is { } reverses && !ReversesPeriod(live, reverses))));
 
-    private static bool ReversesPeriod(ContestLiveState live, Guid id) =>
-        live.Timeline.FirstOrDefault(entry => entry.Event.Id == id)?.Event.EventType is GenericEventCodes.PeriodStart or GenericEventCodes.PeriodEnd;
+    // Reversing a reversal restores what it had undone, so the chain is followed down to the event it ends at.
+    private static bool ReversesPeriod(ContestLiveState live, Guid id)
+    {
+        var target = live.Timeline.FirstOrDefault(entry => entry.Event.Id == id)?.Event;
+        while (target?.ReversesEventId is { } undone)
+        {
+            target = live.Timeline.FirstOrDefault(entry => entry.Event.Id == undone)?.Event;
+        }
+
+        return target?.EventType is GenericEventCodes.PeriodStart or GenericEventCodes.PeriodEnd;
+    }
 
     // §9: a reversal names an active event whose type lists the reversing type in reversible_by (EVENT_REVERSED
     // reverses anything) and is checked in the current phase; a correction replaces an active event of the definition
