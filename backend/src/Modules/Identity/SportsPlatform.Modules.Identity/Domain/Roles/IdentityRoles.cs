@@ -38,9 +38,12 @@ public static class IdentityRoles
     // scopes (S06, #52 R1).
     private const string _capabilitiesRead = "tenant.capabilities.read";
 
+    // Everyone working in the tenant uses the sport's words (S05 D14): every role holding the settings read.
+    private const string _sportRead = "sport.read";
+
     private static readonly string[] _tenantAdministration =
     [
-        _tenantSettingsRead, _tenantSettingsUpdate, _capabilitiesRead,
+        _tenantSettingsRead, _tenantSettingsUpdate, _capabilitiesRead, _sportRead,
         _membershipRead, "membership.suspend", "membership.restore", "membership.remove", "role.assign", "role.revoke",
         "membership.invite", "invitation.revoke", _subscriptionRead,
     ];
@@ -48,17 +51,18 @@ public static class IdentityRoles
     // Only the owner sees a blocked tenant's status and why (S03 D11): the actions available when blocked.
     private static readonly string[] _tenantOwnership = ["tenant.access.read"];
 
-    private static readonly string[] _tenantContext = [_tenantSettingsRead, _capabilitiesRead];
+    private static readonly string[] _tenantContext = [_tenantSettingsRead, _capabilitiesRead, _sportRead];
 
     private static readonly string[] _platformReads =
     [
-        "plan.read", "platform.audit.read", "platform.capabilities.read", "platform.outbox.read", "subscription.read", "tenant.read",
+        "plan.read", "platform.audit.read", "platform.capabilities.read", "platform.outbox.read", "platform.sport.read", "subscription.read",
+        "tenant.read",
     ];
 
     public static IReadOnlyList<RoleDefinition> All { get; } =
     [
         new(PlatformRoleCodes.Admin, RoleScope.Platform,
-            "Platform staff: tenants and their lifecycle, plans, subscriptions and entitlement overrides, platform administrators, audit and outbox.",
+            "Platform staff: tenants and their lifecycle, plans, subscriptions and entitlement overrides, platform administrators, audit, outbox and sport definitions.",
             [
                 .. _platformReads,
                 "entitlement.override",
@@ -79,7 +83,7 @@ public static class IdentityRoles
                 "tenant.update",
             ]),
         new(PlatformRoleCodes.Support, RoleScope.Platform,
-            "Platform staff, read-only: tenants, plans, subscriptions, audit and outbox (every one of these reads is audited).",
+            "Platform staff, read-only: tenants, plans, subscriptions, audit, outbox and sport definitions (every read of tenant or platform data is audited).",
             _platformReads),
 
         new(TenantOwner, RoleScope.Tenant,

@@ -140,6 +140,7 @@ public sealed class AuthorizationMatrixTests(PostgresFixture fixture) : Database
     {
         "tenantId" => tenantId.ToString(),
         "module" => "identity",
+        "variant" => "FOOTBALL_ASSOCIATION",
         _ when parameter.ParameterPolicies.Any(policy => policy.Content == "guid") => Guid.CreateVersion7().ToString(),
         _ => null,
     };

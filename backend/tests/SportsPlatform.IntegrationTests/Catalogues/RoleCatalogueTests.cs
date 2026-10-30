@@ -88,10 +88,10 @@ public sealed class RoleCatalogueTests
         var json = RoleCatalogueExport.ToJson(_roles);
 
         markdown.ShouldContain("**Actions** is what a role grants today; **Description** is the role's purpose");
-        markdown.ShouldContain("| `VIEWER` | TENANT | TENANT | `membership.read`, `tenant.capabilities.read`, `tenant.settings.read`, `tenant.subscription.read` | Read-only admin. |\n");
-        markdown.ShouldContain("| `SCORER` | TENANT | TENANT, COMPETITION, CONTEST | `tenant.capabilities.read`, `tenant.settings.read` |");
+        markdown.ShouldContain("| `VIEWER` | TENANT | TENANT | `membership.read`, `sport.read`, `tenant.capabilities.read`, `tenant.settings.read`, `tenant.subscription.read` | Read-only admin. |\n");
+        markdown.ShouldContain("| `SCORER` | TENANT | TENANT, COMPETITION, CONTEST | `sport.read`, `tenant.capabilities.read`, `tenant.settings.read` |");
         markdown.ShouldContain("| `TEAM_MANAGER` | TENANT | TEAM | — |");
-        markdown.ShouldContain("| `PLATFORM_SUPPORT` | PLATFORM | — | `plan.read`, `platform.audit.read`, `platform.capabilities.read`, `platform.outbox.read`, `subscription.read`, `tenant.read` |");
+        markdown.ShouldContain("| `PLATFORM_SUPPORT` | PLATFORM | — | `plan.read`, `platform.audit.read`, `platform.capabilities.read`, `platform.outbox.read`, `platform.sport.read`, `subscription.read`, `tenant.read` |");
         markdown.ShouldNotContain("\r");
         json.ShouldNotContain("\r");
         json.ShouldEndWith("}\n");
@@ -105,8 +105,8 @@ public sealed class RoleCatalogueTests
         owner.GetProperty("actions").EnumerateArray().Select(action => action.GetString()).ShouldBe(
         [
             "invitation.revoke", "membership.invite", "membership.read", "membership.remove", "membership.restore",
-            "membership.suspend", "role.assign", "role.revoke", "tenant.access.read", "tenant.capabilities.read", "tenant.settings.read",
-            "tenant.settings.update", "tenant.subscription.read",
+            "membership.suspend", "role.assign", "role.revoke", "sport.read", "tenant.access.read", "tenant.capabilities.read",
+            "tenant.settings.read", "tenant.settings.update", "tenant.subscription.read",
         ]);
     }
 }
