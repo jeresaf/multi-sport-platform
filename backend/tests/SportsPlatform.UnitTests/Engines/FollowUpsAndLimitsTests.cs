@@ -97,6 +97,20 @@ public sealed class FollowUpsAndLimitsTests
     }
 
     [Fact]
+    public void A_correction_cant_move_a_conversion_onto_another_try()
+    {
+        var ctx = Context(RugbyUnion15) with { Coverage = CoverageLevel.Basic };
+        TimelineEvent[] timeline =
+        [
+            Start(1, "FIRST_HALF"), Played(2, "TRY", Home), Played(3, "TRY", Home), Played(4, "CONVERSION_MADE", Home),
+        ];
+
+        // The conversion would follow the first try instead (re-review #80 N2; owner, 2026-10-30: refuse).
+        Codes(ctx, timeline, Scored("TRY", Away) with { SupersedesEventId = Id(3) }).ShouldBe([_missing]);
+        Codes(ctx, timeline, Scored("TRY", Away) with { SupersedesEventId = Id(2) }).ShouldBeEmpty();
+    }
+
+    [Fact]
     public void A_conversion_left_without_its_try_by_a_reversal_blocks_nothing_else()
     {
         var ctx = Context(RugbyUnion15) with { Coverage = CoverageLevel.Basic };
@@ -125,7 +139,21 @@ public sealed class FollowUpsAndLimitsTests
     }
 
     [Fact]
-    public void A_substitution_without_a_clock_neither_ends_a_window_nor_starts_one()
+    public void A_correction_of_one_teams_substitution_cant_split_the_other_teams_window()
+    {
+        var ctx = Context(Football) with { Coverage = CoverageLevel.Basic, Rules = Rules(("substitutions.windows", 1L)) };
+        TimelineEvent[] timeline =
+        [
+            Start(1, "FIRST_HALF"), At(Played(2, "SUBSTITUTION", Home), 30), At(Played(3, "SUBSTITUTION", Away), 30),
+            At(Played(4, "SUBSTITUTION", Home), 30),
+        ];
+
+        // The away substitution keeps the home team's run open; a card there would end it (re-review #80 N1).
+        Codes(ctx, timeline, At(Scored("YELLOW_CARD", Away), 30) with { SupersedesEventId = Id(3) }).ShouldBe([_reached]);
+    }
+
+    [Fact]
+    public void A_substitution_without_a_clock_doesnt_end_a_window_or_start_one_by_its_minute()
     {
         var ctx = Context(Football) with { Coverage = CoverageLevel.Basic, Rules = Rules(("substitutions.windows", 1L)) };
         TimelineEvent[] timeline = [Start(1, "FIRST_HALF"), At(Played(2, "SUBSTITUTION", Home), 60), Played(3, "SUBSTITUTION", Home)];

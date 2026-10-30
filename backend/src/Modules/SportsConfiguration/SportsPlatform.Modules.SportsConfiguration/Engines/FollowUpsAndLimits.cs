@@ -24,9 +24,9 @@ public static class FollowUpsAndLimits
     /// it says so, and not yet used by an event that consumes one when it says so; each event that consumes takes the
     /// latest earlier event its follow-up accepts. The draft is put in its place (a correction where the event it
     /// replaces stood, a new event at the end) and the whole timeline is walked: the draft must find its earlier event,
-    /// and every follow-up that had one must keep it, so a correction can't give a try a second conversion or move a
-    /// converted try away from its conversion (review #80, owner 2026-10-30). <paramref name="active"/> is the active
-    /// timeline, each event where its chain of corrections started.
+    /// and every follow-up that had one must keep the same one, so a correction can't give a try a second conversion,
+    /// move a converted try away from its conversion, or move a conversion onto another try (review #80, owner
+    /// 2026-10-30). <paramref name="active"/> is the active timeline, each event where its chain of corrections started.
     /// </summary>
     public static Error? FollowUpError(
         SportDefinition definition, TimelineEventDraft draft, PlayedPeriod? period, IReadOnlyList<TimelineEvent> active, TimelineEvent? replaced)
@@ -41,9 +41,15 @@ public static class FollowUpsAndLimits
         }
 
         var candidate = Candidate(draft, period);
-        var unmet = Unmet(definition, active);
-        var after = Unmet(definition, WithDraft(active, replaced, candidate));
-        return after.Contains(candidate.Id) || after.Any(id => !unmet.Contains(id)) ? SportsConfigurationErrors.TimelineFollowUpMissing : null;
+        var before = Followed(definition, active);
+        var after = Followed(definition, WithDraft(active, replaced, candidate));
+        // A follow-up a reversal had already left without its event (S12 decides) blocks nothing; one that follows the
+        // draft follows the event the draft replaces.
+        var broken = after.Any(entry => entry.Key == candidate.Id
+            ? entry.Value is null
+            : before.TryGetValue(entry.Key, out var was) && was is not null
+                && was != (entry.Value == candidate.Id ? replaced?.Id : entry.Value));
+        return broken ? SportsConfigurationErrors.TimelineFollowUpMissing : null;
     }
 
     /// <summary>
@@ -51,19 +57,24 @@ public static class FollowUpsAndLimits
     /// every type with that limit, plus <c>…extra_in_extra_time</c> once an overtime period has started.
     /// <c>…windows</c> counts the participant's runs of such events in play: a run ends at a period's start or end, at
     /// another event of the definition (any participant's events with the limit don't end it), or when the
-    /// participant's next one has another game-clock minute (owner, 2026-10-30; an event without a clock neither ends
-    /// a run nor starts a new one), and events in a break use no window. The draft is put in its place as for
-    /// follow-ups. The draft's limits are checked for its participant, and for a correction also the replaced event's
-    /// for its participant, since changing a substitution into another event can split a window (review #80).
+    /// participant's next one has another game-clock minute than the last one with a clock (owner, 2026-10-30; an event
+    /// without a clock doesn't end a run, nor start a new one by its minute), and events in a break use no window. The
+    /// draft is put in its place as for follow-ups. A new event's limits are checked for its participant; a
+    /// correction's, and the replaced event's, for every participant, since changing a substitution into another event
+    /// can split a window, the other team's too (review #80).
     /// </summary>
     public static Error? LimitError(ContestContext ctx, TimelineEventDraft draft, IReadOnlyList<TimelineEvent> active, TimelineEvent? replaced)
     {
         ArgumentNullException.ThrowIfNull(ctx);
         ArgumentNullException.ThrowIfNull(draft);
         ArgumentNullException.ThrowIfNull(active);
-        var checks = Limits(ctx.Definition, draft.EventType, draft.ParticipantId)
-            .Concat(replaced is null ? [] : Limits(ctx.Definition, replaced.EventType, replaced.ParticipantId))
+        var participants = replaced is null
+            ? draft.ParticipantId is { } own ? new List<Guid> { own } : []
+            : ctx.Sides.Select(side => side.ParticipantId).ToList();
+        var checks = Limits(ctx.Definition, draft.EventType)
+            .Concat(replaced is null ? [] : Limits(ctx.Definition, replaced.EventType))
             .Distinct()
+            .SelectMany(rule => participants.Select(participant => (Rule: rule, Participant: participant)))
             .ToList();
         if (checks.Count == 0)
         {
@@ -118,14 +129,14 @@ public static class FollowUpsAndLimits
         // LINQ, not a spread: the compiler writes a spread into a list with CollectionsMarshal, which the engine rule bans.
         replaced is null ? active.Append(candidate).ToList() : active.Select(evt => evt.Id == replaced.Id ? candidate : evt).ToList();
 
-    private static IEnumerable<(string Rule, Guid Participant)> Limits(SportDefinition definition, string eventType, Guid? participant) =>
-        participant is { } id && Type(definition, eventType) is { } type ? type.Limits.Select(limit => (limit.Rule, id)) : [];
+    private static IEnumerable<string> Limits(SportDefinition definition, string eventType) =>
+        Type(definition, eventType)?.Limits.Select(limit => limit.Rule) ?? [];
 
-    // Walks the events in order: the follow-ups that find no earlier event to follow, by id.
-    private static HashSet<Guid> Unmet(SportDefinition definition, IReadOnlyList<TimelineEvent> events)
+    // Walks the events in order: for each follow-up by id, the earlier event it follows, or null when it finds none.
+    private static Dictionary<Guid, Guid?> Followed(SportDefinition definition, IReadOnlyList<TimelineEvent> events)
     {
         var consumed = new HashSet<Guid>();
-        var unmet = new HashSet<Guid>();
+        var followed = new Dictionary<Guid, Guid?>();
         for (var index = 0; index < events.Count; index++)
         {
             var evt = events[index];
@@ -134,17 +145,15 @@ public static class FollowUpsAndLimits
                 continue;
             }
 
-            if (Preceding(followUp, evt.ParticipantId, Period(evt), events.Take(index).ToList(), consumed) is not { } used)
-            {
-                unmet.Add(evt.Id);
-            }
-            else if (followUp.Consumes)
+            var used = Preceding(followUp, evt.ParticipantId, Period(evt), events.Take(index).ToList(), consumed);
+            followed[evt.Id] = used?.Id;
+            if (used is not null && followUp.Consumes)
             {
                 consumed.Add(used.Id);
             }
         }
 
-        return unmet;
+        return followed;
     }
 
     private static TimelineEvent? Preceding(
