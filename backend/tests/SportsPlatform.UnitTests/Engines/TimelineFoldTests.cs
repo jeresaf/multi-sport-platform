@@ -4,7 +4,8 @@ using static SportsPlatform.UnitTests.Engines.EngineTestData;
 
 namespace SportsPlatform.UnitTests.Engines;
 
-// sport-engine.md §3: REVERSED if a later event reverses it, else SUPERSEDED if a later event supersedes it, else ACTIVE.
+// sport-engine.md §3 (owner, 2026-10-30): REVERSED if a later ACTIVE event reverses it, else SUPERSEDED if a later event
+// that is not REVERSED supersedes it, else ACTIVE.
 public sealed class TimelineFoldTests
 {
     [Fact]

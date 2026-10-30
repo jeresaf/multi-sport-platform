@@ -12,7 +12,7 @@ namespace SportsPlatform.Modules.SportsConfiguration.Engines;
 /// </summary>
 public sealed class AdditiveEngine : IScoringEngine
 {
-    public const string FamilyCode = "ADDITIVE";
+    public const string FamilyCode = ScoringFamilies.Additive;
 
     public const string ShootoutComponent = "shootout";
 

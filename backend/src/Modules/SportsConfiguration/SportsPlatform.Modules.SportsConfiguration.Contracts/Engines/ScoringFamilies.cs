@@ -6,11 +6,13 @@ namespace SportsPlatform.Modules.SportsConfiguration.Contracts.Engines;
 /// </summary>
 public static class ScoringFamilies
 {
+    public const string Additive = "ADDITIVE";
+
     public const string MainComponent = "main";
 
     public static IReadOnlyDictionary<string, ScoringFamily> Known { get; } = new Dictionary<string, ScoringFamily>(StringComparer.Ordinal)
     {
-        ["ADDITIVE"] = new(
+        [Additive] = new(
             ScoreComponents: Set(MainComponent, "shootout"),
             TieResolutions: Set("DRAW", "EXTRA_PERIODS_THEN_SHOOTOUT", "REPEAT_EXTRA_PERIOD", "EXTRA_PERIODS_SUDDEN_DEATH", "SHOOTOUT")),
     };

@@ -16,7 +16,7 @@ events:
   - { minute: 45, type: PERIOD_END }
   - { minute: 45, type: PERIOD_START, period: SECOND_HALF }
   - { id: wrong-team, minute: 71, type: GOAL, team: Kyebando Ravens FC, actors: { SCORER: Noah Ssozi } }
-  - { minute: 72, type: GOAL, team: Mutundwe Meteors FC, supersedes: wrong-team, actors: { SCORER: Titus Kamya } }
+  - { minute: 71, type: GOAL, team: Mutundwe Meteors FC, supersedes: wrong-team, actors: { SCORER: Titus Kamya } }
   - { minute: 90+2, type: PERIOD_END }
 expect:
   score:
