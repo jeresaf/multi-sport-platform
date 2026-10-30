@@ -168,8 +168,11 @@ reported when both fail (422):
   `AWAITING_EXTRA_TIME`, a plain break); `…windows` counts the participant's runs of such events in `PLAY`. A run ends
   at a period's start or end, at another event of the definition (any participant's events with the limit don't end
   it), or when the participant's next one is at another game-clock minute (owner, 2026-10-30; without a clock the
-  order alone decides); events in a break use no window. `extra_in_extra_time` adds no window (owner, 2026-10-30). A
-  correction counts in the place of the event it replaces, a reversed event frees its place
+  order alone decides); events in a break use no window. `extra_in_extra_time` adds no window (owner, 2026-10-30).
+  Follow-ups and limits read the active events each where its chain of corrections started (a try corrected after
+  its conversion is still converted, a corrected substitution keeps its window and its phase), and the draft of a
+  correction takes the place of the event it replaces; a reversed event frees its place. Once extra time has started,
+  the extra substitution counts for corrections of earlier ones too
   (`TIMELINE_LIMIT_REACHED`). Any other kind (basketball's `timeouts.per_period_group`) throws until its sport's
   slice.
 - **Points override:** Apply uses `scoring.points.<EVENT_TYPE>` from the rules for a type whose definition gives it
