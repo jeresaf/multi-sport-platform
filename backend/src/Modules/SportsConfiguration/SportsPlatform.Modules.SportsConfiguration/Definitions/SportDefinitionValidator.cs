@@ -40,15 +40,18 @@ public static class SportDefinitionValidator
             .Distinct()];
     }
 
-    // "additionalProperties: false" fails with "All values fail against the false schema"; say what it means.
+    // "additionalProperties: false" fails with "All values fail against the false schema"; say what it means. Constants
+    // come JSON-escaped (Expected "\u0022HEAD_TO_HEAD\u0022").
     private static string Message(EvaluationResults failure, string message) =>
-        failure.EvaluationPath.ToString().EndsWith("/additionalProperties", StringComparison.Ordinal) ? "unknown member" : message;
+        failure.EvaluationPath.ToString().EndsWith("/additionalProperties", StringComparison.Ordinal)
+            ? "unknown member"
+            : message.Replace("\\u0022", string.Empty, StringComparison.Ordinal);
 
-    // Only failing branches: a passing subschema (the "if" of if/then, the other branches of a oneOf that matched)
-    // can carry errors of its own that are not problems with the file.
+    // Only failing branches, and never an "if": its failure only selects the "then" or "else", which reports the
+    // problem. A passing subschema can also carry errors of its own that are not problems with the file.
     private static IEnumerable<EvaluationResults> Failures(EvaluationResults results)
     {
-        if (results.IsValid)
+        if (results.IsValid || results.EvaluationPath.ToString().EndsWith("/if", StringComparison.Ordinal))
         {
             yield break;
         }

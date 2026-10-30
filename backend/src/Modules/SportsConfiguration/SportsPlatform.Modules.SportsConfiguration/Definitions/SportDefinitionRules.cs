@@ -10,6 +10,9 @@ internal sealed class SportDefinitionRules
 {
     private static readonly string[] _codedLists = ["periods", "event_types", "positions", "staff_roles", "official_roles", "statistics"];
 
+    // A statistic is derived in exactly one of these ways (docs/domain/sports/README.md, "statistics").
+    private static readonly string[] _deriveForms = ["count_events", "sum_points", "builtin", "manual"];
+
     private readonly string _file;
     private readonly JsonObject _root;
     private readonly List<DefinitionProblem> _problems = [];
@@ -110,6 +113,11 @@ internal sealed class SportDefinitionRules
             }
         }
 
+        foreach (var (name, field) in item["metadata"] as JsonObject ?? [])
+        {
+            MetadataField(field!.AsObject(), $"{path}.metadata.{name}");
+        }
+
         if (item["follow_up"] is JsonObject followUp)
         {
             KnownAll(events, followUp["requires_preceding"], $"{path}.follow_up.requires_preceding", "event type");
@@ -122,6 +130,24 @@ internal sealed class SportDefinitionRules
             && !family.ScoreComponents.Contains(component))
         {
             Problem($"{path}.component", $"unknown score component \"{component}\" for scoring family {Text(_root, "scoring_family")}");
+        }
+    }
+
+    private void MetadataField(JsonObject field, string path)
+    {
+        var type = Text(field, "type");
+        if (type == "enum" && field["values"] is null)
+        {
+            Problem(path, "an enum field needs values");
+        }
+        else if (type != "enum" && field["values"] is not null)
+        {
+            Problem($"{path}.values", $"values are only for enum fields, not {type}");
+        }
+
+        if (type != "int" && (field["min"] is not null || field["max"] is not null))
+        {
+            Problem(path, $"min and max are only for int fields, not {type}");
         }
     }
 
@@ -145,6 +171,19 @@ internal sealed class SportDefinitionRules
         {
             Known(coverage, Text(statistic, "coverage"), $"{path}.coverage", "coverage level");
             var derive = statistic["derive"]!.AsObject();
+            var forms = _deriveForms.Where(derive.ContainsKey).ToList();
+            if (forms.Count != 1)
+            {
+                Problem($"{path}.derive", $"needs exactly one of {string.Join(", ", _deriveForms)}"
+                    + (forms.Count > 1 ? $" (found {string.Join(", ", forms)})" : string.Empty));
+            }
+
+            var ratio = derive.ContainsKey("numerator") || derive.ContainsKey("denominator");
+            if (ratio && !(derive.ContainsKey("numerator") && derive.ContainsKey("denominator") && OptionalText(derive, "builtin") == "RATIO"))
+            {
+                Problem($"{path}.derive", "numerator and denominator go together, with builtin RATIO");
+            }
+
             KnownAll(events, derive["count_events"], $"{path}.derive.count_events", "event type");
             KnownAll(events, derive["sum_points"], $"{path}.derive.sum_points", "event type");
             KnownAll(roles, derive["actor_roles"], $"{path}.derive.actor_roles", "actor role");
@@ -198,9 +237,10 @@ internal sealed class SportDefinitionRules
                 Problem(path, $"tie resolution \"{resolution}\" needs an overtime PLAY period");
             }
 
-            if (resolution.EndsWith("SUDDEN_DEATH", StringComparison.Ordinal) && !Has(period => Flag(period, "sudden_death")))
+            // The first score ends it, and scoring happens only in PLAY periods.
+            if (resolution.EndsWith("SUDDEN_DEATH", StringComparison.Ordinal) && !Has(period => Overtime(period) && Flag(period, "sudden_death")))
             {
-                Problem(path, $"tie resolution \"{resolution}\" needs a sudden_death period");
+                Problem(path, $"tie resolution \"{resolution}\" needs a sudden_death overtime PLAY period");
             }
 
             if (resolution == "REPEAT_EXTRA_PERIOD" && !Has(period => Overtime(period) && Flag(period, "repeatable")))

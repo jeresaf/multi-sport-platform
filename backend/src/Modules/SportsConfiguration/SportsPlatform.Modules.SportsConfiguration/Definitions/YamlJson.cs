@@ -7,8 +7,10 @@ using YamlDotNet.RepresentationModel;
 namespace SportsPlatform.Modules.SportsConfiguration.Definitions;
 
 /// <summary>
-/// Reads a YAML document into a JSON tree, so JSON Schema can check it (ADR-0006). Plain scalars are typed as in
-/// YAML 1.2's core schema (null, true/false, integers, decimals); quoted scalars are always strings.
+/// Reads a YAML document into a JSON tree, so JSON Schema can check it (ADR-0006). Plain scalars are typed by a subset
+/// of YAML 1.2's core schema (null, true/false, decimal integers, decimals with a fraction; hexadecimal, exponents and
+/// <c>.inf</c> stay text, which the schema refuses where it wants a number). Quoted scalars and <c>!!str</c> are
+/// strings; any other explicit tag is refused.
 /// </summary>
 public static partial class YamlJson
 {
@@ -22,13 +24,19 @@ public static partial class YamlJson
             : throw new YamlException($"Expected one YAML document, found {stream.Documents.Count}.");
     }
 
+    private const string _stringTag = "tag:yaml.org,2002:str";
+
     private static JsonNode? Convert(YamlNode node) => node switch
     {
+        _ when !node.Tag.IsEmpty && !node.Tag.IsNonSpecific && !(node is YamlScalarNode && IsStringTag(node)) =>
+            throw new YamlException(node.Start, node.End, $"The tag {node.Tag.Value} is not supported."),
         YamlMappingNode mapping => new JsonObject(mapping.Children.Select(child => KeyValuePair.Create(Key(child.Key), Convert(child.Value)))),
         YamlSequenceNode sequence => new JsonArray([.. sequence.Children.Select(Convert)]),
         YamlScalarNode scalar => Scalar(scalar),
         _ => throw new YamlException(node.Start, node.End, $"Unsupported YAML node {node.NodeType}."),
     };
+
+    private static bool IsStringTag(YamlNode node) => !node.Tag.IsEmpty && node.Tag.Value == _stringTag;
 
     private static string Key(YamlNode key) => key is YamlScalarNode { Value: { } value }
         ? value
@@ -37,7 +45,7 @@ public static partial class YamlJson
     private static JsonValue? Scalar(YamlScalarNode scalar)
     {
         var value = scalar.Value ?? string.Empty;
-        if (scalar.Style is not ScalarStyle.Plain)
+        if (scalar.Style is not ScalarStyle.Plain || IsStringTag(scalar))
         {
             return JsonValue.Create(value);
         }
