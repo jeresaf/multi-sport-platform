@@ -1,5 +1,6 @@
 using SportsPlatform.Modules.SportsConfiguration;
 using SportsPlatform.Modules.SportsConfiguration.Contracts.Engines;
+using SportsPlatform.Modules.SportsConfiguration.Contracts.Sports;
 using SportsPlatform.Modules.SportsConfiguration.Engines;
 using static SportsPlatform.UnitTests.Engines.EngineTestData;
 
@@ -39,11 +40,21 @@ public sealed class TimelineChecksTests
     }
 
     [Fact]
-    public void An_ended_contest_takes_events_while_the_caller_says_the_correction_window_is_open()
+    public void An_ended_contest_takes_only_corrections_and_reversals_while_the_correction_window_is_open()
     {
-        var live = _engines.Fold(Ctx, ContestStatus.Ended, []) with { CorrectionWindowOpen = true };
+        var timeline = new[]
+        {
+            Start(1, "FIRST_HALF"),
+            Event(2, "GOAL", Home) with { Actors = Scorer(Person(1)), PeriodCode = "FIRST_HALF", PeriodOccurrence = 1 },
+            Event(3, GenericEventCodes.PeriodEnd) with { PeriodCode = "FIRST_HALF", PeriodOccurrence = 1 },
+        };
+        var live = _engines.Fold(Ctx, ContestStatus.Ended, timeline) with { CorrectionWindowOpen = true };
+        var engine = new AdditiveEngine();
 
-        new AdditiveEngine().Validate(Ctx, live, Draft("NOTE")).IsValid.ShouldBeTrue();
+        engine.Validate(Ctx, live, Draft("GOAL") with { ParticipantId = Home, Actors = Scorer(Person(2)), SupersedesEventId = Id(2) }).IsValid.ShouldBeTrue();
+        engine.Validate(Ctx, live, Draft("EVENT_REVERSED") with { ReversesEventId = Id(2) }).IsValid.ShouldBeTrue();
+        Codes(engine.Validate(Ctx, live, Draft("PERIOD_START") with { PeriodCode = "SECOND_HALF" })).ShouldBe([SportsConfigurationErrors.TimelineContestNotLive.Code]);
+        Codes(engine.Validate(Ctx, live, Draft("NOTE"))).ShouldBe([SportsConfigurationErrors.TimelineContestNotLive.Code]);
     }
 
     [Fact]
@@ -66,7 +77,7 @@ public sealed class TimelineChecksTests
     {
         var timeline = new[] { Start(1, "FIRST_HALF") };
         var foul = Draft("FOUL") with { ParticipantId = Home };
-        var ctx = Ctx with { Coverage = Modules.SportsConfiguration.Contracts.Sports.CoverageLevel.Detailed };
+        var ctx = Ctx with { Coverage = CoverageLevel.Detailed };
 
         Validate(ctx, timeline, foul with { Actors = Roles(("OFFENDER", Person(1)), ("FOULED", Person(11))) }).IsValid.ShouldBeTrue();
         Codes(Validate(ctx, timeline, foul with { Actors = Roles(("OFFENDER", Person(1)), ("FOULED", Person(2))) }))
