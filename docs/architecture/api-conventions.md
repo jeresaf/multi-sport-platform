@@ -156,6 +156,8 @@ Modules call each other in-process through Contracts, never over HTTP.
   `If-Match` uses strong comparison (a `W/` tag never matches) and `*` matches any current version
   (`IfMatch`, `SportsPlatform.BuildingBlocks.Api`); a header that doesn't parse is `VALIDATION_MALFORMED_REQUEST`. A
   change saved by someone else between the read and the save also conflicts (`xmin` is the concurrency token).
+- Published configuration (sport definitions, S05) is never edited, so it has no row version and no `If-Match`: there
+  `version` is the published version (an integer from 1; `?version=` picks one) and the `ETag` is the content hash.
 
 ## Caching public reads
 
