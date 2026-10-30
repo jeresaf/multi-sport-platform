@@ -27,7 +27,8 @@ public sealed class ScenarioRuleCoverageTests
         foreach (var rule in ScenarioRules.All)
         {
             var covering = _scenarios.Where(item => item.Scenario.Covers.Contains(rule.Code)).ToList();
-            // A period start is accepted in every scenario, so a passing scenario must record an event of the sport.
+            // A period start is accepted in every scenario, so a passing scenario must record an event of the sport (any
+            // of the definition's types: a rule doesn't name the types it governs).
             covering.ShouldContain(
                 item => item.Scenario.Events.Any(step => step.Rejected.Count == 0 && !_generic.Contains(step.Type)),
                 $"{rule.Code} has no passing scenario");
