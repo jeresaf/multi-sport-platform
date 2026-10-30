@@ -130,6 +130,20 @@ user's capabilities (docs/architecture/authorization.md); the server still enfor
 - **Suspended or archived tenant:** "Since" is in the tenant's time zone (`/tenant/access`).
 - A refusal at a quota shows the limit the server names ("Your plan allows 5 staff users.").
 
+### As built (S04-T4b2)
+
+- **Disabled with a reason.** A write control the user's roles allow but the tenant can't use now is shown disabled,
+  with one line of text saying why (not a tooltip, so it reads on a phone; the controls point to it with
+  `aria-describedby`). The reason comes from the capabilities' `unavailable`: "Read-only: the subscription has ended",
+  "…was cancelled", "…hasn't started yet" or "…the organisation has no subscription" (`TENANT_READ_ONLY`), and
+  "Requires PRO plan" (the lowest plan that includes it) or "Not included in your plan" (`ENTITLEMENT_REQUIRED`).
+  Controls the roles don't allow stay hidden. While read-only: the Organisation form and its **Save changes** button,
+  each member's menu, **Invite someone** and **Revoke** are disabled, each section saying why once.
+- **Staff users.** The invite dialog shows the staff users against the plan ("Used: 4 of 5 staff users", "Near the
+  limit" from 80 %); once every seat is taken, **Invite someone** is disabled with "Your plan allows 5 staff users."
+  (from `GET /api/admin/v1/tenant/subscription`, for whoever can read it; the server refuses past the limit anyway).
+  Revoking an invitation frees a seat, so it stays enabled. Inviting, revoking or a member change reads the usage again.
+
 ## Workspaces and screens
 
 ### Platform console (platform staff)
