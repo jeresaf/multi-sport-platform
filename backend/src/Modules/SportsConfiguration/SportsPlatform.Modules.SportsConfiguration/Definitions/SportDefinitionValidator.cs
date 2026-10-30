@@ -25,6 +25,12 @@ public static class SportDefinitionValidator
         {
             return [new(file, "$", $"not valid YAML (line {exception.Start.Line}): {exception.Message}")];
         }
+        catch (InvalidOperationException)
+        {
+            // YamlDotNet's scanner throws this instead of a YamlException on some broken input (a flow sequence left
+            // open before a mapping key), with no position.
+            return [new(file, "$", "not valid YAML: the scanner gave up (an unclosed bracket or quote?)")];
+        }
 
         var shape = ShapeProblems(file, root);
         return shape.Count > 0 ? shape : SportDefinitionRules.Check(file, root!.AsObject());

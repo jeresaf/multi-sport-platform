@@ -6,7 +6,10 @@ backend embeds its own copies of the seeded ones in
 from S05). They are checked against `sport-definition.schema.json` next to them, then by the reference rules in
 `SportDefinitionValidator`, which run in the tests and at Host startup. A unit test (`ReferenceSportFilesTests`)
 fails when a backend copy differs from its file here, so a change updates both. The same test checks that the
-ADDITIVE files not seeded yet (rugby, basketball) pass the schema and the rules.
+ADDITIVE files not seeded yet (rugby, basketball) pass the schema and the rules, and that every ADDITIVE file reads
+into the typed model (`SportDefinition`). The seeder stores each version once with the SHA-256 of its content in
+RFC 8785 canonical JSON; changing the content of a published version without bumping `version` fails the seed
+(`SPORT_DEFINITION_IMMUTABLE`) and the pinned-hash test. Comments and layout are not content.
 
 | File | Variant | Family |
 |---|---|---|

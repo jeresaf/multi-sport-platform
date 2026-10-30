@@ -56,6 +56,9 @@ public static class TableAccessPolicies
         ["tenancy.plans"] = TableAccess.ReadOnly,
         ["tenancy.plan_entitlements"] = TableAccess.ReadOnly,
 
+        // Sport definitions (S05-T1b): configuration data, global, written only by the CONFIGURATION seeder as the owner.
+        ["config.sport_definitions"] = TableAccess.ReadOnly,
+
         // Identity (S03-T1): global users with Identity's satellite tables, platform roles (revoked rows are kept), and the
         // data protection key ring (the repository only inserts).
         ["identity.users"] = TableAccess.ReadWrite,
@@ -76,6 +79,8 @@ public static class TableAccessPolicies
         ["identity.inbox_messages"] = TableAccess.ReadWrite,
         ["platform.outbox_messages"] = TableAccess.ReadWrite,
         ["platform.inbox_messages"] = TableAccess.ReadWrite,
+        ["config.outbox_messages"] = TableAccess.ReadWrite,
+        ["config.inbox_messages"] = TableAccess.ReadWrite,
         ["tenancy.outbox_messages"] = TableAccess.ReadWrite,
         ["tenancy.inbox_messages"] = TableAccess.ReadWrite,
         ["conventions_test.outbox_messages"] = TableAccess.ReadWrite,

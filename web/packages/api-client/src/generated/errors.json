@@ -205,6 +205,12 @@
       "owner": "BuildingBlocks"
     },
     {
+      "code": "SPORT_CONCURRENCY_CONFLICT",
+      "status": 409,
+      "message": "The configuration was changed by someone else. Reload and try again.",
+      "owner": "SportsConfiguration"
+    },
+    {
       "code": "TENANT_BLOCKED",
       "status": 403,
       "message": "This tenant is suspended or archived.",

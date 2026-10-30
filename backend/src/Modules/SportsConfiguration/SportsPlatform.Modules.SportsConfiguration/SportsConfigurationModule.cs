@@ -1,7 +1,13 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SportsPlatform.BuildingBlocks.Modules;
+using SportsPlatform.BuildingBlocks.Persistence;
+using SportsPlatform.BuildingBlocks.Persistence.Seeding;
+using SportsPlatform.Modules.SportsConfiguration.Contracts.Sports;
 using SportsPlatform.Modules.SportsConfiguration.Definitions;
+using SportsPlatform.Modules.SportsConfiguration.Features.Sports;
+using SportsPlatform.Modules.SportsConfiguration.Infrastructure;
+using SportsPlatform.Modules.SportsConfiguration.Seed.Configuration;
 
 namespace SportsPlatform.Modules.SportsConfiguration;
 
@@ -19,9 +25,13 @@ public sealed class SportsConfigurationModule : IModule
 
     public void AddServices(IServiceCollection services, IConfiguration configuration)
     {
+        services.AddModuleDbContext<SportsConfigurationDbContext>(configuration, Schema);
         services.AddSingleton<SportDefinitionFiles>();
         // A definition the validator refuses stops the Host before it serves anything (S05 D3).
         services.AddHostedService<SportDefinitionStartupCheck>();
+        services.AddSeeder<SportDefinitionSeeder>();
+        services.AddSingleton<SportDefinitionCache>();
+        services.AddScoped<ISportDefinitions, SportDefinitions>();
     }
 
     public void MapEndpoints(ApiEndpointGroups groups)
