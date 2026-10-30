@@ -1,3 +1,4 @@
+using FluentValidation;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SportsPlatform.BuildingBlocks.Modules;
@@ -6,6 +7,8 @@ using SportsPlatform.BuildingBlocks.Persistence.Seeding;
 using SportsPlatform.Modules.SportsConfiguration.Contracts.Sports;
 using SportsPlatform.Modules.SportsConfiguration.Definitions;
 using SportsPlatform.Modules.SportsConfiguration.Features.Sports;
+using SportsPlatform.Modules.SportsConfiguration.Features.Sports.GetSport;
+using SportsPlatform.Modules.SportsConfiguration.Features.Sports.ListSports;
 using SportsPlatform.Modules.SportsConfiguration.Infrastructure;
 using SportsPlatform.Modules.SportsConfiguration.Seed.Configuration;
 
@@ -32,9 +35,19 @@ public sealed class SportsConfigurationModule : IModule
         services.AddSeeder<SportDefinitionSeeder>();
         services.AddSingleton<SportDefinitionCache>();
         services.AddScoped<ISportDefinitions, SportDefinitions>();
+        services.AddScoped<ListSportsHandler>();
+        services.AddScoped<GetSportHandler>();
+        services.AddSingleton<IValidator<GetSportRequest>, GetSportRequestValidator>();
     }
 
     public void MapEndpoints(ApiEndpointGroups groups)
     {
+        ArgumentNullException.ThrowIfNull(groups);
+        var adminSports = SportEndpoints.Group(groups.Admin);
+        ListSportsEndpoint.MapAdmin(adminSports);
+        GetSportEndpoint.MapAdmin(adminSports);
+        var platformSports = SportEndpoints.Group(groups.Platform);
+        ListSportsEndpoint.MapPlatform(platformSports);
+        GetSportEndpoint.MapPlatform(platformSports);
     }
 }

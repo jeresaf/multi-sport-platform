@@ -90,7 +90,9 @@ counters.
 scoring-family engine registry, format definitions + fixture generators, ruleset templates and their parameter
 schemas, tiebreaker catalogue.
 **Provides:** `ISportDefinitions` (as built: published variants at their latest version; the resolved, typed
-definition by variant and optional version, kept in memory until restart), `IScoringEngines`,
+definition by variant and optional version, kept in memory until restart; over HTTP, S05-T1b2: `GET
+/api/admin/v1/sports` and `…/sports/{variant}?version=` with `sport.read`, the same under `/api/platform/v1` with
+`platform.sport.read`, the definition's `ETag` its content hash, `SPORT_DEFINITION_NOT_FOUND`), `IScoringEngines`,
 `IFormatGenerators` (pure functions: participants + parameters → structure/pairings),
 `IRulesetResolver` (template + overrides → validated effective rules snapshot).
 **Does not own:** any tenant data, competitions, fixtures, results.

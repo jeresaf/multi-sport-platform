@@ -156,6 +156,8 @@ Modules call each other in-process through Contracts, never over HTTP.
   `If-Match` uses strong comparison (a `W/` tag never matches) and `*` matches any current version
   (`IfMatch`, `SportsPlatform.BuildingBlocks.Api`); a header that doesn't parse is `VALIDATION_MALFORMED_REQUEST`. A
   change saved by someone else between the read and the save also conflicts (`xmin` is the concurrency token).
+- Published configuration (sport definitions, S05) is never edited, so it has no row version and no `If-Match`: there
+  `version` is the published version (an integer from 1; `?version=` picks one) and the `ETag` is the content hash.
 
 ## Caching public reads
 
@@ -206,6 +208,10 @@ Modules call each other in-process through Contracts, never over HTTP.
   on the request record, so the schema doesn't list them as `required` and the generated client lets callers leave
   them out. Endpoints that read `If-Match` declare `.AcceptsIfMatch()` and endpoints that set the `ETag` declare
   `.ReturnsETag()` (`RowVersionEndpointExtensions`); the Host documents the header parameter and the response header.
+  An `ETag` that isn't the row version (a published sport definition's content hash, S05-T1b2) is declared with
+  `.ReturnsETag(description)`, which documents what it is instead. A query parameter bound as text that takes a whole
+  number declares `.DocumentsQueryInteger(name, minimum)` (`QueryValues`), as an enum one declares
+  `.DocumentsQueryValues(name, values)`, so OpenAPI types it.
   Tests require both wherever a body or a success response carries `version` (`RowVersionHeadersTests`). A strict
   JSON body's schema is named by its type's short name: two such types must not share one (`StrictJsonBodySchemaTests`).
 - One document, `v1`, OpenAPI 3.1, covering all four families. Health probes are infrastructure and are left

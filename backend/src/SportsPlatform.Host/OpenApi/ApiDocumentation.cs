@@ -37,6 +37,7 @@ public static class ApiDocumentation
             options.AddOperationTransformer(DescribeStrictJsonBodyAsync);
             options.AddOperationTransformer(DescribeRowVersionHeaders);
             options.AddOperationTransformer(DescribeQueryValues);
+            options.AddOperationTransformer(DescribeQueryIntegers);
         });
         return services;
     }
@@ -237,7 +238,7 @@ public static class ApiDocumentation
             });
         }
 
-        if (metadata.OfType<ReturnsETagMetadata>().Any() && operation.Responses is not null)
+        if (metadata.OfType<ReturnsETagMetadata>().LastOrDefault() is { } returnsETag && operation.Responses is not null)
         {
             foreach (var (_, response) in operation.Responses.Where(r => r.Key.StartsWith('2')))
             {
@@ -246,7 +247,8 @@ public static class ApiDocumentation
                     openApiResponse.Headers ??= new Dictionary<string, IOpenApiHeader>();
                     openApiResponse.Headers[HeaderNames.ETag] = new OpenApiHeader
                     {
-                        Description = "The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`.",
+                        Description = returnsETag.Description
+                            ?? "The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`.",
                         Schema = new OpenApiSchema { Type = JsonSchemaType.String },
                     };
                 }
@@ -269,6 +271,25 @@ public static class ApiDocumentation
             {
                 Type = JsonSchemaType.String,
                 Enum = [.. declared.Values.Select(value => (JsonNode)JsonValue.Create(value))],
+            };
+        }
+
+        return Task.CompletedTask;
+    }
+
+    // QueryValues: a query parameter bound as text that takes a whole number.
+    private static Task DescribeQueryIntegers(
+        OpenApiOperation operation, OpenApiOperationTransformerContext context, CancellationToken cancellationToken)
+    {
+        foreach (var declared in context.Description.ActionDescriptor.EndpointMetadata.OfType<QueryIntegerMetadata>())
+        {
+            var parameter = operation.Parameters?.OfType<OpenApiParameter>()
+                .SingleOrDefault(p => p.In == ParameterLocation.Query && p.Name == declared.Name)
+                ?? throw new InvalidOperationException($"{context.Description.RelativePath} has no query parameter {declared.Name}.");
+            parameter.Schema = new OpenApiSchema
+            {
+                Type = JsonSchemaType.Integer,
+                Minimum = declared.Minimum.ToString(CultureInfo.InvariantCulture),
             };
         }
 

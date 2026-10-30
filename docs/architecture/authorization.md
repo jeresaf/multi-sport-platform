@@ -157,7 +157,9 @@ action of the other scope (tenant roles only `TENANT` actions, platform roles on
 action that none of the role's assignment scopes can grant (an action's `scopable_by`). Each slice that adds actions
 adds them to the roles. `export-catalogues` writes the result to `docs/generated/roles.md`, the authority on who can
 do what; the table below is the intent. Owner (S03-T3): every role assigned tenant-wide reads the tenant settings,
-only `TENANT_OWNER` and `TENANT_ADMIN` change them; `TEAM_MANAGER` (team scope only) gets no tenant-wide actions.
+only `TENANT_OWNER` and `TENANT_ADMIN` change them; `TEAM_MANAGER` (team scope only) gets no tenant-wide actions. The
+sport definitions follow the settings (S05-T1b2): every role holding `tenant.settings.read` also holds `sport.read`
+(`GET /api/admin/v1/sports`, `…/sports/{variant}`; available while read-only; audit `NONE`, global configuration).
 
 | Role | Typical scope | Includes (summary) |
 |---|---|---|
@@ -173,7 +175,9 @@ only `TENANT_OWNER` and `TENANT_ADMIN` change them; `TEAM_MANAGER` (team scope o
 
 Platform roles: `PLATFORM_ADMIN` (tenants, plans, subscriptions, platform config view), `PLATFORM_SUPPORT`
 (read-only platform views, audited). As built: `PLATFORM_ADMIN` holds every platform action; `PLATFORM_SUPPORT` holds
-the platform `*.read` actions. Platform roles are granted through the CLI in S03 (`create-platform-admin`).
+the platform `*.read` actions, among them `platform.sport.read` (`GET /api/platform/v1/sports`, `…/sports/{variant}`,
+the tenant reads' DTOs; audit `NONE`: global configuration, no tenant data; S05-T1b2). Platform roles are granted
+through the CLI in S03 (`create-platform-admin`).
 
 Rules: merges of people (`person.merge`) and entitlement overrides require explicit roles; reasons are
 mandatory where the action says `REQUIRED_WITH_REASON`.

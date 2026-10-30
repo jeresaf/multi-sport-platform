@@ -36,8 +36,11 @@ public static class RowVersion
 /// <summary>The endpoint reads <c>If-Match</c> (<see cref="RowVersion.TryReadIfMatch"/>); the Host documents the header.</summary>
 public sealed record AcceptsIfMatchMetadata;
 
-/// <summary>The endpoint's success response carries the resource's <c>ETag</c>; the Host documents the header.</summary>
-public sealed record ReturnsETagMetadata;
+/// <summary>
+/// The endpoint's success response carries the resource's <c>ETag</c>; the Host documents the header, with
+/// <paramref name="Description"/> when the tag is not the row version.
+/// </summary>
+public sealed record ReturnsETagMetadata(string? Description = null);
 
 /// <summary>Declares an endpoint's use of the row version, so OpenAPI shows the headers (api-conventions.md, "Concurrency").</summary>
 public static class RowVersionEndpointExtensions
@@ -56,5 +59,14 @@ public static class RowVersionEndpointExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
         return builder.WithMetadata(new ReturnsETagMetadata());
+    }
+
+    /// <summary>The endpoint's success response sets an <c>ETag</c> that <paramref name="description"/> explains.</summary>
+    public static TBuilder ReturnsETag<TBuilder>(this TBuilder builder, string description)
+        where TBuilder : IEndpointConventionBuilder
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrWhiteSpace(description);
+        return builder.WithMetadata(new ReturnsETagMetadata(description));
     }
 }

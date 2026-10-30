@@ -8,4 +8,7 @@ public static class SportsConfigurationErrors
     // Configuration rows are written only by seeders; ModuleDbContext needs the module's conflict all the same.
     public static readonly Error ConcurrencyConflict = new(
         "SPORT_CONCURRENCY_CONFLICT", "The configuration was changed by someone else. Reload and try again.", ErrorKind.Conflict);
+
+    public static readonly Error SportDefinitionNotFound = new(
+        "SPORT_DEFINITION_NOT_FOUND", "No published sport definition matches this variant, or this version of it.", ErrorKind.NotFound);
 }

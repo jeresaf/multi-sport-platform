@@ -321,6 +321,20 @@
       "since": "S01"
     },
     {
+      "code": "platform.sport.read",
+      "module": "SportsConfiguration",
+      "description": "View the published sport definitions.",
+      "scope": "PLATFORM",
+      "scopableBy": [],
+      "audit": "NONE",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S05"
+    },
+    {
       "code": "role.assign",
       "module": "Identity",
       "description": "Give a member a role, tenant-wide (other scopes later). Only an owner grants TENANT_OWNER.",
@@ -351,6 +365,22 @@
       "availableWhenBlocked": false,
       "availableWhenReadOnly": false,
       "since": "S03"
+    },
+    {
+      "code": "sport.read",
+      "module": "SportsConfiguration",
+      "description": "View the published sport definitions: periods, events, positions and roles, statistics, scorer pad.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "NONE",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": true,
+      "since": "S05"
     },
     {
       "code": "subscription.assign",

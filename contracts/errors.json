@@ -211,6 +211,12 @@
       "owner": "SportsConfiguration"
     },
     {
+      "code": "SPORT_DEFINITION_NOT_FOUND",
+      "status": 404,
+      "message": "No published sport definition matches this variant, or this version of it.",
+      "owner": "SportsConfiguration"
+    },
+    {
       "code": "TENANT_BLOCKED",
       "status": 403,
       "message": "This tenant is suspended or archived.",
