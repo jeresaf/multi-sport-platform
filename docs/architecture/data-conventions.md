@@ -185,15 +185,16 @@ creates (never TRUNCATE). Each table gets one policy, set in the migration that 
   changes by a reviewed change to `TenancyPlans`, then `seed --category CONFIGURATION`; a plan dropped from the code is
   deactivated, and a value for an entitlement no longer declared stays but is never read.
 - Configuration data (Sports Configuration, S05-T1b1): `config.configuration.sports` writes `config.sport_definitions`
-  (variant, sport, version, name, scoring family, shape, status `PUBLISHED`, content as canonical `jsonb`, content hash,
-  published at), read-only for the runtime roles, from the definition files embedded in the module
-  (`Definitions/Sports`); IDs `config.sport_definition:<variant>@<version>`. Unlike the upserting seeders, it only
-  inserts: a published version is immutable (S05 D4), so a stored version whose file now hashes differently fails the
-  run with `SPORT_DEFINITION_IMMUTABLE`, and a file dropped from the module leaves its rows as they are (every row is
-  `PUBLISHED`; there is nothing to deactivate).
+  (variant, sport, version, name, scoring family, shape, status `PUBLISHED`, content as `jsonb` written from its RFC
+  8785 canonical text, content hash, published at; `jsonb` keeps the tree, not the text, so canonicalize again to
+  re-hash), read-only for the runtime roles, from the definition files embedded in the module (`Definitions/Sports`);
+  IDs `config.sport_definition:<variant>@<version>`. Unlike the upserting seeders, it only inserts: a published version
+  is immutable (S05 D4), so a stored version whose file now hashes differently fails the run with
+  `SPORT_DEFINITION_IMMUTABLE` (two files declaring one version: `SPORT_DEFINITION_DUPLICATE_VERSION`), and a file
+  dropped from the module leaves its rows as they are (every row is `PUBLISHED`; there is nothing to deactivate).
 - Integration tests seed the real reference and configuration data once per run, and the per-test reset keeps it
-  (`PostgresFixture.ReferenceTables`, `PostgresFixture.PlanTables`, `PostgresFixture.ConfigurationTables`); a test that changes it calls
-  `RestoreSeedDataAsync`.
+  (`PostgresFixture.ReferenceTables`, `PostgresFixture.PlanTables`, `PostgresFixture.ConfigurationTables`); a test that
+  changes it calls `RestoreSeedDataAsync`.
 - DEMO and TEST seeders call application commands through `SeedContext.RunCommandAsync(action, tenantId, …)`: each
   command runs in a new scope under that tenant (set once, before any connection opens; `null` leaves it for a command
   that sets its own, like tenant creation), as the system actor, with its

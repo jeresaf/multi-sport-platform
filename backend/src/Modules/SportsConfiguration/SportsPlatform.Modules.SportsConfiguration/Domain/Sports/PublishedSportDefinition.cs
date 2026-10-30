@@ -54,7 +54,10 @@ public sealed class PublishedSportDefinition : Entity
 
     public DefinitionStatus Status { get; private set; }
 
-    /// <summary>The file's content in RFC 8785 canonical JSON (stored as <c>jsonb</c>).</summary>
+    /// <summary>
+    /// The file's content, written as its RFC 8785 canonical text into a <c>jsonb</c> column. <c>jsonb</c> keeps the tree,
+    /// not the text (it reads back in its own key order), so canonicalize it again before hashing.
+    /// </summary>
     public string Content { get; private set; } = string.Empty;
 
     /// <summary><c>sha256:</c> and the hex SHA-256 of <see cref="Content"/>.</summary>

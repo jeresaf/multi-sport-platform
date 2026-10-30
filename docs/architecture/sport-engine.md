@@ -35,8 +35,9 @@ official roles · statistics (with derivation) · lineup defaults · scorer pad 
 family understands, with defaults.
 
 **As built (S05-T1b1).** The seeder `config.configuration.sports` stores each embedded file in
-`config.sport_definitions` (one row per variant and version) with its content as RFC 8785 canonical JSON and the hash
-`sha256:<hex>` of that text (`CanonicalJson`). The hash covers content, not the file: comments and layout don't
+`config.sport_definitions` (one row per variant and version) with its content (`jsonb`, written from its RFC 8785
+canonical JSON) and the hash `sha256:<hex>` of that canonical text (`CanonicalJson`; `jsonb` doesn't keep the text, so
+re-hash by canonicalizing again). The hash covers content, not the file: comments and layout don't
 change it. A stored `(variant, version)` whose file now hashes differently fails the seed with
 `SPORT_DEFINITION_IMMUTABLE`; a unit test pins football@1's hash. `ISportDefinitions` (Contracts) reads the rows once
 into typed records (`SportDefinition`; the generic event types in `GenericEventTypes`, separate from `EventTypes`
