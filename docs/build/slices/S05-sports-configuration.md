@@ -348,4 +348,7 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   read; S12 decides); rugby's `TEMPORARY_REPLACEMENT_END` names its returning player as `PLAYER_ON`, drawn from the
   `BENCH`, which the pool check refuses (S15 fixes the file or the rule); reversing a scoring event doesn't release
   a follow-up that consumed it (T2b2 notes it).
+  Review #79 (owner, 2026-10-30: the defaults): after `ENDED` the open window takes only corrections and reversals, and
+  never a reversal that would bring back or undo a period's start or end; Q28–Q31 (open-questions.md) keep the defaults
+  the code follows.
 
