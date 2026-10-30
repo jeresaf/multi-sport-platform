@@ -29,17 +29,17 @@ describe("accessNotice", () => {
     );
   });
 
+  const contact = " To restore full access, contact the platform team.";
   it.each([
-    ["EXPIRED", {}, "Since 15 Apr 2027: the subscription ended on 31 Mar 2027."],
-    ["CANCELLED", { cancelledOn: "2026-10-20" }, "Since 20 Oct 2026: the subscription was cancelled."],
-    ["SCHEDULED", { startsOn: "2026-11-01" }, "Until 1 Nov 2026: the subscription hasn't started yet."],
-  ] as const)("says why a read-only workspace is read-only and since or until when: %s", (status, dates, reason) => {
+    ["EXPIRED", {}, "Since 15 Apr 2027: the subscription ended on 31 Mar 2027.", contact],
+    ["CANCELLED", { cancelledOn: "2026-10-20" }, "Since 20 Oct 2026: the subscription was cancelled.", contact],
+    // Full access comes back by itself on the first day: nobody to contact.
+    ["SCHEDULED", { startsOn: "2026-11-01" }, "Until 1 Nov 2026: the subscription hasn't started yet.", ""],
+  ] as const)("says why a read-only workspace is read-only and since or until when: %s", (status, dates, reason, tail) => {
     const notice = accessNotice(access({ mode: "READ_ONLY", subscriptionStatus: status, ...dates }));
     expect(notice?.tone).toBe("readOnly");
     expect(notice?.title).toBe("This workspace is read-only");
-    expect(notice?.message).toBe(
-      `${reason} You can still see everything, but nothing can be changed. To restore full access, contact the platform team.`,
-    );
+    expect(notice?.message).toBe(`${reason} You can still see everything, but nothing can be changed.${tail}`);
   });
 
   it("doesn't date a cancellation made before the period started", () => {

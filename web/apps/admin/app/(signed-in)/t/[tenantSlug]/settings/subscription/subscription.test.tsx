@@ -159,6 +159,24 @@ describe("tenant subscription", () => {
     expect(screen.getByText("1 Nov 2026 – 31 Oct 2027")).toBeTruthy();
   });
 
+  it("shows a period that hasn't started once, and until when the workspace is read-only", async () => {
+    const scheduled: Period = { ...pilot, status: "SCHEDULED", startsOn: "2026-11-01", endsOn: "2027-04-30" };
+    open({ status: 200, body: subscription({ current: scheduled, next: null }) }, undefined, readOnly);
+
+    expect(await screen.findByText("The workspace is read-only until the period starts on 1 Nov 2026.")).toBeTruthy();
+    expect(screen.getAllByText("1 Nov 2026 – 30 Apr 2027")).toHaveLength(1);
+    expect(screen.queryByRole("heading", { name: "Next period" })).toBeNull();
+  });
+
+  it("with two periods to come, says the workspace is read-only until the earlier one starts", async () => {
+    // Neither has started: the current period is the later one (state-machines.md), the next the earlier.
+    const later: Period = { ...pilot, status: "SCHEDULED", startsOn: "2027-01-01", endsOn: "2027-06-30" };
+    const earlier: Period = { ...pilot, status: "SCHEDULED", startsOn: "2026-11-01", endsOn: "2026-12-31" };
+    open({ status: 200, body: subscription({ current: later, next: earlier }) }, undefined, readOnly);
+
+    expect(await screen.findByText("The workspace is read-only until the period starts on 1 Nov 2026.")).toBeTruthy();
+  });
+
   it("doesn't offer grace for a cancelled period", async () => {
     open({ status: 200, body: subscription({ current: { ...pilot, status: "CANCELLED" } }) }, undefined, readOnly);
 

@@ -23,7 +23,8 @@ export function accessNotice(access: CapabilityAccess): AccessNotice | null {
     return {
       tone: "readOnly",
       title: "This workspace is read-only",
-      message: `${readOnlyReason(status, startsOn, endsOn, graceEndsOn, cancelledOn)} You can still see everything, but nothing can be changed. To restore full access, contact the platform team.`,
+      // A period that hasn't started brings full access back on its first day by itself (#72 R3).
+      message: `${readOnlyReason(status, startsOn, endsOn, graceEndsOn, cancelledOn)} You can still see everything, but nothing can be changed.${status === "SCHEDULED" ? "" : " To restore full access, contact the platform team."}`,
     };
   }
   if (mode !== "FULL" || !endsOn) {
