@@ -22,10 +22,10 @@ describe("accessNotice", () => {
     expect(accessNotice(access({ subscriptionStatus: "EXPIRING" }))).toEqual({
       tone: "warning",
       title: "The subscription ends soon",
-      message: "It ends on 31 Mar 2027. To renew it, contact the platform team.",
+      message: "It ends on 31 Mar 2027. If it hasn't been renewed, contact the platform team.",
     });
     expect(accessNotice(access({ subscriptionStatus: "GRACE" }))?.message).toBe(
-      "It ended on 31 Mar 2027. Full access continues until 14 Apr 2027; after that the workspace is read-only. To renew it, contact the platform team.",
+      "It ended on 31 Mar 2027. Full access continues until 14 Apr 2027; after that the workspace is read-only. If it hasn't been renewed, contact the platform team.",
     );
   });
 
@@ -40,6 +40,13 @@ describe("accessNotice", () => {
     expect(notice?.message).toBe(
       `${reason} You can still see everything, but nothing can be changed. To restore full access, contact the platform team.`,
     );
+  });
+
+  it("doesn't date a cancellation made before the period started", () => {
+    const notice = accessNotice(
+      access({ mode: "READ_ONLY", subscriptionStatus: "CANCELLED", startsOn: "2027-05-01", cancelledOn: "2027-04-10" }),
+    );
+    expect(notice?.message).toMatch(/^The subscription was cancelled\. /);
   });
 
   it("says a read-only workspace has no subscription when it has none", () => {

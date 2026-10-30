@@ -17,11 +17,15 @@ const sources = {
 } as const;
 
 /**
- * The tenant's subscription (S04 D15, D19): the current period (or none, and that the workspace is read-only), the next
- * one, and every entitlement with its value today and, for a quota a module measures, the usage. Days are the
- * tenant's dates, in its time zone.
+ * The tenant's subscription (S04 D15, D19): the current period (or none), until when the workspace is read-only when
+ * it is, the next period, and every entitlement with its value today and, for a quota a module measures, the usage.
+ * Days are the tenant's dates, in its time zone. Whether the workspace is read-only is the access mode's (`readOnly`),
+ * not the period's: a tenant being set up has full access without one (state-machines.md, "Access mode").
  */
-export function SubscriptionView({ subscription }: Readonly<{ subscription: TenantSubscription }>) {
+export function SubscriptionView({
+  subscription,
+  readOnly,
+}: Readonly<{ subscription: TenantSubscription; readOnly: boolean }>) {
   const { current, next } = subscription;
 
   return (
@@ -30,10 +34,12 @@ export function SubscriptionView({ subscription }: Readonly<{ subscription: Tena
         <Period title={`${current.planName} plan`} period={current} />
       ) : (
         <EmptyState title="No subscription">
-          The workspace is read-only until the platform team assigns one.
+          {readOnly
+            ? "The workspace is read-only until the platform team assigns one."
+            : "The platform team assigns your organisation's subscription."}
         </EmptyState>
       )}
-      {current && !inEffect.has(current.status) ? (
+      {current && readOnly ? (
         <p>{readOnlyUntil(current, next)}</p>
       ) : null}
       {next ? <Period title="Next period" period={next} /> : null}
@@ -82,7 +88,7 @@ function Period({ title, period }: Readonly<{ title: string; period: TenantSubsc
         <Detail label="Dates">
           {formatDay(period.startsOn)} – {formatDay(period.endsOn)}
         </Detail>
-        {period.status !== "CANCELLED" && period.graceEndsOn !== period.endsOn ? (
+        {inEffect.has(period.status) && period.graceEndsOn !== period.endsOn ? (
           <Detail label="Full access until">{formatDay(period.graceEndsOn)}</Detail>
         ) : null}
       </dl>

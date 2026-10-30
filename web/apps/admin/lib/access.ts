@@ -12,7 +12,8 @@ export type AccessNotice = {
   message: string;
 };
 
-const contact = "To renew it, contact the platform team.";
+// `access` doesn't say whether a next period is scheduled, so the banner doesn't claim it isn't.
+const contact = "If it hasn't been renewed, contact the platform team.";
 
 /** The banner for the tenant's access today, or null when there's nothing to say (full access, or still being set up). */
 export function accessNotice(access: CapabilityAccess): AccessNotice | null {
@@ -54,7 +55,11 @@ function readOnlyReason(
         ? `Since ${formatDay(nextDay(graceEndsOn))}: the subscription ended on ${formatDay(endsOn)}.`
         : "The subscription has ended.";
     case "CANCELLED":
-      return cancelledOn ? `Since ${formatDay(cancelledOn)}: the subscription was cancelled.` : "The subscription was cancelled.";
+      // A period cancelled before it started became current only once its first day came: the workspace was
+      // read-only before it was cancelled, so the cancellation doesn't say since when.
+      return cancelledOn && startsOn && cancelledOn >= startsOn
+        ? `Since ${formatDay(cancelledOn)}: the subscription was cancelled.`
+        : "The subscription was cancelled.";
     case "SCHEDULED":
       return startsOn ? `Until ${formatDay(startsOn)}: the subscription hasn't started yet.` : "The subscription hasn't started yet.";
     default:

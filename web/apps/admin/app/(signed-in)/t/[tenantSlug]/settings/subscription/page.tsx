@@ -3,14 +3,17 @@
 import { Loading } from "@/components/loading";
 import { ProblemAlert } from "@/components/problem-alert";
 import { ForbiddenView } from "@/components/status-page";
+import { useTenantCapabilities } from "@/lib/capabilities";
 import { useTenantWorkspace } from "@/lib/tenant-workspace";
 import { useTenantSubscription } from "./subscription-data";
 import { SubscriptionView } from "./subscription-view";
 
 /** Tenant settings → Subscription (S04 D19): the plan, its dates, what it includes and the usage; no self-service. */
 export default function SubscriptionPage() {
-  const { can } = useTenantWorkspace();
+  const { tenant, can } = useTenantWorkspace();
   const subscription = useTenantSubscription();
+  // Already read by the workspace layout (the banner's access): the cached answer.
+  const capabilities = useTenantCapabilities(tenant.tenantId, true);
 
   if (!can("tenant.subscription.read")) {
     return <ForbiddenView />;
@@ -26,7 +29,9 @@ export default function SubscriptionPage() {
       </header>
       {subscription.isPending ? <Loading /> : null}
       {subscription.isError ? <ProblemAlert error={subscription.error} /> : null}
-      {subscription.data ? <SubscriptionView subscription={subscription.data} /> : null}
+      {subscription.data ? (
+        <SubscriptionView subscription={subscription.data} readOnly={capabilities.data?.access.mode === "READ_ONLY"} />
+      ) : null}
     </section>
   );
 }

@@ -3,7 +3,7 @@
 import type { components } from "@msp/api-client";
 import { cleanup, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { tenantCapabilities } from "@/test/capabilities";
+import { fullAccess, tenantCapabilities } from "@/test/capabilities";
 import { fakeApi, problem, renderWithQuery, type Answer } from "@/test/render";
 import TenantWorkspaceLayout from "../../layout";
 import SubscriptionPage from "./page";
@@ -85,10 +85,12 @@ const subscription = (overrides: Partial<Subscription> = {}): Subscription => ({
   ...overrides,
 });
 
-function open(answer: Answer, actions = ["tenant.subscription.read"]) {
+const readOnly = { ...fullAccess, mode: "READ_ONLY" } as const;
+
+function open(answer: Answer, actions = ["tenant.subscription.read"], access = fullAccess) {
   const requests = fakeApi({
     "GET /api/account/v1/me": me,
-    "GET /api/admin/v1/me/capabilities": { status: 200, body: tenantCapabilities(actions) },
+    "GET /api/admin/v1/me/capabilities": { status: 200, body: tenantCapabilities(actions, { access }) },
     "GET /api/admin/v1/tenant/subscription": answer,
   });
   renderWithQuery(
@@ -132,23 +134,33 @@ describe("tenant subscription", () => {
   });
 
   it("says the workspace is read-only without a subscription", async () => {
-    open({ status: 200, body: subscription({ current: null }) });
+    open({ status: 200, body: subscription({ current: null }) }, undefined, { ...readOnly, subscriptionStatus: null });
 
     expect(await screen.findByText("No subscription")).toBeTruthy();
     expect(screen.getByText(/read-only until the platform team assigns one/)).toBeTruthy();
   });
 
+  it("doesn't call a tenant being set up read-only: it has full access without a subscription", async () => {
+    open({ status: 200, body: subscription({ current: null }) }, undefined, { ...fullAccess, subscriptionStatus: null });
+
+    expect(await screen.findByText("No subscription")).toBeTruthy();
+    expect(screen.getByText("The platform team assigns your organisation's subscription.")).toBeTruthy();
+    expect(screen.queryByText(/read-only/)).toBeNull();
+  });
+
   it("says until when a workspace whose period ended is read-only, and shows the next period", async () => {
     const next: Period = { ...pilot, kind: "PAID", status: "SCHEDULED", startsOn: "2026-11-01", endsOn: "2027-10-31", graceEndsOn: "2027-11-14" };
-    open({ status: 200, body: subscription({ current: { ...pilot, status: "EXPIRED" }, next }) });
+    open({ status: 200, body: subscription({ current: { ...pilot, status: "EXPIRED" }, next }) }, undefined, readOnly);
 
     expect(await screen.findByText("The workspace is read-only until the period starts on 1 Nov 2026.")).toBeTruthy();
+    // Its grace is over: no "full access until" a past day.
+    expect(screen.queryByText("Full access until")).toBeNull();
     expect(screen.getByRole("heading", { level: 2, name: "Next period" })).toBeTruthy();
     expect(screen.getByText("1 Nov 2026 – 31 Oct 2027")).toBeTruthy();
   });
 
   it("doesn't offer grace for a cancelled period", async () => {
-    open({ status: 200, body: subscription({ current: { ...pilot, status: "CANCELLED" } }) });
+    open({ status: 200, body: subscription({ current: { ...pilot, status: "CANCELLED" } }) }, undefined, readOnly);
 
     expect(await screen.findByText(/read-only until the platform team renews/)).toBeTruthy();
     expect(screen.queryByText("Full access until")).toBeNull();
