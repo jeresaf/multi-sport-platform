@@ -14,7 +14,11 @@ namespace SportsPlatform.Modules.SportsConfiguration.Definitions;
 /// </summary>
 public static partial class YamlJson
 {
-    /// <summary>The document's JSON tree. Throws <see cref="YamlException"/> on invalid YAML or a duplicate key.</summary>
+    /// <summary>
+    /// The document's JSON tree. Throws <see cref="YamlException"/> on invalid YAML or a duplicate key; YamlDotNet's
+    /// scanner can also give up with an <see cref="InvalidOperationException"/> (<see cref="SportDefinitionValidator"/>
+    /// reports both as invalid YAML).
+    /// </summary>
     public static JsonNode? Parse(string yaml)
     {
         var stream = new YamlStream();
