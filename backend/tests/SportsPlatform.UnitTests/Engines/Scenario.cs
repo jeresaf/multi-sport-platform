@@ -79,13 +79,14 @@ internal sealed record Scenario(
         var files = new SportDefinitionFiles();
         var reference = Path.Combine(
             ReferenceSportFilesTests.RepositoryRoot(), "docs", "domain", "sports", $"{Definition.Variant.ToLowerInvariant().Replace('_', '-')}.yaml");
-        var definition = files.Names
-            .Select(name => files.Read(name))
-            .Concat(File.Exists(reference) ? [File.ReadAllText(reference)] : [])
-            .Select(yaml => SportDefinitionContent.Read(YamlJson.Parse(yaml)!))
-            .FirstOrDefault(candidate => candidate.Variant == Definition.Variant && candidate.Version == Definition.Version)
+        var definition = Matching(files.Names.Select(files.Read))
+            ?? Matching(File.Exists(reference) ? [File.ReadAllText(reference)] : [])
             ?? throw new InvalidOperationException($"No embedded or reference definition {Definition.Variant}@{Definition.Version}.");
         return definition with { GenericEventTypes = GenericEventTypes.All };
+
+        SportDefinition? Matching(IEnumerable<string> yaml) => yaml
+            .Select(text => SportDefinitionContent.Read(YamlJson.Parse(text)!))
+            .SingleOrDefault(candidate => candidate.Variant == Definition.Variant && candidate.Version == Definition.Version);
     }
 
     // Objects become dotted paths; lists of text stay lists; numbers, flags and text are values.

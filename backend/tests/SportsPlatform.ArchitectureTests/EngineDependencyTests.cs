@@ -6,7 +6,7 @@ namespace SportsPlatform.ArchitectureTests;
 // S05 D7 and sport-engine.md §4: engines are pure. Of the application they may use BuildingBlocks' results, the
 // module's Contracts, each other and the module's errors; of the base library, nothing that reads files, resources,
 // the network, the environment, the clock or a random source. A type-level rule can't see Guid.NewGuid() or
-// DateTime.UtcNow (Guid and DateTime are plain values), so the engines' source is also read for those calls.
+// DateTime.UtcNow (Guid and DateTime are plain values), so the engines' source and their Contracts are also read for those calls.
 public sealed class EngineDependencyTests
 {
     private const string _module = "SportsPlatform.Modules.SportsConfiguration";
@@ -62,9 +62,14 @@ public sealed class EngineDependencyTests
     [Fact]
     public void Engine_source_makes_no_ids_and_reads_no_clock()
     {
-        var folder = Path.Combine(SolutionAssemblies.BackendDirectory, "src", "Modules", "SportsConfiguration", "SportsPlatform.Modules.SportsConfiguration", "Engines");
-        var files = Directory.EnumerateFiles(folder, "*.cs", SearchOption.AllDirectories).ToList();
-        files.ShouldNotBeEmpty();
+        var module = Path.Combine(SolutionAssemblies.BackendDirectory, "src", "Modules", "SportsConfiguration");
+        string[] folders =
+        [
+            Path.Combine(module, _module, "Engines"),
+            Path.Combine(module, $"{_module}.Contracts", "Engines"),
+        ];
+        var files = folders.SelectMany(folder => Directory.EnumerateFiles(folder, "*.cs", SearchOption.AllDirectories)).ToList();
+        folders.ShouldAllBe(folder => files.Any(file => file.StartsWith(folder, StringComparison.Ordinal)));
 
         files.SelectMany(path => ImpureCalls(File.ReadAllText(path)).Select(call => $"{Path.GetFileName(path)}: {call}")).ShouldBeEmpty();
     }
