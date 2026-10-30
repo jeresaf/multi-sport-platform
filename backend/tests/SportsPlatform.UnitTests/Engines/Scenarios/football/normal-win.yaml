@@ -1,0 +1,25 @@
+title: Ntinda Swifts FC beat Bukoto Comets FC 2–1
+definition: { variant: FOOTBALL_ASSOCIATION, version: 1 }
+rules: FOOTBALL_LEAGUE
+coverage: STANDARD
+home:
+  team: Ntinda Swifts FC
+  starters: [Ivan Ssekitoleko, Brian Kato, Moses Okello, Ronald Mugisha, Isaac Waiswa, Alex Byaruhanga, Joseph Ochieng, Denis Mukasa, Emmanuel Lubega, Hassan Kizito, Peter Ojok]
+  bench: [Samuel Tumusiime, Henry Kawooya, Paul Etyang]
+away:
+  team: Bukoto Comets FC
+  starters: [Godfrey Nsubuga, Allan Wasswa, Kenneth Ouma, Julius Atuhaire, Simon Kigozi, Richard Okot, Fred Ssali, Martin Opolot, Collins Tusiime, Edward Mwesigwa, Robert Lwanga]
+  bench: [Charles Nyanzi, Derrick Akena, Ali Semakula]
+events:
+  - { minute: 0, type: PERIOD_START, period: FIRST_HALF }
+  - { minute: 23, type: GOAL, team: Ntinda Swifts FC, actors: { SCORER: Hassan Kizito, ASSIST: Emmanuel Lubega }, payload: { body_part: HEAD } }
+  - { minute: 45+2, type: PERIOD_END }
+  - { minute: 45, type: PERIOD_START, period: SECOND_HALF }
+  - { minute: 58, type: GOAL, team: Bukoto Comets FC, actors: { SCORER: Robert Lwanga } }
+  - { minute: 81, type: GOAL, team: Ntinda Swifts FC, actors: { SCORER: Peter Ojok, ASSIST: Hassan Kizito } }
+  - { minute: 90+4, type: PERIOD_END }
+expect:
+  score:
+    Ntinda Swifts FC: { total: 2, periods: { 1H: 1, 2H: 1 } }
+    Bukoto Comets FC: { total: 1, periods: { 1H: 0, 2H: 1 } }
+  outcome: { winner: Ntinda Swifts FC, method: REGULATION }

@@ -298,8 +298,8 @@ If rules say lineup approval isn't required, `submit` goes straight to `APPROVED
 
 ### Timeline event (derived effective status — ADR-0002)
 
-`ACTIVE` · `SUPERSEDED` (a later event has `supersedes_event_id` = this) · `REVERSED` (a later event has
-`reverses_event_id` = this). Offline clients additionally show `PENDING`, `SYNCING`, `REJECTED` locally.
+`ACTIVE` · `SUPERSEDED` (a later event that is not `REVERSED` has `supersedes_event_id` = this) · `REVERSED` (a
+later `ACTIVE` event has `reverses_event_id` = this; docs/architecture/sport-engine.md §3). Offline clients additionally show `PENDING`, `SYNCING`, `REJECTED` locally.
 
 ### Result version
 

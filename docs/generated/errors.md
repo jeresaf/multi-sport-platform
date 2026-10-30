@@ -56,6 +56,7 @@ the message is the default title and may change.
 | `TENANT_SUBSCRIPTION_NOT_FOUND` | 409 | The tenant has no subscription period this change applies to. | Tenancy |
 | `TENANT_SUBSCRIPTION_OVERLAP` | 409 | The period overlaps another subscription period of the tenant. | Tenancy |
 | `TENANT_UNAVAILABLE` | 403 | This site is not available. | Tenancy |
+| `TIMELINE_EVENT_UNKNOWN` | 422 | The sport definition has no event type with this code. | SportsConfiguration |
 | `VALIDATION_INVALID_QUERY` | 400 | A query parameter is not valid. | BuildingBlocks |
 | `VALIDATION_INVALID_REQUEST` | 400 | A field of the request is not valid. | BuildingBlocks |
 | `VALIDATION_MALFORMED_REQUEST` | 400 | The request could not be read. | BuildingBlocks |

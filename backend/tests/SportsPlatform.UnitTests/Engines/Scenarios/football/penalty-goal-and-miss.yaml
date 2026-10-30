@@ -1,0 +1,24 @@
+title: Kisaasi Kestrels FC score their penalty, Seeta Sparrows FC miss theirs
+definition: { variant: FOOTBALL_ASSOCIATION, version: 1 }
+rules: FOOTBALL_LEAGUE
+coverage: STANDARD
+home:
+  team: Kisaasi Kestrels FC
+  starters: [Sharif Mayanja, Norman Oketcho, Badru Ssenkubuge, Oscar Twinomujuni, Cyrus Ogwang, Hamza Nsereko, Victor Oloya, Adrian Kyeyune, Felix Turyamureeba, Jacob Ssentongo, Gideon Omara]
+  bench: [Yusuf Kalanzi, Ambrose Ocaya]
+away:
+  team: Seeta Sparrows FC
+  starters: [Samson Mbabazi, Elijah Ochola, Rogers Kabuye, Benon Tugume, Nathan Opira, Kassim Ssekandi, Brian Oduka, Jordan Kaweesi, Mark Asiimwe, Silas Ogwal, Fahad Ntambi]
+  bench: [Ivan Lutaaya, Phillip Oyet]
+events:
+  - { minute: 0, type: PERIOD_START, period: FIRST_HALF }
+  - { minute: 34, type: PENALTY_GOAL, team: Kisaasi Kestrels FC, actors: { TAKER: Jacob Ssentongo } }
+  - { minute: 45+1, type: PERIOD_END }
+  - { minute: 45, type: PERIOD_START, period: SECOND_HALF }
+  - { minute: 88, type: PENALTY_MISSED, team: Seeta Sparrows FC, actors: { TAKER: Silas Ogwal }, payload: { outcome: SAVED } }
+  - { minute: 90+5, type: PERIOD_END }
+expect:
+  score:
+    Kisaasi Kestrels FC: { total: 1, periods: { 1H: 1, 2H: 0 } }
+    Seeta Sparrows FC: { total: 0, periods: { 1H: 0, 2H: 0 } }
+  outcome: { winner: Kisaasi Kestrels FC, method: REGULATION }

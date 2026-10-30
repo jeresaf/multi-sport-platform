@@ -301,6 +301,12 @@
       "owner": "Tenancy"
     },
     {
+      "code": "TIMELINE_EVENT_UNKNOWN",
+      "status": 422,
+      "message": "The sport definition has no event type with this code.",
+      "owner": "SportsConfiguration"
+    },
+    {
       "code": "VALIDATION_INVALID_QUERY",
       "status": 400,
       "message": "A query parameter is not valid.",

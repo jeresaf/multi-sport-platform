@@ -1,0 +1,25 @@
+title: The scorer recorded the winner for the wrong team and corrects it — Mutundwe Meteors FC win 1–0
+# A correction is a full replacement event: the first entry is superseded and only the corrected goal counts.
+definition: { variant: FOOTBALL_ASSOCIATION, version: 1 }
+rules: FOOTBALL_LEAGUE
+coverage: STANDARD
+home:
+  team: Kyebando Ravens FC
+  starters: [Ezra Lubwama, Hillary Okello, Tom Ssemwanga, Julius Ariko, Ben Kisekka, Raymond Ebong, Solomon Male, Isaiah Kakande, Calvin Akena, Noah Ssozi, Musa Odeke]
+  bench: [Kenneth Lule, Peter Owor]
+away:
+  team: Mutundwe Meteors FC
+  starters: [Godwin Ndugwa, Aaron Okumu, Shafik Bukenya, Ronald Okiror, Dickson Mugerwa, Zachary Oboth, Moses Sserwadda, Henry Ongom, Luke Ssempala, Bernard Ekiring, Titus Kamya]
+  bench: [Alfred Kivumbi, Jasper Olweny]
+events:
+  - { minute: 0, type: PERIOD_START, period: FIRST_HALF }
+  - { minute: 45, type: PERIOD_END }
+  - { minute: 45, type: PERIOD_START, period: SECOND_HALF }
+  - { id: wrong-team, minute: 71, type: GOAL, team: Kyebando Ravens FC, actors: { SCORER: Noah Ssozi } }
+  - { minute: 71, type: GOAL, team: Mutundwe Meteors FC, supersedes: wrong-team, actors: { SCORER: Titus Kamya } }
+  - { minute: 90+2, type: PERIOD_END }
+expect:
+  score:
+    Kyebando Ravens FC: { total: 0, periods: { 1H: 0, 2H: 0 } }
+    Mutundwe Meteors FC: { total: 1, periods: { 1H: 0, 2H: 1 } }
+  outcome: { winner: Mutundwe Meteors FC, method: REGULATION }

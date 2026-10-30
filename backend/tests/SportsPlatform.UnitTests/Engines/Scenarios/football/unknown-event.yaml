@@ -1,0 +1,18 @@
+title: A pad sends an event football doesn't have; it is refused and the match carries on
+definition: { variant: FOOTBALL_ASSOCIATION, version: 1 }
+rules: FOOTBALL_LEAGUE
+coverage: BASIC
+home:
+  team: Bunga Breakers FC
+away:
+  team: Kireka Kingfishers FC
+events:
+  - { minute: 0, type: PERIOD_START, period: FIRST_HALF }
+  - { minute: 20, type: TRY, team: Bunga Breakers FC, rejected: [TIMELINE_EVENT_UNKNOWN] }
+  - { minute: 31, type: GOAL, team: Kireka Kingfishers FC }
+  - { minute: 45, type: PERIOD_END }
+expect:
+  score:
+    Bunga Breakers FC: { total: 0, periods: { 1H: 0 } }
+    Kireka Kingfishers FC: { total: 1, periods: { 1H: 1 } }
+  outcome: { winner: Kireka Kingfishers FC, method: REGULATION }

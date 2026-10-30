@@ -62,8 +62,9 @@ because README.md gives them no importance, coverage or phases) and keeps them u
 | `recorded_by`, `recorded_at`, `occurred_at` | Server time vs. device-reported time |
 | `timeline_version` | Contest timeline counter after this event |
 
-Effective status (derived): `REVERSED` if any later event reverses it; else `SUPERSEDED` if any later event
-supersedes it; else `ACTIVE`. A superseding event is itself a full replacement event (e.g. same `GOAL` with the
+Effective status (derived): `REVERSED` if a later `ACTIVE` event reverses it; else `SUPERSEDED` if a later event
+that is not `REVERSED` supersedes it; else `ACTIVE` (owner, 2026-10-30: only an event that still stands counts, so
+reversing a reversal or a correction restores what it had undone, and a chain of corrections ends at its last one). A superseding event is itself a full replacement event (e.g. same `GOAL` with the
 correct scorer).
 
 ## 4. Engine contract
@@ -98,6 +99,34 @@ public interface IScoringEngine
 - **Follow-up constraints** — declared in data, e.g. a conversion requires a preceding, unconsumed try by the
   same side in the same period.
 - **Limits** — declared rule parameters such as maximum substitutions or timeouts per period group.
+
+**As built (S05-T2a).** The contract and its input types are in Sports Configuration Contracts (`Engines`), named as
+in ADR-0003, until Match Operations maps its timeline rows to them (S12): `TimelineEventDraft`, `TimelineEvent`
+(id, sequence, type, source, participant, period code and occurrence, clock and added time, actors by role, payload
+as text, `supersedes`/`reverses` by event id), `ContestContext` (definition, `ContestRules`, sides, coverage,
+lineups), `ContestLiveState` (stored `ContestStatus`, score, `ContestPhase`, `ContestPersonnel`, every event with its
+effective status). `ContestRules` holds the effective rules flattened to dotted paths (`substitutions.max`,
+`contest.period_seconds.FIRST_HALF`), the names the definitions' `limits` and the templates' editable parameters
+use. `IScoringEngines` picks the engine by `scoring_family` and folds a timeline. The fold and the trackers live next
+to the engines in the module's `Engines` folder. An architecture test (`EngineDependencyTests`) lets that folder use,
+of the application, only BuildingBlocks' results, the module's Contracts and its errors, and refuses the base
+library's files, resources, network, environment, reflection, threads, clock and random sources (a type-level rule
+can't see `Guid.NewGuid()`; review does). As built:
+- **Effective status:** only a later event that still stands counts. An event is `REVERSED` by a later *active*
+  event that reverses it, else `SUPERSEDED` by a later event that supersedes it and is not itself reversed (so a
+  chain of corrections ends at its last one). Reversing a reversal or a correction restores what it had undone.
+- **Phase:** a `PERIOD_START` names any period, breaks included, in the occurrence recorded on it (the stored
+  `period_occurrence`, which the score's periods read too, so reversing an earlier start renumbers nothing); a
+  `PERIOD_END` closes the running one, and until the next start the phase kind is `BREAK`.
+- **Personnel:** roles are read from the definition, never by name. An effect applies to the event's first
+  declared actor role that is filled; a substitution takes off the player in the role drawn `ON_FIELD` and brings
+  on the one drawn from the `BENCH`. A suspension doesn't touch someone already replaced, dismissed or temporarily
+  replaced. `RETURN` brings a suspended person back where they were (field, bench or staff),
+  or a temporarily replaced player back on (named either way), whose replacement goes back to the bench if still
+  on the field. `FOUL_COUNT` counts per person.
+- **ADDITIVE state:** per participant, points per component and `main` points per period, plus every period
+  started; the summary shows `main` as primary text, the `shootout` component as secondary text once a `SHOOTOUT`
+  period has started, and one entry per `PLAY` period started (its `short` label).
 
 ## 5. `ADDITIVE` family (football, rugby 15s/7s, basketball; later netball, hockey, handball)
 
