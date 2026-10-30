@@ -11,6 +11,7 @@ import { Loading } from "@/components/loading";
 import { ProblemAlert } from "@/components/problem-alert";
 import { SelectField } from "@/components/select-field";
 import { StatusBadge } from "@/components/status-badge";
+import { UnavailableNote } from "@/components/unavailable-note";
 import { call, isApiProblem } from "@/lib/api";
 import { humanizeCode } from "@/lib/codes";
 import { formatDate, useTenantTimeZone } from "@/lib/tenant-settings";
@@ -18,8 +19,10 @@ import { useTenantWorkspace } from "@/lib/tenant-workspace";
 import { InviteDialog } from "./invite-dialog";
 import {
   ownerRole,
+  staffLimitReason,
   useInvitations,
   useRefreshMembership,
+  useStaffUsage,
   type Invitation,
   type InvitationStatus,
 } from "./members-data";
@@ -44,7 +47,8 @@ const wide = "hidden tablet:table-cell";
 
 /** Invitations: who was asked to join with which roles, inviting someone, and revoking a pending invitation. */
 export function InvitationsSection({ isOwner }: Readonly<{ isOwner: boolean }>) {
-  const { client, can } = useTenantWorkspace();
+  const { client, can, unavailable } = useTenantWorkspace();
+  const staffUsage = useStaffUsage(can("membership.invite"));
   const refresh = useRefreshMembership();
   const timeZone = useTenantTimeZone();
   const [filter, setFilter] = useState<Filter>("OPEN");
@@ -83,6 +87,16 @@ export function InvitationsSection({ isOwner }: Readonly<{ isOwner: boolean }>) 
     can("invitation.revoke") &&
     invitation.status === "PENDING" &&
     (isOwner || !invitation.roleCodes.includes(ownerRole));
+  // Shown disabled with the reason (S04 D19): what the roles allow but the tenant can't do now (read-only), and inviting
+  // once every staff seat the plan allows is taken.
+  const inviteRefusal =
+    unavailable("membership.invite") ?? (can("membership.invite") ? staffLimitReason(staffUsage) : null);
+  const revokeRefusal = unavailable("invitation.revoke");
+  const refusedRevoke = (invitation: Invitation) =>
+    revokeRefusal !== null &&
+    invitation.status === "PENDING" &&
+    (isOwner || !invitation.roleCodes.includes(ownerRole));
+  const refusal = inviteRefusal ?? revokeRefusal;
   const rows = invitations.data?.pages.flatMap((page) => page.items) ?? [];
 
   return (
@@ -106,14 +120,19 @@ export function InvitationsSection({ isOwner }: Readonly<{ isOwner: boolean }>) 
               ))}
             </SelectField>
           </div>
-          {can("membership.invite") ? (
-            <Button onClick={() => setInviting(true)}>
+          {can("membership.invite") || inviteRefusal ? (
+            <Button
+              disabled={inviteRefusal !== null}
+              aria-describedby={inviteRefusal ? "invitations-unavailable" : undefined}
+              onClick={() => setInviting(true)}
+            >
               <UserPlus aria-hidden="true" />
               Invite someone
             </Button>
           ) : null}
         </div>
       </div>
+      {refusal ? <UnavailableNote id="invitations-unavailable" reason={refusal} /> : null}
 
       {invitations.isPending ? <Loading /> : null}
       {invitations.isError ? <ProblemAlert error={invitations.error} /> : null}
@@ -184,7 +203,16 @@ export function InvitationsSection({ isOwner }: Readonly<{ isOwner: boolean }>) 
                     >
                       Revoke
                     </Button>
-                  ) : invitation.status === "EXPIRED" && can("membership.invite") ? (
+                  ) : refusedRevoke(invitation) ? (
+                    <Button
+                      variant="outline"
+                      disabled
+                      aria-label={`Revoke the invitation to ${invitation.email}`}
+                      aria-describedby="invitations-unavailable"
+                    >
+                      Revoke
+                    </Button>
+                  ) : invitation.status === "EXPIRED" && can("membership.invite") && !inviteRefusal ? (
                     <span className="text-sm whitespace-normal text-muted-foreground">Invite again for a new link</span>
                   ) : null}
                 </TableCell>

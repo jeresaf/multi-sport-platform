@@ -3,7 +3,7 @@
 import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { errorMessage } from "@msp/api-client/errors";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { tenantCapabilities } from "@/test/capabilities";
+import { readOnlyCapabilities, tenantCapabilities } from "@/test/capabilities";
 import { fakeApi, problem, renderWithQuery, type Answer } from "@/test/render";
 import TenantWorkspaceLayout from "../../layout";
 import MembersPage from "./page";
@@ -269,6 +269,114 @@ describe("members & roles", () => {
       roleCodes: ["VIEWER"],
     });
     expect(dialog.queryByText("That didn't work")).toBeNull();
+  });
+});
+
+/** `GET /api/admin/v1/tenant/subscription` with only the staff users' usage (S04 D15). */
+const staffUsage = (used: number, limit: number): Answer => ({
+  status: 200,
+  body: {
+    today: "2026-10-30",
+    timeZone: "Africa/Kampala",
+    current: null,
+    next: null,
+    entitlements: [],
+    usage: [{ code: "MAX_STAFF_USERS", measured: true, used, limit, warning: used >= limit * 0.8 }],
+  },
+});
+
+describe("members & roles: what the tenant can't do now (S04 D19)", () => {
+  it("shows an owner of a read-only tenant every change disabled, with why", async () => {
+    open(["TENANT_OWNER"], [], {
+      "GET /api/admin/v1/me/capabilities": {
+        status: 200,
+        body: readOnlyCapabilities(
+          ["membership.read", "tenant.subscription.read"],
+          ownerActions.filter((action) => action !== "membership.read"),
+        ),
+      },
+      "GET /api/admin/v1/tenant/subscription": staffUsage(2, 100),
+    });
+
+    await screen.findByText(brian.email);
+    await screen.findByText(viewerInvitation.email);
+    for (const id of ["members-unavailable", "invitations-unavailable"]) {
+      expect(document.getElementById(id)?.textContent).toBe("Read-only: the subscription was cancelled");
+    }
+    const change = screen.getByRole("button", { name: `Change ${brian.email}` });
+    expect(change.hasAttribute("disabled")).toBe(true);
+    expect(change.getAttribute("aria-describedby")).toBe("members-unavailable");
+    const invite = screen.getByRole("button", { name: "Invite someone" });
+    expect(invite.hasAttribute("disabled")).toBe(true);
+    expect(invite.getAttribute("aria-describedby")).toBe("invitations-unavailable");
+    const revokes = screen.getAllByRole("button", { name: /^Revoke the invitation/ });
+    expect(revokes).toHaveLength(2);
+    expect(revokes.every((button) => button.hasAttribute("disabled"))).toBe(true);
+    // Nothing on the page can change anything (the shell's menus are outside it).
+    const enabled = within(screen.getByRole("main"))
+      .getAllByRole("button")
+      .filter((button) => !button.hasAttribute("disabled"));
+    expect(enabled.map((button) => button.getAttribute("aria-label") ?? button.textContent)).toEqual([]);
+  });
+
+  it("keeps the changes hidden from a viewer of a read-only tenant: their roles don't allow them", async () => {
+    const requests = open(["VIEWER"], [], {
+      "GET /api/admin/v1/me/capabilities": {
+        status: 200,
+        body: readOnlyCapabilities(["membership.read", "tenant.subscription.read"], []),
+      },
+      "GET /api/admin/v1/tenant/subscription": staffUsage(2, 100),
+    });
+
+    await screen.findByText(brian.email);
+    await screen.findByText(viewerInvitation.email);
+    // Someone who can't invite doesn't pay for the usage count (#73 R3).
+    expect(requests.some((request) => request.path === "/api/admin/v1/tenant/subscription")).toBe(false);
+    expect(screen.queryByRole("button", { name: `Change ${brian.email}` })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Invite someone" })).toBeNull();
+    expect(document.getElementById("members-unavailable")).toBeNull();
+  });
+
+  it("disables inviting once every staff seat is taken, saying what the plan allows", async () => {
+    open(["TENANT_OWNER"], [...ownerActions, "tenant.subscription.read"], {
+      "GET /api/admin/v1/tenant/subscription": staffUsage(5, 5),
+    });
+
+    const invite = await screen.findByRole("button", { name: "Invite someone" });
+    await waitFor(() => expect(invite.hasAttribute("disabled")).toBe(true));
+    expect(document.getElementById("invitations-unavailable")?.textContent).toBe("Your plan allows 5 staff users.");
+    // Revoking frees a seat: it stays enabled.
+    expect(
+      screen.getAllByRole("button", { name: /^Revoke the invitation/ }).every((button) => !button.hasAttribute("disabled")),
+    ).toBe(true);
+  });
+
+  it("shows the staff users in the invite dialog, and reads them again when the quota refuses", async () => {
+    let used = 4;
+    const requests = open(["TENANT_OWNER"], [...ownerActions, "tenant.subscription.read"], {
+      "GET /api/admin/v1/tenant/subscription": () => staffUsage(used, 5),
+      "POST /api/admin/v1/invitations": () => {
+        used = 5;
+        return { status: 403, body: problem("ENTITLEMENT_QUOTA_EXCEEDED", 403, { detail: "Your plan allows 5 staff users." }) };
+      },
+    });
+
+    const invite = await screen.findByRole("button", { name: "Invite someone" });
+    await waitFor(() => expect(requests.some((request) => request.path === "/api/admin/v1/tenant/subscription")).toBe(true));
+    fireEvent.click(invite);
+    const dialog = within(await screen.findByRole("dialog"));
+    expect(await dialog.findByText(/4 of 5 staff users/)).toBeTruthy();
+    expect(dialog.getByText("Near the limit")).toBeTruthy();
+
+    fireEvent.change(dialog.getByLabelText("Email"), { target: { value: "moses.okello@kmsa.example" } });
+    fireEvent.click(dialog.getByLabelText("Viewer"));
+    fireEvent.click(dialog.getByRole("button", { name: "Send invitation" }));
+
+    expect(await dialog.findByText(/Your plan allows 5 staff users/)).toBeTruthy();
+    // Behind the dialog, so hidden from the accessibility tree while it is open.
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Invite someone", hidden: true }).hasAttribute("disabled")).toBe(true),
+    );
   });
 });
 

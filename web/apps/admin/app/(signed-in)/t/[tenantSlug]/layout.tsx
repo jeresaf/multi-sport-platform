@@ -74,12 +74,14 @@ export default function TenantWorkspaceLayout({ children }: Readonly<{ children:
     );
   }
 
-  const { actions, access } = capabilities.data;
+  const { actions, unavailable, access } = capabilities.data;
   return (
     <WorkspaceProvider value={{ items, actions }}>
       <AppShell workspace={tenant.displayName} navigation={visibleNavigation(items, actions)}>
         <AccessBanner access={access} />
-        <TenantProvider tenant={tenant}>{children}</TenantProvider>
+        <TenantProvider tenant={tenant} unavailable={unavailable} access={access}>
+          {children}
+        </TenantProvider>
       </AppShell>
     </WorkspaceProvider>
   );

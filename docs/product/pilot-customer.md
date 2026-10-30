@@ -124,8 +124,8 @@ Tests that need more than two tenants (paging, status filters, a provisioning te
 named after trees and birds so they don't read as a real district, council or league: **Acacia Schools Netball
 Circle** (`acacia-schools`), **Jacaranda Corporate Games** (`jacaranda-games`), **Mvule Youth Football League**
 (`mvule-youth`), **Sunbird Junior Sports Club** (`sunbird-juniors`), **Acacia Road Runners** (`acacia-runners`),
-**Weaver Bird Athletics Club** (`weaver-athletics`), **Kingfisher Masters Hockey Club** (`kingfisher-masters`). They are
-never seeded.
+**Weaver Bird Athletics Club** (`weaver-athletics`), **Kingfisher Masters Hockey Club** (`kingfisher-masters`),
+**Hornbill Volleyball Club** (`hornbill-volleyball`). They are never seeded.
 
 ## Privacy notes for this persona
 

@@ -18,6 +18,7 @@ import { Loading } from "@/components/loading";
 import { ProblemAlert } from "@/components/problem-alert";
 import { SelectField } from "@/components/select-field";
 import { StatusBadge } from "@/components/status-badge";
+import { UnavailableNote } from "@/components/unavailable-note";
 import { useMe } from "@/lib/account";
 import { call, isApiProblem } from "@/lib/api";
 import { humanizeCode } from "@/lib/codes";
@@ -111,7 +112,7 @@ function RoleBadges({ member }: Readonly<{ member: Member }>) {
 
 /** The tenant's members: their tenant-wide roles and status, and the changes the user's capabilities allow. */
 export function MembersSection({ isOwner }: Readonly<{ isOwner: boolean }>) {
-  const { client, can } = useTenantWorkspace();
+  const { client, can, unavailable } = useTenantWorkspace();
   const refresh = useRefreshMembership();
   const myUserId = useMe().data?.id;
   const timeZone = useTenantTimeZone();
@@ -154,13 +155,29 @@ export function MembersSection({ isOwner }: Readonly<{ isOwner: boolean }>) {
 
   const canChangeRoles = can("role.assign") || can("role.revoke");
   // Suspending, restoring or removing an owner is an owner's change (S03 D17): the server refuses anyone else.
+  const ownersOnly = (member: Member) =>
+    !isOwner && member.roles.some((role) => role.roleCode === ownerRole && role.scopeType === "TENANT");
   const allowedChanges = (member: Member) =>
-    !isOwner && member.roles.some((role) => role.roleCode === ownerRole && role.scopeType === "TENANT")
+    ownersOnly(member)
       ? []
       : (Object.keys(changes) as StatusChange[]).filter(
           (change) => can(changes[change].action) && changes[change].from.includes(member.status),
         );
+  // What the roles allow but the tenant can't do now (read-only): the row's menu shows disabled, with the reason once
+  // under the heading (S04 D19).
+  const refusedChanges = (member: Member) =>
+    (!ownersOnly(member) &&
+      (Object.keys(changes) as StatusChange[]).some(
+        (change) => unavailable(changes[change].action) !== null && changes[change].from.includes(member.status),
+      )) ||
+    (!canChangeRoles && member.status !== "REMOVED" && (unavailable("role.assign") ?? unavailable("role.revoke")) !== null);
   const rows = members.data?.pages.flatMap((page) => page.items) ?? [];
+  // Said only where a row shows a disabled menu for it to explain.
+  const refusal = rows.some(refusedChanges)
+    ? [...Object.values(changes).map((change) => change.action), "role.assign", "role.revoke"]
+        .map(unavailable)
+        .find((reason) => reason !== null)
+    : undefined;
   const open = pending ? changes[pending.change] : null;
 
   return (
@@ -185,11 +202,16 @@ export function MembersSection({ isOwner }: Readonly<{ isOwner: boolean }>) {
         </div>
       </div>
 
+      {refusal ? <UnavailableNote id="members-unavailable" reason={refusal} /> : null}
       {members.isPending ? <Loading /> : null}
       {members.isError ? <ProblemAlert error={members.error} /> : null}
       {members.isSuccess && rows.length === 0 ? (
         <EmptyState title={`No ${humanizeCode(status).toLowerCase()} members`}>
-          {status === "ACTIVE" ? "Invite someone below to get started." : "Choose another status to see others."}
+          {status !== "ACTIVE"
+            ? "Choose another status to see others."
+            : can("membership.invite")
+              ? "Invite someone below to get started."
+              : null}
         </EmptyState>
       ) : null}
       {rows.length > 0 ? (
@@ -259,6 +281,16 @@ export function MembersSection({ isOwner }: Readonly<{ isOwner: boolean }>) {
                           ))}
                         </DropdownMenuContent>
                       </DropdownMenu>
+                    ) : refusedChanges(member) ? (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        disabled
+                        aria-label={`Change ${member.email}`}
+                        aria-describedby="members-unavailable"
+                      >
+                        <MoreHorizontal aria-hidden="true" />
+                      </Button>
                     ) : null}
                   </TableCell>
                 </TableRow>

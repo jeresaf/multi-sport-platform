@@ -22,3 +22,19 @@ export function tenantCapabilities(
 ): TenantCapabilities {
   return { actions, unavailable: [], access: fullAccess, scope: null, ...overrides };
 }
+
+/** Cancelled on 28 Oct 2026: read-only since then. */
+export const cancelledAccess: Access = {
+  ...fullAccess,
+  mode: "READ_ONLY",
+  subscriptionStatus: "CANCELLED",
+  cancelledOn: "2026-10-28",
+};
+
+/** A read-only tenant (S04 D14): the roles' writes are unavailable with `TENANT_READ_ONLY`, the reads still allowed. */
+export function readOnlyCapabilities(reads: string[], writes: string[]): TenantCapabilities {
+  return tenantCapabilities(reads, {
+    unavailable: writes.map((action) => ({ action, code: "TENANT_READ_ONLY", entitlement: null, plans: null })),
+    access: cancelledAccess,
+  });
+}

@@ -12,6 +12,7 @@ import { z } from "zod";
 import { ConflictAlert } from "@/components/conflict-alert";
 import { FormField } from "@/components/form-field";
 import { ProblemAlert } from "@/components/problem-alert";
+import { UnavailableNote } from "@/components/unavailable-note";
 import { SelectField } from "@/components/select-field";
 import { call } from "@/lib/api";
 import { humanizeCode } from "@/lib/codes";
@@ -85,11 +86,16 @@ const consentHints: Readonly<Record<Consent, string>> = {
   OFF: "Registration doesn't ask for a guardian's consent.",
 };
 
+/**
+ * `editable` when the user may change the settings now; `unavailable` says why they can't when their roles allow it but
+ * the tenant can't (read-only): the form is then disabled with that reason and its button shown disabled (S04 D19).
+ */
 export function OrganisationForm({
   settings,
   editable,
+  unavailable,
   onReload,
-}: Readonly<{ settings: Settings; editable: boolean; onReload: () => void }>) {
+}: Readonly<{ settings: Settings; editable: boolean; unavailable: string | null; onReload: () => void }>) {
   const hydrated = useHydrated();
   const { tenant, client } = useTenantWorkspace();
   const queryClient = useQueryClient();
@@ -124,6 +130,7 @@ export function OrganisationForm({
     save.reset();
     onReload();
   };
+  const refusal = editable ? null : unavailable;
 
   return (
     <form
@@ -132,7 +139,9 @@ export function OrganisationForm({
       onSubmit={form.handleSubmit((values) => save.mutate(values))}
       aria-describedby={editable ? undefined : "read-only-note"}
     >
-      {editable ? null : (
+      {editable ? null : refusal ? (
+        <UnavailableNote id="read-only-note" reason={refusal} />
+      ) : (
         <p id="read-only-note" className="rounded-md border bg-muted p-3 text-sm">
           You can see these settings but not change them. An owner or administrator of {tenant.displayName} can.
         </p>
@@ -228,9 +237,13 @@ export function OrganisationForm({
         </div>
       </fieldset>
 
-      {editable ? (
+      {editable || refusal ? (
         <div className="flex flex-wrap items-center gap-3">
-          <Button type="submit" disabled={!hydrated || !isDirty || save.isPending}>
+          <Button
+            type="submit"
+            disabled={!editable || !hydrated || !isDirty || save.isPending}
+            aria-describedby={refusal ? "read-only-note" : undefined}
+          >
             {save.isPending ? "Saving…" : "Save changes"}
           </Button>
           <p role="status" className="text-sm text-muted-foreground">
