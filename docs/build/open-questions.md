@@ -6,6 +6,10 @@ the date and where the decision is recorded.
 
 | # | Question | Why it matters | Default (used until decided) | Needed by |
 |---|---|---|---|---|
+| Q28 | While a contest is `INTERRUPTED` or `SUSPENDED`, should the scorer (source `LIVE`) still record `NOTE`, `CLOCK_*` and `STATUS_CHANGED`? (#79 Q3) | `STATUS_CHANGED` is written automatically on a status change; the status check refuses it from the scorer | The default: refused; S12 writes `STATUS_CHANGED` as `ADMIN` (or before the status changes) | S12 |
+| Q29 | Should an event type need a participant unless it is contest-wide? Football's `CORNER` names no actors, so a corner without a team is accepted and counts for nobody (#79 Q4) | Team statistics (S13) count events per team | The default: a participant is required only for types that score, name people, have effects, limits or a follow-up; a definition flag (T2b2 or a schema version) if the owner wants more | S05-T2b2 |
+| Q30 | Should validation refuse an event type above the contest's coverage (a `DETAILED` `SHOT` at `BASIC`)? (#79 Q5) | §5 doesn't list it; the pad hides such types | The default: accepted (the pad decides what to offer) | S12 |
+| Q31 | May a correction change the event type to any type of the definition (`GOAL` → `YELLOW_CARD`), or only within one category? (#79 Q6) | A correction replaces the event in full | The default: any type of the definition (documented in sport-engine.md) | S12 |
 
 ## Answered
 

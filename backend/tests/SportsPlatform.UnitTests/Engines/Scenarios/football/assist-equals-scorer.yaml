@@ -20,7 +20,7 @@ events:
   - { minute: 34, type: GOAL, team: Kansanga Harriers FC, actors: { SCORER: Nathan Odongo, ASSIST: Mark Nakibinge } }
   - { minute: 45, type: PERIOD_END }
   - { minute: 45, type: PERIOD_START, period: SECOND_HALF }
-  - { minute: 52, type: GOAL, team: Kansanga Harriers FC, actors: { SCORER: Oscar Kiggundu, KEEPER: Nathan Odongo }, rejected: [TIMELINE_ACTOR_INVALID] }
+  - { minute: 52, type: GOAL, team: Kansanga Harriers FC, actors: { SCORER: Oscar Kiggundu, GOALKEEPER: Nathan Odongo }, rejected: [TIMELINE_ACTOR_INVALID] }
   - { minute: 90+3, type: PERIOD_END }
 expect:
   score:

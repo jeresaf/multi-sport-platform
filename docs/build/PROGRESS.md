@@ -364,6 +364,9 @@ S05-T5a. Each item names where it gets done.
 - S12 (or earlier if a scenario needs it): the fold orders events by sequence, so a correction takes the place of the
   event it replaces in the timeline only for its period, not its order; a substitution corrected after a later goal
   moves after that goal in the personnel fold (pre-review T2b1 #1). Match Operations decides with S12's timeline.
+- S05-T2c: while `LIVE`, reversing a `PERIOD_START` or `PERIOD_END` that later events depend on (the second half's start
+  after a second-half goal) leaves those events in a period `Played` no longer lists; allow a period reversal only for
+  the latest period event, or decide with tie resolution (#79 R2, optional part).
 
 **From S04** (each names its trigger)
 - e2e on a reused local database (S04-T4b1; owner 2026-10-30: kept until then): every run adds owners to KMSA
