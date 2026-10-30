@@ -19,11 +19,12 @@ import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { FormField } from "@/components/form-field";
 import { ProblemAlert } from "@/components/problem-alert";
+import { QuotaUsage } from "@/components/quota-usage";
 import { call, isApiProblem } from "@/lib/api";
 import { humanizeCode } from "@/lib/codes";
 import { applyFieldErrors, needsAlert } from "@/lib/form-errors";
 import { useTenantWorkspace } from "@/lib/tenant-workspace";
-import { ownerRole, useRefreshMembership } from "./members-data";
+import { ownerRole, useRefreshMembership, useStaffUsage } from "./members-data";
 
 const tenantRoles = rolesAssignableAt("TENANT");
 
@@ -34,13 +35,17 @@ const schema = z.object({
 type Values = z.infer<typeof schema>;
 const fields = { email: "email", roleCodes: "roleCodes" } as const;
 
-/** Invites a person by email with tenant-wide roles; they get a link that lasts 7 days. */
+/**
+ * Invites a person by email with tenant-wide roles; they get a link that lasts 7 days. Shows the staff users against
+ * the plan (S04 D15) without refusing at the limit itself: a re-invitation to a pending address takes no new seat.
+ */
 export function InviteDialog({
   isOwner,
   onOpenChange,
 }: Readonly<{ isOwner: boolean; onOpenChange: (open: boolean) => void }>) {
   const { tenant, client } = useTenantWorkspace();
   const refresh = useRefreshMembership();
+  const staffUsage = useStaffUsage();
   const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues: { email: "", roleCodes: [] } });
 
   const invite = useMutation({
@@ -54,6 +59,10 @@ export function InviteDialog({
       // Already a member: a fact about the address, so it goes under the address.
       if (isApiProblem(error, "AUTH_ALREADY_MEMBER")) {
         form.setError("email", { type: "server", message: errorMessage("AUTH_ALREADY_MEMBER") });
+      }
+      // Every seat taken meanwhile: the usage and the section's button catch up.
+      if (isApiProblem(error, "ENTITLEMENT_QUOTA_EXCEEDED")) {
+        void refresh();
       }
     },
   });
@@ -73,6 +82,7 @@ export function InviteDialog({
               replaced.
             </DialogDescription>
           </DialogHeader>
+          {staffUsage ? <QuotaUsage usage={staffUsage} unit="staff users" /> : null}
           {alert ? <ProblemAlert error={invite.error} /> : null}
           <FormField
             id="invite-email"

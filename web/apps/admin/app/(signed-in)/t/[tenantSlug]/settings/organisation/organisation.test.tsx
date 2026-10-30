@@ -2,7 +2,7 @@
 // If-Match, a concurrency conflict offers a reload, the API's field errors go under their fields.
 import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { tenantCapabilities } from "@/test/capabilities";
+import { readOnlyCapabilities, tenantCapabilities } from "@/test/capabilities";
 import { fakeApi, problem, renderWithQuery, type Answer } from "@/test/render";
 import TenantWorkspaceLayout from "../../layout";
 import OrganisationPage from "./page";
@@ -78,6 +78,24 @@ describe("organisation settings", () => {
     expect(screen.getByText(/You can see these settings but not change them/)).toBeTruthy();
     expect(screen.getByRole("group", { name: "Organisation settings" }).hasAttribute("disabled")).toBe(true);
     expect(screen.queryByRole("button", { name: "Save changes" })).toBeNull();
+  });
+
+  it("disables the form and its button for an administrator of a read-only tenant, saying why", async () => {
+    open([], {
+      "GET /api/admin/v1/me/capabilities": {
+        status: 200,
+        body: readOnlyCapabilities(["tenant.settings.read"], ["tenant.settings.update"]),
+      },
+    });
+
+    await screen.findByLabelText("Time zone");
+    expect(screen.getByText("Read-only: the subscription was cancelled")).toBeTruthy();
+    expect(screen.queryByText(/You can see these settings but not change them/)).toBeNull();
+    expect(screen.getByRole("group", { name: "Organisation settings" }).hasAttribute("disabled")).toBe(true);
+    const save = screen.getByRole("button", { name: "Save changes" });
+    expect(save.hasAttribute("disabled")).toBe(true);
+    expect(save.getAttribute("aria-describedby")).toBe("read-only-note");
+    expect(document.getElementById("read-only-note")?.textContent).toBe("Read-only: the subscription was cancelled");
   });
 
   it("sends only the changed settings, with the version it read as If-Match", async () => {

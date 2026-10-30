@@ -9,7 +9,7 @@ import { OrganisationForm } from "./organisation-form";
 
 /** Tenant settings → Organisation (admin-app.md): the tenant's settings, editable with `tenant.settings.update`. */
 export default function OrganisationPage() {
-  const { tenant, can } = useTenantWorkspace();
+  const { tenant, can, unavailable } = useTenantWorkspace();
   const settings = useTenantSettings();
 
   if (!can("tenant.settings.read")) {
@@ -30,6 +30,7 @@ export default function OrganisationPage() {
         <OrganisationForm
           settings={settings.data}
           editable={can("tenant.settings.update")}
+          unavailable={unavailable("tenant.settings.update")}
           onReload={() => void settings.refetch()}
         />
       ) : null}
