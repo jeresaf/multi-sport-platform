@@ -150,6 +150,29 @@ public sealed class TimelineChecksTests
     }
 
     [Fact]
+    public void Play_goes_on_in_sudden_death_once_a_correction_of_an_earlier_period_levels_the_totals()
+    {
+        // 3–3 after normal time, a home penalty in sudden death, then the home first-half penalty is reversed: 3–3 again.
+        var ctx = Context(RugbyUnion15, _home, _away);
+        var decided = new[]
+        {
+            Start(1, "FIRST_HALF"),
+            Event(2, "PENALTY_GOAL", Home) with { Actors = Roles(("KICKER", Person(1))), PeriodCode = "FIRST_HALF", PeriodOccurrence = 1 },
+            Event(3, GenericEventCodes.PeriodEnd) with { PeriodCode = "FIRST_HALF", PeriodOccurrence = 1 },
+            Start(4, "SECOND_HALF"),
+            Event(5, "PENALTY_GOAL", Away) with { Actors = Roles(("KICKER", Person(11))), PeriodCode = "SECOND_HALF", PeriodOccurrence = 1 },
+            Event(6, GenericEventCodes.PeriodEnd) with { PeriodCode = "SECOND_HALF", PeriodOccurrence = 1 },
+            Start(7, "SUDDEN_DEATH"),
+            Event(8, "PENALTY_GOAL", Home) with { Actors = Roles(("KICKER", Person(1))), PeriodCode = "SUDDEN_DEATH", PeriodOccurrence = 1 },
+        };
+        var levelled = decided.Append(Event(9, GenericEventCodes.EventReversed) with { ReversesEventId = Id(2) }).ToArray();
+        var awayTry = Draft("TRY") with { ParticipantId = Away, Actors = Scorer(Person(11)) };
+
+        Codes(Validate(ctx, decided, awayTry)).ShouldBe([SportsConfigurationErrors.TimelineEventNotAllowedInPhase.Code]);
+        Validate(ctx, levelled, awayTry).IsValid.ShouldBeTrue();
+    }
+
+    [Fact]
     public void A_sudden_death_score_the_rules_make_worth_nothing_decides_nothing()
     {
         var ctx = Context(RugbyUnion15, _home, _away) with { Rules = new ContestRules([KeyValuePair.Create("scoring.points.PENALTY_GOAL", (object)0L)]) };

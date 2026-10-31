@@ -40,7 +40,7 @@ events:
   - { minute: 103, type: PENALTY_GOAL_MISSED, team: Ggaba Gulls RFC, actors: { KICKER: Godwin Akena }, outcome: { requires: EXTRA_TIME } }
   - { minute: 106, type: TRY, team: Mutungo Marlins RFC, actors: { SCORER: Martin Ssekiziyivu }, outcome: { winner: Mutungo Marlins RFC, method: SUDDEN_DEATH, requires_end: true } }
   - { minute: 107, type: CONVERSION_MADE, team: Mutungo Marlins RFC, actors: { KICKER: Ivan Opoka }, rejected: [TIMELINE_EVENT_NOT_ALLOWED_IN_PHASE] }
-  - { minute: 106, type: PERIOD_END }
+  - { minute: 107, type: PERIOD_END }
 expect:
   score:
     Mutungo Marlins RFC: { total: 18, periods: { 1H: 0, 2H: 10, ET1: 0, ET2: 3, SD: 5 } }

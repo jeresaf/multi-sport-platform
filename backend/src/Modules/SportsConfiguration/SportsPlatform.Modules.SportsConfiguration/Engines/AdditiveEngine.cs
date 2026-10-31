@@ -35,8 +35,31 @@ public sealed class AdditiveEngine : IScoringEngine
 
     public ValidationResult Validate(ContestContext ctx, ContestLiveState live, TimelineEventDraft draft)
     {
-        return TimelineChecks.Validate(ctx, live, draft);
+        ArgumentNullException.ThrowIfNull(live);
+        return TimelineChecks.Validate(ctx, live, draft, check => SuddenDeathDecided(ctx, live.Score, check));
     }
+
+    // §5 Outcome: the first score in a sudden_death period ends the contest (REQUIRES_END), so another one is refused
+    // while it stands and still decides the totals (owner, 2026-10-30), as ProposeOutcome reads it. Correcting or
+    // reversing the deciding score stays possible, and once an earlier period's correction levels the totals again
+    // play goes on (review #81 R1).
+    private static bool SuddenDeathDecided(ContestContext ctx, ScoreState state, PhaseCheck check)
+    {
+        if (!ScoresMain(ctx, check.Type) || check.Period is not { } period || !PhaseTracker.Period(ctx.Definition, period.PeriodCode).SuddenDeath)
+        {
+            return false;
+        }
+
+        var score = state as AdditiveScoreState ?? throw new ArgumentException($"Expected the {FamilyCode} state.", nameof(state));
+        var level = ctx.Sides.Select(side => score.For(side.ParticipantId).Total).Distinct().Count() == 1;
+        return !level && check.Active.Any(evt => evt.Id != check.Replaced?.Id
+            && evt.PeriodCode == period.PeriodCode && evt.PeriodOccurrence == period.Occurrence
+            && ScoresMain(ctx, ctx.Definition.EventTypes.FirstOrDefault(candidate => candidate.Code == evt.EventType)));
+    }
+
+    // What Apply adds to the main score, the one the outcome compares: the type's points, or the rules' override.
+    private static bool ScoresMain(ContestContext ctx, EventTypeDefinition? type) =>
+        Points(ctx, type) != 0 && (type!.Component ?? ScoringFamilies.MainComponent) == ScoringFamilies.MainComponent;
 
     public ScoreState Apply(ContestContext ctx, ScoreState state, TimelineEvent evt)
     {
@@ -80,7 +103,7 @@ public sealed class AdditiveEngine : IScoringEngine
     /// (sport-engine.md §5, Apply), never make another type score (a missed attempt is worth 0 by definition); whether a
     /// template lets tenants change it is the resolver's check.
     /// </summary>
-    internal static int Points(ContestContext ctx, EventTypeDefinition? type) =>
+    private static int Points(ContestContext ctx, EventTypeDefinition? type) =>
         type is not { Points: { } defined and not 0 }
             ? 0
             : ctx.Rules.Number(PointsRulePrefix + type.Code) is { } overridden ? checked((int)overridden) : defined;

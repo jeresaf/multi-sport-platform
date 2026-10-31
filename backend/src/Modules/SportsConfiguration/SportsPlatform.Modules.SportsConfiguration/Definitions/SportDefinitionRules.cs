@@ -1,5 +1,6 @@
 using System.Text.Json.Nodes;
 using SportsPlatform.Modules.SportsConfiguration.Contracts.Engines;
+using Resolutions = SportsPlatform.Modules.SportsConfiguration.Contracts.Engines.TieResolutions;
 
 namespace SportsPlatform.Modules.SportsConfiguration.Definitions;
 
@@ -229,23 +230,23 @@ internal sealed class SportDefinitionRules
                 continue;
             }
 
-            if (resolution.EndsWith("SHOOTOUT", StringComparison.Ordinal) && !Has(period => Text(period, "kind") == "SHOOTOUT"))
+            if ((resolution is Resolutions.ExtraPeriodsThenShootout or Resolutions.Shootout) && !Has(period => Text(period, "kind") == "SHOOTOUT"))
             {
                 Problem(path, $"tie resolution \"{resolution}\" needs a period of kind SHOOTOUT");
             }
 
-            if (resolution.StartsWith("EXTRA_PERIODS", StringComparison.Ordinal) && !Has(Overtime))
+            if ((resolution is Resolutions.ExtraPeriodsThenShootout or Resolutions.ExtraPeriodsSuddenDeath) && !Has(Overtime))
             {
                 Problem(path, $"tie resolution \"{resolution}\" needs an overtime PLAY period");
             }
 
             // The first score ends it, and scoring happens only in PLAY periods.
-            if (resolution.EndsWith("SUDDEN_DEATH", StringComparison.Ordinal) && !Has(period => Overtime(period) && Flag(period, "sudden_death")))
+            if (resolution == Resolutions.ExtraPeriodsSuddenDeath && !Has(period => Overtime(period) && Flag(period, "sudden_death")))
             {
                 Problem(path, $"tie resolution \"{resolution}\" needs a sudden_death overtime PLAY period");
             }
 
-            if (resolution == "REPEAT_EXTRA_PERIOD" && !Has(period => Overtime(period) && Flag(period, "repeatable")))
+            if (resolution == Resolutions.RepeatExtraPeriod && !Has(period => Overtime(period) && Flag(period, "repeatable")))
             {
                 Problem(path, $"tie resolution \"{resolution}\" needs a repeatable overtime PLAY period");
             }

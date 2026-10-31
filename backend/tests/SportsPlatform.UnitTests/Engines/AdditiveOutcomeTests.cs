@@ -47,7 +47,8 @@ public sealed class AdditiveOutcomeTests
     [Theory]
     [InlineData("home:1H 2H", OutcomeMethod.Regulation)]
     [InlineData("1H 2H BET home:ET1", OutcomeMethod.ExtraTime)]
-    // A goal corrected into normal time after extra time started is still decided in extra time.
+    // The away side's normal-time equaliser reversed after extra time started: extra time was played, so it was decided
+    // there (owner, review #81 R5).
     [InlineData("home:1H 2H BET ET1", OutcomeMethod.ExtraTime)]
     [InlineData("1H 2H BET ET1 ETB ET2 BP home-shootout:PEN", OutcomeMethod.Shootout)]
     public void A_different_score_wins_by_where_the_contest_was_decided(string periods, OutcomeMethod method)
