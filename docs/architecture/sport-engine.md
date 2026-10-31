@@ -207,9 +207,12 @@ contest is Contest Operations' call (S12; owner, 2026-10-30). `OutcomeProposal` 
   `NextPeriodCode` (level at the end of normal time in a cup: `AWAITING_EXTRA_TIME`). Past the end of the sequence, a
   last `PLAY` period still running is `RequiresExtraTime` with no next period; once it has ended the sequence starts
   again at its first `repeatable` entry (basketball's `AWAITING_OVERTIME`), or nothing is left and level is a draw.
-- **Sudden death in Validate:** with the phase group, a scoring event (points other than 0 in `main`) in a
-  `sudden_death` period is `TIMELINE_EVENT_NOT_ALLOWED_IN_PHASE` while another one stands there (owner, 2026-10-30);
-  correcting or reversing the deciding score stays possible, and a miss scores nothing.
+- **Sudden death in Validate:** with the phase group, a scoring event (points other than 0 in `main`, after the
+  rules' override, as Apply counts them) in a `sudden_death` period is `TIMELINE_EVENT_NOT_ALLOWED_IN_PHASE` while
+  another one stands in the same occurrence (owner, 2026-10-30); correcting or reversing the deciding score stays
+  possible, and a miss scores nothing. The outcome reads a sudden-death win from any `main` points in such a period
+  and gives the winner by the totals; the two differ only if an earlier period is corrected after sudden death
+  started, and Results approves either way.
 - **Not checked:** which period may start next (a league starting extra time, extra time with one side ahead) is
   Contest Operations' offer from the proposal (S12).
 - **Scenarios:** every file states `expect.outcome` (`winner` and `method`, with `requires_end`; `draw: true`; or
