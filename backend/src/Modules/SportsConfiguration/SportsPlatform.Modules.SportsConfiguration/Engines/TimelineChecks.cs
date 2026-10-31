@@ -40,7 +40,7 @@ public static class TimelineChecks
         var period = basis.Replaced is { PeriodCode: { } code } replaced
             ? new PlayedPeriod(code, replaced.PeriodOccurrence)
             : basis.Phase.PeriodCode is { } current ? new PlayedPeriod(current, basis.Phase.Occurrence) : null;
-        if (!PhaseAllows(ctx.Definition, basis.Phase, type, draft) || SuddenDeathDecided(ctx.Definition, live, basis, type, period))
+        if (!PhaseAllows(ctx.Definition, basis.Phase, type, draft) || SuddenDeathDecided(ctx, live, basis, type, period))
         {
             return ValidationResult.Invalid(SportsConfigurationErrors.TimelineEventNotAllowedInPhase);
         }
@@ -160,21 +160,21 @@ public static class TimelineChecks
 
     // §5 Outcome: the first score in a sudden_death period ends the contest (REQUIRES_END), so another one is refused
     // while it stands (owner, 2026-10-30); correcting the deciding score, or reversing it, stays possible.
-    private static bool SuddenDeathDecided(SportDefinition definition, ContestLiveState live, Basis basis, EventTypeDefinition? type, PlayedPeriod? period)
+    private static bool SuddenDeathDecided(ContestContext ctx, ContestLiveState live, Basis basis, EventTypeDefinition? type, PlayedPeriod? period)
     {
-        if (!Scores(type) || period is null || !PhaseTracker.Period(definition, period.PeriodCode).SuddenDeath)
+        if (!Scores(ctx, type) || period is null || !PhaseTracker.Period(ctx.Definition, period.PeriodCode).SuddenDeath)
         {
             return false;
         }
 
         return ByOrigin(live).Any(evt => evt.Id != basis.Replaced?.Id
             && evt.PeriodCode == period.PeriodCode && evt.PeriodOccurrence == period.Occurrence
-            && Scores(Type(definition, evt.EventType)));
+            && Scores(ctx, Type(ctx.Definition, evt.EventType)));
     }
 
-    // What Apply counts towards the winner: a type worth points other than 0 in the main component.
-    private static bool Scores(EventTypeDefinition? type) =>
-        type is { Points: { } points and not 0 } && (type.Component ?? ScoringFamilies.MainComponent) == ScoringFamilies.MainComponent;
+    // What Apply adds to the main score, the one the outcome compares: the type's points, or the rules' override.
+    private static bool Scores(ContestContext ctx, EventTypeDefinition? type) =>
+        AdditiveEngine.Points(ctx, type) != 0 && (type!.Component ?? ScoringFamilies.MainComponent) == ScoringFamilies.MainComponent;
 
     // An event of a side (it scores, names people, has effects, limits or a follow-up) needs one of the contest's
     // participants; any other event may name one, but only one of the contest's.

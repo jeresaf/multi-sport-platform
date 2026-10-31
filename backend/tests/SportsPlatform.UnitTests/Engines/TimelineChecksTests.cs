@@ -149,6 +149,31 @@ public sealed class TimelineChecksTests
             .ShouldBe([SportsConfigurationErrors.TimelineEventNotAllowedInPhase.Code]);
     }
 
+    [Fact]
+    public void A_sudden_death_score_the_rules_make_worth_nothing_decides_nothing()
+    {
+        var ctx = Context(RugbyUnion15, _home, _away) with { Rules = new ContestRules([KeyValuePair.Create("scoring.points.PENALTY_GOAL", (object)0L)]) };
+        var timeline = new[]
+        {
+            Start(1, "SUDDEN_DEATH"),
+            Event(2, "PENALTY_GOAL", Home) with { Actors = Roles(("KICKER", Person(1))), PeriodCode = "SUDDEN_DEATH", PeriodOccurrence = 1 },
+        };
+
+        Validate(ctx, timeline, Draft("TRY") with { ParticipantId = Away, Actors = Scorer(Person(11)) }).IsValid.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Each_occurrence_of_a_repeated_sudden_death_period_is_decided_by_its_own_first_score()
+    {
+        var ctx = Context(RugbyUnion7, _home, _away);
+        var scoreless = new[] { Start(1, "EXTRA_TIME"), Event(2, GenericEventCodes.PeriodEnd) with { PeriodCode = "EXTRA_TIME", PeriodOccurrence = 1 }, Start(3, "EXTRA_TIME", 2) };
+        var decided = scoreless.Append(Event(4, "TRY", Home) with { Actors = Scorer(Person(1)), PeriodCode = "EXTRA_TIME", PeriodOccurrence = 2 }).ToArray();
+
+        Validate(ctx, scoreless, Draft("TRY") with { ParticipantId = Home, Actors = Scorer(Person(1)) }).IsValid.ShouldBeTrue();
+        Codes(Validate(ctx, decided, Draft("TRY") with { ParticipantId = Away, Actors = Scorer(Person(11)) }))
+            .ShouldBe([SportsConfigurationErrors.TimelineEventNotAllowedInPhase.Code]);
+    }
+
     private static ValidationResult Validate(ContestStatus status, TimelineEvent[] timeline, TimelineEventDraft draft) =>
         Validate(Ctx, timeline, draft, status);
 

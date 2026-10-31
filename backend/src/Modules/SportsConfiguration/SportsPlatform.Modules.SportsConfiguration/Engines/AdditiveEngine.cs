@@ -54,15 +54,8 @@ public sealed class AdditiveEngine : IScoringEngine
         }
 
         var type = ctx.Definition.EventTypes.FirstOrDefault(candidate => candidate.Code == evt.EventType);
-        // The rules may change what a scoring type is worth (sport-engine.md §5, Apply), never make another type score
-        // (a missed attempt is worth 0 by definition); whether a template lets tenants change it is the resolver's check.
-        if (type is not { Points: { } defined and not 0 })
-        {
-            return score;
-        }
-
-        var points = ctx.Rules.Number(PointsRulePrefix + type.Code) is { } overridden ? checked((int)overridden) : defined;
-        if (points == 0)
+        var points = Points(ctx, type);
+        if (type is null || points == 0)
         {
             return score;
         }
@@ -81,6 +74,16 @@ public sealed class AdditiveEngine : IScoringEngine
             Participants = score.Participants.SetItem(receiver, score.For(receiver).Add(component, period, points)),
         };
     }
+
+    /// <summary>
+    /// What an event of <paramref name="type"/> scores. The rules may change what a scoring type is worth
+    /// (sport-engine.md §5, Apply), never make another type score (a missed attempt is worth 0 by definition); whether a
+    /// template lets tenants change it is the resolver's check.
+    /// </summary>
+    internal static int Points(ContestContext ctx, EventTypeDefinition? type) =>
+        type is not { Points: { } defined and not 0 }
+            ? 0
+            : ctx.Rules.Number(PointsRulePrefix + type.Code) is { } overridden ? checked((int)overridden) : defined;
 
     /// <summary>
     /// The outcome as the score stands (sport-engine.md §5, "Outcome"; when the contest may end is Contest Operations'
