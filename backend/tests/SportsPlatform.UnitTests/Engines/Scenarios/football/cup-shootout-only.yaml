@@ -1,0 +1,45 @@
+title: Ntinda Swifts FC and Bukoto Comets FC draw 2–2 in a cup that goes straight to penalties; Ntinda Swifts FC win the shoot-out 5–4
+# A cup whose rules have no extra time (tie_resolution SHOOTOUT): level after 90 minutes it needs the shoot-out.
+definition: { variant: FOOTBALL_ASSOCIATION, version: 1 }
+covers: [OUTCOME_SHOOTOUT]
+rules: FOOTBALL_CUP
+rule_overrides:
+  contest.tie_resolution: SHOOTOUT
+  contest.extra_period_sequence: [AWAITING_SHOOTOUT, PENALTY_SHOOTOUT]
+coverage: STANDARD
+home:
+  team: Ntinda Swifts FC
+  starters: [Abbey Mubiru, Benedict Opio, Cedric Ssebunya, Dominic Okumu, Ezra Mwesigwa, Fabian Kalule, Gilbert Oketcho, Hudson Ssemanda, Ignatius Ojara, Jude Kintu, Kevin Amanya]
+  bench: [Leonard Ssali, Mark Ogwal]
+away:
+  team: Bukoto Comets FC
+  starters: [Nelson Kiwanuka, Olivier Ekiru, Phillip Mawanda, Rogers Achola, Stephen Kayondo, Titus Opiro, Umaru Ssekandi, Valentine Odeke, Wilfred Ssenkima, Yoweri Aliker, Zubair Mukwaya]
+  bench: [Allan Kalema, Bruno Ochaya]
+events:
+  - { minute: 0, type: PERIOD_START, period: FIRST_HALF }
+  - { minute: 12, type: GOAL, team: Ntinda Swifts FC, actors: { SCORER: Jude Kintu } }
+  - { minute: 33, type: GOAL, team: Bukoto Comets FC, actors: { SCORER: Wilfred Ssenkima } }
+  - { minute: 45+1, type: PERIOD_END }
+  - { minute: 45, type: PERIOD_START, period: SECOND_HALF }
+  - { minute: 58, type: GOAL, team: Bukoto Comets FC, actors: { SCORER: Valentine Odeke } }
+  - { minute: 81, type: PENALTY_GOAL, team: Ntinda Swifts FC, actors: { TAKER: Kevin Amanya } }
+  - { minute: 90+4, type: PERIOD_END, outcome: { requires: SHOOTOUT, next_period: AWAITING_SHOOTOUT } }
+  - { minute: 90, type: PERIOD_START, period: AWAITING_SHOOTOUT, outcome: { requires: SHOOTOUT, next_period: PENALTY_SHOOTOUT } }
+  - { minute: 90, type: PERIOD_END }
+  - { type: PERIOD_START, period: PENALTY_SHOOTOUT }
+  - { type: SHOOTOUT_GOAL, team: Ntinda Swifts FC, actors: { TAKER: Kevin Amanya } }
+  - { type: SHOOTOUT_GOAL, team: Bukoto Comets FC, actors: { TAKER: Wilfred Ssenkima } }
+  - { type: SHOOTOUT_GOAL, team: Ntinda Swifts FC, actors: { TAKER: Jude Kintu } }
+  - { type: SHOOTOUT_GOAL, team: Bukoto Comets FC, actors: { TAKER: Valentine Odeke } }
+  - { type: SHOOTOUT_GOAL, team: Ntinda Swifts FC, actors: { TAKER: Ignatius Ojara } }
+  - { type: SHOOTOUT_GOAL, team: Bukoto Comets FC, actors: { TAKER: Umaru Ssekandi } }
+  - { type: SHOOTOUT_GOAL, team: Ntinda Swifts FC, actors: { TAKER: Hudson Ssemanda } }
+  - { type: SHOOTOUT_GOAL, team: Bukoto Comets FC, actors: { TAKER: Titus Opiro } }
+  - { type: SHOOTOUT_GOAL, team: Ntinda Swifts FC, actors: { TAKER: Fabian Kalule } }
+  - { type: SHOOTOUT_MISS, team: Bukoto Comets FC, actors: { TAKER: Stephen Kayondo }, payload: { outcome: SAVED } }
+  - { type: PERIOD_END }
+expect:
+  score:
+    Ntinda Swifts FC: { total: 2, shootout: 5, periods: { 1H: 1, 2H: 1 } }
+    Bukoto Comets FC: { total: 2, shootout: 4, periods: { 1H: 1, 2H: 1 } }
+  outcome: { winner: Ntinda Swifts FC, method: SHOOTOUT }

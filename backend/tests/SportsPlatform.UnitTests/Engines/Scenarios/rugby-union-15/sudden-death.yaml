@@ -1,0 +1,48 @@
+title: Mutungo Marlins RFC and Ggaba Gulls RFC are level 10–10 after 80 minutes and 13–13 after extra time; a Mutungo Marlins RFC try in sudden death wins it 18–13
+# A knockout (EXTRA_PERIODS_SUDDEN_DEATH): the first score in the sudden-death period wins and ends the match, so the
+# conversion after it is refused. Rugby is seeded in S15; this reads its reference definition, which has the
+# sudden_death period football lacks.
+definition: { variant: RUGBY_UNION_15, version: 1 }
+covers: [OUTCOME_EXTRA_PERIODS, OUTCOME_SUDDEN_DEATH]
+rules: RUGBY15_KNOCKOUT
+coverage: STANDARD
+home:
+  team: Mutungo Marlins RFC
+  starters: [Abdu Ssemakula, Benson Okwera, Charles Ssenfuma, Derrick Oyet, Elias Kawooya, Fidel Ochom, Gaster Ssebunnya, Hakim Kyobe, Ivan Opoka, Julius Nsamba, Kalule Mpagi, Livingstone Odur, Martin Ssekiziyivu, Nicholas Engola, Oscar Kagimu]
+  bench: [Pius Ssendagire, Quentin Abwang]
+away:
+  team: Ggaba Gulls RFC
+  starters: [Aggrey Nkuutu, Bernard Ssekatawa, Calvin Onen, Dan Mpiima, Edgar Tumwine, Fahad Ssenkubuge, Godwin Akena, Hillary Mukiibi, Innocent Lutalo, Jimmy Ekiring, Kizza Ssemwogerere, Lameck Okidi, Musa Kakande, Norman Ssenyange, Obed Atwine]
+  bench: [Phillip Kyeyune, Reagan Ochan]
+events:
+  - { minute: 0, type: PERIOD_START, period: FIRST_HALF }
+  - { minute: 18, type: TRY, team: Ggaba Gulls RFC, actors: { SCORER: Obed Atwine } }
+  - { minute: 19, type: CONVERSION_MADE, team: Ggaba Gulls RFC, actors: { KICKER: Godwin Akena } }
+  - { minute: 33, type: PENALTY_GOAL, team: Ggaba Gulls RFC, actors: { KICKER: Godwin Akena } }
+  - { minute: 40+1, type: PERIOD_END }
+  - { minute: 40, type: PERIOD_START, period: SECOND_HALF }
+  - { minute: 52, type: PENALTY_GOAL, team: Mutungo Marlins RFC, actors: { KICKER: Ivan Opoka } }
+  - { minute: 74, type: TRY, team: Mutungo Marlins RFC, actors: { SCORER: Oscar Kagimu } }
+  - { minute: 75, type: CONVERSION_MADE, team: Mutungo Marlins RFC, actors: { KICKER: Ivan Opoka } }
+  - { minute: 80+1, type: PERIOD_END, outcome: { requires: EXTRA_TIME, next_period: AWAITING_EXTRA_TIME } }
+  - { minute: 80, type: PERIOD_START, period: AWAITING_EXTRA_TIME }
+  - { minute: 80, type: PERIOD_END }
+  - { minute: 80, type: PERIOD_START, period: EXTRA_TIME_FIRST_HALF }
+  - { minute: 86, type: PENALTY_GOAL, team: Ggaba Gulls RFC, actors: { KICKER: Godwin Akena } }
+  - { minute: 90, type: PERIOD_END }
+  - { minute: 90, type: PERIOD_START, period: EXTRA_TIME_HALF_TIME }
+  - { minute: 90, type: PERIOD_END }
+  - { minute: 90, type: PERIOD_START, period: EXTRA_TIME_SECOND_HALF }
+  - { minute: 97, type: DROP_GOAL, team: Mutungo Marlins RFC, actors: { KICKER: Ivan Opoka } }
+  - { minute: 100, type: PERIOD_END, outcome: { requires: EXTRA_TIME, next_period: SUDDEN_DEATH } }
+  - { minute: 100, type: PERIOD_START, period: SUDDEN_DEATH }
+  # A miss scores nothing and doesn't decide the match.
+  - { minute: 103, type: PENALTY_GOAL_MISSED, team: Ggaba Gulls RFC, actors: { KICKER: Godwin Akena }, outcome: { requires: EXTRA_TIME } }
+  - { minute: 106, type: TRY, team: Mutungo Marlins RFC, actors: { SCORER: Martin Ssekiziyivu }, outcome: { winner: Mutungo Marlins RFC, method: SUDDEN_DEATH, requires_end: true } }
+  - { minute: 107, type: CONVERSION_MADE, team: Mutungo Marlins RFC, actors: { KICKER: Ivan Opoka }, rejected: [TIMELINE_EVENT_NOT_ALLOWED_IN_PHASE] }
+  - { minute: 107, type: PERIOD_END }
+expect:
+  score:
+    Mutungo Marlins RFC: { total: 18, periods: { 1H: 0, 2H: 10, ET1: 0, ET2: 3, SD: 5 } }
+    Ggaba Gulls RFC: { total: 13, periods: { 1H: 10, 2H: 0, ET1: 3, ET2: 0, SD: 0 } }
+  outcome: { winner: Mutungo Marlins RFC, method: SUDDEN_DEATH, requires_end: true }

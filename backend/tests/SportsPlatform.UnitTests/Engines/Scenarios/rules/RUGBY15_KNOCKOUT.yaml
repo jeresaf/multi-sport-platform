@@ -1,0 +1,15 @@
+# A rugby 15s knockout for the sudden-death scenario: the league's contest values (RUGBY15_LEAGUE) plus extra time
+# and sudden death as docs/domain/sports/rugby-union-15.yaml's comment shows the sequence. Test-only: rugby's
+# templates come with S15.
+contest:
+  period_seconds: { FIRST_HALF: 2400, HALF_TIME: 900, SECOND_HALF: 2400, EXTRA_TIME_FIRST_HALF: 600, EXTRA_TIME_SECOND_HALF: 600, SUDDEN_DEATH: 600 }
+  tie_resolution: EXTRA_PERIODS_SUDDEN_DEATH
+  extra_period_sequence: [AWAITING_EXTRA_TIME, EXTRA_TIME_FIRST_HALF, EXTRA_TIME_HALF_TIME, EXTRA_TIME_SECOND_HALF, SUDDEN_DEATH]
+  coverage_default: STANDARD
+lineup:
+  starters: 15
+  bench_max: 8
+  requires_approval: false
+substitutions: { max: 8 }
+operations:
+  scorer_correction_window_minutes: 60

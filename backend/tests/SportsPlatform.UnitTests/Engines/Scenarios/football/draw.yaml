@@ -1,6 +1,6 @@
-title: Kansanga Harriers FC and Nakawa Nomads FC share the points 1–1
+title: Kansanga Harriers FC and Nakawa Nomads FC share the points 1–1, and in a league the draw stays a draw
 definition: { variant: FOOTBALL_ASSOCIATION, version: 1 }
-covers: [APPLY]
+covers: [APPLY, OUTCOME_DRAW]
 rules: FOOTBALL_LEAGUE
 coverage: STANDARD
 home:

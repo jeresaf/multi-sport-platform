@@ -14,10 +14,29 @@ public static class ScoringFamilies
     {
         [Additive] = new(
             ScoreComponents: Set(MainComponent, "shootout"),
-            TieResolutions: Set("DRAW", "EXTRA_PERIODS_THEN_SHOOTOUT", "REPEAT_EXTRA_PERIOD", "EXTRA_PERIODS_SUDDEN_DEATH", "SHOOTOUT")),
+            TieResolutions: Set(
+                TieResolutions.Draw,
+                TieResolutions.ExtraPeriodsThenShootout,
+                TieResolutions.RepeatExtraPeriod,
+                TieResolutions.ExtraPeriodsSuddenDeath,
+                TieResolutions.Shootout)),
     };
 
     private static HashSet<string> Set(params string[] values) => new(values, StringComparer.Ordinal);
 }
 
 public sealed record ScoringFamily(IReadOnlySet<string> ScoreComponents, IReadOnlySet<string> TieResolutions);
+
+/// <summary>The rules' <c>contest.tie_resolution</c> values (sport-engine.md §5, "Outcome").</summary>
+public static class TieResolutions
+{
+    public const string Draw = "DRAW";
+
+    public const string ExtraPeriodsThenShootout = "EXTRA_PERIODS_THEN_SHOOTOUT";
+
+    public const string RepeatExtraPeriod = "REPEAT_EXTRA_PERIOD";
+
+    public const string ExtraPeriodsSuddenDeath = "EXTRA_PERIODS_SUDDEN_DEATH";
+
+    public const string Shootout = "SHOOTOUT";
+}
