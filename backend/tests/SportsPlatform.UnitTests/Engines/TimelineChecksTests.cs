@@ -133,6 +133,77 @@ public sealed class TimelineChecksTests
             .ShouldBe([SportsConfigurationErrors.TimelineReferenceInvalid.Code]);
     }
 
+    [Fact]
+    public void The_score_that_decides_a_sudden_death_period_can_still_be_corrected_or_reversed()
+    {
+        var ctx = Context(RugbyUnion15, _home, _away);
+        var timeline = new[]
+        {
+            Start(1, "SUDDEN_DEATH"),
+            Event(2, "TRY", Home) with { Actors = Scorer(Person(1)), PeriodCode = "SUDDEN_DEATH", PeriodOccurrence = 1 },
+        };
+
+        Validate(ctx, timeline, Draft("TRY") with { ParticipantId = Home, Actors = Scorer(Person(2)), SupersedesEventId = Id(2) }).IsValid.ShouldBeTrue();
+        Validate(ctx, timeline, Draft("EVENT_REVERSED") with { ReversesEventId = Id(2) }).IsValid.ShouldBeTrue();
+        Codes(Validate(ctx, timeline, Draft("PENALTY_GOAL") with { ParticipantId = Away, Actors = Roles(("KICKER", Person(11))) }))
+            .ShouldBe([SportsConfigurationErrors.TimelineEventNotAllowedInPhase.Code]);
+    }
+
+    [Fact]
+    public void Play_goes_on_in_sudden_death_once_a_correction_of_an_earlier_period_levels_the_totals()
+    {
+        // 3–3 after normal time, a home penalty in sudden death, then the home first-half penalty is reversed: 3–3 again.
+        var ctx = Context(RugbyUnion15, _home, _away);
+        var decided = new[]
+        {
+            Start(1, "FIRST_HALF"),
+            Event(2, "PENALTY_GOAL", Home) with { Actors = Roles(("KICKER", Person(1))), PeriodCode = "FIRST_HALF", PeriodOccurrence = 1 },
+            Event(3, GenericEventCodes.PeriodEnd) with { PeriodCode = "FIRST_HALF", PeriodOccurrence = 1 },
+            Start(4, "SECOND_HALF"),
+            Event(5, "PENALTY_GOAL", Away) with { Actors = Roles(("KICKER", Person(11))), PeriodCode = "SECOND_HALF", PeriodOccurrence = 1 },
+            Event(6, GenericEventCodes.PeriodEnd) with { PeriodCode = "SECOND_HALF", PeriodOccurrence = 1 },
+            Start(7, "SUDDEN_DEATH"),
+            Event(8, "PENALTY_GOAL", Home) with { Actors = Roles(("KICKER", Person(1))), PeriodCode = "SUDDEN_DEATH", PeriodOccurrence = 1 },
+        };
+        var levelled = decided.Append(Event(9, GenericEventCodes.EventReversed) with { ReversesEventId = Id(2) }).ToArray();
+        var awayTry = Draft("TRY") with { ParticipantId = Away, Actors = Scorer(Person(11)) };
+
+        Codes(Validate(ctx, decided, awayTry)).ShouldBe([SportsConfigurationErrors.TimelineEventNotAllowedInPhase.Code]);
+        Validate(ctx, levelled, awayTry).IsValid.ShouldBeTrue();
+
+        // The away try then decides it (3–8); it can still be corrected though the home score stands in the period too.
+        var redecided = levelled.Append(Event(10, "TRY", Away) with { Actors = Scorer(Person(11)), PeriodCode = "SUDDEN_DEATH", PeriodOccurrence = 1 }).ToArray();
+        Validate(ctx, redecided, Draft("TRY") with { ParticipantId = Away, Actors = Scorer(Person(12)), SupersedesEventId = Id(10) }).IsValid.ShouldBeTrue();
+        Validate(ctx, redecided, Draft("PENALTY_GOAL") with { ParticipantId = Away, Actors = Roles(("KICKER", Person(12))), SupersedesEventId = Id(10) }).IsValid.ShouldBeTrue();
+        Codes(Validate(ctx, redecided, Draft("TRY") with { ParticipantId = Home, Actors = Scorer(Person(2)) }))
+            .ShouldBe([SportsConfigurationErrors.TimelineEventNotAllowedInPhase.Code]);
+    }
+
+    [Fact]
+    public void A_sudden_death_score_the_rules_make_worth_nothing_decides_nothing()
+    {
+        var ctx = Context(RugbyUnion15, _home, _away) with { Rules = new ContestRules([KeyValuePair.Create("scoring.points.PENALTY_GOAL", (object)0L)]) };
+        var timeline = new[]
+        {
+            Start(1, "SUDDEN_DEATH"),
+            Event(2, "PENALTY_GOAL", Home) with { Actors = Roles(("KICKER", Person(1))), PeriodCode = "SUDDEN_DEATH", PeriodOccurrence = 1 },
+        };
+
+        Validate(ctx, timeline, Draft("TRY") with { ParticipantId = Away, Actors = Scorer(Person(11)) }).IsValid.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Each_occurrence_of_a_repeated_sudden_death_period_is_decided_by_its_own_first_score()
+    {
+        var ctx = Context(RugbyUnion7, _home, _away);
+        var scoreless = new[] { Start(1, "EXTRA_TIME"), Event(2, GenericEventCodes.PeriodEnd) with { PeriodCode = "EXTRA_TIME", PeriodOccurrence = 1 }, Start(3, "EXTRA_TIME", 2) };
+        var decided = scoreless.Append(Event(4, "TRY", Home) with { Actors = Scorer(Person(1)), PeriodCode = "EXTRA_TIME", PeriodOccurrence = 2 }).ToArray();
+
+        Validate(ctx, scoreless, Draft("TRY") with { ParticipantId = Home, Actors = Scorer(Person(1)) }).IsValid.ShouldBeTrue();
+        Codes(Validate(ctx, decided, Draft("TRY") with { ParticipantId = Away, Actors = Scorer(Person(11)) }))
+            .ShouldBe([SportsConfigurationErrors.TimelineEventNotAllowedInPhase.Code]);
+    }
+
     private static ValidationResult Validate(ContestStatus status, TimelineEvent[] timeline, TimelineEventDraft draft) =>
         Validate(Ctx, timeline, draft, status);
 

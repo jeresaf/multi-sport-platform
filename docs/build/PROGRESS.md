@@ -7,17 +7,15 @@ at the start of every review.
 
 - **Current slice:** S05 — Sports configuration (docs/build/slices/S05-sports-configuration.md, rewritten by the S04
   slice review). S00–S04 are done
-- **Current task:** S05-T2b2 — follow-ups, limits, the points override and the rule list — in review (#80); next is
-  `/next-task` for S05-T2c
-- **Next:** S05-T2c — outcome and tie resolution
+- **Current task:** S05-T2c — outcome and tie resolution — in review (#81); next is `/next-task` for S05-T3
+- **Next:** S05-T3 — formats and generators
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S05-T2c — outcome and tie resolution
-2. S05-T3 — Formats and generators (with `format.read` and its reads)
-3. S05-T4 — Ruleset templates and resolver (with `ruleset.read`, its reads and the preview)
-4. S05-T5 — Tenant sport enablement, Q27 and the screens (likely T5a, T5b1, T5b2)
+1. S05-T3 — Formats and generators (with `format.read` and its reads)
+2. S05-T4 — Ruleset templates and resolver (with `ruleset.read`, its reads and the preview)
+3. S05-T5 — Tenant sport enablement, Q27 and the screens (likely T5a, T5b1, T5b2)
 
 ## Log
 
@@ -96,6 +94,7 @@ at the start of every review.
 | 2026-10-30 | S05-T2a | #78 | Engine contract in Sports Configuration Contracts (`Engines`): `IScoringEngine` (ADR-0003), `IScoringEngines` (`EngineFor` by `scoring_family`, `Fold`), `TimelineEventDraft`, `TimelineEvent`, `ContestContext`, `ContestRules` (dotted paths), `ContestLiveState`, `ContestPhase`, `ContestPersonnel`, `ScoreSummary`, `OutcomeProposal`, `ValidationResult`, `ContestStatus`; `ScoringFamilies` moved there. Module `Engines/`: `TimelineFold` (effective status: only a later event that still stands counts), `PhaseTracker`, `PersonnelTracker` (effects from data, roles by pool), `AdditiveEngine` (points into components and periods, summary, winner or draw on `main`; validation knows event types only), `ScoringEngines`. Error `TIMELINE_EVENT_UNKNOWN`. Scenario runner (`Engines/Scenarios`, YAML match reports, base rules `rules/FOOTBALL_LEAGUE.yaml`) with 7 football scenarios. `EngineDependencyTests` | Owner (plan 2026-10-30, defaults taken; effective-status rule at pre-review, Deviations). No actions, endpoints, migrations or dependencies; OpenAPI unchanged. Tests: 1756 passed. Size: about 650 production and 780 test lines plus 180 of scenario YAML (over the ~600 guide; one PR). Pre-review (2 MAJOR, fixed): a temporary replacement sent off meanwhile no longer returns to the bench; the effective-status rule went to the owner and into §3 and state-machines.md. MINOR fixed: wider base-library bans, one occurrence source, one participant check, runner strictness; forked correction chains → T2b (Tech debt). CI: Contracts failed once on a stale `web/packages/api-client/src/generated/errors.json` (the client copies the error catalogue: regenerate it with every new error, as in T1b1). Review #78 (subagent, approve with nits): R1 a sin bin returns a person where they were; R2 the phase reads the stored occurrence; R4–R7 fixed; R3 and Q1 → T2b (Tech debt). Re-review (approve with nits): N1 a suspension leaves someone already replaced, dismissed or temporarily replaced where they are; N2 the runner numbers a start over every recorded start |
 | 2026-10-30 | S05-T2b1 | #79 | Shared timeline checks (`TimelineChecks`): status (correction window from the caller; after the end only corrections and reversals), references (a correction checked as at the start of its chain), phase, participant, actors and their pools; 7 `TIMELINE_*` codes incl. `TIMELINE_PARTICIPANT_INVALID`; 12 football scenarios | Owner: T2b split into T2b1/T2b2. After the end, only corrections and reversals (no period reversals): the builder's reading of §9 with §5.1, confirmed by the owner (the defaults, 2026-10-30), as are Q28–Q31 |
 | 2026-10-30 | S05-T2b2 | #80 | `FollowUpsAndLimits` (last group of `TimelineChecks`): a follow-up needs an earlier unused event it follows (`same_side`, `same_period`, `unconsumed`, `consumes`; `TIMELINE_FOLLOW_UP_MISSING`); limits by the rule's last segment, `max` (plus `extra_in_extra_time` once an overtime PLAY period started) and `windows` (one side's runs of substitutions in play, ended by another event of the definition, a period start or end, or another clock minute; breaks use none), a correction counted in place (`TIMELINE_LIMIT_REACHED`); `scoring.points.<EVENT_TYPE>` in Apply for types worth points; the source rule in `EngineDependencyTests`; `covers` on every scenario and `ScenarioRuleCoverageTests`; 6 scenarios (4 football, 2 rugby 15s from its reference file), rule files `FOOTBALL_CUP`, `RUGBY15_LEAGUE` | Owner (plan 2026-10-30, recommended answers): Q32 (`VAR_DECISION` by outcome) to S12; the extra substitution raises `max` only; rugby scenarios read the reference file. While building (owner): a window also ends at another clock minute (Deviations). New Q33 (the extra substitution before extra time). No actions, endpoints, migrations, events or dependencies; catalogues and the client's `errors.json` regenerated. Tests: unit 754, architecture 42, web 216 passed; integration tests not run (no Docker here; CI runs them). Size: about 275 production and 340 test lines plus 255 of scenario and rule YAML. Pre-review (fix before PR, 3 MAJOR, fixed): follow-ups and limits counted recorded corrections where they were recorded, so a try corrected after its conversion could be converted again and a corrected substitution changed window (they now read each event where its chain started); a correction in extra time didn't get the extra substitution (tests fail without the fixes). MINOR fixed: the rule list asks for each rule's own codes and an accepted event of the sport; the source rule also scans the engine contracts; embedded definitions matched with `SingleOrDefault`. Not changed: a negative points override is accepted (the resolver bounds it, T4). Review #80 (subagent, request changes): R1 a correction could give a converted try a second conversion and R3 move a converted try away from its conversion: the follow-up check walks the whole timeline with the draft in place and refuses both (owner: refuse; the scorer reverses the conversion first); R2 a correction changing a substitution into another type could split a window: the replaced event's limits are checked too (owner: fix now); R4 the rule list's passing half documented as it is; R5 the draft replaces by id; R6 an event without a clock neither ends a window nor starts one; Q2 the extra substitution counts for corrections once extra time has started (owner: as built). Re-review (subagent, approve with nits): N1 a correction of one team's substitution could split the other team's window: a correction's limits are checked for every team (owner: fix now); N2 a correction could move a conversion onto another unconverted try: each follow-up must keep the event it follows (owner: refuse); N3 doc wording |
+| 2026-10-30 | S05-T2c | #81 | `AdditiveEngine.ProposeOutcome` as the score stands: different `main` totals win (`REGULATION`, `EXTRA_TIME`, `OVERTIME` under `REPEAT_EXTRA_PERIOD`, `SUDDEN_DEATH` with `RequiresEnd`); level totals are a draw under `DRAW`, else follow `contest.extra_period_sequence` (`RequiresExtraTime`/`RequiresShootout` with the next period; repeatable periods start again; the shoot-out is won on its own component); a second score in a decided sudden-death period is refused. Scenarios: cup extra time then shoot-out, cup extra-time winner, cup straight to penalties, rugby 15s sudden death (27 football); every scenario states its outcome; outcome rules in `ScenarioRules`; `AdditiveOutcomeTests`; unit tests 792, architecture 42, integration green | Plan approved with the recommended answers (owner, 2026-10-30); which period may start next is left to S12. Pre-review: no blocker or major; the sudden-death check now uses the points override as Apply does, the T2c tech-debt item moved to S12. Review #81 (owner, 2026-10-31: the recommended answers): the sudden-death refusal is the ADDITIVE engine's phase rule (a hook in `TimelineChecks`) and holds only while the totals differ; `EXTRA_TIME` stays the method once extra time was played; resolver checks on the sequence added to T4's tech debt |
 
 ## Deviations from spec (agreed)
 
@@ -348,6 +347,9 @@ at the start of every review.
   T2b1 plan said, and a window also ends when the side's next substitution is at another game-clock minute (without a
   clock, the order alone decides): with nothing recorded between them, changes at 60' and 70' are two windows. The
   outcome of a scenario may be left out until tie resolution (T2c), so the extra-time scenario checks only the score.
+- **S05-T2c (owner, plan 2026-10-30):** the sudden-death scenario reads rugby 15s' reference definition with a
+  test rules file (`rules/RUGBY15_KNOCKOUT.yaml`) instead of a test-only definition; a second score in a decided
+  sudden-death period is refused (`TIMELINE_EVENT_NOT_ALLOWED_IN_PHASE`), beyond the spec's list.
 
 ## Tech debt / follow-ups
 
@@ -369,9 +371,16 @@ S05-T5a. Each item names where it gets done.
 - S12 (or earlier if a scenario needs it): the fold orders events by sequence, so a correction takes the place of the
   event it replaces in the timeline only for its period, not its order; a substitution corrected after a later goal
   moves after that goal in the personnel fold (pre-review T2b1 #1). Match Operations decides with S12's timeline.
-- S05-T2c: while `LIVE`, reversing a `PERIOD_START` or `PERIOD_END` that later events depend on (the second half's start
-  after a second-half goal) leaves those events in a period `Played` no longer lists; allow a period reversal only for
-  the latest period event, or decide with tie resolution (#79 R2, optional part).
+- S12 (moved from S05-T2c, whose outcome doesn't depend on it): while `LIVE`, reversing a `PERIOD_START` or
+  `PERIOD_END` that later events depend on (the second half's start after a second-half goal) leaves those events in a
+  period `Played` no longer lists; allow a period reversal only for the latest period event (#79 R2, optional part).
+- S12: which period may start next isn't checked (a league may start extra time, a cup extra time with one side
+  ahead); Contest Operations offers the outcome's `NextPeriodCode` (S05-T2c).
+- S05-T4: the resolver requires a non-empty `contest.extra_period_sequence` for a `tie_resolution` other than `DRAW`
+  (the engine proposes a draw when the sequence has nothing left; S05-T2c pre-review), each entry a period of the
+  definition flagged `overtime` (or a break before one), and a `SHOOTOUT` period last for `SHOOTOUT` and
+  `EXTRA_PERIODS_THEN_SHOOTOUT` (an unknown period makes `ProposeOutcome` throw; review #81 R3), and a `scoring.points` override
+  of 0 for a scoring type stays refused with the bounds above.
 
 **From S04** (each names its trigger)
 - e2e on a reused local database (S04-T4b1; owner 2026-10-30: kept until then): every run adds owners to KMSA

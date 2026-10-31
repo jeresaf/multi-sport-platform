@@ -1,8 +1,9 @@
 title: In a cup tie Kireka Kingfishers FC use their extra substitution in extra time, and a seventh is refused — 1–1 at the extra-time break against Bunga Breakers FC
 # A cup gives one more substitution once extra time has started (substitutions.extra_in_extra_time), but no more
-# windows: three windows in normal time leave only the extra-time break. Who goes through comes with tie resolution.
+# windows: three windows in normal time leave only the extra-time break. Level at the break, the tie needs the second
+# half of extra time.
 definition: { variant: FOOTBALL_ASSOCIATION, version: 1 }
-covers: [VALIDATE_LIMITS]
+covers: [VALIDATE_LIMITS, OUTCOME_EXTRA_PERIODS]
 rules: FOOTBALL_CUP
 coverage: STANDARD
 home:
@@ -24,7 +25,7 @@ events:
   - { minute: 77, type: GOAL, team: Bunga Breakers FC, actors: { SCORER: Bosco Ssekandi } }
   - { minute: 80, type: SUBSTITUTION, team: Kireka Kingfishers FC, actors: { PLAYER_OFF: Gerald Ojara, PLAYER_ON: Oliver Ssenoga } }
   - { minute: 80, type: SUBSTITUTION, team: Kireka Kingfishers FC, actors: { PLAYER_OFF: Felix Mutebi, PLAYER_ON: Patrick Wandera } }
-  - { minute: 90+5, type: PERIOD_END }
+  - { minute: 90+5, type: PERIOD_END, outcome: { requires: EXTRA_TIME, next_period: AWAITING_EXTRA_TIME } }
   - { minute: 90, type: PERIOD_START, period: AWAITING_EXTRA_TIME }
   - { minute: 90, type: PERIOD_END }
   - { minute: 90, type: PERIOD_START, period: EXTRA_TIME_FIRST_HALF }
@@ -38,3 +39,4 @@ expect:
   score:
     Kireka Kingfishers FC: { total: 1, periods: { 1H: 1, 2H: 0, ET1: 0 } }
     Bunga Breakers FC: { total: 1, periods: { 1H: 0, 2H: 1, ET1: 0 } }
+  outcome: { requires: EXTRA_TIME, next_period: EXTRA_TIME_SECOND_HALF }

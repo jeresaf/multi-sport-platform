@@ -238,7 +238,8 @@ Deliver:
 Acceptance:
 - [x] The engines have no I/O, clock or randomness (architecture test on dependencies). (T2a: `EngineDependencyTests`;
       T2b2 also reads the source for `Guid.NewGuid()`, `DateTime.UtcNow` and the like)
-- [ ] Every rule in sport-engine.md §5 has a passing and a rejecting scenario (a test lists them).
+- [x] Every rule in sport-engine.md §5 has a passing and a rejecting scenario (a test lists them). (T2b2, T2c:
+      `ScenarioRuleCoverageTests` over `ScenarioRules`; the rules that can't refuse an event say why)
 
 ### T3 — Formats and generators (~2 PRs)
 Deliver:
@@ -361,3 +362,12 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   and the outcome of `football/extra-time-substitution.yaml`. Rule files `rules/FOOTBALL_CUP.yaml` and
   `rules/RUGBY15_LEAGUE.yaml` hold rulesets.md's values until T4's resolver. Q33: the extra substitution counts from
   the first overtime `PLAY` period, not in `AWAITING_EXTRA_TIME`.
+- **T2c:** plan approved with the recommended answers (owner, 2026-10-30): the outcome is proposed as the score stands
+  and Contest Operations decides when the contest may end (S12); sudden death is shown with rugby 15s' reference file
+  (test rules `RUGBY15_KNOCKOUT`), and a second score in a decided sudden-death period is refused
+  (`TIMELINE_EVENT_NOT_ALLOWED_IN_PHASE`); `EXTRA_TIME` or `OVERTIME` follows the tie resolution (`OVERTIME` for
+  `REPEAT_EXTRA_PERIOD`). `OutcomeProposal` gains `RequiresExtraTime`, `RequiresShootout`, `NextPeriodCode` and
+  `RequiresEnd` (sport-engine.md, "As built (S05-T2c)"). 27 football scenarios; every scenario states its outcome.
+  For later (S12): which period may start next isn't checked (a league starting extra time is accepted).
+  Review #81 (owner, 2026-10-31): the sudden-death refusal runs from `AdditiveEngine.Validate` through a phase hook
+  in `TimelineChecks` and holds only while the totals differ; `EXTRA_TIME` stays once extra time was played.

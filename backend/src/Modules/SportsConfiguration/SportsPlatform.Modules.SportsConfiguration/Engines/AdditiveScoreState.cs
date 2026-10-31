@@ -5,12 +5,15 @@ namespace SportsPlatform.Modules.SportsConfiguration.Engines;
 
 /// <summary>
 /// The <c>ADDITIVE</c> state (sport-engine.md §5): per participant, the points in each score component and the
-/// <c>main</c> points by period; and every period started, in order, so the summary can show the ones with no score.
+/// <c>main</c> points by period; every period started, in order, so the summary can show the ones with no score; and
+/// whether the last one is still running, so the outcome knows a period it needs is under way.
 /// </summary>
 public sealed record AdditiveScoreState(
     ImmutableDictionary<Guid, AdditiveSideScore> Participants,
     ImmutableList<PlayedPeriod> Periods) : ScoreState(AdditiveEngine.FamilyCode)
 {
+    public bool PeriodRunning { get; init; }
+
     public AdditiveSideScore For(Guid participantId) => Participants.GetValueOrDefault(participantId, AdditiveSideScore.Empty);
 }
 

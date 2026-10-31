@@ -7,14 +7,20 @@ namespace SportsPlatform.Modules.SportsConfiguration.Engines;
 /// <summary>
 /// The checks every family runs before an event may be recorded (sport-engine.md §5, Validate 1–3, and the corrections
 /// of §9), each read from the definition, never by sport. They run in groups, and the first group that fails answers:
-/// the event type, the contest status, the corrected or reversed event, the phase, the participant, the actors, then
+/// the event type, the contest status, the corrected or reversed event, the phase (with the family's own phase rule,
+/// if it has one), the participant, the actors, then
 /// the follow-up and the limits (<see cref="FollowUpsAndLimits"/>). A
 /// correction (<c>supersedes</c>) is checked as at the event it replaces: the phase and the people are folded from the
 /// active events before it (owner, 2026-10-30), so a first-half scorer can be corrected at half-time.
 /// </summary>
 public static class TimelineChecks
 {
-    public static ValidationResult Validate(ContestContext ctx, ContestLiveState live, TimelineEventDraft draft)
+    /// <summary>
+    /// Runs the groups in order. A family's own phase rule (the ADDITIVE family's decided sudden-death period) runs with
+    /// the phase group for an event of the definition; true refuses it with <c>TIMELINE_EVENT_NOT_ALLOWED_IN_PHASE</c>.
+    /// </summary>
+    public static ValidationResult Validate(
+        ContestContext ctx, ContestLiveState live, TimelineEventDraft draft, Func<PhaseCheck, bool>? familyRefusesInPhase = null)
     {
         ArgumentNullException.ThrowIfNull(ctx);
         ArgumentNullException.ThrowIfNull(live);
@@ -35,7 +41,13 @@ public static class TimelineChecks
             return ValidationResult.Invalid(SportsConfigurationErrors.TimelineReferenceInvalid);
         }
 
-        if (!PhaseAllows(ctx.Definition, basis.Phase, type, draft))
+        // A correction belongs to the period of the event it replaces, a new event to the current one.
+        var period = basis.Replaced is { PeriodCode: { } code } replaced
+            ? new PlayedPeriod(code, replaced.PeriodOccurrence)
+            : basis.Phase.PeriodCode is { } current ? new PlayedPeriod(current, basis.Phase.Occurrence) : null;
+        if (!PhaseAllows(ctx.Definition, basis.Phase, type, draft)
+            || (type is not null && familyRefusesInPhase is not null
+                && familyRefusesInPhase(new PhaseCheck(type, period, ByOrigin(live)) { Replaced = basis.Replaced })))
         {
             return ValidationResult.Invalid(SportsConfigurationErrors.TimelineEventNotAllowedInPhase);
         }
@@ -51,10 +63,7 @@ public static class TimelineChecks
             return new ValidationResult(actorErrors);
         }
 
-        // §5.4. A correction belongs to the period of the event it replaces, a new event to the current one.
-        var period = basis.Replaced is { PeriodCode: { } code } replaced
-            ? new PlayedPeriod(code, replaced.PeriodOccurrence)
-            : basis.Phase.PeriodCode is { } current ? new PlayedPeriod(current, basis.Phase.Occurrence) : null;
+        // §5.4.
         var active = ByOrigin(live);
         return new ValidationResult([.. new[]
         {
@@ -139,8 +148,8 @@ public static class TimelineChecks
 
     // §5.2: a definition's event type lists the phase kinds it may be recorded in; nothing of the sport happens before
     // the first period starts. A start needs a period of the definition and none running; an end needs one running.
-    // The other generic events (clock, status, notes, reversals) may come at any time. Which period may start next is
-    // the tie resolution's concern (S05-T2c).
+    // The other generic events (clock, status, notes, reversals) may come at any time. Which period starts next is
+    // Contest Operations' offer from the outcome's next period (S12), not checked here.
     private static bool PhaseAllows(SportDefinition definition, ContestPhase phase, EventTypeDefinition? type, TimelineEventDraft draft)
     {
         if (type is not null)
@@ -252,4 +261,13 @@ public static class TimelineChecks
 
     private static EventTypeDefinition? Type(SportDefinition definition, string code) =>
         definition.EventTypes.FirstOrDefault(candidate => candidate.Code == code);
+}
+
+/// <summary>
+/// What a family's own phase rule reads: the event's type, the period it is recorded in (a correction's is the replaced
+/// event's), the active events each where its chain of corrections started, and for a correction the event it replaces.
+/// </summary>
+public sealed record PhaseCheck(EventTypeDefinition Type, PlayedPeriod? Period, IReadOnlyList<TimelineEvent> Active)
+{
+    public TimelineEvent? Replaced { get; init; }
 }

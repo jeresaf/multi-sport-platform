@@ -192,6 +192,39 @@ draft in its place: a correction where the event it replaces stood, a new event 
   of the rule's error codes. Rugby 15s scenarios read the reference file in docs/domain/sports until S15 seeds
   rugby. A scenario may leave out `expect.outcome` until tie resolution (T2c).
 
+**As built (S05-T2c).** `AdditiveEngine.ProposeOutcome` answers as the score stands; when the scorer may end the
+contest is Contest Operations' call (S12; owner, 2026-10-30). `OutcomeProposal` has a `Kind` (`Winner`, `Draw`,
+`RequiresExtraTime`, `RequiresShootout`), the winner and `Method` (`Regulation`, `ExtraTime`, `Overtime`,
+`SuddenDeath`, `Shootout`), `NextPeriodCode` and `RequiresEnd`. The rules are `contest.tie_resolution` (unset is
+`DRAW`) and `contest.extra_period_sequence`; the state also knows whether the last period started is still running.
+- **Different `main` totals** win. A score in a started `sudden_death` period is `SuddenDeath` with `RequiresEnd`;
+  otherwise, once an overtime `PLAY` period has started (even if the lead was made in normal time and the
+  equaliser was reversed later; review #81 R5), `Overtime` under `REPEAT_EXTRA_PERIOD` and `ExtraTime` under
+  the others (the tie resolution names the method, not the sport; owner, 2026-10-30); else `Regulation`.
+- **Level totals:** a draw under `DRAW`. Once a `SHOOTOUT` period has started, the `shootout` components decide
+  (`Shootout`), and while they are level the proposal is `RequiresShootout` with no next period. Otherwise the next
+  period is the one after the last started entry of the sequence (the first if none has); its kind, or for a break
+  the next non-break entry's, gives `RequiresExtraTime` (`PLAY`) or `RequiresShootout`, with that period as
+  `NextPeriodCode` (level at the end of normal time in a cup: `AWAITING_EXTRA_TIME`). Past the end of the sequence, a
+  last `PLAY` period still running is `RequiresExtraTime` with no next period; once it has ended the sequence starts
+  again at its first `repeatable` entry (basketball's `AWAITING_OVERTIME`), or nothing is left and level is a draw.
+- **Sudden death in Validate:** the ADDITIVE engine's own phase rule, run by `TimelineChecks` with the phase group
+  (a family hook, `PhaseCheck`, so the shared checks hold no family's rule; review #81 R2). A scoring event (points
+  other than 0 in `main`, after the rules' override, as Apply counts them) in a `sudden_death` period is
+  `TIMELINE_EVENT_NOT_ALLOWED_IN_PHASE` while another one stands in the same occurrence and the totals differ, which
+  is when the outcome is a sudden-death win (owner, 2026-10-30). Correcting or reversing the deciding score stays
+  possible (a correction is judged with the totals without the event it replaces; review #81 N1), a miss scores nothing, and when a correction of an earlier period levels the totals again play goes on,
+  as the outcome then asks (review #81 R1). The outcome gives the winner by the totals: if a correction of an earlier
+  period leaves the other side ahead, that side is proposed (Results approves either way).
+- **Not checked:** which period may start next (a league starting extra time, extra time with one side ahead) is
+  Contest Operations' offer from the proposal (S12).
+- **Scenarios:** every file states `expect.outcome` (`winner` and `method`, with `requires_end`; `draw: true`; or
+  `requires: EXTRA_TIME | SHOOTOUT` with `next_period`), and an event may state `outcome` as it stands after it. The
+  outcome rules are in `ScenarioRules`: `OUTCOME_WINNER`, `OUTCOME_DRAW`, `OUTCOME_EXTRA_PERIODS`, `OUTCOME_SHOOTOUT`
+  (they refuse nothing) and `OUTCOME_SUDDEN_DEATH` (refuses the second score). Sudden death is shown with rugby 15s'
+  reference file and a test rules file `rules/RUGBY15_KNOCKOUT.yaml`; repeated overtime with basketball's, in unit
+  tests (`AdditiveOutcomeTests`).
+
 ## 5. `ADDITIVE` family (football, rugby 15s/7s, basketball; later netball, hockey, handball)
 
 **State:** per side: `total`, `by_period` (period code + occurrence → points), and named components
