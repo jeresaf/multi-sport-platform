@@ -369,3 +369,5 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   `REPEAT_EXTRA_PERIOD`). `OutcomeProposal` gains `RequiresExtraTime`, `RequiresShootout`, `NextPeriodCode` and
   `RequiresEnd` (sport-engine.md, "As built (S05-T2c)"). 27 football scenarios; every scenario states its outcome.
   For later (S12): which period may start next isn't checked (a league starting extra time is accepted).
+  Review #81 (owner, 2026-10-31): the sudden-death refusal runs from `AdditiveEngine.Validate` through a phase hook
+  in `TimelineChecks` and holds only while the totals differ; `EXTRA_TIME` stays once extra time was played.

@@ -198,7 +198,8 @@ contest is Contest Operations' call (S12; owner, 2026-10-30). `OutcomeProposal` 
 `SuddenDeath`, `Shootout`), `NextPeriodCode` and `RequiresEnd`. The rules are `contest.tie_resolution` (unset is
 `DRAW`) and `contest.extra_period_sequence`; the state also knows whether the last period started is still running.
 - **Different `main` totals** win. A score in a started `sudden_death` period is `SuddenDeath` with `RequiresEnd`;
-  otherwise, once an overtime `PLAY` period has started, `Overtime` under `REPEAT_EXTRA_PERIOD` and `ExtraTime` under
+  otherwise, once an overtime `PLAY` period has started (even if the lead was made in normal time and the
+  equaliser was reversed later; review #81 R5), `Overtime` under `REPEAT_EXTRA_PERIOD` and `ExtraTime` under
   the others (the tie resolution names the method, not the sport; owner, 2026-10-30); else `Regulation`.
 - **Level totals:** a draw under `DRAW`. Once a `SHOOTOUT` period has started, the `shootout` components decide
   (`Shootout`), and while they are level the proposal is `RequiresShootout` with no next period. Otherwise the next
@@ -207,12 +208,14 @@ contest is Contest Operations' call (S12; owner, 2026-10-30). `OutcomeProposal` 
   `NextPeriodCode` (level at the end of normal time in a cup: `AWAITING_EXTRA_TIME`). Past the end of the sequence, a
   last `PLAY` period still running is `RequiresExtraTime` with no next period; once it has ended the sequence starts
   again at its first `repeatable` entry (basketball's `AWAITING_OVERTIME`), or nothing is left and level is a draw.
-- **Sudden death in Validate:** with the phase group, a scoring event (points other than 0 in `main`, after the
-  rules' override, as Apply counts them) in a `sudden_death` period is `TIMELINE_EVENT_NOT_ALLOWED_IN_PHASE` while
-  another one stands in the same occurrence (owner, 2026-10-30); correcting or reversing the deciding score stays
-  possible, and a miss scores nothing. The outcome reads a sudden-death win from any `main` points in such a period
-  and gives the winner by the totals; the two differ only if an earlier period is corrected after sudden death
-  started, and Results approves either way.
+- **Sudden death in Validate:** the ADDITIVE engine's own phase rule, run by `TimelineChecks` with the phase group
+  (a family hook, `PhaseCheck`, so the shared checks hold no family's rule; review #81 R2). A scoring event (points
+  other than 0 in `main`, after the rules' override, as Apply counts them) in a `sudden_death` period is
+  `TIMELINE_EVENT_NOT_ALLOWED_IN_PHASE` while another one stands in the same occurrence and the totals differ, which
+  is when the outcome is a sudden-death win (owner, 2026-10-30). Correcting or reversing the deciding score stays
+  possible, a miss scores nothing, and when a correction of an earlier period levels the totals again play goes on,
+  as the outcome then asks (review #81 R1). The outcome gives the winner by the totals: if a correction of an earlier
+  period leaves the other side ahead, that side is proposed (Results approves either way).
 - **Not checked:** which period may start next (a league starting extra time, extra time with one side ahead) is
   Contest Operations' offer from the proposal (S12).
 - **Scenarios:** every file states `expect.outcome` (`winner` and `method`, with `requires_end`; `draw: true`; or
