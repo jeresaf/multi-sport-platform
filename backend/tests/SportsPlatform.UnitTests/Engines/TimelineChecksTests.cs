@@ -170,6 +170,13 @@ public sealed class TimelineChecksTests
 
         Codes(Validate(ctx, decided, awayTry)).ShouldBe([SportsConfigurationErrors.TimelineEventNotAllowedInPhase.Code]);
         Validate(ctx, levelled, awayTry).IsValid.ShouldBeTrue();
+
+        // The away try then decides it (3–8); it can still be corrected though the home score stands in the period too.
+        var redecided = levelled.Append(Event(10, "TRY", Away) with { Actors = Scorer(Person(11)), PeriodCode = "SUDDEN_DEATH", PeriodOccurrence = 1 }).ToArray();
+        Validate(ctx, redecided, Draft("TRY") with { ParticipantId = Away, Actors = Scorer(Person(12)), SupersedesEventId = Id(10) }).IsValid.ShouldBeTrue();
+        Validate(ctx, redecided, Draft("PENALTY_GOAL") with { ParticipantId = Away, Actors = Roles(("KICKER", Person(12))), SupersedesEventId = Id(10) }).IsValid.ShouldBeTrue();
+        Codes(Validate(ctx, redecided, Draft("TRY") with { ParticipantId = Home, Actors = Scorer(Person(2)) }))
+            .ShouldBe([SportsConfigurationErrors.TimelineEventNotAllowedInPhase.Code]);
     }
 
     [Fact]

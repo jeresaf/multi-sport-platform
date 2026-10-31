@@ -213,7 +213,7 @@ contest is Contest Operations' call (S12; owner, 2026-10-30). `OutcomeProposal` 
   other than 0 in `main`, after the rules' override, as Apply counts them) in a `sudden_death` period is
   `TIMELINE_EVENT_NOT_ALLOWED_IN_PHASE` while another one stands in the same occurrence and the totals differ, which
   is when the outcome is a sudden-death win (owner, 2026-10-30). Correcting or reversing the deciding score stays
-  possible, a miss scores nothing, and when a correction of an earlier period levels the totals again play goes on,
+  possible (a correction is judged with the totals without the event it replaces; review #81 N1), a miss scores nothing, and when a correction of an earlier period levels the totals again play goes on,
   as the outcome then asks (review #81 R1). The outcome gives the winner by the totals: if a correction of an earlier
   period leaves the other side ahead, that side is proposed (Results approves either way).
 - **Not checked:** which period may start next (a league starting extra time, extra time with one side ahead) is

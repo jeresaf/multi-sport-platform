@@ -50,9 +50,19 @@ public sealed class AdditiveEngine : IScoringEngine
             return false;
         }
 
+        // A correction is judged without the event it replaces, so the deciding score can still be corrected after an
+        // earlier one in the period was levelled out (review #81 N1).
         var score = state as AdditiveScoreState ?? throw new ArgumentException($"Expected the {FamilyCode} state.", nameof(state));
-        var level = ctx.Sides.Select(side => score.For(side.ParticipantId).Total).Distinct().Count() == 1;
-        return !level && check.Active.Any(evt => evt.Id != check.Replaced?.Id
+        var totals = ctx.Sides.ToDictionary(side => side.ParticipantId, side => score.For(side.ParticipantId).Total);
+        if (check.Replaced is { ParticipantId: { } actor } replaced
+            && ctx.Definition.EventTypes.FirstOrDefault(candidate => candidate.Code == replaced.EventType) is { } replacedType
+            && ScoresMain(ctx, replacedType))
+        {
+            var receiver = replacedType.Side == ActorSide.Opponent ? ctx.OpponentOf(actor) : actor;
+            totals[receiver] -= Points(ctx, replacedType);
+        }
+
+        return totals.Values.Distinct().Count() > 1 && check.Active.Any(evt => evt.Id != check.Replaced?.Id
             && evt.PeriodCode == period.PeriodCode && evt.PeriodOccurrence == period.Occurrence
             && ScoresMain(ctx, ctx.Definition.EventTypes.FirstOrDefault(candidate => candidate.Code == evt.EventType)));
     }
