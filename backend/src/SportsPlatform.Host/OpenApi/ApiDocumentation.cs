@@ -178,12 +178,13 @@ public static class ApiDocumentation
         schema.Properties = null;
         schema.Required = null;
         schema.Description = "A parameter's value, by the parameter's type: a whole number (NUMBER), true or false (FLAG), " +
-            "or one of its values (CHOICE).";
+            "one of its values (CHOICE), or an ordered list of its values, each once (LIST).";
         schema.OneOf =
         [
             new OpenApiSchema { Type = JsonSchemaType.Integer, Format = "int32" },
             new OpenApiSchema { Type = JsonSchemaType.Boolean },
             new OpenApiSchema { Type = JsonSchemaType.String },
+            new OpenApiSchema { Type = JsonSchemaType.Array, Items = new OpenApiSchema { Type = JsonSchemaType.String } },
         ];
         return Task.CompletedTask;
     }

@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://msp.example/schemas/tiebreakers/1",
+  "title": "Tiebreaker catalogue, schema version 1 (docs/domain/rulesets.md)",
+  "description": "The shape only; unique codes are checked in code.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "tiebreakers"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "tiebreakers": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "label",
+          "description"
+        ],
+        "properties": {
+          "code": {
+            "$ref": "#/$defs/code"
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sports": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "$ref": "#/$defs/code"
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "code": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$",
+      "maxLength": 50
+    }
+  }
+}

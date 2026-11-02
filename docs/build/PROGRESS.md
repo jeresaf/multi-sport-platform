@@ -7,8 +7,8 @@ at the start of every review.
 
 - **Current slice:** S05 — Sports configuration (docs/build/slices/S05-sports-configuration.md, rewritten by the S04
   slice review). S00–S04 are done
-- **Current task:** S05-T3b — generators — in review (#83); next is `/next-task` for S05-T4
-- **Next:** S05-T4 — ruleset templates and resolver
+- **Current task:** S05-T4a — ruleset templates: files, schema, validator, table, seeder, reads — in progress
+- **Next:** S05-T4b — the resolver, the snapshot and the preview
 - **Blocked on:** nothing
 
 ## Next up

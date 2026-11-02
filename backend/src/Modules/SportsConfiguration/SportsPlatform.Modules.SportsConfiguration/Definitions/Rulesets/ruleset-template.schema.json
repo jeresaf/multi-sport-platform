@@ -1,0 +1,481 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://msp.example/schemas/ruleset-template/1",
+  "title": "Ruleset template, schema version 1 (docs/domain/rulesets.md)",
+  "description": "The shape only. References to the sport definition (periods, positions, official roles, coverage levels, tie resolutions) and the formats, the tiebreakers, the editable parameters' paths, types, bounds and defaults, and the rules between values are checked in code by RulesetTemplateRules. Codes and names are bounded as the table stores them (a code at most 50 characters; a name at most 100); whole numbers are 32-bit and not negative.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "code",
+    "version",
+    "name",
+    "sport",
+    "formats",
+    "editable",
+    "values"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "code": {
+      "$ref": "#/$defs/code"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 2147483647
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "description": {
+      "$ref": "#/$defs/text"
+    },
+    "sport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "variant",
+        "version"
+      ],
+      "properties": {
+        "variant": {
+          "$ref": "#/$defs/code"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        }
+      }
+    },
+    "formats": {
+      "$ref": "#/$defs/codeList",
+      "minItems": 1
+    },
+    "editable": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*(\\.([a-z][a-z0-9]*(_[a-z0-9]+)*|[A-Z][A-Z0-9]*(_[A-Z0-9]+)*))+$",
+        "maxLength": 150
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/parameter"
+      }
+    },
+    "values": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contest",
+        "lineup",
+        "substitutions",
+        "roster",
+        "standings",
+        "operations",
+        "eligibility"
+      ],
+      "properties": {
+        "contest": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "period_seconds",
+            "tie_resolution",
+            "extra_period_sequence",
+            "coverage_default"
+          ],
+          "properties": {
+            "period_seconds": {
+              "$ref": "#/$defs/countByCode",
+              "minProperties": 1
+            },
+            "tie_resolution": {
+              "$ref": "#/$defs/code"
+            },
+            "extra_period_sequence": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/code"
+              }
+            },
+            "coverage_default": {
+              "enum": [
+                "RESULT_ONLY",
+                "BASIC",
+                "STANDARD",
+                "DETAILED"
+              ]
+            }
+          }
+        },
+        "lineup": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "starters",
+            "bench_max",
+            "requires_approval",
+            "positions"
+          ],
+          "properties": {
+            "starters": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 2147483647
+            },
+            "bench_max": {
+              "$ref": "#/$defs/count"
+            },
+            "requires_approval": {
+              "type": "boolean"
+            },
+            "positions": {
+              "type": "object",
+              "propertyNames": {
+                "$ref": "#/$defs/code"
+              },
+              "additionalProperties": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "min",
+                  "max"
+                ],
+                "properties": {
+                  "min": {
+                    "$ref": "#/$defs/count"
+                  },
+                  "max": {
+                    "$ref": "#/$defs/count"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "substitutions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "max",
+            "windows",
+            "extra_in_extra_time"
+          ],
+          "properties": {
+            "max": {
+              "$ref": "#/$defs/count"
+            },
+            "windows": {
+              "$ref": "#/$defs/count"
+            },
+            "extra_in_extra_time": {
+              "$ref": "#/$defs/count"
+            }
+          }
+        },
+        "roster": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "min",
+            "max",
+            "requires_approval",
+            "lock_policy"
+          ],
+          "properties": {
+            "min": {
+              "$ref": "#/$defs/count"
+            },
+            "max": {
+              "$ref": "#/$defs/count"
+            },
+            "requires_approval": {
+              "type": "boolean"
+            },
+            "lock_policy": {
+              "enum": [
+                "FIRST_CONTEST"
+              ]
+            }
+          }
+        },
+        "standings": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "points",
+            "forfeit_score",
+            "tiebreakers",
+            "h2h_reapply"
+          ],
+          "properties": {
+            "points": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "win",
+                "draw",
+                "loss",
+                "no_result",
+                "forfeit_win",
+                "forfeit_loss"
+              ],
+              "properties": {
+                "win": {
+                  "$ref": "#/$defs/count"
+                },
+                "draw": {
+                  "$ref": "#/$defs/count"
+                },
+                "loss": {
+                  "$ref": "#/$defs/count"
+                },
+                "no_result": {
+                  "$ref": "#/$defs/count"
+                },
+                "forfeit_win": {
+                  "$ref": "#/$defs/count"
+                },
+                "forfeit_loss": {
+                  "$ref": "#/$defs/count"
+                }
+              }
+            },
+            "forfeit_score": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "for",
+                "against"
+              ],
+              "properties": {
+                "for": {
+                  "$ref": "#/$defs/count"
+                },
+                "against": {
+                  "$ref": "#/$defs/count"
+                }
+              }
+            },
+            "tiebreakers": {
+              "$ref": "#/$defs/codeList",
+              "minItems": 1
+            },
+            "h2h_reapply": {
+              "type": "boolean"
+            }
+          }
+        },
+        "operations": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "readiness",
+            "officials_minimum",
+            "scorer_correction_window_minutes",
+            "starting_soon_minutes"
+          ],
+          "properties": {
+            "readiness": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "LINEUPS_APPROVED",
+                  "OFFICIALS_MINIMUM",
+                  "VENUE_SET"
+                ]
+              }
+            },
+            "officials_minimum": {
+              "$ref": "#/$defs/countByCode"
+            },
+            "scorer_correction_window_minutes": {
+              "$ref": "#/$defs/count"
+            },
+            "starting_soon_minutes": {
+              "$ref": "#/$defs/count"
+            }
+          }
+        },
+        "eligibility": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "membership_required",
+            "min_age",
+            "max_age",
+            "age_reference_date",
+            "minor_consent_required"
+          ],
+          "properties": {
+            "membership_required": {
+              "type": "boolean"
+            },
+            "min_age": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 150
+            },
+            "max_age": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 150
+            },
+            "age_reference_date": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$"
+            },
+            "minor_consent_required": {
+              "enum": [
+                "TENANT_DEFAULT"
+              ]
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "code": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$",
+      "maxLength": 50
+    },
+    "text": {
+      "type": "string",
+      "minLength": 1
+    },
+    "codeList": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/code"
+      }
+    },
+    "count": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 2147483647
+    },
+    "countByCode": {
+      "type": "object",
+      "propertyNames": {
+        "$ref": "#/$defs/code"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/count"
+      }
+    },
+    "parameter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "label"
+      ],
+      "properties": {
+        "type": {
+          "enum": [
+            "int",
+            "bool",
+            "enum",
+            "list"
+          ]
+        },
+        "label": {
+          "$ref": "#/$defs/text"
+        },
+        "description": {
+          "$ref": "#/$defs/text"
+        },
+        "min": {
+          "$ref": "#/$defs/int"
+        },
+        "max": {
+          "$ref": "#/$defs/int"
+        },
+        "values": {
+          "$ref": "#/$defs/codeList",
+          "minItems": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "int"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "min",
+              "max"
+            ],
+            "properties": {
+              "values": false
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "bool"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "min": false,
+              "max": false,
+              "values": false
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "enum": [
+                  "enum",
+                  "list"
+                ]
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "values"
+            ],
+            "properties": {
+              "min": false,
+              "max": false
+            }
+          }
+        }
+      ]
+    },
+    "int": {
+      "type": "integer",
+      "minimum": -2147483648,
+      "maximum": 2147483647
+    }
+  }
+}

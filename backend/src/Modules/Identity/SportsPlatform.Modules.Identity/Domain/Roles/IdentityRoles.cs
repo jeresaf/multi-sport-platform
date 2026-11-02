@@ -41,12 +41,13 @@ public static class IdentityRoles
     // Everyone working in the tenant uses the sport's words (S05 D14): every role holding the settings read.
     private const string _sportRead = "sport.read";
 
-    // Formats go with the sport's words (S05 D14): the same roles.
+    // Formats and ruleset templates go with the sport's words (S05 D14): the same roles.
     private const string _formatRead = "format.read";
+    private const string _rulesetRead = "ruleset.read";
 
     private static readonly string[] _tenantAdministration =
     [
-        _tenantSettingsRead, _tenantSettingsUpdate, _capabilitiesRead, _sportRead, _formatRead,
+        _tenantSettingsRead, _tenantSettingsUpdate, _capabilitiesRead, _sportRead, _formatRead, _rulesetRead,
         _membershipRead, "membership.suspend", "membership.restore", "membership.remove", "role.assign", "role.revoke",
         "membership.invite", "invitation.revoke", _subscriptionRead,
     ];
@@ -54,7 +55,7 @@ public static class IdentityRoles
     // Only the owner sees a blocked tenant's status and why (S03 D11): the actions available when blocked.
     private static readonly string[] _tenantOwnership = ["tenant.access.read"];
 
-    private static readonly string[] _tenantContext = [_tenantSettingsRead, _capabilitiesRead, _sportRead, _formatRead];
+    private static readonly string[] _tenantContext = [_tenantSettingsRead, _capabilitiesRead, _sportRead, _formatRead, _rulesetRead];
 
     private static readonly string[] _platformReads =
     [

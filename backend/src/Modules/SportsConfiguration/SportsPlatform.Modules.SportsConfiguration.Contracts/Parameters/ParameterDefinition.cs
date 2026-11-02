@@ -2,7 +2,8 @@ namespace SportsPlatform.Modules.SportsConfiguration.Contracts.Parameters;
 
 /// <summary>
 /// A typed parameter with its default: <see cref="Min"/> and <see cref="Max"/> for a number, <see cref="Values"/> for a
-/// choice (empty otherwise). The validator has checked that the default fits.
+/// choice or a list (the codes a list may hold, in no particular order; empty otherwise). The validator has checked that
+/// the default fits.
 /// </summary>
 public sealed record ParameterDefinition(
     ParameterType Type,

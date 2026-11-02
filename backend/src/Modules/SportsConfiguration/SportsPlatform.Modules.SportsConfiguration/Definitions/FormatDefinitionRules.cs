@@ -179,6 +179,7 @@ internal sealed class FormatDefinitionRules
         ParameterType.Number => "int",
         ParameterType.Flag => "bool",
         ParameterType.Choice => "enum",
+        ParameterType.List => "list",
         _ => throw new InvalidOperationException($"Unknown parameter type {type}."),
     };
 }

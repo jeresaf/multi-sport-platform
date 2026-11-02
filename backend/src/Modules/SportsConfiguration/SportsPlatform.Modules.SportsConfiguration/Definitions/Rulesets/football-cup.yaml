@@ -1,0 +1,53 @@
+# A football cup (docs/domain/rulesets.md, "v1 templates"): the league's rules, but a level score goes to two halves of
+# extra time of 15 minutes, then penalties, with one extra substitution in extra time. The values follow widely used
+# international rules; check them against each customer's regulations (open-questions.md Q9).
+# A published version never changes: a change is a new version (S05 D4).
+schema_version: 1
+code: FOOTBALL_CUP
+version: 1
+name: Football cup
+description: Two halves of 45 minutes; a level score goes to extra time, then penalties.
+sport: { variant: FOOTBALL_ASSOCIATION, version: 1 }
+formats: [KNOCKOUT, SINGLE_CONTEST]
+editable:
+  standings.points.win: { type: int, label: Points for a win, min: 1, max: 5 }
+  standings.tiebreakers:
+    type: list
+    label: Tiebreakers
+    description: Applied in this order when participants are level on points.
+    values: [POINTS, GOAL_DIFFERENCE, GOALS_FOR, WINS, H2H_POINTS, H2H_DIFFERENCE, H2H_SCORED, DRAWING_OF_LOTS]
+  contest.period_seconds.FIRST_HALF: { type: int, label: First half (seconds), min: 600, max: 2700 }
+  contest.period_seconds.SECOND_HALF: { type: int, label: Second half (seconds), min: 600, max: 2700 }
+  lineup.bench_max: { type: int, label: Substitutes on the bench, min: 0, max: 15 }
+  substitutions.max: { type: int, label: Substitutions, min: 0, max: 15 }
+  roster.min: { type: int, label: Smallest squad, min: 11, max: 40 }
+  roster.max: { type: int, label: Largest squad, min: 11, max: 60 }
+values:
+  contest:
+    period_seconds: { FIRST_HALF: 2700, HALF_TIME: 900, SECOND_HALF: 2700, EXTRA_TIME_FIRST_HALF: 900, EXTRA_TIME_SECOND_HALF: 900 }
+    tie_resolution: EXTRA_PERIODS_THEN_SHOOTOUT
+    extra_period_sequence: [AWAITING_EXTRA_TIME, EXTRA_TIME_FIRST_HALF, EXTRA_TIME_HALF_TIME, EXTRA_TIME_SECOND_HALF, AWAITING_SHOOTOUT, PENALTY_SHOOTOUT]
+    coverage_default: STANDARD
+  lineup:
+    starters: 11
+    bench_max: 9
+    requires_approval: false
+    positions: { GK: { min: 1, max: 1 } }
+  substitutions: { max: 5, windows: 3, extra_in_extra_time: 1 }
+  roster: { min: 18, max: 30, requires_approval: true, lock_policy: FIRST_CONTEST }
+  standings:
+    points: { win: 3, draw: 1, loss: 0, no_result: 0, forfeit_win: 3, forfeit_loss: 0 }
+    forfeit_score: { for: 3, against: 0 }
+    tiebreakers: [POINTS, GOAL_DIFFERENCE, GOALS_FOR, H2H_POINTS, H2H_DIFFERENCE, H2H_SCORED, DRAWING_OF_LOTS]
+    h2h_reapply: true
+  operations:
+    readiness: [LINEUPS_APPROVED, OFFICIALS_MINIMUM, VENUE_SET]
+    officials_minimum: { REFEREE: 1 }
+    scorer_correction_window_minutes: 60
+    starting_soon_minutes: 30
+  eligibility:
+    membership_required: true
+    min_age: null
+    max_age: null
+    age_reference_date: null
+    minor_consent_required: TENANT_DEFAULT

@@ -24,6 +24,15 @@ public static class SportsConfigurationActions
         scopableBy: [AssignmentScope.Tenant],
         availableWhenReadOnly: true);
 
+    public static readonly ActionDefinition RulesetRead = new(
+        "ruleset.read",
+        "View the published ruleset templates: their sport, formats, rules and the parameters a competition may change.",
+        ActionScope.Tenant,
+        AuditRequirement.None,
+        since: "S05",
+        scopableBy: [AssignmentScope.Tenant],
+        availableWhenReadOnly: true);
+
     // Platform staff read every kind of global configuration with one action (D14): definitions, formats, templates.
     public static readonly ActionDefinition PlatformSportRead = new(
         "platform.sport.read",

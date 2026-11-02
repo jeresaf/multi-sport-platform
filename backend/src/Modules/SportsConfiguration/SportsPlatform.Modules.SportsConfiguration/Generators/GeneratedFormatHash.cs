@@ -42,6 +42,7 @@ public static class GeneratedFormatHash
         ParameterType.Number => value.Number,
         ParameterType.Flag => value.Flag,
         ParameterType.Choice => value.Choice,
+        ParameterType.List => new JsonArray([.. value.Items.Select(item => (JsonNode)JsonValue.Create(item))]),
         _ => throw Unmapped($"{nameof(ParameterType)}.{value.Type}"),
     };
 

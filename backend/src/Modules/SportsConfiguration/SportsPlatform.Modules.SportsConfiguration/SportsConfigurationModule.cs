@@ -7,6 +7,7 @@ using SportsPlatform.BuildingBlocks.Persistence.Seeding;
 using SportsPlatform.Modules.SportsConfiguration.Contracts.Engines;
 using SportsPlatform.Modules.SportsConfiguration.Contracts.Formats;
 using SportsPlatform.Modules.SportsConfiguration.Contracts.Formats.Generation;
+using SportsPlatform.Modules.SportsConfiguration.Contracts.Rulesets;
 using SportsPlatform.Modules.SportsConfiguration.Contracts.Sports;
 using SportsPlatform.Modules.SportsConfiguration.Definitions;
 using SportsPlatform.Modules.SportsConfiguration.Engines;
@@ -14,6 +15,9 @@ using SportsPlatform.Modules.SportsConfiguration.Features;
 using SportsPlatform.Modules.SportsConfiguration.Features.Formats;
 using SportsPlatform.Modules.SportsConfiguration.Features.Formats.GetFormat;
 using SportsPlatform.Modules.SportsConfiguration.Features.Formats.ListFormats;
+using SportsPlatform.Modules.SportsConfiguration.Features.Rulesets;
+using SportsPlatform.Modules.SportsConfiguration.Features.Rulesets.GetRulesetTemplate;
+using SportsPlatform.Modules.SportsConfiguration.Features.Rulesets.ListRulesetTemplates;
 using SportsPlatform.Modules.SportsConfiguration.Features.Sports;
 using SportsPlatform.Modules.SportsConfiguration.Features.Sports.GetSport;
 using SportsPlatform.Modules.SportsConfiguration.Features.Sports.ListSports;
@@ -40,14 +44,19 @@ public sealed class SportsConfigurationModule : IModule
         services.AddModuleDbContext<SportsConfigurationDbContext>(configuration, Schema);
         services.AddSingleton<SportDefinitionFiles>();
         services.AddSingleton<FormatDefinitionFiles>();
-        // A definition or format the validator refuses stops the Host before it serves anything (S05 D3).
+        services.AddSingleton<RulesetTemplateFiles>();
+        services.AddSingleton<TiebreakerCatalogue>();
+        // A definition, format, template or tiebreaker the validator refuses stops the Host before it serves anything (S05 D3).
         services.AddHostedService<DefinitionStartupCheck>();
         services.AddSeeder<SportDefinitionSeeder>();
         services.AddSeeder<FormatDefinitionSeeder>();
+        services.AddSeeder<RulesetTemplateSeeder>();
         services.AddSingleton<SportDefinitionCache>();
         services.AddScoped<ISportDefinitions, SportDefinitions>();
         services.AddSingleton<FormatDefinitionCache>();
         services.AddScoped<IFormatDefinitions, FormatDefinitions>();
+        services.AddSingleton<RulesetTemplateCache>();
+        services.AddScoped<IRulesetTemplates, RulesetTemplates>();
         services.AddSingleton<IScoringEngine, AdditiveEngine>();
         services.AddSingleton<IScoringEngines, ScoringEngines>();
         services.AddSingleton<IFormatGenerators, FormatGenerators>();
@@ -55,6 +64,8 @@ public sealed class SportsConfigurationModule : IModule
         services.AddScoped<GetSportHandler>();
         services.AddScoped<ListFormatsHandler>();
         services.AddScoped<GetFormatHandler>();
+        services.AddScoped<ListRulesetTemplatesHandler>();
+        services.AddScoped<GetRulesetTemplateHandler>();
         services.AddSingleton<IValidator<VersionRequest>, VersionRequestValidator>();
     }
 
@@ -73,5 +84,11 @@ public sealed class SportsConfigurationModule : IModule
         var platformFormats = FormatEndpoints.Group(groups.Platform);
         ListFormatsEndpoint.MapPlatform(platformFormats);
         GetFormatEndpoint.MapPlatform(platformFormats);
+        var adminTemplates = RulesetTemplateEndpoints.Group(groups.Admin);
+        ListRulesetTemplatesEndpoint.MapAdmin(adminTemplates);
+        GetRulesetTemplateEndpoint.MapAdmin(adminTemplates);
+        var platformTemplates = RulesetTemplateEndpoints.Group(groups.Platform);
+        ListRulesetTemplatesEndpoint.MapPlatform(platformTemplates);
+        GetRulesetTemplateEndpoint.MapPlatform(platformTemplates);
     }
 }

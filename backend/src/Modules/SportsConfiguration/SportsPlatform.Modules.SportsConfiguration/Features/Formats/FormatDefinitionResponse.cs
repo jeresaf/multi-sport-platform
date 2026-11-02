@@ -65,6 +65,7 @@ public sealed record FormatParameterResponse(
             ParameterType.Number => FormatParameterType.Number,
             ParameterType.Flag => FormatParameterType.Flag,
             ParameterType.Choice => FormatParameterType.Choice,
+            // Formats have no list parameters (the format schema refuses the type).
             _ => throw new InvalidOperationException($"Unknown parameter type {parameter.Type}."),
         };
         return new FormatParameterResponse(type, parameter.Label, parameter.Description, parameter.Min, parameter.Max, parameter.Values, parameter.Default);
