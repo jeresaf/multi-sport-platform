@@ -251,9 +251,9 @@ Deliver:
   the final, byes only to top seeds, slot references consistent); a pinned hash for a 7-entrant round robin.
 
 Acceptance:
-- [ ] Generators are exposed through Contracts (`IFormatGenerators`) and depend on no other module (architecture
+- [x] Generators are exposed through Contracts (`IFormatGenerators`) and depend on no other module (architecture
       test).
-- [ ] A stored seed reproduces the same draw and hash (test).
+- [x] A stored seed reproduces the same draw and hash (test).
 
 ### T4 — Ruleset templates and resolver (~2 PRs)
 Deliver:
@@ -383,3 +383,13 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   reader, the schema check (`DefinitionSchema`), the startup check (`DefinitionStartupCheck`) and the seeder
   (`DefinitionSeeder<TRow>`); `GetSportRequest` became the shared `VersionRequest`. `format.read` goes to every role
   holding `sport.read`; the list answers each format in full (formats are small).
+- **T3b:** plan approved with the recommended answers (owner, 2026-11-02): the output hash covers the inputs (format
+  code and version, parameters, seed, entrants) and the structure (Q1); a third-place contest with fewer than 4
+  participants is `FORMAT_PARAMETER_INVALID` (Q2); a blank, repeated or misplaced entrant or bye is the new
+  `FORMAT_ENTRANTS_INVALID` (Q3); pairings are coded `<round code>_<n>` (`QUARTER_FINALS_1`, `ROUND_3_2`) (Q4); `Error`
+  has no field, so the message names the parameter or entrant and S09's draw endpoint maps it (Q5). The model is in
+  Contracts' `Formats.Generation`; the generators in the module's `Generators`, with `CanonicalJson` moved to `Hashing`
+  so the pure code can hash (the purity rule refuses `Definitions`). `GeneratorDependencyTests` reuses
+  `EngineDependencyTests`' rule; a LINQ query spread into a `List<T>` compiles to `CollectionsMarshal`
+  (`System.Runtime.InteropServices`), which the rule refuses, so the knockout uses `ToArray()`. Only one-stage formats
+  generate; a format with more stages throws until S15.

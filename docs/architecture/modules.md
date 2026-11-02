@@ -99,7 +99,9 @@ definition by variant and optional version, kept in memory until restart; over H
 optional version, kept in memory until restart; over HTTP: `GET /api/admin/v1/formats` and `…/formats/{code}?version=`
 with `format.read`, the same under `/api/platform/v1` with `platform.sport.read`, the format's `ETag` its content
 hash, `FORMAT_DEFINITION_NOT_FOUND`; what each generator reads is `FormatGeneratorKinds` in Contracts' `Formats`),
-`IFormatGenerators` (pure functions: participants + parameters → structure/pairings; S05-T3b),
+`IFormatGenerators` (as built, S05-T3b: pure functions of a format, the ordered entrant keys, its parameters and a
+`ulong` seed → stages, rounds and pairings (entrant, `WINNER_OF`/`LOSER_OF` slot, or bye) with an output hash over the
+inputs and the structure; Contracts' `Formats.Generation`; no endpoint until the draws of S09/S10),
 `IRulesetResolver` (template + overrides → validated effective rules snapshot).
 **Does not own:** any tenant data, competitions, fixtures, results.
 **First slice:** S05.

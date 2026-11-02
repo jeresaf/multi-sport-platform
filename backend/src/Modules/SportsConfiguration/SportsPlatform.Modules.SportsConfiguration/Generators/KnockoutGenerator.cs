@@ -29,7 +29,7 @@ internal static class KnockoutGenerator
     /// <summary>The seeds in their bracket lines: <c>1, 8, 4, 5, 2, 7, 3, 6</c> for 8.</summary>
     public static IReadOnlyList<int> SeedLines(int size)
     {
-        // Plain LINQ, not collection expressions: those build lists through CollectionsMarshal (InteropServices),
+        // ToArray, not a spread into a list: that builds the list through CollectionsMarshal (InteropServices),
         // which the purity rule refuses.
         int[] lines = [1];
         while (lines.Length < size)
