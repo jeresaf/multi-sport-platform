@@ -403,6 +403,9 @@ S05-T5a. Each item names where it gets done.
   (a negative count), mapped to `RULESET_PARAMETER_OUT_OF_RANGE` on its path (review #84 R2, option a). It loads the
   template's pinned sport version through `ISportDefinitions`, tested with a newer sport version seeded (review #84
   Q1, owner 2026-11-02).
+- S17 (cricket): only `DRAW` plays no extra periods in `RulesetValueChecks`, so cricket's `TIE` would need extra periods;
+  decide whether `TIE` is `DRAW` by another name or the definition marks the resolutions that play none (data, not a
+  sport branch; review #84 R7).
 - S12: the personnel tracker reads `lineup.starters` (and the bench) from the edition's snapshot, not the sport
   definition: a template may override the definition's lineup numbers (review #84 Q2, owner 2026-11-02).
 

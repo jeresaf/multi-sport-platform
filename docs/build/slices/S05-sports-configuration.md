@@ -416,4 +416,7 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   recommendations): Q1 stays as built, and T4b's resolver loads the template's pinned sport version through
   `ISportDefinitions` (the stored rows), with a test that a template still resolves after a newer sport version is
   seeded; Q2: starters need not equal the definition's (the template's lineup numbers override the definition's
-  defaults), and S12's personnel tracker reads `lineup.starters` from the snapshot.
+  defaults), and S12's personnel tracker reads `lineup.starters` from the snapshot. Re-review #84: a non-overtime
+  break opens the extra periods only first in the sequence and when the definition lists it right before an overtime
+  period (half-time can't); a tie-resolution choice reports only what the template's own values don't (R5, R6); R7
+  (cricket's `TIE`) is S17's tech debt.

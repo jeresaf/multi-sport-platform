@@ -156,8 +156,10 @@ internal sealed class RulesetTemplateRules
     {
         var typed = RulesetTemplateContent.ReadValues(values);
         var chosen = typed with { Contest = typed.Contest with { TieResolution = code } };
+        // Problems the template's own values have too (a broken sequence) are reported once, on the values.
+        var own = RulesetValueChecks.Check(typed, sport, _references.Tiebreaker).ToHashSet();
         var problem = RulesetValueChecks.Check(chosen, sport, _references.Tiebreaker)
-            .FirstOrDefault(found => found.Kind == RulesetValueProblemKind.TieResolution);
+            .FirstOrDefault(found => found.Kind == RulesetValueProblemKind.TieResolution && !own.Contains(found));
         return problem is null ? null : $"\"{code}\" doesn't fit the template's extra periods: {problem.Message}";
     }
 

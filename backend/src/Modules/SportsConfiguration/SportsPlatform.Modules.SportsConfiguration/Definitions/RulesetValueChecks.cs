@@ -73,10 +73,11 @@ public static class RulesetValueChecks
             {
                 problems.Add(new(ExtraPeriodSequencePath, RulesetValueProblemKind.Reference, $"period \"{sequence[index]}\" is listed twice"));
             }
-            else if (!Overtime(periods[sequence[index]], index + 1 < sequence.Count ? periods.GetValueOrDefault(sequence[index + 1]) : null))
+            else if (!periods[sequence[index]].Overtime
+                && !(index == 0 && EntryBreak(sport, sequence[index]) && sequence.Count > 1 && periods.GetValueOrDefault(sequence[1]) is { Overtime: true }))
             {
                 problems.Add(new(ExtraPeriodSequencePath, RulesetValueProblemKind.Reference,
-                    $"period \"{sequence[index]}\" at {index} is neither an overtime period nor a break before one"));
+                    $"period \"{sequence[index]}\" at {index} is neither an overtime period nor the break that opens them"));
             }
         }
 
@@ -123,9 +124,13 @@ public static class RulesetValueChecks
         }
     }
 
-    // An overtime period, or a break the next overtime period follows (football's "before extra time" isn't overtime).
-    private static bool Overtime(PeriodDefinition period, PeriodDefinition? next) =>
-        period.Overtime || (period.Kind == PhaseKind.Break && next is { Overtime: true });
+    // The break that opens the overtime periods (football's "before extra time", not flagged overtime): first in the
+    // sequence, and listed in the definition right before an overtime period. Half-time comes before the second half.
+    private static bool EntryBreak(SportDefinition sport, string code)
+    {
+        var at = sport.Periods.ToList().FindIndex(period => period.Code == code);
+        return sport.Periods[at].Kind == PhaseKind.Break && at + 1 < sport.Periods.Count && sport.Periods[at + 1].Overtime;
+    }
 
     private static void Lineup(RulesetValues values, SportDefinition sport, List<RulesetValueProblem> problems)
     {

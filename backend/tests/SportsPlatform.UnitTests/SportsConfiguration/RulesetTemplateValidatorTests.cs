@@ -248,8 +248,8 @@ public sealed class RulesetTemplateValidatorTests
         },
         {
             "the extra periods are the definition's", _cup,
-            root => Values(root)["contest"]!["extra_period_sequence"]!.AsArray().Insert(0, "GOLDEN_GOAL"),
-            ["football-cup.yaml: $.values.contest.extra_period_sequence: unknown period \"GOLDEN_GOAL\" at 0"]
+            root => Values(root)["contest"]!["extra_period_sequence"]!.AsArray().Insert(2, "GOLDEN_GOAL"),
+            ["football-cup.yaml: $.values.contest.extra_period_sequence: unknown period \"GOLDEN_GOAL\" at 2"]
         },
         {
             "an extra period is listed once", _cup,
@@ -262,16 +262,33 @@ public sealed class RulesetTemplateValidatorTests
         {
             "an extra period is an overtime period or a break before one", _cup,
             root => Values(root)["contest"]!["extra_period_sequence"] = new JsonArray("FIRST_HALF", "AWAITING_SHOOTOUT", "PENALTY_SHOOTOUT"),
-            ["football-cup.yaml: $.values.contest.extra_period_sequence: period \"FIRST_HALF\" at 0 is neither an overtime period nor a break before one"]
+            ["football-cup.yaml: $.values.contest.extra_period_sequence: period \"FIRST_HALF\" at 0 is neither an overtime period nor the break that opens them"]
         },
         {
-            "a break is an extra period only before an overtime period", _cup,
+            "half-time doesn't open the extra periods (the definition lists it before the second half)", _cup,
             root => Values(root)["contest"]!["extra_period_sequence"] = new JsonArray("HALF_TIME", "EXTRA_TIME_FIRST_HALF", "AWAITING_SHOOTOUT", "PENALTY_SHOOTOUT"),
-            []
+            ["football-cup.yaml: $.values.contest.extra_period_sequence: period \"HALF_TIME\" at 0 is neither an overtime period nor the break that opens them"]
+        },
+        {
+            "the break that opens the extra periods comes first", _cup,
+            root => Values(root)["contest"]!["extra_period_sequence"] = new JsonArray("EXTRA_TIME_FIRST_HALF", "AWAITING_EXTRA_TIME", "EXTRA_TIME_SECOND_HALF", "AWAITING_SHOOTOUT", "PENALTY_SHOOTOUT"),
+            ["football-cup.yaml: $.values.contest.extra_period_sequence: period \"AWAITING_EXTRA_TIME\" at 1 is neither an overtime period nor the break that opens them"]
+        },
+        {
+            "a broken sequence is reported on the values, not again on each tie resolution offered", _cup,
+            root =>
+            {
+                Values(root)["contest"]!["extra_period_sequence"] = new JsonArray("AWAITING_EXTRA_TIME", "EXTRA_TIME_FIRST_HALF", "EXTRA_TIME_HALF_TIME", "EXTRA_TIME_SECOND_HALF", "PENALTY_SHOOTOUT", "AWAITING_SHOOTOUT");
+                Editable(root)["contest.tie_resolution"] = new JsonObject
+                {
+                    ["type"] = "enum", ["label"] = "Level score", ["values"] = new JsonArray("EXTRA_PERIODS_THEN_SHOOTOUT"),
+                };
+            },
+            ["football-cup.yaml: $.values.contest.extra_period_sequence: the shoot-out period \"PENALTY_SHOOTOUT\" must come last"]
         },
         {
             "the shoot-out comes last", _cup,
-            root => Values(root)["contest"]!["extra_period_sequence"] = new JsonArray("PENALTY_SHOOTOUT", "AWAITING_EXTRA_TIME", "EXTRA_TIME_FIRST_HALF", "EXTRA_TIME_HALF_TIME", "EXTRA_TIME_SECOND_HALF"),
+            root => Values(root)["contest"]!["extra_period_sequence"] = new JsonArray("AWAITING_EXTRA_TIME", "EXTRA_TIME_FIRST_HALF", "EXTRA_TIME_HALF_TIME", "EXTRA_TIME_SECOND_HALF", "PENALTY_SHOOTOUT", "AWAITING_SHOOTOUT"),
             ["football-cup.yaml: $.values.contest.extra_period_sequence: the shoot-out period \"PENALTY_SHOOTOUT\" must come last"]
         },
         {
@@ -298,10 +315,10 @@ public sealed class RulesetTemplateValidatorTests
             root =>
             {
                 Values(root)["contest"]!["tie_resolution"] = "REPEAT_EXTRA_PERIOD";
-                Values(root)["contest"]!["extra_period_sequence"]!.AsArray().Insert(0, "GOLDEN_GOAL");
+                Values(root)["contest"]!["extra_period_sequence"]!.AsArray().Insert(2, "GOLDEN_GOAL");
             },
             [
-                "football-cup.yaml: $.values.contest.extra_period_sequence: unknown period \"GOLDEN_GOAL\" at 0",
+                "football-cup.yaml: $.values.contest.extra_period_sequence: unknown period \"GOLDEN_GOAL\" at 2",
                 "football-cup.yaml: $.values.contest.tie_resolution: the sport doesn't support \"REPEAT_EXTRA_PERIOD\"",
             ]
         },
