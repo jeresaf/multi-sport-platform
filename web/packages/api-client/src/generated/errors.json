@@ -175,6 +175,24 @@
       "owner": "SportsConfiguration"
     },
     {
+      "code": "FORMAT_ENTRANTS_INVALID",
+      "status": 422,
+      "message": "The entrants can't be drawn: one is blank or repeated, or the byes are misplaced.",
+      "owner": "SportsConfiguration"
+    },
+    {
+      "code": "FORMAT_PARAMETER_INVALID",
+      "status": 422,
+      "message": "A format parameter is unknown, of the wrong type or out of its range.",
+      "owner": "SportsConfiguration"
+    },
+    {
+      "code": "FORMAT_PARTICIPANT_COUNT_INVALID",
+      "status": 422,
+      "message": "The format can't be drawn for this number of participants.",
+      "owner": "SportsConfiguration"
+    },
+    {
       "code": "PLATFORM_CONCURRENCY_CONFLICT",
       "status": 409,
       "message": "The record was changed by someone else. Reload and try again.",
