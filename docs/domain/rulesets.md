@@ -31,6 +31,34 @@ seconds>`. Validation examples: starters ≤ squad size; penalties/shootout only
 period; group qualification only if the format has groups; tiebreakers must be known to the catalogue and valid
 for the sport (e.g. `TRIES_SCORED` only for rugby); negative points only with an explicit flag.
 
+**As built (S05-T4a).** The files are `football-league.yaml` and `football-cup.yaml`, embedded in Sports
+Configuration under `Definitions/Rulesets` with `ruleset-template.schema.json`. Each file has `schema_version` (1),
+`code`, `version`, `name`, an optional `description`, `sport: { variant, version }` (the template pins the sport
+definition's version, whose period, position and official codes it uses), `formats` (codes; `FOOTBALL_LEAGUE` takes
+`ROUND_ROBIN` and `SINGLE_CONTEST`, `FOOTBALL_CUP` takes `KNOCKOUT` and `SINGLE_CONTEST`; owner, S05-T4 plan),
+`editable` and `values`. `values` holds the sections of the snapshot example below (`contest`, `lineup`,
+`substitutions`, `roster`, `standings`, `operations`, `eligibility`) with exactly those keys; the closed vocabularies
+hold only the values shown (`lock_policy: FIRST_CONTEST`, `readiness`, `minor_consent_required: TENANT_DEFAULT`), and
+the slices that use them add more with a schema change. `editable` is keyed by the dotted path into `values`; a
+parameter has `type` (`int` with `min` and `max`, `bool`, `enum` or `list` with `values`), `label` and an optional
+`description`; its default is the value at its path (written once). The parameter types built are `int`, `bool`,
+`enum` and the ordered `list` of codes (each once, any subset of `values`); a period's length is one `int` path per
+period (`contest.period_seconds.FIRST_HALF`); `decimal`, `duration_seconds` and the period map come with a template
+that needs them. Rules in code (`RulesetTemplateRules`, `RulesetValueChecks`): the pinned sport version exists in the
+embedded files; every format exists and takes the sport's contest shape; an editable path names a value of its type,
+inside its bounds and among its values, and the codes a tenant may pick (tie resolutions, tiebreakers) are ones the
+sport supports; the periods, extra periods, positions (code or group), official roles and default coverage are the
+definition's; the tie resolution is one the sport supports, `DRAW` plays no extra periods, any other needs them and a
+shoot-out needs a `SHOOTOUT` period; ranges are in order; a position minimum fits the starters; `roster.min` holds the
+starters and `roster.max` the starters and the bench; tiebreakers are in the catalogue, apply to the sport and appear
+once. The tiebreaker catalogue is `Definitions/Rulesets/tiebreakers.yaml` (`tiebreakers.schema.json`): code, label,
+description and an optional `sports` list (a definition's `sport`) that limits it (`TRIES_SCORED`, `TRY_DIFFERENCE`
+for rugby union, `NET_RUN_RATE` for cricket); embedded and checked at startup, not seeded (owner, S05-T4 plan);
+`FAIR_PLAY` comes with its card points. Seeded, hashed and immutable like formats (`config.ruleset_templates`, with the
+sport variant, sport version and formats as columns too; `RULESET_TEMPLATE_IMMUTABLE`); read with `ruleset.read`.
+Because a template pins its sport version and the files hold one version per sport, a new sport version needs new
+versions of its templates in the same change.
+
 ## Effective rules snapshot (example: football league)
 
 ```json

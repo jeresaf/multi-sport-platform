@@ -472,6 +472,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/v1/ruleset-templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List ruleset templates
+         * @description Every published ruleset template at its latest version, ordered by name, then code, in full: the sport variant and version, the formats, the rules, the parameters a competition may change (type, bounds or values, default) and the tiebreakers they name. Not paginated. Not audited (global configuration).
+         */
+        get: operations["ListRulesetTemplates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/ruleset-templates/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a ruleset template
+         * @description A published ruleset template (docs/domain/rulesets.md) at `version`, the latest when left out: the sport variant and version, the formats, the rules, the parameters a competition may change (type, bounds or values, default) and the tiebreakers they name. A published version never changes. Not audited (global configuration).
+         */
+        get: operations["GetRulesetTemplate"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/platform/v1/diagnostics/outbox": {
         parameters: {
             query?: never;
@@ -960,6 +1000,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/platform/v1/ruleset-templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List ruleset templates
+         * @description Every published ruleset template at its latest version, ordered by name, then code, in full: the sport variant and version, the formats, the rules, the parameters a competition may change (type, bounds or values, default) and the tiebreakers they name. Not paginated. Not audited (global configuration).
+         */
+        get: operations["ListPlatformRulesetTemplates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/v1/ruleset-templates/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a ruleset template
+         * @description A published ruleset template (docs/domain/rulesets.md) at `version`, the latest when left out: the sport variant and version, the formats, the rules, the parameters a competition may change (type, bounds or values, default) and the tiebreakers they name. A published version never changes. Not audited (global configuration).
+         */
+        get: operations["GetPlatformRulesetTemplate"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/account/v1/login": {
         parameters: {
             query?: never;
@@ -1299,6 +1379,12 @@ export interface components {
         };
         /** @enum {unknown} */
         ContestShape: "HEAD_TO_HEAD" | "FIELD";
+        CountRangeResponse: {
+            /** Format: int32 */
+            min: number;
+            /** Format: int32 */
+            max: number;
+        };
         /** @description An ISO 3166-1 country: alpha-2 `code` (`UG`), alpha-3, numeric code and English name. */
         CountryResponse: {
             code: string;
@@ -1393,6 +1479,13 @@ export interface components {
         EventEffect: "SEND_OFF" | "TEMPORARY_SUSPENSION" | "SUBSTITUTE" | "TEMPORARY_SUBSTITUTE" | "RETURN" | "DISQUALIFY" | "FOUL_COUNT";
         /** @enum {unknown} */
         EventImportance: "KEY" | "STANDARD" | "DETAILED" | "TECHNICAL";
+        /** @description The score recorded for a forfeit (the file's `for` and `against`). */
+        ForfeitScoreResponse: {
+            /** Format: int32 */
+            scored: number;
+            /** Format: int32 */
+            conceded: number;
+        };
         /** @description Ask for a password reset email. */
         ForgotPasswordRequest: {
             email: null | string;
@@ -1539,6 +1632,9 @@ export interface components {
         ListPlansResponse: {
             items: components["schemas"]["PlanResponse"][];
         };
+        ListRulesetTemplatesResponse: {
+            items: components["schemas"]["RulesetTemplateResponse"][];
+        };
         ListSportsResponse: {
             items: components["schemas"]["SportVariantResponse"][];
         };
@@ -1633,6 +1729,11 @@ export interface components {
             roles: string[];
         };
         /**
+         * @description Whether a minor needs a guardian's consent to take part; the registry slices add the others.
+         * @enum {unknown}
+         */
+        MinorConsentRequirement: "TENANT_DEFAULT";
+        /**
          * @description Whether a guardian's consent is needed before a minor is registered for a competition (Q11). Consent before public
          *     exposure is always required, whatever this says.
          * @enum {unknown}
@@ -1683,8 +1784,8 @@ export interface components {
             nextCursor: null | string;
             hasMore: boolean;
         };
-        /** @description A parameter's value, by the parameter's type: a whole number (NUMBER), true or false (FLAG), or one of its values (CHOICE). */
-        ParameterValue: number | boolean | string;
+        /** @description A parameter's value, by the parameter's type: a whole number (NUMBER), true or false (FLAG), one of its values (CHOICE), or an ordered list of its values, each once (LIST). */
+        ParameterValue: number | boolean | string | string[];
         /** @enum {unknown} */
         PeriodClock: "COUNT_UP" | "COUNT_DOWN" | "NONE";
         /** @enum {unknown} */
@@ -1743,6 +1844,11 @@ export interface components {
             warning: boolean;
         };
         /**
+         * @description What must hold before a contest may start (S11 builds the checks; it adds others with a schema change).
+         * @enum {unknown}
+         */
+        ReadinessCheck: "LINEUPS_APPROVED" | "OFFICIALS_MINIMUM" | "VENUE_SET";
+        /**
          * @description Why the message is re-driven; the audit entry records it (action audit `REQUIRED_WITH_REASON`). Kept permanently
          *     and not redacted, so it must not contain personal data.
          */
@@ -1784,6 +1890,137 @@ export interface components {
         RevokeRoleRequest: {
             /** Format: uint32 */
             version?: null | number;
+        };
+        /**
+         * @description When a roster locks; Competitions (S07/S09) adds others with a schema change.
+         * @enum {unknown}
+         */
+        RosterLockPolicy: "FIRST_CONTEST";
+        /** @description `periodSeconds` is keyed by the definition's period codes. */
+        RulesetContestResponse: {
+            periodSeconds: {
+                [key: string]: number;
+            };
+            tieResolution: string;
+            extraPeriodSequence: string[];
+            coverageDefault: components["schemas"]["CoverageLevel"];
+        };
+        /** @description Ages in whole years on `ageReferenceDate`; null means no limit. */
+        RulesetEligibilityResponse: {
+            membershipRequired: boolean;
+            /** Format: int32 */
+            minAge: null | number;
+            /** Format: int32 */
+            maxAge: null | number;
+            /** Format: date */
+            ageReferenceDate: null | string;
+            minorConsentRequired: components["schemas"]["MinorConsentRequirement"];
+        };
+        /** @description `positions` is keyed by a position code or group of the definition. */
+        RulesetLineupResponse: {
+            /** Format: int32 */
+            starters: number;
+            /** Format: int32 */
+            benchMax: number;
+            requiresApproval: boolean;
+            positions: {
+                [key: string]: components["schemas"]["CountRangeResponse"];
+            };
+        };
+        /** @description `officialsMinimum` is keyed by the definition's official role codes. */
+        RulesetOperationsResponse: {
+            readiness: components["schemas"]["ReadinessCheck"][];
+            officialsMinimum: {
+                [key: string]: number;
+            };
+            /** Format: int32 */
+            scorerCorrectionWindowMinutes: number;
+            /** Format: int32 */
+            startingSoonMinutes: number;
+        };
+        /**
+         * @description A parameter a competition may change: `min` and `max` for a number; `values` for a choice or a list
+         *     (the codes a list may hold, each once, in any order); empty otherwise. `default` is the template's value.
+         */
+        RulesetParameterResponse: {
+            type: components["schemas"]["RulesetParameterType"];
+            label: string;
+            description: null | string;
+            /** Format: int32 */
+            min: null | number;
+            /** Format: int32 */
+            max: null | number;
+            values: string[];
+            default: components["schemas"]["ParameterValue"];
+        };
+        /**
+         * @description A template parameter's type in the API; the files write `enum`, `bool`, `list`, `int`.
+         * @enum {unknown}
+         */
+        RulesetParameterType: "CHOICE" | "FLAG" | "LIST" | "NUMBER";
+        RulesetRosterResponse: {
+            /** Format: int32 */
+            min: number;
+            /** Format: int32 */
+            max: number;
+            requiresApproval: boolean;
+            lockPolicy: components["schemas"]["RosterLockPolicy"];
+        };
+        /** @description The sport definition the template is written for, at the exact version. */
+        RulesetSportResponse: {
+            variant: string;
+            /** Format: int32 */
+            version: number;
+        };
+        /** @description `tiebreakers` in the order they apply; `headToHeadReapply` is the file's `h2h_reapply`. */
+        RulesetStandingsResponse: {
+            points: components["schemas"]["StandingsPointsResponse"];
+            forfeitScore: components["schemas"]["ForfeitScoreResponse"];
+            tiebreakers: string[];
+            headToHeadReapply: boolean;
+        };
+        RulesetSubstitutionsResponse: {
+            /** Format: int32 */
+            max: number;
+            /** Format: int32 */
+            windows: number;
+            /** Format: int32 */
+            extraInExtraTime: number;
+        };
+        /**
+         * @description A published ruleset template as the API shows it (docs/domain/rulesets.md): camelCase names, UPPER_SNAKE values, with
+         *     its version's hash and publication time. `parameters` are keyed by their dotted path into the rules as the files
+         *     write it (`standings.points.win`, `contest.period_seconds.FIRST_HALF`); maps keyed by codes keep the codes.
+         *     `tiebreakers` describes every tiebreaker the template lists or allows, in the catalogue's order.
+         */
+        RulesetTemplateResponse: {
+            code: string;
+            /** Format: int32 */
+            version: number;
+            name: string;
+            description: null | string;
+            /** Format: int32 */
+            schemaVersion: number;
+            contentHash: string;
+            /** Format: date-time */
+            publishedAt: string;
+            sport: components["schemas"]["RulesetSportResponse"];
+            formats: string[];
+            parameters: {
+                [key: string]: components["schemas"]["RulesetParameterResponse"];
+            };
+            values: components["schemas"]["RulesetValuesResponse"];
+            tiebreakers: components["schemas"]["TiebreakerResponse"][];
+        };
+        /** @description The template's rules, laid out as docs/domain/rulesets.md's snapshot. */
+        RulesetValuesResponse: {
+            contest: components["schemas"]["RulesetContestResponse"];
+            lineup: components["schemas"]["RulesetLineupResponse"];
+            substitutions: components["schemas"]["RulesetSubstitutionsResponse"];
+            roster: components["schemas"]["RulesetRosterResponse"];
+            standings: components["schemas"]["RulesetStandingsResponse"];
+            operations: components["schemas"]["RulesetOperationsResponse"];
+            eligibility: components["schemas"]["RulesetEligibilityResponse"];
         };
         /** @enum {unknown} */
         ScorerPadKind: "BUTTONS" | "DELIVERY_PAD";
@@ -1995,6 +2232,20 @@ export interface components {
          * @enum {unknown}
          */
         StageType: "LEAGUE" | "GROUP" | "KNOCKOUT" | "SERIES" | "SINGLE";
+        StandingsPointsResponse: {
+            /** Format: int32 */
+            win: number;
+            /** Format: int32 */
+            draw: number;
+            /** Format: int32 */
+            loss: number;
+            /** Format: int32 */
+            noResult: number;
+            /** Format: int32 */
+            forfeitWin: number;
+            /** Format: int32 */
+            forfeitLoss: number;
+        };
         /** @enum {unknown} */
         StatisticAggregation: "SUM" | "MAX" | "MIN" | "RATIO" | "BUILTIN";
         /**
@@ -2226,6 +2477,12 @@ export interface components {
             next: null | components["schemas"]["TenantSubscriptionPeriod"];
             entitlements: components["schemas"]["TenantEntitlementResponse"][];
             usage: components["schemas"]["QuotaUsageResponse"][];
+        };
+        /** @description A tiebreaker of the catalogue. */
+        TiebreakerResponse: {
+            code: string;
+            label: string;
+            description: string;
         };
         /** @description An IANA time zone: its ID as `code` (`Africa/Kampala`) and its country; no country for `Etc/UTC`. */
         TimeZoneResponse: {
@@ -3592,6 +3849,106 @@ export interface operations {
                 };
             };
             /** @description Problem Details; `code`: `FORMAT_DEFINITION_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListRulesetTemplates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListRulesetTemplatesResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetRulesetTemplate: {
+        parameters: {
+            query?: {
+                version?: number;
+            };
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The template's `contentHash`, quoted: it changes only with a new version. */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RulesetTemplateResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_QUERY` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `RULESET_TEMPLATE_NOT_FOUND` */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -5202,6 +5559,106 @@ export interface operations {
                 };
             };
             /** @description Problem Details; `code`: `FORMAT_DEFINITION_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListPlatformRulesetTemplates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListRulesetTemplatesResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_FORBIDDEN` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetPlatformRulesetTemplate: {
+        parameters: {
+            query?: {
+                version?: number;
+            };
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The template's `contentHash`, quoted: it changes only with a new version. */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RulesetTemplateResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_QUERY` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_FORBIDDEN` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `RULESET_TEMPLATE_NOT_FOUND` */
             404: {
                 headers: {
                     [name: string]: unknown;

@@ -2101,6 +2101,160 @@
         }
       }
     },
+    "/api/admin/v1/ruleset-templates": {
+      "get": {
+        "tags": [
+          "Ruleset templates"
+        ],
+        "summary": "List ruleset templates",
+        "description": "Every published ruleset template at its latest version, ordered by name, then code, in full: the sport variant and version, the formats, the rules, the parameters a competition may change (type, bounds or values, default) and the tiebreakers they name. Not paginated. Not audited (global configuration).",
+        "operationId": "ListRulesetTemplates",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListRulesetTemplatesResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING"
+            ]
+          }
+        }
+      }
+    },
+    "/api/admin/v1/ruleset-templates/{code}": {
+      "get": {
+        "tags": [
+          "Ruleset templates"
+        ],
+        "summary": "Get a ruleset template",
+        "description": "A published ruleset template (docs/domain/rulesets.md) at `version`, the latest when left out: the sport variant and version, the formats, the rules, the parameters a competition may change (type, bounds or values, default) and the tiebreakers they name. A published version never changes. Not audited (global configuration).",
+        "operationId": "GetRulesetTemplate",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "version",
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The template's `contentHash`, quoted: it changes only with a new version.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RulesetTemplateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_QUERY`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_QUERY"
+            ]
+          },
+          "404": {
+            "description": "Problem Details; `code`: `RULESET_TEMPLATE_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "RULESET_TEMPLATE_NOT_FOUND"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING"
+            ]
+          }
+        }
+      }
+    },
     "/api/platform/v1/diagnostics/outbox": {
       "get": {
         "tags": [
@@ -4706,6 +4860,154 @@
         }
       }
     },
+    "/api/platform/v1/ruleset-templates": {
+      "get": {
+        "tags": [
+          "Ruleset templates"
+        ],
+        "summary": "List ruleset templates",
+        "description": "Every published ruleset template at its latest version, ordered by name, then code, in full: the sport variant and version, the formats, the rules, the parameters a competition may change (type, bounds or values, default) and the tiebreakers they name. Not paginated. Not audited (global configuration).",
+        "operationId": "ListPlatformRulesetTemplates",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListRulesetTemplatesResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_FORBIDDEN"
+            ]
+          }
+        }
+      }
+    },
+    "/api/platform/v1/ruleset-templates/{code}": {
+      "get": {
+        "tags": [
+          "Ruleset templates"
+        ],
+        "summary": "Get a ruleset template",
+        "description": "A published ruleset template (docs/domain/rulesets.md) at `version`, the latest when left out: the sport variant and version, the formats, the rules, the parameters a competition may change (type, bounds or values, default) and the tiebreakers they name. A published version never changes. Not audited (global configuration).",
+        "operationId": "GetPlatformRulesetTemplate",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "version",
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The template's `contentHash`, quoted: it changes only with a new version.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RulesetTemplateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_QUERY`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_QUERY"
+            ]
+          },
+          "404": {
+            "description": "Problem Details; `code`: `RULESET_TEMPLATE_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "RULESET_TEMPLATE_NOT_FOUND"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_FORBIDDEN"
+            ]
+          }
+        }
+      }
+    },
     "/api/account/v1/login": {
       "post": {
         "tags": [
@@ -5820,6 +6122,23 @@
           "FIELD"
         ]
       },
+      "CountRangeResponse": {
+        "required": [
+          "min",
+          "max"
+        ],
+        "type": "object",
+        "properties": {
+          "min": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "max": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "CountryResponse": {
         "required": [
           "code",
@@ -6132,6 +6451,24 @@
           "DETAILED",
           "TECHNICAL"
         ]
+      },
+      "ForfeitScoreResponse": {
+        "required": [
+          "scored",
+          "conceded"
+        ],
+        "type": "object",
+        "properties": {
+          "scored": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "conceded": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "The score recorded for a forfeit (the file's `for` and `against`)."
       },
       "ForgotPasswordRequest": {
         "required": [
@@ -6626,6 +6963,20 @@
           }
         }
       },
+      "ListRulesetTemplatesResponse": {
+        "required": [
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RulesetTemplateResponse"
+            }
+          }
+        }
+      },
       "ListSportsResponse": {
         "required": [
           "items"
@@ -6914,6 +7265,12 @@
         },
         "description": "A tenant the user is an active member of: its slug (the workspace URL), display name and status, and the codes of the\nroles they hold there (any scope). Every status is listed. A `SUSPENDED` or `ARCHIVED` tenant's workspace is\nblocked, and its owner can read why; a `PROVISIONING` tenant's opens only for those setting it up (others get\n`TENANT_PROVISIONING`)."
       },
+      "MinorConsentRequirement": {
+        "enum": [
+          "TENANT_DEFAULT"
+        ],
+        "description": "Whether a minor needs a guardian's consent to take part; the registry slices add the others."
+      },
       "MinorRegistrationConsent": {
         "enum": [
           "REQUIRED",
@@ -7057,9 +7414,15 @@
           },
           {
             "type": "string"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         ],
-        "description": "A parameter's value, by the parameter's type: a whole number (NUMBER), true or false (FLAG), or one of its values (CHOICE)."
+        "description": "A parameter's value, by the parameter's type: a whole number (NUMBER), true or false (FLAG), one of its values (CHOICE), or an ordered list of its values, each once (LIST)."
       },
       "PeriodClock": {
         "enum": [
@@ -7262,6 +7625,14 @@
         },
         "description": "One quota's usage (S04 D15): `used` of `limit` (null = unlimited) when a module measures it\n(`measured`); otherwise `used` is null: not measured yet. `warning`: the tenant uses 80 % of the\nlimit or more."
       },
+      "ReadinessCheck": {
+        "enum": [
+          "LINEUPS_APPROVED",
+          "OFFICIALS_MINIMUM",
+          "VENUE_SET"
+        ],
+        "description": "What must hold before a contest may start (S11 builds the checks; it adds others with a schema change)."
+      },
       "RedriveOutboxMessageRequest": {
         "required": [
           "reason"
@@ -7390,6 +7761,402 @@
         },
         "additionalProperties": false,
         "description": "The optional body of `revoke`: `version`, when sent, must be the membership's current one."
+      },
+      "RosterLockPolicy": {
+        "enum": [
+          "FIRST_CONTEST"
+        ],
+        "description": "When a roster locks; Competitions (S07/S09) adds others with a schema change."
+      },
+      "RulesetContestResponse": {
+        "required": [
+          "periodSeconds",
+          "tieResolution",
+          "extraPeriodSequence",
+          "coverageDefault"
+        ],
+        "type": "object",
+        "properties": {
+          "periodSeconds": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "tieResolution": {
+            "type": "string"
+          },
+          "extraPeriodSequence": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "coverageDefault": {
+            "$ref": "#/components/schemas/CoverageLevel"
+          }
+        },
+        "description": "`periodSeconds` is keyed by the definition's period codes."
+      },
+      "RulesetEligibilityResponse": {
+        "required": [
+          "membershipRequired",
+          "minAge",
+          "maxAge",
+          "ageReferenceDate",
+          "minorConsentRequired"
+        ],
+        "type": "object",
+        "properties": {
+          "membershipRequired": {
+            "type": "boolean"
+          },
+          "minAge": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "maxAge": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "ageReferenceDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "minorConsentRequired": {
+            "$ref": "#/components/schemas/MinorConsentRequirement"
+          }
+        },
+        "description": "Ages in whole years on `ageReferenceDate`; null means no limit."
+      },
+      "RulesetLineupResponse": {
+        "required": [
+          "starters",
+          "benchMax",
+          "requiresApproval",
+          "positions"
+        ],
+        "type": "object",
+        "properties": {
+          "starters": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "benchMax": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "requiresApproval": {
+            "type": "boolean"
+          },
+          "positions": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/CountRangeResponse"
+            }
+          }
+        },
+        "description": "`positions` is keyed by a position code or group of the definition."
+      },
+      "RulesetOperationsResponse": {
+        "required": [
+          "readiness",
+          "officialsMinimum",
+          "scorerCorrectionWindowMinutes",
+          "startingSoonMinutes"
+        ],
+        "type": "object",
+        "properties": {
+          "readiness": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReadinessCheck"
+            }
+          },
+          "officialsMinimum": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "scorerCorrectionWindowMinutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "startingSoonMinutes": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "`officialsMinimum` is keyed by the definition's official role codes."
+      },
+      "RulesetParameterResponse": {
+        "required": [
+          "type",
+          "label",
+          "description",
+          "min",
+          "max",
+          "values",
+          "default"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "$ref": "#/components/schemas/RulesetParameterType"
+          },
+          "label": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "min": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "max": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "values": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "default": {
+            "$ref": "#/components/schemas/ParameterValue"
+          }
+        },
+        "description": "A parameter a competition may change: `min` and `max` for a number; `values` for a choice or a list\n(the codes a list may hold, each once, in any order); empty otherwise. `default` is the template's value."
+      },
+      "RulesetParameterType": {
+        "enum": [
+          "CHOICE",
+          "FLAG",
+          "LIST",
+          "NUMBER"
+        ],
+        "description": "A template parameter's type in the API; the files write `enum`, `bool`, `list`, `int`."
+      },
+      "RulesetRosterResponse": {
+        "required": [
+          "min",
+          "max",
+          "requiresApproval",
+          "lockPolicy"
+        ],
+        "type": "object",
+        "properties": {
+          "min": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "max": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "requiresApproval": {
+            "type": "boolean"
+          },
+          "lockPolicy": {
+            "$ref": "#/components/schemas/RosterLockPolicy"
+          }
+        }
+      },
+      "RulesetSportResponse": {
+        "required": [
+          "variant",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "variant": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "The sport definition the template is written for, at the exact version."
+      },
+      "RulesetStandingsResponse": {
+        "required": [
+          "points",
+          "forfeitScore",
+          "tiebreakers",
+          "headToHeadReapply"
+        ],
+        "type": "object",
+        "properties": {
+          "points": {
+            "$ref": "#/components/schemas/StandingsPointsResponse"
+          },
+          "forfeitScore": {
+            "$ref": "#/components/schemas/ForfeitScoreResponse"
+          },
+          "tiebreakers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "headToHeadReapply": {
+            "type": "boolean"
+          }
+        },
+        "description": "`tiebreakers` in the order they apply; `headToHeadReapply` is the file's `h2h_reapply`."
+      },
+      "RulesetSubstitutionsResponse": {
+        "required": [
+          "max",
+          "windows",
+          "extraInExtraTime"
+        ],
+        "type": "object",
+        "properties": {
+          "max": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "windows": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "extraInExtraTime": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "RulesetTemplateResponse": {
+        "required": [
+          "code",
+          "version",
+          "name",
+          "description",
+          "schemaVersion",
+          "contentHash",
+          "publishedAt",
+          "sport",
+          "formats",
+          "parameters",
+          "values",
+          "tiebreakers"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "schemaVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "contentHash": {
+            "type": "string"
+          },
+          "publishedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "sport": {
+            "$ref": "#/components/schemas/RulesetSportResponse"
+          },
+          "formats": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "parameters": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/RulesetParameterResponse"
+            }
+          },
+          "values": {
+            "$ref": "#/components/schemas/RulesetValuesResponse"
+          },
+          "tiebreakers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TiebreakerResponse"
+            }
+          }
+        },
+        "description": "A published ruleset template as the API shows it (docs/domain/rulesets.md): camelCase names, UPPER_SNAKE values, with\nits version's hash and publication time. `parameters` are keyed by their dotted path into the rules as the files\nwrite it (`standings.points.win`, `contest.period_seconds.FIRST_HALF`); maps keyed by codes keep the codes.\n`tiebreakers` describes every tiebreaker the template lists or allows, in the catalogue's order."
+      },
+      "RulesetValuesResponse": {
+        "required": [
+          "contest",
+          "lineup",
+          "substitutions",
+          "roster",
+          "standings",
+          "operations",
+          "eligibility"
+        ],
+        "type": "object",
+        "properties": {
+          "contest": {
+            "$ref": "#/components/schemas/RulesetContestResponse"
+          },
+          "lineup": {
+            "$ref": "#/components/schemas/RulesetLineupResponse"
+          },
+          "substitutions": {
+            "$ref": "#/components/schemas/RulesetSubstitutionsResponse"
+          },
+          "roster": {
+            "$ref": "#/components/schemas/RulesetRosterResponse"
+          },
+          "standings": {
+            "$ref": "#/components/schemas/RulesetStandingsResponse"
+          },
+          "operations": {
+            "$ref": "#/components/schemas/RulesetOperationsResponse"
+          },
+          "eligibility": {
+            "$ref": "#/components/schemas/RulesetEligibilityResponse"
+          }
+        },
+        "description": "The template's rules, laid out as docs/domain/rulesets.md's snapshot."
       },
       "ScorerPadKind": {
         "enum": [
@@ -8229,6 +8996,43 @@
         ],
         "description": "The stage types of formats.md; `PLACEMENT`, `LEADERBOARD`, `HEATS` and `CARD` come later."
       },
+      "StandingsPointsResponse": {
+        "required": [
+          "win",
+          "draw",
+          "loss",
+          "noResult",
+          "forfeitWin",
+          "forfeitLoss"
+        ],
+        "type": "object",
+        "properties": {
+          "win": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "draw": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "loss": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "noResult": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "forfeitWin": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "forfeitLoss": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "StatisticAggregation": {
         "enum": [
           "SUM",
@@ -8833,6 +9637,26 @@
         },
         "description": "A tenant's subscription as its members see it (S04 D15): `today` in the tenant's `timeZone`; the\n`current` period (the one that decides access; null without periods) and the `next` scheduled one; every\ndeclared entitlement's effective value with its source; and every quota's usage. No override reasons, cancel\nreasons or who made a change: those are the platform's."
       },
+      "TiebreakerResponse": {
+        "required": [
+          "code",
+          "label",
+          "description"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "description": "A tiebreaker of the catalogue."
+      },
       "TimeZoneResponse": {
         "required": [
           "code",
@@ -9026,6 +9850,9 @@
     },
     {
       "name": "Formats"
+    },
+    {
+      "name": "Ruleset templates"
     },
     {
       "name": "Diagnostics"

@@ -393,3 +393,17 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   `EngineDependencyTests`' rule; a LINQ query spread into a `List<T>` compiles to `CollectionsMarshal`
   (`System.Runtime.InteropServices`), which the rule refuses, so the knockout uses `ToArray()`. Only one-stage formats
   generate; a format with more stages throws until S15.
+- **T4a:** plan approved with the recommended answers (owner, 2026-11-02): `FOOTBALL_LEAGUE` takes `ROUND_ROBIN` and
+  `SINGLE_CONTEST`, `FOOTBALL_CUP` `KNOCKOUT` and `SINGLE_CONTEST` (Q1); the tiebreaker catalogue is an embedded file with
+  an optional `sports` limit, checked at startup and not seeded (Q2); a template pins its sport version, and the
+  resolver takes the latest template and format versions unless given (Q3); the resolver answers every problem with
+  its path, one `errors[]` entry per field in the preview (Q4). T4 is two PRs: T4a (files, schema, catalogue,
+  validator, table, seeder, reads) and T4b (resolver, snapshot, preview). The file shape and the rules are in
+  rulesets.md ("As built (S05-T4a)"). Parameters gain `ParameterType.List` (`list`; a `ParameterValue` with `Items`, a
+  JSON array; OpenAPI `oneOf` adds an array of strings). The typed values are Contracts' `Rulesets` records
+  (`RulesetValues`); the API maps them to response records of its own (camelCase, `headToHeadReapply`, forfeit
+  `scored`/`conceded`); `parameters` stay keyed by the files' dotted paths, and the response lists the catalogue's
+  tiebreakers the template lists or allows. `RulesetValueChecks` holds the rules between values so T4b's resolver can
+  run them after a tenant's changes, each problem with a kind for its error code. The validator reads the embedded
+  sport and format files, not the database, so a new sport version needs new template versions (the sport seed test's
+  new-version case serves no templates).

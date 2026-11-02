@@ -77,9 +77,13 @@ public sealed class SportDefinitionSeedTests(PostgresFixture fixture) : Database
     {
         try
         {
-            await using var edited = WithFootball(yaml => yaml
-                .Replace("\nversion: 1\n", "\nversion: 2\n", StringComparison.Ordinal)
-                .Replace("\nname: Football\n", "\nname: Association football\n", StringComparison.Ordinal));
+            // The templates pin football@1, which the edited files no longer hold: shipping football@2 means new template
+            // versions pinning it (RulesetTemplateValidatorTests). This test is about the sport seeder, so it serves none.
+            await using var edited = WithFootball(
+                yaml => yaml
+                    .Replace("\nversion: 1\n", "\nversion: 2\n", StringComparison.Ordinal)
+                    .Replace("\nname: Football\n", "\nname: Association football\n", StringComparison.Ordinal),
+                templates: false);
 
             (await RunAsync(edited)).Outcome.ShouldBe(new SeedOutcome(1, 0, 0));
 
@@ -153,11 +157,16 @@ public sealed class SportDefinitionSeedTests(PostgresFixture fixture) : Database
 
     // The test app serving an edited football file: same database, no outbox processor. Without the startup check, an
     // invalid file reaches the seeder (the check would stop the Host first).
-    private WebApplicationFactory<Program> WithFootball(Func<string, string> edit, bool startupCheck = true) => App.WithWebHostBuilder(builder => builder
+    private WebApplicationFactory<Program> WithFootball(Func<string, string> edit, bool startupCheck = true, bool templates = true) => App.WithWebHostBuilder(builder => builder
         .ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(new Dictionary<string, string?> { ["Outbox:Enabled"] = "false" }))
         .ConfigureTestServices(services =>
         {
             services.AddSingleton<SportDefinitionFiles>(new EditedFiles(edit));
+            if (!templates)
+            {
+                services.AddSingleton<RulesetTemplateFiles>(new NoTemplates());
+            }
+
             if (!startupCheck)
             {
                 services.Remove(services.Single(descriptor => descriptor.ServiceType == typeof(IHostedService)
@@ -181,6 +190,11 @@ public sealed class SportDefinitionSeedTests(PostgresFixture fixture) : Database
         public override IReadOnlyList<string> Names => [.. base.Names, "soccer.yaml"];
 
         public override string Read(string file) => base.Read(file == "soccer.yaml" ? _football : file);
+    }
+
+    private sealed class NoTemplates : RulesetTemplateFiles
+    {
+        public override IReadOnlyList<string> Names => [];
     }
 
     private sealed class EditedFiles(Func<string, string> edit) : SportDefinitionFiles

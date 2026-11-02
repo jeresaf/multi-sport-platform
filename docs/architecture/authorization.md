@@ -161,7 +161,8 @@ only `TENANT_OWNER` and `TENANT_ADMIN` change them; `TEAM_MANAGER` (team scope o
 sport definitions follow the settings (S05-T1b2): every role holding `tenant.settings.read` also holds `sport.read`
 (`GET /api/admin/v1/sports`, `…/sports/{variant}`; available while read-only; audit `NONE`, global configuration), and
 the formats go with them (S05-T3a): `format.read` (`GET /api/admin/v1/formats`, `…/formats/{code}`), same roles and
-rules.
+rules, and so do the ruleset templates (S05-T4a): `ruleset.read` (`GET /api/admin/v1/ruleset-templates`,
+`…/ruleset-templates/{code}`; T4b adds the preview).
 
 | Role | Typical scope | Includes (summary) |
 |---|---|---|

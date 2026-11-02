@@ -14,15 +14,18 @@ public sealed class RulesetReferences(
     IEnumerable<FormatDefinition> formats,
     IReadOnlyList<TiebreakerDefinition> tiebreakers)
 {
-    private readonly Dictionary<(string Variant, int Version), SportDefinition> _sports =
-        sports.ToDictionary(sport => (sport.Variant, sport.Version));
+    // Two files declaring one version are the sport seeder's to refuse (SPORT_DEFINITION_DUPLICATE_VERSION): the first counts here.
+    private readonly Dictionary<(string Variant, int Version), SportDefinition> _sports = sports
+        .GroupBy(sport => (sport.Variant, sport.Version))
+        .ToDictionary(group => group.Key, group => group.First());
 
     private readonly Dictionary<string, FormatDefinition> _formats = formats
         .GroupBy(format => format.Code, StringComparer.Ordinal)
         .ToDictionary(group => group.Key, group => group.MaxBy(format => format.Version)!, StringComparer.Ordinal);
 
-    private readonly Dictionary<string, TiebreakerDefinition> _tiebreakers =
-        tiebreakers.ToDictionary(tiebreaker => tiebreaker.Code, StringComparer.Ordinal);
+    private readonly Dictionary<string, TiebreakerDefinition> _tiebreakers = tiebreakers
+        .GroupBy(tiebreaker => tiebreaker.Code, StringComparer.Ordinal)
+        .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
 
     public static RulesetReferences FromFiles(SportDefinitionFiles sports, FormatDefinitionFiles formats, TiebreakerCatalogue tiebreakers)
     {
