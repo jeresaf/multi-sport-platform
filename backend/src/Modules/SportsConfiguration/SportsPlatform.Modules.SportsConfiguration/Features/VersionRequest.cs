@@ -1,10 +1,10 @@
 using System.Globalization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace SportsPlatform.Modules.SportsConfiguration.Features.Sports.GetSport;
+namespace SportsPlatform.Modules.SportsConfiguration.Features;
 
-/// <summary>The definition's query parameter as sent (text, so every bad value is <c>VALIDATION_INVALID_QUERY</c>).</summary>
-public sealed record GetSportRequest([FromQuery(Name = "version")] string? Version)
+/// <summary>A definition read's <c>version</c> query parameter as sent (text, so every bad value is <c>VALIDATION_INVALID_QUERY</c>).</summary>
+public sealed record VersionRequest([FromQuery(Name = "version")] string? Version)
 {
     public static bool TryParseVersion(string value, out int version) =>
         int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out version) && version >= 1;

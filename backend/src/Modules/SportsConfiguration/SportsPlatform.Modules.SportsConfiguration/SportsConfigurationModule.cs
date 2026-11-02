@@ -5,9 +5,14 @@ using SportsPlatform.BuildingBlocks.Modules;
 using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Persistence.Seeding;
 using SportsPlatform.Modules.SportsConfiguration.Contracts.Engines;
+using SportsPlatform.Modules.SportsConfiguration.Contracts.Formats;
 using SportsPlatform.Modules.SportsConfiguration.Contracts.Sports;
 using SportsPlatform.Modules.SportsConfiguration.Definitions;
 using SportsPlatform.Modules.SportsConfiguration.Engines;
+using SportsPlatform.Modules.SportsConfiguration.Features;
+using SportsPlatform.Modules.SportsConfiguration.Features.Formats;
+using SportsPlatform.Modules.SportsConfiguration.Features.Formats.GetFormat;
+using SportsPlatform.Modules.SportsConfiguration.Features.Formats.ListFormats;
 using SportsPlatform.Modules.SportsConfiguration.Features.Sports;
 using SportsPlatform.Modules.SportsConfiguration.Features.Sports.GetSport;
 using SportsPlatform.Modules.SportsConfiguration.Features.Sports.ListSports;
@@ -32,16 +37,22 @@ public sealed class SportsConfigurationModule : IModule
     {
         services.AddModuleDbContext<SportsConfigurationDbContext>(configuration, Schema);
         services.AddSingleton<SportDefinitionFiles>();
-        // A definition the validator refuses stops the Host before it serves anything (S05 D3).
-        services.AddHostedService<SportDefinitionStartupCheck>();
+        services.AddSingleton<FormatDefinitionFiles>();
+        // A definition or format the validator refuses stops the Host before it serves anything (S05 D3).
+        services.AddHostedService<DefinitionStartupCheck>();
         services.AddSeeder<SportDefinitionSeeder>();
+        services.AddSeeder<FormatDefinitionSeeder>();
         services.AddSingleton<SportDefinitionCache>();
         services.AddScoped<ISportDefinitions, SportDefinitions>();
+        services.AddSingleton<FormatDefinitionCache>();
+        services.AddScoped<IFormatDefinitions, FormatDefinitions>();
         services.AddSingleton<IScoringEngine, AdditiveEngine>();
         services.AddSingleton<IScoringEngines, ScoringEngines>();
         services.AddScoped<ListSportsHandler>();
         services.AddScoped<GetSportHandler>();
-        services.AddSingleton<IValidator<GetSportRequest>, GetSportRequestValidator>();
+        services.AddScoped<ListFormatsHandler>();
+        services.AddScoped<GetFormatHandler>();
+        services.AddSingleton<IValidator<VersionRequest>, VersionRequestValidator>();
     }
 
     public void MapEndpoints(ApiEndpointGroups groups)
@@ -53,5 +64,11 @@ public sealed class SportsConfigurationModule : IModule
         var platformSports = SportEndpoints.Group(groups.Platform);
         ListSportsEndpoint.MapPlatform(platformSports);
         GetSportEndpoint.MapPlatform(platformSports);
+        var adminFormats = FormatEndpoints.Group(groups.Admin);
+        ListFormatsEndpoint.MapAdmin(adminFormats);
+        GetFormatEndpoint.MapAdmin(adminFormats);
+        var platformFormats = FormatEndpoints.Group(groups.Platform);
+        ListFormatsEndpoint.MapPlatform(platformFormats);
+        GetFormatEndpoint.MapPlatform(platformFormats);
     }
 }

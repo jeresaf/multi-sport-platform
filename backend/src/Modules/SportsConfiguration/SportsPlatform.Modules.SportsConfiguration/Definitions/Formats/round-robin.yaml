@@ -1,0 +1,32 @@
+# A league (docs/domain/formats.md, "ROUND_ROBIN"): every participant meets every other participant once per cycle.
+# A published version never changes: a change is a new version (S05 D4).
+schema_version: 1
+code: ROUND_ROBIN
+version: 1
+name: League (round robin)
+description: Every participant meets every other participant once in each cycle.
+compatible_shapes: [HEAD_TO_HEAD]
+participants: { min: 2, max: 40 }
+stages:
+  - code: LEAGUE
+    type: LEAGUE
+    generator: ROUND_ROBIN
+parameters:
+  cycles:
+    type: int
+    label: Cycles
+    description: How many times each pair meets; 2 is home and away.
+    min: 1
+    max: 4
+    default: 1
+  home_away_balance:
+    type: bool
+    label: Balance home and away
+    description: Alternate home and away so each participant has as many of each as possible.
+    default: true
+  seeding:
+    type: enum
+    label: Draw
+    description: SEEDED and MANUAL keep the order given; RANDOM draws it with a stored seed.
+    values: [SEEDED, RANDOM, MANUAL]
+    default: RANDOM

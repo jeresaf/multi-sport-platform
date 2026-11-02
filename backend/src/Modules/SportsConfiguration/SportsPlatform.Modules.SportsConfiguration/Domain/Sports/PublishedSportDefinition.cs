@@ -1,5 +1,6 @@
 using SportsPlatform.BuildingBlocks.Domain;
 using SportsPlatform.Modules.SportsConfiguration.Contracts.Sports;
+using SportsPlatform.Modules.SportsConfiguration.Domain.Definitions;
 
 namespace SportsPlatform.Modules.SportsConfiguration.Domain.Sports;
 
@@ -8,7 +9,7 @@ namespace SportsPlatform.Modules.SportsConfiguration.Domain.Sports;
 /// read-only for the runtime roles and written only by <c>config.configuration.sports</c>. Immutable: a row is never
 /// updated or deleted; a changed definition is a new version.
 /// </summary>
-public sealed class PublishedSportDefinition : Entity
+public sealed class PublishedSportDefinition : Entity, IPublishedDefinition
 {
     public PublishedSportDefinition(
         string variant,
@@ -44,6 +45,8 @@ public sealed class PublishedSportDefinition : Entity
     /// <summary>What the sport quota counts, e.g. <c>RUGBY_UNION</c> for both rugby variants.</summary>
     public string Sport { get; private set; } = string.Empty;
 
+    string IPublishedDefinition.Code => Variant;
+
     public int Version { get; private set; }
 
     public string Name { get; private set; } = string.Empty;
@@ -66,10 +69,4 @@ public sealed class PublishedSportDefinition : Entity
     public DateTimeOffset PublishedAt { get; private set; }
 
     public static Guid IdFor(string variant, int version) => DeterministicIds.Create($"config.sport_definition:{variant}@{version}");
-}
-
-/// <summary>Only published definitions exist until the in-app editors (ADR-0006).</summary>
-public enum DefinitionStatus
-{
-    Published,
 }

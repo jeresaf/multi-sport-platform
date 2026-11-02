@@ -1,0 +1,14 @@
+# One contest between two participants (docs/domain/formats.md, "SINGLE_CONTEST"): friendlies, exhibitions, one-off
+# finals and the quick match. A published version never changes: a change is a new version (S05 D4).
+schema_version: 1
+code: SINGLE_CONTEST
+version: 1
+name: Single contest
+description: One contest between two participants.
+compatible_shapes: [HEAD_TO_HEAD]
+participants: { min: 2, max: 2 }
+stages:
+  - code: MAIN
+    type: SINGLE
+    generator: SINGLE_CONTEST
+parameters: {}

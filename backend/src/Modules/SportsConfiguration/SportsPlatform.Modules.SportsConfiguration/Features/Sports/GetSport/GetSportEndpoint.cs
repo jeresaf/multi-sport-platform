@@ -32,13 +32,13 @@ internal static class GetSportEndpoint
         .WithDescription(_description)
         .DocumentsQueryInteger("version", minimum: 1)
         .RequireAction(action)
-        .ValidateRequest<GetSportRequest>(CommonErrors.InvalidQuery)
+        .ValidateRequest<VersionRequest>(CommonErrors.InvalidQuery)
         .ReturnsETag(_etag)
         .ProducesErrors(SportsConfigurationErrors.SportDefinitionNotFound);
 
     private static async Task<Results<Ok<SportDefinitionResponse>, ProblemHttpResult>> HandleAsync(
         string variant,
-        [AsParameters] GetSportRequest request,
+        [AsParameters] VersionRequest request,
         GetSportHandler handler,
         HttpResponse response,
         CancellationToken cancellationToken)

@@ -20,6 +20,8 @@
   <ItemGroup>
     <!-- Sport definitions and their schema (Definitions/Sports; docs/domain/sports/README.md keeps the docs copy). -->
     <EmbeddedResource Include="Definitions/Sports/*.yaml;Definitions/Sports/*.schema.json" LogicalName="SportsPlatform.Modules.SportsConfiguration.Definitions.Sports.%(Filename)%(Extension)" />
+    <!-- Format definitions and their schema (Definitions/Formats; docs/domain/formats.md describes them). -->
+    <EmbeddedResource Include="Definitions/Formats/*.yaml;Definitions/Formats/*.schema.json" LogicalName="SportsPlatform.Modules.SportsConfiguration.Definitions.Formats.%(Filename)%(Extension)" />
   </ItemGroup>
 
 </Project>

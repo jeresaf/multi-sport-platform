@@ -1,0 +1,25 @@
+# Single elimination (docs/domain/formats.md, "KNOCKOUT"): the winner of each contest goes through. The tie type
+# (SERIES) comes with S16 in a new version. A published version never changes: a change is a new version (S05 D4).
+schema_version: 1
+code: KNOCKOUT
+version: 1
+name: Knockout
+description: Single elimination; byes go to the top seeds, and seeds 1 and 2 can meet only in the final.
+compatible_shapes: [HEAD_TO_HEAD]
+participants: { min: 2, max: 256 }
+stages:
+  - code: KNOCKOUT
+    type: KNOCKOUT
+    generator: KNOCKOUT
+parameters:
+  third_place_contest:
+    type: bool
+    label: Third-place contest
+    description: The semi-final losers meet for third place (4 participants or more).
+    default: false
+  seeding:
+    type: enum
+    label: Draw
+    description: SEEDED places the order given as seeds; RANDOM draws the order with a stored seed; MANUAL gives the bracket lines, byes included.
+    values: [SEEDED, RANDOM, MANUAL]
+    default: SEEDED
