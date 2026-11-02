@@ -65,7 +65,7 @@ public static class IdentityRoles
     public static IReadOnlyList<RoleDefinition> All { get; } =
     [
         new(PlatformRoleCodes.Admin, RoleScope.Platform,
-            "Platform staff: tenants and their lifecycle, plans, subscriptions and entitlement overrides, platform administrators, audit, outbox and sport definitions.",
+            "Platform staff: tenants and their lifecycle, plans, subscriptions and entitlement overrides, platform administrators, audit, outbox and sport configuration (definitions, formats, templates).",
             [
                 .. _platformReads,
                 "entitlement.override",
@@ -86,7 +86,7 @@ public static class IdentityRoles
                 "tenant.update",
             ]),
         new(PlatformRoleCodes.Support, RoleScope.Platform,
-            "Platform staff, read-only: tenants, plans, subscriptions, audit, outbox and sport definitions (reads of tenants, plans, subscriptions, audit and outbox are audited).",
+            "Platform staff, read-only: tenants, plans, subscriptions, audit, outbox and sport configuration (definitions, formats, templates; reads of tenants, plans, subscriptions, audit and outbox are audited).",
             _platformReads),
 
         new(TenantOwner, RoleScope.Tenant,
