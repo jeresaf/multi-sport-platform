@@ -41,6 +41,25 @@ higher participant limit needs a schema change (review #82).
 `KNOCKOUT@1` has no `tie_type`: `SERIES` comes with S16 in `KNOCKOUT@2`. Seeded, hashed and immutable like sport
 definitions (`config.format_definitions`, `FORMAT_DEFINITION_IMMUTABLE`); read with `format.read`.
 
+**As built (S05-T3b).** `IFormatGenerators.Generate(format, input)` (Contracts, `Formats.Generation`) takes the
+entrants' keys in order, the parameters (left out: the default) and a `ulong` seed, and returns the format's code and
+version, every parameter, the seed, the entrants as given, the stages with their rounds and pairings, and
+`OutputHash`: `sha256:` over RFC 8785 canonical JSON of all of these (the seed as a decimal string, since a JSON
+number rounds a 64-bit seed), so the hash identifies the draw, not only its structure (owner, S05-T3b plan). A pairing
+is coded `<round code>_<n>`; its sides are an entrant, `WINNER_OF` or `LOSER_OF` an earlier pairing, or a bye (always
+away; no contest). League rounds are `ROUND_<n>`; knockout rounds are `ROUND_OF_<n>`, `QUARTER_FINALS`,
+`SEMI_FINALS`, `FINAL` by the bracket's places left, byes counted (`BracketPlaces`: 5 entrants start in
+`QUARTER_FINALS` with 8; review #83), and the third-place contest is its own round `THIRD_PLACE` just before
+the final. `RANDOM` uses the module's own PRNG (xoshiro256** seeded by SplitMix64, unbiased bounded draws,
+Fisher–Yates), pinned to the published outputs. Errors: `FORMAT_PARTICIPANT_COUNT_INVALID` (outside the format's
+`participants`), `FORMAT_PARAMETER_INVALID` (unknown, wrong type, out of range, an unknown choice; a third-place
+contest with fewer than 4 participants) and `FORMAT_ENTRANTS_INVALID` (a blank, untrimmed or repeated key; a bye
+outside `MANUAL` knockout lines; `MANUAL` lines not the bracket size for their entrants, or two byes in one pairing);
+the message names what is wrong. The round robin is de Werra's canonical schedule (the circle method with the fixed
+place at home in even rounds, `r+k` at home for odd `k`), which keeps each entrant's home and away within one per
+cycle. The fixed place is the last entrant (the circle method above fixes the first; either gives the same schedule up to
+numbering), and with an odd count the bye takes it. Generators are pure (architecture test).
+
 ## Generator rules (all generators)
 
 - **Pure and deterministic:** output = f(ordered participants, parameters, random seed). Inputs, seed and output

@@ -15,6 +15,16 @@ public static class SportsConfigurationErrors
     public static readonly Error FormatDefinitionNotFound = new(
         "FORMAT_DEFINITION_NOT_FOUND", "No published format matches this code, or this version of it.", ErrorKind.NotFound);
 
+    // The fixture generators' errors (S05 D10); no endpoint returns them until the draws of S09/S10.
+    public static readonly Error FormatParticipantCountInvalid = new(
+        "FORMAT_PARTICIPANT_COUNT_INVALID", "The format can't be drawn for this number of participants.", ErrorKind.Unprocessable);
+
+    public static readonly Error FormatParameterInvalid = new(
+        "FORMAT_PARAMETER_INVALID", "A format parameter is unknown, of the wrong type or out of its range.", ErrorKind.Unprocessable);
+
+    public static readonly Error FormatEntrantsInvalid = new(
+        "FORMAT_ENTRANTS_INVALID", "The entrants can't be drawn: one is blank or repeated, or the byes are misplaced.", ErrorKind.Unprocessable);
+
     // Timeline errors the engines return; the scorer sees them from S12 (S05 D8). No endpoint returns them yet.
     public static readonly Error TimelineEventUnknown = new(
         "TIMELINE_EVENT_UNKNOWN", "The sport definition has no event type with this code.", ErrorKind.Unprocessable);

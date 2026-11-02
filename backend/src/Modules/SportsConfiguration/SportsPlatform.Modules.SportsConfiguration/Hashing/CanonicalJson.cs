@@ -4,7 +4,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-namespace SportsPlatform.Modules.SportsConfiguration.Definitions;
+namespace SportsPlatform.Modules.SportsConfiguration.Hashing;
 
 /// <summary>
 /// RFC 8785, the JSON Canonicalization Scheme: object members sorted by their names' UTF-16 code units, no

@@ -1,5 +1,6 @@
 using System.Text.Json.Nodes;
 using SportsPlatform.Modules.SportsConfiguration.Definitions;
+using SportsPlatform.Modules.SportsConfiguration.Hashing;
 
 namespace SportsPlatform.UnitTests.SportsConfiguration;
 

@@ -11,6 +11,7 @@ using SportsPlatform.IntegrationTests.Infrastructure;
 using SportsPlatform.Modules.SportsConfiguration.Contracts.Formats;
 using SportsPlatform.Modules.SportsConfiguration.Definitions;
 using SportsPlatform.Modules.SportsConfiguration.Domain.Formats;
+using SportsPlatform.Modules.SportsConfiguration.Hashing;
 using SportsPlatform.Modules.SportsConfiguration.Seed.Configuration;
 
 namespace SportsPlatform.IntegrationTests.SportsConfiguration;

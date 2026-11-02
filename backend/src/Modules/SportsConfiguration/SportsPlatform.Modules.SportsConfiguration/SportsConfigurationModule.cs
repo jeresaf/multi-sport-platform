@@ -6,6 +6,7 @@ using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Persistence.Seeding;
 using SportsPlatform.Modules.SportsConfiguration.Contracts.Engines;
 using SportsPlatform.Modules.SportsConfiguration.Contracts.Formats;
+using SportsPlatform.Modules.SportsConfiguration.Contracts.Formats.Generation;
 using SportsPlatform.Modules.SportsConfiguration.Contracts.Sports;
 using SportsPlatform.Modules.SportsConfiguration.Definitions;
 using SportsPlatform.Modules.SportsConfiguration.Engines;
@@ -16,6 +17,7 @@ using SportsPlatform.Modules.SportsConfiguration.Features.Formats.ListFormats;
 using SportsPlatform.Modules.SportsConfiguration.Features.Sports;
 using SportsPlatform.Modules.SportsConfiguration.Features.Sports.GetSport;
 using SportsPlatform.Modules.SportsConfiguration.Features.Sports.ListSports;
+using SportsPlatform.Modules.SportsConfiguration.Generators;
 using SportsPlatform.Modules.SportsConfiguration.Infrastructure;
 using SportsPlatform.Modules.SportsConfiguration.Seed.Configuration;
 
@@ -48,6 +50,7 @@ public sealed class SportsConfigurationModule : IModule
         services.AddScoped<IFormatDefinitions, FormatDefinitions>();
         services.AddSingleton<IScoringEngine, AdditiveEngine>();
         services.AddSingleton<IScoringEngines, ScoringEngines>();
+        services.AddSingleton<IFormatGenerators, FormatGenerators>();
         services.AddScoped<ListSportsHandler>();
         services.AddScoped<GetSportHandler>();
         services.AddScoped<ListFormatsHandler>();
