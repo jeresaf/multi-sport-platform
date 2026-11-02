@@ -19,9 +19,6 @@ namespace SportsPlatform.Modules.SportsConfiguration.Seed.Configuration;
 public abstract class DefinitionSeeder<TRow>(TimeProvider timeProvider) : ISeeder
     where TRow : class, IPublishedDefinition
 {
-    /// <summary>Bump when the seeder writes something different from the same files.</summary>
-    private const int _version = 1;
-
     public abstract string Key { get; }
 
     public SeedCategory Category => SeedCategory.Configuration;
@@ -29,7 +26,10 @@ public abstract class DefinitionSeeder<TRow>(TimeProvider timeProvider) : ISeede
     public abstract int Order { get; }
 
     // The runner reads it before RunAsync: the files are validated here, so a bad one fails with the validator's problems.
-    public string Checksum => ComputeChecksum(Loaded.Select(d => (d.File, Hash: d.Row.ContentHash)));
+    public string Checksum => ComputeChecksum(SeederVersion, Loaded.Select(d => (d.File, Hash: d.Row.ContentHash)));
+
+    /// <summary>Bump in the kind's seeder when it writes something different from the same files.</summary>
+    protected virtual int SeederVersion => 1;
 
     /// <summary>The kind's error prefix, e.g. <c>SPORT_DEFINITION</c>.</summary>
     protected abstract string ErrorPrefix { get; }
@@ -108,11 +108,11 @@ public abstract class DefinitionSeeder<TRow>(TimeProvider timeProvider) : ISeede
         })];
     }
 
-    private static string ComputeChecksum(IEnumerable<(string File, string Hash)> definitions)
+    private static string ComputeChecksum(int version, IEnumerable<(string File, string Hash)> definitions)
     {
         var data = new JsonObject
         {
-            ["version"] = _version,
+            ["version"] = version,
             ["definitions"] = new JsonArray([.. definitions.Select(d => (JsonNode)new JsonObject { ["file"] = d.File, ["hash"] = d.Hash })]),
         };
         return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(data.ToJsonString())));
