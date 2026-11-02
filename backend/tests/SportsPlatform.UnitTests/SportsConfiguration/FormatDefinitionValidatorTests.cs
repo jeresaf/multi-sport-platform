@@ -73,6 +73,32 @@ public sealed class FormatDefinitionValidatorTests
             root => Parameter(root, "home_away_balance")["default"] = "yes",
             ["round-robin.yaml: $.parameters.home_away_balance.default: Value is \"string\" but should be \"boolean\""]
         },
+        // R1 (#82): the schema refuses what the table or the typed model can't hold, so the startup check catches it.
+        {
+            "a code the table's check refuses", _roundRobin,
+            root => root["code"] = "ROUND_ROBIN_",
+            ["round-robin.yaml: $.code: The string value is not a match for the indicated regular expression"]
+        },
+        {
+            "a code longer than the column", _roundRobin,
+            root => root["code"] = "ROUND_" + string.Concat(Enumerable.Repeat("ROBIN_", 8)) + "X",
+            ["round-robin.yaml: $.code: Value should be at most 50 characters"]
+        },
+        {
+            "a name longer than the column", _roundRobin,
+            root => root["name"] = new string('L', 101),
+            ["round-robin.yaml: $.name: Value should be at most 100 characters"]
+        },
+        {
+            "more participants than a format takes", _roundRobin,
+            root => root["participants"]!["max"] = 3000000000,
+            ["round-robin.yaml: $.participants.max: 3000000000 should be at most 1024"]
+        },
+        {
+            "a default beyond a 32-bit whole number", _roundRobin,
+            root => Parameter(root, "cycles")["default"] = 3000000000,
+            ["round-robin.yaml: $.parameters.cycles.default: 3000000000 should be at most 2147483647"]
+        },
         {
             "bounds on a flag", _roundRobin,
             root => Parameter(root, "home_away_balance")["max"] = 1,

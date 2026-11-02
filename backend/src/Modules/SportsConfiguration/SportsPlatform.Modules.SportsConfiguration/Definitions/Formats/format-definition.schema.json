@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://msp.example/schemas/format-definition/1",
   "title": "Format definition, schema version 1 (docs/domain/formats.md)",
-  "description": "The shape only. Unique stage codes, the generators (their stage types, shapes, participant counts and parameters), and each parameter's bounds and default are checked in code by FormatDefinitionRules.",
+  "description": "The shape only. Unique stage codes, the generators (their stage types, shapes, participant counts and parameters), and each parameter's bounds and default are checked in code by FormatDefinitionRules. Codes, names and whole numbers are bounded as the table and the typed model store them (a code as the table's check, at most 50 characters; a name at most 100; whole numbers 32-bit; at most 1024 participants).",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -24,10 +24,13 @@
     },
     "version": {
       "type": "integer",
-      "minimum": 1
+      "minimum": 1,
+      "maximum": 2147483647
     },
     "name": {
-      "$ref": "#/$defs/text"
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100
     },
     "description": {
       "$ref": "#/$defs/text"
@@ -51,11 +54,13 @@
       "properties": {
         "min": {
           "type": "integer",
-          "minimum": 2
+          "minimum": 2,
+          "maximum": 1024
         },
         "max": {
           "type": "integer",
-          "minimum": 2
+          "minimum": 2,
+          "maximum": 1024
         }
       }
     },
@@ -91,7 +96,8 @@
     "parameters": {
       "type": "object",
       "propertyNames": {
-        "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$"
+        "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$",
+        "maxLength": 50
       },
       "additionalProperties": {
         "$ref": "#/$defs/parameter"
@@ -101,7 +107,8 @@
   "$defs": {
     "code": {
       "type": "string",
-      "pattern": "^[A-Z][A-Z0-9_]*$"
+      "pattern": "^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$",
+      "maxLength": 50
     },
     "text": {
       "type": "string",
@@ -135,10 +142,10 @@
           "$ref": "#/$defs/text"
         },
         "min": {
-          "type": "integer"
+          "$ref": "#/$defs/int"
         },
         "max": {
-          "type": "integer"
+          "$ref": "#/$defs/int"
         },
         "values": {
           "$ref": "#/$defs/nonEmptyList",
@@ -170,7 +177,7 @@
             ],
             "properties": {
               "default": {
-                "type": "integer"
+                "$ref": "#/$defs/int"
               },
               "values": false
             }
@@ -217,6 +224,11 @@
           }
         }
       ]
+    },
+    "int": {
+      "type": "integer",
+      "minimum": -2147483648,
+      "maximum": 2147483647
     }
   }
 }
