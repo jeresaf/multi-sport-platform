@@ -35,7 +35,9 @@ case codes. A parameter has `type` (`int` with `min` and `max`, `bool`, or `enum
 `FormatGeneratorKinds` (Contracts) and fills the stage's type and pairs every compatible shape; a one-stage format
 takes no more participants than its generator; the format declares exactly the parameters its generators read, with
 their types and only choices they understand; bounds are in order and hold the default. The participant limits are
-`SINGLE_CONTEST` 2–2, `ROUND_ROBIN` 2–40 and `KNOCKOUT` 2–256 (owner, S05-T3 plan; a new version can raise them).
+`SINGLE_CONTEST` 2–2, `ROUND_ROBIN` 2–40 and `KNOCKOUT` 2–256 (owner, S05-T3 plan; a new version can raise them). The schema caps `participants` at 1024 and
+bounds codes (50 characters), names (100) and whole numbers (32-bit) as the table and the typed model store them; a
+higher participant limit needs a schema change (review #82).
 `KNOCKOUT@1` has no `tie_type`: `SERIES` comes with S16 in `KNOCKOUT@2`. Seeded, hashed and immutable like sport
 definitions (`config.format_definitions`, `FORMAT_DEFINITION_IMMUTABLE`); read with `format.read`.
 
