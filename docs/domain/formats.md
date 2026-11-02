@@ -56,7 +56,8 @@ contest with fewer than 4 participants) and `FORMAT_ENTRANTS_INVALID` (a blank, 
 outside `MANUAL` knockout lines; `MANUAL` lines not the bracket size for their entrants, or two byes in one pairing);
 the message names what is wrong. The round robin is de Werra's canonical schedule (the circle method with the fixed
 place at home in even rounds, `r+k` at home for odd `k`), which keeps each entrant's home and away within one per
-cycle; with an odd count the bye takes the fixed place. Generators are pure (architecture test).
+cycle. The fixed place is the last entrant (the circle method above fixes the first; either gives the same schedule up to
+numbering), and with an odd count the bye takes it. Generators are pure (architecture test).
 
 ## Generator rules (all generators)
 
