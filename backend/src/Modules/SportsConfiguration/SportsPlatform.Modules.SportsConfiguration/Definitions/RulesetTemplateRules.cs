@@ -109,7 +109,12 @@ internal sealed class RulesetTemplateRules
                     Problem(at, $"the value at values.{path} has \"{code}\", which is not one of the values");
                 }
 
-                if (sport is not null)
+                if (path is not (RulesetValueChecks.StandingsTiebreakersPath or RulesetValueChecks.TieResolutionPath or RulesetValueChecks.CoverageDefaultPath))
+                {
+                    Problem(at, $"values.{path} can't be a tenant's choice: only {RulesetValueChecks.StandingsTiebreakersPath}, " +
+                        $"{RulesetValueChecks.TieResolutionPath} and {RulesetValueChecks.CoverageDefaultPath} are");
+                }
+                else if (sport is not null)
                 {
                     AllowedCodes($"{at}.values", path, allowed, sport);
                 }
@@ -118,7 +123,8 @@ internal sealed class RulesetTemplateRules
         }
     }
 
-    // Allowed codes a tenant could pick must be codes the sport supports, as the values' own are.
+    // Allowed codes a tenant could pick must be codes the sport supports, as the values' own are. Only paths whose codes
+    // are checked here may be choices or lists: any other would let a tenant pick a code nothing checks.
     private void AllowedCodes(string at, string path, List<string> allowed, SportDefinition sport)
     {
         foreach (var code in allowed)
@@ -133,6 +139,8 @@ internal sealed class RulesetTemplateRules
                 },
                 RulesetValueChecks.TieResolutionPath when !sport.Supports.TieResolutions.Contains(code, StringComparer.Ordinal) =>
                     $"the sport doesn't support \"{code}\"",
+                RulesetValueChecks.CoverageDefaultPath when !sport.CoverageLevels.Any(level => RulesetValueChecks.Upper(level) == code) =>
+                    $"the sport has no {code} coverage",
                 _ => null,
             };
             if (problem is not null)

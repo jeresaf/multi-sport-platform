@@ -107,6 +107,11 @@ public sealed class RulesetTemplateValidatorTests
             ["football-league.yaml: $.editable.roster.min.default: unknown member"]
         },
         {
+            "a tiebreaker listed twice (the schema; the rules refuse a tenant's repeat)",
+            root => Values(root)["standings"]!["tiebreakers"]!.AsArray().Add("POINTS"),
+            ["football-league.yaml: $.values.standings.tiebreakers: Found duplicates at the following index pairs: [\"(0,7)\"]"]
+        },
+        {
             "a date that isn't a date",
             root => Values(root)["eligibility"]!["age_reference_date"] = "1 January 2027",
             ["football-league.yaml: $.values.eligibility.age_reference_date: The string value is not a match for the indicated regular expression"]
@@ -181,6 +186,16 @@ public sealed class RulesetTemplateValidatorTests
             ["football-league.yaml: $.editable.standings.tiebreakers.values: tiebreaker \"TRIES_SCORED\" doesn't apply to Football"]
         },
         {
+            "only paths whose codes are checked may be choices or lists", _league,
+            root => Editable(root)["operations.readiness"] = new JsonObject { ["type"] = "list", ["label"] = "Readiness", ["values"] = new JsonArray("LINEUPS_APPROVED", "OFFICIALS_MINIMUM", "VENUE_SET") },
+            ["football-league.yaml: $.editable.operations.readiness: values.operations.readiness can't be a tenant's choice: only standings.tiebreakers, contest.tie_resolution and contest.coverage_default are"]
+        },
+        {
+            "a coverage level a tenant may pick is one the sport has", _league,
+            root => Editable(root)["contest.coverage_default"] = new JsonObject { ["type"] = "enum", ["label"] = "Coverage", ["values"] = new JsonArray("STANDARD", "PLAY_BY_PLAY") },
+            ["football-league.yaml: $.editable.contest.coverage_default.values: the sport has no PLAY_BY_PLAY coverage"]
+        },
+        {
             "the periods are the definition's", _league,
             root => Values(root)["contest"]!["period_seconds"]!["THIRD_HALF"] = 600,
             ["football-league.yaml: $.values.contest.period_seconds.THIRD_HALF: unknown period \"THIRD_HALF\""]
@@ -209,6 +224,23 @@ public sealed class RulesetTemplateValidatorTests
             "the extra periods are the definition's", _cup,
             root => Values(root)["contest"]!["extra_period_sequence"]!.AsArray().Add("GOLDEN_GOAL"),
             ["football-cup.yaml: $.values.contest.extra_period_sequence: unknown period \"GOLDEN_GOAL\" at 6"]
+        },
+        {
+            "an extra period is listed once", _cup,
+            root => Values(root)["contest"]!["extra_period_sequence"]!.AsArray().Add("PENALTY_SHOOTOUT"),
+            ["football-cup.yaml: $.values.contest.extra_period_sequence: period \"PENALTY_SHOOTOUT\" is listed twice"]
+        },
+        {
+            "an unsupported tie resolution still has its extra periods checked", _cup,
+            root =>
+            {
+                Values(root)["contest"]!["tie_resolution"] = "REPEAT_EXTRA_PERIOD";
+                Values(root)["contest"]!["extra_period_sequence"]!.AsArray().Add("GOLDEN_GOAL");
+            },
+            [
+                "football-cup.yaml: $.values.contest.extra_period_sequence: unknown period \"GOLDEN_GOAL\" at 6",
+                "football-cup.yaml: $.values.contest.tie_resolution: the sport doesn't support \"REPEAT_EXTRA_PERIOD\"",
+            ]
         },
         {
             "a position rule names a position or a group", _league,

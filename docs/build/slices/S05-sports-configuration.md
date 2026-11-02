@@ -406,4 +406,7 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   tiebreakers the template lists or allows. `RulesetValueChecks` holds the rules between values so T4b's resolver can
   run them after a tenant's changes, each problem with a kind for its error code. The validator reads the embedded
   sport and format files, not the database, so a new sport version needs new template versions (the sport seed test's
-  new-version case serves no templates).
+  new-version case serves no templates). As for formats (T3a Q4), the platform also gets
+  `GET /api/platform/v1/ruleset-templates/{code}`, beyond D16's list. Only `standings.tiebreakers`,
+  `contest.tie_resolution` and `contest.coverage_default` may be editable choices or lists (their codes are checked);
+  the schema keeps a list's codes distinct, and T4b's resolver refuses a tenant's repeat.

@@ -19,6 +19,12 @@ public static class RulesetValueChecks
     /// <summary>The path of the contest's tie resolution.</summary>
     public const string TieResolutionPath = "contest.tie_resolution";
 
+    /// <summary>The path of the overtime periods a tie resolution plays.</summary>
+    public const string ExtraPeriodSequencePath = "contest.extra_period_sequence";
+
+    /// <summary>The path of the contest's default coverage level.</summary>
+    public const string CoverageDefaultPath = "contest.coverage_default";
+
     public static IReadOnlyList<RulesetValueProblem> Check(RulesetValues values, SportDefinition sport, Func<string, TiebreakerDefinition?> tiebreakers)
     {
         ArgumentNullException.ThrowIfNull(values);
@@ -51,37 +57,41 @@ public static class RulesetValueChecks
 
         if (!sport.CoverageLevels.Contains(contest.CoverageDefault))
         {
-            problems.Add(new("contest.coverage_default", RulesetValueProblemKind.Reference, $"the sport has no {Upper(contest.CoverageDefault)} coverage"));
+            problems.Add(new(CoverageDefaultPath, RulesetValueProblemKind.Reference, $"the sport has no {Upper(contest.CoverageDefault)} coverage"));
+        }
+
+        // Every problem is reported (the resolver answers them all): the sequence's own checks run whatever the resolution.
+        var sequence = contest.ExtraPeriodSequence;
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        for (var index = 0; index < sequence.Count; index++)
+        {
+            if (!periods.ContainsKey(sequence[index]))
+            {
+                problems.Add(new(ExtraPeriodSequencePath, RulesetValueProblemKind.Reference, $"unknown period \"{sequence[index]}\" at {index}"));
+            }
+            else if (!seen.Add(sequence[index]))
+            {
+                problems.Add(new(ExtraPeriodSequencePath, RulesetValueProblemKind.Reference, $"period \"{sequence[index]}\" is listed twice"));
+            }
         }
 
         var resolution = contest.TieResolution;
         if (!sport.Supports.TieResolutions.Contains(resolution, StringComparer.Ordinal))
         {
             problems.Add(new(TieResolutionPath, RulesetValueProblemKind.TieResolution, $"the sport doesn't support \"{resolution}\""));
-            return;
         }
-
-        var sequence = contest.ExtraPeriodSequence;
-        for (var index = 0; index < sequence.Count; index++)
+        else if (resolution == TieResolutions.Draw && sequence.Count > 0)
         {
-            if (!periods.ContainsKey(sequence[index]))
-            {
-                problems.Add(new("contest.extra_period_sequence", RulesetValueProblemKind.Reference, $"unknown period \"{sequence[index]}\" at {index}"));
-            }
-        }
-
-        if (resolution == TieResolutions.Draw && sequence.Count > 0)
-        {
-            problems.Add(new("contest.extra_period_sequence", RulesetValueProblemKind.TieResolution, $"tie resolution {resolution} plays no extra periods"));
+            problems.Add(new(ExtraPeriodSequencePath, RulesetValueProblemKind.TieResolution, $"tie resolution {resolution} plays no extra periods"));
         }
         else if (resolution != TieResolutions.Draw && sequence.Count == 0)
         {
-            problems.Add(new("contest.extra_period_sequence", RulesetValueProblemKind.TieResolution, $"tie resolution {resolution} needs its extra periods"));
+            problems.Add(new(ExtraPeriodSequencePath, RulesetValueProblemKind.TieResolution, $"tie resolution {resolution} needs its extra periods"));
         }
         else if (resolution is TieResolutions.Shootout or TieResolutions.ExtraPeriodsThenShootout
             && !sequence.Any(code => periods.TryGetValue(code, out var period) && period.Kind == PhaseKind.Shootout))
         {
-            problems.Add(new("contest.extra_period_sequence", RulesetValueProblemKind.TieResolution, $"tie resolution {resolution} needs a shoot-out period"));
+            problems.Add(new(ExtraPeriodSequencePath, RulesetValueProblemKind.TieResolution, $"tie resolution {resolution} needs a shoot-out period"));
         }
     }
 

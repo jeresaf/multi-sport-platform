@@ -46,9 +46,10 @@ parameter has `type` (`int` with `min` and `max`, `bool`, `enum` or `list` with 
 period (`contest.period_seconds.FIRST_HALF`); `decimal`, `duration_seconds` and the period map come with a template
 that needs them. Rules in code (`RulesetTemplateRules`, `RulesetValueChecks`): the pinned sport version exists in the
 embedded files; every format exists and takes the sport's contest shape; an editable path names a value of its type,
-inside its bounds and among its values, and the codes a tenant may pick (tie resolutions, tiebreakers) are ones the
-sport supports; the periods, extra periods, positions (code or group), official roles and default coverage are the
-definition's; the tie resolution is one the sport supports, `DRAW` plays no extra periods, any other needs them and a
+inside its bounds and among its values (the schema keeps a list's codes distinct), only `standings.tiebreakers`,
+`contest.tie_resolution` and `contest.coverage_default` may be choices or lists, and the codes a tenant may pick are
+ones the sport supports; the periods, extra periods, positions (code or group), official roles and default coverage are the
+definition's (an extra period once); the tie resolution is one the sport supports, `DRAW` plays no extra periods, any other needs them and a
 shoot-out needs a `SHOOTOUT` period; ranges are in order; a position minimum fits the starters; `roster.min` holds the
 starters and `roster.max` the starters and the bench; tiebreakers are in the catalogue, apply to the sport and appear
 once. The tiebreaker catalogue is `Definitions/Rulesets/tiebreakers.yaml` (`tiebreakers.schema.json`): code, label,
