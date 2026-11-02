@@ -62,7 +62,7 @@ public sealed class FormatGenerators : IFormatGenerators
             case FormatGeneratorKinds.RoundRobin:
                 rounds = RoundRobinGenerator.Generate(entrants.Value, parameters.Value, random);
                 break;
-            default:
+            case FormatGeneratorKinds.Knockout:
                 var thirdPlace = parameters.Value[FormatParameters.ThirdPlaceContest].Flag;
                 if (thirdPlace && count < _thirdPlaceMinimum)
                 {
@@ -83,6 +83,9 @@ public sealed class FormatGenerators : IFormatGenerators
 
                 rounds = KnockoutGenerator.Generate(lines, thirdPlace);
                 break;
+            default:
+                // A generator added to FormatGeneratorKinds (SERIES, S16) needs its own case here.
+                throw new NotSupportedException($"Format {format.Code}@{format.Version}: the generator {stage.Generator} isn't built yet.");
         }
 
         var stages = new[] { new GeneratedStage(stage.Code, stage.Type, rounds) };

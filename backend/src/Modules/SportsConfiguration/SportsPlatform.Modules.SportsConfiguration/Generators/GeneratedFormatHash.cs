@@ -41,7 +41,8 @@ public static class GeneratedFormatHash
     {
         ParameterType.Number => value.Number,
         ParameterType.Flag => value.Flag,
-        _ => value.Choice,
+        ParameterType.Choice => value.Choice,
+        _ => throw Unmapped($"{nameof(ParameterType)}.{value.Type}"),
     };
 
     private static JsonObject Stage(GeneratedStage stage) => new JsonObject
@@ -73,7 +74,8 @@ public static class GeneratedFormatHash
             PairingSideKind.Entrant => "ENTRANT",
             PairingSideKind.WinnerOf => "WINNER_OF",
             PairingSideKind.LoserOf => "LOSER_OF",
-            _ => "BYE",
+            PairingSideKind.Bye => "BYE",
+            _ => throw Unmapped($"{nameof(PairingSideKind)}.{side.Kind}"),
         },
         ["reference"] = side.Reference,
     };
@@ -84,6 +86,11 @@ public static class GeneratedFormatHash
         StageType.Group => "GROUP",
         StageType.Knockout => "KNOCKOUT",
         StageType.Series => "SERIES",
-        _ => "SINGLE",
+        StageType.Single => "SINGLE",
+        _ => throw Unmapped($"{nameof(StageType)}.{type}"),
     };
+
+    // A new member needs its own code here: a catch-all would let two draws share a hash.
+    // (Named by the caller: Type.Name is System.Reflection, which the purity rule refuses.)
+    private static NotSupportedException Unmapped(string member) => new($"The generated format's hash has no form for {member}.");
 }
