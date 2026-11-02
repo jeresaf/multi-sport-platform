@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using SportsPlatform.BuildingBlocks.Persistence.Seeding;
 using SportsPlatform.Modules.SportsConfiguration.Definitions;
 using SportsPlatform.Modules.SportsConfiguration.Domain.Definitions;
+using SportsPlatform.Modules.SportsConfiguration.Hashing;
 using SportsPlatform.Modules.SportsConfiguration.Infrastructure;
 
 namespace SportsPlatform.Modules.SportsConfiguration.Seed.Configuration;

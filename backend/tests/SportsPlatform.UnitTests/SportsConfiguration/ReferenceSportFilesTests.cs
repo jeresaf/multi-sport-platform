@@ -1,5 +1,6 @@
 using SportsPlatform.Modules.SportsConfiguration.Contracts.Sports;
 using SportsPlatform.Modules.SportsConfiguration.Definitions;
+using SportsPlatform.Modules.SportsConfiguration.Hashing;
 
 namespace SportsPlatform.UnitTests.SportsConfiguration;
 
