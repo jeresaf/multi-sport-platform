@@ -54,6 +54,7 @@
         "TENANT"
       ],
       "actions": [
+        "format.read",
         "invitation.revoke",
         "membership.invite",
         "membership.read",
@@ -78,6 +79,7 @@
         "TENANT"
       ],
       "actions": [
+        "format.read",
         "invitation.revoke",
         "membership.invite",
         "membership.read",
@@ -101,6 +103,7 @@
         "TENANT"
       ],
       "actions": [
+        "format.read",
         "sport.read",
         "tenant.capabilities.read",
         "tenant.settings.read"
@@ -115,6 +118,7 @@
         "COMPETITION"
       ],
       "actions": [
+        "format.read",
         "sport.read",
         "tenant.capabilities.read",
         "tenant.settings.read"
@@ -129,6 +133,7 @@
         "COMPETITION"
       ],
       "actions": [
+        "format.read",
         "sport.read",
         "tenant.capabilities.read",
         "tenant.settings.read"
@@ -144,6 +149,7 @@
         "CONTEST"
       ],
       "actions": [
+        "format.read",
         "sport.read",
         "tenant.capabilities.read",
         "tenant.settings.read"
@@ -167,6 +173,7 @@
         "COMPETITION"
       ],
       "actions": [
+        "format.read",
         "sport.read",
         "tenant.capabilities.read",
         "tenant.settings.read"
@@ -180,6 +187,7 @@
         "TENANT"
       ],
       "actions": [
+        "format.read",
         "membership.read",
         "sport.read",
         "tenant.capabilities.read",
