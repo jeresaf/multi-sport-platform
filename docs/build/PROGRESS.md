@@ -7,16 +7,15 @@ at the start of every review.
 
 - **Current slice:** S05 — Sports configuration (docs/build/slices/S05-sports-configuration.md, rewritten by the S04
   slice review). S00–S04 are done
-- **Current task:** S05-T3a — format definitions: files, schema, validator, table, seeder and reads — in review (#82); next
-  is `/next-task` for S05-T3b
-- **Next:** S05-T3b — generators
+- **Current task:** S05-T3b — generators (round robin, knockout, single contest; seeded PRNG, output hash); plan
+  approved with the recommended answers (owner, 2026-11-02)
+- **Next:** S05-T4 — ruleset templates and resolver
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S05-T3b — Generators (round robin, knockout, single contest; seeded PRNG, output hash; plan approved with T3a)
-2. S05-T4 — Ruleset templates and resolver (with `ruleset.read`, its reads and the preview)
-3. S05-T5 — Tenant sport enablement, Q27 and the screens (likely T5a, T5b1, T5b2)
+1. S05-T4 — Ruleset templates and resolver (with `ruleset.read`, its reads and the preview)
+2. S05-T5 — Tenant sport enablement, Q27 and the screens (likely T5a, T5b1, T5b2)
 
 ## Log
 
