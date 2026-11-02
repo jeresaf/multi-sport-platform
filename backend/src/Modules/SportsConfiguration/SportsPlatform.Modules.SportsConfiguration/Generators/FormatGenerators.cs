@@ -55,7 +55,7 @@ public sealed class FormatGenerators : IFormatGenerators
         switch (stage.Generator)
         {
             case FormatGeneratorKinds.SingleContest:
-                rounds = [new GeneratedRound(1, RoundCodes.Round(1), RemainingEntrants: null, [
+                rounds = [new GeneratedRound(1, RoundCodes.Round(1), BracketPlaces: null, [
                     new GeneratedPairing($"{RoundCodes.Round(1)}_1", PairingSide.Entrant(entrants.Value[0]), PairingSide.Entrant(entrants.Value[1])),
                 ])];
                 break;

@@ -7,6 +7,7 @@ the date and where the decision is recorded.
 | # | Question | Why it matters | Default (used until decided) | Needed by |
 |---|---|---|---|---|
 | Q33 | May a cup's extra substitution (`substitutions.extra_in_extra_time`) be used before extra time starts (`AWAITING_EXTRA_TIME`, a break the definition doesn't flag `overtime`)? IFAB allows it | A scorer changing players just before extra time is refused the extra one | Counted from the first overtime `PLAY` period's start; a definition flag or a rule later if needed | S12 (or the T4 template) |
+| Q34 | Should a change to what a generator produces for the same input (a fix to `KNOCKOUT@1`'s placement, say) require a new format version or a hash-scheme marker, so stored draws keep reproducing? (review #83 Q1) | The output hash names the format code and version, not the generator's code; S09/S10 store draws with their hash and re-run them | A generator's output for a given format version never changes; the pinned-hash test guards it, and a change means a new format version | S09 (draw records) |
 
 ## Answered
 

@@ -59,7 +59,7 @@ internal static class RoundRobinGenerator
                 var pairings = pairs
                     .Select((pair, index) => Pairing($"{code}_{index + 1}", c % 2 == 1 ? (pair.Away, pair.Home) : pair))
                     .ToList();
-                rounds.Add(new GeneratedRound(number, code, RemainingEntrants: null, pairings));
+                rounds.Add(new GeneratedRound(number, code, BracketPlaces: null, pairings));
             }
         }
 

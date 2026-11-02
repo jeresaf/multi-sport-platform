@@ -52,7 +52,7 @@ internal static class KnockoutGenerator
 
         // The sides that go into the next round: an entrant through a bye, or the winner of a pairing.
         var feeding = new List<PairingSide>();
-        var firstRoundCode = RoundCodes.ForRemaining(size);
+        var firstRoundCode = RoundCodes.ForBracketPlaces(size);
         var firstRound = new List<GeneratedPairing>();
         for (var i = 0; i < size / 2; i++)
         {
@@ -71,11 +71,11 @@ internal static class KnockoutGenerator
 
         for (var remaining = size / 2; remaining >= 2; remaining /= 2)
         {
-            var roundCode = RoundCodes.ForRemaining(remaining);
+            var roundCode = RoundCodes.ForBracketPlaces(remaining);
             if (remaining == 2 && thirdPlaceContest)
             {
                 var semiFinals = rounds[^1].Pairings;
-                rounds.Add(new GeneratedRound(rounds.Count + 1, RoundCodes.ThirdPlace, RemainingEntrants: null,
+                rounds.Add(new GeneratedRound(rounds.Count + 1, RoundCodes.ThirdPlace, BracketPlaces: null,
                 [
                     new GeneratedPairing(
                         $"{RoundCodes.ThirdPlace}_1", PairingSide.LoserOf(semiFinals[0].Code), PairingSide.LoserOf(semiFinals[1].Code)),

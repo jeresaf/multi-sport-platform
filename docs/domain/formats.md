@@ -48,7 +48,8 @@ version, every parameter, the seed, the entrants as given, the stages with their
 number rounds a 64-bit seed), so the hash identifies the draw, not only its structure (owner, S05-T3b plan). A pairing
 is coded `<round code>_<n>`; its sides are an entrant, `WINNER_OF` or `LOSER_OF` an earlier pairing, or a bye (always
 away; no contest). League rounds are `ROUND_<n>`; knockout rounds are `ROUND_OF_<n>`, `QUARTER_FINALS`,
-`SEMI_FINALS`, `FINAL` with the entrants left, and the third-place contest is its own round `THIRD_PLACE` just before
+`SEMI_FINALS`, `FINAL` by the bracket's places left, byes counted (`BracketPlaces`: 5 entrants start in
+`QUARTER_FINALS` with 8; review #83), and the third-place contest is its own round `THIRD_PLACE` just before
 the final. `RANDOM` uses the module's own PRNG (xoshiro256** seeded by SplitMix64, unbiased bounded draws,
 Fisher–Yates), pinned to the published outputs. Errors: `FORMAT_PARTICIPANT_COUNT_INVALID` (outside the format's
 `participants`), `FORMAT_PARAMETER_INVALID` (unknown, wrong type, out of range, an unknown choice; a third-place

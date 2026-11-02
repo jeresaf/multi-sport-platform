@@ -125,7 +125,10 @@ public sealed class RoundRobinGeneratorTests
 
         again.OutputHash.ShouldBe(first.OutputHash);
         again.Stages[0].Rounds.SelectMany(round => round.Pairings).ShouldBe(first.Stages[0].Rounds.SelectMany(round => round.Pairings));
-        Generate(RoundRobin, input with { Seed = input.Seed + 1 }).OutputHash.ShouldNotBe(first.OutputHash);
+
+        // Another seed draws another order (RANDOM is the round robin's default), not only another hash.
+        Generate(RoundRobin, input with { Seed = input.Seed + 1 }).Stages[0].Rounds.SelectMany(round => round.Pairings)
+            .ShouldNotBe(first.Stages[0].Rounds.SelectMany(round => round.Pairings));
     }
 
     // S05-T3's pinned hash: a change to the generator, the PRNG or the hash's form fails here. The seed is above 2^53,
@@ -141,6 +144,6 @@ public sealed class RoundRobinGeneratorTests
             [FormatParameters.HomeAwayBalance] = ParameterValue.Of(true),
             [FormatParameters.Seeding] = ParameterValue.Of(Seedings.Random),
         });
-        league.OutputHash.ShouldBe("sha256:c4ed012ac25bd063f5e98c74c885ad35cd7371c5d718f9ba90076fafa1c77168");
+        league.OutputHash.ShouldBe("sha256:5db81839a765a30359b93b83f4dc7c19ba862541b4a2c1e459191fd3df302546");
     }
 }

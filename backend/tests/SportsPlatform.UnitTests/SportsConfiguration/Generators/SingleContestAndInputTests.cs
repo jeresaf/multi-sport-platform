@@ -18,7 +18,7 @@ public sealed class SingleContestAndInputTests
         var stage = contest.Stages.ShouldHaveSingleItem();
         (stage.Code, stage.Type).ShouldBe(("MAIN", StageType.Single));
         var round = stage.Rounds.ShouldHaveSingleItem();
-        (round.Number, round.Code, round.RemainingEntrants).ShouldBe((1, "ROUND_1", (int?)null));
+        (round.Number, round.Code, round.BracketPlaces).ShouldBe((1, "ROUND_1", (int?)null));
         round.Pairings.ShouldBe([new GeneratedPairing("ROUND_1_1", PairingSide.Entrant("NTINDA_SWIFTS"), PairingSide.Entrant("KISAASI_KESTRELS"))]);
         contest.Parameters.ShouldBeEmpty();
         (contest.FormatCode, contest.FormatVersion).ShouldBe(("SINGLE_CONTEST", 1));

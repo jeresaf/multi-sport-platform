@@ -40,7 +40,7 @@ public sealed class KnockoutGeneratorTests
         var rounds = bracket.Stages.ShouldHaveSingleItem().Rounds;
         rounds.Select(round => round.Number).ShouldBe(Enumerable.Range(1, rounds.Count));
         var bracketRounds = rounds.Where(round => round.Code != RoundCodes.ThirdPlace).ToList();
-        bracketRounds.Select(round => round.RemainingEntrants).ShouldBe(Enumerable.Range(0, bracketRounds.Count).Select(r => (int?)(size >> r)));
+        bracketRounds.Select(round => round.BracketPlaces).ShouldBe(Enumerable.Range(0, bracketRounds.Count).Select(r => (int?)(size >> r)));
         bracketRounds[^1].Code.ShouldBe(RoundCodes.Final);
         rounds[^1].Code.ShouldBe(RoundCodes.Final);
 
@@ -163,7 +163,7 @@ public sealed class KnockoutGeneratorTests
         var bracket = Generate(Knockout, Input(Clubs.Take(4).ToList(), parameters: (FormatParameters.ThirdPlaceContest, ParameterValue.Of(true))));
 
         var rounds = bracket.Stages[0].Rounds;
-        rounds.Select(round => (round.Number, round.Code, round.RemainingEntrants)).ShouldBe([
+        rounds.Select(round => (round.Number, round.Code, round.BracketPlaces)).ShouldBe([
             (1, RoundCodes.SemiFinals, (int?)4), (2, RoundCodes.ThirdPlace, null), (3, RoundCodes.Final, 2)]);
         rounds[1].Pairings.ShouldBe([new GeneratedPairing("THIRD_PLACE_1", PairingSide.LoserOf("SEMI_FINALS_1"), PairingSide.LoserOf("SEMI_FINALS_2"))]);
     }
@@ -196,6 +196,20 @@ public sealed class KnockoutGeneratorTests
             (PairingSide.Entrant("BUNGA_BREAKERS"), PairingSide.Entrant("KIREKA_KINGFISHERS")),
         ]);
         bracket.Stages[0].Rounds[1].Pairings[1].Home.ShouldBe(PairingSide.Entrant("KANSANGA_HARRIERS"));
+    }
+
+    [Theory]
+    [InlineData(2, new[] { "FINAL" })]
+    [InlineData(3, new[] { "SEMI_FINALS", "FINAL" })]
+    [InlineData(5, new[] { "QUARTER_FINALS", "SEMI_FINALS", "FINAL" })]
+    [InlineData(17, new[] { "ROUND_OF_32", "ROUND_OF_16", "QUARTER_FINALS", "SEMI_FINALS", "FINAL" })]
+    [InlineData(64, new[] { "ROUND_OF_64", "ROUND_OF_32", "ROUND_OF_16", "QUARTER_FINALS", "SEMI_FINALS", "FINAL" })]
+    public void Rounds_are_named_by_the_bracket_places_left_byes_counted(int n, string[] codes)
+    {
+        var rounds = Generate(Knockout, Input(Entrants(n))).Stages[0].Rounds;
+
+        rounds.Select(round => round.Code).ShouldBe(codes);
+        rounds[0].BracketPlaces.ShouldBe(2 << (codes.Length - 1));
     }
 
     [Fact]

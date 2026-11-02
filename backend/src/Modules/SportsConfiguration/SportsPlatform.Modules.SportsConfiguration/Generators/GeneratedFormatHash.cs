@@ -56,7 +56,7 @@ public static class GeneratedFormatHash
     {
         ["number"] = round.Number,
         ["code"] = round.Code,
-        ["remainingEntrants"] = round.RemainingEntrants,
+        ["bracketPlaces"] = round.BracketPlaces,
         ["pairings"] = new JsonArray([.. round.Pairings.Select(Pairing)]),
     };
 

@@ -21,11 +21,12 @@ public sealed record GeneratedStage(string Code, StageType Type, IReadOnlyList<G
 
 /// <summary>
 /// A round: its number (from 1, in playing order), its code and its pairings. A league's rounds are <c>ROUND_&lt;n&gt;</c>;
-/// a knockout's are named by the entrants left (<c>FINAL</c>, <c>SEMI_FINALS</c>, <c>QUARTER_FINALS</c>,
-/// <c>ROUND_OF_&lt;n&gt;</c>, see <see cref="RoundCodes"/>) with <see cref="RemainingEntrants"/>, and the third-place
-/// contest is a round of its own (<c>THIRD_PLACE</c>, no entrant count) just before the final.
+/// a knockout's are named by <see cref="BracketPlaces"/>, the bracket's places left with byes counted (<c>FINAL</c>,
+/// <c>SEMI_FINALS</c>, <c>QUARTER_FINALS</c>, <c>ROUND_OF_&lt;n&gt;</c>, see <see cref="RoundCodes"/>): 5 entrants
+/// start in <c>QUARTER_FINALS</c> with 8 places. The third-place contest is a round of its own (<c>THIRD_PLACE</c>,
+/// no places) just before the final; a league round has no places either.
 /// </summary>
-public sealed record GeneratedRound(int Number, string Code, int? RemainingEntrants, IReadOnlyList<GeneratedPairing> Pairings);
+public sealed record GeneratedRound(int Number, string Code, int? BracketPlaces, IReadOnlyList<GeneratedPairing> Pairings);
 
 /// <summary>
 /// A pairing, coded <c>&lt;round code&gt;_&lt;n&gt;</c> (<c>QUARTER_FINALS_1</c>, <c>ROUND_3_2</c>). A bye pairing has the
@@ -72,13 +73,13 @@ public static class RoundCodes
 
     public const string ThirdPlace = "THIRD_PLACE";
 
-    /// <summary>The knockout round with <paramref name="remainingEntrants"/> left.</summary>
-    public static string ForRemaining(int remainingEntrants) => remainingEntrants switch
+    /// <summary>The knockout round with <paramref name="bracketPlaces"/> places left in the bracket, byes counted.</summary>
+    public static string ForBracketPlaces(int bracketPlaces) => bracketPlaces switch
     {
         2 => Final,
         4 => SemiFinals,
         8 => QuarterFinals,
-        _ => $"ROUND_OF_{remainingEntrants}",
+        _ => $"ROUND_OF_{bracketPlaces}",
     };
 
     /// <summary>A league's round <paramref name="number"/>.</summary>
