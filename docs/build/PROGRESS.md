@@ -391,6 +391,11 @@ S05-T5a. Each item names where it gets done.
   `EXTRA_PERIODS_THEN_SHOOTOUT` (an unknown period makes `ProposeOutcome` throw; review #81 R3), and a `scoring.points` override
   of 0 for a scoring type stays refused with the bounds above.
 
+- Sport definitions (the next task touching `sport-definition.schema.json`, at the latest S15 with rugby): its `code`
+  pattern `^[A-Z][A-Z0-9_]*$` allows a trailing or double `_` that `ck_sport_definitions_variant`/`_sport` refuse, and
+  `variant`, `sport` and `name` have no `maxLength` for their columns, so such a file passes the startup check and fails
+  the seed with a raw database error. Bound it as the format schema is (review #82 R1, part left by the builder's
+  default; owner may pull it forward).
 - S15 (`GROUPS_THEN_KNOCKOUT`, the first multi-stage format): `FormatDefinitionRules` checks a parameter read by two
   generators only against the first one's type and values, and reports a shape problem once per stage; check against
   every generator and report once (S05-T3a pre-review).
