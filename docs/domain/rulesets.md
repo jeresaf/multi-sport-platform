@@ -59,7 +59,10 @@ for rugby union, `NET_RUN_RATE` for cricket); embedded and checked at startup, n
 `FAIR_PLAY` comes with its card points. Seeded, hashed and immutable like formats (`config.ruleset_templates`, with the
 sport variant, sport version and formats as columns too; `RULESET_TEMPLATE_IMMUTABLE`); read with `ruleset.read`.
 Because a template pins its sport version and the files hold one version per sport, a new sport version needs new
-versions of its templates in the same change.
+versions of its templates in the same change (owner, review #84 Q1); stored templates keep resolving against the
+version they pin, which the resolver reads from the stored definitions. A template's `lineup` numbers override the
+definition's lineup defaults (docs/domain/sports/README.md): starters may differ from the definition's, as in
+small-sided school football, and contests read them from the snapshot, never from the definition (owner, review #84 Q2).
 
 ## Effective rules snapshot (example: football league)
 

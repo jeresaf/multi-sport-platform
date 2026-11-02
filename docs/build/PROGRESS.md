@@ -367,7 +367,8 @@ at the start of every review.
 - **S05-T4a (owner, plan 2026-11-02):** T4 is two PRs (T4a templates and reads, T4b resolver and preview); the
   platform also reads one template (`GET /api/platform/v1/ruleset-templates/{code}`), beyond D16's list, as for
   formats; parameters gain a `list` type; the tiebreaker catalogue is embedded, not seeded; a template pins its sport
-  version, so a new sport version needs new template versions.
+  version, so a new sport version needs new template versions (review #84 Q1: kept, owner 2026-11-02); a template's
+  starters need not equal the definition's (review #84 Q2, owner 2026-11-02).
 
 ## Tech debt / follow-ups
 
@@ -399,7 +400,11 @@ S05-T5a. Each item names where it gets done.
   periods once each, each an `overtime` period or a break before one, one `SHOOTOUT` period and last, extra play for
   every resolution but `SHOOTOUT`; review #84 R1.) The resolver validates the merged values against
   `ruleset-template.schema.json` as well as `RulesetValueChecks`, so a tenant's value can't leave the schema's range
-  (a negative count), mapped to `RULESET_PARAMETER_OUT_OF_RANGE` on its path (review #84 R2, option a).
+  (a negative count), mapped to `RULESET_PARAMETER_OUT_OF_RANGE` on its path (review #84 R2, option a). It loads the
+  template's pinned sport version through `ISportDefinitions`, tested with a newer sport version seeded (review #84
+  Q1, owner 2026-11-02).
+- S12: the personnel tracker reads `lineup.starters` (and the bench) from the edition's snapshot, not the sport
+  definition: a template may override the definition's lineup numbers (review #84 Q2, owner 2026-11-02).
 
 - Sport definitions (the next task touching `sport-definition.schema.json`, at the latest S15 with rugby): its `code`
   pattern `^[A-Z][A-Z0-9_]*$` allows a trailing or double `_` that `ck_sport_definitions_variant`/`_sport` refuse, and

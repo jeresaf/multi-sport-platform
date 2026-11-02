@@ -412,4 +412,8 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   the schema keeps a list's codes distinct, and T4b's resolver refuses a tenant's repeat. Review #84: the
   extra-period rules of review #81 R3 are built here (R1); a tie resolution offered as a choice must fit the
   template's own extra periods (R3); the catalogue's sport limits are checked against the reference definitions (R4);
-  T4b validates the merged values against the template schema too (R2, option a).
+  T4b validates the merged values against the template schema too (R2, option a). Owner (2026-11-02, the reviewer's
+  recommendations): Q1 stays as built, and T4b's resolver loads the template's pinned sport version through
+  `ISportDefinitions` (the stored rows), with a test that a template still resolves after a newer sport version is
+  seeded; Q2: starters need not equal the definition's (the template's lineup numbers override the definition's
+  defaults), and S12's personnel tracker reads `lineup.starters` from the snapshot.
