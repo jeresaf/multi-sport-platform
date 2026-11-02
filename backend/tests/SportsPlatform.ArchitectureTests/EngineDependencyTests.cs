@@ -20,7 +20,7 @@ public sealed class EngineDependencyTests
 
     private static readonly string[] _allowedTypes = [$"{_module}.SportsConfigurationErrors"];
 
-    private static readonly string[] _impure =
+    internal static readonly string[] Impure =
     [
         "System.IO", "System.Net", "System.Random", "System.DateTime", "System.TimeProvider", "System.Environment",
         "System.Threading", "System.Diagnostics.Stopwatch", "System.Diagnostics.Process", "System.Diagnostics.Debug",
@@ -44,7 +44,7 @@ public sealed class EngineDependencyTests
         var engines = Types.InAssembly(Module).That().ResideInNamespace($"{_module}.Engines");
         engines.GetTypes().ShouldNotBeEmpty();
 
-        var result = engines.ShouldNot().HaveDependencyOnAny([.. _impure, .. ForbiddenApplicationTypes()]).GetResult();
+        var result = engines.ShouldNot().HaveDependencyOnAny([.. Impure, .. ForbiddenApplicationTypes()]).GetResult();
 
         result.FailingTypeNames.ShouldBeNull();
     }
@@ -54,7 +54,7 @@ public sealed class EngineDependencyTests
     public void The_rule_refuses_the_definition_readers()
     {
         var result = Types.InAssembly(Module).That().ResideInNamespace($"{_module}.Definitions")
-            .ShouldNot().HaveDependencyOnAny([.. _impure, .. ForbiddenApplicationTypes()]).GetResult();
+            .ShouldNot().HaveDependencyOnAny([.. Impure, .. ForbiddenApplicationTypes()]).GetResult();
 
         result.FailingTypeNames.ShouldContain($"{_module}.Definitions.SportDefinitionFiles");
     }
@@ -80,17 +80,19 @@ public sealed class EngineDependencyTests
         ImpureCalls("var id = Guid.NewGuid(); var at = DateTime.UtcNow;").ShouldBe(["Guid.NewGuid", "DateTime.UtcNow"]);
     }
 
-    private static string[] ImpureCalls(string source) => [.. _impureCalls.Where(call => source.Contains(call, StringComparison.Ordinal))];
+    internal static string[] ImpureCalls(string source) => [.. _impureCalls.Where(call => source.Contains(call, StringComparison.Ordinal))];
 
     // Every application type outside the allowed namespaces, by full name (a namespace like SportsPlatform.BuildingBlocks
     // can't be listed: the rule matches a namespace and everything under it, so it would also refuse BuildingBlocks.Results).
-    private static string[] ForbiddenApplicationTypes() =>
+    internal static string[] ForbiddenApplicationTypes() => ForbiddenApplicationTypes(_allowedNamespaces, _allowedTypes);
+
+    internal static string[] ForbiddenApplicationTypes(string[] allowedNamespaces, string[] allowedTypes) =>
     [
         .. SolutionAssemblies.All
             .SelectMany(assembly => assembly.GetTypes())
             .Where(type => type.FullName is not null && !type.FullName.Contains('<', StringComparison.Ordinal)
-                && !_allowedTypes.Contains(type.FullName)
-                && !_allowedNamespaces.Any(allowed => type.Namespace == allowed || type.Namespace?.StartsWith(allowed + ".", StringComparison.Ordinal) == true))
+                && !allowedTypes.Contains(type.FullName)
+                && !allowedNamespaces.Any(allowed => type.Namespace == allowed || type.Namespace?.StartsWith(allowed + ".", StringComparison.Ordinal) == true))
             .Select(type => type.FullName!),
     ];
 }

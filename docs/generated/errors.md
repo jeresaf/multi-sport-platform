@@ -35,6 +35,9 @@ the message is the default title and may change.
 | `ENTITLEMENT_QUOTA_EXCEEDED` | 403 | The tenant has reached a limit of its plan. | Tenancy |
 | `ENTITLEMENT_REQUIRED` | 403 | The tenant's plan doesn't include this feature. | Tenancy |
 | `FORMAT_DEFINITION_NOT_FOUND` | 404 | No published format matches this code, or this version of it. | SportsConfiguration |
+| `FORMAT_ENTRANTS_INVALID` | 422 | The entrants can't be drawn: one is blank or repeated, or the byes are misplaced. | SportsConfiguration |
+| `FORMAT_PARAMETER_INVALID` | 422 | A format parameter is unknown, of the wrong type or out of its range. | SportsConfiguration |
+| `FORMAT_PARTICIPANT_COUNT_INVALID` | 422 | The format can't be drawn for this number of participants. | SportsConfiguration |
 | `PLATFORM_CONCURRENCY_CONFLICT` | 409 | The record was changed by someone else. Reload and try again. | Platform |
 | `PLATFORM_METHOD_NOT_ALLOWED` | 405 | This endpoint does not support the HTTP method. | BuildingBlocks |
 | `PLATFORM_OUTBOX_MESSAGE_NOT_FAILED` | 409 | Only a FAILED outbox message can be re-driven. | Platform |
