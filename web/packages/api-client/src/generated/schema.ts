@@ -432,6 +432,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/v1/formats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List formats
+         * @description Every published format at its latest version, ordered by name, then code, in full: compatible contest shapes, participant range, stages and their generators, and the parameters with type, bounds and default. Not paginated. Not audited (global configuration).
+         */
+        get: operations["ListFormats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/formats/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a format
+         * @description A published format (docs/domain/formats.md) at `version`, the latest when left out: compatible contest shapes, participant range, stages and their generators, and the parameters with type, bounds and default. A published version never changes. Not audited (global configuration).
+         */
+        get: operations["GetFormat"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/platform/v1/diagnostics/outbox": {
         parameters: {
             query?: never;
@@ -880,6 +920,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/platform/v1/formats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List formats
+         * @description Every published format at its latest version, ordered by name, then code, in full: compatible contest shapes, participant range, stages and their generators, and the parameters with type, bounds and default. Not paginated. Not audited (global configuration).
+         */
+        get: operations["ListPlatformFormats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/v1/formats/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a format
+         * @description A published format (docs/domain/formats.md) at `version`, the latest when left out: compatible contest shapes, participant range, stages and their generators, and the parameters with type, bounds and default. A published version never changes. Not audited (global configuration).
+         */
+        get: operations["GetPlatformFormat"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/account/v1/login": {
         parameters: {
             query?: never;
@@ -1318,6 +1398,60 @@ export interface components {
             email: null | string;
         };
         /**
+         * @description A published format as the API shows it (docs/domain/formats.md): camelCase names, UPPER_SNAKE values, with its
+         *     version's hash and publication time. Parameters stay a map keyed by their codes, as in the file (`cycles`).
+         */
+        FormatDefinitionResponse: {
+            code: string;
+            /** Format: int32 */
+            version: number;
+            name: string;
+            description: null | string;
+            /** Format: int32 */
+            schemaVersion: number;
+            contentHash: string;
+            /** Format: date-time */
+            publishedAt: string;
+            compatibleShapes: components["schemas"]["ContestShape"][];
+            participants: components["schemas"]["FormatParticipantsResponse"];
+            stages: components["schemas"]["FormatStageResponse"][];
+            parameters: {
+                [key: string]: components["schemas"]["FormatParameterResponse"];
+            };
+        };
+        /**
+         * @description A parameter: `min` and `max` for a number, `values` for a choice (empty otherwise); `default` is
+         *     the bare value (a whole number, true or false, or one of the values).
+         */
+        FormatParameterResponse: {
+            type: components["schemas"]["FormatParameterType"];
+            label: string;
+            description: null | string;
+            /** Format: int32 */
+            min: null | number;
+            /** Format: int32 */
+            max: null | number;
+            values: string[];
+            default: components["schemas"]["ParameterValue"];
+        };
+        /**
+         * @description A parameter's type in the API (`CHOICE`, `FLAG`, `NUMBER`); the files write `enum`, `bool`, `int`.
+         * @enum {unknown}
+         */
+        FormatParameterType: "CHOICE" | "FLAG" | "NUMBER";
+        /** @description How many participants the format takes, both ends included. */
+        FormatParticipantsResponse: {
+            /** Format: int32 */
+            min: number;
+            /** Format: int32 */
+            max: number;
+        };
+        FormatStageResponse: {
+            code: string;
+            type: components["schemas"]["StageType"];
+            generator: string;
+        };
+        /**
          * @description The body of `entitlement.override` (audit `REQUIRED_WITH_REASON`): `value` in place of the plan's for
          *     `entitlementCode`, until `effectiveUntil` (the tenant's date, included; none = until removed). The reason
          *     is kept permanently in the override and the audit trail and is not redacted: it must not contain personal data.
@@ -1383,6 +1517,9 @@ export interface components {
         };
         ListCurrenciesResponse: {
             items: components["schemas"]["CurrencyResponse"][];
+        };
+        ListFormatsResponse: {
+            items: components["schemas"]["FormatDefinitionResponse"][];
         };
         ListInvitationsResponse: {
             items: components["schemas"]["InvitationResponse"][];
@@ -1546,6 +1683,8 @@ export interface components {
             nextCursor: null | string;
             hasMore: boolean;
         };
+        /** @description A parameter's value, by the parameter's type: a whole number (NUMBER), true or false (FLAG), or one of its values (CHOICE). */
+        ParameterValue: number | boolean | string;
         /** @enum {unknown} */
         PeriodClock: "COUNT_UP" | "COUNT_DOWN" | "NONE";
         /** @enum {unknown} */
@@ -1851,6 +1990,11 @@ export interface components {
             /** Format: int32 */
             latestVersion: number;
         };
+        /**
+         * @description The stage types of formats.md; `PLACEMENT`, `LEADERBOARD`, `HEATS` and `CARD` come later.
+         * @enum {unknown}
+         */
+        StageType: "LEAGUE" | "GROUP" | "KNOCKOUT" | "SERIES" | "SINGLE";
         /** @enum {unknown} */
         StatisticAggregation: "SUM" | "MAX" | "MIN" | "RATIO" | "BUILTIN";
         /**
@@ -3348,6 +3492,106 @@ export interface operations {
                 };
             };
             /** @description Problem Details; `code`: `SPORT_DEFINITION_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListFormats: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListFormatsResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetFormat: {
+        parameters: {
+            query?: {
+                version?: number;
+            };
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The format's `contentHash`, quoted: it changes only with a new version. */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormatDefinitionResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_QUERY` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `FORMAT_DEFINITION_NOT_FOUND` */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -4858,6 +5102,106 @@ export interface operations {
                 };
             };
             /** @description Problem Details; `code`: `SPORT_DEFINITION_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListPlatformFormats: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListFormatsResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_FORBIDDEN` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetPlatformFormat: {
+        parameters: {
+            query?: {
+                version?: number;
+            };
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The format's `contentHash`, quoted: it changes only with a new version. */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormatDefinitionResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_QUERY` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_FORBIDDEN` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `FORMAT_DEFINITION_NOT_FOUND` */
             404: {
                 headers: {
                     [name: string]: unknown;

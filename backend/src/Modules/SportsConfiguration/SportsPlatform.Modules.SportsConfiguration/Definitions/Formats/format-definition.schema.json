@@ -1,0 +1,234 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://msp.example/schemas/format-definition/1",
+  "title": "Format definition, schema version 1 (docs/domain/formats.md)",
+  "description": "The shape only. Unique stage codes, the generators (their stage types, shapes, participant counts and parameters), and each parameter's bounds and default are checked in code by FormatDefinitionRules. Codes, names and whole numbers are bounded as the table and the typed model store them (a code as the table's check, at most 50 characters; a name at most 100; whole numbers 32-bit; at most 1024 participants).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "code",
+    "version",
+    "name",
+    "compatible_shapes",
+    "participants",
+    "stages",
+    "parameters"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "code": {
+      "$ref": "#/$defs/code"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 2147483647
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "description": {
+      "$ref": "#/$defs/text"
+    },
+    "compatible_shapes": {
+      "$ref": "#/$defs/nonEmptyList",
+      "items": {
+        "enum": [
+          "HEAD_TO_HEAD",
+          "FIELD"
+        ]
+      }
+    },
+    "participants": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "min",
+        "max"
+      ],
+      "properties": {
+        "min": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 1024
+        },
+        "max": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 1024
+        }
+      }
+    },
+    "stages": {
+      "$ref": "#/$defs/nonEmptyList",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "type",
+          "generator"
+        ],
+        "properties": {
+          "code": {
+            "$ref": "#/$defs/code"
+          },
+          "type": {
+            "enum": [
+              "LEAGUE",
+              "GROUP",
+              "KNOCKOUT",
+              "SERIES",
+              "SINGLE"
+            ]
+          },
+          "generator": {
+            "$ref": "#/$defs/code"
+          }
+        }
+      }
+    },
+    "parameters": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$",
+        "maxLength": 50
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/parameter"
+      }
+    }
+  },
+  "$defs": {
+    "code": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$",
+      "maxLength": 50
+    },
+    "text": {
+      "type": "string",
+      "minLength": 1
+    },
+    "nonEmptyList": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "parameter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "label",
+        "default"
+      ],
+      "properties": {
+        "type": {
+          "enum": [
+            "int",
+            "bool",
+            "enum"
+          ]
+        },
+        "label": {
+          "$ref": "#/$defs/text"
+        },
+        "description": {
+          "$ref": "#/$defs/text"
+        },
+        "min": {
+          "$ref": "#/$defs/int"
+        },
+        "max": {
+          "$ref": "#/$defs/int"
+        },
+        "values": {
+          "$ref": "#/$defs/nonEmptyList",
+          "items": {
+            "$ref": "#/$defs/code"
+          }
+        },
+        "default": {
+          "type": [
+            "integer",
+            "boolean",
+            "string"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "int"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "min",
+              "max"
+            ],
+            "properties": {
+              "default": {
+                "$ref": "#/$defs/int"
+              },
+              "values": false
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "bool"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "default": {
+                "type": "boolean"
+              },
+              "min": false,
+              "max": false,
+              "values": false
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "enum"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "values"
+            ],
+            "properties": {
+              "default": {
+                "$ref": "#/$defs/code"
+              },
+              "min": false,
+              "max": false
+            }
+          }
+        }
+      ]
+    },
+    "int": {
+      "type": "integer",
+      "minimum": -2147483648,
+      "maximum": 2147483647
+    }
+  }
+}

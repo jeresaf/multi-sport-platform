@@ -3,7 +3,7 @@
     {
       "code": "PLATFORM_ADMIN",
       "scope": "PLATFORM",
-      "description": "Platform staff: tenants and their lifecycle, plans, subscriptions and entitlement overrides, platform administrators, audit, outbox and sport definitions.",
+      "description": "Platform staff: tenants and their lifecycle, plans, subscriptions and entitlement overrides, platform administrators, audit, outbox and sport configuration (definitions, formats, templates).",
       "assignableAt": [],
       "actions": [
         "entitlement.override",
@@ -34,7 +34,7 @@
     {
       "code": "PLATFORM_SUPPORT",
       "scope": "PLATFORM",
-      "description": "Platform staff, read-only: tenants, plans, subscriptions, audit, outbox and sport definitions (reads of tenants, plans, subscriptions, audit and outbox are audited).",
+      "description": "Platform staff, read-only: tenants, plans, subscriptions, audit, outbox and sport configuration (definitions, formats, templates; reads of tenants, plans, subscriptions, audit and outbox are audited).",
       "assignableAt": [],
       "actions": [
         "plan.read",
@@ -54,6 +54,7 @@
         "TENANT"
       ],
       "actions": [
+        "format.read",
         "invitation.revoke",
         "membership.invite",
         "membership.read",
@@ -78,6 +79,7 @@
         "TENANT"
       ],
       "actions": [
+        "format.read",
         "invitation.revoke",
         "membership.invite",
         "membership.read",
@@ -101,6 +103,7 @@
         "TENANT"
       ],
       "actions": [
+        "format.read",
         "sport.read",
         "tenant.capabilities.read",
         "tenant.settings.read"
@@ -115,6 +118,7 @@
         "COMPETITION"
       ],
       "actions": [
+        "format.read",
         "sport.read",
         "tenant.capabilities.read",
         "tenant.settings.read"
@@ -129,6 +133,7 @@
         "COMPETITION"
       ],
       "actions": [
+        "format.read",
         "sport.read",
         "tenant.capabilities.read",
         "tenant.settings.read"
@@ -144,6 +149,7 @@
         "CONTEST"
       ],
       "actions": [
+        "format.read",
         "sport.read",
         "tenant.capabilities.read",
         "tenant.settings.read"
@@ -167,6 +173,7 @@
         "COMPETITION"
       ],
       "actions": [
+        "format.read",
         "sport.read",
         "tenant.capabilities.read",
         "tenant.settings.read"
@@ -180,6 +187,7 @@
         "TENANT"
       ],
       "actions": [
+        "format.read",
         "membership.read",
         "sport.read",
         "tenant.capabilities.read",

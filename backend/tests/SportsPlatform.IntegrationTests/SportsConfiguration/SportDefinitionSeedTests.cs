@@ -160,7 +160,7 @@ public sealed class SportDefinitionSeedTests(PostgresFixture fixture) : Database
             if (!startupCheck)
             {
                 services.Remove(services.Single(descriptor => descriptor.ServiceType == typeof(IHostedService)
-                    && descriptor.ImplementationType?.Name == "SportDefinitionStartupCheck"));
+                    && descriptor.ImplementationType?.Name == "DefinitionStartupCheck"));
             }
         }));
 

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.Modules.SportsConfiguration.Contracts.Sports;
+using SportsPlatform.Modules.SportsConfiguration.Domain.Definitions;
 using SportsPlatform.Modules.SportsConfiguration.Domain.Sports;
 
 namespace SportsPlatform.Modules.SportsConfiguration.Infrastructure.Configurations;

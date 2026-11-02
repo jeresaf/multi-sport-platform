@@ -1,7 +1,7 @@
 namespace SportsPlatform.Modules.SportsConfiguration.Contracts;
 
 /// <summary>
-/// Marker for locating this assembly. Sports Configuration's Contracts: sport definitions, formats, ruleset templates
-/// and engines for other modules (S05; the queries arrive with T1b).
+/// Marker for locating this assembly. Sports Configuration's Contracts: sport definitions, formats and
+/// their generators, ruleset templates and engines for other modules (S05).
 /// </summary>
 public static class SportsConfigurationContractsAssembly;

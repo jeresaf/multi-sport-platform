@@ -14,6 +14,7 @@ admin endpoint requires one of these; the code is stable and is what roles grant
 | `account.read` | Identity | ACCOUNT | — | NONE | — | no | no | no | no | S03 | Read the signed-in user: email, platform roles and tenants with their roles. |
 | `entitlement.override` | Tenancy | PLATFORM | — | REQUIRED_WITH_REASON | — | no | no | no | no | S04 | Give a tenant its own value of an entitlement in place of its plan's, with a reason, optionally until a date; replaces an earlier override of it. |
 | `entitlement.override.remove` | Tenancy | PLATFORM | — | REQUIRED_WITH_REASON | — | no | no | no | no | S04 | Remove a tenant's entitlement override, with a reason: its plan's value applies again. |
+| `format.read` | SportsConfiguration | TENANT | TENANT | NONE | — | no | no | no | yes | S05 | View the published competition formats: stages, generators and their parameters. |
 | `invitation.accept` | Identity | ACCOUNT | — | REQUIRED | — | no | yes | no | no | S03 | Accept an invitation with its token: join the tenant with the invited roles, setting a password if the email has no account yet (signed in as that user otherwise). Does not sign in. |
 | `invitation.read` | Identity | ACCOUNT | — | REQUIRED | — | no | yes | no | no | S03 | Look up an invitation by its token: the tenant, the invited email and roles, when it expires and whether the email has an account. |
 | `invitation.revoke` | Identity | TENANT | TENANT | REQUIRED | — | no | no | no | no | S03 | Revoke a pending invitation: its link stops working. Only an owner revokes an invitation with TENANT_OWNER. |
@@ -28,7 +29,7 @@ admin endpoint requires one of these; the code is stable and is what roles grant
 | `platform.capabilities.read` | Identity | PLATFORM | — | NONE | — | no | no | no | no | S03 | List the platform actions the signed-in user may perform. |
 | `platform.outbox.read` | Platform | PLATFORM | — | REQUIRED | — | no | no | no | no | S01 | View outbox messages and their delivery status. |
 | `platform.outbox.redrive` | Platform | PLATFORM | — | REQUIRED_WITH_REASON | — | no | no | no | no | S01 | Re-deliver failed outbox messages. |
-| `platform.sport.read` | SportsConfiguration | PLATFORM | — | NONE | — | no | no | no | no | S05 | View the published sport definitions. |
+| `platform.sport.read` | SportsConfiguration | PLATFORM | — | NONE | — | no | no | no | no | S05 | View the published sport definitions, formats and ruleset templates. |
 | `role.assign` | Identity | TENANT | TENANT | REQUIRED | — | no | no | no | no | S03 | Give a member a role, tenant-wide (other scopes later). Only an owner grants TENANT_OWNER. |
 | `role.revoke` | Identity | TENANT | TENANT | REQUIRED | — | no | no | no | no | S03 | Revoke a member's role (the assignment is kept as history). Only an owner revokes TENANT_OWNER; never the last owner's. |
 | `sport.read` | SportsConfiguration | TENANT | TENANT | NONE | — | no | no | no | yes | S05 | View the published sport definitions: periods, events, positions and roles, statistics, scorer pad. |

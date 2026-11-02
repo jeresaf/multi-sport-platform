@@ -34,6 +34,7 @@ the message is the default title and may change.
 | `AUTH_USER_EXISTS` | 409 | A user with this email already exists. | Identity |
 | `ENTITLEMENT_QUOTA_EXCEEDED` | 403 | The tenant has reached a limit of its plan. | Tenancy |
 | `ENTITLEMENT_REQUIRED` | 403 | The tenant's plan doesn't include this feature. | Tenancy |
+| `FORMAT_DEFINITION_NOT_FOUND` | 404 | No published format matches this code, or this version of it. | SportsConfiguration |
 | `PLATFORM_CONCURRENCY_CONFLICT` | 409 | The record was changed by someone else. Reload and try again. | Platform |
 | `PLATFORM_METHOD_NOT_ALLOWED` | 405 | This endpoint does not support the HTTP method. | BuildingBlocks |
 | `PLATFORM_OUTBOX_MESSAGE_NOT_FAILED` | 409 | Only a FAILED outbox message can be re-driven. | Platform |

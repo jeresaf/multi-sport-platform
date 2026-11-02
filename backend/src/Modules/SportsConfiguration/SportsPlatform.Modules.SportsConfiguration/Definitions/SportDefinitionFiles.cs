@@ -8,25 +8,14 @@ public class SportDefinitionFiles
 {
     public const string SchemaFile = "sport-definition.schema.json";
 
-    private const string _resourcePrefix = "SportsPlatform.Modules.SportsConfiguration.Definitions.Sports.";
+    private const string _folder = "Sports";
 
     /// <summary>The definition files, e.g. <c>football.yaml</c>, in name order.</summary>
-    public virtual IReadOnlyList<string> Names { get; } = [.. typeof(SportDefinitionFiles).Assembly.GetManifestResourceNames()
-        .Where(name => name.StartsWith(_resourcePrefix, StringComparison.Ordinal) && name.EndsWith(".yaml", StringComparison.Ordinal))
-        .Select(name => name[_resourcePrefix.Length..])
-        .Order(StringComparer.Ordinal)];
+    public virtual IReadOnlyList<string> Names { get; } = EmbeddedDefinitions.Names(_folder);
 
     /// <summary>The text of a definition file.</summary>
-    public virtual string Read(string file) => ReadEmbedded(file);
+    public virtual string Read(string file) => EmbeddedDefinitions.Read(_folder, file);
 
     /// <summary>The JSON Schema every definition file is checked against; never replaced.</summary>
-    public static string Schema() => ReadEmbedded(SchemaFile);
-
-    private static string ReadEmbedded(string file)
-    {
-        using var stream = typeof(SportDefinitionFiles).Assembly.GetManifestResourceStream(_resourcePrefix + file)
-            ?? throw new InvalidOperationException($"Sport definition file {file} is not embedded.");
-        using var reader = new StreamReader(stream);
-        return reader.ReadToEnd();
-    }
+    public static string Schema() => EmbeddedDefinitions.Read(_folder, SchemaFile);
 }

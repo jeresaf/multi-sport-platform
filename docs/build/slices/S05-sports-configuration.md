@@ -371,3 +371,15 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   For later (S12): which period may start next isn't checked (a league starting extra time is accepted).
   Review #81 (owner, 2026-10-31): the sudden-death refusal runs from `AdditiveEngine.Validate` through a phase hook
   in `TimelineChecks` and holds only while the totals differ; `EXTRA_TIME` stays once extra time was played.
+- **T3a:** plan approved with the recommended answers (owner, 2026-11-02): knockout `MANUAL` takes the bracket lines
+  with explicit byes (Q1); `tie_type` waits for `KNOCKOUT@2` in S16 (Q2); a bye's entrant goes straight into the next
+  round's slot (Q3); the platform also gets `GET /api/platform/v1/formats/{code}` (Q4, beyond D16's list); participant
+  limits 2–2, 2–40, 2–256 in the files (Q5); the seed is a `ulong` in Contracts, its API form decided with S09/S10's
+  draw records (Q6). T3 is two PRs: T3a (files, schema, validator, table, seeder, reads) and T3b (generators). The
+  format files have `participants`, `label` and `description` beyond formats.md's example; the generators' parameters
+  are `FormatGeneratorKinds` in Contracts' `Formats` (the validator and T3b's generators share it), typed parameters are
+  `ParameterDefinition` and `ParameterValue` in Contracts' `Parameters` (T4's templates reuse them; a value's JSON is the
+  bare number, flag or code, `oneOf` integer/boolean/string in OpenAPI). The sports and formats share the embedded-file
+  reader, the schema check (`DefinitionSchema`), the startup check (`DefinitionStartupCheck`) and the seeder
+  (`DefinitionSeeder<TRow>`); `GetSportRequest` became the shared `VersionRequest`. `format.read` goes to every role
+  holding `sport.read`; the list answers each format in full (formats are small).

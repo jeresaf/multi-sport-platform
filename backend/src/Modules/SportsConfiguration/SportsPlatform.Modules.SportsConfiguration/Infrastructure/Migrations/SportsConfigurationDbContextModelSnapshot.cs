@@ -169,6 +169,84 @@ namespace SportsPlatform.Modules.SportsConfiguration.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("SportsPlatform.Modules.SportsConfiguration.Domain.Formats.PublishedFormatDefinition", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("code");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("content");
+
+                    b.Property<string>("ContentHash")
+                        .IsRequired()
+                        .HasMaxLength(71)
+                        .HasColumnType("character varying(71)")
+                        .HasColumnName("content_hash");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<DateTimeOffset>("PublishedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("published_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer")
+                        .HasColumnName("version");
+
+                    b.HasKey("Id")
+                        .HasName("pk_format_definitions");
+
+                    b.HasIndex("Code", "Version")
+                        .IsUnique()
+                        .HasDatabaseName("ix_format_definitions_code_version");
+
+                    b.ToTable("format_definitions", "config", t =>
+                        {
+                            t.HasCheckConstraint("ck_format_definitions_code", "code ~ '^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$'");
+
+                            t.HasCheckConstraint("ck_format_definitions_content_hash", "content_hash ~ '^sha256:[0-9a-f]{64}$'");
+
+                            t.HasCheckConstraint("ck_format_definitions_status", "status IN ('PUBLISHED')");
+
+                            t.HasCheckConstraint("ck_format_definitions_version", "version >= 1");
+                        });
+                });
+
             modelBuilder.Entity("SportsPlatform.Modules.SportsConfiguration.Domain.Sports.PublishedSportDefinition", b =>
                 {
                     b.Property<Guid>("Id")

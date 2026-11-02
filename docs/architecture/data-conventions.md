@@ -192,6 +192,10 @@ creates (never TRUNCATE). Each table gets one policy, set in the migration that 
   is immutable (S05 D4), so a stored version whose file now hashes differently fails the run with
   `SPORT_DEFINITION_IMMUTABLE` (two files declaring one version: `SPORT_DEFINITION_DUPLICATE_VERSION`), and a file
   dropped from the module leaves its rows as they are (every row is `PUBLISHED`; there is nothing to deactivate).
+  `config.configuration.formats` (S05-T3a; after the sports) does the same for `config.format_definitions` (code,
+  version, name, status, content, hash, published at; IDs `config.format_definition:<code>@<version>`;
+  `FORMAT_DEFINITION_IMMUTABLE`, `FORMAT_DEFINITION_DUPLICATE_VERSION`) from `Definitions/Formats`. Both share
+  `DefinitionSeeder<TRow>`, which T4's ruleset templates reuse.
 - Integration tests seed the real reference and configuration data once per run, and the per-test reset keeps it
   (`PostgresFixture.ReferenceTables`, `PostgresFixture.PlanTables`, `PostgresFixture.ConfigurationTables`); a test that
   changes it calls `RestoreSeedDataAsync`.

@@ -41,9 +41,12 @@ public static class IdentityRoles
     // Everyone working in the tenant uses the sport's words (S05 D14): every role holding the settings read.
     private const string _sportRead = "sport.read";
 
+    // Formats go with the sport's words (S05 D14): the same roles.
+    private const string _formatRead = "format.read";
+
     private static readonly string[] _tenantAdministration =
     [
-        _tenantSettingsRead, _tenantSettingsUpdate, _capabilitiesRead, _sportRead,
+        _tenantSettingsRead, _tenantSettingsUpdate, _capabilitiesRead, _sportRead, _formatRead,
         _membershipRead, "membership.suspend", "membership.restore", "membership.remove", "role.assign", "role.revoke",
         "membership.invite", "invitation.revoke", _subscriptionRead,
     ];
@@ -51,7 +54,7 @@ public static class IdentityRoles
     // Only the owner sees a blocked tenant's status and why (S03 D11): the actions available when blocked.
     private static readonly string[] _tenantOwnership = ["tenant.access.read"];
 
-    private static readonly string[] _tenantContext = [_tenantSettingsRead, _capabilitiesRead, _sportRead];
+    private static readonly string[] _tenantContext = [_tenantSettingsRead, _capabilitiesRead, _sportRead, _formatRead];
 
     private static readonly string[] _platformReads =
     [
@@ -62,7 +65,7 @@ public static class IdentityRoles
     public static IReadOnlyList<RoleDefinition> All { get; } =
     [
         new(PlatformRoleCodes.Admin, RoleScope.Platform,
-            "Platform staff: tenants and their lifecycle, plans, subscriptions and entitlement overrides, platform administrators, audit, outbox and sport definitions.",
+            "Platform staff: tenants and their lifecycle, plans, subscriptions and entitlement overrides, platform administrators, audit, outbox and sport configuration (definitions, formats, templates).",
             [
                 .. _platformReads,
                 "entitlement.override",
@@ -83,7 +86,7 @@ public static class IdentityRoles
                 "tenant.update",
             ]),
         new(PlatformRoleCodes.Support, RoleScope.Platform,
-            "Platform staff, read-only: tenants, plans, subscriptions, audit, outbox and sport definitions (reads of tenants, plans, subscriptions, audit and outbox are audited).",
+            "Platform staff, read-only: tenants, plans, subscriptions, audit, outbox and sport configuration (definitions, formats, templates; reads of tenants, plans, subscriptions, audit and outbox are audited).",
             _platformReads),
 
         new(TenantOwner, RoleScope.Tenant,

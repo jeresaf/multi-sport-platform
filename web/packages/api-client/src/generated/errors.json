@@ -169,6 +169,12 @@
       "owner": "Tenancy"
     },
     {
+      "code": "FORMAT_DEFINITION_NOT_FOUND",
+      "status": 404,
+      "message": "No published format matches this code, or this version of it.",
+      "owner": "SportsConfiguration"
+    },
+    {
       "code": "PLATFORM_CONCURRENCY_CONFLICT",
       "status": 409,
       "message": "The record was changed by someone else. Reload and try again.",

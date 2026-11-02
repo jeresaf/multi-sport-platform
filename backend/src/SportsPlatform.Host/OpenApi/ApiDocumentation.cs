@@ -7,6 +7,7 @@ using Microsoft.OpenApi;
 using Scalar.AspNetCore;
 using SportsPlatform.BuildingBlocks.Api;
 using SportsPlatform.BuildingBlocks.Entitlements;
+using SportsPlatform.Modules.SportsConfiguration.Contracts.Parameters;
 
 namespace SportsPlatform.Host.OpenApi;
 
@@ -33,6 +34,7 @@ public static class ApiDocumentation
             options.AddDocumentTransformer(DescribeDocumentAsync);
             options.AddSchemaTransformer(DescribeProblemDetails);
             options.AddSchemaTransformer(DescribeEntitlementValues);
+            options.AddSchemaTransformer(DescribeParameterValues);
             options.AddOperationTransformer(ListErrorCodes);
             options.AddOperationTransformer(DescribeStrictJsonBodyAsync);
             options.AddOperationTransformer(DescribeRowVersionHeaders);
@@ -159,6 +161,29 @@ public static class ApiDocumentation
             OneProperty(EntitlementValueJsonConverter.Enabled, JsonSchemaType.Boolean, "BOOLEAN: on or off."),
             OneProperty(EntitlementValueJsonConverter.Limit, JsonSchemaType.Integer | JsonSchemaType.Null, "QUOTA: the most items; null = unlimited."),
             OneProperty(EntitlementValueJsonConverter.Level, JsonSchemaType.String | JsonSchemaType.Null, "LEVEL: a level code; null = none."),
+        ];
+        return Task.CompletedTask;
+    }
+
+    // ParameterValue has its own JSON converter: the bare value of a format's or a template's parameter.
+    private static Task DescribeParameterValues(
+        OpenApiSchema schema, OpenApiSchemaTransformerContext context, CancellationToken cancellationToken)
+    {
+        if (context.JsonTypeInfo.Type != typeof(ParameterValue))
+        {
+            return Task.CompletedTask;
+        }
+
+        schema.Type = null;
+        schema.Properties = null;
+        schema.Required = null;
+        schema.Description = "A parameter's value, by the parameter's type: a whole number (NUMBER), true or false (FLAG), " +
+            "or one of its values (CHOICE).";
+        schema.OneOf =
+        [
+            new OpenApiSchema { Type = JsonSchemaType.Integer, Format = "int32" },
+            new OpenApiSchema { Type = JsonSchemaType.Boolean },
+            new OpenApiSchema { Type = JsonSchemaType.String },
         ];
         return Task.CompletedTask;
     }
