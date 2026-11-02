@@ -7,8 +7,9 @@ at the start of every review.
 
 - **Current slice:** S05 — Sports configuration (docs/build/slices/S05-sports-configuration.md, rewritten by the S04
   slice review). S00–S04 are done
-- **Current task:** S05-T2c — outcome and tie resolution — in review (#81); next is `/next-task` for S05-T3
-- **Next:** S05-T3 — formats and generators
+- **Current task:** S05-T3a — format definitions: files, schema, validator, table, seeder and reads (plan approved
+  2026-11-02 with the recommended answers Q1–Q6; T3b is the generators)
+- **Next:** S05-T3b — generators
 - **Blocked on:** nothing
 
 ## Next up
