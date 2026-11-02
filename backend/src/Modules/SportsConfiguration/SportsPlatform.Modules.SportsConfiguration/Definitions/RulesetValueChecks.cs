@@ -73,7 +73,27 @@ public static class RulesetValueChecks
             {
                 problems.Add(new(ExtraPeriodSequencePath, RulesetValueProblemKind.Reference, $"period \"{sequence[index]}\" is listed twice"));
             }
+            else if (!Overtime(periods[sequence[index]], index + 1 < sequence.Count ? periods.GetValueOrDefault(sequence[index + 1]) : null))
+            {
+                problems.Add(new(ExtraPeriodSequencePath, RulesetValueProblemKind.Reference,
+                    $"period \"{sequence[index]}\" at {index} is neither an overtime period nor a break before one"));
+            }
         }
+
+        // The engine plays the sequence as written (sport-engine.md §5): nothing comes after a shoot-out.
+        var shootouts = sequence.Select((code, index) => (Period: periods.GetValueOrDefault(code), Index: index))
+            .Where(entry => entry.Period?.Kind == PhaseKind.Shootout)
+            .ToList();
+        if (shootouts.Count > 1)
+        {
+            problems.Add(new(ExtraPeriodSequencePath, RulesetValueProblemKind.TieResolution, "only one shoot-out period"));
+        }
+        else if (shootouts is [{ Index: var at }] && at != sequence.Count - 1)
+        {
+            problems.Add(new(ExtraPeriodSequencePath, RulesetValueProblemKind.TieResolution, $"the shoot-out period \"{sequence[at]}\" must come last"));
+        }
+
+        var extraPlay = sequence.Any(code => periods.GetValueOrDefault(code) is { Kind: PhaseKind.Play });
 
         var resolution = contest.TieResolution;
         if (!sport.Supports.TieResolutions.Contains(resolution, StringComparer.Ordinal))
@@ -93,7 +113,19 @@ public static class RulesetValueChecks
         {
             problems.Add(new(ExtraPeriodSequencePath, RulesetValueProblemKind.TieResolution, $"tie resolution {resolution} needs a shoot-out period"));
         }
+        else if (resolution == TieResolutions.Shootout && extraPlay)
+        {
+            problems.Add(new(ExtraPeriodSequencePath, RulesetValueProblemKind.TieResolution, $"tie resolution {resolution} plays no extra time before the shoot-out"));
+        }
+        else if (resolution != TieResolutions.Draw && resolution != TieResolutions.Shootout && !extraPlay)
+        {
+            problems.Add(new(ExtraPeriodSequencePath, RulesetValueProblemKind.TieResolution, $"tie resolution {resolution} needs an extra period of play"));
+        }
     }
+
+    // An overtime period, or a break the next overtime period follows (football's "before extra time" isn't overtime).
+    private static bool Overtime(PeriodDefinition period, PeriodDefinition? next) =>
+        period.Overtime || (period.Kind == PhaseKind.Break && next is { Overtime: true });
 
     private static void Lineup(RulesetValues values, SportDefinition sport, List<RulesetValueProblem> problems)
     {

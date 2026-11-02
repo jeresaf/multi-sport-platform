@@ -42,6 +42,21 @@ public sealed class RulesetTemplateValidatorTests
         _files.Names.ShouldNotContain(TiebreakerCatalogue.File);
     }
 
+    // A misspelt sport would make a tiebreaker apply to none (review #84 R4): each is the `sport` of a reference definition.
+    [Fact]
+    public void The_catalogues_sport_limits_name_sports_of_the_reference_definitions()
+    {
+        var docs = Path.Combine(ReferenceSportFilesTests.RepositoryRoot(), "docs", "domain", "sports");
+        var sports = Directory.GetFiles(docs, "*.yaml")
+            .Select(file => YamlJson.Parse(File.ReadAllText(file))!["sport"]!.GetValue<string>())
+            .ToHashSet(StringComparer.Ordinal);
+
+        var limits = new TiebreakerCatalogue().All.SelectMany(tiebreaker => tiebreaker.Sports).ToList();
+
+        limits.ShouldNotBeEmpty();
+        limits.ShouldAllBe(sport => sports.Contains(sport));
+    }
+
     [Fact]
     public void A_duplicate_tiebreaker_is_a_problem()
     {
@@ -170,7 +185,10 @@ public sealed class RulesetTemplateValidatorTests
         {
             "a choice's value is one of its values", _cup,
             root => Editable(root)["contest.tie_resolution"] = new JsonObject { ["type"] = "enum", ["label"] = "Level score", ["values"] = new JsonArray("SHOOTOUT") },
-            ["football-cup.yaml: $.editable.contest.tie_resolution: the value at values.contest.tie_resolution has \"EXTRA_PERIODS_THEN_SHOOTOUT\", which is not one of the values"]
+            [
+                "football-cup.yaml: $.editable.contest.tie_resolution: the value at values.contest.tie_resolution has \"EXTRA_PERIODS_THEN_SHOOTOUT\", which is not one of the values",
+                "football-cup.yaml: $.editable.contest.tie_resolution.values: \"SHOOTOUT\" doesn't fit the template's extra periods: tie resolution SHOOTOUT plays no extra time before the shoot-out",
+            ]
         },
         {
             "a tie resolution a tenant may pick is one the sport supports", _cup,
@@ -179,6 +197,14 @@ public sealed class RulesetTemplateValidatorTests
                 ["type"] = "enum", ["label"] = "Level score", ["values"] = new JsonArray("EXTRA_PERIODS_THEN_SHOOTOUT", "EXTRA_PERIODS_SUDDEN_DEATH"),
             },
             ["football-cup.yaml: $.editable.contest.tie_resolution.values: the sport doesn't support \"EXTRA_PERIODS_SUDDEN_DEATH\""]
+        },
+        {
+            "a tie resolution a tenant may pick fits the template's extra periods (they can't change them)", _cup,
+            root => Editable(root)["contest.tie_resolution"] = new JsonObject
+            {
+                ["type"] = "enum", ["label"] = "Level score", ["values"] = new JsonArray("EXTRA_PERIODS_THEN_SHOOTOUT", "DRAW"),
+            },
+            ["football-cup.yaml: $.editable.contest.tie_resolution.values: \"DRAW\" doesn't fit the template's extra periods: tie resolution DRAW plays no extra periods"]
         },
         {
             "a tiebreaker a tenant may pick is in the catalogue and applies to the sport", _league,
@@ -222,23 +248,60 @@ public sealed class RulesetTemplateValidatorTests
         },
         {
             "the extra periods are the definition's", _cup,
-            root => Values(root)["contest"]!["extra_period_sequence"]!.AsArray().Add("GOLDEN_GOAL"),
-            ["football-cup.yaml: $.values.contest.extra_period_sequence: unknown period \"GOLDEN_GOAL\" at 6"]
+            root => Values(root)["contest"]!["extra_period_sequence"]!.AsArray().Insert(0, "GOLDEN_GOAL"),
+            ["football-cup.yaml: $.values.contest.extra_period_sequence: unknown period \"GOLDEN_GOAL\" at 0"]
         },
         {
             "an extra period is listed once", _cup,
             root => Values(root)["contest"]!["extra_period_sequence"]!.AsArray().Add("PENALTY_SHOOTOUT"),
-            ["football-cup.yaml: $.values.contest.extra_period_sequence: period \"PENALTY_SHOOTOUT\" is listed twice"]
+            [
+                "football-cup.yaml: $.values.contest.extra_period_sequence: period \"PENALTY_SHOOTOUT\" is listed twice",
+                "football-cup.yaml: $.values.contest.extra_period_sequence: only one shoot-out period",
+            ]
+        },
+        {
+            "an extra period is an overtime period or a break before one", _cup,
+            root => Values(root)["contest"]!["extra_period_sequence"] = new JsonArray("FIRST_HALF", "AWAITING_SHOOTOUT", "PENALTY_SHOOTOUT"),
+            ["football-cup.yaml: $.values.contest.extra_period_sequence: period \"FIRST_HALF\" at 0 is neither an overtime period nor a break before one"]
+        },
+        {
+            "a break is an extra period only before an overtime period", _cup,
+            root => Values(root)["contest"]!["extra_period_sequence"] = new JsonArray("HALF_TIME", "EXTRA_TIME_FIRST_HALF", "AWAITING_SHOOTOUT", "PENALTY_SHOOTOUT"),
+            []
+        },
+        {
+            "the shoot-out comes last", _cup,
+            root => Values(root)["contest"]!["extra_period_sequence"] = new JsonArray("PENALTY_SHOOTOUT", "AWAITING_EXTRA_TIME", "EXTRA_TIME_FIRST_HALF", "EXTRA_TIME_HALF_TIME", "EXTRA_TIME_SECOND_HALF"),
+            ["football-cup.yaml: $.values.contest.extra_period_sequence: the shoot-out period \"PENALTY_SHOOTOUT\" must come last"]
+        },
+        {
+            "extra periods then a shoot-out needs extra time", _cup,
+            root => Values(root)["contest"]!["extra_period_sequence"] = new JsonArray("AWAITING_SHOOTOUT", "PENALTY_SHOOTOUT"),
+            ["football-cup.yaml: $.values.contest.extra_period_sequence: tie resolution EXTRA_PERIODS_THEN_SHOOTOUT needs an extra period of play"]
+        },
+        {
+            "a shoot-out alone plays no extra time", _cup,
+            root => Values(root)["contest"]!["tie_resolution"] = "SHOOTOUT",
+            ["football-cup.yaml: $.values.contest.extra_period_sequence: tie resolution SHOOTOUT plays no extra time before the shoot-out"]
+        },
+        {
+            "a shoot-out alone is accepted with its own periods", _cup,
+            root =>
+            {
+                Values(root)["contest"]!["tie_resolution"] = "SHOOTOUT";
+                Values(root)["contest"]!["extra_period_sequence"] = new JsonArray("AWAITING_SHOOTOUT", "PENALTY_SHOOTOUT");
+            },
+            []
         },
         {
             "an unsupported tie resolution still has its extra periods checked", _cup,
             root =>
             {
                 Values(root)["contest"]!["tie_resolution"] = "REPEAT_EXTRA_PERIOD";
-                Values(root)["contest"]!["extra_period_sequence"]!.AsArray().Add("GOLDEN_GOAL");
+                Values(root)["contest"]!["extra_period_sequence"]!.AsArray().Insert(0, "GOLDEN_GOAL");
             },
             [
-                "football-cup.yaml: $.values.contest.extra_period_sequence: unknown period \"GOLDEN_GOAL\" at 6",
+                "football-cup.yaml: $.values.contest.extra_period_sequence: unknown period \"GOLDEN_GOAL\" at 0",
                 "football-cup.yaml: $.values.contest.tie_resolution: the sport doesn't support \"REPEAT_EXTRA_PERIOD\"",
             ]
         },

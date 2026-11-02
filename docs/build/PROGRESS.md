@@ -394,11 +394,12 @@ S05-T5a. Each item names where it gets done.
   period `Played` no longer lists; allow a period reversal only for the latest period event (#79 R2, optional part).
 - S12: which period may start next isn't checked (a league may start extra time, a cup extra time with one side
   ahead); Contest Operations offers the outcome's `NextPeriodCode` (S05-T2c).
-- S05-T4: the resolver requires a non-empty `contest.extra_period_sequence` for a `tie_resolution` other than `DRAW`
-  (the engine proposes a draw when the sequence has nothing left; S05-T2c pre-review), each entry a period of the
-  definition flagged `overtime` (or a break before one), and a `SHOOTOUT` period last for `SHOOTOUT` and
-  `EXTRA_PERIODS_THEN_SHOOTOUT` (an unknown period makes `ProposeOutcome` throw; review #81 R3), and a `scoring.points` override
-  of 0 for a scoring type stays refused with the bounds above.
+- S05-T4b: a `scoring.points` override of 0 for a scoring type stays refused with the bounds above. (The
+  `extra_period_sequence` rules of review #81 R3 are built in T4a's `RulesetValueChecks`: non-empty unless `DRAW`, known
+  periods once each, each an `overtime` period or a break before one, one `SHOOTOUT` period and last, extra play for
+  every resolution but `SHOOTOUT`; review #84 R1.) The resolver validates the merged values against
+  `ruleset-template.schema.json` as well as `RulesetValueChecks`, so a tenant's value can't leave the schema's range
+  (a negative count), mapped to `RULESET_PARAMETER_OUT_OF_RANGE` on its path (review #84 R2, option a).
 
 - Sport definitions (the next task touching `sport-definition.schema.json`, at the latest S15 with rugby): its `code`
   pattern `^[A-Z][A-Z0-9_]*$` allows a trailing or double `_` that `ck_sport_definitions_variant`/`_sport` refuse, and

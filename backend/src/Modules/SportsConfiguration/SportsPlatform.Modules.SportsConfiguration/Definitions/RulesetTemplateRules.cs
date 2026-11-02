@@ -116,7 +116,7 @@ internal sealed class RulesetTemplateRules
                 }
                 else if (sport is not null)
                 {
-                    AllowedCodes($"{at}.values", path, allowed, sport);
+                    AllowedCodes($"{at}.values", path, allowed, sport, values);
                 }
 
                 break;
@@ -125,7 +125,7 @@ internal sealed class RulesetTemplateRules
 
     // Allowed codes a tenant could pick must be codes the sport supports, as the values' own are. Only paths whose codes
     // are checked here may be choices or lists: any other would let a tenant pick a code nothing checks.
-    private void AllowedCodes(string at, string path, List<string> allowed, SportDefinition sport)
+    private void AllowedCodes(string at, string path, List<string> allowed, SportDefinition sport, JsonNode values)
     {
         foreach (var code in allowed)
         {
@@ -139,6 +139,7 @@ internal sealed class RulesetTemplateRules
                 },
                 RulesetValueChecks.TieResolutionPath when !sport.Supports.TieResolutions.Contains(code, StringComparer.Ordinal) =>
                     $"the sport doesn't support \"{code}\"",
+                RulesetValueChecks.TieResolutionPath => TieResolutionProblem(code, sport, values),
                 RulesetValueChecks.CoverageDefaultPath when !sport.CoverageLevels.Any(level => RulesetValueChecks.Upper(level) == code) =>
                     $"the sport has no {code} coverage",
                 _ => null,
@@ -148,6 +149,16 @@ internal sealed class RulesetTemplateRules
                 Problem(at, problem);
             }
         }
+    }
+
+    // A tenant can't change the extra periods, so a tie resolution they may pick must fit the template's own sequence.
+    private string? TieResolutionProblem(string code, SportDefinition sport, JsonNode values)
+    {
+        var typed = RulesetTemplateContent.ReadValues(values);
+        var chosen = typed with { Contest = typed.Contest with { TieResolution = code } };
+        var problem = RulesetValueChecks.Check(chosen, sport, _references.Tiebreaker)
+            .FirstOrDefault(found => found.Kind == RulesetValueProblemKind.TieResolution);
+        return problem is null ? null : $"\"{code}\" doesn't fit the template's extra periods: {problem.Message}";
     }
 
     private static bool Fits(string type, JsonNode? value) => type switch

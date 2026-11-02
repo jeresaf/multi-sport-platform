@@ -409,4 +409,7 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   new-version case serves no templates). As for formats (T3a Q4), the platform also gets
   `GET /api/platform/v1/ruleset-templates/{code}`, beyond D16's list. Only `standings.tiebreakers`,
   `contest.tie_resolution` and `contest.coverage_default` may be editable choices or lists (their codes are checked);
-  the schema keeps a list's codes distinct, and T4b's resolver refuses a tenant's repeat.
+  the schema keeps a list's codes distinct, and T4b's resolver refuses a tenant's repeat. Review #84: the
+  extra-period rules of review #81 R3 are built here (R1); a tie resolution offered as a choice must fit the
+  template's own extra periods (R3); the catalogue's sport limits are checked against the reference definitions (R4);
+  T4b validates the merged values against the template schema too (R2, option a).
