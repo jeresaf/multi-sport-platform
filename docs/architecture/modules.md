@@ -87,14 +87,19 @@ counters.
 **Owns (platform-global, no tenant_id):** sport definitions (versioned, hashed; seeded from repo YAML embedded under
 `Definitions/Sports`, checked by JSON Schema and the reference rules in code at Host startup, S05-T1a; stored in
 `config.sport_definitions` with the RFC 8785 content hash, immutable per version, S05-T1b1),
-scoring-family engine registry, format definitions + fixture generators, ruleset templates and their parameter
-schemas, tiebreaker catalogue.
+scoring-family engine registry, format definitions (seeded from repo YAML under `Definitions/Formats`, checked by JSON
+Schema and the generator rules in code at Host startup; stored in `config.format_definitions`, immutable per version,
+S05-T3a) + fixture generators, ruleset templates and their parameter schemas, tiebreaker catalogue.
 **Provides:** `ISportDefinitions` (as built: published variants at their latest version; the resolved, typed
 definition by variant and optional version, kept in memory until restart; over HTTP, S05-T1b2: `GET
 /api/admin/v1/sports` and `…/sports/{variant}?version=` with `sport.read`, the same under `/api/platform/v1` with
 `platform.sport.read`, the definition's `ETag` its content hash, `SPORT_DEFINITION_NOT_FOUND`), `IScoringEngines` (as built, S05-T2a: the engine by `scoring_family` and the generic
 `Fold` of a timeline into `ContestLiveState`; the engine contract and its input types are in Contracts' `Engines`),
-`IFormatGenerators` (pure functions: participants + parameters → structure/pairings),
+`IFormatDefinitions` (as built, S05-T3a: published formats at their latest version; the typed format by code and
+optional version, kept in memory until restart; over HTTP: `GET /api/admin/v1/formats` and `…/formats/{code}?version=`
+with `format.read`, the same under `/api/platform/v1` with `platform.sport.read`, the format's `ETag` its content
+hash, `FORMAT_DEFINITION_NOT_FOUND`; what each generator reads is `FormatGeneratorKinds` in Contracts' `Formats`),
+`IFormatGenerators` (pure functions: participants + parameters → structure/pairings; S05-T3b),
 `IRulesetResolver` (template + overrides → validated effective rules snapshot).
 **Does not own:** any tenant data, competitions, fixtures, results.
 **First slice:** S05.

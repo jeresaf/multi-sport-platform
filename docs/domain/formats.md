@@ -26,6 +26,19 @@ parameters:
 Stage types: `LEAGUE`, `GROUP`, `KNOCKOUT`, `SERIES`, `SINGLE`, and later `PLACEMENT`, `LEADERBOARD`, `HEATS`,
 `CARD`.
 
+**As built (S05-T3a).** The files are `single-contest.yaml`, `round-robin.yaml` and `knockout.yaml`, embedded in
+Sports Configuration under `Definitions/Formats` with `format-definition.schema.json`. Each file has `schema_version`
+(1), `code`, `version`, `name`, an optional `description`, `compatible_shapes`, `participants: { min, max }` (both
+ends included; `min` at least 2), `stages` (`code`, `type`, `generator`) and `parameters`, a map keyed by lower snake
+case codes. A parameter has `type` (`int` with `min` and `max`, `bool`, or `enum` with `values`), `label`, an optional
+`description` and a `default`. Rules in code (`FormatDefinitionRules`): unique stage codes; the generator is one of
+`FormatGeneratorKinds` (Contracts) and fills the stage's type and pairs every compatible shape; a one-stage format
+takes no more participants than its generator; the format declares exactly the parameters its generators read, with
+their types and only choices they understand; bounds are in order and hold the default. The participant limits are
+`SINGLE_CONTEST` 2–2, `ROUND_ROBIN` 2–40 and `KNOCKOUT` 2–256 (owner, S05-T3 plan; a new version can raise them).
+`KNOCKOUT@1` has no `tie_type`: `SERIES` comes with S16 in `KNOCKOUT@2`. Seeded, hashed and immutable like sport
+definitions (`config.format_definitions`, `FORMAT_DEFINITION_IMMUTABLE`); read with `format.read`.
+
 ## Generator rules (all generators)
 
 - **Pure and deterministic:** output = f(ordered participants, parameters, random seed). Inputs, seed and output
@@ -56,6 +69,9 @@ creates a lightweight competition + edition behind the scenes so every contest s
 - Bracket size = next power of two ≥ `n`; byes = size − `n`, given to the top seeds.
 - Standard seed placement so seeds 1 and 2 can meet only in the final, 1–4 only in semi-finals, etc.
 - Seeding: `SEEDED` (given order), `RANDOM` (stored seed), `MANUAL` (admin places participants in slots).
+  `MANUAL` input is the bracket lines in order, bracket size long, with explicit byes; two byes in one pairing are
+  refused. A bye pairing is listed in the first round without a contest, and the next round's slot is already its
+  entrant (owner, S05-T3 plan). In a round robin, `MANUAL` keeps the order given, as `SEEDED` does.
 - Later rounds contain **slots** (`Winner of QF1`) resolved by Standings & Progression after the feeding
   result is approved; Match Operations fills the participants on `SlotResolved`.
 - Parameters: `third_place_contest` (bool), `tie_type` (`SINGLE_CONTEST` or `SERIES` with `best_of`).
