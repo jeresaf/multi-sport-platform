@@ -3,15 +3,23 @@ using Microsoft.Extensions.Hosting;
 namespace SportsPlatform.Modules.SportsConfiguration.Definitions;
 
 /// <summary>
-/// Validates every embedded sport and format definition when the Host starts; any problem stops it (S05 D3). It runs in
+/// Validates every embedded sport definition, format, ruleset template and the tiebreaker catalogue when the Host
+/// starts; any problem stops it (S05 D3). It runs in
 /// <see cref="StartingAsync"/>, before any hosted service (the outbox processor among them) starts.
 /// </summary>
-internal sealed class DefinitionStartupCheck(SportDefinitionFiles sports, FormatDefinitionFiles formats) : IHostedLifecycleService
+internal sealed class DefinitionStartupCheck(
+    SportDefinitionFiles sports,
+    FormatDefinitionFiles formats,
+    RulesetTemplateFiles templates,
+    TiebreakerCatalogue tiebreakers) : IHostedLifecycleService
 {
     public Task StartingAsync(CancellationToken cancellationToken)
     {
         Check("Sport definitions", sports.Names.SelectMany(file => SportDefinitionValidator.Validate(file, sports.Read(file))));
         Check("Format definitions", formats.Names.SelectMany(file => FormatDefinitionValidator.Validate(file, formats.Read(file))));
+        Check("Tiebreaker catalogue entries", tiebreakers.Validate());
+        var references = RulesetReferences.FromFiles(sports, formats, tiebreakers);
+        Check("Ruleset templates", templates.Names.SelectMany(file => RulesetTemplateValidator.Validate(file, templates.Read(file), references)));
         return Task.CompletedTask;
     }
 

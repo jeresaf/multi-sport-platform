@@ -32,6 +32,7 @@ admin endpoint requires one of these; the code is stable and is what roles grant
 | `platform.sport.read` | SportsConfiguration | PLATFORM | — | NONE | — | no | no | no | no | S05 | View the published sport definitions, formats and ruleset templates. |
 | `role.assign` | Identity | TENANT | TENANT | REQUIRED | — | no | no | no | no | S03 | Give a member a role, tenant-wide (other scopes later). Only an owner grants TENANT_OWNER. |
 | `role.revoke` | Identity | TENANT | TENANT | REQUIRED | — | no | no | no | no | S03 | Revoke a member's role (the assignment is kept as history). Only an owner revokes TENANT_OWNER; never the last owner's. |
+| `ruleset.read` | SportsConfiguration | TENANT | TENANT | NONE | — | no | no | no | yes | S05 | View the published ruleset templates: their sport, formats, rules and the parameters a competition may change. |
 | `sport.read` | SportsConfiguration | TENANT | TENANT | NONE | — | no | no | no | yes | S05 | View the published sport definitions: periods, events, positions and roles, statistics, scorer pad. |
 | `subscription.assign` | Tenancy | PLATFORM | — | REQUIRED | — | no | no | no | no | S04 | Give a tenant a subscription period: a plan from one date to another, which must not overlap another period. |
 | `subscription.cancel` | Tenancy | PLATFORM | — | REQUIRED_WITH_REASON | — | no | no | no | no | S04 | Cancel a tenant's current and scheduled subscription periods now, with a reason. |

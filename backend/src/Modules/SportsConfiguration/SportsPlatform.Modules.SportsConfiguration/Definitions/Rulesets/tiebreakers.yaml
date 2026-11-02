@@ -1,0 +1,18 @@
+# The tiebreaker catalogue (docs/domain/rulesets.md, "Tiebreaker catalogue"): the codes a template's standings may list.
+# Standings computes them (S13). `sports` limits a tiebreaker to those sports (a definition's `sport`); without it, it
+# applies to every sport. A code never changes meaning: a new meaning is a new code. FAIR_PLAY comes with its card points.
+schema_version: 1
+tiebreakers:
+  - { code: POINTS, label: Points, description: Total league points including bonus points. }
+  - { code: WINS, label: Wins, description: Number of wins. }
+  - { code: GOAL_DIFFERENCE, label: Goal difference, description: Goals scored minus goals conceded. }
+  - { code: DIFFERENCE, label: Difference, description: Scored minus conceded. }
+  - { code: GOALS_FOR, label: Goals scored, description: Total goals scored. }
+  - { code: SCORED, label: Scored, description: Total scored. }
+  - { code: TRIES_SCORED, label: Tries scored, description: Tries and penalty tries scored in approved contests., sports: [RUGBY_UNION] }
+  - { code: TRY_DIFFERENCE, label: Try difference, description: Tries scored minus tries conceded in approved contests., sports: [RUGBY_UNION] }
+  - { code: NET_RUN_RATE, label: Net run rate, description: Runs scored per over faced minus runs conceded per over bowled., sports: [CRICKET] }
+  - { code: H2H_POINTS, label: Head-to-head points, description: Points from the contests among the tied participants only. }
+  - { code: H2H_DIFFERENCE, label: Head-to-head difference, description: Scored minus conceded in the contests among the tied participants only. }
+  - { code: H2H_SCORED, label: Head-to-head scored, description: Scored in the contests among the tied participants only. }
+  - { code: DRAWING_OF_LOTS, label: Drawing of lots, description: Not computed; the participants stay tied until an authorised user records the draw. }

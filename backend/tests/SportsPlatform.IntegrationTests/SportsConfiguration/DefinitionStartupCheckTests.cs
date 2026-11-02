@@ -32,12 +32,36 @@ public sealed class DefinitionStartupCheckTests
     }
 
     [Fact]
-    public void The_shipped_definitions_and_formats_let_the_Host_start()
+    public void A_bad_ruleset_template_stops_the_Host_at_startup()
+    {
+        using var app = new BadApp(services => services.AddSingleton<RulesetTemplateFiles>(new UnknownFormat()));
+
+        var exception = Should.Throw<InvalidOperationException>(() => app.Services);
+
+        exception.Message.ShouldContain("Ruleset templates are invalid");
+        exception.Message.ShouldContain("football-league.yaml: $.formats[0]: unknown format \"LEAGUE\"");
+    }
+
+    [Fact]
+    public void A_bad_tiebreaker_catalogue_stops_the_Host_at_startup()
+    {
+        using var app = new BadApp(services => services.AddSingleton<TiebreakerCatalogue>(new DuplicateTiebreaker()));
+
+        var exception = Should.Throw<InvalidOperationException>(() => app.Services);
+
+        exception.Message.ShouldContain("Tiebreaker catalogue entries are invalid");
+        exception.Message.ShouldContain("tiebreakers.yaml: $.tiebreakers[1].code: duplicate tiebreaker code \"POINTS\"");
+    }
+
+    [Fact]
+    public void The_shipped_definitions_formats_and_templates_let_the_Host_start()
     {
         using var app = new HostOnlyApp();
 
         app.Services.GetRequiredService<SportDefinitionFiles>().Names.ShouldNotBeEmpty();
         app.Services.GetRequiredService<FormatDefinitionFiles>().Names.ShouldNotBeEmpty();
+        app.Services.GetRequiredService<RulesetTemplateFiles>().Names.ShouldNotBeEmpty();
+        app.Services.GetRequiredService<TiebreakerCatalogue>().All.ShouldNotBeEmpty();
     }
 
     // The Host without a database (the check runs before anything connects), serving football with a misspelt role.
@@ -57,6 +81,29 @@ public sealed class DefinitionStartupCheckTests
             builder.UseEnvironment(TestEnvironment.Name);
             builder.ConfigureTestServices(services => services.AddSingleton<FormatDefinitionFiles>(new MisspeltGenerator()));
         }
+    }
+
+    private sealed class BadApp(Action<IServiceCollection> replace) : WebApplicationFactory<Program>
+    {
+        protected override void ConfigureWebHost(IWebHostBuilder builder)
+        {
+            builder.UseEnvironment(TestEnvironment.Name);
+            builder.ConfigureTestServices(replace);
+        }
+    }
+
+    private sealed class UnknownFormat : RulesetTemplateFiles
+    {
+        public override string Read(string file)
+        {
+            var text = base.Read(file);
+            return file == "football-league.yaml" ? text.Replace("formats: [ROUND_ROBIN,", "formats: [LEAGUE,", StringComparison.Ordinal) : text;
+        }
+    }
+
+    private sealed class DuplicateTiebreaker : TiebreakerCatalogue
+    {
+        public override string Text() => base.Text().Replace("code: WINS,", "code: POINTS,", StringComparison.Ordinal);
     }
 
     private sealed class MisspeltGenerator : FormatDefinitionFiles

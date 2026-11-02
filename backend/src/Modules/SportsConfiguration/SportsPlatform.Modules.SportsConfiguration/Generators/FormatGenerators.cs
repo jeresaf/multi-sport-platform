@@ -148,6 +148,7 @@ public sealed class FormatGenerators : IFormatGenerators
     {
         ParameterType.Number => "whole number",
         ParameterType.Flag => "flag",
+        ParameterType.List => "list",
         _ => "choice",
     };
 

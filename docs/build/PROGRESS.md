@@ -7,13 +7,14 @@ at the start of every review.
 
 - **Current slice:** S05 — Sports configuration (docs/build/slices/S05-sports-configuration.md, rewritten by the S04
   slice review). S00–S04 are done
-- **Current task:** S05-T3b — generators — in review (#83); next is `/next-task` for S05-T4
-- **Next:** S05-T4 — ruleset templates and resolver
+- **Current task:** S05-T4a — ruleset templates: files, schema, validator, table, seeder, reads — in review (#84);
+  next is `/next-task` for S05-T4b
+- **Next:** S05-T4b — the resolver, the snapshot and the preview
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S05-T4 — Ruleset templates and resolver (with `ruleset.read`, its reads and the preview)
+1. S05-T4b — The resolver, the effective-rules snapshot and the preview endpoint (T4's acceptance)
 2. S05-T5 — Tenant sport enablement, Q27 and the screens (likely T5a, T5b1, T5b2)
 
 ## Log
@@ -96,6 +97,7 @@ at the start of every review.
 | 2026-10-30 | S05-T2c | #81 | `AdditiveEngine.ProposeOutcome` as the score stands: different `main` totals win (`REGULATION`, `EXTRA_TIME`, `OVERTIME` under `REPEAT_EXTRA_PERIOD`, `SUDDEN_DEATH` with `RequiresEnd`); level totals are a draw under `DRAW`, else follow `contest.extra_period_sequence` (`RequiresExtraTime`/`RequiresShootout` with the next period; repeatable periods start again; the shoot-out is won on its own component); a second score in a decided sudden-death period is refused. Scenarios: cup extra time then shoot-out, cup extra-time winner, cup straight to penalties, rugby 15s sudden death (27 football); every scenario states its outcome; outcome rules in `ScenarioRules`; `AdditiveOutcomeTests`; unit tests 792, architecture 42, integration green | Plan approved with the recommended answers (owner, 2026-10-30); which period may start next is left to S12. Pre-review: no blocker or major; the sudden-death check now uses the points override as Apply does, the T2c tech-debt item moved to S12. Review #81 (owner, 2026-10-31: the recommended answers): the sudden-death refusal is the ADDITIVE engine's phase rule (a hook in `TimelineChecks`) and holds only while the totals differ; `EXTRA_TIME` stays the method once extra time was played; resolver checks on the sequence added to T4's tech debt |
 | 2026-11-02 | S05-T3a | #82 | Format definitions: `single-contest.yaml`, `round-robin.yaml`, `knockout.yaml` (version 1) under `Definitions/Formats` with `format-definition.schema.json` (`schema_version`, `code`, `version`, `name`, `description`, `compatible_shapes`, `participants {min, max}`, `stages` with `generator`, typed `parameters` with `label`, bounds/values and `default`) and `FormatDefinitionRules` (unique stage codes; known generator filling the stage type and pairing every shape; one-stage participant range within the generator's; exactly the parameters the generators read, with their types and understood choices; bounds hold the default). `config.format_definitions` (global, read-only for the runtime roles) by `config.configuration.formats` (Order 1, after sports; `FORMAT_DEFINITION_IMMUTABLE`, `FORMAT_DEFINITION_DUPLICATE_VERSION`). Contracts: `IFormatDefinitions`, `FormatDefinition`, `FormatGeneratorKinds` (`Formats`), `ParameterDefinition`, `ParameterValue` (bare JSON value; `oneOf` integer/boolean/string in OpenAPI) (`Parameters`). Reads: `GET /api/admin/v1/formats`, `…/formats/{code}?version=` (`format.read`, every role holding `sport.read`; read-only available; audit `NONE`) and the platform pair (`platform.sport.read`); `ETag` = content hash; `FORMAT_DEFINITION_NOT_FOUND`. Shared with sports: `EmbeddedDefinitions`, `DefinitionSchema`, `DefinitionStartupCheck` (was `SportDefinitionStartupCheck`), `DefinitionSeeder<TRow>`, `VersionRequest` (was `GetSportRequest`) | Owner (plan 2026-11-02, recommended answers Q1–Q6; Deviations). No new packages. Migration `AddFormatDefinitions`. Tests: 1906 passed (backend), web lint, typecheck, unit tests and build pass. Size: about 1,000 production lines (280 of them the YAML and schema) and 680 test lines, over the ~650 estimate; one PR (the shared refactor and the formats depend on each other). Pre-review (ready, no blocker or major): the PROGRESS.md bookkeeping; two multi-stage nits to S15's tech debt; the Host's `ParameterValue` OpenAPI transformer names a module's Contracts type (kept: the Host is the composition root). Review #82 (subagent, approve with nits): R1 the format schema bounds codes (the table's pattern, 50), names (100), whole numbers (32-bit) and participants (1024), so the startup check catches what the seed would refuse; the sport schema's same gap is tech debt; R2 a seeder version per kind; R3 platform role descriptions name formats and templates. Tests: 1911 passed |
 | 2026-11-02 | S05-T3b | #83 | Fixture generators: `IFormatGenerators` (Contracts, `Formats.Generation`: `FormatGenerationInput` with ordered entrant keys, parameters and a `ulong` seed; `GeneratedFormat` with stages, rounds, pairings, sides `ENTRANT`/`WINNER_OF`/`LOSER_OF`/`BYE`, `RoundCodes`, `OutputHash`). `SINGLE_CONTEST`; `ROUND_ROBIN` (de Werra's canonical circle schedule, balanced home and away, every second cycle swapped, bye in the fixed place); `KNOCKOUT` (standard seed lines, byes to the top seeds, `MANUAL` bracket lines, a bye's entrant straight into round 2, `THIRD_PLACE` round before the final). `SeededRandom` (xoshiro256** by SplitMix64, Lemire bounds, Fisher–Yates) pinned to published vectors; `GeneratedFormatHash` (RFC 8785 over inputs and structure, seed as decimal text). `CanonicalJson` moved to `Hashing`. Errors `FORMAT_PARTICIPANT_COUNT_INVALID`, `FORMAT_PARAMETER_INVALID`, `FORMAT_ENTRANTS_INVALID`. `GeneratorDependencyTests` (pure, no other module) | Owner (plan 2026-11-02, recommended answers Q1–Q5; Deviations). No endpoint, migration or package. Tests: 2350 passed (backend, integration included). Size: about 710 production lines (much of it doc comments) and 690 test lines, over the ~550 + 450 estimate; one PR. Pre-review (ready, no blocker or major): explicit knockout case with `default` throwing; exhaustive hash arms; the deviation recorded; formats.md says the last entrant takes the fixed place. Review #83 (subagent, approve with nits): R1 `RemainingEntrants` is `BracketPlaces` (byes counted; the pinned hash re-pinned); R2 the web client's `errors.json` regenerated (CI's Contracts check); R3 another seed draws other pairings; R4 the knockout round codes pinned up to 64; Q34 (a generator's output per format version) in open-questions.md |
+| 2026-11-02 | S05-T4a | #84 | Ruleset templates: `football-league.yaml` (`ROUND_ROBIN`, `SINGLE_CONTEST`) and `football-cup.yaml` (`KNOCKOUT`, `SINGLE_CONTEST`) under `Definitions/Rulesets`, pinning football@1, with rulesets.md's values and editable parameters keyed by dotted path (defaults read from the values); `ruleset-template.schema.json`; the tiebreaker catalogue (`tiebreakers.yaml`, optional `sports` limit, startup check, not seeded); `RulesetTemplateRules` and `RulesetValueChecks` (sport version, formats and shapes, editable types/bounds/allowed codes, periods, extra periods, positions, officials, coverage, tie resolution, tiebreakers, ranges between values; each problem with a kind for T4b's codes). `config.ruleset_templates` (read-only, migration `AddRulesetTemplates`), `config.configuration.rulesets` (order 2, `RULESET_TEMPLATE_IMMUTABLE`), `IRulesetTemplates` (Contracts' `Rulesets`, typed `RulesetValues`), `GET /api/admin/v1/ruleset-templates` and `…/{code}?version=` (`ruleset.read`, every role with `format.read`) and the platform pair (`platform.sport.read`), `RULESET_TEMPLATE_NOT_FOUND`. `ParameterType.List` (`ParameterValue.Items`, a JSON array) | Owner (plan 2026-11-02, recommended answers Q1–Q4; Deviations). No package. Tests: 2430 backend passed before the pre-review fixes; after them unit 1334, architecture 45 and Sports Configuration integration 69 passed; web lint, typecheck, test, build. Size: about 1430 production C# lines (many doc comments), 650 YAML/schema, 920 test lines, over the ~600 guideline; one PR (owner told). Pre-review (ready, no blocker or major): the sequence's checks run when the tie resolution is unsupported; an extra period once; only tiebreakers, tie resolution and coverage may be editable choices or lists, coverage choices checked; the platform `{code}` read noted. Not taken: requiring `period_seconds` for every timed period (the definition's `default_seconds` applies); starters equal to the definition's (a question in the PR) |
 
 ## Deviations from spec (agreed)
 
@@ -362,6 +364,11 @@ at the start of every review.
   or repeated key; a bye outside `MANUAL` knockout lines; `MANUAL` lines not the bracket size, or two byes together);
   a third-place contest with fewer than 4 participants is `FORMAT_PARAMETER_INVALID`; the output hash covers the
   inputs as well as the structure; only one-stage formats generate (more stages throw until S15).
+- **S05-T4a (owner, plan 2026-11-02):** T4 is two PRs (T4a templates and reads, T4b resolver and preview); the
+  platform also reads one template (`GET /api/platform/v1/ruleset-templates/{code}`), beyond D16's list, as for
+  formats; parameters gain a `list` type; the tiebreaker catalogue is embedded, not seeded; a template pins its sport
+  version, so a new sport version needs new template versions (review #84 Q1: kept, owner 2026-11-02); a template's
+  starters need not equal the definition's (review #84 Q2, owner 2026-11-02).
 
 ## Tech debt / follow-ups
 
@@ -388,11 +395,19 @@ S05-T5a. Each item names where it gets done.
   period `Played` no longer lists; allow a period reversal only for the latest period event (#79 R2, optional part).
 - S12: which period may start next isn't checked (a league may start extra time, a cup extra time with one side
   ahead); Contest Operations offers the outcome's `NextPeriodCode` (S05-T2c).
-- S05-T4: the resolver requires a non-empty `contest.extra_period_sequence` for a `tie_resolution` other than `DRAW`
-  (the engine proposes a draw when the sequence has nothing left; S05-T2c pre-review), each entry a period of the
-  definition flagged `overtime` (or a break before one), and a `SHOOTOUT` period last for `SHOOTOUT` and
-  `EXTRA_PERIODS_THEN_SHOOTOUT` (an unknown period makes `ProposeOutcome` throw; review #81 R3), and a `scoring.points` override
-  of 0 for a scoring type stays refused with the bounds above.
+- S05-T4b: a `scoring.points` override of 0 for a scoring type stays refused with the bounds above. (The
+  `extra_period_sequence` rules of review #81 R3 are built in T4a's `RulesetValueChecks`: non-empty unless `DRAW`, known
+  periods once each, each an `overtime` period or a break before one, one `SHOOTOUT` period and last, extra play for
+  every resolution but `SHOOTOUT`; review #84 R1.) The resolver validates the merged values against
+  `ruleset-template.schema.json` as well as `RulesetValueChecks`, so a tenant's value can't leave the schema's range
+  (a negative count), mapped to `RULESET_PARAMETER_OUT_OF_RANGE` on its path (review #84 R2, option a). It loads the
+  template's pinned sport version through `ISportDefinitions`, tested with a newer sport version seeded (review #84
+  Q1, owner 2026-11-02).
+- S17 (cricket): only `DRAW` plays no extra periods in `RulesetValueChecks`, so cricket's `TIE` would need extra periods;
+  decide whether `TIE` is `DRAW` by another name or the definition marks the resolutions that play none (data, not a
+  sport branch; review #84 R7).
+- S12: the personnel tracker reads `lineup.starters` (and the bench) from the edition's snapshot, not the sport
+  definition: a template may override the definition's lineup numbers (review #84 Q2, owner 2026-11-02).
 
 - Sport definitions (the next task touching `sport-definition.schema.json`, at the latest S15 with rugby): its `code`
   pattern `^[A-Z][A-Z0-9_]*$` allows a trailing or double `_` that `ck_sport_definitions_variant`/`_sport` refuse, and

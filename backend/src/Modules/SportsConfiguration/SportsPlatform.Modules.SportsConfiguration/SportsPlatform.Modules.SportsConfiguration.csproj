@@ -22,6 +22,8 @@
     <EmbeddedResource Include="Definitions/Sports/*.yaml;Definitions/Sports/*.schema.json" LogicalName="SportsPlatform.Modules.SportsConfiguration.Definitions.Sports.%(Filename)%(Extension)" />
     <!-- Format definitions and their schema (Definitions/Formats; docs/domain/formats.md describes them). -->
     <EmbeddedResource Include="Definitions/Formats/*.yaml;Definitions/Formats/*.schema.json" LogicalName="SportsPlatform.Modules.SportsConfiguration.Definitions.Formats.%(Filename)%(Extension)" />
+    <!-- Ruleset templates, the tiebreaker catalogue and their schemas (Definitions/Rulesets; docs/domain/rulesets.md). -->
+    <EmbeddedResource Include="Definitions/Rulesets/*.yaml;Definitions/Rulesets/*.schema.json" LogicalName="SportsPlatform.Modules.SportsConfiguration.Definitions.Rulesets.%(Filename)%(Extension)" />
   </ItemGroup>
 
 </Project>

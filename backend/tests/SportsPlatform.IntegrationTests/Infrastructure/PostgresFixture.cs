@@ -111,7 +111,7 @@ public sealed class PostgresFixture : IAsyncLifetime
     public static IReadOnlyList<string> PlanTables { get; } = ["plans", "plan_entitlements"];
 
     /// <summary>Sports Configuration's tables (CONFIGURATION, S05 D4): seeded and kept like <see cref="ReferenceTables"/>.</summary>
-    public static IReadOnlyList<string> ConfigurationTables { get; } = ["sport_definitions", "format_definitions"];
+    public static IReadOnlyList<string> ConfigurationTables { get; } = ["sport_definitions", "format_definitions", "ruleset_templates"];
 
     /// <summary>
     /// Resets, then seeds the real reference and configuration data again (the reset empties <c>seed_runs</c>, so every

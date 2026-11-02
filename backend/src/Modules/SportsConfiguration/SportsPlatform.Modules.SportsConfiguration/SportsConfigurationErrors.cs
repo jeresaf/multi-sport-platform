@@ -15,6 +15,9 @@ public static class SportsConfigurationErrors
     public static readonly Error FormatDefinitionNotFound = new(
         "FORMAT_DEFINITION_NOT_FOUND", "No published format matches this code, or this version of it.", ErrorKind.NotFound);
 
+    public static readonly Error RulesetTemplateNotFound = new(
+        "RULESET_TEMPLATE_NOT_FOUND", "No published ruleset template matches this code, or this version of it.", ErrorKind.NotFound);
+
     // The fixture generators' errors (S05 D10); no endpoint returns them until the draws of S09/S10.
     public static readonly Error FormatParticipantCountInvalid = new(
         "FORMAT_PARTICIPANT_COUNT_INVALID", "The format can't be drawn for this number of participants.", ErrorKind.Unprocessable);

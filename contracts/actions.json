@@ -383,6 +383,22 @@
       "since": "S03"
     },
     {
+      "code": "ruleset.read",
+      "module": "SportsConfiguration",
+      "description": "View the published ruleset templates: their sport, formats, rules and the parameters a competition may change.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "NONE",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": true,
+      "since": "S05"
+    },
+    {
       "code": "sport.read",
       "module": "SportsConfiguration",
       "description": "View the published sport definitions: periods, events, positions and roles, statistics, scorer pad.",

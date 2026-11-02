@@ -61,6 +61,7 @@ public static class TableAccessPolicies
 
         // Format definitions (S05-T3a): configuration data, global, written only by the CONFIGURATION seeder as the owner.
         ["config.format_definitions"] = TableAccess.ReadOnly,
+        ["config.ruleset_templates"] = TableAccess.ReadOnly,
 
         // Identity (S03-T1): global users with Identity's satellite tables, platform roles (revoked rows are kept), and the
         // data protection key ring (the repository only inserts).

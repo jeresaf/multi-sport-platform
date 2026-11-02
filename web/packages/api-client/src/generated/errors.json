@@ -229,6 +229,12 @@
       "owner": "BuildingBlocks"
     },
     {
+      "code": "RULESET_TEMPLATE_NOT_FOUND",
+      "status": 404,
+      "message": "No published ruleset template matches this code, or this version of it.",
+      "owner": "SportsConfiguration"
+    },
+    {
       "code": "SPORT_CONCURRENCY_CONFLICT",
       "status": 409,
       "message": "The configuration was changed by someone else. Reload and try again.",

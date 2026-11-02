@@ -44,6 +44,7 @@ the message is the default title and may change.
 | `PLATFORM_OUTBOX_MESSAGE_NOT_FOUND` | 404 | No outbox message with this ID in this module. | Platform |
 | `PLATFORM_ROUTE_NOT_FOUND` | 404 | No endpoint matches this path. | BuildingBlocks |
 | `PLATFORM_UNEXPECTED_ERROR` | 500 | An unexpected error occurred. Quote the correlation ID when reporting it. | BuildingBlocks |
+| `RULESET_TEMPLATE_NOT_FOUND` | 404 | No published ruleset template matches this code, or this version of it. | SportsConfiguration |
 | `SPORT_CONCURRENCY_CONFLICT` | 409 | The configuration was changed by someone else. Reload and try again. | SportsConfiguration |
 | `SPORT_DEFINITION_NOT_FOUND` | 404 | No published sport definition matches this variant, or this version of it. | SportsConfiguration |
 | `TENANT_BLOCKED` | 403 | This tenant is suspended or archived. | Tenancy |

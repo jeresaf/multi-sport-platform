@@ -393,3 +393,30 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   `EngineDependencyTests`' rule; a LINQ query spread into a `List<T>` compiles to `CollectionsMarshal`
   (`System.Runtime.InteropServices`), which the rule refuses, so the knockout uses `ToArray()`. Only one-stage formats
   generate; a format with more stages throws until S15.
+- **T4a:** plan approved with the recommended answers (owner, 2026-11-02): `FOOTBALL_LEAGUE` takes `ROUND_ROBIN` and
+  `SINGLE_CONTEST`, `FOOTBALL_CUP` `KNOCKOUT` and `SINGLE_CONTEST` (Q1); the tiebreaker catalogue is an embedded file with
+  an optional `sports` limit, checked at startup and not seeded (Q2); a template pins its sport version, and the
+  resolver takes the latest template and format versions unless given (Q3); the resolver answers every problem with
+  its path, one `errors[]` entry per field in the preview (Q4). T4 is two PRs: T4a (files, schema, catalogue,
+  validator, table, seeder, reads) and T4b (resolver, snapshot, preview). The file shape and the rules are in
+  rulesets.md ("As built (S05-T4a)"). Parameters gain `ParameterType.List` (`list`; a `ParameterValue` with `Items`, a
+  JSON array; OpenAPI `oneOf` adds an array of strings). The typed values are Contracts' `Rulesets` records
+  (`RulesetValues`); the API maps them to response records of its own (camelCase, `headToHeadReapply`, forfeit
+  `scored`/`conceded`); `parameters` stay keyed by the files' dotted paths, and the response lists the catalogue's
+  tiebreakers the template lists or allows. `RulesetValueChecks` holds the rules between values so T4b's resolver can
+  run them after a tenant's changes, each problem with a kind for its error code. The validator reads the embedded
+  sport and format files, not the database, so a new sport version needs new template versions (the sport seed test's
+  new-version case serves no templates). As for formats (T3a Q4), the platform also gets
+  `GET /api/platform/v1/ruleset-templates/{code}`, beyond D16's list. Only `standings.tiebreakers`,
+  `contest.tie_resolution` and `contest.coverage_default` may be editable choices or lists (their codes are checked);
+  the schema keeps a list's codes distinct, and T4b's resolver refuses a tenant's repeat. Review #84: the
+  extra-period rules of review #81 R3 are built here (R1); a tie resolution offered as a choice must fit the
+  template's own extra periods (R3); the catalogue's sport limits are checked against the reference definitions (R4);
+  T4b validates the merged values against the template schema too (R2, option a). Owner (2026-11-02, the reviewer's
+  recommendations): Q1 stays as built, and T4b's resolver loads the template's pinned sport version through
+  `ISportDefinitions` (the stored rows), with a test that a template still resolves after a newer sport version is
+  seeded; Q2: starters need not equal the definition's (the template's lineup numbers override the definition's
+  defaults), and S12's personnel tracker reads `lineup.starters` from the snapshot. Re-review #84: a non-overtime
+  break opens the extra periods only first in the sequence and when the definition lists it right before an overtime
+  period (half-time can't); a tie-resolution choice reports only what the template's own values don't (R5, R6); R7
+  (cricket's `TIE`) is S17's tech debt.

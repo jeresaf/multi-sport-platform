@@ -102,6 +102,11 @@ hash, `FORMAT_DEFINITION_NOT_FOUND`; what each generator reads is `FormatGenerat
 `IFormatGenerators` (as built, S05-T3b: pure functions of a format, the ordered entrant keys, its parameters and a
 `ulong` seed → stages, rounds and pairings (entrant, `WINNER_OF`/`LOSER_OF` slot, or bye) with an output hash over the
 inputs and the structure; Contracts' `Formats.Generation`; no endpoint until the draws of S09/S10),
+`IRulesetTemplates` (as built, S05-T4a: published ruleset templates at their latest version; the typed template by
+code and optional version, with its editable parameters and their defaults, kept in memory until restart; the
+tiebreaker catalogue; over HTTP: `GET /api/admin/v1/ruleset-templates` and `…/ruleset-templates/{code}?version=` with
+`ruleset.read`, the same under `/api/platform/v1` with `platform.sport.read`, the template's `ETag` its content hash,
+`RULESET_TEMPLATE_NOT_FOUND`; Contracts' `Rulesets`),
 `IRulesetResolver` (template + overrides → validated effective rules snapshot).
 **Does not own:** any tenant data, competitions, fixtures, results.
 **First slice:** S05.
