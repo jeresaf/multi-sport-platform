@@ -420,3 +420,13 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   break opens the extra periods only first in the sequence and when the definition lists it right before an overtime
   period (half-time can't); a tie-resolution choice reports only what the template's own values don't (R5, R6); R7
   (cricket's `TIE`) is S17's tech debt.
+- **T4b:** plan approved with the recommended answers (owner, 2026-11-07). Two PRs: T4b1 (contracts, resolver,
+  snapshot, shared format-parameter checks, errors, unit tests) and T4b2 (preview endpoint, integration tests, OpenAPI
+  and client, docs, T4's acceptance). The resolver answers a `RulesetResolution`, a snapshot or every problem with its
+  field (D11's `Result<RulesSnapshot>` holds one error; Q4 wants them all). Fields follow the preview's body:
+  `overrides.<dotted path>`, `format.code`, `format.version`, `format.parameters.<code>`. A preview with several
+  problems answers the first problem's code (by field) with every problem in `errors[]` (Q1). A value of the wrong type
+  is `RULESET_PARAMETER_OUT_OF_RANGE` (Q2). The preview answers camelCase records and `hash`; the snapshot's canonical
+  JSON (snake_case, as rulesets.md's example) is what is hashed and what S09 stores (Q4). A format the template doesn't
+  list, or a version of it that doesn't exist, is `RULESET_INCOMPATIBLE_FORMAT`; format parameters keep
+  `FORMAT_PARAMETER_INVALID`.

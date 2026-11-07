@@ -7,14 +7,14 @@ at the start of every review.
 
 - **Current slice:** S05 — Sports configuration (docs/build/slices/S05-sports-configuration.md, rewritten by the S04
   slice review). S00–S04 are done
-- **Current task:** S05-T4a — ruleset templates: files, schema, validator, table, seeder, reads — in review (#84);
-  next is `/next-task` for S05-T4b
-- **Next:** S05-T4b — the resolver, the snapshot and the preview
+- **Current task:** S05-T4b1 — the ruleset resolver and the effective-rules snapshot (contracts, resolver, unit
+  tests); T4a merged (#84)
+- **Next:** S05-T4b2 — the preview endpoint, integration tests, client and docs (T4's acceptance)
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S05-T4b — The resolver, the effective-rules snapshot and the preview endpoint (T4's acceptance)
+1. S05-T4b2 — The preview endpoint, its integration tests, the generated client and the docs (T4's acceptance)
 2. S05-T5 — Tenant sport enablement, Q27 and the screens (likely T5a, T5b1, T5b2)
 
 ## Log
