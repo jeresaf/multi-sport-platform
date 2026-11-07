@@ -26,6 +26,20 @@ public sealed class RulesetTemplateFilesTests
         CanonicalJson.Hash(content).ShouldBe(hash);
     }
 
+    // The resolver merges a competition's changes into the values as the file writes them (S05-T4b): writing the typed
+    // values must give the file's tree back, or a snapshot would differ from its template where nothing changed.
+    [Theory]
+    [InlineData("football-league.yaml")]
+    [InlineData("football-cup.yaml")]
+    public void Writing_the_typed_values_gives_the_files_values(string file)
+    {
+        var content = YamlJson.Parse(_files.Read(file))!;
+
+        var written = RulesetTemplateContent.WriteValues(RulesetTemplateContent.Read(content).Values);
+
+        CanonicalJson.Serialize(written).ShouldBe(CanonicalJson.Serialize(content["values"]));
+    }
+
     [Fact]
     public void The_league_reads_into_its_typed_model_with_defaults_from_its_values()
     {

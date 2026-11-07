@@ -57,6 +57,7 @@ public sealed class SportsConfigurationModule : IModule
         services.AddScoped<IFormatDefinitions, FormatDefinitions>();
         services.AddSingleton<RulesetTemplateCache>();
         services.AddScoped<IRulesetTemplates, RulesetTemplates>();
+        services.AddScoped<IRulesetResolver, RulesetResolver>();
         services.AddSingleton<IScoringEngine, AdditiveEngine>();
         services.AddSingleton<IScoringEngines, ScoringEngines>();
         services.AddSingleton<IFormatGenerators, FormatGenerators>();

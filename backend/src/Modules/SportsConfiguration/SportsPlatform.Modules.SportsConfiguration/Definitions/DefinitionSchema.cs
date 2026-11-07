@@ -40,6 +40,9 @@ internal sealed class DefinitionSchema(Func<string> schemaText)
         return problems.Count > 0 ? null : root!.AsObject();
     }
 
+    /// <summary>Every shape problem of a JSON tree already read (the resolver's merged template, S05-T4b).</summary>
+    public IReadOnlyList<DefinitionProblem> Check(string file, JsonNode? root) => ShapeProblems(file, root);
+
     private List<DefinitionProblem> ShapeProblems(string file, JsonNode? root)
     {
         var results = _schema.Value.Evaluate(

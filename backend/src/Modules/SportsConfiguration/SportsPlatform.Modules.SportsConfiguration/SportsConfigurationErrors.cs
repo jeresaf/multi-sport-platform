@@ -28,6 +28,22 @@ public static class SportsConfigurationErrors
     public static readonly Error FormatEntrantsInvalid = new(
         "FORMAT_ENTRANTS_INVALID", "The entrants can't be drawn: one is blank or repeated, or the byes are misplaced.", ErrorKind.Unprocessable);
 
+    // The ruleset resolver's errors (S05 D11), each on the field it names; the preview answers them (S05-T4b2).
+    public static readonly Error RulesetParameterUnknown = new(
+        "RULESET_PARAMETER_UNKNOWN", "The ruleset template has no parameter a competition may change at this path.", ErrorKind.Unprocessable);
+
+    public static readonly Error RulesetParameterOutOfRange = new(
+        "RULESET_PARAMETER_OUT_OF_RANGE", "A rule's value is of the wrong type, outside its bounds or not one the template allows, or it doesn't fit the other rules.", ErrorKind.Unprocessable);
+
+    public static readonly Error RulesetIncompatibleFormat = new(
+        "RULESET_INCOMPATIBLE_FORMAT", "The ruleset template doesn't work with this format, or this version of it.", ErrorKind.Unprocessable);
+
+    public static readonly Error RulesetUnknownTiebreaker = new(
+        "RULESET_UNKNOWN_TIEBREAKER", "A tiebreaker is not in the catalogue, doesn't apply to the sport, or is listed twice.", ErrorKind.Unprocessable);
+
+    public static readonly Error RulesetTieResolutionUnsupported = new(
+        "RULESET_TIE_RESOLUTION_UNSUPPORTED", "The sport doesn't support this tie resolution, or the template's extra periods don't fit it.", ErrorKind.Unprocessable);
+
     // Timeline errors the engines return; the scorer sees them from S12 (S05 D8). No endpoint returns them yet.
     public static readonly Error TimelineEventUnknown = new(
         "TIMELINE_EVENT_UNKNOWN", "The sport definition has no event type with this code.", ErrorKind.Unprocessable);
