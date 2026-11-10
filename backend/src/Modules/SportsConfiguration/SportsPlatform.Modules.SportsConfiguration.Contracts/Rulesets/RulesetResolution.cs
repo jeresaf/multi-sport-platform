@@ -3,8 +3,8 @@ using SportsPlatform.BuildingBlocks.Results;
 namespace SportsPlatform.Modules.SportsConfiguration.Contracts.Rulesets;
 
 /// <summary>
-/// The resolver's answer: a <see cref="Snapshot"/>, or the <see cref="Problems"/> that stop one, ordered by field.
-/// Exactly one of the two is present.
+/// The resolver's answer: a <see cref="Snapshot"/>, or the <see cref="Problems"/> that stop one, one per field and
+/// ordered by field. Exactly one of the two is present.
 /// </summary>
 public sealed record RulesetResolution
 {
@@ -29,7 +29,11 @@ public sealed record RulesetResolution
     public static RulesetResolution Failure(IEnumerable<RulesetProblem> problems)
     {
         ArgumentNullException.ThrowIfNull(problems);
-        RulesetProblem[] list = [.. problems.Distinct().OrderBy(problem => problem.Field, StringComparer.Ordinal)];
+        // One problem per field (a form marks each field once): the first one's error, every distinct message.
+        RulesetProblem[] list = [.. problems
+            .GroupBy(problem => problem.Field, StringComparer.Ordinal)
+            .Select(field => field.First() with { Message = string.Join("; ", field.Select(problem => problem.Message).Distinct(StringComparer.Ordinal)) })
+            .OrderBy(problem => problem.Field, StringComparer.Ordinal)];
         if (list.Length == 0)
         {
             throw new ArgumentException("A failed resolution has at least one problem.", nameof(problems));

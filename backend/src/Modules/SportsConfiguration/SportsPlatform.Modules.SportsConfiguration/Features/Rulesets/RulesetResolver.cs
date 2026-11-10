@@ -73,11 +73,7 @@ public sealed class RulesetResolver(IRulesetTemplates templates, IFormatDefiniti
             return RulesetResolution.Failure(problems);
         }
 
-        var tree = RulesetTemplateContent.WriteValues(template.Values);
-        foreach (var (path, value) in request.Overrides)
-        {
-            Set(tree, path, JsonSerializer.SerializeToNode(value));
-        }
+        var tree = Merge(template, request.Overrides);
 
         problems.AddRange(RulesetTemplateValidator.ShapeProblems(Skeleton(template, tree))
             .Select(problem => SchemaProblem(problem, request.Overrides)));
@@ -88,7 +84,7 @@ public sealed class RulesetResolver(IRulesetTemplates templates, IFormatDefiniti
 
         var values = RulesetTemplateContent.ReadValues(tree);
         problems.AddRange(RulesetValueChecks.Check(values, sport, tiebreakers.GetValueOrDefault)
-            .Select(problem => ValueProblem(problem, request.Overrides)));
+            .SelectMany(problem => ValueProblems(problem, template, request.Overrides, found => RulesetValueChecks.Check(found, sport, tiebreakers.GetValueOrDefault))));
         if (problems.Count > 0)
         {
             return RulesetResolution.Failure(problems);
@@ -111,7 +107,9 @@ public sealed class RulesetResolver(IRulesetTemplates templates, IFormatDefiniti
         var format = await formats.GetAsync(selection.Code, selection.Version, cancellationToken);
         if (format is null)
         {
-            problems.Add(new(field, SportsConfigurationErrors.RulesetIncompatibleFormat, $"there is no version {selection.Version} of {selection.Code}"));
+            problems.Add(new(field, SportsConfigurationErrors.RulesetIncompatibleFormat, selection.Version is { } version
+                ? $"there is no version {version} of {selection.Code}"
+                : $"{selection.Code} is not published"));
             return null;
         }
 
@@ -126,7 +124,7 @@ public sealed class RulesetResolver(IRulesetTemplates templates, IFormatDefiniti
         return format;
     }
 
-    // One problem per field: the first that stops the value. Tiebreakers and tie resolutions the sport can't use answer
+    // The first problem that stops the value (the resolution keeps one problem per field). Tiebreakers and tie resolutions the sport can't use answer
     // their own codes; anything else outside what the template allows is out of range.
     private static RulesetProblem? OverrideProblem(
         RulesetTemplate template, SportDefinition sport, Dictionary<string, TiebreakerDefinition> tiebreakers, string path, ParameterValue? value)
@@ -192,21 +190,43 @@ public sealed class RulesetResolver(IRulesetTemplates templates, IFormatDefiniti
         return new(_overridesField + owner, SportsConfigurationErrors.RulesetParameterOutOfRange, $"{path}: {problem.Message}");
     }
 
-    // A rule between values names its own path (roster.max); a tie-resolution rule names the extra periods, which only a
-    // change of the tie resolution can break, so it goes to that override when there is one.
-    private static RulesetProblem ValueProblem(RulesetValueProblem problem, IReadOnlyDictionary<string, ParameterValue> overrides)
+    // A rule between values names its own path (roster.max) and may break because of another one (roster.min = 40 puts
+    // roster.max's 30 below it). The template's own values break no rule, so the changes did: the problem goes to the
+    // change it names, else to each change without which it goes away, else (two changes together) to its own path.
+    private static IEnumerable<RulesetProblem> ValueProblems(
+        RulesetValueProblem problem,
+        RulesetTemplate template,
+        IReadOnlyDictionary<string, ParameterValue> overrides,
+        Func<RulesetValues, IReadOnlyList<RulesetValueProblem>> check)
     {
-        var path = problem.Kind == RulesetValueProblemKind.TieResolution && !overrides.ContainsKey(problem.Path)
-            && overrides.ContainsKey(RulesetValueChecks.TieResolutionPath)
-            ? RulesetValueChecks.TieResolutionPath
-            : problem.Path;
         var error = problem.Kind switch
         {
             RulesetValueProblemKind.TieResolution => SportsConfigurationErrors.RulesetTieResolutionUnsupported,
             RulesetValueProblemKind.Tiebreaker => SportsConfigurationErrors.RulesetUnknownTiebreaker,
             _ => SportsConfigurationErrors.RulesetParameterOutOfRange,
         };
-        return new(_overridesField + path, error, $"{problem.Path}: {problem.Message}");
+        string[] causes = overrides.ContainsKey(problem.Path)
+            ? [problem.Path]
+            : [.. overrides.Keys
+                .Where(path => !check(RulesetTemplateContent.ReadValues(Merge(template, overrides.Where(entry => entry.Key != path))))
+                    .Any(other => other.Path == problem.Path && other.Kind == problem.Kind))
+                .Order(StringComparer.Ordinal)];
+        foreach (var path in causes is [] ? [problem.Path] : causes)
+        {
+            yield return new(_overridesField + path, error, $"{problem.Path}: {problem.Message}");
+        }
+    }
+
+    // The template's values as the file writes them, with the overrides set at their paths.
+    private static JsonObject Merge(RulesetTemplate template, IEnumerable<KeyValuePair<string, ParameterValue>> overrides)
+    {
+        var tree = RulesetTemplateContent.WriteValues(template.Values);
+        foreach (var (path, value) in overrides)
+        {
+            Set(tree, path, JsonSerializer.SerializeToNode(value));
+        }
+
+        return tree;
     }
 
     private static RulesSnapshot Snapshot(

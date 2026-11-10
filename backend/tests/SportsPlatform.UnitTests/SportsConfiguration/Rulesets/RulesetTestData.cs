@@ -38,13 +38,14 @@ internal static class RulesetTestData
 
     public static RulesetResolutionRequest Request(
         string template = "FOOTBALL_LEAGUE",
+        int? templateVersion = null,
         string format = "ROUND_ROBIN",
         int? formatVersion = null,
         IEnumerable<(string Code, ParameterValue Value)>? parameters = null,
         params (string Path, ParameterValue Value)[] overrides) =>
         new(
             template,
-            null,
+            templateVersion,
             new RulesetFormatSelection(format, formatVersion, (parameters ?? []).ToDictionary(p => p.Code, p => p.Value, StringComparer.Ordinal)),
             overrides.ToDictionary(o => o.Path, o => o.Value, StringComparer.Ordinal));
 
