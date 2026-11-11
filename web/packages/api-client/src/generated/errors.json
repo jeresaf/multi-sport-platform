@@ -229,9 +229,39 @@
       "owner": "BuildingBlocks"
     },
     {
+      "code": "RULESET_INCOMPATIBLE_FORMAT",
+      "status": 422,
+      "message": "The ruleset template doesn't work with this format, or this version of it.",
+      "owner": "SportsConfiguration"
+    },
+    {
+      "code": "RULESET_PARAMETER_OUT_OF_RANGE",
+      "status": 422,
+      "message": "A rule's value is of the wrong type, outside its bounds or not one the template allows, or it doesn't fit the other rules.",
+      "owner": "SportsConfiguration"
+    },
+    {
+      "code": "RULESET_PARAMETER_UNKNOWN",
+      "status": 422,
+      "message": "The ruleset template has no parameter a competition may change at this path.",
+      "owner": "SportsConfiguration"
+    },
+    {
       "code": "RULESET_TEMPLATE_NOT_FOUND",
       "status": 404,
       "message": "No published ruleset template matches this code, or this version of it.",
+      "owner": "SportsConfiguration"
+    },
+    {
+      "code": "RULESET_TIE_RESOLUTION_UNSUPPORTED",
+      "status": 422,
+      "message": "The sport doesn't support this tie resolution, or the template's extra periods don't fit it.",
+      "owner": "SportsConfiguration"
+    },
+    {
+      "code": "RULESET_UNKNOWN_TIEBREAKER",
+      "status": 422,
+      "message": "A tiebreaker is not in the catalogue, doesn't apply to the sport, or is listed twice.",
       "owner": "SportsConfiguration"
     },
     {
