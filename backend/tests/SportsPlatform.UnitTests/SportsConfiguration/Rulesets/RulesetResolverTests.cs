@@ -128,6 +128,19 @@ public sealed class RulesetResolverTests
     }
 
     [Fact]
+    public async Task A_list_of_tiebreakers_names_every_bad_code_at_once()
+    {
+        var resolution = await _resolver.ResolveAsync(
+            Request(overrides: (_tiebreakers, ParameterValue.Of(["FAIR_PLAY", "POINTS", "TRIES_SCORED", "POINTS"]))), TestContext.Current.CancellationToken);
+
+        var problem = resolution.Problems.ShouldHaveSingleItem();
+        (problem.Field, problem.Error.Code).ShouldBe(("overrides.standings.tiebreakers", "RULESET_UNKNOWN_TIEBREAKER"));
+        problem.Message.ShouldContain("FAIR_PLAY");
+        problem.Message.ShouldContain("TRIES_SCORED");
+        problem.Message.ShouldContain("POINTS is listed twice");
+    }
+
+    [Fact]
     public async Task Every_resolver_error_has_a_case()
     {
         var codes = new List<string>();
@@ -158,6 +171,12 @@ public sealed class RulesetResolverTests
         }),
     ]);
 
+    // Starters a competition may change (the football files don't allow it), so two rules can break at roster.max at once.
+    private static readonly RulesetResolver _withStarters = Resolver(templates:
+    [
+        League.WithEditable("lineup.starters", new ParameterDefinition(ParameterType.Number, "Starters", ParameterValue.Of(11), Min: 5, Max: 25)),
+    ]);
+
     private static readonly RulesetResolver _withNegativeLoss = Resolver(templates:
     [
         League.WithEditable("standings.points.loss", new ParameterDefinition(ParameterType.Number, "Points for a loss", ParameterValue.Of(0), Min: -3, Max: 3)),
@@ -184,11 +203,14 @@ public sealed class RulesetResolverTests
             [("overrides.standings.tiebreakers", "RULESET_UNKNOWN_TIEBREAKER")]),
         ["a tiebreaker listed twice"] = new(_resolver, Request(overrides: (_tiebreakers, ParameterValue.Of(["POINTS", "WINS", "POINTS"]))),
             [("overrides.standings.tiebreakers", "RULESET_UNKNOWN_TIEBREAKER")]),
-        ["a template version that doesn't exist"] = new(_resolver, Request(templateVersion: 9), [("template", "RULESET_TEMPLATE_NOT_FOUND")]),
+        ["a template version that doesn't exist"] = new(_resolver, Request(templateVersion: 9), [("template.version", "RULESET_TEMPLATE_NOT_FOUND")]),
         ["a smallest squad above the largest, on the field changed"] = new(_resolver, Request(overrides: ("roster.min", ParameterValue.Of(40))),
             [("overrides.roster.min", "RULESET_PARAMETER_OUT_OF_RANGE")]),
         ["a largest squad below the smallest and too small for the bench, once"] = new(_resolver, Request(overrides: ("roster.max", ParameterValue.Of(15))),
             [("overrides.roster.max", "RULESET_PARAMETER_OUT_OF_RANGE")]),
+        ["two rules broken at one path, each by another change, go to both changes"] = new(_withStarters,
+            Request(overrides: [("roster.min", ParameterValue.Of(40)), ("lineup.starters", ParameterValue.Of(25))]),
+            [("overrides.lineup.starters", "RULESET_PARAMETER_OUT_OF_RANGE"), ("overrides.roster.min", "RULESET_PARAMETER_OUT_OF_RANGE")]),
         ["a problem goes only to the change that causes it"] = new(_resolver,
             Request(overrides: [("roster.min", ParameterValue.Of(40)), ("lineup.bench_max", ParameterValue.Of(15))]),
             [("overrides.roster.min", "RULESET_PARAMETER_OUT_OF_RANGE")]),

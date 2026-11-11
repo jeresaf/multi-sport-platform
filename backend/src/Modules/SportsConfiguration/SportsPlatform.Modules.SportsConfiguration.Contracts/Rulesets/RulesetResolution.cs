@@ -45,7 +45,8 @@ public sealed record RulesetResolution
 
 /// <summary>
 /// A problem with one field of the request: <see cref="Field"/> follows the request's shape (<c>overrides.roster.min</c>,
-/// <c>format.code</c>, <c>format.version</c>, <c>format.parameters.cycles</c>, <c>template</c>); <see cref="Error"/> is
-/// its stable code; <see cref="Message"/> says what is wrong in words a competition administrator follows.
+/// <c>format.code</c>, <c>format.version</c>, <c>format.parameters.cycles</c>, <c>template</c>,
+/// <c>template.version</c>); <see cref="Error"/> is its stable code; <see cref="Message"/> says what is wrong in words a
+/// competition administrator follows.
 /// </summary>
 public sealed record RulesetProblem(string Field, Error Error, string Message);

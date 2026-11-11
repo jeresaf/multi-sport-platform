@@ -424,7 +424,7 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   snapshot, shared format-parameter checks, errors, unit tests) and T4b2 (preview endpoint, integration tests, OpenAPI
   and client, docs, T4's acceptance). The resolver answers a `RulesetResolution`, a snapshot or every problem with its
   field (D11's `Result<RulesSnapshot>` holds one error; Q4 wants them all). Fields follow the preview's body:
-  `overrides.<dotted path>`, `format.code`, `format.version`, `format.parameters.<code>`. A preview with several
+  `overrides.<dotted path>`, `template`, `template.version`, `format.code`, `format.version`, `format.parameters.<code>`. A preview with several
   problems answers the first problem's code (by field) with every problem in `errors[]` (Q1). A value of the wrong type
   is `RULESET_PARAMETER_OUT_OF_RANGE` (Q2). The preview answers camelCase records and `hash`; the snapshot's canonical
   JSON (snake_case, as rulesets.md's example) is what is hashed and what S09 stores (Q4). A format the template doesn't

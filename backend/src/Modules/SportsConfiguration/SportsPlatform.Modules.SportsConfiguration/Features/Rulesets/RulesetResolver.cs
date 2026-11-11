@@ -23,6 +23,8 @@ public sealed class RulesetResolver(IRulesetTemplates templates, IFormatDefiniti
 {
     public const string TemplateField = "template";
 
+    public const string TemplateVersionField = "template.version";
+
     public const string FormatCodeField = "format.code";
 
     public const string FormatVersionField = "format.version";
@@ -43,8 +45,11 @@ public sealed class RulesetResolver(IRulesetTemplates templates, IFormatDefiniti
         var template = await templates.GetAsync(request.TemplateCode, request.TemplateVersion, cancellationToken);
         if (template is null)
         {
-            var version = request.TemplateVersion is { } number ? $" at version {number}" : string.Empty;
-            return RulesetResolution.Failure([new(TemplateField, SportsConfigurationErrors.RulesetTemplateNotFound, $"no template {request.TemplateCode}{version}")]);
+            // As for formats: the version's field when the code exists and only that version doesn't.
+            var problem = request.TemplateVersion is { } number && await templates.GetAsync(request.TemplateCode, null, cancellationToken) is not null
+                ? new RulesetProblem(TemplateVersionField, SportsConfigurationErrors.RulesetTemplateNotFound, $"there is no version {number} of {request.TemplateCode}")
+                : new RulesetProblem(TemplateField, SportsConfigurationErrors.RulesetTemplateNotFound, $"no template {request.TemplateCode}");
+            return RulesetResolution.Failure([problem]);
         }
 
         // The seeders store a template only after the sport version it pins (S05 D4): a missing one is a bug, not input.
@@ -135,9 +140,11 @@ public sealed class RulesetResolver(IRulesetTemplates templates, IFormatDefiniti
             return new(field, SportsConfigurationErrors.RulesetParameterUnknown, $"{template.Code} has no parameter {path} a competition may change");
         }
 
+        // Every bad code at once, so the list is fixed in one round.
         if (path == RulesetValueChecks.StandingsTiebreakersPath && value is { Type: ParameterType.List })
         {
             var seen = new HashSet<string>(StringComparer.Ordinal);
+            List<string> bad = [];
             foreach (var code in value.Items)
             {
                 var problem = tiebreakers.GetValueOrDefault(code) switch
@@ -149,8 +156,13 @@ public sealed class RulesetResolver(IRulesetTemplates templates, IFormatDefiniti
                 };
                 if (problem is not null)
                 {
-                    return new(field, SportsConfigurationErrors.RulesetUnknownTiebreaker, problem);
+                    bad.Add(problem);
                 }
+            }
+
+            if (bad.Count > 0)
+            {
+                return new(field, SportsConfigurationErrors.RulesetUnknownTiebreaker, string.Join("; ", bad));
             }
         }
 
@@ -192,7 +204,9 @@ public sealed class RulesetResolver(IRulesetTemplates templates, IFormatDefiniti
 
     // A rule between values names its own path (roster.max) and may break because of another one (roster.min = 40 puts
     // roster.max's 30 below it). The template's own values break no rule, so the changes did: the problem goes to the
-    // change it names, else to each change without which it goes away, else (two changes together) to its own path.
+    // change it names, else to each change whose removal leaves fewer problems of its path and kind (two rules can break
+    // at one path, each through another change), else (changes that only together, or each alone, break it) to every
+    // change. Never to a path the request didn't send.
     private static IEnumerable<RulesetProblem> ValueProblems(
         RulesetValueProblem problem,
         RulesetTemplate template,
@@ -205,19 +219,33 @@ public sealed class RulesetResolver(IRulesetTemplates templates, IFormatDefiniti
             RulesetValueProblemKind.Tiebreaker => SportsConfigurationErrors.RulesetUnknownTiebreaker,
             _ => SportsConfigurationErrors.RulesetParameterOutOfRange,
         };
-        string[] causes = overrides.ContainsKey(problem.Path)
-            ? [problem.Path]
-            : [.. overrides.Keys
-                .Where(path => !check(RulesetTemplateContent.ReadValues(Merge(template, overrides.Where(entry => entry.Key != path))))
-                    .Any(other => other.Path == problem.Path && other.Kind == problem.Kind))
-                .Order(StringComparer.Ordinal)];
+        int Count(IEnumerable<KeyValuePair<string, ParameterValue>> applied) =>
+            check(RulesetTemplateContent.ReadValues(Merge(template, applied))).Count(other => other.Path == problem.Path && other.Kind == problem.Kind);
+
+        string[] causes;
+        if (overrides.ContainsKey(problem.Path))
+        {
+            causes = [problem.Path];
+        }
+        else
+        {
+            var all = Count(overrides);
+            causes = [.. overrides.Keys.Where(path => Count(overrides.Where(entry => entry.Key != path)) < all).Order(StringComparer.Ordinal)];
+            if (causes.Length == 0)
+            {
+                causes = [.. overrides.Keys.Order(StringComparer.Ordinal)];
+            }
+        }
+
         foreach (var path in causes is [] ? [problem.Path] : causes)
         {
             yield return new(_overridesField + path, error, $"{problem.Path}: {problem.Message}");
         }
     }
 
-    // The template's values as the file writes them, with the overrides set at their paths.
+    // The template's values as the file writes them, with the overrides set at their paths. Written from the typed model,
+    // not the stored content: the round-trip test keeps the two equal, and a model change that would add a key (an
+    // optional member) changes snapshot hashes, so it comes with a new schema version and new template versions.
     private static JsonObject Merge(RulesetTemplate template, IEnumerable<KeyValuePair<string, ParameterValue>> overrides)
     {
         var tree = RulesetTemplateContent.WriteValues(template.Values);

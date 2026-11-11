@@ -5,8 +5,9 @@ namespace SportsPlatform.ArchitectureTests;
 
 // S05 D10 and T3's acceptance: the fixture generators are pure and depend on no other module. Like the engines (see
 // EngineDependencyTests), they may use BuildingBlocks' results, the module's Contracts, each other and the module's
-// errors, plus the module's canonical JSON hash and its parameter checks (shared with the ruleset resolver); nothing that reads files, the clock or a random source, and no
-// System.Random: the draw's PRNG is the module's own, so a stored seed gives the same draw on every .NET version.
+// errors, plus the module's canonical JSON hash and its parameter checks (shared with the ruleset resolver); nothing
+// that reads files, the clock or a random source, and no System.Random: the draw's PRNG is the module's own, so a
+// stored seed gives the same draw on every .NET version.
 public sealed class GeneratorDependencyTests
 {
     private const string _module = "SportsPlatform.Modules.SportsConfiguration";
