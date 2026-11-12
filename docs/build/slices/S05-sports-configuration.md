@@ -261,8 +261,10 @@ Deliver:
   `IRulesetResolver`; the reads and the preview endpoint (D16).
 
 Acceptance:
-- [ ] Same inputs → same snapshot hash (test); every invalid combination is refused with its code, naming the
-      parameter (table-driven).
+- [x] Same inputs → same snapshot hash (test); every invalid combination is refused with its code, naming the
+      parameter (table-driven). (T4b1: `RulesetResolverTests`; T4b2 through the API: `RulesetPreviewEndpointTests`,
+      the same pinned hash; `RULESET_TIE_RESOLUTION_UNSUPPORTED` only in the resolver's tests, since no seeded template
+      lets a competition change the tie resolution)
 
 ### T5 — Tenant sport enablement, Q27 and the screens (~3 PRs)
 Deliver:
@@ -430,3 +432,11 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   JSON (snake_case, as rulesets.md's example) is what is hashed and what S09 stores (Q4). A format the template doesn't
   list, or a version of it that doesn't exist, is `RULESET_INCOMPATIBLE_FORMAT`; format parameters keep
   `FORMAT_PARAMETER_INVALID`.
+- **T4b2:** plan approved with the recommended answers (owner, 2026-11-12): the template is the path's code and
+  `?version=`, so an unknown one is `404 RULESET_TEMPLATE_NOT_FOUND` without `errors` (Q1); the body's values are read
+  one by one, so `null`, `3.5` or an object is `RULESET_PARAMETER_OUT_OF_RANGE` on `overrides.<path>` or
+  `FORMAT_PARAMETER_INVALID` on `format.parameters.<code>` beside the resolver's other problems (Q2); no platform
+  preview (Q3). The endpoint reads the body with `StrictJsonBody` as `PreviewRulesetBody` (JSON values) and documents
+  `PreviewRulesetRequest` (`ParameterValue` maps); the answer is `RulesSnapshotResponse` (camelCase, the template
+  read's `RulesetValuesResponse`, `hash`). The OpenAPI transformer gives a map of `ParameterValue` its value schema.
+  The preview's pinned hash equals the resolver unit test's: the API adds nothing to the snapshot.
