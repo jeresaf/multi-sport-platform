@@ -117,8 +117,9 @@ user's capabilities (docs/architecture/authorization.md); the server still enfor
 
 - **Subscription** (`/t/{slug}/settings/subscription`, `tenant.subscription.read`: owners, admins and viewers): the
   current period (plan, kind, status, dates, and the last day of full access while grace applies) or "No subscription";
-  when no period is in effect today, until when the workspace is read-only (the next period's first day, or until the
-  platform team renews it); the next scheduled period; what the plan includes, each entitlement with its description,
+  when no period is in effect today, until when the workspace is read-only (the first day of a current period that
+  hasn't started, else the next period's first day, or until the platform team renews it; S05-T5a1); the next period
+  (the one after the current period); what the plan includes, each entitlement with its description,
   its value and where it comes from ("Standard plan", "Arranged for your organisation" for an override, whose reason
   stays the platform's, or "No plan"), and the quotas' usage as in the console. Days are the tenant's, in its time
   zone. No self-service: the page says to contact the platform team.

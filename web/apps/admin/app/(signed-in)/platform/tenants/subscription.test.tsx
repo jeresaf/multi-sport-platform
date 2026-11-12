@@ -568,7 +568,7 @@ describe("activation", () => {
   it("warns when the tenant's only period hasn't started yet", async () => {
     const scheduled = { ...pilotPeriod, status: "SCHEDULED" as const, startsOn: "2026-11-01" };
     open(
-      { [`GET ${base}/subscription`]: { status: 200, body: subscription({ periods: [scheduled], nextPeriodId: scheduled.id }) } },
+      { [`GET ${base}/subscription`]: { status: 200, body: subscription({ periods: [scheduled], currentPeriodId: scheduled.id, nextPeriodId: null }) } },
       adminActions,
       { ...kmsa, status: "PROVISIONING" },
     );

@@ -37,7 +37,8 @@ public sealed class EffectiveEntitlements
 
     /// <summary>
     /// The tenant's effective entitlements on <paramref name="today"/>: the plan of its current period (the latest one in
-    /// effect; else the latest started, expired or cancelled; else the scheduled one, <see cref="TenantSubscription.CurrentOn"/>),
+    /// effect; else the latest started, expired or cancelled; else the earliest non-cancelled scheduled one, Q27, or with
+    /// every period cancelled the latest, <see cref="TenantSubscription.CurrentOn"/>),
     /// and its overrides in effect. <paramref name="planValues"/> gives a plan's values by entitlement code.
     /// </summary>
     public static EffectiveEntitlements On(

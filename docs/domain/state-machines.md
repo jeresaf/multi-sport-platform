@@ -55,9 +55,11 @@ Agreed with the owner in the S04-T2a plan, 2026-10-23 (S04 D3, D4):
   never changes except to be cancelled.
 - The **current period** is the latest-started period in effect today (`ACTIVE`, `EXPIRING`, or `GRACE` while no later
   non-cancelled period has started: grace only bridges the gap to the next period, #65 R5); with none,
-  the latest-started period of any kind (so an expired or cancelled one says why); with none started, the latest
-  period (`SCHEDULED`); with no periods, none. A period cancelled by mistake never hides a valid one still in effect
-  (refined by the owner in #65 R2). A later non-cancelled period is `SCHEDULED` (the next one).
+  the latest-started period of any kind (so an expired or cancelled one says why); with none started, the earliest
+  non-cancelled period (`SCHEDULED`; Q27, S05-T5a1), and with every period cancelled, the latest; with no periods,
+  none. A period cancelled by mistake never hides a valid one still in effect (refined by the owner in #65 R2). The
+  **next period** is the earliest non-cancelled period that starts after today and after the current period, so a
+  period is never both; any later non-cancelled period is `SCHEDULED` too.
 - Commands (platform, `PLATFORM_ADMIN`): `subscription.assign` (a new period, refused if it overlaps),
   `subscription.renew` (from the day after the latest non-cancelled period ends, or today if that day has passed),
   `subscription.change_plan` (now, to a higher-ranked plan only, while the current period is `ACTIVE` or `EXPIRING`:

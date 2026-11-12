@@ -33,9 +33,11 @@ internal static class SubscriptionEndpoints
             .WithName("GetSubscription")
             .WithSummary("Get a tenant's subscription")
             .WithDescription(
-                "Every subscription period of the tenant, latest start first, with its status on `today` (the tenant's " +
-                "date), the current period (the one that decides access) and the next scheduled one. Statuses are " +
-                "derived from the dates: SCHEDULED, ACTIVE, EXPIRING, GRACE, EXPIRED or CANCELLED.")
+                "Every subscription period of the tenant, latest start first, with its status on `today` (the " +
+                "tenant's date), the current period (the one that decides access; with none started, the earliest " +
+                "scheduled one) and the next: the earliest period that starts after today and after the current one, " +
+                "never the current one. Statuses are derived from the dates: SCHEDULED, ACTIVE, EXPIRING, GRACE, " +
+                "EXPIRED or CANCELLED.")
             .RequireAction(TenancyActions.SubscriptionRead)
             .RunsUnderRouteTenant()
             .ProducesErrors(TenancyErrors.NotFound);

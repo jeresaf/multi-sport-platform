@@ -157,7 +157,7 @@ export interface paths {
         };
         /**
          * Get the tenant's subscription
-         * @description The subscription of the tenant named by `X-Tenant-Id`: the current period (plan, kind, status today and days, all in the tenant's time zone; `null` without a period) and the next scheduled one; every entitlement's value today with its source (DEFAULT, PLAN or OVERRIDE); and every quota's usage (`used` of `limit`, `null` = unlimited; `warning` from 80 % of the limit; `measured: false` while no module counts it yet). Available while the tenant is read-only. To change the plan, the tenant contacts the platform.
+         * @description The subscription of the tenant named by `X-Tenant-Id`: the current period (plan, kind, status today and days, all in the tenant's time zone; `null` without a period; with none started, the earliest scheduled one) and the next: the earliest period that starts after today and after the current one, never the current one; every entitlement's value today with its source (DEFAULT, PLAN or OVERRIDE); and every quota's usage (`used` of `limit`, `null` = unlimited; `warning` from 80 % of the limit; `measured: false` while no module counts it yet). Available while the tenant is read-only. To change the plan, the tenant contacts the platform.
          */
         get: operations["GetTenantSubscription"];
         put?: never;
@@ -771,7 +771,7 @@ export interface paths {
         };
         /**
          * Get a tenant's subscription
-         * @description Every subscription period of the tenant, latest start first, with its status on `today` (the tenant's date), the current period (the one that decides access) and the next scheduled one. Statuses are derived from the dates: SCHEDULED, ACTIVE, EXPIRING, GRACE, EXPIRED or CANCELLED.
+         * @description Every subscription period of the tenant, latest start first, with its status on `today` (the tenant's date), the current period (the one that decides access; with none started, the earliest scheduled one) and the next: the earliest period that starts after today and after the current one, never the current one. Statuses are derived from the dates: SCHEDULED, ACTIVE, EXPIRING, GRACE, EXPIRED or CANCELLED.
          */
         get: operations["GetSubscription"];
         put?: never;
@@ -2364,7 +2364,8 @@ export interface components {
         /**
          * @description A tenant's subscription as the platform sees it (S04 D16): every period, latest start first, with its status on
          *     `today`, the tenant's date in `timeZone`. `currentPeriodId` is the period that decides access (none
-         *     without periods); `nextPeriodId` the next scheduled one. `overrides` are the tenant's entitlement overrides
+         *     without periods; with none started, the earliest scheduled one); `nextPeriodId` the earliest period that starts
+         *     after today and after the current one, never the current one. `overrides` are the tenant's entitlement overrides
          *     with their reasons and history, unremoved first (S04 D5): platform-only. `entitlements` are every declared
          *     entitlement's effective value today, by code, with its source (D6). `usage` is every quota's usage, as the
          *     owning module counts it (D15; "not measured yet" when none does).
@@ -2540,9 +2541,10 @@ export interface components {
         };
         /**
          * @description A tenant's subscription as its members see it (S04 D15): `today` in the tenant's `timeZone`; the
-         *     `current` period (the one that decides access; null without periods) and the `next` scheduled one; every
-         *     declared entitlement's effective value with its source; and every quota's usage. No override reasons, cancel
-         *     reasons or who made a change: those are the platform's.
+         *     `current` period (the one that decides access; null without periods; with none started, the earliest
+         *     scheduled one) and the `next` one (the earliest that starts after today and after the current one, never the
+         *     current one); every declared entitlement's effective value with its source; and every quota's usage. No override
+         *     reasons, cancel reasons or who made a change: those are the platform's.
          */
         TenantSubscriptionResponse: {
             /** Format: date */

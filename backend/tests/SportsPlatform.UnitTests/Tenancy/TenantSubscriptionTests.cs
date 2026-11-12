@@ -66,13 +66,50 @@ public sealed class TenantSubscriptionTests
     }
 
     [Fact]
-    public void With_only_a_scheduled_period_it_is_current_and_next()
+    public void With_only_a_scheduled_period_it_is_current_and_there_is_no_next()
     {
         var scheduled = Period("2026-11-01", "2027-04-30");
         var subscription = new TenantSubscription([scheduled]);
 
         subscription.CurrentOn(_today).ShouldBeSameAs(scheduled);
-        subscription.NextScheduledOn(_today).ShouldBeSameAs(scheduled);
+        subscription.NextScheduledOn(_today).ShouldBeNull("the current period isn't the next as well (#72 R1)");
+    }
+
+    [Fact]
+    public void With_two_scheduled_periods_and_none_started_the_earlier_is_current_and_the_later_next()
+    {
+        var earlier = Period("2026-11-01", "2027-04-30", planCode: "STANDARD");
+        var later = Period("2027-05-01", "2027-10-31", planCode: "PRO");
+        var subscription = new TenantSubscription([later, earlier]);
+
+        subscription.CurrentOn(_today).ShouldBeSameAs(earlier, "Q27: the earliest scheduled period, not the latest");
+        subscription.NextScheduledOn(_today).ShouldBeSameAs(later);
+    }
+
+    [Fact]
+    public void With_none_started_a_cancelled_scheduled_period_gives_way_to_a_later_one_that_is_not()
+    {
+        var cancelled = Period("2026-11-01", "2027-04-30");
+        var later = Period("2027-05-01", "2027-10-31");
+        var last = Period("2027-11-01", "2028-04-30");
+        cancelled.Cancel("Assigned by mistake", SystemActor.Instance, _now);
+        var subscription = new TenantSubscription([cancelled, later, last]);
+
+        subscription.CurrentOn(_today).ShouldBeSameAs(later);
+        subscription.NextScheduledOn(_today).ShouldBeSameAs(last);
+    }
+
+    [Fact]
+    public void With_none_started_and_every_period_cancelled_the_latest_is_current()
+    {
+        var earlier = Period("2026-11-01", "2027-04-30");
+        var later = Period("2027-05-01", "2027-10-31");
+        earlier.Cancel("Not renewing", SystemActor.Instance, _now);
+        later.Cancel("Not renewing", SystemActor.Instance, _now);
+        var subscription = new TenantSubscription([earlier, later]);
+
+        subscription.CurrentOn(_today).ShouldBeSameAs(later, "as before Q27: the latest says why");
+        subscription.NextScheduledOn(_today).ShouldBeNull();
     }
 
     [Fact]

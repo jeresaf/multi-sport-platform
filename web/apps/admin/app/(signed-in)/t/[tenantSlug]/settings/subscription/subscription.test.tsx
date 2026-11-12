@@ -168,13 +168,18 @@ describe("tenant subscription", () => {
     expect(screen.queryByRole("heading", { name: "Next period" })).toBeNull();
   });
 
-  it("with two periods to come, says the workspace is read-only until the earlier one starts", async () => {
-    // Neither has started: the current period is the later one (state-machines.md), the next the earlier.
-    const later: Period = { ...pilot, status: "SCHEDULED", startsOn: "2027-01-01", endsOn: "2027-06-30" };
+  it("with two periods to come, shows the earlier as current and says the workspace is read-only until it starts", async () => {
+    // Neither has started: the current period is the earlier one, the next the later (Q27, state-machines.md).
     const earlier: Period = { ...pilot, status: "SCHEDULED", startsOn: "2026-11-01", endsOn: "2026-12-31" };
-    open({ status: 200, body: subscription({ current: later, next: earlier }) }, undefined, readOnly);
+    const later: Period = { ...pilot, status: "SCHEDULED", startsOn: "2027-01-01", endsOn: "2027-06-30" };
+    const access = { ...readOnly, subscriptionStatus: "SCHEDULED", startsOn: "2026-11-01", endsOn: "2026-12-31", graceEndsOn: "2027-01-14" } as const;
+    open({ status: 200, body: subscription({ current: earlier, next: later }) }, undefined, access);
 
     expect(await screen.findByText("The workspace is read-only until the period starts on 1 Nov 2026.")).toBeTruthy();
+    expect(screen.getByText("Until 1 Nov 2026: the subscription hasn't started yet.", { exact: false })).toBeTruthy();
+    expect(screen.getByText("1 Nov 2026 – 31 Dec 2026")).toBeTruthy();
+    const nextPeriod = screen.getByRole("heading", { level: 2, name: "Next period" }).parentElement!.parentElement!;
+    expect(within(nextPeriod).getByText("1 Jan 2027 – 30 Jun 2027")).toBeTruthy();
   });
 
   it("doesn't offer grace for a cancelled period", async () => {

@@ -12,7 +12,8 @@ namespace SportsPlatform.Modules.Tenancy.Features.Subscriptions;
 /// <summary>
 /// A tenant's subscription as the platform sees it (S04 D16): every period, latest start first, with its status on
 /// <c>today</c>, the tenant's date in <c>timeZone</c>. <c>currentPeriodId</c> is the period that decides access (none
-/// without periods); <c>nextPeriodId</c> the next scheduled one. <c>overrides</c> are the tenant's entitlement overrides
+/// without periods; with none started, the earliest scheduled one); <c>nextPeriodId</c> the earliest period that starts
+/// after today and after the current one, never the current one. <c>overrides</c> are the tenant's entitlement overrides
 /// with their reasons and history, unremoved first (S04 D5): platform-only. <c>entitlements</c> are every declared
 /// entitlement's effective value today, by code, with its source (D6). <c>usage</c> is every quota's usage, as the
 /// owning module counts it (D15; "not measured yet" when none does).
