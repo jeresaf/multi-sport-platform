@@ -2,6 +2,7 @@ using SportsPlatform.BuildingBlocks.Results;
 using SportsPlatform.Modules.SportsConfiguration.Contracts.Formats;
 using SportsPlatform.Modules.SportsConfiguration.Contracts.Formats.Generation;
 using SportsPlatform.Modules.SportsConfiguration.Contracts.Parameters;
+using SportsPlatform.Modules.SportsConfiguration.Parameters;
 
 namespace SportsPlatform.Modules.SportsConfiguration.Generators;
 
@@ -100,57 +101,18 @@ public sealed class FormatGenerators : IFormatGenerators
             GeneratedFormatHash.Compute(format.Code, format.Version, parameters.Value, input.Seed, givenEntrants, stages)));
     }
 
+    // The shared checks (the ruleset resolver runs them too); a draw answers the first problem.
     private static Result<IReadOnlyDictionary<string, ParameterValue>> ResolveParameters(
         FormatDefinition format, IReadOnlyDictionary<string, ParameterValue> given)
     {
         ArgumentNullException.ThrowIfNull(given);
-        foreach (var (code, value) in given.OrderBy(entry => entry.Key, StringComparer.Ordinal))
+        if (ParameterChecks.FormatProblems(format, given) is [var (_, problem), ..])
         {
-            if (!format.Parameters.TryGetValue(code, out var definition))
-            {
-                return Detailed(SportsConfigurationErrors.FormatParameterInvalid, $"{format.Code} has no parameter {code}");
-            }
-
-            var problem = value is null ? "has no value" : Problem(definition, value);
-            if (problem is not null)
-            {
-                return Detailed(SportsConfigurationErrors.FormatParameterInvalid, $"{code} {problem}");
-            }
+            return Detailed(SportsConfigurationErrors.FormatParameterInvalid, problem);
         }
 
-        var resolved = new SortedDictionary<string, ParameterValue>(StringComparer.Ordinal);
-        foreach (var (code, definition) in format.Parameters)
-        {
-            resolved[code] = given.TryGetValue(code, out var value) ? value : definition.Default;
-        }
-
-        return Result.Success<IReadOnlyDictionary<string, ParameterValue>>(resolved);
+        return Result.Success(ParameterChecks.WithFormatDefaults(format, given));
     }
-
-    private static string? Problem(ParameterDefinition definition, ParameterValue value)
-    {
-        if (value.Type != definition.Type)
-        {
-            return $"is a {Describe(definition.Type)}, not {value}";
-        }
-
-        return definition.Type switch
-        {
-            ParameterType.Number when value.Number < definition.Min || value.Number > definition.Max =>
-                $"is from {definition.Min} to {definition.Max}, not {value}",
-            ParameterType.Choice when !definition.Values.Contains(value.Choice, StringComparer.Ordinal) =>
-                $"is one of {string.Join(", ", definition.Values)}, not {value}",
-            _ => null,
-        };
-    }
-
-    private static string Describe(ParameterType type) => type switch
-    {
-        ParameterType.Number => "whole number",
-        ParameterType.Flag => "flag",
-        ParameterType.List => "list",
-        _ => "choice",
-    };
 
     // Keys are trimmed text, each once; a bye (null) only in MANUAL bracket lines. The entrants left are the non-byes.
     private static Result<IReadOnlyList<string>> CheckEntrants(IReadOnlyList<string?> given, bool byesAllowed)

@@ -49,6 +49,16 @@ public static class RulesetTemplateContent
         values.Deserialize<RulesetValues>(_options) ?? throw new JsonException("A ruleset template's values are null.");
 
     /// <summary>
+    /// A template's <c>values</c> as the file writes them (snake_case keys, enums in upper snake case, nulls kept):
+    /// <see cref="ReadValues"/> reads the tree back into equal values.
+    /// </summary>
+    public static JsonObject WriteValues(RulesetValues values)
+    {
+        ArgumentNullException.ThrowIfNull(values);
+        return JsonSerializer.SerializeToNode(values, _options)!.AsObject();
+    }
+
+    /// <summary>
     /// The node at a dotted path into a template's values (<c>standings.points.win</c>): false when a segment is missing;
     /// true with a null node for a JSON null.
     /// </summary>

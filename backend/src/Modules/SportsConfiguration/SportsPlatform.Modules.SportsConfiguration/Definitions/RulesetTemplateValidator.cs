@@ -1,3 +1,5 @@
+using System.Text.Json.Nodes;
+
 namespace SportsPlatform.Modules.SportsConfiguration.Definitions;
 
 /// <summary>
@@ -8,6 +10,9 @@ namespace SportsPlatform.Modules.SportsConfiguration.Definitions;
 public static class RulesetTemplateValidator
 {
     private static readonly DefinitionSchema _schema = new(RulesetTemplateFiles.Schema);
+
+    /// <summary>The shape problems of a template's JSON tree (the resolver checks its merged values with it).</summary>
+    internal static IReadOnlyList<DefinitionProblem> ShapeProblems(JsonNode root) => _schema.Check(string.Empty, root);
 
     /// <summary>Every problem in the file; empty when it is valid.</summary>
     public static IReadOnlyList<DefinitionProblem> Validate(string file, string yaml, RulesetReferences references)
