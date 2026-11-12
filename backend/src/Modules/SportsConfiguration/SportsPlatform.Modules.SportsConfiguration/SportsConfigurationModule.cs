@@ -18,6 +18,7 @@ using SportsPlatform.Modules.SportsConfiguration.Features.Formats.ListFormats;
 using SportsPlatform.Modules.SportsConfiguration.Features.Rulesets;
 using SportsPlatform.Modules.SportsConfiguration.Features.Rulesets.GetRulesetTemplate;
 using SportsPlatform.Modules.SportsConfiguration.Features.Rulesets.ListRulesetTemplates;
+using SportsPlatform.Modules.SportsConfiguration.Features.Rulesets.PreviewRuleset;
 using SportsPlatform.Modules.SportsConfiguration.Features.Sports;
 using SportsPlatform.Modules.SportsConfiguration.Features.Sports.GetSport;
 using SportsPlatform.Modules.SportsConfiguration.Features.Sports.ListSports;
@@ -67,6 +68,8 @@ public sealed class SportsConfigurationModule : IModule
         services.AddScoped<GetFormatHandler>();
         services.AddScoped<ListRulesetTemplatesHandler>();
         services.AddScoped<GetRulesetTemplateHandler>();
+        services.AddScoped<PreviewRulesetHandler>();
+        services.AddSingleton<IValidator<PreviewRulesetBody>, PreviewRulesetBodyValidator>();
         services.AddSingleton<IValidator<VersionRequest>, VersionRequestValidator>();
     }
 
@@ -88,6 +91,7 @@ public sealed class SportsConfigurationModule : IModule
         var adminTemplates = RulesetTemplateEndpoints.Group(groups.Admin);
         ListRulesetTemplatesEndpoint.MapAdmin(adminTemplates);
         GetRulesetTemplateEndpoint.MapAdmin(adminTemplates);
+        PreviewRulesetEndpoint.Map(adminTemplates);
         var platformTemplates = RulesetTemplateEndpoints.Group(groups.Platform);
         ListRulesetTemplatesEndpoint.MapPlatform(platformTemplates);
         GetRulesetTemplateEndpoint.MapPlatform(platformTemplates);
