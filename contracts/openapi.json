@@ -2255,6 +2255,132 @@
         }
       }
     },
+    "/api/admin/v1/ruleset-templates/{code}/preview": {
+      "post": {
+        "tags": [
+          "Ruleset templates"
+        ],
+        "summary": "Preview a ruleset's effective rules",
+        "description": "Resolves the ruleset template `code` at `version` (the latest when left out) with one of its formats and the changes a competition would make, into the effective-rules snapshot an edition would freeze (docs/domain/rulesets.md): the exact sport, format and template versions, the format's parameters with their defaults, the rules and the snapshot's `hash`. The same template version, format version, parameters and changes always give the same hash. `overrides` is keyed by the template's editable paths (`standings.points.win`); paths left out keep the template's values. Nothing is saved or audited.\n\nA rule or parameter the resolver refuses is 422 with the first problem's code (by field) and one `errors` entry per field: `format.code`, `format.version`, `format.parameters.<code>`, `overrides.<path>`. A value that isn't a whole number, true or false, a code or a list of codes is refused on its field like a value of the wrong type, or as an unknown path when the template has no such editable path. A missing format or format code, a `format.version` below 1, or another member is 400 VALIDATION_INVALID_REQUEST.",
+        "operationId": "PreviewRuleset",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "version",
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreviewRulesetRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RulesSnapshotResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_QUERY`, `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_QUERY",
+              "VALIDATION_INVALID_REQUEST",
+              "VALIDATION_MALFORMED_REQUEST"
+            ]
+          },
+          "404": {
+            "description": "Problem Details; `code`: `RULESET_TEMPLATE_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "RULESET_TEMPLATE_NOT_FOUND"
+            ]
+          },
+          "422": {
+            "description": "Problem Details; `code`: `FORMAT_PARAMETER_INVALID`, `RULESET_INCOMPATIBLE_FORMAT`, `RULESET_PARAMETER_OUT_OF_RANGE`, `RULESET_PARAMETER_UNKNOWN`, `RULESET_TIE_RESOLUTION_UNSUPPORTED`, `RULESET_UNKNOWN_TIEBREAKER`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "FORMAT_PARAMETER_INVALID",
+              "RULESET_INCOMPATIBLE_FORMAT",
+              "RULESET_PARAMETER_OUT_OF_RANGE",
+              "RULESET_PARAMETER_UNKNOWN",
+              "RULESET_TIE_RESOLUTION_UNSUPPORTED",
+              "RULESET_UNKNOWN_TIEBREAKER"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING"
+            ]
+          }
+        }
+      }
+    },
     "/api/platform/v1/diagnostics/outbox": {
       "get": {
         "tags": [
@@ -7522,6 +7648,92 @@
           }
         }
       },
+      "PreviewRulesetRequest": {
+        "required": [
+          "format"
+        ],
+        "type": "object",
+        "properties": {
+          "format": {
+            "required": [
+              "code"
+            ],
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "version": {
+                "maximum": 2147483647,
+                "minimum": 1,
+                "type": [
+                  "null",
+                  "integer"
+                ],
+                "format": "int32"
+              },
+              "parameters": {
+                "type": [
+                  "null",
+                  "object"
+                ],
+                "additionalProperties": {
+                  "oneOf": [
+                    {
+                      "type": "integer",
+                      "format": "int32"
+                    },
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  ],
+                  "description": "A parameter's value, by the parameter's type: a whole number (NUMBER), true or false (FLAG), one of its values (CHOICE), or an ordered list of its values, each once (LIST)."
+                }
+              }
+            },
+            "additionalProperties": false,
+            "description": "A format of the template: its code, a version (the latest when left out) and its parameters by code."
+          },
+          "overrides": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "format": "int32"
+                },
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              ],
+              "description": "A parameter's value, by the parameter's type: a whole number (NUMBER), true or false (FLAG), one of its values (CHOICE), or an ordered list of its values, each once (LIST)."
+            }
+          }
+        },
+        "additionalProperties": false,
+        "description": "The preview's body as the API documents it: one of the template's formats with its parameters, and the changes to\nthe template's editable rules keyed by their dotted paths (`standings.points.win`). The endpoint reads it as\nPreviewRulesetBody, so a value of the wrong shape is answered on its own field."
+      },
       "ProblemDetails": {
         "required": [
           "code",
@@ -8157,6 +8369,113 @@
           }
         },
         "description": "The template's rules, laid out as docs/domain/rulesets.md's snapshot."
+      },
+      "RulesSnapshotFormatResponse": {
+        "required": [
+          "code",
+          "version",
+          "parameters"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "parameters": {
+            "type": "object",
+            "additionalProperties": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "format": "int32"
+                },
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              ],
+              "description": "A parameter's value, by the parameter's type: a whole number (NUMBER), true or false (FLAG), one of its values (CHOICE), or an ordered list of its values, each once (LIST)."
+            }
+          }
+        },
+        "description": "The format at its exact version, with every parameter (the ones sent and the defaults) by code."
+      },
+      "RulesSnapshotResponse": {
+        "required": [
+          "sport",
+          "format",
+          "template",
+          "values",
+          "hash"
+        ],
+        "type": "object",
+        "properties": {
+          "sport": {
+            "$ref": "#/components/schemas/RulesSnapshotSportResponse"
+          },
+          "format": {
+            "$ref": "#/components/schemas/RulesSnapshotFormatResponse"
+          },
+          "template": {
+            "$ref": "#/components/schemas/RulesSnapshotTemplateResponse"
+          },
+          "values": {
+            "$ref": "#/components/schemas/RulesetValuesResponse"
+          },
+          "hash": {
+            "type": "string"
+          }
+        },
+        "description": "An effective-rules snapshot in the API's names (docs/domain/rulesets.md): the exact sport definition, format and\ntemplate versions, the format's parameters with the defaults filled in, the rules and the snapshot's `hash`.\nThe hash is of the snapshot's canonical JSON (snake_case, RFC 8785), which an edition stores (S09); this answer\ncarries the same content in camelCase."
+      },
+      "RulesSnapshotSportResponse": {
+        "required": [
+          "variant",
+          "version",
+          "hash"
+        ],
+        "type": "object",
+        "properties": {
+          "variant": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hash": {
+            "type": "string"
+          }
+        },
+        "description": "The sport definition the template pins, with its content hash."
+      },
+      "RulesSnapshotTemplateResponse": {
+        "required": [
+          "code",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
       },
       "ScorerPadKind": {
         "enum": [

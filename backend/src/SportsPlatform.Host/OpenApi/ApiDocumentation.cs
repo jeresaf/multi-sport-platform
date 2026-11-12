@@ -165,29 +165,43 @@ public static class ApiDocumentation
         return Task.CompletedTask;
     }
 
-    // ParameterValue has its own JSON converter: the bare value of a format's or a template's parameter.
+    // ParameterValue has its own JSON converter: the bare value of a format's or a template's parameter. A map of them
+    // (a snapshot's format parameters, the preview's body) gets the same value schema, which the generator can't infer.
     private static Task DescribeParameterValues(
         OpenApiSchema schema, OpenApiSchemaTransformerContext context, CancellationToken cancellationToken)
     {
-        if (context.JsonTypeInfo.Type != typeof(ParameterValue))
+        var type = context.JsonTypeInfo.Type;
+        if (type == typeof(ParameterValue))
         {
-            return Task.CompletedTask;
+            schema.Type = null;
+            schema.Properties = null;
+            schema.Required = null;
+            schema.Description = _parameterValueDescription;
+            schema.OneOf = ParameterValueSchemas();
+        }
+        else if (type.IsGenericType
+            && type.GetGenericArguments() is [var key, var value]
+            && key == typeof(string)
+            && value == typeof(ParameterValue)
+            && typeof(IEnumerable<KeyValuePair<string, ParameterValue>>).IsAssignableFrom(type))
+        {
+            schema.AdditionalProperties = new OpenApiSchema { Description = _parameterValueDescription, OneOf = ParameterValueSchemas() };
         }
 
-        schema.Type = null;
-        schema.Properties = null;
-        schema.Required = null;
-        schema.Description = "A parameter's value, by the parameter's type: a whole number (NUMBER), true or false (FLAG), " +
-            "one of its values (CHOICE), or an ordered list of its values, each once (LIST).";
-        schema.OneOf =
-        [
-            new OpenApiSchema { Type = JsonSchemaType.Integer, Format = "int32" },
-            new OpenApiSchema { Type = JsonSchemaType.Boolean },
-            new OpenApiSchema { Type = JsonSchemaType.String },
-            new OpenApiSchema { Type = JsonSchemaType.Array, Items = new OpenApiSchema { Type = JsonSchemaType.String } },
-        ];
         return Task.CompletedTask;
     }
+
+    private const string _parameterValueDescription =
+        "A parameter's value, by the parameter's type: a whole number (NUMBER), true or false (FLAG), one of its values " +
+        "(CHOICE), or an ordered list of its values, each once (LIST).";
+
+    private static List<IOpenApiSchema> ParameterValueSchemas() =>
+    [
+        new OpenApiSchema { Type = JsonSchemaType.Integer, Format = "int32" },
+        new OpenApiSchema { Type = JsonSchemaType.Boolean },
+        new OpenApiSchema { Type = JsonSchemaType.String },
+        new OpenApiSchema { Type = JsonSchemaType.Array, Items = new OpenApiSchema { Type = JsonSchemaType.String } },
+    ];
 
     // ProducesErrors adds one Problem Details response per status; name the codes each status can carry.
     private static Task ListErrorCodes(

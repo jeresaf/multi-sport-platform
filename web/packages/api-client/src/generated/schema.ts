@@ -512,6 +512,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/v1/ruleset-templates/{code}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview a ruleset's effective rules
+         * @description Resolves the ruleset template `code` at `version` (the latest when left out) with one of its formats and the changes a competition would make, into the effective-rules snapshot an edition would freeze (docs/domain/rulesets.md): the exact sport, format and template versions, the format's parameters with their defaults, the rules and the snapshot's `hash`. The same template version, format version, parameters and changes always give the same hash. `overrides` is keyed by the template's editable paths (`standings.points.win`); paths left out keep the template's values. Nothing is saved or audited.
+         *
+         *     A rule or parameter the resolver refuses is 422 with the first problem's code (by field) and one `errors` entry per field: `format.code`, `format.version`, `format.parameters.<code>`, `overrides.<path>`. A value that isn't a whole number, true or false, a code or a list of codes is refused on its field like a value of the wrong type, or as an unknown path when the template has no such editable path. A missing format or format code, a `format.version` below 1, or another member is 400 VALIDATION_INVALID_REQUEST.
+         */
+        post: operations["PreviewRuleset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/platform/v1/diagnostics/outbox": {
         parameters: {
             query?: never;
@@ -1812,6 +1834,25 @@ export interface components {
             rank: number;
             entitlements: components["schemas"]["PlanEntitlementResponse"][];
         };
+        /**
+         * @description The preview's body as the API documents it: one of the template's formats with its parameters, and the changes to
+         *     the template's editable rules keyed by their dotted paths (`standings.points.win`). The endpoint reads it as
+         *     PreviewRulesetBody, so a value of the wrong shape is answered on its own field.
+         */
+        PreviewRulesetRequest: {
+            /** @description A format of the template: its code, a version (the latest when left out) and its parameters by code. */
+            format: {
+                code: string;
+                /** Format: int32 */
+                version?: null | number;
+                parameters?: null | {
+                    [key: string]: number | boolean | string | string[];
+                };
+            };
+            overrides?: null | {
+                [key: string]: number | boolean | string | string[];
+            };
+        };
         ProblemDetails: {
             type?: null | string;
             title?: null | string;
@@ -2021,6 +2062,40 @@ export interface components {
             standings: components["schemas"]["RulesetStandingsResponse"];
             operations: components["schemas"]["RulesetOperationsResponse"];
             eligibility: components["schemas"]["RulesetEligibilityResponse"];
+        };
+        /** @description The format at its exact version, with every parameter (the ones sent and the defaults) by code. */
+        RulesSnapshotFormatResponse: {
+            code: string;
+            /** Format: int32 */
+            version: number;
+            parameters: {
+                [key: string]: number | boolean | string | string[];
+            };
+        };
+        /**
+         * @description An effective-rules snapshot in the API's names (docs/domain/rulesets.md): the exact sport definition, format and
+         *     template versions, the format's parameters with the defaults filled in, the rules and the snapshot's `hash`.
+         *     The hash is of the snapshot's canonical JSON (snake_case, RFC 8785), which an edition stores (S09); this answer
+         *     carries the same content in camelCase.
+         */
+        RulesSnapshotResponse: {
+            sport: components["schemas"]["RulesSnapshotSportResponse"];
+            format: components["schemas"]["RulesSnapshotFormatResponse"];
+            template: components["schemas"]["RulesSnapshotTemplateResponse"];
+            values: components["schemas"]["RulesetValuesResponse"];
+            hash: string;
+        };
+        /** @description The sport definition the template pins, with its content hash. */
+        RulesSnapshotSportResponse: {
+            variant: string;
+            /** Format: int32 */
+            version: number;
+            hash: string;
+        };
+        RulesSnapshotTemplateResponse: {
+            code: string;
+            /** Format: int32 */
+            version: number;
         };
         /** @enum {unknown} */
         ScorerPadKind: "BUTTONS" | "DELIVERY_PAD";
@@ -3950,6 +4025,79 @@ export interface operations {
             };
             /** @description Problem Details; `code`: `RULESET_TEMPLATE_NOT_FOUND` */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    PreviewRuleset: {
+        parameters: {
+            query?: {
+                version?: number;
+            };
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PreviewRulesetRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RulesSnapshotResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_QUERY`, `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `RULESET_TEMPLATE_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `FORMAT_PARAMETER_INVALID`, `RULESET_INCOMPATIBLE_FORMAT`, `RULESET_PARAMETER_OUT_OF_RANGE`, `RULESET_PARAMETER_UNKNOWN`, `RULESET_TIE_RESOLUTION_UNSUPPORTED`, `RULESET_UNKNOWN_TIEBREAKER` */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

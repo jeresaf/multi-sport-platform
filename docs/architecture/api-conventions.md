@@ -55,6 +55,9 @@ Modules call each other in-process through Contracts, never over HTTP.
   `POST /api/admin/v1/contests/{id}/start`, `POST /api/admin/v1/results/{id}/approve`,
   `POST /api/admin/v1/fixtures/{id}/reschedule`.
 - PATCH only for simple field edits on draft-like data; every transition with business meaning is a POST action.
+- A read whose input doesn't fit a query string (a preview of what a change would give) is a POST with a read
+  action, saves nothing and isn't audited unless its action says so: `POST …/ruleset-templates/{code}/preview`
+  (`ruleset.read`, S05-T4b).
 - Every endpoint declares its action code (docs/architecture/authorization.md).
 
 ## Identifiers and slugs

@@ -107,7 +107,10 @@ code and optional version, with its editable parameters and their defaults, kept
 tiebreaker catalogue; over HTTP: `GET /api/admin/v1/ruleset-templates` and `…/ruleset-templates/{code}?version=` with
 `ruleset.read`, the same under `/api/platform/v1` with `platform.sport.read`, the template's `ETag` its content hash,
 `RULESET_TEMPLATE_NOT_FOUND`; Contracts' `Rulesets`),
-`IRulesetResolver` (template + overrides → validated effective rules snapshot).
+`IRulesetResolver` (as built, S05-T4b: a template and version, one of its formats with its parameters, and the
+changes a competition makes → the effective-rules snapshot with its canonical JSON and hash, or every problem on its
+field; nothing stored; over HTTP: `POST /api/admin/v1/ruleset-templates/{code}/preview` with `ruleset.read`; Contracts'
+`Rulesets`).
 **Does not own:** any tenant data, competitions, fixtures, results.
 **First slice:** S05.
 **Absorbs:** pack specs 03, 04, 05. Owner's systems: **Sports Management System, Competition Format

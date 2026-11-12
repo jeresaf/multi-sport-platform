@@ -100,6 +100,29 @@ Operational code always reads the snapshot of the edition (AR-14). Stage-specifi
 (e.g. sevens finals with longer halves, knockout `tie_resolution`) live under `stages.<STAGE_CODE>` in the
 snapshot and override the defaults for contests in that stage.
 
+**As built (S05-T4b).** `IRulesetResolver` (Contracts' `Rulesets`) takes a template (its latest version unless given),
+one of the formats it lists (latest unless given), the format's parameters and the changes keyed by the template's
+editable paths, and answers a snapshot or every problem with its field (one per field): `format.code`,
+`format.version`, `format.parameters.<code>`, `overrides.<path>`, and `template` or `template.version` for a template
+that doesn't exist. It checks in this order: template, format (listed, takes the sport's contest shape), format
+parameters (`FORMAT_PARAMETER_INVALID`), each change (editable, type, bounds, allowed codes:
+`RULESET_PARAMETER_UNKNOWN`, `RULESET_PARAMETER_OUT_OF_RANGE`; tiebreakers and tie resolutions the sport can't use
+answer `RULESET_UNKNOWN_TIEBREAKER` and `RULESET_TIE_RESOLUTION_UNSUPPORTED`), the merged values against the template
+schema, then the rules between values above, each problem on the change that causes it. A value of the wrong type is
+out of range. It reads the template's pinned sport version from the stored definitions. The snapshot is written as
+above (snake_case keys, every format parameter with its default filled in), canonicalised by RFC 8785; its hash is
+`sha256:` and the hex SHA-256 of that text, so the same inputs give the same hash, whatever their order and whether a
+default is stated or left out. Nothing is stored in S05: an edition stores the canonical JSON and its hash (S09).
+
+`POST /api/admin/v1/ruleset-templates/{code}/preview?version=` (`ruleset.read`, not audited, a read with a body) takes
+`{ "format": { "code", "version"?, "parameters"? }, "overrides"? }` and answers the snapshot in the API's names
+(camelCase records, the same content) with its `hash`, or `422` with the first problem's code (by field) and one
+`errors` entry per field. A value that isn't a whole number, true or false, a code or a list of codes (`null`, `3.5`,
+an object) is refused on its own field like a value of the wrong type, or as `RULESET_PARAMETER_UNKNOWN` when the
+template has no such editable path. An unknown template or `version` is
+`404 RULESET_TEMPLATE_NOT_FOUND`; a missing format or format code, a `format.version` below 1 or another member is
+`400 VALIDATION_INVALID_REQUEST` on its field. There is no platform preview (S05 D16).
+
 ## Tiebreaker catalogue (Standings & Progression)
 
 Standings rows per stage/group: played, won, drawn, lost, no result, scored, conceded, difference, points
