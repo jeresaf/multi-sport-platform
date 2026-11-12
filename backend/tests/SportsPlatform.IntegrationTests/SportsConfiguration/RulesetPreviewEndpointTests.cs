@@ -231,6 +231,8 @@ public sealed class RulesetPreviewEndpointTests(PostgresFixture fixture) : Datab
             ("overrides.contest.period_seconds.FIRST_HALF", "RULESET_PARAMETER_OUT_OF_RANGE")),
         ["a value of the wrong type"] = League("""{ "standings.points.win": "FOUR" }""",
             ("overrides.standings.points.win", "RULESET_PARAMETER_OUT_OF_RANGE")),
+        ["a value that is no parameter value at all, on a path the template doesn't have"] = League("""{ "standings.points.bonus": null }""",
+            ("overrides.standings.points.bonus", "RULESET_PARAMETER_UNKNOWN")),
         ["a value that is no parameter value at all"] = League("""{ "standings.points.win": 3.5 }""",
             ("overrides.standings.points.win", "RULESET_PARAMETER_OUT_OF_RANGE")),
         ["a null value"] = League("""{ "standings.points.win": null }""",

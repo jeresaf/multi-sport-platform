@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using FluentValidation;
@@ -19,7 +20,7 @@ public sealed record PreviewRulesetRequest(
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record PreviewRulesetFormatRequest(
     string Code,
-    int? Version = null,
+    [property: Range(1, int.MaxValue)] int? Version = null,
     IReadOnlyDictionary<string, ParameterValue>? Parameters = null);
 
 /// <summary>

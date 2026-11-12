@@ -435,7 +435,8 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
 - **T4b2:** plan approved with the recommended answers (owner, 2026-11-12): the template is the path's code and
   `?version=`, so an unknown one is `404 RULESET_TEMPLATE_NOT_FOUND` without `errors` (Q1); the body's values are read
   one by one, so `null`, `3.5` or an object is `RULESET_PARAMETER_OUT_OF_RANGE` on `overrides.<path>` or
-  `FORMAT_PARAMETER_INVALID` on `format.parameters.<code>` beside the resolver's other problems (Q2); no platform
+  `FORMAT_PARAMETER_INVALID` on `format.parameters.<code>` beside the resolver's other problems, and
+  `RULESET_PARAMETER_UNKNOWN` on an override path the template doesn't have (pre-review) (Q2); no platform
   preview (Q3). The endpoint reads the body with `StrictJsonBody` as `PreviewRulesetBody` (JSON values) and documents
   `PreviewRulesetRequest` (`ParameterValue` maps); the answer is `RulesSnapshotResponse` (camelCase, the template
   read's `RulesetValuesResponse`, `hash`). The OpenAPI transformer gives a map of `ParameterValue` its value schema.

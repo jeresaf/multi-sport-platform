@@ -118,7 +118,8 @@ default is stated or left out. Nothing is stored in S05: an edition stores the c
 `{ "format": { "code", "version"?, "parameters"? }, "overrides"? }` and answers the snapshot in the API's names
 (camelCase records, the same content) with its `hash`, or `422` with the first problem's code (by field) and one
 `errors` entry per field. A value that isn't a whole number, true or false, a code or a list of codes (`null`, `3.5`,
-an object) is refused on its own field like a value of the wrong type. An unknown template or `version` is
+an object) is refused on its own field like a value of the wrong type, or as `RULESET_PARAMETER_UNKNOWN` when the
+template has no such editable path. An unknown template or `version` is
 `404 RULESET_TEMPLATE_NOT_FOUND`; a missing format or format code, a `format.version` below 1 or another member is
 `400 VALIDATION_INVALID_REQUEST` on its field. There is no platform preview (S05 D16).
 

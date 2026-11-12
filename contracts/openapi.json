@@ -2261,7 +2261,7 @@
           "Ruleset templates"
         ],
         "summary": "Preview a ruleset's effective rules",
-        "description": "Resolves the ruleset template `code` at `version` (the latest when left out) with one of its formats and the changes a competition would make, into the effective-rules snapshot an edition would freeze (docs/domain/rulesets.md): the exact sport, format and template versions, the format's parameters with their defaults, the rules and the snapshot's `hash`. The same template version, format version, parameters and changes always give the same hash. `overrides` is keyed by the template's editable paths (`standings.points.win`); paths left out keep the template's values. Nothing is saved or audited.\n\nA rule or parameter the resolver refuses is 422 with the first problem's code (by field) and one `errors` entry per field: `format.code`, `format.version`, `format.parameters.<code>`, `overrides.<path>`. A value that isn't a whole number, true or false, a code or a list of codes is refused on its field like a value of the wrong type. A missing format or format code, or another member, is 400 VALIDATION_INVALID_REQUEST.",
+        "description": "Resolves the ruleset template `code` at `version` (the latest when left out) with one of its formats and the changes a competition would make, into the effective-rules snapshot an edition would freeze (docs/domain/rulesets.md): the exact sport, format and template versions, the format's parameters with their defaults, the rules and the snapshot's `hash`. The same template version, format version, parameters and changes always give the same hash. `overrides` is keyed by the template's editable paths (`standings.points.win`); paths left out keep the template's values. Nothing is saved or audited.\n\nA rule or parameter the resolver refuses is 422 with the first problem's code (by field) and one `errors` entry per field: `format.code`, `format.version`, `format.parameters.<code>`, `overrides.<path>`. A value that isn't a whole number, true or false, a code or a list of codes is refused on its field like a value of the wrong type, or as an unknown path when the template has no such editable path. A missing format or format code, a `format.version` below 1, or another member is 400 VALIDATION_INVALID_REQUEST.",
         "operationId": "PreviewRuleset",
         "parameters": [
           {
@@ -7664,6 +7664,8 @@
                 "type": "string"
               },
               "version": {
+                "maximum": 2147483647,
+                "minimum": 1,
                 "type": [
                   "null",
                   "integer"

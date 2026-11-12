@@ -28,7 +28,8 @@ internal static class PreviewRulesetEndpoint
         "A rule or parameter the resolver refuses is 422 with the first problem's code (by field) and one `errors` " +
         "entry per field: `format.code`, `format.version`, `format.parameters.<code>`, `overrides.<path>`. A value " +
         "that isn't a whole number, true or false, a code or a list of codes is refused on its field like a value of " +
-        "the wrong type. A missing format or format code, or another member, is 400 VALIDATION_INVALID_REQUEST.";
+        "the wrong type, or as an unknown path when the template has no such editable path. A missing format or format " +
+        "code, a `format.version` below 1, or another member is 400 VALIDATION_INVALID_REQUEST.";
 
     public static void Map(IEndpointRouteBuilder templates) => templates
         .MapPost("/{code}/preview", HandleAsync)
