@@ -4,12 +4,14 @@ using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using SportsPlatform.BuildingBlocks.Auditing;
 using SportsPlatform.BuildingBlocks.Persistence;
+using SportsPlatform.BuildingBlocks.Tenancy;
 using SportsPlatform.IntegrationTests.Api;
 using SportsPlatform.IntegrationTests.Audit;
 using SportsPlatform.IntegrationTests.Infrastructure;
 using SportsPlatform.IntegrationTests.Tenancy;
 using SportsPlatform.Modules.Identity.Domain.PlatformRoles;
 using SportsPlatform.Modules.Identity.Domain.Roles;
+using SportsPlatform.Modules.Tenancy.Contracts.Entitlements;
 using SportsPlatform.Modules.Tenancy.Contracts.Tenants;
 using SportsPlatform.Modules.Tenancy.Features.Access;
 using SportsPlatform.Modules.Tenancy.Features.Entitlements;
@@ -202,6 +204,32 @@ public sealed class StaffUserQuotaTests(PostgresFixture fixture) : DatabaseTest(
         body.GetProperty("next").ValueKind.ShouldBe(JsonValueKind.Null);
     }
 
+    // Q27 (S05 D21): with none started, the earliest scheduled period is current and its plan applies; the later one is
+    // next. The later period is PRO (unlimited sports), so the STANDARD limit shows which plan applies.
+    [Fact]
+    public async Task A_tenant_with_two_scheduled_periods_reads_the_earlier_as_current_with_its_plan_and_the_later_as_next()
+    {
+        App.Authorization.UseIdentityRoles();
+        var kmsa = await TenantTestData.SaveTenantAsync(
+            App.Services, "kmsa", TenantStatus.Active, publicEnabled: false, withDomain: true, withSubscription: false, Ct);
+        await TenantTestData.SavePeriodAsync(App.Services, kmsa, new DateOnly(2029, 1, 1), new DateOnly(2029, 12, 31), Ct, planCode: "PRO");
+        await TenantTestData.SavePeriodAsync(App.Services, kmsa, new DateOnly(2028, 1, 1), new DateOnly(2028, 12, 31), Ct, planCode: "STANDARD");
+        var grace = await CreateMemberAsync(App.Services, kmsa, "grace.nakato@kmsa.example", Ct, TenantWide(IdentityRoles.TenantOwner));
+        using var owner = App.ClientFor(grace.UserId, kmsa);
+
+        using var response = await owner.GetAsync(TenantSubscriptionPath, Ct);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>(Ct);
+        PeriodOf(body.GetProperty("current")).ShouldBe(("SCHEDULED", "STANDARD", "2028-01-01"));
+        PeriodOf(body.GetProperty("next")).ShouldBe(("SCHEDULED", "PRO", "2029-01-01"));
+        UsageOf(body.GetProperty("usage"), "MAX_ENABLED_SPORTS").Limit.ShouldBe(3);
+
+        await using var scope = App.Services.CreateAsyncScope();
+        scope.ServiceProvider.GetRequiredService<TenantContext>().Set(kmsa);
+        (await scope.ServiceProvider.GetRequiredService<IEntitlements>().GetLimitAsync("MAX_ENABLED_SPORTS", Ct)).ShouldBe(3);
+    }
+
     /// <summary>KMSA (test data's STANDARD period) with its owner and an override setting <c>MAX_STAFF_USERS</c> to <paramref name="limit"/>.</summary>
     private async Task<(Guid Tenant, Member Owner)> KmsaWithOwnerAsync(int limit)
     {
@@ -224,6 +252,9 @@ public sealed class StaffUserQuotaTests(PostgresFixture fixture) : DatabaseTest(
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         return UsageOf((await response.Content.ReadFromJsonAsync<JsonElement>(Ct)).GetProperty("usage"), "MAX_STAFF_USERS");
     }
+
+    private static (string? Status, string? Plan, string? StartsOn) PeriodOf(JsonElement period) =>
+        (period.GetProperty("status").GetString(), period.GetProperty("planCode").GetString(), period.GetProperty("startsOn").GetString());
 
     private static QuotaUsageResponse UsageOf(JsonElement usage, string code) =>
         usage.EnumerateArray().Single(u => u.GetProperty("code").GetString() == code).Deserialize<QuotaUsageResponse>(Json).ShouldNotBeNull();

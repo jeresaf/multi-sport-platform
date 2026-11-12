@@ -338,6 +338,23 @@ public sealed class SubscriptionTests(PostgresFixture fixture) : DatabaseTest(fi
         subscription.CurrentPeriodId.ShouldBeNull();
     }
 
+    // Q27 (S05 D21): with none started, the earliest scheduled period is current and the later one next.
+    [Fact]
+    public async Task With_two_scheduled_periods_the_earlier_is_current_and_the_later_next()
+    {
+        var tenantId = await TenantWithoutPeriodAsync("kmsa");
+        using var later = await PostAsync(tenantId, "periods", Assign(Today.AddDays(200), Today.AddDays(400)));
+        using var earlier = await PostAsync(tenantId, "periods", Assign(Today.AddDays(10), Today.AddDays(199)));
+
+        using var response = await GetAsync(tenantId);
+
+        var subscription = await ReadAsync(response);
+        subscription.Periods.Select(p => (p.Status, p.StartsOn)).ShouldBe(
+            [(SubscriptionStatus.Scheduled, Today.AddDays(200)), (SubscriptionStatus.Scheduled, Today.AddDays(10))]);
+        subscription.CurrentPeriodId.ShouldBe(subscription.Periods[1].Id);
+        subscription.NextPeriodId.ShouldBe(subscription.Periods[0].Id);
+    }
+
     // S04-T2 acceptance: day boundaries in the tenant's time zone, not UTC.
     [Fact]
     public async Task A_period_ends_at_midnight_in_the_tenants_time_zone()

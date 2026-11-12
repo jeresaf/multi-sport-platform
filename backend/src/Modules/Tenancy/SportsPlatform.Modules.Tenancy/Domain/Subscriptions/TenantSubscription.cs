@@ -28,19 +28,31 @@ public sealed class TenantSubscription
 
     /// <summary>
     /// The period that decides access today (S04 D3, as the owner refined it in #65 R2): the latest-started period in
-    /// effect today (ACTIVE, EXPIRING, or GRACE until a later period has started); with none, the latest-started period of any kind, so an expired or
-    /// cancelled one says why; with none started, the latest period (scheduled); with no periods, none. A period
-    /// cancelled by mistake never hides a valid one still in effect.
+    /// effect today (ACTIVE, EXPIRING, or GRACE until a later period has started); with none, the latest-started period
+    /// of any kind, so an expired or cancelled one says why; with none started, the earliest non-cancelled scheduled
+    /// period, the one that starts first (Q27, S05 D21); with every period cancelled and none started, the latest; with
+    /// no periods, none. A period cancelled by mistake never hides a valid one still in effect.
     /// </summary>
     public SubscriptionPeriod? CurrentOn(DateOnly today)
     {
         var started = Periods.Where(p => p.StartsOn <= today).ToList();
-        return started.Find(p => IsInEffect(p, started, today)) ?? (started.Count > 0 ? started[0] : Latest);
+        if (started.Count > 0)
+        {
+            return started.Find(p => IsInEffect(p, started, today)) ?? started[0];
+        }
+
+        return _periods.Where(p => !p.IsCancelled).OrderBy(p => p.StartsOn).FirstOrDefault() ?? Latest;
     }
 
-    /// <summary>The next non-cancelled period that starts after today, if any.</summary>
-    public SubscriptionPeriod? NextScheduledOn(DateOnly today) =>
-        _periods.Where(p => !p.IsCancelled && p.StartsOn > today).OrderBy(p => p.StartsOn).FirstOrDefault();
+    /// <summary>
+    /// The next non-cancelled period that starts after today and after the current period, if any: with none started,
+    /// the current period is the earliest scheduled one, so the next is the one after it (Q27).
+    /// </summary>
+    public SubscriptionPeriod? NextScheduledOn(DateOnly today)
+    {
+        var after = CurrentOn(today) is { } current && current.StartsOn > today ? current.StartsOn : today;
+        return _periods.Where(p => !p.IsCancelled && p.StartsOn > after).OrderBy(p => p.StartsOn).FirstOrDefault();
+    }
 
     /// <summary><c>subscription.assign</c>: a new period on the dates given, refused if it overlaps another.</summary>
     public Result<SubscriptionPeriod> Assign(SubscriptionTerms terms)

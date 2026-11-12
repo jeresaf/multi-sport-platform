@@ -69,8 +69,8 @@ export function SubscriptionView({
 }
 
 function readOnlyUntil(current: TenantSubscriptionPeriod, next: TenantSubscriptionPeriod | null): string {
-  // The earliest period to come: the next one, else a current one that hasn't started (#72 R2).
-  const start = next ?? (current.status === "SCHEDULED" ? current : null);
+  // The earliest period to come: a current one that hasn't started (with none started, the earliest, Q27), else the next.
+  const start = current.status === "SCHEDULED" ? current : next;
   return start
     ? `The workspace is read-only until the period starts on ${formatDay(start.startsOn)}.`
     : "The workspace is read-only until the platform team renews the subscription.";

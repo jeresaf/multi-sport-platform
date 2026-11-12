@@ -199,7 +199,7 @@ public sealed class TenantAccessModeTests(PostgresFixture fixture) : DatabaseTes
         (await response.Content.ReadAsStringAsync(Ct)).ShouldNotContain("Season fees");
     }
 
-    public static TheoryData<string> ReadOnlyCases => ["none", "expired", "cancelled", "scheduled"];
+    public static TheoryData<string> ReadOnlyCases => ["none", "expired", "cancelled", "scheduled", "two scheduled"];
 
     [Theory]
     [MemberData(nameof(ReadOnlyCases))]
@@ -331,7 +331,8 @@ public sealed class TenantAccessModeTests(PostgresFixture fixture) : DatabaseTes
 
     /// <summary>
     /// An active tenant made read-only by its subscription: none; one that ended past its grace; the test period
-    /// cancelled; or one that starts tomorrow. Returns the current period as access sees it (null for none).
+    /// cancelled; one that starts tomorrow; or that one and a later one, when the earlier is current (Q27). Returns the
+    /// current period as access sees it (null for none).
     /// </summary>
     private async Task<(Guid TenantId, TenantAccessPeriod? Current)> ReadOnlyTenantAsync(string subscription)
     {
@@ -344,7 +345,7 @@ public sealed class TenantAccessModeTests(PostgresFixture fixture) : DatabaseTes
             "none" => null,
             "expired" => (today.AddDays(-200), today.AddDays(-15), null),
             "cancelled" => (today.AddDays(-30), today.AddDays(150), "Association stopped running competitions"),
-            "scheduled" => (today.AddDays(1), today.AddDays(180), null),
+            "scheduled" or "two scheduled" => (today.AddDays(1), today.AddDays(180), null),
             _ => throw new ArgumentOutOfRangeException(nameof(subscription)),
         };
         if (period is not { } p)
@@ -353,6 +354,10 @@ public sealed class TenantAccessModeTests(PostgresFixture fixture) : DatabaseTes
         }
 
         await TenantTestData.SavePeriodAsync(App.Services, kmsa, p.StartsOn, p.EndsOn, Ct, p.Cancelled);
+        if (subscription == "two scheduled")
+        {
+            await TenantTestData.SavePeriodAsync(App.Services, kmsa, today.AddDays(181), today.AddDays(545), Ct);
+        }
         var status = subscription switch
         {
             "expired" => SubscriptionStatus.Expired,
