@@ -7,14 +7,15 @@ at the start of every review.
 
 - **Current slice:** S05 — Sports configuration (docs/build/slices/S05-sports-configuration.md, rewritten by the S04
   slice review). S00–S04 are done
-- **Current task:** S05-T4b2 — the ruleset preview endpoint, its integration tests, the generated client and the docs
-  (T4's acceptance) — in review (#86); next is `/next-task` for S05-T5
-- **Next:** S05-T5 — tenant sport enablement, Q27 and the screens (likely T5a, T5b1, T5b2)
+- **Current task:** S05-T5a1 — Q27: with no period started, the current period is the earliest scheduled one (D21)
+- **Next:** S05-T5a2 — tenant sport enablement, the sport quota, `IEnabledSports`, `GET …/tenant/sports`
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S05-T5 — Tenant sport enablement, Q27 and the screens (likely T5a, T5b1, T5b2)
+1. S05-T5a2 — Tenant sport enablement and the sport quota (D12, D13, D15, D18, D19)
+2. S05-T5b1 — The viewer screens (Sports, the variant viewer, Formats, Rules templates)
+3. S05-T5b2 — Settings → Sports, the console's Sports, the demo e2e, slice close
 
 ## Log
 
@@ -378,6 +379,11 @@ at the start of every review.
 - **S05-T4b2 (owner, plan 2026-11-12):** the preview's template is the path's code and `?version=`, so an unknown
   template or version is `404 RULESET_TEMPLATE_NOT_FOUND` without `errors` (the resolver's `template` fields never reach
   a client); a body value of the wrong JSON shape is a 422 on its field, not a malformed body; no platform preview.
+- **S05-T5a (owner, plan 2026-11-12):** T5a is two PRs: T5a1 (Q27) and T5a2 (enablement and the quota). With Q27, the
+  next scheduled period is the next one after the current period, so a scheduled-only tenant with two periods shows
+  the earlier as current and the later as next. T5a2: `GET …/tenant/sports` asks `IAuthorizationEvaluator` whether the
+  caller holds `tenant.subscription.read` before adding the usage (D15); enable and disable answer the sports read;
+  disabling a variant that isn't published is `400 TENANT_SPORT_VARIANT_UNKNOWN`, as for enable.
 
 ## Tech debt / follow-ups
 
