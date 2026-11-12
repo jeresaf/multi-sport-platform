@@ -446,5 +446,6 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   scheduled period (every period cancelled: the latest, as before), and `NextScheduledOn` starts after the current
   period, so a period is never both current and next and the tenant read's #72 R1 guard went. Access, entitlements,
   change plan and both subscription reads follow from the one method. The Subscription page's "read-only until" now
-  takes a scheduled current period before the next one; the banner already used the access period's start. No
-  contract change.
+  takes a scheduled current period before the next one; the banner already used the access period's start. No schema
+  change, but `next`/`nextPeriodId` no longer repeat the current period, so a scheduled period alone has no next
+  (review #87 R1); the reads' descriptions say so (R2).
