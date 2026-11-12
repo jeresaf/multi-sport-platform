@@ -282,7 +282,7 @@ Acceptance:
       with `403 ENTITLEMENT_QUOTA_EXCEEDED` and "Your plan allows N sports." (integration tests, D18).
 - [ ] Two enables at the last free sport at the same time: one succeeds, one is refused (test).
 - [ ] The scorer pad preview is built from the definition, not hard-coded (Vitest with a test definition).
-- [ ] With two scheduled periods and none started, the current period and its plan are the earlier one's (table and
+- [x] With two scheduled periods and none started, the current period and its plan are the earlier one's (table and
       `IEntitlements` tests), and the banner and the Subscription page say so (Vitest).
 - [ ] Disabling and enabling again keeps both enablements in `tenancy.tenant_sports` (test reads the table).
 
@@ -441,3 +441,10 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   `PreviewRulesetRequest` (`ParameterValue` maps); the answer is `RulesSnapshotResponse` (camelCase, the template
   read's `RulesetValuesResponse`, `hash`). The OpenAPI transformer gives a map of `ParameterValue` its value schema.
   The preview's pinned hash equals the resolver unit test's: the API adds nothing to the snapshot.
+- **T5a1:** plan approved with the recommended answers (owner, 2026-11-12): T5a is two PRs, T5a1 (Q27) and T5a2
+  (enablement and the quota). With no period started, `TenantSubscription.CurrentOn` is the earliest non-cancelled
+  scheduled period (every period cancelled: the latest, as before), and `NextScheduledOn` starts after the current
+  period, so a period is never both current and next and the tenant read's #72 R1 guard went. Access, entitlements,
+  change plan and both subscription reads follow from the one method. The Subscription page's "read-only until" now
+  takes a scheduled current period before the next one; the banner already used the access period's start. No
+  contract change.
