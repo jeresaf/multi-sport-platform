@@ -15,11 +15,13 @@ internal static class GetTenantSubscriptionEndpoint
         .WithName("GetTenantSubscription")
         .WithSummary("Get the tenant's subscription")
         .WithDescription(
-            "The subscription of the tenant named by `X-Tenant-Id`: the current period (plan, kind, status today and days, " +
-            "all in the tenant's time zone; `null` without a period) and the next scheduled one; every entitlement's value " +
-            "today with its source (DEFAULT, PLAN or OVERRIDE); and every quota's usage (`used` of `limit`, `null` = " +
-            "unlimited; `warning` from 80 % of the limit; `measured: false` while no module counts it yet). Available while " +
-            "the tenant is read-only. To change the plan, the tenant contacts the platform.")
+            "The subscription of the tenant named by `X-Tenant-Id`: the current period (plan, kind, status today and " +
+            "days, all in the tenant's time zone; `null` without a period; with none started, the earliest scheduled " +
+            "one) and the next: the earliest period that starts after today and after the current one, never the " +
+            "current one; every entitlement's value today with its source (DEFAULT, PLAN or OVERRIDE); and every " +
+            "quota's usage (`used` of `limit`, `null` = unlimited; `warning` from 80 % of the limit; `measured: false` " +
+            "while no module counts it yet). Available while the tenant is read-only. To change the plan, the tenant " +
+            "contacts the platform.")
         .RequireAction(TenancyActions.TenantSubscriptionRead);
 
     private static async Task<Ok<TenantSubscriptionResponse>> HandleAsync(

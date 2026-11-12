@@ -338,12 +338,21 @@ public sealed class SubscriptionTests(PostgresFixture fixture) : DatabaseTest(fi
         subscription.CurrentPeriodId.ShouldBeNull();
     }
 
-    // Q27 (S05 D21): with none started, the earliest scheduled period is current and the later one next.
+    // Q27 (S05 D21): with none started, the earliest scheduled period is current and the later one next; a period alone
+    // is current with no next (nextPeriodId never repeats the current period).
     [Fact]
     public async Task With_two_scheduled_periods_the_earlier_is_current_and_the_later_next()
     {
         var tenantId = await TenantWithoutPeriodAsync("kmsa");
         using var later = await PostAsync(tenantId, "periods", Assign(Today.AddDays(200), Today.AddDays(400)));
+
+        using (var alone = await GetAsync(tenantId))
+        {
+            var only = await ReadAsync(alone);
+            only.CurrentPeriodId.ShouldBe(only.Periods.ShouldHaveSingleItem().Id);
+            only.NextPeriodId.ShouldBeNull();
+        }
+
         using var earlier = await PostAsync(tenantId, "periods", Assign(Today.AddDays(10), Today.AddDays(199)));
 
         using var response = await GetAsync(tenantId);

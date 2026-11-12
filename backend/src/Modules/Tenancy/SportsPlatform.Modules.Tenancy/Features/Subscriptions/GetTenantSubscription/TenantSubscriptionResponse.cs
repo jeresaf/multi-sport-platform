@@ -8,9 +8,10 @@ namespace SportsPlatform.Modules.Tenancy.Features.Subscriptions.GetTenantSubscri
 
 /// <summary>
 /// A tenant's subscription as its members see it (S04 D15): <c>today</c> in the tenant's <c>timeZone</c>; the
-/// <c>current</c> period (the one that decides access; null without periods) and the <c>next</c> scheduled one; every
-/// declared entitlement's effective value with its source; and every quota's usage. No override reasons, cancel
-/// reasons or who made a change: those are the platform's.
+/// <c>current</c> period (the one that decides access; null without periods; with none started, the earliest
+/// scheduled one) and the <c>next</c> one (the earliest that starts after today and after the current one, never the
+/// current one); every declared entitlement's effective value with its source; and every quota's usage. No override
+/// reasons, cancel reasons or who made a change: those are the platform's.
 /// </summary>
 public sealed record TenantSubscriptionResponse(
     DateOnly Today,
