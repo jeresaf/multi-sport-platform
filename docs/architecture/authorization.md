@@ -162,7 +162,11 @@ sport definitions follow the settings (S05-T1b2): every role holding `tenant.set
 (`GET /api/admin/v1/sports`, `…/sports/{variant}`; available while read-only; audit `NONE`, global configuration), and
 the formats go with them (S05-T3a): `format.read` (`GET /api/admin/v1/formats`, `…/formats/{code}`), same roles and
 rules, and so do the ruleset templates (S05-T4a): `ruleset.read` (`GET /api/admin/v1/ruleset-templates`,
-`…/ruleset-templates/{code}`; T4b adds the preview).
+`…/ruleset-templates/{code}`; T4b adds the preview). Which variants the tenant has enabled goes with them too
+(S05-T5a2): `tenant.sport.read` (`GET /api/admin/v1/tenant/sports`; same roles; available while read-only; audit
+`NONE`), with the sport quota's usage in the answer only for those who also hold `tenant.subscription.read`.
+`TENANT_OWNER` and `TENANT_ADMIN` enable and disable variants: `tenant.sport.enable` (audit `REQUIRED`; names
+`MAX_ENABLED_SPORTS`) and `tenant.sport.disable` (`REQUIRED_WITH_REASON`).
 
 | Role | Typical scope | Includes (summary) |
 |---|---|---|
@@ -274,6 +278,11 @@ tests compare this table with the code and the seeded rows with the code. Platfo
 - Subscription periods carry a `kind` — `PAID`, `TRIAL` or `COMPLIMENTARY` — for reporting only; it never changes
   access (docs/domain/state-machines.md).
 - Quotas only block creating **new** items. A downgrade never hides or deletes existing data.
+- As built (S05-T5a2): `tenant.sport.enable` counts the distinct sports of the tenant's enabled variants (through
+  Sports Configuration's `ISportDefinitions`) under the lock `tenancy.tenant_sports:<tenantId>`. Enabling a variant of a
+  sport already counted is never refused; another sport at the limit is `403 ENTITLEMENT_QUOTA_EXCEEDED` with "Your
+  plan allows N sports.". Lowering the limit disables nothing. Tenancy counts the quota for the usage reads
+  (`AddQuotaUsage`), so it shows as "1 of 3 sports" like staff users.
 
 ## UI behaviour
 
