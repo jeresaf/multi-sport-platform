@@ -93,7 +93,9 @@ export function derivationLabel(definition: SportDefinition, statistic: SportSta
   if (derive.countEvents.length > 0) parts.push(`Counts ${events(derive.countEvents)} events`);
   if (derive.sumPoints.length > 0) parts.push(`Adds up the points of ${events(derive.sumPoints)} events`);
   if (derive.actorRoles.length > 0) parts.push(`by ${listLabel(derive.actorRoles.map(codeLabel))}`);
-  const conditions = Object.entries(derive.where).map(([field, value]) => `${codeLabel(field).toLowerCase()} is ${codeLabel(value)}`);
+  // A flag's condition is written "true" or "false" in the file.
+  const value = (written: string) => (written === "true" ? "yes" : written === "false" ? "no" : codeLabel(written));
+  const conditions = Object.entries(derive.where).map(([field, written]) => `${codeLabel(field).toLowerCase()} is ${value(written)}`);
   if (conditions.length > 0) parts.push(`where ${listLabel(conditions, "and")}`);
   return parts.length > 0 ? parts.join(" ") : "Not described";
 }

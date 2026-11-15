@@ -43,7 +43,8 @@ export function SportViewer({
   back?: ReactNode;
 }>) {
   return (
-    <section className="grid gap-6">
+    // `minmax(0, 1fr)`: grid tracks would otherwise grow to the tab list's or a table's width and widen the page on a phone.
+    <section className="grid grid-cols-[minmax(0,1fr)] gap-6">
       <header className="grid gap-2">
         {back}
         <h1 className="text-2xl font-semibold">{definition.name}</h1>
@@ -57,7 +58,7 @@ export function SportViewer({
         </p>
       </header>
 
-      <Tabs value={tab} onValueChange={(value) => onTabChange(sportTab(value))}>
+      <Tabs value={tab} onValueChange={(value) => onTabChange(sportTab(value))} className="min-w-0">
         <TabsList aria-label="Definition">
           {sportTabs.map(({ value, label }) => (
             <TabsTrigger key={value} value={value}>
@@ -66,7 +67,7 @@ export function SportViewer({
           ))}
         </TabsList>
         {sportTabs.map(({ value, label, content: Content }) => (
-          <TabsContent key={value} value={value} className="grid gap-4">
+          <TabsContent key={value} value={value} className="grid grid-cols-[minmax(0,1fr)] gap-4">
             <h2 className="sr-only">{label}</h2>
             <Content definition={definition} />
           </TabsContent>

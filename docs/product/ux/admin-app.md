@@ -159,7 +159,7 @@ user's capabilities (docs/architecture/authorization.md); the server still enfor
   what reverses it; then the events every sport has), **Positions & roles** (positions by group, roles in events,
   staff, officials), **Statistics** (how each is worked out, in words from the definition's labels) and **Scorer pad**.
   The tab is in the address (`?tab=`, the overview for a missing or unknown one) and `?version=` opens an older
-  version; an unknown variant or version is "Page not found". On a phone the tab list scrolls sideways.
+  version; an unknown variant or version is "Page not found". On a phone the tab list wraps onto more rows.
 - **Scorer pad preview:** the definition's `scorer_pad` groups in order, each button labelled by its event (a generic
   event by its generic label), a group's phases written as the definition's period labels ("Only during …") and its
   coverage ("From detailed coverage"). The buttons are list items, not controls: the preview records nothing. A pad kind

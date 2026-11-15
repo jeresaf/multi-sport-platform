@@ -36,6 +36,8 @@ describe("sport definition words", () => {
     expect(derivationLabel(ringball, statistic("WARNINGS"))).toBe("Entered by hand");
     const sum = { ...statistic("RINGS"), derive: { ...statistic("RINGS").derive, countEvents: [], sumPoints: ["RING"], actorRoles: [] } };
     expect(derivationLabel(ringball, sum)).toBe("Adds up the points of Ring events");
+    const flag = { ...statistic("FAR_RINGS"), derive: { ...statistic("FAR_RINGS").derive, where: { blocked: "false" } } };
+    expect(derivationLabel(ringball, flag)).toBe("Counts Ring events where blocked is no");
     const builtin = { ...statistic("RINGS"), derive: { ...statistic("RINGS").derive, builtin: "MINUTES_PLAYED" } };
     expect(derivationLabel(ringball, builtin)).toBe("Built in: Minutes played");
   });

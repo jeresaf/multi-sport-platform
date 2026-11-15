@@ -1,7 +1,8 @@
 "use client"
 
 // shadcn/ui Tabs (radix-ui), adapted to the kit's rules (.claude/rules/web.md): 44 px triggers, a solid focus ring,
-// `muted` for the list's fill, and a list that scrolls sideways on a phone instead of squeezing its triggers.
+// `muted` for the list's fill, and a list that wraps onto more rows on a phone, so the selected tab is always in view
+// (a list scrolling sideways can hide it).
 import * as React from "react"
 import { cn } from "@msp/ui/lib/utils"
 import { Tabs as TabsPrimitive } from "radix-ui"
@@ -15,7 +16,7 @@ function TabsList({ className, ...props }: React.ComponentProps<typeof TabsPrimi
     <TabsPrimitive.List
       data-slot="tabs-list"
       className={cn(
-        "inline-flex max-w-full items-center gap-1 overflow-x-auto rounded-lg bg-muted p-1 text-muted-foreground",
+        "inline-flex max-w-full flex-wrap items-center gap-1 rounded-lg bg-muted p-1 text-muted-foreground",
         className
       )}
       {...props}
