@@ -7,9 +7,9 @@ at the start of every review.
 
 - **Current slice:** S05 — Sports configuration (docs/build/slices/S05-sports-configuration.md, rewritten by the S04
   slice review). S00–S04 are done
-- **Current task:** S05-T5a1 — Q27: with no period started, the current period is the earliest scheduled one (D21) —
-  in review (#87); next is `/next-task` for S05-T5a2
-- **Next:** S05-T5a2 — tenant sport enablement, the sport quota, `IEnabledSports`, `GET …/tenant/sports`
+- **Current task:** S05-T5a2 — tenant sport enablement, the sport quota, `IEnabledSports`, `GET …/tenant/sports`
+  (D12, D13, D15, D18, D19) — in progress; plan approved with the recommended answers (owner, 2026-11-15)
+- **Next:** S05-T5b1 — the viewer screens
 - **Blocked on:** nothing
 
 ## Next up
