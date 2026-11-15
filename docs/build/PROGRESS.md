@@ -393,7 +393,8 @@ at the start of every review.
 - **S05-T5b1 (owner, plan 2026-11-15):** T5b1 is two PRs: T5b1a (Sports, the variant viewer, the ESLint
   sport-literal rule) and T5b1b (Formats, Rules templates); the Rules templates page is read-only (no preview form until
   the competition wizard, S09); Sports, Formats and Rules templates are three navigation entries; the ESLint rule covers
-  `apps/**` except `renderers/` and tests.
+  `apps/**` except `renderers/` and tests. T5b1a's size (about 1,750 changed lines, about 1,000 production) is accepted
+  as one PR (owner, review #89 Q1, 2026-11-15).
 
 ## Tech debt / follow-ups
 
