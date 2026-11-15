@@ -170,8 +170,8 @@ user's capabilities (docs/architecture/authorization.md); the server still enfor
   on"). The viewer (`components/sports`) takes the definition rather than reading it, so the console's Sports (T5b2)
   reuses it.
 - **No sport codes in app code:** ESLint (`@msp/config`'s `apps` config) refuses a string literal equal to a sport or
-  variant code from docs/domain/sports, or a name that is one (object key, class field, enum member, property read such
-  as `renderers.FOOTBALL`), in `apps/**`, except under `renderers/` and in tests (S05 D6). Not caught: a code inside JSX
+  variant code from docs/domain/sports, or a name that is one (object key, class field or method, type member, enum
+  member, property read such as `renderers.FOOTBALL`), in `apps/**`, except under `renderers/` and in tests (S05 D6). Not caught: a code inside JSX
   text or built from parts.
 
 ## Workspaces and screens

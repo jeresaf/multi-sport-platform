@@ -32,8 +32,8 @@ export const sportLiteralMessage =
 
 /**
  * `no-restricted-syntax` selectors for a whole string (or template) literal equal to one of the codes, and for a name
- * that is one: an object key or class field (`{ FOOTBALL: … }`, a map by sport), an enum member, or a property read
- * (`renderers.FOOTBALL`). Not caught: a code inside JSX text or built from parts.
+ * that is one: an object key, class field or method, type member (`{ FOOTBALL: … }`, a map by sport), an enum member,
+ * or a property read (`renderers.FOOTBALL`). Not caught: a code inside JSX text or built from parts.
  */
 export function sportLiteralSelectors(codes = sportCodes()) {
   if (codes.length === 0) return [];
@@ -43,6 +43,8 @@ export function sportLiteralSelectors(codes = sportCodes()) {
     { selector: `TemplateElement[value.raw=${pattern}]`, message: sportLiteralMessage },
     { selector: `Property > Identifier.key[name=${pattern}]`, message: sportLiteralMessage },
     { selector: `PropertyDefinition > Identifier.key[name=${pattern}]`, message: sportLiteralMessage },
+    { selector: `MethodDefinition > Identifier.key[name=${pattern}]`, message: sportLiteralMessage },
+    { selector: `TSPropertySignature > Identifier.key[name=${pattern}]`, message: sportLiteralMessage },
     { selector: `TSEnumMember > Identifier.id[name=${pattern}]`, message: sportLiteralMessage },
     { selector: `MemberExpression[computed=false] > Identifier.property[name=${pattern}]`, message: sportLiteralMessage },
   ];

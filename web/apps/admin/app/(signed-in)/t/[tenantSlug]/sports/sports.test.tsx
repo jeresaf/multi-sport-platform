@@ -215,6 +215,7 @@ describe("sport variant", () => {
     expect(screen.getByText("Head coach, Kit keeper")).toBeTruthy();
     expect(cells("Ring judge")).toEqual(["1", "2"]);
     expect(cells("Timekeeper")).toEqual(["0", "No limit"]);
+    expect(rowOf("Timekeeper").querySelector("th dl")?.textContent).toBe("Most: No limit");
   });
 
   it("shows how each statistic is worked out", async () => {

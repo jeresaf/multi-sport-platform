@@ -44,6 +44,9 @@ describe("ESLint sport-literal rule (S05 D6)", () => {
     ["export enum Sport { FOOTBALL }"],
     ["export class A { FOOTBALL = 1; }"],
     ["export const r = renderers.FOOTBALL_ASSOCIATION;"],
+    ["export class B { FOOTBALL() {} }"],
+    ["export type T = { FOOTBALL: number };"],
+    ["export interface I { RUGBY_UNION_7: string }"],
   ])(
     "rejects %s",
     async (code) => {

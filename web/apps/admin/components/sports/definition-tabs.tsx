@@ -187,17 +187,19 @@ export function PositionsTab({ definition }: Props) {
               <TableRow>
                 <TableHead scope="col">Official</TableHead>
                 <TableHead scope="col">Minimum by default</TableHead>
-                <TableHead scope="col">Most</TableHead>
+                <TableHead scope="col" className={wide}>
+                  Most
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {definition.officialRoles.map((role) => (
                 <TableRow key={role.code}>
-                  <TableHead scope="row" className="font-medium">
-                    {role.label}
+                  <TableHead scope="row" className="h-auto py-2 align-top whitespace-normal">
+                    <RowName name={role.label} details={[["Most", role.max ?? "No limit"]]} />
                   </TableHead>
-                  <TableCell>{role.defaultMinimum}</TableCell>
-                  <TableCell>{role.max ?? "No limit"}</TableCell>
+                  <TableCell className="align-top">{role.defaultMinimum}</TableCell>
+                  <TableCell className={wide}>{role.max ?? "No limit"}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
