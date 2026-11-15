@@ -281,7 +281,8 @@ Acceptance:
 - [x] A STANDARD tenant enables up to its limit; two variants of one sport count once; the next sport is refused
       with `403 ENTITLEMENT_QUOTA_EXCEEDED` and "Your plan allows N sports." (integration tests, D18).
 - [x] Two enables at the last free sport at the same time: one succeeds, one is refused (test).
-- [ ] The scorer pad preview is built from the definition, not hard-coded (Vitest with a test definition).
+- [x] The scorer pad preview is built from the definition, not hard-coded (Vitest with a test definition). (T5b1a:
+      `scorer-pad-preview.test.tsx` over a test-only definition)
 - [x] With two scheduled periods and none started, the current period and its plan are the earlier one's (table and
       `IEntitlements` tests), and the banner and the Subscription page say so (Vitest).
 - [x] Disabling and enabling again keeps both enablements in `tenancy.tenant_sports` (test reads the table).
@@ -459,3 +460,12 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   the list is shown when Identity's evaluator allows `tenant.subscription.read` (the same step 3 as the pipeline).
   D18's test app is `TestSportDefinitions.AppWithTestSports` (the shared `TestApp` with three test-only variants added
   to `ListAsync`).
+- **T5b1a:** plan approved with the recommended answers (owner, 2026-11-15): T5b1 is two PRs, T5b1a (Sports, the variant
+  viewer, the ESLint rule) and T5b1b (Formats, Rules templates) (Q1); the Rules templates page is read-only, the preview
+  waits for the competition wizard (S09) (Q2); Sports, Formats and Rules templates are three navigation entries (Q3);
+  the ESLint rule covers `apps/**` except `renderers/` and tests (Q4). The viewer (`components/sports`) takes a
+  definition, so T5b2's console reuses it over the platform reads. The scorer pad preview's Vitest uses a test-only
+  invented definition (`test/sport-definitions.ts`). Tabs come from `radix-ui` (already a dependency) as
+  `@msp/ui/components/tabs`. The ESLint rule reads the codes like `SportLiteralTests` (each file's `variant:`/`sport:`
+  lines and README.md's table); a later `no-restricted-syntax` replaces an earlier one's options, so the apps' rule
+  lists the colour selectors again.

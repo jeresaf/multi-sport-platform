@@ -389,6 +389,10 @@ at the start of every review.
   the earlier as current and the later as next. T5a2: `GET …/tenant/sports` asks `IAuthorizationEvaluator` whether the
   caller holds `tenant.subscription.read` before adding the usage (D15); enable and disable answer the sports read;
   disabling a variant that isn't published is `400 TENANT_SPORT_VARIANT_UNKNOWN`, as for enable.
+- **S05-T5b1 (owner, plan 2026-11-15):** T5b1 is two PRs: T5b1a (Sports, the variant viewer, the ESLint
+  sport-literal rule) and T5b1b (Formats, Rules templates); the Rules templates page is read-only (no preview form until
+  the competition wizard, S09); Sports, Formats and Rules templates are three navigation entries; the ESLint rule covers
+  `apps/**` except `renderers/` and tests.
 
 ## Tech debt / follow-ups
 

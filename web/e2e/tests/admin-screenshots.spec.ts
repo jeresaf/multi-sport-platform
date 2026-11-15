@@ -135,6 +135,26 @@ test("screenshots of a tenant workspace", async ({ page, request }) => {
   await expect(loading(page)).toHaveCount(0);
   await shoot(page, "members", [phone, ...widths]);
 
+  await page.goto("/t/kmsa/sports");
+  await expect(page.getByRole("heading", { level: 1, name: "Sports" })).toBeVisible();
+  await expect(loading(page)).toHaveCount(0);
+  await shoot(page, "sports", [phone, ...widths]);
+
+  await page.getByRole("table").getByRole("link").first().click();
+  await expect(page.getByRole("tab", { name: "Overview", selected: true })).toBeVisible();
+  await shoot(page, "sport-overview", [phone, ...widths]);
+  for (const [tab, name] of [
+    ["Periods", "sport-periods"],
+    ["Events", "sport-events"],
+    ["Positions & roles", "sport-positions"],
+    ["Statistics", "sport-statistics"],
+    ["Scorer pad", "sport-scorer-pad"],
+  ] as const) {
+    await page.getByRole("tab", { name: tab }).click();
+    await expect(page.getByRole("tab", { name: tab, selected: true })).toBeVisible();
+    await shoot(page, name, [phone, ...widths]);
+  }
+
   await page.goto("/platform");
   await expect(page.getByRole("heading", { level: 1, name: "You can't open this page" })).toBeVisible();
   await shoot(page, "forbidden", [phone, ...widths]);
