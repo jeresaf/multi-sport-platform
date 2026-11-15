@@ -1,4 +1,4 @@
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ESLint } from "eslint";
@@ -25,21 +25,25 @@ describe("sport codes", () => {
 
   it("take each file's variant and sport lines (with a comment) and the table's variants", () => {
     const folder = mkdtempSync(join(tmpdir(), "sports-"));
-    writeFileSync(join(folder, "a.yaml"), "schema_version: 1\nvariant: ALPHA_ONE   # never reused\nsport: ALPHA\nlabel: x\n");
-    writeFileSync(join(folder, "README.md"), "| Alpha | `ALPHA_TWO` | a.yaml |\n| text | not a code |\n");
-    expect(sportCodes(folder)).toEqual(["ALPHA", "ALPHA_ONE", "ALPHA_TWO"]);
+    try {
+      writeFileSync(join(folder, "a.yaml"), "schema_version: 1\nvariant: ALPHA_ONE   # never reused\nsport: ALPHA\nlabel: x\n");
+      writeFileSync(join(folder, "README.md"), "| Alpha | `ALPHA_TWO` | a.yaml |\n| text | not a code |\n");
+      expect(sportCodes(folder)).toEqual(["ALPHA", "ALPHA_ONE", "ALPHA_TWO"]);
+    } finally {
+      rmSync(folder, { recursive: true, force: true });
+    }
   });
 });
 
 describe("ESLint sport-literal rule (S05 D6)", () => {
-  it.each([['export const a = "FOOTBALL";'], ["export const a = `FOOTBALL_ASSOCIATION`;"], ['if (v === "FOOTBALL") {}']])(
+  it.each([['export const a = "FOOTBALL";'], ["export const a = `FOOTBALL_ASSOCIATION`;"], ['if (v === "FOOTBALL") {}'], ["export const byCode = { FOOTBALL: 1 };"]])(
     "rejects %s",
     async (code) => {
       expect(sportLiteral(await ruleMessages(code))).toBe(1);
     },
   );
 
-  it.each([['export const a = "FOOTBALL_PITCH";'], ['export const a = "football";'], ['export const a = "Football";']])(
+  it.each([['export const a = "FOOTBALL_PITCH";'], ['export const a = "football";'], ['export const a = "Football";'], ["export const a = { football: 1 }; a.FOOTBALL_PITCH = 2;"]])(
     "accepts %s",
     async (code) => {
       expect(sportLiteral(await ruleMessages(code))).toBe(0);

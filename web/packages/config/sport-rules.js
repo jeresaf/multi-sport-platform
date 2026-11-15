@@ -30,12 +30,16 @@ export function sportCodes(folder = sportsFolder) {
 export const sportLiteralMessage =
   "No sport or variant codes in generic code (AR-11): read sports as data; sport words live in definitions and renderers.";
 
-/** `no-restricted-syntax` selectors for a whole string (or template) literal equal to one of the codes. */
+/**
+ * `no-restricted-syntax` selectors for a whole string (or template) literal equal to one of the codes, and for an
+ * object key naming one (`{ FOOTBALL: … }`, a map by sport).
+ */
 export function sportLiteralSelectors(codes = sportCodes()) {
   if (codes.length === 0) return [];
   const pattern = `/^(${codes.join("|")})$/`;
   return [
     { selector: `Literal[value=${pattern}]`, message: sportLiteralMessage },
     { selector: `TemplateElement[value.raw=${pattern}]`, message: sportLiteralMessage },
+    { selector: `Property > Identifier.key[name=${pattern}]`, message: sportLiteralMessage },
   ];
 }

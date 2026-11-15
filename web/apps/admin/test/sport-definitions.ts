@@ -134,7 +134,13 @@ export const ringball: SportDefinition = {
       category: "REVIEW",
       followUp: { requiresPreceding: ["RING", "LONG_RING"], sameSide: true, samePeriod: true, unconsumed: true, consumes: true },
     }),
-    event({ code: "WARNING_CARD", label: "Warning card", category: "DISCIPLINE", effects: ["TEMPORARY_SUSPENSION"] }),
+    event({
+      code: "WARNING_CARD",
+      label: "Warning card",
+      category: "DISCIPLINE",
+      actors: [{ role: "THROWER", requiredFrom: null, optional: false, distinctFrom: null }],
+      effects: ["TEMPORARY_SUSPENSION"],
+    }),
     event({
       code: "RINGER_SWAP",
       label: "Ringer swap",
@@ -148,7 +154,7 @@ export const ringball: SportDefinition = {
       limits: ["substitutions.max"],
     }),
     event({ code: "RING_OFF_HIT", label: "Ring-off hit", category: "SCORING", phases: ["SHOOTOUT"], points: 1, side: "OWN", component: "shootout" }),
-    event({ code: "RING_OFF_MISS", label: "Ring-off miss", category: "SCORING", phases: ["SHOOTOUT"] }),
+    event({ code: "RING_OFF_MISS", label: "Ring-off miss", category: "SCORING", phases: ["SHOOTOUT"], points: 0, side: "OWN", component: "shootout" }),
     event({ code: "TURNOVER", label: "Turnover", importance: "DETAILED", coverage: "DETAILED" }),
   ],
   genericEventTypes: [

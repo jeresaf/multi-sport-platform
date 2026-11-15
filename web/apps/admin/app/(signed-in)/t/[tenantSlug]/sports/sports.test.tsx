@@ -104,6 +104,7 @@ describe("sports list", () => {
     open("list", reads, { "GET /api/admin/v1/sports": { status: 200, body: { items: [] } } });
 
     expect(await screen.findByText("No sports yet")).toBeTruthy();
+    expect(screen.getByText("No sports are published yet. Ask the platform team.")).toBeTruthy();
   });
 
   it("is refused without sport.read, and doesn't ask the API", async () => {
@@ -126,6 +127,7 @@ describe("sport variant", () => {
     expect(screen.getByText("Bout (Bouts)")).toBeTruthy();
     expect(screen.getByText("Ringer")).toBeTruthy();
     expect(screen.getByText("Guard: 1, Ringers: at least 2")).toBeTruthy();
+    expect(screen.getByText(/Defaults: a competition's rules can change the numbers/)).toBeTruthy();
     const header = screen.getByRole("heading", { level: 1, name: "Ringball sevens" }).closest("header")!;
     expect(within(header).getByRole("link", { name: "Sports" }).getAttribute("href")).toBe("/t/kmsa/sports");
     expect(requests.find((request) => request.path === "/api/admin/v1/sports/RINGBALL_SEVENS")?.search).toBe("");
@@ -175,16 +177,23 @@ describe("sport variant", () => {
     const facts = within(ring as HTMLElement);
     expect(facts.getByText("Thrower (required from standard coverage); Feeder (optional, not the thrower)")).toBeTruthy();
     expect(facts.getByText("2 to the event's side")).toBeTruthy();
-    expect(facts.getByText("First spell or Second spell")).toBeTruthy();
+    expect(facts.getByText("First spell and Second spell")).toBeTruthy();
     expect(facts.getByText("Reach: one of Near, Far (optional)")).toBeTruthy();
     expect(facts.getByText("Ring voided")).toBeTruthy();
 
     const voided = within(screen.getByRole("heading", { level: 3, name: "Ring voided" }).closest("[data-slot=card]") as HTMLElement);
     expect(
-      voided.getByText("Follows a Ring or Long ring for the same side, in the same period, not already followed up, which it uses up"),
+      voided.getByText("Needs an earlier Ring or Long ring for the same side, in the same period, not already followed up, which it uses up"),
     ).toBeTruthy();
     const hit = within(screen.getByRole("heading", { level: 3, name: "Ring-off hit" }).closest("[data-slot=card]") as HTMLElement);
     expect(hit.getByText("1 to the event's side (shootout score)")).toBeTruthy();
+    const miss = within(screen.getByRole("heading", { level: 3, name: "Ring-off miss" }).closest("[data-slot=card]") as HTMLElement);
+    expect(miss.getByText("No points")).toBeTruthy();
+    const warning = within(screen.getByRole("heading", { level: 3, name: "Warning card" }).closest("[data-slot=card]") as HTMLElement);
+    expect(warning.getByText("Thrower (required)")).toBeTruthy();
+    const swap = within(screen.getByRole("heading", { level: 3, name: "Ringer swap" }).closest("[data-slot=card]") as HTMLElement);
+    expect(swap.getByText("Substitutions: max")).toBeTruthy();
+    expect(swap.getByText("First spell, Interval and Second spell")).toBeTruthy();
 
     expect(cells("Period start")).toEqual(["Period"]);
   });
@@ -220,6 +229,13 @@ describe("sport variant", () => {
     openVariant("tab=history");
 
     expect(await screen.findByRole("tab", { name: "Overview", selected: true })).toBeTruthy();
+  });
+
+  it("is not found for a version that isn't one, without asking the API", async () => {
+    const requests = openVariant("version=latest");
+
+    expect(await screen.findByRole("heading", { name: "Page not found" })).toBeTruthy();
+    expect(requests.some((request) => request.path.startsWith("/api/admin/v1/sports/"))).toBe(false);
   });
 
   it("is not found for an unknown variant", async () => {

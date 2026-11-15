@@ -17,14 +17,14 @@ export function useSportVariants() {
   });
 }
 
-/** A variant's definition: the latest version, or `version` when the address names one. */
-export function useSportDefinition(variant: string, version?: number) {
+/** A variant's definition: the latest version, or `version` when the address names one; `enabled: false` skips it. */
+export function useSportDefinition(variant: string, version?: number, enabled = true) {
   const { client, can } = useTenantWorkspace();
   return useQuery({
     queryKey: ["sports", "definition", variant, version ?? "latest"],
     queryFn: () =>
       call(client.GET("/api/admin/v1/sports/{variant}", { params: { path: { variant }, query: { version } } })),
-    enabled: can("sport.read"),
+    enabled: enabled && can("sport.read"),
     staleTime: Infinity,
   });
 }

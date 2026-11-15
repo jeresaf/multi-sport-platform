@@ -13,9 +13,10 @@ import { useTenantWorkspace } from "@/lib/tenant-workspace";
 import { tenantPath } from "@/lib/workspace";
 import { useSportDefinition } from "../sports-data";
 
-/** `?version=` as a version number; anything else means the latest. */
-function versionParam(value: string | null): number | undefined {
-  return value && /^[1-9][0-9]{0,8}$/.test(value) ? Number(value) : undefined;
+/** `?version=` as a version number: undefined for the latest (no parameter), null for one that isn't a version. */
+function versionParam(value: string | null): number | undefined | null {
+  if (value === null) return undefined;
+  return /^[1-9][0-9]{0,8}$/.test(value) ? Number(value) : null;
 }
 
 /**
@@ -30,12 +31,13 @@ export default function SportVariantPage() {
   const { tenant, can } = useTenantWorkspace();
   const timeZone = useTenantTimeZone();
   const version = versionParam(searchParams.get("version"));
-  const definition = useSportDefinition(variant, version);
+  const definition = useSportDefinition(variant, version ?? undefined, version !== null);
 
   if (!can("sport.read")) {
     return <ForbiddenView />;
   }
-  if (isApiProblem(definition.error, "SPORT_DEFINITION_NOT_FOUND")) {
+  // No such variant or version, or a `?version=` that isn't one (never asked: it can't exist).
+  if (version === null || isApiProblem(definition.error, "SPORT_DEFINITION_NOT_FOUND")) {
     return <NotFoundView />;
   }
 

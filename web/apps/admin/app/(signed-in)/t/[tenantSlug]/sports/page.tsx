@@ -36,9 +36,7 @@ export default function SportsPage() {
       {variants.isPending ? <Loading /> : null}
       {variants.isError ? <ProblemAlert error={variants.error} /> : null}
       {variants.isSuccess && items.length === 0 ? (
-        <EmptyState title="No sports yet">
-          Sports are published by the configuration seed (<code>seed --category CONFIGURATION</code>).
-        </EmptyState>
+        <EmptyState title="No sports yet">No sports are published yet. Ask the platform team.</EmptyState>
       ) : null}
       {items.length > 0 ? (
         <Table>

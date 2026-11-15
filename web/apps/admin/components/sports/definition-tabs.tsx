@@ -53,6 +53,7 @@ export function OverviewTab({ definition }: Props) {
         />
       </ViewerSection>
       <ViewerSection title="Lineup">
+        <p className="text-sm text-muted-foreground">Defaults: a competition&apos;s rules can change the numbers.</p>
         <Facts
           items={[
             ["Starters", lineup.starters],
@@ -84,7 +85,7 @@ export function PeriodsTab({ definition }: Props) {
           <TableHead scope="col">Short</TableHead>
           <TableHead scope="col">Kind</TableHead>
           <TableHead scope="col">Clock</TableHead>
-          <TableHead scope="col">Length</TableHead>
+          <TableHead scope="col">Default length</TableHead>
           <TableHead scope="col">Notes</TableHead>
         </TableRow>
       </TableHeader>
@@ -121,15 +122,17 @@ export function PositionsTab({ definition }: Props) {
     <div className="grid gap-8">
       <ViewerSection title="Positions">
         {groups.length === 0 ? <p className="text-muted-foreground">None</p> : null}
-        <Facts
+        {groups.length > 0 ? (
+          <Facts
           items={groups.map((group) => [
             codeLabel(group),
             definition.positions
               .filter((position) => position.group === group)
               .map((position) => position.label)
               .join(", "),
-          ])}
-        />
+            ])}
+          />
+        ) : null}
       </ViewerSection>
       <ViewerSection title="Roles in events">
         <Table>

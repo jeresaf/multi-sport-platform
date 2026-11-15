@@ -12,12 +12,32 @@ function actorsLabel(event: SportEventType): string {
   return event.actors
     .map((actor) => {
       const notes = [
-        actor.optional ? "optional" : actor.requiredFrom ? `required from ${codeLabel(actor.requiredFrom).toLowerCase()} coverage` : null,
+        actor.optional
+          ? "optional"
+          : actor.requiredFrom
+            ? `required from ${codeLabel(actor.requiredFrom).toLowerCase()} coverage`
+            : "required",
         actor.distinctFrom ? `not the ${codeLabel(actor.distinctFrom).toLowerCase()}` : null,
       ].filter((note) => note !== null);
       return notes.length > 0 ? `${codeLabel(actor.role)} (${notes.join(", ")})` : codeLabel(actor.role);
     })
     .join("; ");
+}
+
+/**
+ * Every period whose kind the event lists, in the definition's order: "First half, Half-time and Second half" (the
+ * schema requires at least one kind; a kind without periods is written as words).
+ */
+function allowedDuring(definition: SportDefinition, event: SportEventType): string {
+  const periods = definition.periods.filter((period) => event.phases.includes(period.kind)).map((period) => period.label);
+  const missing = event.phases.filter((kind) => !definition.periods.some((period) => period.kind === kind));
+  return listLabel([...periods, ...missing.map((kind) => phaseLabel(definition, kind))], "and");
+}
+
+/** A competition rule's path as words: "substitutions.max" → "Substitutions: max". */
+function ruleLabel(path: string): string {
+  const [first = "", ...rest] = path.split(".");
+  return [codeLabel(first), ...rest.map((part) => codeLabel(part).toLowerCase())].join(": ");
 }
 
 function followUpLabel(definition: SportDefinition, event: SportEventType): string | null {
@@ -29,7 +49,7 @@ function followUpLabel(definition: SportDefinition, event: SportEventType): stri
     followUp.unconsumed ? "not already followed up" : null,
   ].filter((condition) => condition !== null);
   const preceding = listLabel(followUp.requiresPreceding.map((code) => eventLabel(definition, code)));
-  return `Follows a ${preceding}${conditions.length > 0 ? ` ${conditions.join(", ")}` : ""}${followUp.consumes ? ", which it uses up" : ""}`;
+  return `Needs an earlier ${preceding}${conditions.length > 0 ? ` ${conditions.join(", ")}` : ""}${followUp.consumes ? ", which it uses up" : ""}`;
 }
 
 function metadataLabel(event: SportEventType): string | null {
@@ -52,14 +72,16 @@ function EventCard({ definition, event }: Props & Readonly<{ event: SportEventTy
   const points =
     event.points === null
       ? null
-      : `${event.points} to the ${event.side === "OPPONENT" ? "opponent" : "event's side"}${
+      : event.points === 0
+        ? "No points"
+        : `${event.points} to the ${event.side === "OPPONENT" ? "opponent" : "event's side"}${
           event.component && event.component !== "main" ? ` (${codeLabel(event.component).toLowerCase()} score)` : ""
         }`;
   const facts: Array<readonly [string, string]> = [
     ["Category", codeLabel(event.category)],
     ["Importance", codeLabel(event.importance)],
     ["Recorded from", `${codeLabel(event.coverage)} coverage`],
-    ["Allowed during", event.phases.length > 0 ? event.phases.map((phase) => phaseLabel(definition, phase)).join(", ") : "Any time"],
+    ["Allowed during", allowedDuring(definition, event)],
     ["Who", actorsLabel(event)],
   ];
   const optional: Array<readonly [string, string | null]> = [
@@ -67,7 +89,7 @@ function EventCard({ definition, event }: Props & Readonly<{ event: SportEventTy
     ["Details", metadataLabel(event)],
     ["Effects", event.effects.length > 0 ? event.effects.map(codeLabel).join(", ") : null],
     ["Follow-up", followUpLabel(definition, event)],
-    ["Limits", event.limits.length > 0 ? event.limits.join(", ") : null],
+    ["Limited by", event.limits.length > 0 ? event.limits.map(ruleLabel).join(", ") : null],
     ["Reversed by", event.reversibleBy.length > 0 ? listLabel(event.reversibleBy.map((code) => eventLabel(definition, code))) : null],
   ];
   return (
