@@ -37,7 +37,7 @@ public sealed class EntitlementCatalogueTests
 
         markdown.ShouldContain("| Code | Name | Type | Unit | Levels | Default | STANDARD | PRO | Enforced by | Actions | Since | Description |\n");
         markdown.ShouldContain("| `MAX_STAFF_USERS` | Staff users | QUOTA | users | — | 0 | 100 | 1000 | Identity & Access | `membership.invite` | S04 |");
-        markdown.ShouldContain("| `MAX_ENABLED_SPORTS` | Enabled sports | QUOTA | sports | — | 0 | 3 | unlimited | Tenancy & Commercial | — | S04 |");
+        markdown.ShouldContain("| `MAX_ENABLED_SPORTS` | Enabled sports | QUOTA | sports | — | 0 | 3 | unlimited | Tenancy & Commercial | `tenant.sport.enable` | S04 |");
         markdown.ShouldContain("| `REPORTS` | Reports | LEVEL | — | `BASIC` < `ADVANCED` | none | BASIC | ADVANCED | Insights | — | S04 |");
         markdown.ShouldContain("| `CUSTOM_DOMAIN` | Custom domain | BOOLEAN | — | — | no | no | yes | Tenancy & Commercial | — | S04 |");
         markdown.ShouldNotContain("\r");
@@ -63,6 +63,7 @@ public sealed class EntitlementCatalogueTests
 
         var sports = entitlements.Single(entitlement => entitlement.GetProperty("code").GetString() == "MAX_ENABLED_SPORTS");
         sports.GetProperty("plans").GetProperty("PRO").GetProperty("limit").ValueKind.ShouldBe(JsonValueKind.Null);
+        sports.GetProperty("actions").EnumerateArray().Select(action => action.GetString()).ShouldBe(["tenant.sport.enable"]);
 
         var reports = entitlements.Single(entitlement => entitlement.GetProperty("code").GetString() == "REPORTS");
         reports.GetProperty("unit").ValueKind.ShouldBe(JsonValueKind.Null);

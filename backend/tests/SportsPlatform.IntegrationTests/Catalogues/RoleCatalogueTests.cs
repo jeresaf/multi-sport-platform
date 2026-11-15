@@ -88,8 +88,8 @@ public sealed class RoleCatalogueTests
         var json = RoleCatalogueExport.ToJson(_roles);
 
         markdown.ShouldContain("**Actions** is what a role grants today; **Description** is the role's purpose");
-        markdown.ShouldContain("| `VIEWER` | TENANT | TENANT | `format.read`, `membership.read`, `ruleset.read`, `sport.read`, `tenant.capabilities.read`, `tenant.settings.read`, `tenant.subscription.read` | Read-only admin. |\n");
-        markdown.ShouldContain("| `SCORER` | TENANT | TENANT, COMPETITION, CONTEST | `format.read`, `ruleset.read`, `sport.read`, `tenant.capabilities.read`, `tenant.settings.read` |");
+        markdown.ShouldContain("| `VIEWER` | TENANT | TENANT | `format.read`, `membership.read`, `ruleset.read`, `sport.read`, `tenant.capabilities.read`, `tenant.settings.read`, `tenant.sport.read`, `tenant.subscription.read` | Read-only admin. |\n");
+        markdown.ShouldContain("| `SCORER` | TENANT | TENANT, COMPETITION, CONTEST | `format.read`, `ruleset.read`, `sport.read`, `tenant.capabilities.read`, `tenant.settings.read`, `tenant.sport.read` |");
         markdown.ShouldContain("| `TEAM_MANAGER` | TENANT | TEAM | — |");
         markdown.ShouldContain("| `PLATFORM_SUPPORT` | PLATFORM | — | `plan.read`, `platform.audit.read`, `platform.capabilities.read`, `platform.outbox.read`, `platform.sport.read`, `subscription.read`, `tenant.read` |");
         markdown.ShouldNotContain("\r");
@@ -106,7 +106,8 @@ public sealed class RoleCatalogueTests
         [
             "format.read", "invitation.revoke", "membership.invite", "membership.read", "membership.remove", "membership.restore",
             "membership.suspend", "role.assign", "role.revoke", "ruleset.read", "sport.read", "tenant.access.read", "tenant.capabilities.read",
-            "tenant.settings.read", "tenant.settings.update", "tenant.subscription.read",
+            "tenant.settings.read", "tenant.settings.update", "tenant.sport.disable", "tenant.sport.enable", "tenant.sport.read",
+            "tenant.subscription.read",
         ]);
     }
 }

@@ -45,17 +45,21 @@ public static class IdentityRoles
     private const string _formatRead = "format.read";
     private const string _rulesetRead = "ruleset.read";
 
+    // Which sport variants the tenant has enabled goes with the sport's words (S05 D14): the same roles (owner, S05-T5a2).
+    private const string _tenantSportRead = "tenant.sport.read";
+
     private static readonly string[] _tenantAdministration =
     [
-        _tenantSettingsRead, _tenantSettingsUpdate, _capabilitiesRead, _sportRead, _formatRead, _rulesetRead,
-        _membershipRead, "membership.suspend", "membership.restore", "membership.remove", "role.assign", "role.revoke",
+        _tenantSettingsRead, _tenantSettingsUpdate, _capabilitiesRead, _sportRead, _formatRead, _rulesetRead, _tenantSportRead,
+        "tenant.sport.enable", "tenant.sport.disable", _membershipRead, "membership.suspend", "membership.restore", "membership.remove", "role.assign", "role.revoke",
         "membership.invite", "invitation.revoke", _subscriptionRead,
     ];
 
     // Only the owner sees a blocked tenant's status and why (S03 D11): the actions available when blocked.
     private static readonly string[] _tenantOwnership = ["tenant.access.read"];
 
-    private static readonly string[] _tenantContext = [_tenantSettingsRead, _capabilitiesRead, _sportRead, _formatRead, _rulesetRead];
+    private static readonly string[] _tenantContext =
+        [_tenantSettingsRead, _capabilitiesRead, _sportRead, _formatRead, _rulesetRead, _tenantSportRead];
 
     private static readonly string[] _platformReads =
     [

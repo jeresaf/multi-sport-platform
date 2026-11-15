@@ -8,6 +8,7 @@ using SportsPlatform.BuildingBlocks.Persistence.Messaging;
 using SportsPlatform.BuildingBlocks.Persistence.Seeding;
 using SportsPlatform.Modules.Tenancy.Contracts.Access;
 using SportsPlatform.Modules.Tenancy.Contracts.Entitlements;
+using SportsPlatform.Modules.Tenancy.Contracts.Sports;
 using SportsPlatform.Modules.Tenancy.Contracts.Tenants;
 using SportsPlatform.Modules.Tenancy.Domain.Domains;
 using SportsPlatform.Modules.Tenancy.Domain.Plans;
@@ -24,6 +25,10 @@ using SportsPlatform.Modules.Tenancy.Features.Settings;
 using SportsPlatform.Modules.Tenancy.Features.Settings.GetTenantSettings;
 using SportsPlatform.Modules.Tenancy.Features.Settings.UpdateTenantSettings;
 using SportsPlatform.Modules.Tenancy.Features.Site.GetSite;
+using SportsPlatform.Modules.Tenancy.Features.Sports;
+using SportsPlatform.Modules.Tenancy.Features.Sports.DisableSport;
+using SportsPlatform.Modules.Tenancy.Features.Sports.EnableSport;
+using SportsPlatform.Modules.Tenancy.Features.Sports.ListTenantSports;
 using SportsPlatform.Modules.Tenancy.Features.Subscriptions;
 using SportsPlatform.Modules.Tenancy.Features.Subscriptions.AssignPeriod;
 using SportsPlatform.Modules.Tenancy.Features.Subscriptions.CancelSubscription;
@@ -46,7 +51,7 @@ namespace SportsPlatform.Modules.Tenancy;
 
 /// <summary>
 /// Tenancy &amp; Commercial: tenants and their lifecycle, domains, settings and the public site (S02); entitlements and plans
-/// subscriptions and overrides (S04) (docs/architecture/modules.md).
+/// subscriptions and overrides (S04); tenant sport enablement (S05) (docs/architecture/modules.md).
 /// </summary>
 public sealed class TenancyModule : IModule
 {
@@ -115,6 +120,14 @@ public sealed class TenancyModule : IModule
         services.AddSingleton<IValidator<GrantOverrideRequest>, GrantOverrideRequestValidator>();
         services.AddScoped<RemoveOverrideHandler>();
         services.AddSingleton<IValidator<RemoveOverrideRequest>, RemoveOverrideRequestValidator>();
+        services.AddScoped<EnabledSports>();
+        services.AddScoped<IEnabledSports>(provider => provider.GetRequiredService<EnabledSports>());
+        services.AddQuotaUsage<EnabledSports>(EnabledSports.Code);
+        services.AddScoped<TenantSportChanges>();
+        services.AddScoped<ListTenantSportsHandler>();
+        services.AddScoped<EnableSportHandler>();
+        services.AddScoped<DisableSportHandler>();
+        services.AddSingleton<IValidator<DisableSportRequest>, DisableSportRequestValidator>();
         services.AddSeeder<PlanSeeder>();
         services.AddSeeder<DemoTenantSeeder>();
         services.AddSeeder<DemoSubscriptionSeeder>();
@@ -139,6 +152,7 @@ public sealed class TenancyModule : IModule
         UpdateTenantSettingsEndpoint.Map(settings);
         GetTenantAccessEndpoint.Map(groups.Admin);
         GetTenantSubscriptionEndpoint.Map(groups.Admin);
+        TenantSportEndpoints.Map(groups.Admin);
         ListPlansEndpoint.Map(PlanEndpoints.Group(groups.Platform));
     }
 }

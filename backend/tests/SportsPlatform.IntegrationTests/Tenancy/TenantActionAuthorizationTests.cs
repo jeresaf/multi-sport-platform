@@ -34,6 +34,9 @@ public sealed class TenantActionAuthorizationTests(PostgresFixture fixture) : Da
         CancelSubscription,
         GrantOverride,
         RemoveOverride,
+        ListTenantSports,
+        EnableSport,
+        DisableSport,
     }
 
     private static readonly ActionDefinition[] _actions =
@@ -43,7 +46,8 @@ public sealed class TenantActionAuthorizationTests(PostgresFixture fixture) : Da
         TenancyActions.TenantSettingsRead, TenancyActions.TenantSettingsUpdate, TenancyActions.TenantAccessRead, TenancyActions.TenantSubscriptionRead,
         TenancyActions.PlanRead, TenancyActions.SubscriptionRead, TenancyActions.SubscriptionAssign, TenancyActions.SubscriptionRenew,
         TenancyActions.SubscriptionChangePlan, TenancyActions.SubscriptionCancel, TenancyActions.EntitlementOverride,
-        TenancyActions.EntitlementOverrideRemove,
+        TenancyActions.EntitlementOverrideRemove, TenancyActions.TenantSportRead, TenancyActions.TenantSportEnable,
+        TenancyActions.TenantSportDisable,
     ];
 
     [Fact]
@@ -77,6 +81,11 @@ public sealed class TenantActionAuthorizationTests(PostgresFixture fixture) : Da
     [InlineData(Endpoint.RenewSubscription, "subscription.renew", HttpStatusCode.Conflict)]
     [InlineData(Endpoint.ChangePlan, "subscription.change_plan", HttpStatusCode.Conflict)]
     [InlineData(Endpoint.CancelSubscription, "subscription.cancel", HttpStatusCode.Conflict)]
+    [InlineData(Endpoint.ListTenantSports, "tenant.sport.read", HttpStatusCode.OK)]
+    [InlineData(Endpoint.EnableSport, "tenant.sport.enable", HttpStatusCode.OK)]
+
+    // Past authorization: the tenant hasn't enabled the variant.
+    [InlineData(Endpoint.DisableSport, "tenant.sport.disable", HttpStatusCode.Conflict)]
     public async Task Allowed(Endpoint endpoint, string action, HttpStatusCode expected)
     {
         // The subscription commands start from no period (assign adds the first); everything else from test data's.
@@ -88,7 +97,10 @@ public sealed class TenantActionAuthorizationTests(PostgresFixture fixture) : Da
         using var response = await SendAsync(endpoint, tenantId);
 
         response.StatusCode.ShouldBe(expected);
-        App.Authorization.Requests.ShouldHaveSingleItem().Action.Code.Value.ShouldBe(action);
+
+        // The sports list (also the answer to a change) asks once more whether to add the quota's usage (S05 D15).
+        string[] asked = endpoint is Endpoint.ListTenantSports or Endpoint.EnableSport ? [action, "tenant.subscription.read"] : [action];
+        App.Authorization.Requests.Select(r => r.Action.Code.Value).ShouldBe(asked);
     }
 
     [Theory]
@@ -113,6 +125,9 @@ public sealed class TenantActionAuthorizationTests(PostgresFixture fixture) : Da
     [InlineData(Endpoint.CancelSubscription, "subscription.change_plan")]
     [InlineData(Endpoint.GrantOverride, "entitlement.override.remove")]
     [InlineData(Endpoint.RemoveOverride, "entitlement.override")]
+    [InlineData(Endpoint.ListTenantSports, "tenant.settings.read")]
+    [InlineData(Endpoint.EnableSport, "tenant.sport.disable")]
+    [InlineData(Endpoint.DisableSport, "tenant.sport.enable")]
     public async Task Denied_without_its_own_action(Endpoint endpoint, string otherAction)
     {
         var status = StatusFor(endpoint);
@@ -142,7 +157,8 @@ public sealed class TenantActionAuthorizationTests(PostgresFixture fixture) : Da
     {
         // A signed-in user (anonymous is 401, S03 D4); tenant actions: a member of the tenant, named in X-Tenant-Id.
         using var client = App.CreateClient().AsUser(TenantTestData.StaffId, tenantId);
-        if (endpoint is Endpoint.GetSettings or Endpoint.UpdateSettings or Endpoint.GetAccess or Endpoint.GetTenantSubscription)
+        if (endpoint is Endpoint.GetSettings or Endpoint.UpdateSettings or Endpoint.GetAccess or Endpoint.GetTenantSubscription
+            or Endpoint.ListTenantSports or Endpoint.EnableSport or Endpoint.DisableSport)
         {
             client.DefaultRequestHeaders.Add("X-Tenant-Id", tenantId.ToString());
         }
@@ -178,6 +194,9 @@ public sealed class TenantActionAuthorizationTests(PostgresFixture fixture) : Da
                 Ct),
             Endpoint.RemoveOverride => await client.PostAsJsonAsync(
                 new Uri($"{tenant}/entitlement-overrides/{Guid.CreateVersion7()}/remove", UriKind.Relative), reason, Ct),
+            Endpoint.ListTenantSports => await client.GetAsync(new Uri(TenantSportRequests.TenantSportsPath, UriKind.Relative), Ct),
+            Endpoint.EnableSport => await client.EnableSportAsync(TenantSportRequests.Football, Ct),
+            Endpoint.DisableSport => await client.DisableSportAsync(TenantSportRequests.Football, Ct),
             Endpoint.GetSettings => await client.GetAsync(new Uri(TenantSettingsTests.SettingsPath, UriKind.Relative), Ct),
             Endpoint.UpdateSettings => await client.PatchAsJsonAsync(
                 new Uri(TenantSettingsTests.SettingsPath, UriKind.Relative), new { startingSoonMinutes = 45 }, Ct),

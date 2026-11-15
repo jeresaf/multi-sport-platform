@@ -152,4 +152,31 @@ public static class TenancyActions
         ActionScope.Platform,
         AuditRequirement.RequiredWithReason,
         since: "S04");
+
+    // S05 D12–D15: the tenant's sport variants. Everyone who reads the sport's words sees which are enabled.
+    public static readonly ActionDefinition TenantSportRead = new(
+        "tenant.sport.read",
+        "View the published sport variants and which the tenant has enabled; with tenant.subscription.read, the sport quota's usage too.",
+        ActionScope.Tenant,
+        AuditRequirement.None,
+        since: "S05",
+        scopableBy: [AssignmentScope.Tenant],
+        availableWhenReadOnly: true);
+
+    public static readonly ActionDefinition TenantSportEnable = new(
+        "tenant.sport.enable",
+        "Enable a sport variant for the tenant, within the plan's enabled sports (two variants of one sport count once).",
+        ActionScope.Tenant,
+        AuditRequirement.Required,
+        since: "S05",
+        scopableBy: [AssignmentScope.Tenant],
+        entitlement: TenancyEntitlements.MaxEnabledSports.Code);
+
+    public static readonly ActionDefinition TenantSportDisable = new(
+        "tenant.sport.disable",
+        "Disable a sport variant for the tenant, with a reason. Nothing that uses it changes; enabling it again is a new enablement.",
+        ActionScope.Tenant,
+        AuditRequirement.RequiredWithReason,
+        since: "S05",
+        scopableBy: [AssignmentScope.Tenant]);
 }
