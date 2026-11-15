@@ -25,13 +25,15 @@ describe("sport definition words", () => {
     expect(eventLabel(ringball, "PERIOD_START")).toBe("Period start");
     expect(eventLabel(ringball, "NOT_DECLARED")).toBe("Not declared");
     expect(phaseLabel(ringball, "SHOOTOUT")).toBe("Ring-off");
-    expect(phaseLabel(ringball, "PLAY")).toBe("First spell or Second spell");
+    expect(phaseLabel(ringball, "PLAY")).toBe("First spell, Second spell or Golden spell");
     expect(phaseLabel({ ...ringball, periods: [] }, "BREAK")).toBe("Break");
   });
 
   it("describes each kind of derivation with the definition's labels", () => {
     expect(derivationLabel(ringball, statistic("RINGS"))).toBe("Counts Ring or Long ring events by Thrower");
     expect(derivationLabel(ringball, statistic("FAR_RINGS"))).toBe("Counts Ring events where reach is Far");
+    // A ratio is `builtin: RATIO` with its parts: read as the parts, not as "Built in: Ratio".
+    expect(statistic("RING_RATE").derive.builtin).toBe("RATIO");
     expect(derivationLabel(ringball, statistic("RING_RATE"))).toBe("Rings divided by Far rings");
     expect(derivationLabel(ringball, statistic("WARNINGS"))).toBe("Entered by hand");
     const sum = { ...statistic("RINGS"), derive: { ...statistic("RINGS").derive, countEvents: [], sumPoints: ["RING"], actorRoles: [] } };

@@ -1,4 +1,12 @@
-import { codeLabel, eventLabel, phaseLabel, type SportDefinition } from "@/lib/sport-definition";
+import { useId } from "react";
+import { codeLabel, eventLabel, listLabel, phaseLabel, type PhaseKind, type SportDefinition } from "@/lib/sport-definition";
+
+/** The periods of the kinds a group shows in, in the definition's order: "First half or Second half". */
+function shownDuring(definition: SportDefinition, phases: readonly PhaseKind[]): string {
+  const periods = definition.periods.filter((period) => phases.includes(period.kind)).map((period) => period.label);
+  const missing = phases.filter((kind) => !definition.periods.some((period) => period.kind === kind));
+  return listLabel([...periods, ...missing.map((kind) => phaseLabel(definition, kind))]);
+}
 
 /**
  * The scorer pad as the definition lays it out (S05 D17, admin-app.md "Pad from metadata"): its groups in order, each
@@ -7,6 +15,7 @@ import { codeLabel, eventLabel, phaseLabel, type SportDefinition } from "@/lib/s
  */
 export function ScorerPadPreview({ definition }: Readonly<{ definition: SportDefinition }>) {
   const pad = definition.scorerPad;
+  const idPrefix = useId();
 
   if (pad.kind !== "BUTTONS") {
     return (
@@ -26,11 +35,9 @@ export function ScorerPadPreview({ definition }: Readonly<{ definition: SportDef
         preview only: nothing here records an event.
       </p>
       {pad.groups.map((group, index) => {
-        const headingId = `scorer-pad-group-${index}`;
+        const headingId = `${idPrefix}-group-${index}`;
         const notes = [
-          group.phases.length > 0
-            ? `Only during ${group.phases.map((phase) => phaseLabel(definition, phase)).join(", ")}`
-            : null,
+          group.phases.length > 0 ? `Only during ${shownDuring(definition, group.phases)}` : null,
           group.coverage ? `From ${codeLabel(group.coverage).toLowerCase()} coverage` : null,
         ].filter((note) => note !== null);
         return (

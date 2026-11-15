@@ -1,6 +1,8 @@
 // A test-only sport definition, invented for the viewer's tests (S05 T5 acceptance: the scorer pad preview is built from
 // the definition, not hard-coded). "Ringball" is no real sport; its words exist only here, so a screen that shows them
-// can only have read them from the definition.
+// can only have read them from the definition. It is a definition the backend's validator would accept
+// (SportDefinitionRules): every reference resolves, a ratio is `builtin: RATIO` with its numerator and denominator,
+// sudden death is an overtime PLAY period, and each tie resolution has the periods it needs.
 import type { SportDefinition, SportVariant } from "@/lib/sport-definition";
 
 export const ringballVariant: SportVariant = {
@@ -50,14 +52,14 @@ export const ringball: SportDefinition = {
     athlete: "Ringer",
     scoreUnit: "Ring",
   },
-  tieResolutions: ["DRAW", "SHOOTOUT"],
+  tieResolutions: ["DRAW", "EXTRA_PERIODS_SUDDEN_DEATH", "SHOOTOUT"],
   periods: [
     {
       code: "FIRST_SPELL",
       label: "First spell",
       shortLabel: "S1",
       kind: "PLAY",
-      clock: "COUNT_DOWN",
+      clock: "COUNT_UP",
       defaultSeconds: 600,
       clockStartsAtSeconds: null,
       allowsAddedTime: false,
@@ -83,13 +85,26 @@ export const ringball: SportDefinition = {
       label: "Second spell",
       shortLabel: "S2",
       kind: "PLAY",
-      clock: "COUNT_DOWN",
+      clock: "COUNT_UP",
       defaultSeconds: 600,
-      clockStartsAtSeconds: null,
+      clockStartsAtSeconds: 600,
       allowsAddedTime: true,
       overtime: false,
       repeatable: false,
       suddenDeath: false,
+    },
+    {
+      code: "GOLDEN_SPELL",
+      label: "Golden spell",
+      shortLabel: "GS",
+      kind: "PLAY",
+      clock: "COUNT_UP",
+      defaultSeconds: 300,
+      clockStartsAtSeconds: null,
+      allowsAddedTime: false,
+      overtime: true,
+      repeatable: false,
+      suddenDeath: true,
     },
     {
       code: "RING_OFF",
@@ -102,7 +117,7 @@ export const ringball: SportDefinition = {
       allowsAddedTime: false,
       overtime: true,
       repeatable: false,
-      suddenDeath: true,
+      suddenDeath: false,
     },
   ],
   actorRoles: {
@@ -124,7 +139,10 @@ export const ringball: SportDefinition = {
         { role: "THROWER", requiredFrom: "STANDARD", optional: false, distinctFrom: null },
         { role: "FEEDER", requiredFrom: null, optional: true, distinctFrom: "THROWER" },
       ],
-      metadata: { reach: { type: "CHOICE", values: ["NEAR", "FAR"], min: null, max: null, optional: true } },
+      metadata: {
+        reach: { type: "CHOICE", values: ["NEAR", "FAR"], min: null, max: null, optional: true },
+        clean: { type: "FLAG", values: [], min: null, max: null, optional: true },
+      },
       reversibleBy: ["RING_VOIDED"],
     }),
     event({ code: "LONG_RING", label: "Long ring", category: "SCORING", importance: "KEY", points: 3, side: "OWN", component: "main" }),
@@ -211,7 +229,7 @@ export const ringball: SportDefinition = {
       aggregation: "RATIO",
       higherIsBetter: true,
       coverage: "DETAILED",
-      derive: { countEvents: [], sumPoints: [], actorRoles: [], where: {}, builtin: null, numerator: "RINGS", denominator: "FAR_RINGS", manual: false },
+      derive: { countEvents: [], sumPoints: [], actorRoles: [], where: {}, builtin: "RATIO", numerator: "RINGS", denominator: "FAR_RINGS", manual: false },
     },
     {
       code: "WARNINGS",

@@ -56,8 +56,14 @@ export default function SportVariantPage() {
     </Link>
   );
 
-  if (definition.isPending) return <Loading />;
-  if (definition.isError) return <ProblemAlert error={definition.error} />;
+  if (definition.isPending || definition.isError) {
+    return (
+      <section className="grid gap-4">
+        {back}
+        {definition.isPending ? <Loading /> : <ProblemAlert error={definition.error} />}
+      </section>
+    );
+  }
   return (
     <SportViewer
       definition={definition.data}

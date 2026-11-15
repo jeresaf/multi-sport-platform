@@ -55,6 +55,30 @@ describe("scorer pad preview", () => {
     expect(groups()).toEqual([{ label: "Only rings", buttons: ["Long ring", "Clean ring"] }]);
   });
 
+  it("names every period a group shows in, in the definition's order", () => {
+    const pad: SportDefinition["scorerPad"] = {
+      kind: "BUTTONS",
+      groups: [{ label: "In play", buttons: ["RING"], phases: ["SHOOTOUT", "PLAY"], coverage: null }],
+    };
+    render(<ScorerPadPreview definition={{ ...ringball, scorerPad: pad }} />);
+
+    expect(screen.getByText("Only during First spell, Second spell, Golden spell or Ring-off")).toBeTruthy();
+  });
+
+  it("gives each group a heading id of its own, also with two previews on a page", () => {
+    render(
+      <>
+        <ScorerPadPreview definition={ringball} />
+        <ScorerPadPreview definition={ringball} />
+      </>,
+    );
+
+    const ids = screen.getAllByRole("heading").map((heading) => heading.id);
+    expect(ids).toHaveLength(8);
+    expect(new Set(ids).size).toBe(8);
+    expect(screen.getAllByRole("region", { name: "Ring-off" })).toHaveLength(2);
+  });
+
   it("says a pad kind it can't draw isn't available, instead of drawing one", () => {
     render(<ScorerPadPreview definition={{ ...ringball, scorerPad: { kind: "DELIVERY_PAD", groups: [] } }} />);
 

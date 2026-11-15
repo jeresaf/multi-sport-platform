@@ -84,10 +84,11 @@ export function derivationLabel(definition: SportDefinition, statistic: SportSta
   const statisticLabel = (code: string) => definition.statistics.find((s) => s.code === code)?.label ?? codeLabel(code);
 
   if (derive.manual) return "Entered by hand";
-  if (derive.builtin) return `Built in: ${codeLabel(derive.builtin)}`;
+  // A ratio is `builtin: RATIO` with its numerator and denominator (the definition validator's rule).
   if (derive.numerator && derive.denominator) {
     return `${statisticLabel(derive.numerator)} divided by ${statisticLabel(derive.denominator)}`;
   }
+  if (derive.builtin) return `Built in: ${codeLabel(derive.builtin)}`;
 
   const parts: string[] = [];
   if (derive.countEvents.length > 0) parts.push(`Counts ${events(derive.countEvents)} events`);

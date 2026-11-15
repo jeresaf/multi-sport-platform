@@ -5,6 +5,7 @@ import Link from "next/link";
 import { EmptyState } from "@/components/empty-state";
 import { Loading } from "@/components/loading";
 import { ProblemAlert } from "@/components/problem-alert";
+import { RowName, wide } from "@/components/sports/facts";
 import { ForbiddenView } from "@/components/status-page";
 import { codeLabel } from "@/lib/sport-definition";
 import { useTenantWorkspace } from "@/lib/tenant-workspace";
@@ -44,26 +45,41 @@ export default function SportsPage() {
             <TableRow>
               <TableHead scope="col">Name</TableHead>
               <TableHead scope="col">Sport</TableHead>
-              <TableHead scope="col">Scoring family</TableHead>
-              <TableHead scope="col">Shape</TableHead>
-              <TableHead scope="col">Latest version</TableHead>
+              <TableHead scope="col" className={wide}>
+                Scoring family
+              </TableHead>
+              <TableHead scope="col" className={wide}>
+                Shape
+              </TableHead>
+              <TableHead scope="col" className={wide}>
+                Latest version
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {items.map((item) => (
               <TableRow key={item.variant}>
-                <TableHead scope="row" className="font-medium">
-                  <Link
-                    href={`${tenantPath(tenant.slug)}/sports/${encodeURIComponent(item.variant)}`}
-                    className="inline-flex min-h-11 items-center text-primary underline-offset-4 hover:underline"
-                  >
-                    {item.name}
-                  </Link>
+                <TableHead scope="row" className="h-auto py-2 align-top whitespace-normal">
+                  <RowName
+                    name={
+                      <Link
+                        href={`${tenantPath(tenant.slug)}/sports/${encodeURIComponent(item.variant)}`}
+                        className="inline-flex min-h-11 items-center text-primary underline-offset-4 hover:underline"
+                      >
+                        {item.name}
+                      </Link>
+                    }
+                    details={[
+                      ["Scoring family", codeLabel(item.scoringFamily)],
+                      ["Shape", codeLabel(item.shape)],
+                      ["Latest version", item.latestVersion],
+                    ]}
+                  />
                 </TableHead>
-                <TableCell>{codeLabel(item.sport)}</TableCell>
-                <TableCell>{codeLabel(item.scoringFamily)}</TableCell>
-                <TableCell>{codeLabel(item.shape)}</TableCell>
-                <TableCell>{item.latestVersion}</TableCell>
+                <TableCell className="align-top">{codeLabel(item.sport)}</TableCell>
+                <TableCell className={wide}>{codeLabel(item.scoringFamily)}</TableCell>
+                <TableCell className={wide}>{codeLabel(item.shape)}</TableCell>
+                <TableCell className={wide}>{item.latestVersion}</TableCell>
               </TableRow>
             ))}
           </TableBody>

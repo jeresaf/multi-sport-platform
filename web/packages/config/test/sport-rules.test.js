@@ -36,14 +36,28 @@ describe("sport codes", () => {
 });
 
 describe("ESLint sport-literal rule (S05 D6)", () => {
-  it.each([['export const a = "FOOTBALL";'], ["export const a = `FOOTBALL_ASSOCIATION`;"], ['if (v === "FOOTBALL") {}'], ["export const byCode = { FOOTBALL: 1 };"]])(
+  it.each([
+    ['export const a = "FOOTBALL";'],
+    ["export const a = `FOOTBALL_ASSOCIATION`;"],
+    ['if (v === "FOOTBALL") {}'],
+    ["export const byCode = { FOOTBALL: 1 };"],
+    ["export enum Sport { FOOTBALL }"],
+    ["export class A { FOOTBALL = 1; }"],
+    ["export const r = renderers.FOOTBALL_ASSOCIATION;"],
+  ])(
     "rejects %s",
     async (code) => {
       expect(sportLiteral(await ruleMessages(code))).toBe(1);
     },
   );
 
-  it.each([['export const a = "FOOTBALL_PITCH";'], ['export const a = "football";'], ['export const a = "Football";'], ["export const a = { football: 1 }; a.FOOTBALL_PITCH = 2;"]])(
+  it.each([
+    ['export const a = "FOOTBALL_PITCH";'],
+    ['export const a = "football";'],
+    ['export const a = "Football";'],
+    ["export const a = { football: 1 }; a.FOOTBALL_PITCH = 2;"],
+    ["export const r = renderers.ADDITIVE;"],
+  ])(
     "accepts %s",
     async (code) => {
       expect(sportLiteral(await ruleMessages(code))).toBe(0);

@@ -156,11 +156,11 @@ user's capabilities (docs/architecture/authorization.md); the server still enfor
 - **A variant** (`/t/{slug}/sports/{variant}`): a header with the name, sport, version, publication date (tenant time
   zone) and content hash, then tabs **Overview** (terminology, contest, lineup; the lineup numbers and period lengths
   are shown as defaults a competition's rules can change), **Periods**, **Events** (one card per
-  event: who takes part, required or optional and from which coverage, the periods it may be recorded in, points ("No
+  event: who takes part, required or optional and from which coverage, the periods it may be recorded in, points (defaults a competition's rules can change; "No
   points" for 0), details, effects, what it needs before it, the rules limiting it, what reverses it; then the events every sport has), **Positions & roles** (positions by group, roles in events,
   staff, officials), **Statistics** (how each is worked out, in words from the definition's labels) and **Scorer pad**.
   The tab is in the address (`?tab=`, the overview for a missing or unknown one) and `?version=` opens an older
-  version; an unknown variant or version, or a `?version=` that isn't a version number, is "Page not found". On a phone the tab list wraps onto more rows.
+  version; an unknown variant or version, or a `?version=` that isn't a version number, is "Page not found". On a phone the tab list wraps onto more rows, and tables keep only their main columns: the others' values are stacked under the row's name (the Members pattern). An empty list says "None".
 - **Scorer pad preview:** the definition's `scorer_pad` groups in order, each button labelled by its event (a generic
   event by its generic label), a group's phases written as the definition's period labels ("Only during …") and its
   coverage ("From detailed coverage"). The buttons are list items, not controls: the preview records nothing. A pad kind
@@ -170,8 +170,9 @@ user's capabilities (docs/architecture/authorization.md); the server still enfor
   on"). The viewer (`components/sports`) takes the definition rather than reading it, so the console's Sports (T5b2)
   reuses it.
 - **No sport codes in app code:** ESLint (`@msp/config`'s `apps` config) refuses a string literal equal to a sport or
-  variant code from docs/domain/sports, or an object key naming one, in `apps/**`, except under `renderers/` and in tests
-  (S05 D6).
+  variant code from docs/domain/sports, or a name that is one (object key, class field, enum member, property read such
+  as `renderers.FOOTBALL`), in `apps/**`, except under `renderers/` and in tests (S05 D6). Not caught: a code inside JSX
+  text or built from parts.
 
 ## Workspaces and screens
 

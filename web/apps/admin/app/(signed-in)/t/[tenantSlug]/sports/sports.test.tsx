@@ -1,7 +1,7 @@
 // Tenant workspace → Sports: the published variants, and a variant's definition in tabs (S05 D17), all read from the
 // API and shown in the definition's own words; only for whoever holds `sport.read`. The definition is a test-only one
 // (test/sport-definitions.ts), so every sport word on screen must have come from it.
-import { act, cleanup, fireEvent, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { tenantCapabilities } from "@/test/capabilities";
 import { fakeApi, problem, renderWithQuery, type Answer, type Answers } from "@/test/render";
@@ -71,7 +71,9 @@ function openVariant(search = "", actions = reads, answers: Answers = {}) {
   return open("variant", actions, answers);
 }
 
-const rowOf = (name: string) => screen.getByRole("rowheader", { name }).closest("tr")!;
+// A row header holds the row's name, then (for a phone) the values of its wide columns: find it by its name.
+const rowOf = (name: string) =>
+  screen.getAllByRole("rowheader").find((header) => (header.firstElementChild ?? header).textContent === name)!.closest("tr")!;
 const cells = (name: string) =>
   within(rowOf(name))
     .getAllByRole("cell")
@@ -164,10 +166,15 @@ describe("sport variant", () => {
     openVariant("tab=periods");
 
     await screen.findByRole("tab", { name: "Periods", selected: true });
-    expect(cells("First spell")).toEqual(["S1", "Play", "Counts down", "10 min", "—"]);
+    expect(cells("First spell")).toEqual(["S1", "Play", "Counts up", "10 min", "—"]);
     expect(cells("Interval")).toEqual(["INT", "Break", "No clock", "1 min 30 s", "—"]);
-    expect(cells("Second spell")).toEqual(["S2", "Play", "Counts down", "10 min", "Added time"]);
-    expect(cells("Ring-off")).toEqual(["RO", "Shootout", "No clock", "—", "Overtime, Sudden death"]);
+    expect(cells("Second spell")).toEqual(["S2", "Play", "Counts up", "10 min", "Added time, Clock starts at 10 min"]);
+    expect(cells("Golden spell")).toEqual(["GS", "Play", "Counts up", "5 min", "Overtime, Sudden death"]);
+    expect(cells("Ring-off")).toEqual(["RO", "Shootout", "No clock", "—", "Overtime"]);
+    // On a phone the row's name carries the wide columns' values (they are hidden there).
+    expect(rowOf("Second spell").querySelector("th dl")?.textContent).toBe(
+      "Short: S2Kind: PlayClock: Counts upNotes: Added time, Clock starts at 10 min",
+    );
   });
 
   it("shows each event with who takes part, when, its points and follow-up, then the generic events", async () => {
@@ -177,8 +184,9 @@ describe("sport variant", () => {
     const facts = within(ring as HTMLElement);
     expect(facts.getByText("Thrower (required from standard coverage); Feeder (optional, not the thrower)")).toBeTruthy();
     expect(facts.getByText("2 to the event's side")).toBeTruthy();
-    expect(facts.getByText("First spell and Second spell")).toBeTruthy();
-    expect(facts.getByText("Reach: one of Near, Far (optional)")).toBeTruthy();
+    expect(facts.getByText("First spell, Second spell and Golden spell")).toBeTruthy();
+    expect(facts.getByText("Reach: one of Near, Far (optional); Clean: yes or no (optional)")).toBeTruthy();
+    expect(screen.getByText("Points are defaults: a competition's rules can change them.")).toBeTruthy();
     expect(facts.getByText("Ring voided")).toBeTruthy();
 
     const voided = within(screen.getByRole("heading", { level: 3, name: "Ring voided" }).closest("[data-slot=card]") as HTMLElement);
@@ -193,7 +201,7 @@ describe("sport variant", () => {
     expect(warning.getByText("Thrower (required)")).toBeTruthy();
     const swap = within(screen.getByRole("heading", { level: 3, name: "Ringer swap" }).closest("[data-slot=card]") as HTMLElement);
     expect(swap.getByText("Substitutions: max")).toBeTruthy();
-    expect(swap.getByText("First spell, Interval and Second spell")).toBeTruthy();
+    expect(swap.getByText("First spell, Interval, Second spell and Golden spell")).toBeTruthy();
 
     expect(cells("Period start")).toEqual(["Period"]);
   });
@@ -215,6 +223,7 @@ describe("sport variant", () => {
     await screen.findByRole("tab", { name: "Statistics", selected: true });
     expect(cells("Rings")).toEqual(["Counts Ring or Long ring events by Thrower", "Player, Team", "Sum", "Higher", "Standard"]);
     expect(cells("Warnings")).toEqual(["Entered by hand", "Player", "Sum", "Lower", "Basic"]);
+    expect(cells("Ring rate")).toEqual(["Rings divided by Far rings", "Team", "Ratio", "Higher", "Detailed"]);
   });
 
   it("previews the scorer pad from the definition", async () => {
@@ -252,13 +261,14 @@ describe("sport variant", () => {
     });
 
     expect(await screen.findByText("Reference: kmsa-admin.test")).toBeTruthy();
+    // The way back stays while the page can't show the definition.
+    expect(within(screen.getByRole("main")).getByRole("link", { name: "Sports" }).getAttribute("href")).toBe("/t/kmsa/sports");
   });
 
-  it("is refused without sport.read", async () => {
-    await act(async () => {
-      openVariant("", ["tenant.settings.read"]);
-    });
+  it("is refused without sport.read, and doesn't ask the API", async () => {
+    const requests = openVariant("", ["tenant.settings.read"]);
 
     expect(await screen.findByRole("heading", { name: "You can't open this page" })).toBeTruthy();
+    expect(requests.some((request) => request.path.startsWith("/api/admin/v1/sports"))).toBe(false);
   });
 });

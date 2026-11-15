@@ -62,7 +62,11 @@ function metadataLabel(event: SportEventType): string | null {
           ? `one of ${field.values.map(codeLabel).join(", ")}`
           : field.type === "NUMBER" && (field.min !== null || field.max !== null)
             ? `a number ${field.min ?? "…"}–${field.max ?? "…"}`
-            : codeLabel(field.type).toLowerCase();
+            : field.type === "FLAG"
+              ? "yes or no"
+              : field.type === "NUMBER"
+                ? "a number"
+                : "text";
       return `${codeLabel(code)}: ${detail}${field.optional ? " (optional)" : ""}`;
     })
     .join("; ");
@@ -109,6 +113,7 @@ function EventCard({ definition, event }: Props & Readonly<{ event: SportEventTy
 export function EventsTab({ definition }: Props) {
   return (
     <div className="grid gap-8">
+      <p className="text-sm text-muted-foreground">Points are defaults: a competition&apos;s rules can change them.</p>
       <div className="grid gap-4 desktop:grid-cols-2">
         {definition.eventTypes.map((event) => (
           <EventCard key={event.code} definition={definition} event={event} />

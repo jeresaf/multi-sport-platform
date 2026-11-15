@@ -11,7 +11,7 @@ import {
   sideLabel,
   type SportDefinition,
 } from "@/lib/sport-definition";
-import { Facts, orNone, ViewerSection } from "./facts";
+import { Facts, NoneOr, orNone, RowName, ViewerSection, wide } from "./facts";
 
 type Props = Readonly<{ definition: SportDefinition }>;
 
@@ -78,108 +78,131 @@ export function OverviewTab({ definition }: Props) {
 
 export function PeriodsTab({ definition }: Props) {
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead scope="col">Period</TableHead>
-          <TableHead scope="col">Short</TableHead>
-          <TableHead scope="col">Kind</TableHead>
-          <TableHead scope="col">Clock</TableHead>
-          <TableHead scope="col">Default length</TableHead>
-          <TableHead scope="col">Notes</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {definition.periods.map((period) => {
-          const notes = [
-            period.allowsAddedTime ? "Added time" : null,
-            period.overtime ? "Overtime" : null,
-            period.repeatable ? "Repeatable" : null,
-            period.suddenDeath ? "Sudden death" : null,
-            period.clockStartsAtSeconds ? `Clock starts at ${formatSeconds(period.clockStartsAtSeconds)}` : null,
-          ].filter((note) => note !== null);
-          return (
-            <TableRow key={period.code}>
-              <TableHead scope="row" className="font-medium">
-                {period.label}
-              </TableHead>
-              <TableCell>{period.shortLabel}</TableCell>
-              <TableCell>{codeLabel(period.kind)}</TableCell>
-              <TableCell>{clockLabel(period.clock)}</TableCell>
-              <TableCell>{period.defaultSeconds ? formatSeconds(period.defaultSeconds) : "—"}</TableCell>
-              <TableCell className="whitespace-normal">{notes.length > 0 ? notes.join(", ") : "—"}</TableCell>
-            </TableRow>
-          );
-        })}
-      </TableBody>
-    </Table>
+    <NoneOr empty={definition.periods.length === 0}>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead scope="col">Period</TableHead>
+            <TableHead scope="col" className={wide}>
+              Short
+            </TableHead>
+            <TableHead scope="col" className={wide}>
+              Kind
+            </TableHead>
+            <TableHead scope="col" className={wide}>
+              Clock
+            </TableHead>
+            <TableHead scope="col">Default length</TableHead>
+            <TableHead scope="col" className={wide}>
+              Notes
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {definition.periods.map((period) => {
+            const notes = [
+              period.allowsAddedTime ? "Added time" : null,
+              period.overtime ? "Overtime" : null,
+              period.repeatable ? "Repeatable" : null,
+              period.suddenDeath ? "Sudden death" : null,
+              period.clockStartsAtSeconds ? `Clock starts at ${formatSeconds(period.clockStartsAtSeconds)}` : null,
+            ].filter((note) => note !== null);
+            const noteText = notes.length > 0 ? notes.join(", ") : "—";
+            return (
+              <TableRow key={period.code}>
+                <TableHead scope="row" className="h-auto py-2 align-top whitespace-normal">
+                  <RowName
+                    name={period.label}
+                    details={[
+                      ["Short", period.shortLabel],
+                      ["Kind", codeLabel(period.kind)],
+                      ["Clock", clockLabel(period.clock)],
+                      ...(notes.length > 0 ? [["Notes", noteText] as const] : []),
+                    ]}
+                  />
+                </TableHead>
+                <TableCell className={wide}>{period.shortLabel}</TableCell>
+                <TableCell className={wide}>{codeLabel(period.kind)}</TableCell>
+                <TableCell className={wide}>{clockLabel(period.clock)}</TableCell>
+                <TableCell className="align-top">{period.defaultSeconds ? formatSeconds(period.defaultSeconds) : "—"}</TableCell>
+                <TableCell className={`${wide} whitespace-normal`}>{noteText}</TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </NoneOr>
   );
 }
 
 export function PositionsTab({ definition }: Props) {
   const groups = [...new Set(definition.positions.map((position) => position.group))];
+  const roles = Object.entries(definition.actorRoles);
   return (
     <div className="grid gap-8">
       <ViewerSection title="Positions">
-        {groups.length === 0 ? <p className="text-muted-foreground">None</p> : null}
-        {groups.length > 0 ? (
+        <NoneOr empty={groups.length === 0}>
           <Facts
-          items={groups.map((group) => [
-            codeLabel(group),
-            definition.positions
-              .filter((position) => position.group === group)
-              .map((position) => position.label)
-              .join(", "),
+            items={groups.map((group) => [
+              codeLabel(group),
+              definition.positions
+                .filter((position) => position.group === group)
+                .map((position) => position.label)
+                .join(", "),
             ])}
           />
-        ) : null}
+        </NoneOr>
       </ViewerSection>
       <ViewerSection title="Roles in events">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead scope="col">Role</TableHead>
-              <TableHead scope="col">Who</TableHead>
-              <TableHead scope="col">Side</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {Object.entries(definition.actorRoles).map(([code, role]) => (
-              <TableRow key={code}>
-                <TableHead scope="row" className="font-medium">
-                  {codeLabel(code)}
-                </TableHead>
-                <TableCell>{poolLabel(role.who)}</TableCell>
-                <TableCell>{sideLabel(role.side)}</TableCell>
+        <NoneOr empty={roles.length === 0}>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead scope="col">Role</TableHead>
+                <TableHead scope="col">Who</TableHead>
+                <TableHead scope="col">Side</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {roles.map(([code, role]) => (
+                <TableRow key={code}>
+                  <TableHead scope="row" className="font-medium">
+                    {codeLabel(code)}
+                  </TableHead>
+                  <TableCell>{poolLabel(role.who)}</TableCell>
+                  <TableCell>{sideLabel(role.side)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </NoneOr>
       </ViewerSection>
       <ViewerSection title="Staff roles">
         <p>{orNone(definition.staffRoles.map((role) => role.label))}</p>
       </ViewerSection>
       <ViewerSection title="Officials">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead scope="col">Official</TableHead>
-              <TableHead scope="col">Minimum by default</TableHead>
-              <TableHead scope="col">Most</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {definition.officialRoles.map((role) => (
-              <TableRow key={role.code}>
-                <TableHead scope="row" className="font-medium">
-                  {role.label}
-                </TableHead>
-                <TableCell>{role.defaultMinimum}</TableCell>
-                <TableCell>{role.max ?? "No limit"}</TableCell>
+        <NoneOr empty={definition.officialRoles.length === 0}>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead scope="col">Official</TableHead>
+                <TableHead scope="col">Minimum by default</TableHead>
+                <TableHead scope="col">Most</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {definition.officialRoles.map((role) => (
+                <TableRow key={role.code}>
+                  <TableHead scope="row" className="font-medium">
+                    {role.label}
+                  </TableHead>
+                  <TableCell>{role.defaultMinimum}</TableCell>
+                  <TableCell>{role.max ?? "No limit"}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </NoneOr>
       </ViewerSection>
     </div>
   );
@@ -187,31 +210,53 @@ export function PositionsTab({ definition }: Props) {
 
 export function StatisticsTab({ definition }: Props) {
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead scope="col">Statistic</TableHead>
-          <TableHead scope="col">How it&apos;s worked out</TableHead>
-          <TableHead scope="col">Kept for</TableHead>
-          <TableHead scope="col">Aggregation</TableHead>
-          <TableHead scope="col">Better</TableHead>
-          <TableHead scope="col">Coverage</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {definition.statistics.map((statistic) => (
-          <TableRow key={statistic.code}>
-            <TableHead scope="row" className="font-medium">
-              {statistic.label}
+    <NoneOr empty={definition.statistics.length === 0}>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead scope="col">Statistic</TableHead>
+            <TableHead scope="col">How it&apos;s worked out</TableHead>
+            <TableHead scope="col" className={wide}>
+              Kept for
             </TableHead>
-            <TableCell className="min-w-56 whitespace-normal">{derivationLabel(definition, statistic)}</TableCell>
-            <TableCell>{statistic.scopes.map(codeLabel).join(", ")}</TableCell>
-            <TableCell>{aggregationLabel(statistic.aggregation)}</TableCell>
-            <TableCell>{statistic.higherIsBetter ? "Higher" : "Lower"}</TableCell>
-            <TableCell>{codeLabel(statistic.coverage)}</TableCell>
+            <TableHead scope="col" className={wide}>
+              Aggregation
+            </TableHead>
+            <TableHead scope="col" className={wide}>
+              Better
+            </TableHead>
+            <TableHead scope="col" className={wide}>
+              Coverage
+            </TableHead>
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHeader>
+        <TableBody>
+          {definition.statistics.map((statistic) => {
+            const keptFor = statistic.scopes.map(codeLabel).join(", ");
+            const better = statistic.higherIsBetter ? "Higher" : "Lower";
+            return (
+              <TableRow key={statistic.code}>
+                <TableHead scope="row" className="h-auto py-2 align-top whitespace-normal">
+                  <RowName
+                    name={statistic.label}
+                    details={[
+                      ["Kept for", keptFor],
+                      ["Aggregation", aggregationLabel(statistic.aggregation)],
+                      ["Better", better],
+                      ["Coverage", codeLabel(statistic.coverage)],
+                    ]}
+                  />
+                </TableHead>
+                <TableCell className="align-top whitespace-normal tablet:min-w-56">{derivationLabel(definition, statistic)}</TableCell>
+                <TableCell className={wide}>{keptFor}</TableCell>
+                <TableCell className={wide}>{aggregationLabel(statistic.aggregation)}</TableCell>
+                <TableCell className={wide}>{better}</TableCell>
+                <TableCell className={wide}>{codeLabel(statistic.coverage)}</TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </NoneOr>
   );
 }
