@@ -337,6 +337,24 @@
       "owner": "Tenancy"
     },
     {
+      "code": "TENANT_SPORT_ALREADY_ENABLED",
+      "status": 409,
+      "message": "The tenant has already enabled this sport variant.",
+      "owner": "Tenancy"
+    },
+    {
+      "code": "TENANT_SPORT_NOT_ENABLED",
+      "status": 409,
+      "message": "The tenant hasn't enabled this sport variant.",
+      "owner": "Tenancy"
+    },
+    {
+      "code": "TENANT_SPORT_VARIANT_UNKNOWN",
+      "status": 400,
+      "message": "No published sport variant has this code.",
+      "owner": "Tenancy"
+    },
+    {
       "code": "TENANT_SUBSCRIPTION_DOWNGRADE_AT_RENEWAL",
       "status": 409,
       "message": "The plan can only change now to a higher plan. Choose a lower plan when renewing.",
