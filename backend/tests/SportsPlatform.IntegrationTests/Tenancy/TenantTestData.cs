@@ -9,6 +9,7 @@ using SportsPlatform.Modules.Tenancy.Contracts.Tenants;
 using SportsPlatform.Modules.Tenancy.Domain.Domains;
 using SportsPlatform.Modules.Tenancy.Domain.Plans;
 using SportsPlatform.Modules.Tenancy.Domain.Settings;
+using SportsPlatform.Modules.Tenancy.Domain.Sports;
 using SportsPlatform.Modules.Tenancy.Domain.Subscriptions;
 using SportsPlatform.Modules.Tenancy.Domain.Tenants;
 using SportsPlatform.Modules.Tenancy.Infrastructure;
@@ -191,6 +192,21 @@ internal static class TenantTestData
         context.Add(period);
         await context.SaveChangesAsync(cancellationToken);
         return period.Id;
+    }
+
+    /// <summary>
+    /// Enables <paramref name="variant"/> for the tenant (S05 D19), by the platform's staff member, without the quota
+    /// check or the audit of <c>tenant.sport.enable</c>; saved under that tenant.
+    /// </summary>
+    public static async Task<Guid> EnableSportAsync(IServiceProvider services, Guid tenantId, string variant, CancellationToken cancellationToken)
+    {
+        await using var scope = services.CreateAsyncScope();
+        scope.ServiceProvider.GetRequiredService<TenantContext>().Set(tenantId);
+        var context = scope.ServiceProvider.GetRequiredService<TenancyDbContext>();
+        var sport = TenantSport.Enable(variant, new UserActor(StaffId), new DateTimeOffset(2026, 10, 1, 8, 0, 0, TimeSpan.Zero));
+        context.Add(sport);
+        await context.SaveChangesAsync(cancellationToken);
+        return sport.Id;
     }
 
     /// <summary>Changes a saved tenant through its domain methods, under that tenant (its status history is tenant-owned).</summary>

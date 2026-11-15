@@ -13,6 +13,7 @@ using SportsPlatform.Modules.Identity.Infrastructure.Users;
 using SportsPlatform.Modules.Tenancy.Contracts.Subscriptions;
 using SportsPlatform.Modules.Tenancy.Domain.Entitlements;
 using SportsPlatform.Modules.Tenancy.Domain.Settings;
+using SportsPlatform.Modules.Tenancy.Domain.Sports;
 using SportsPlatform.Modules.Tenancy.Domain.Subscriptions;
 using SportsPlatform.Modules.Tenancy.Domain.Tenants;
 
@@ -49,6 +50,7 @@ public static class IsolationSamples
         new TenantSettingsSample(),
         new SubscriptionPeriodSample(),
         new EntitlementOverrideSample(),
+        new TenantSportSample(),
         new TenantProbeSample(),
         new TenantProbeNoteSample(),
         new ConsumedNoteSample(),
@@ -129,6 +131,24 @@ public static class IsolationSamples
             context.AddRange(tenant, entitlementOverride);
             context.Entry(entitlementOverride).Property(o => o.TenantId).CurrentValue = tenant.Id;
             return entitlementOverride;
+        }
+
+        public Entity? Referencing(IForeignKey foreignKey, Guid principalId) => null;
+    }
+
+    private sealed class TenantSportSample : IIsolationSample
+    {
+        public Type EntityType => typeof(TenantSport);
+
+        public Entity Add(DbContext context)
+        {
+            var profile = new TenantProfile("Eastern Lakes Schools Sports Council", "ELSSC", "UG");
+            var now = new DateTimeOffset(2026, 11, 15, 8, 0, 0, TimeSpan.Zero);
+            var tenant = Tenant.Create("elssc", profile, SystemActor.Instance, now);
+            var sport = TenantSport.Enable("FOOTBALL_ASSOCIATION", SystemActor.Instance, now);
+            context.AddRange(tenant, sport);
+            context.Entry(sport).Property(s => s.TenantId).CurrentValue = tenant.Id;
+            return sport;
         }
 
         public Entity? Referencing(IForeignKey foreignKey, Guid principalId) => null;
