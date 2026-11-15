@@ -30,6 +30,9 @@ public sealed class TenantSportChanges(TenancyDbContext context, ISportDefinitio
         var tenantId = tenantContext.TenantId ?? throw new InvalidOperationException("Tenant actions run under the request's tenant.");
         var published = await definitions.ListAsync(cancellationToken);
         var target = published.FirstOrDefault(v => string.Equals(v.Variant, variant, StringComparison.Ordinal));
+
+        // Described before anything can refuse, so a refused enable or disable is audited with its variant and reason.
+        audit.Describe(AuditEntityType, reason: reason, metadata: new TenantSportAuditMetadata(variant, target?.Sport));
         if (target is null)
         {
             return Result.Failure(TenancyErrors.SportVariantUnknown);
@@ -53,7 +56,7 @@ public sealed class TenantSportChanges(TenancyDbContext context, ISportDefinitio
         }
 
         // Only now does the row exist or change: refusals above are audited without an entity.
-        audit.Describe(AuditEntityType, changed.Value.Id, reason, new TenantSportAuditMetadata(target.Variant, target.Sport));
+        audit.Describe(entityId: changed.Value.Id);
         try
         {
             var saved = await context.SaveChangesResultAsync(cancellationToken);
@@ -77,5 +80,8 @@ public sealed class TenantSportChanges(TenancyDbContext context, ISportDefinitio
     }
 }
 
-/// <summary>The audit metadata of an enable or a disable: the variant and its sport. No personal data.</summary>
-public sealed record TenantSportAuditMetadata(string Variant, string Sport);
+/// <summary>
+/// The audit metadata of an enable or a disable: the variant as asked and its sport (null for an unknown variant). No
+/// personal data.
+/// </summary>
+public sealed record TenantSportAuditMetadata(string Variant, string? Sport);

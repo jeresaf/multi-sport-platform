@@ -95,8 +95,13 @@ public sealed class TenantSportTests(PostgresFixture fixture) : DatabaseTest(fix
         (await owner.EnableSportAsync(Football, Ct)).StatusCode.ShouldBe(HttpStatusCode.OK);
 
         await (await owner.EnableSportAsync(Football, Ct)).ShouldBeProblemAsync(HttpStatusCode.Conflict, "TENANT_SPORT_ALREADY_ENABLED");
-        var refused = (await AuditEntriesAsync()).Where(e => e.Outcome != AuditOutcome.Success).Select(e => e.ErrorCode);
-        refused.ShouldBe(["TENANT_SPORT_NOT_ENABLED", "TENANT_SPORT_ALREADY_ENABLED"], ignoreOrder: true);
+        var refused = (await AuditEntriesAsync()).Where(e => e.Outcome != AuditOutcome.Success).ToList();
+        refused.Select(e => (e.ActionCode, e.ErrorCode, e.EntityType, e.EntityId, e.Reason)).ShouldBe(
+        [
+            ("tenant.sport.disable", "TENANT_SPORT_NOT_ENABLED", "TenantSport", (Guid?)null, "End of the schools season"),
+            ("tenant.sport.enable", "TENANT_SPORT_ALREADY_ENABLED", "TenantSport", null, null),
+        ], ignoreOrder: true);
+        refused.ShouldAllBe(e => e.Metadata!.Contains(Football));
     }
 
     [Theory]
