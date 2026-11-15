@@ -7,14 +7,14 @@ at the start of every review.
 
 - **Current slice:** S05 — Sports configuration (docs/build/slices/S05-sports-configuration.md, rewritten by the S04
   slice review). S00–S04 are done
-- **Current task:** S05-T5a2 — tenant sport enablement, the sport quota, `IEnabledSports`, `GET …/tenant/sports`
-  (D12, D13, D15, D18, D19) — in review (#88); next is `/next-task` for S05-T5b1
-- **Next:** S05-T5b1 — the viewer screens
+- **Current task:** S05-T5b1a — the Sports list, the variant viewer (six tabs, the scorer pad preview) and the ESLint
+  sport-literal rule (D6, D17); T5b1 is two PRs: T5b1a, then T5b1b (Formats, Rules templates) (owner, 2026-11-15)
+- **Next:** S05-T5b1b — Formats and Rules templates
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S05-T5b1 — The viewer screens (Sports, the variant viewer, Formats, Rules templates)
+1. S05-T5b1b — Formats and Rules templates (read-only; three navigation entries)
 2. S05-T5b2 — Settings → Sports, the console's Sports, the demo e2e, slice close
 
 ## Log
