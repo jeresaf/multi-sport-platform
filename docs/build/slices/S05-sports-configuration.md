@@ -278,13 +278,13 @@ Deliver:
 - Likely T5a (enablement, quota, Q27), T5b1 (viewer screens), T5b2 (settings, console, demo e2e, slice close).
 
 Acceptance:
-- [ ] A STANDARD tenant enables up to its limit; two variants of one sport count once; the next sport is refused
+- [x] A STANDARD tenant enables up to its limit; two variants of one sport count once; the next sport is refused
       with `403 ENTITLEMENT_QUOTA_EXCEEDED` and "Your plan allows N sports." (integration tests, D18).
-- [ ] Two enables at the last free sport at the same time: one succeeds, one is refused (test).
+- [x] Two enables at the last free sport at the same time: one succeeds, one is refused (test).
 - [ ] The scorer pad preview is built from the definition, not hard-coded (Vitest with a test definition).
 - [x] With two scheduled periods and none started, the current period and its plan are the earlier one's (table and
       `IEntitlements` tests), and the banner and the Subscription page say so (Vitest).
-- [ ] Disabling and enabling again keeps both enablements in `tenancy.tenant_sports` (test reads the table).
+- [x] Disabling and enabling again keeps both enablements in `tenancy.tenant_sports` (test reads the table).
 
 ## Carried over from S04 (slice review 2026-10-30)
 
@@ -449,3 +449,13 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   takes a scheduled current period before the next one; the banner already used the access period's start. No schema
   change, but `next`/`nextPeriodId` no longer repeat the current period, so a scheduled period alone has no next
   (review #87 R1); the reads' descriptions say so (R2).
+- **T5a2:** plan approved with the recommended answers (owner, 2026-11-15): an unknown variant is
+  `TENANT_SPORT_VARIANT_UNKNOWN` on `variant` for disable too, before "not enabled" (Q1); `tenant.sport.read` goes to the
+  roles holding `sport.read`, so not `TEAM_MANAGER` until S06 (Q2); `GET …/tenant/sports` answers each variant's current
+  state (`enabled`, `enabledSince`), not its history (Q3); one PR (Q4). `tenancy.tenant_sports` stores `enabled_by`/`at`
+  besides the audit columns. Tenancy reads variants through `ISportDefinitions.ListAsync` (latest versions; a variant's
+  sport never changes between versions), and a variant no longer published would count as a sport of its own. Enable and
+  disable both hold `tenancy.tenant_sports:<tenantId>` and answer the list as it is after the change. The quota's usage in
+  the list is shown when Identity's evaluator allows `tenant.subscription.read` (the same step 3 as the pipeline).
+  D18's test app is `TestSportDefinitions.AppWithTestSports` (the shared `TestApp` with three test-only variants added
+  to `ListAsync`).

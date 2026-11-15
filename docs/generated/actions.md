@@ -49,6 +49,9 @@ admin endpoint requires one of these; the code is stable and is what roles grant
 | `tenant.restore` | Tenancy | PLATFORM | — | REQUIRED | — | no | no | no | no | S02 | Restore a suspended tenant (SUSPENDED → ACTIVE). |
 | `tenant.settings.read` | Tenancy | TENANT | TENANT | REQUIRED | — | no | no | no | yes | S02 | View the tenant's settings: time zone, locale, currency, public site, starting-soon window, minor consent policy. |
 | `tenant.settings.update` | Tenancy | TENANT | TENANT | REQUIRED | — | no | no | no | no | S02 | Change the tenant's settings: time zone, locale, currency, public site, starting-soon window, minor consent policy. |
+| `tenant.sport.disable` | Tenancy | TENANT | TENANT | REQUIRED_WITH_REASON | — | no | no | no | no | S05 | Disable a sport variant for the tenant, with a reason. Nothing that uses it changes; enabling it again is a new enablement. |
+| `tenant.sport.enable` | Tenancy | TENANT | TENANT | REQUIRED | `MAX_ENABLED_SPORTS` | no | no | no | no | S05 | Enable a sport variant for the tenant, within the plan's enabled sports (two variants of one sport count once). |
+| `tenant.sport.read` | Tenancy | TENANT | TENANT | NONE | — | no | no | no | yes | S05 | View the published sport variants and which the tenant has enabled; with tenant.subscription.read, the sport quota's usage too. |
 | `tenant.subscription.read` | Tenancy | TENANT | TENANT | NONE | — | no | no | no | yes | S04 | View the tenant's plan, subscription dates, what the plan includes and the usage of its limits: available while read-only. |
 | `tenant.suspend` | Tenancy | PLATFORM | — | REQUIRED_WITH_REASON | — | no | no | no | no | S02 | Suspend an active tenant, with a reason (ACTIVE → SUSPENDED). |
 | `tenant.unarchive` | Tenancy | PLATFORM | — | REQUIRED_WITH_REASON | — | no | no | no | no | S02 | Bring an archived tenant back, with a reason (ARCHIVED → SUSPENDED). |

@@ -199,7 +199,9 @@
         }
       },
       "enforcedBy": "Tenancy & Commercial",
-      "actions": [],
+      "actions": [
+        "tenant.sport.enable"
+      ],
       "since": "S04"
     },
     {

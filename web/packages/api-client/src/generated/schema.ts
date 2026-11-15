@@ -168,6 +168,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/v1/tenant/sports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the sport variants and which the tenant has enabled
+         * @description Every published sport variant (latest version) with its sport, name and scoring family, and whether the tenant named by `X-Tenant-Id` has it enabled (`enabledSince`: when its current enablement began). `sportQuota` is the usage of MAX_ENABLED_SPORTS (distinct sports, not variants; `limit` `null` = unlimited; `warning` from 80 % of the limit) for those who may read the subscription, else `null`. Available while the tenant is read-only.
+         */
+        get: operations["ListTenantSports"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/tenant/sports/{variant}/enable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Enable a sport variant for the tenant
+         * @description `variant` is a published variant's code (GET /api/admin/v1/sports), matched exactly; another is TENANT_SPORT_VARIANT_UNKNOWN on the field `variant`. The plan's MAX_ENABLED_SPORTS counts distinct sports: a variant of a sport the tenant already has adds nothing and is never refused for it; another sport at the limit is ENTITLEMENT_QUOTA_EXCEEDED ("Your plan allows N sports."). An enabled variant is TENANT_SPORT_ALREADY_ENABLED. Enabling a variant that was disabled adds a new enablement; the earlier ones are kept.
+         */
+        post: operations["EnableTenantSport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/tenant/sports/{variant}/disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Disable a sport variant for the tenant
+         * @description `variant` is a published variant's code (GET /api/admin/v1/sports), matched exactly; another is TENANT_SPORT_VARIANT_UNKNOWN on the field `variant`. Ends the variant's enablement now, with `reason`; nothing that uses the variant changes, and lowering the sport quota never disables a sport. A variant that isn't enabled is TENANT_SPORT_NOT_ENABLED. The reason is kept permanently on the enablement and in the audit trail: don't include personal data.
+         */
+        post: operations["DisableTenantSport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/v1/members": {
         parameters: {
             query?: never;
@@ -1442,6 +1502,13 @@ export interface components {
             minorUnits: number;
         };
         /**
+         * @description The body of `tenant.sport.disable` (audit `REQUIRED_WITH_REASON`). The reason is kept permanently on the
+         *     enablement and in the audit trail and is not redacted: it must not contain personal data.
+         */
+        DisableSportRequest: {
+            reason: null | string;
+        };
+        /**
          * @description A tenant's value of one entitlement today and where it comes from: `DEFAULT`, `PLAN` (the current period's
          *     plan) or `OVERRIDE` (an unremoved override in effect).
          */
@@ -2517,6 +2584,27 @@ export interface components {
             version: number;
         };
         /**
+         * @description A published variant at its latest version: `enabledSince` is when its current enablement began (null when it
+         *     isn't enabled).
+         */
+        TenantSportResponse: {
+            variant: string;
+            sport: string;
+            name: string;
+            scoringFamily: string;
+            enabled: boolean;
+            /** Format: date-time */
+            enabledSince: null | string;
+        };
+        /**
+         * @description Every published sport variant and whether the tenant has it enabled (S05 D15). `sportQuota` is the
+         *     `MAX_ENABLED_SPORTS` usage for those who may read the subscription (`tenant.subscription.read`), else null.
+         */
+        TenantSportsResponse: {
+            variants: components["schemas"]["TenantSportResponse"][];
+            sportQuota: null | components["schemas"]["QuotaUsageResponse"];
+        };
+        /**
          * @description A tenant's stored lifecycle status (docs/domain/state-machines.md, "Tenant").
          * @enum {unknown}
          */
@@ -2954,6 +3042,164 @@ export interface operations {
             };
             /** @description Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING` */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListTenantSports: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TenantSportsResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    EnableTenantSport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                variant: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TenantSportsResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `TENANT_SPORT_VARIANT_UNKNOWN` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `ENTITLEMENT_QUOTA_EXCEEDED`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TENANT_SPORT_ALREADY_ENABLED` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    DisableTenantSport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                variant: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DisableSportRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TenantSportsResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `TENANT_SPORT_VARIANT_UNKNOWN`, `VALIDATION_MALFORMED_REQUEST`, `VALIDATION_REASON_REQUIRED` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TENANT_SPORT_NOT_ENABLED` */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

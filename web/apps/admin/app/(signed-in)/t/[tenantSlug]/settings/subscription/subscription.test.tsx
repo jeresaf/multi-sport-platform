@@ -77,10 +77,21 @@ const subscription = (overrides: Partial<Subscription> = {}): Subscription => ({
       value: { limit: 5 },
       source: "OVERRIDE",
     },
+    {
+      code: "MAX_TEAMS",
+      name: "Teams",
+      description: "Active teams in the registry.",
+      type: "QUOTA",
+      unit: "teams",
+      levels: [],
+      value: { limit: 120 },
+      source: "PLAN",
+    },
   ],
   usage: [
-    { code: "MAX_ENABLED_SPORTS", measured: false, used: null, limit: 3, warning: false },
+    { code: "MAX_ENABLED_SPORTS", measured: true, used: 1, limit: 3, warning: false },
     { code: "MAX_STAFF_USERS", measured: true, used: 4, limit: 5, warning: true },
+    { code: "MAX_TEAMS", measured: false, used: null, limit: 120, warning: false },
   ],
   ...overrides,
 });
@@ -127,7 +138,8 @@ describe("tenant subscription", () => {
     expect(staff.getByText("Near the limit")).toBeTruthy();
 
     expect(within(entitlement("Enabled sports")).getByText(/Standard plan/)).toBeTruthy();
-    expect(within(entitlement("Enabled sports")).getByText("Usage: not measured yet")).toBeTruthy();
+    expect(within(entitlement("Enabled sports")).getByText(/Used: 1 of 3 sports/)).toBeTruthy();
+    expect(within(entitlement("Teams")).getByText("Usage: not measured yet")).toBeTruthy();
     expect(within(entitlement("Custom domain")).getByText(/Not included/)).toBeTruthy();
     // No self-service: nothing to press on the page (the shell has its own menus).
     expect(within(screen.getByRole("main")).queryByRole("button")).toBeNull();

@@ -88,4 +88,16 @@ public static class TenancyErrors
     /// </summary>
     public static readonly Error QuotaExceeded = new(
         EntitlementErrorCodes.QuotaExceeded, "The tenant has reached a limit of its plan.", ErrorKind.Forbidden);
+
+    /// <summary>No published sport variant has this code (S05 D12); on the field <c>variant</c>.</summary>
+    public static readonly Error SportVariantUnknown = new(
+        "TENANT_SPORT_VARIANT_UNKNOWN", "No published sport variant has this code.", ErrorKind.Validation);
+
+    /// <summary>Enabling a variant the tenant has enabled (S05 D12).</summary>
+    public static readonly Error SportAlreadyEnabled = new(
+        "TENANT_SPORT_ALREADY_ENABLED", "The tenant has already enabled this sport variant.", ErrorKind.Conflict);
+
+    /// <summary>Disabling a variant the tenant hasn't enabled (S05 D12).</summary>
+    public static readonly Error SportNotEnabled = new(
+        "TENANT_SPORT_NOT_ENABLED", "The tenant hasn't enabled this sport variant.", ErrorKind.Conflict);
 }

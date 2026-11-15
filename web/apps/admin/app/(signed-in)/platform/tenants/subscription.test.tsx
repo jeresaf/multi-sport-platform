@@ -118,7 +118,9 @@ describe("the subscription panel", () => {
     expect(staff.textContent).toContain("Near the limit");
     const sports = section.getByText("Enabled sports", { selector: "p" }).closest("li")!;
     expect(sports.textContent).toContain("3 sports · Standard plan");
-    expect(sports.textContent).toContain("Usage: not measured yet");
+    expect(sports.textContent).toContain("Used: 1 of 3 sports");
+    const teams = section.getByText("Teams", { selector: "p" }).closest("li")!;
+    expect(teams.textContent).toContain("Usage: not measured yet");
 
     // The override in place with its reason; the replaced one in the history.
     expect(section.getByText(staffOverride.reason)).toBeTruthy();

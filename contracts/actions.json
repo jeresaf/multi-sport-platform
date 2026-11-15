@@ -633,6 +633,54 @@
       "since": "S02"
     },
     {
+      "code": "tenant.sport.disable",
+      "module": "Tenancy",
+      "description": "Disable a sport variant for the tenant, with a reason. Nothing that uses it changes; enabling it again is a new enablement.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED_WITH_REASON",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S05"
+    },
+    {
+      "code": "tenant.sport.enable",
+      "module": "Tenancy",
+      "description": "Enable a sport variant for the tenant, within the plan's enabled sports (two variants of one sport count once).",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED",
+      "entitlement": "MAX_ENABLED_SPORTS",
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S05"
+    },
+    {
+      "code": "tenant.sport.read",
+      "module": "Tenancy",
+      "description": "View the published sport variants and which the tenant has enabled; with tenant.subscription.read, the sport quota's usage too.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "NONE",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": true,
+      "since": "S05"
+    },
+    {
       "code": "tenant.subscription.read",
       "module": "Tenancy",
       "description": "View the tenant's plan, subscription dates, what the plan includes and the usage of its limits: available while read-only.",

@@ -69,6 +69,9 @@
         "tenant.capabilities.read",
         "tenant.settings.read",
         "tenant.settings.update",
+        "tenant.sport.disable",
+        "tenant.sport.enable",
+        "tenant.sport.read",
         "tenant.subscription.read"
       ]
     },
@@ -94,6 +97,9 @@
         "tenant.capabilities.read",
         "tenant.settings.read",
         "tenant.settings.update",
+        "tenant.sport.disable",
+        "tenant.sport.enable",
+        "tenant.sport.read",
         "tenant.subscription.read"
       ]
     },
@@ -109,7 +115,8 @@
         "ruleset.read",
         "sport.read",
         "tenant.capabilities.read",
-        "tenant.settings.read"
+        "tenant.settings.read",
+        "tenant.sport.read"
       ]
     },
     {
@@ -125,7 +132,8 @@
         "ruleset.read",
         "sport.read",
         "tenant.capabilities.read",
-        "tenant.settings.read"
+        "tenant.settings.read",
+        "tenant.sport.read"
       ]
     },
     {
@@ -141,7 +149,8 @@
         "ruleset.read",
         "sport.read",
         "tenant.capabilities.read",
-        "tenant.settings.read"
+        "tenant.settings.read",
+        "tenant.sport.read"
       ]
     },
     {
@@ -158,7 +167,8 @@
         "ruleset.read",
         "sport.read",
         "tenant.capabilities.read",
-        "tenant.settings.read"
+        "tenant.settings.read",
+        "tenant.sport.read"
       ]
     },
     {
@@ -183,7 +193,8 @@
         "ruleset.read",
         "sport.read",
         "tenant.capabilities.read",
-        "tenant.settings.read"
+        "tenant.settings.read",
+        "tenant.sport.read"
       ]
     },
     {
@@ -200,6 +211,7 @@
         "sport.read",
         "tenant.capabilities.read",
         "tenant.settings.read",
+        "tenant.sport.read",
         "tenant.subscription.read"
       ]
     }

@@ -9,6 +9,7 @@
     <ProjectReference Include="..\..\..\SportsPlatform.BuildingBlocks.Persistence\SportsPlatform.BuildingBlocks.Persistence.csproj" />
     <ProjectReference Include="..\SportsPlatform.Modules.Tenancy.Contracts\SportsPlatform.Modules.Tenancy.Contracts.csproj" />
     <ProjectReference Include="..\..\Platform\SportsPlatform.Modules.Platform.Contracts\SportsPlatform.Modules.Platform.Contracts.csproj" />
+    <ProjectReference Include="..\..\SportsConfiguration\SportsPlatform.Modules.SportsConfiguration.Contracts\SportsPlatform.Modules.SportsConfiguration.Contracts.csproj" />
   </ItemGroup>
 
 </Project>

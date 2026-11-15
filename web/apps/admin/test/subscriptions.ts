@@ -1,5 +1,5 @@
 // Test data for the console's plans and subscriptions: two plans shaped like the seed (S04 D2) with one entitlement of
-// each type, and a subscription as `GET …/tenants/{tenantId}/subscription` answers.
+// each type (and a quota no module measures yet, teams), and a subscription as `GET …/tenants/{tenantId}/subscription` answers.
 import type { components } from "@msp/api-client";
 
 type Plan = components["schemas"]["PlanResponse"];
@@ -48,6 +48,16 @@ const definitions: Omit<Definition, "value">[] = [
     default: { limit: 0 },
     enforcedBy: "Identity & Access",
   },
+  {
+    code: "MAX_TEAMS",
+    name: "Teams",
+    description: "Active teams in the registry.",
+    type: "QUOTA",
+    unit: "teams",
+    levels: [],
+    default: { limit: 0 },
+    enforcedBy: "Registry",
+  },
 ];
 
 const withValues = (values: Record<string, Definition["value"]>): Definition[] =>
@@ -62,6 +72,7 @@ export const standard: Plan = {
     CUSTOM_DOMAIN: { enabled: false },
     MAX_ENABLED_SPORTS: { limit: 3 },
     MAX_STAFF_USERS: { limit: 100 },
+    MAX_TEAMS: { limit: 120 },
   }),
 };
 
@@ -74,6 +85,7 @@ export const pro: Plan = {
     CUSTOM_DOMAIN: { enabled: true },
     MAX_ENABLED_SPORTS: { limit: null },
     MAX_STAFF_USERS: { limit: 1000 },
+    MAX_TEAMS: { limit: 2000 },
   }),
 };
 
@@ -143,10 +155,12 @@ export function subscription(overrides: Partial<Subscription> = {}): Subscriptio
       { code: "CUSTOM_DOMAIN", value: { enabled: false }, source: "PLAN" },
       { code: "MAX_ENABLED_SPORTS", value: { limit: 3 }, source: "PLAN" },
       { code: "MAX_STAFF_USERS", value: { limit: 5 }, source: "OVERRIDE" },
+      { code: "MAX_TEAMS", value: { limit: 120 }, source: "PLAN" },
     ],
     usage: [
-      { code: "MAX_ENABLED_SPORTS", measured: false, used: null, limit: 3, warning: false },
+      { code: "MAX_ENABLED_SPORTS", measured: true, used: 1, limit: 3, warning: false },
       { code: "MAX_STAFF_USERS", measured: true, used: 4, limit: 5, warning: true },
+      { code: "MAX_TEAMS", measured: false, used: null, limit: 120, warning: false },
     ],
     ...overrides,
   };
@@ -162,9 +176,11 @@ export const noSubscription = subscription({
     { code: "CUSTOM_DOMAIN", value: { enabled: false }, source: "DEFAULT" },
     { code: "MAX_ENABLED_SPORTS", value: { limit: 0 }, source: "DEFAULT" },
     { code: "MAX_STAFF_USERS", value: { limit: 0 }, source: "DEFAULT" },
+    { code: "MAX_TEAMS", value: { limit: 0 }, source: "DEFAULT" },
   ],
   usage: [
-    { code: "MAX_ENABLED_SPORTS", measured: false, used: null, limit: 0, warning: false },
+    { code: "MAX_ENABLED_SPORTS", measured: true, used: 0, limit: 0, warning: false },
     { code: "MAX_STAFF_USERS", measured: true, used: 0, limit: 0, warning: false },
+    { code: "MAX_TEAMS", measured: false, used: null, limit: 0, warning: false },
   ],
 });

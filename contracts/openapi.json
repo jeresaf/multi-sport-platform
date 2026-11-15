@@ -445,6 +445,248 @@
         }
       }
     },
+    "/api/admin/v1/tenant/sports": {
+      "get": {
+        "tags": [
+          "Tenant sports"
+        ],
+        "summary": "List the sport variants and which the tenant has enabled",
+        "description": "Every published sport variant (latest version) with its sport, name and scoring family, and whether the tenant named by `X-Tenant-Id` has it enabled (`enabledSince`: when its current enablement began). `sportQuota` is the usage of MAX_ENABLED_SPORTS (distinct sports, not variants; `limit` `null` = unlimited; `warning` from 80 % of the limit) for those who may read the subscription, else `null`. Available while the tenant is read-only.",
+        "operationId": "ListTenantSports",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TenantSportsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING"
+            ]
+          }
+        }
+      }
+    },
+    "/api/admin/v1/tenant/sports/{variant}/enable": {
+      "post": {
+        "tags": [
+          "Tenant sports"
+        ],
+        "summary": "Enable a sport variant for the tenant",
+        "description": "`variant` is a published variant's code (GET /api/admin/v1/sports), matched exactly; another is TENANT_SPORT_VARIANT_UNKNOWN on the field `variant`. The plan's MAX_ENABLED_SPORTS counts distinct sports: a variant of a sport the tenant already has adds nothing and is never refused for it; another sport at the limit is ENTITLEMENT_QUOTA_EXCEEDED (\"Your plan allows N sports.\"). An enabled variant is TENANT_SPORT_ALREADY_ENABLED. Enabling a variant that was disabled adds a new enablement; the earlier ones are kept.",
+        "operationId": "EnableTenantSport",
+        "parameters": [
+          {
+            "name": "variant",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TenantSportsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `TENANT_SPORT_VARIANT_UNKNOWN`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "TENANT_SPORT_VARIANT_UNKNOWN"
+            ]
+          },
+          "409": {
+            "description": "Problem Details; `code`: `TENANT_SPORT_ALREADY_ENABLED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "TENANT_SPORT_ALREADY_ENABLED"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `ENTITLEMENT_QUOTA_EXCEEDED`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "ENTITLEMENT_QUOTA_EXCEEDED",
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING",
+              "TENANT_READ_ONLY"
+            ]
+          }
+        }
+      }
+    },
+    "/api/admin/v1/tenant/sports/{variant}/disable": {
+      "post": {
+        "tags": [
+          "Tenant sports"
+        ],
+        "summary": "Disable a sport variant for the tenant",
+        "description": "`variant` is a published variant's code (GET /api/admin/v1/sports), matched exactly; another is TENANT_SPORT_VARIANT_UNKNOWN on the field `variant`. Ends the variant's enablement now, with `reason`; nothing that uses the variant changes, and lowering the sport quota never disables a sport. A variant that isn't enabled is TENANT_SPORT_NOT_ENABLED. The reason is kept permanently on the enablement and in the audit trail: don't include personal data.",
+        "operationId": "DisableTenantSport",
+        "parameters": [
+          {
+            "name": "variant",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DisableSportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TenantSportsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `TENANT_SPORT_VARIANT_UNKNOWN`, `VALIDATION_MALFORMED_REQUEST`, `VALIDATION_REASON_REQUIRED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "TENANT_SPORT_VARIANT_UNKNOWN",
+              "VALIDATION_MALFORMED_REQUEST",
+              "VALIDATION_REASON_REQUIRED"
+            ]
+          },
+          "409": {
+            "description": "Problem Details; `code`: `TENANT_SPORT_NOT_ENABLED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "TENANT_SPORT_NOT_ENABLED"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING",
+              "TENANT_READ_ONLY"
+            ]
+          }
+        }
+      }
+    },
     "/api/admin/v1/members": {
       "get": {
         "tags": [
@@ -6387,6 +6629,22 @@
         },
         "description": "An ISO 4217 currency: alphabetic `code` (`UGX`), numeric code, English name, minor units (UGX 0)."
       },
+      "DisableSportRequest": {
+        "required": [
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "description": "The body of `tenant.sport.disable` (audit `REQUIRED_WITH_REASON`). The reason is kept permanently on the\nenablement and in the audit trail and is not redacted: it must not contain personal data."
+      },
       "EffectiveEntitlementResponse": {
         "required": [
           "code",
@@ -9850,6 +10108,68 @@
         },
         "description": "A tenant's settings as the admin API shows them. `version` (also the `ETag`) and `updatedAt` are the\nsettings row's, not the tenant's: send `version` back with a change to make it fail with\n`409 TENANT_CONCURRENCY_CONFLICT` if someone else changed the settings first."
       },
+      "TenantSportResponse": {
+        "required": [
+          "variant",
+          "sport",
+          "name",
+          "scoringFamily",
+          "enabled",
+          "enabledSince"
+        ],
+        "type": "object",
+        "properties": {
+          "variant": {
+            "type": "string"
+          },
+          "sport": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "scoringFamily": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "enabledSince": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        },
+        "description": "A published variant at its latest version: `enabledSince` is when its current enablement began (null when it\nisn't enabled)."
+      },
+      "TenantSportsResponse": {
+        "required": [
+          "variants",
+          "sportQuota"
+        ],
+        "type": "object",
+        "properties": {
+          "variants": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TenantSportResponse"
+            }
+          },
+          "sportQuota": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/QuotaUsageResponse"
+              }
+            ]
+          }
+        },
+        "description": "Every published sport variant and whether the tenant has it enabled (S05 D15). `sportQuota` is the\n`MAX_ENABLED_SPORTS` usage for those who may read the subscription (`tenant.subscription.read`), else null."
+      },
       "TenantStatus": {
         "enum": [
           "PROVISIONING",
@@ -10154,6 +10474,9 @@
     },
     {
       "name": "Subscriptions"
+    },
+    {
+      "name": "Tenant sports"
     },
     {
       "name": "Members"
