@@ -32,7 +32,9 @@ public sealed class TenantSportChanges(TenancyDbContext context, ISportDefinitio
         var target = published.FirstOrDefault(v => string.Equals(v.Variant, variant, StringComparison.Ordinal));
 
         // Described before anything can refuse, so a refused enable or disable is audited with its variant and reason.
-        audit.Describe(AuditEntityType, reason: reason, metadata: new TenantSportAuditMetadata(variant, target?.Sport));
+        // The variant as asked comes from the path: an unknown one is kept to a variant code's length (#88 R5).
+        var asked = variant.Length > TenantSport.VariantMaxLength ? variant[..TenantSport.VariantMaxLength] : variant;
+        audit.Describe(AuditEntityType, reason: reason, metadata: new TenantSportAuditMetadata(asked, target?.Sport));
         if (target is null)
         {
             return Result.Failure(TenancyErrors.SportVariantUnknown);

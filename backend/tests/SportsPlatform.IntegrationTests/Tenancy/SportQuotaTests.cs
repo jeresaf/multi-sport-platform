@@ -3,8 +3,11 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
+using Npgsql;
+using SportsPlatform.BuildingBlocks.Auditing;
 using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.IntegrationTests.Api;
+using SportsPlatform.IntegrationTests.Audit;
 using SportsPlatform.IntegrationTests.Infrastructure;
 using SportsPlatform.Modules.Identity.Domain.Roles;
 using SportsPlatform.Modules.Tenancy.Contracts.Tenants;
@@ -43,6 +46,9 @@ public sealed class SportQuotaTests(PostgresFixture fixture) : DatabaseTest(fixt
 
         var problem = await refused.ShouldBeProblemAsync(HttpStatusCode.Forbidden, "ENTITLEMENT_QUOTA_EXCEEDED");
         problem.GetProperty("detail").GetString().ShouldBe("Your plan allows 1 sports.");
+        var denied = (await AuditTestData.EntriesAsync(App.Services, Ct)).Single(e => e.ActionCode == "tenant.sport.enable" && e.Outcome != AuditOutcome.Success);
+        (denied.ErrorCode, denied.EntityType, denied.EntityId).ShouldBe(("ENTITLEMENT_QUOTA_EXCEEDED", "TenantSport", (Guid?)null));
+        denied.Metadata.ShouldNotBeNull().ShouldContain(Testhoop);
     }
 
     [Fact]
@@ -64,14 +70,29 @@ public sealed class SportQuotaTests(PostgresFixture fixture) : DatabaseTest(fixt
             .ShouldBe(new QuotaUsageResponse("MAX_ENABLED_SPORTS", Measured: true, Used: 3, Limit: 3, Warning: true));
     }
 
-    // T5 acceptance: two enables at the last free sport at the same time queue on the tenant's sport lock.
+    // T5 acceptance: two enables at the last free sport at the same time queue on the tenant's sport lock. The test holds
+    // the lock first and releases it only once both requests wait on it, so they really are at the same point; without
+    // the lock in the handler they would never wait and the test would time out (#88 R3).
     [Fact]
     public async Task Two_enables_at_the_last_free_sport_at_once_let_one_through()
     {
         await using var app = AppWithTestSports(App);
         using var owner = await KmsaOwnerAsync(app, limit: 1);
+        var kmsa = Guid.Parse(owner.DefaultRequestHeaders.GetValues("X-Tenant-Id").Single());
 
-        var responses = await Task.WhenAll(owner.EnableSportAsync(TestballFull, Ct), owner.EnableSportAsync(Testhoop, Ct));
+        await using var holder = new NpgsqlConnection(Fixture.ConnectionString(DatabaseRoles.App));
+        await holder.OpenAsync(Ct);
+        await using var held = await holder.BeginTransactionAsync(Ct);
+        await using (var take = new NpgsqlCommand("SELECT pg_advisory_xact_lock(hashtextextended(@key, 0))", holder, held))
+        {
+            take.Parameters.AddWithValue("key", $"tenancy.tenant_sports:{kmsa}");
+            await take.ExecuteNonQueryAsync(Ct);
+        }
+
+        var enables = Task.WhenAll(owner.EnableSportAsync(TestballFull, Ct), owner.EnableSportAsync(Testhoop, Ct));
+        await WaitForLockWaitersAsync(holder, count: 2);
+        await held.CommitAsync(Ct);
+        var responses = await enables;
         using var first = responses[0];
         using var second = responses[1];
 
@@ -92,6 +113,26 @@ public sealed class SportQuotaTests(PostgresFixture fixture) : DatabaseTest(fixt
         (await owner.EnableSportAsync(TestballShort, Ct)).StatusCode.ShouldBe(HttpStatusCode.OK);
         (await owner.DisableSportAsync(Testhoop, Ct)).StatusCode.ShouldBe(HttpStatusCode.OK);
         await (await owner.EnableSportAsync(Testhoop, Ct)).ShouldBeProblemAsync(HttpStatusCode.Forbidden, "ENTITLEMENT_QUOTA_EXCEEDED");
+    }
+
+    /// <summary>
+    /// Until <paramref name="count"/> sessions wait for an advisory lock (the requests queued behind the test's), checked
+    /// every 50 ms for at most 30 s: a condition, not a fixed sleep.
+    /// </summary>
+    private static async Task WaitForLockWaitersAsync(NpgsqlConnection connection, int count)
+    {
+        var deadline = DateTimeOffset.UtcNow.AddSeconds(30);
+        while (true)
+        {
+            await using var command = new NpgsqlCommand("SELECT count(*) FROM pg_locks WHERE locktype = 'advisory' AND NOT granted", connection);
+            if ((long)(await command.ExecuteScalarAsync(Ct))! >= count)
+            {
+                return;
+            }
+
+            DateTimeOffset.UtcNow.ShouldBeLessThan(deadline, $"{count} requests never waited on the tenant's sport lock.");
+            await Task.Delay(TimeSpan.FromMilliseconds(50), Ct);
+        }
     }
 
     /// <summary>The owner's client of KMSA (test data's STANDARD period) with an override setting the sport limit.</summary>

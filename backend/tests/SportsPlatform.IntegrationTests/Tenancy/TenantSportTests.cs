@@ -120,6 +120,19 @@ public sealed class TenantSportTests(PostgresFixture fixture) : DatabaseTest(fix
         }
     }
 
+    // #88 R5: the variant comes from the path, so the audit keeps no more of an unknown one than a variant code's length.
+    [Fact]
+    public async Task A_long_unknown_variant_is_audited_cut_to_a_variant_codes_length()
+    {
+        var (_, owner) = await KmsaAsync(IdentityRoles.TenantOwner);
+        var variant = new string('X', 60);
+
+        await (await owner.EnableSportAsync(variant, Ct)).ShouldBeProblemAsync(HttpStatusCode.BadRequest, "TENANT_SPORT_VARIANT_UNKNOWN");
+
+        var refused = (await AuditEntriesAsync()).Single(e => e.ActionCode == "tenant.sport.enable");
+        refused.Metadata.ShouldNotBeNull().ShouldContain($"\"{new string('X', 50)}\"");
+    }
+
     [Theory]
     [InlineData(null)]
     [InlineData("   ")]
@@ -130,6 +143,16 @@ public sealed class TenantSportTests(PostgresFixture fixture) : DatabaseTest(fix
 
         await (await owner.DisableSportAsync(Football, Ct, reason)).ShouldBeProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_REASON_REQUIRED");
         (await ReadAsync(owner)).GetProperty("variants")[0].GetProperty("enabled").GetBoolean().ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task A_disable_reason_longer_than_500_characters_is_refused()
+    {
+        var (_, owner) = await KmsaAsync(IdentityRoles.TenantOwner);
+        (await owner.EnableSportAsync(Football, Ct)).StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        await (await owner.DisableSportAsync(Football, Ct, new string('r', 501))).ShouldBeProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_REASON_REQUIRED");
+        (await owner.DisableSportAsync(Football, Ct, new string('r', 500))).StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
     // D14, D15: everyone who reads the sport's words reads the tenant's sports; the quota only with the subscription
