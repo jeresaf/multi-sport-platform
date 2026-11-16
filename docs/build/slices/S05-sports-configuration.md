@@ -493,6 +493,7 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   test tenant (Shoebill Community Sports Club, added to pilot-customer.md's test-only names) and stands in for ELSSC.
 - **T5b2b:** plan approved (owner, 2026-11-16): the console's dates are in UTC and say so (the console has no time
   zone; as its Tenants list); one PR. The console's pages reuse the workspace's tables (moved to `SportsTable`,
-  `FormatsTable`, `RulesTemplatesTable`) and viewers over the platform reads. In a workspace the viewers also label a
-  publication date that falls back to UTC (settings not readable, or still loading); other workspace dates don't. The workspace screens' screenshots came with T5b1 and T5b2a; this task adds the
+  `FormatsTable`, `RulesTemplatesTable`) and viewers over the platform reads. In a workspace the viewers wait for the
+  tenant's settings, and label a publication date in UTC only when they can't be read (review #93 Q1); other
+  workspace dates don't. The workspace screens' screenshots came with T5b1 and T5b2a; this task adds the
   console's. Slice acceptance checked on the branch (backend, web and e2e suites).

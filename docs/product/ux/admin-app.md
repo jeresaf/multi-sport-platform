@@ -242,9 +242,11 @@ user's capabilities (docs/architecture/authorization.md); the server still enfor
   `?version=` and "Page not found" as in a workspace. Links stay in the console (a template's pinned sport version and
   formats). The intro says tenants see the same pages. Read-only: these change only by publishing a new version.
 - **Publication dates in UTC say so.** The console has no time zone, so the viewers' publication date is in UTC and
-  reads "15 Nov 2026 (UTC)". In a workspace the viewers label it too while the date falls back to UTC: for someone
-  who can't read the tenant's settings, and while they load (`publishedOn`, `components/viewer/facts.tsx`, with
-  `BackLink`). Other workspace dates that fall back to UTC (Enabled sports, members, invitations) aren't labelled.
+  reads "15 Nov 2026 (UTC)". In a workspace the viewers wait for the tenant's settings (Loading), so the date is
+  never shown first in UTC and then on another day (review #93 Q1); for someone who can't read the settings, or when
+  their read fails, it is in UTC and labelled (`publishedOn`, `components/viewer/facts.tsx`, with `BackLink`;
+  `useTenantTimeZoneOnceRead`). Other workspace dates that fall back to UTC (Enabled sports, members, invitations)
+  aren't labelled.
 - **e2e** `admin-screenshots`: the console's lists, a variant (Overview, Scorer pad), a format and a template at phone,
   tablet and desktop widths, light and dark.
 

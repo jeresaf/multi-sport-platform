@@ -7,7 +7,7 @@ import { SportViewer, sportTab, type SportTab } from "@/components/sports/sport-
 import { ForbiddenView, NotFoundView } from "@/components/status-page";
 import { BackLink } from "@/components/viewer/facts";
 import { isApiProblem } from "@/lib/api";
-import { useTenantTimeZone } from "@/lib/tenant-settings";
+import { useTenantTimeZoneOnceRead } from "@/lib/tenant-settings";
 import { useTenantWorkspace } from "@/lib/tenant-workspace";
 import { versionParam } from "@/lib/version-param";
 import { tenantPath } from "@/lib/workspace";
@@ -23,7 +23,7 @@ export default function SportVariantPage() {
   const pathname = usePathname();
   const router = useRouter();
   const { tenant, can } = useTenantWorkspace();
-  const timeZone = useTenantTimeZone();
+  const { timeZone, isLoading: zoneLoading } = useTenantTimeZoneOnceRead();
   const version = versionParam(searchParams.get("version"));
   const definition = useSportDefinition(variant, version ?? undefined, version !== null);
 
@@ -42,11 +42,12 @@ export default function SportVariantPage() {
   };
   const back = <BackLink href={`${tenantPath(tenant.slug)}/sports`}>Sports</BackLink>;
 
-  if (definition.isPending || definition.isError) {
+  // The tenant's zone is waited for too, so the publication date doesn't change day under the reader.
+  if (definition.isPending || definition.isError || zoneLoading) {
     return (
       <section className="grid gap-4">
         {back}
-        {definition.isPending ? <Loading /> : <ProblemAlert error={definition.error} />}
+        {definition.isError ? <ProblemAlert error={definition.error} /> : <Loading />}
       </section>
     );
   }

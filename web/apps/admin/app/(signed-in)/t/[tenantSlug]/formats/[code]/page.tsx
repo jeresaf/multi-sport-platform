@@ -7,7 +7,7 @@ import { ProblemAlert } from "@/components/problem-alert";
 import { ForbiddenView, NotFoundView } from "@/components/status-page";
 import { BackLink } from "@/components/viewer/facts";
 import { isApiProblem } from "@/lib/api";
-import { useTenantTimeZone } from "@/lib/tenant-settings";
+import { useTenantTimeZoneOnceRead } from "@/lib/tenant-settings";
 import { useTenantWorkspace } from "@/lib/tenant-workspace";
 import { versionParam } from "@/lib/version-param";
 import { tenantPath } from "@/lib/workspace";
@@ -18,7 +18,7 @@ export default function FormatPage() {
   const { code } = useParams<{ code: string }>();
   const searchParams = useSearchParams();
   const { tenant, can } = useTenantWorkspace();
-  const timeZone = useTenantTimeZone();
+  const { timeZone, isLoading: zoneLoading } = useTenantTimeZoneOnceRead();
   const version = versionParam(searchParams.get("version"));
   const format = useFormat(code, version ?? undefined, version !== null);
 
@@ -32,11 +32,12 @@ export default function FormatPage() {
 
   const back = <BackLink href={`${tenantPath(tenant.slug)}/formats`}>Formats</BackLink>;
 
-  if (format.isPending || format.isError) {
+  // The tenant's zone is waited for too, so the publication date doesn't change day under the reader.
+  if (format.isPending || format.isError || zoneLoading) {
     return (
       <section className="grid gap-4">
         {back}
-        {format.isPending ? <Loading /> : <ProblemAlert error={format.error} />}
+        {format.isError ? <ProblemAlert error={format.error} /> : <Loading />}
       </section>
     );
   }

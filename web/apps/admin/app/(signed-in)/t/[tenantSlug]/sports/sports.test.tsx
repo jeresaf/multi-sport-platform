@@ -1,7 +1,7 @@
 // Tenant workspace → Sports: the published variants, and a variant's definition in tabs (S05 D17), all read from the
 // API and shown in the definition's own words; only for whoever holds `sport.read`. The definition is a test-only one
 // (test/sport-definitions.ts), so every sport word on screen must have come from it.
-import { cleanup, fireEvent, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { tenantCapabilities } from "@/test/capabilities";
 import { fakeApi, problem, renderWithQuery, type Answer, type Answers } from "@/test/render";
@@ -133,6 +133,30 @@ describe("sport variant", () => {
     const header = screen.getByRole("heading", { level: 1, name: "Ringball sevens" }).closest("header")!;
     expect(within(header).getByRole("link", { name: "Sports" }).getAttribute("href")).toBe("/t/kmsa/sports");
     expect(requests.find((request) => request.path === "/api/admin/v1/sports/RINGBALL_SEVENS")?.search).toBe("");
+  });
+
+  it("waits for the tenant's settings, so the date is never shown in UTC first (review #93 Q1)", async () => {
+    const requests = openVariant();
+    // Hold the settings back until the definition has arrived.
+    const answer = globalThis.fetch;
+    let release = () => {};
+    const settingsRead = new Promise<void>((resolve) => (release = resolve));
+    vi.stubGlobal("fetch", async (request: Request) => {
+      if (new URL(request.url).pathname === "/api/admin/v1/tenant/settings") {
+        await settingsRead;
+      }
+      return answer(request);
+    });
+
+    await waitFor(() => expect(requests.some((request) => request.path === "/api/admin/v1/sports/RINGBALL_SEVENS")).toBe(true));
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(screen.queryByRole("heading", { level: 1, name: "Ringball sevens" })).toBeNull();
+    expect(screen.queryByText(/\(UTC\)/)).toBeNull();
+    expect(screen.getByRole("status").textContent).toContain("Loading");
+
+    release();
+    expect(await screen.findByRole("heading", { level: 1, name: "Ringball sevens" })).toBeTruthy();
+    expect(screen.getByText(/published 2 Nov 2026$/)).toBeTruthy();
   });
 
   it("shows the publication date in UTC, and says so, to someone who can't read the tenant's settings", async () => {

@@ -184,13 +184,42 @@ describe("platform console sport configuration", () => {
     expect(requests.some((request) => request.path.startsWith("/api/platform/v1/ruleset-templates"))).toBe(false);
   });
 
-  it("is refused without platform.sport.read, hides the entries and doesn't ask the API", async () => {
-    const requests = open("sports", { actions: ["tenant.read", "plan.read"] });
+  it("answers Page not found for a variant that doesn't exist", async () => {
+    open("variant", {
+      path: "/platform/sports/NO_SUCH",
+      params: { variant: "NO_SUCH" },
+      answers: { "GET /api/platform/v1/sports/NO_SUCH": { status: 404, body: problem("SPORT_DEFINITION_NOT_FOUND", 404) } },
+    });
+    expect(await screen.findByRole("heading", { name: "Page not found" })).toBeTruthy();
+  });
+
+  it("shows a failed read with its reference under the back link", async () => {
+    open("format", {
+      path: "/platform/formats/LADDER_CLIMB",
+      params: { code: "LADDER_CLIMB" },
+      answers: { "GET /api/platform/v1/formats/LADDER_CLIMB": { status: 500, body: problem("PLATFORM_UNEXPECTED_ERROR", 500) } },
+    });
+    expect(await screen.findByText(/^Reference: /)).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Formats", current: false }).getAttribute("href")).toBe("/platform/formats");
+  });
+
+  it.each([
+    ["sports", "/platform/sports", {}],
+    ["variant", "/platform/sports/RINGBALL_SEVENS", { variant: "RINGBALL_SEVENS" }],
+    ["formats", "/platform/formats", {}],
+    ["format", "/platform/formats/LADDER_CLIMB", { code: "LADDER_CLIMB" }],
+    ["templates", "/platform/rules-templates", {}],
+    ["template", "/platform/rules-templates/RING_LEAGUE", { code: "RING_LEAGUE" }],
+  ] as const)("%s is refused without platform.sport.read, hides the entries and doesn't ask the API", async (page, path, params) => {
+    const requests = open(page, { path, params, actions: ["tenant.read", "plan.read"] });
 
     expect(await screen.findByRole("heading", { name: "You can't open this page" })).toBeTruthy();
     await act(async () => {});
+    expect(screen.queryByRole("link", { name: "Sports" })).toBeNull();
     expect(screen.queryByRole("link", { name: "Formats" })).toBeNull();
     expect(screen.queryByRole("link", { name: "Rules templates" })).toBeNull();
-    expect(requests.some((request) => request.path.startsWith("/api/platform/v1/sports"))).toBe(false);
+    expect(
+      requests.some((request) => /^\/api\/platform\/v1\/(sports|formats|ruleset-templates)/.test(request.path)),
+    ).toBe(false);
   });
 });
