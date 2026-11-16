@@ -134,6 +134,8 @@ registers.
 check, approved commands for imports (`IRegistryCommands`), external-ID lookup.
 **Does not own:** who plays for whom (Team Operations), who is entered in a competition (Competitions).
 **First slice:** S06 (people), S07 (organisations, teams, venues).
+**As built (S06-T1a):** schema `registry`, every table tenant-owned (RLS): `persons` (classified columns, name keys),
+`person_aliases`, `person_status_changes` (append-only), `external_identifiers`. No endpoints or Contracts yet.
 **Absorbs:** pack specs 08–14. Owner's systems: **Player Management System**, the identity half of
 **Team Management System**. Owner's rule "duplicate players within the same tenant should be avoided at all
 costs" is implemented here (docs/build/slices/S06-people-registry.md).

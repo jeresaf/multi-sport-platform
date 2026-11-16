@@ -80,7 +80,15 @@ public static class TableAccessPolicies
         // Invitations (S03-T4c, RLS): pending ones are revoked or accepted, and their token hash replaced.
         ["identity.invitations"] = TableAccess.ReadWrite,
 
+        // People (S06-T1a, RLS): removed aliases and ended identifiers are kept; the status history is kept for ever.
+        ["registry.persons"] = TableAccess.ReadWrite,
+        ["registry.person_aliases"] = TableAccess.ReadWrite,
+        ["registry.person_status_changes"] = TableAccess.AppendOnly,
+        ["registry.external_identifiers"] = TableAccess.ReadWrite,
+
         ["identity.outbox_messages"] = TableAccess.ReadWrite,
+        ["registry.outbox_messages"] = TableAccess.ReadWrite,
+        ["registry.inbox_messages"] = TableAccess.ReadWrite,
         ["identity.inbox_messages"] = TableAccess.ReadWrite,
         ["platform.outbox_messages"] = TableAccess.ReadWrite,
         ["platform.inbox_messages"] = TableAccess.ReadWrite,

@@ -30,7 +30,7 @@ Core conventions, migrations review, database constraints and tests — not by a
 | `tenant_id uuid not null` | tenant-owned tables | AR-04; RLS policy required |
 | `created_at timestamptz`, `created_by uuid` | all mutable tables | set by interceptor |
 | `updated_at timestamptz`, `updated_by uuid` | all mutable tables | set by interceptor |
-| `xmin` (system column) | mutable aggregates | mapped as concurrency token (`version` in DTOs) |
+| `xmin` (system column) | mutable aggregates | mapped as concurrency token (`version` in DTOs); child rows move it too (below) |
 | `status text` | lifecycle entities | values from docs/domain/state-machines.md; check constraint |
 | `source text`, `import_job_id uuid null` | entities that can be imported | provenance (AR-22) |
 
@@ -105,11 +105,37 @@ transaction. Concurrent commands on the same key queue on the lock, and each rea
   with `CancellationToken.None` after the save, so a client hanging up can't roll back an audited change.
 - One key per rule and owner (usually the tenant); never hold two keys at once.
 
+## Aggregate versions and child rows
+
+An aggregate's version is its root row's `xmin`. A change to only a child row (an alias, a role assignment) doesn't
+touch the root's row, so before every save `ModuleDbContext` follows each added, changed or deleted child's foreign
+keys up to its aggregate root and marks a loaded, unchanged root as changed: the save then updates the root's
+`updated_*` columns under its version check. Two concurrent edits to different children of one aggregate therefore
+conflict (`<AREA>_CONCURRENCY_CONFLICT`). Rules:
+
+- Commands load the root before they change its children. A child saved without its root loaded doesn't move the
+  version.
+- A row that belongs to an aggregate without a foreign key to it (`registry.external_identifiers`) needs
+  `context.MarkChanged(root)` in the command.
+
 ## Duplicate prevention
 
 Registries (people, organisations, teams, venues, competitions) implement: normalised name fields, aliases,
 external identifiers, a duplicate-check query, a candidate review workflow, and merge history. Never
 auto-merge. Person rules are specified in docs/build/slices/S06-people-registry.md.
+
+As built for people (S06-T1a):
+
+- **Normalised name** (`NameNormaliser`, Registry Domain): trimmed, lower-cased, accents removed, apostrophes,
+  hyphens and dots removed, inner whitespace collapsed. "Nänsubuga" → `nansubuga`, "Ng'ang'a" → `nganga`.
+- **Name key:** the normalised tokens of first, middle, last and other names, sorted and joined with one space.
+  "Ssekandi John" and "John Ssekandi" both give `john ssekandi`. `registry.persons.name_key`; each alias has its own
+  (`registry.person_aliases.name_key`).
+- **Similarity:** the `pg_trgm` extension (schema `public`, created by Registry's first migration as `sp_migrator`)
+  with a GIN `gin_trgm_ops` index on both name keys; queries use `EF.Functions.TrigramsSimilarity`.
+- **External identifiers:** `registry.external_identifiers` has no foreign key to its entity (one table for every
+  registry entity type; `entity_type` is `PERSON` until S07) and a unique index on `(tenant_id, authority,
+  entity_type, value)` that includes ended rows.
 
 ## Migrations
 

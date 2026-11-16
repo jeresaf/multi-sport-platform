@@ -13,6 +13,10 @@
     <Project Path="src/Modules/Platform/SportsPlatform.Modules.Platform.Contracts/SportsPlatform.Modules.Platform.Contracts.csproj" />
     <Project Path="src/Modules/Platform/SportsPlatform.Modules.Platform/SportsPlatform.Modules.Platform.csproj" />
   </Folder>
+  <Folder Name="/src/Modules/Registry/">
+    <Project Path="src/Modules/Registry/SportsPlatform.Modules.Registry.Contracts/SportsPlatform.Modules.Registry.Contracts.csproj" />
+    <Project Path="src/Modules/Registry/SportsPlatform.Modules.Registry/SportsPlatform.Modules.Registry.csproj" />
+  </Folder>
   <Folder Name="/src/Modules/SportsConfiguration/">
     <Project Path="src/Modules/SportsConfiguration/SportsPlatform.Modules.SportsConfiguration.Contracts/SportsPlatform.Modules.SportsConfiguration.Contracts.csproj" />
     <Project Path="src/Modules/SportsConfiguration/SportsPlatform.Modules.SportsConfiguration/SportsPlatform.Modules.SportsConfiguration.csproj" />

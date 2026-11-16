@@ -7,10 +7,11 @@ at the start of every review.
 
 - **Current slice:** S06 — People registry (docs/build/slices/S06-people-registry.md, written by the S05 slice review).
   S00–S05 are done
-- **Current task:** S06-T1 — Registry module, the person and the reads — not started; next is `/next-task`
-- **Next:** S06-T2 — Duplicate check and create
-- **Blocked on:** the owner's review of the S05 slice review (S06 decisions D1–D24); Q35–Q41 answered with the
-  recommended defaults (owner, 2026-11-16)
+- **Current task:** S06-T1a — Registry module, the person model, normalisation, tables and D11 — implemented on
+  `claude/dazzling-wright-km7ldq` (plan approved by the owner, 2026-11-16: D1–D4, D9–D11 as written for this task);
+  next is `/finish-task`
+- **Next:** S06-T1b — the reads, roles, classification and redaction tests
+- **Blocked on:** nothing
 
 ## Next up
 

@@ -441,3 +441,10 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
 ## Implementation notes
 
 (The builder adds notes here as tasks merge.)
+
+- **T1a:** the module, the four tables and D11. Owner decisions (plan, 2026-11-16): external identifiers have no
+  foreign key to `persons` and the command calls `context.MarkChanged(person)`; D11 moves the version only of a root
+  that is loaded; D11 applies to every module's context. The conflict error is `PERSON_CONCURRENCY_CONFLICT`
+  (api-conventions.md has no `REGISTRY_` area). `Person` has `Create` and `AddAlias` only; status transitions, alias
+  removal and identifier commands are T3's. Bounds: height 50–260 cm, weight 10–300 kg (one decimal). `pg_trgm` is
+  declared without a schema (Npgsql's snapshot drops one) and a test checks it lands in `public`.
