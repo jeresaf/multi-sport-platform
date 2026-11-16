@@ -1,9 +1,9 @@
 import { expect, test } from "@playwright/test";
 import { acceptByApi, inviteMember, inviteOwner, newPassword, personEmail, signIn, signInByApi, myTenantId } from "./support/accounts";
 
-// Tenant workspace → Sports (S05 D17) against the real API and the seeded definitions: every tenant role reads them,
-// so a scorer opens the list, a variant and each of its tabs. Labels come from the seeded definition; the test reads
-// the variant's name from the list instead of naming a sport.
+// Tenant workspace → Sports (S05 D17) against the real API and the seeded definitions: every tenant role except Team
+// manager (no actions yet) reads them, so a scorer opens the list, a variant and each of its tabs. Labels come from
+// the seeded definition; the test reads the variant's name from the list instead of naming a sport.
 
 test("a scorer reads a sport's definition, tab by tab", async ({ page, request }) => {
   const owner = { email: personEmail("ruth.akello", "kmsa"), password: newPassword() };
@@ -53,8 +53,9 @@ test("a scorer reads a sport's definition, tab by tab", async ({ page, request }
   await expect(page.getByRole("heading", { level: 1, name: "Page not found" })).toBeVisible();
 });
 
-// Tenant workspace → Formats (S05 D17) against the seeded formats: a registrar (every tenant role reads them) opens the
-// list and a format with its stages and parameters. Formats are generic, so the test names the seeded ones.
+// Tenant workspace → Formats (S05 D17) against the seeded formats: a registrar (every tenant role except Team
+// manager reads them) opens the list and a format with its stages and parameters. Formats are generic, so the test
+// names the seeded ones.
 test("a registrar reads the formats and a format's parameters", async ({ page, request }) => {
   const owner = { email: personEmail("peter.lubega", "kmsa"), password: newPassword() };
   await acceptByApi(request, await inviteOwner(request, "kmsa", owner.email), owner.password);
