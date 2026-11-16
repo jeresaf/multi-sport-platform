@@ -7,14 +7,14 @@ at the start of every review.
 
 - **Current slice:** S05 — Sports configuration (docs/build/slices/S05-sports-configuration.md, rewritten by the S04
   slice review). S00–S04 are done
-- **Current task:** S05-T5b1a — in review (#89): the Sports list, the variant viewer (six tabs, the scorer pad preview) and the ESLint
-  sport-literal rule (D6, D17); T5b1 is two PRs: T5b1a, then T5b1b (Formats, Rules templates) (owner, 2026-11-15)
-- **Next:** S05-T5b1b — Formats and Rules templates
+- **Current task:** S05-T5b1b1 — Formats (navigation entry, list, a format's page); T5b1b is two PRs: T5b1b1
+  (Formats), then T5b1b2 (Rules templates) (owner, 2026-11-16)
+- **Next:** S05-T5b1b2 — Rules templates
 - **Blocked on:** nothing
 
 ## Next up
 
-1. S05-T5b1b — Formats and Rules templates (read-only; three navigation entries)
+1. S05-T5b1b2 — Rules templates (read-only; list and a template's page with its parameters and rules)
 2. S05-T5b2 — Settings → Sports, the console's Sports, the demo e2e, slice close
 
 ## Log

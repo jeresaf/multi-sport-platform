@@ -469,3 +469,9 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   `@msp/ui/components/tabs`. The ESLint rule reads the codes like `SportLiteralTests` (each file's `variant:`/`sport:`
   lines and README.md's table); a later `no-restricted-syntax` replaces an earlier one's options, so the apps' rule
   lists the colour selectors again.
+- **T5b1b:** plan approved with the recommended answers (owner, 2026-11-16): T5b1b is two PRs, T5b1b1 (Formats) and
+  T5b1b2 (Rules templates) (Q1); each is a list and an item's page (`/t/{slug}/formats/{code}`,
+  `/t/{slug}/rules-templates/{code}`, `?version=` for an older version), with views that take the data so T5b2's
+  console can reuse them (Q2); a template's page shows its editable parameters, then every rule read-only in sections
+  (period, position and official labels from the pinned sport definition) and its tiebreakers (Q3); the address is
+  `/rules-templates`, as the navigation label (Q4).
