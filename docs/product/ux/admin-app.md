@@ -148,6 +148,32 @@ user's capabilities (docs/architecture/authorization.md); the server still enfor
   (it takes no new seat, S04 D13); "Invite again for a new link" isn't offered then. Only someone who can invite reads
   the usage on this page.
 
+### As built (S05-T5b1a)
+
+- **Sports** (`/t/{slug}/sports`, navigation entry after Overview, `sport.read`: every tenant role): every published
+  variant with its sport, scoring family, shape and latest version; each opens its definition. Read-only; which sports
+  the tenant uses is Settings → Sports (T5b2).
+- **A variant** (`/t/{slug}/sports/{variant}`): a header with the name, sport, version, publication date (tenant time
+  zone) and content hash, then tabs **Overview** (terminology, contest, lineup; the lineup numbers and period lengths
+  are shown as defaults a competition's rules can change), **Periods**, **Events** (one card per
+  event: who takes part, required or optional and from which coverage, the periods it may be recorded in, points (defaults a competition's rules can change; "No
+  points" for 0), details, effects, what it needs before it, the rules limiting it, what reverses it; then the events every sport has), **Positions & roles** (positions by group, roles in events,
+  staff, officials), **Statistics** (how each is worked out, in words from the definition's labels) and **Scorer pad**.
+  The tab is in the address (`?tab=`, the overview for a missing or unknown one) and `?version=` opens an older
+  version; an unknown variant or version, or a `?version=` that isn't a version number, is "Page not found". On a phone the tab list wraps onto more rows, and tables keep only their main columns: the others' values are stacked under the row's name (the Members pattern). An empty list says "None".
+- **Scorer pad preview:** the definition's `scorer_pad` groups in order, each button labelled by its event (a generic
+  event by its generic label), a group's phases written as the definition's period labels ("Only during …") and its
+  coverage ("From detailed coverage"). The buttons are list items, not controls: the preview records nothing. A pad kind
+  the preview can't draw (cricket's delivery pad) says "Preview not available".
+- **Words:** every sport word comes from the definition (labels, terminology). Codes with no label in the definition
+  (actor roles, scopes, position groups, closed vocabularies) are written as words from the code (`RINGER_ON` → "Ringer
+  on"). The viewer (`components/sports`) takes the definition rather than reading it, so the console's Sports (T5b2)
+  reuses it.
+- **No sport codes in app code:** ESLint (`@msp/config`'s `apps` config) refuses a string literal equal to a sport or
+  variant code from docs/domain/sports, or a name that is one (object key, class field or method, type member, enum
+  member, property read such as `renderers.FOOTBALL`), in `apps/**`, except under `renderers/` and in tests (S05 D6). Not caught: a code inside JSX
+  text or built from parts.
+
 ## Workspaces and screens
 
 ### Platform console (platform staff)
