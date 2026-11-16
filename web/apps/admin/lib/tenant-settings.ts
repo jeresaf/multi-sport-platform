@@ -24,12 +24,15 @@ export function useTenantTimeZone(): string {
 
 /**
  * The tenant's IANA time zone for a page that waits for it (review #93 Q1): `isLoading` while the settings are read
- * the first time, so a date is never shown in UTC and then in the tenant's zone (which can be another day). UTC when
- * the user can't read the settings or their read failed.
+ * the first time, or read again after a failed read (re-review N6), so a date is never shown in UTC and then in the
+ * tenant's zone (which can be another day). UTC when the user can't read the settings or their read failed.
  */
 export function useTenantTimeZoneOnceRead(): { timeZone: string; isLoading: boolean } {
   const settings = useTenantSettings();
-  return { timeZone: settings.data?.timeZone ?? "UTC", isLoading: settings.isLoading };
+  return {
+    timeZone: settings.data?.timeZone ?? "UTC",
+    isLoading: settings.isLoading || (settings.isError && settings.isFetching),
+  };
 }
 
 /** A date and time as people read them in a time zone: "20 Oct 2026, 14:30". */
