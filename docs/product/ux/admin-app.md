@@ -174,7 +174,20 @@ user's capabilities (docs/architecture/authorization.md); the server still enfor
   member, property read such as `renderers.FOOTBALL`), in `apps/**`, except under `renderers/` and in tests (S05 D6). Not caught: a code inside JSX
   text or built from parts.
 
-## Workspaces and screens
+### As built (S05-T5b1b1)
+
+- **Formats** (`/t/{slug}/formats`, navigation entry after Sports, `format.read`: every tenant role): every published
+  format with its description, participants ("2 to 40 participants"), contest shapes and latest version; each opens
+  the format. Read-only: a competition chooses its format and parameters when it is set up (S09).
+- **A format** (`/t/{slug}/formats/{code}`): a header like a variant's (name, version, publication date in the tenant
+  time zone, content hash), then **Overview** (description, participants, contest shapes, the stages in order with
+  their type and generator) and **Parameters** (label and description; type: whole number, yes or no, one of a list;
+  default; what a competition may choose: "1 to 4", "One of: Seeded, Random, Manual"). `?version=` opens an older
+  version; an unknown format or version, or a `?version=` that isn't a version number, is "Page not found". On a
+  phone the tables keep the name and default and stack the others under the name. No parameters or no description
+  says "None".
+- **Parameter wording** (`lib/parameters.ts`) is shared with the Rules templates page (T5b1b2), which labels its own
+  codes (tiebreakers) and adds the ordered list type. `FormatView` takes the format, so the console (T5b2) reuses it.
 
 ### Platform console (platform staff)
 Tenants (list, create, detail: lifecycle, domains, subscription, members summary) · Plans & entitlements ·
