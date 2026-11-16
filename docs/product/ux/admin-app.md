@@ -21,7 +21,7 @@ user's capabilities (docs/architecture/authorization.md); the server still enfor
   in this browser, else the first active tenant, else the console; someone with neither is told they belong to no
   organisation yet.
 - **Navigation follows the capabilities.** Each entry names the action its screen needs (tenant workspace: Organisation
-  `tenant.settings.read`, Members & roles `membership.read`, Enabled sports `tenant.sport.read`, Subscription `tenant.subscription.read`; console: Tenants `tenant.read`, Plans `plan.read`, Diagnostics
+  `tenant.settings.read`, Members & roles `membership.read`, Enabled sports `tenant.sport.read`, Subscription `tenant.subscription.read`; console: Tenants `tenant.read`, Plans `plan.read`, Sports, Formats and Rules templates `platform.sport.read`, Diagnostics
   `platform.outbox.read`, Audit `platform.audit.read`); entries the user's capabilities
   (`GET /api/admin/v1/me/capabilities`, `GET /api/platform/v1/me/capabilities`) don't allow are hidden, and their
   addresses answer "You can't open this page". Entries whose screens don't exist yet open "This screen isn't available
@@ -232,11 +232,25 @@ user's capabilities (docs/architecture/authorization.md); the server still enfor
   override of 0 refuses by screen and API, removed, enabled again; the audit trail has both enablements, the refusal and
   the reasons).
 
+### As built (S05-T5b2b)
+
+- **Console: Sports, Formats and Rules templates** (`/platform/sports`, `/platform/formats`, `/platform/rules-templates`,
+  navigation entries after Plans, `platform.sport.read`: platform administrators and support staff). The workspace's
+  pages over the platform reads (`GET /api/platform/v1/…`): the same tables (`SportsTable`, `FormatsTable`,
+  `RulesTemplatesTable`) and viewers (`SportViewer`, `FormatView`, `RulesetTemplateView`), with `?tab=` and
+  `?version=` and "Page not found" as in a workspace. Links stay in the console (a template's pinned sport version and
+  formats). The intro says tenants see the same pages. Read-only: these change only by publishing a new version.
+- **Dates in UTC say so.** The console has no time zone, so a publication date is in UTC and reads "15 Nov 2026
+  (UTC)"; a workspace whose settings the user can't read (its dates fall back to UTC) says so too (`publishedOn`,
+  `components/viewer/facts.tsx`, with `BackLink`).
+- **e2e** `admin-screenshots`: the console's lists, a variant (Overview, Scorer pad), a format and a template at phone,
+  tablet and desktop widths, light and dark.
+
 ## Workspaces and screens
 
 ### Platform console (platform staff)
-Tenants (list, create, detail: lifecycle, domains, subscription, members summary) · Plans & entitlements ·
-Diagnostics (failed outbox messages with re-drive, background jobs) · Platform audit.
+Tenants (list, create, detail: lifecycle, domains, subscription, members summary) · Plans & entitlements · Sports,
+Formats and Rules templates (read-only, as in a workspace) · Diagnostics (failed outbox messages with re-drive, background jobs) · Platform audit.
 
 ### Tenant settings
 Organisation profile (name, time zone, locale, currency, public visibility, policies such as minors' consent) ·
