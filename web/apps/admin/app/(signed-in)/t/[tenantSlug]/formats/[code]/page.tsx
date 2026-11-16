@@ -1,14 +1,13 @@
 "use client";
 
-import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { FormatView } from "@/components/formats/format-view";
 import { Loading } from "@/components/loading";
 import { ProblemAlert } from "@/components/problem-alert";
 import { ForbiddenView, NotFoundView } from "@/components/status-page";
+import { BackLink } from "@/components/viewer/facts";
 import { isApiProblem } from "@/lib/api";
-import { useTenantTimeZone } from "@/lib/tenant-settings";
+import { useTenantTimeZoneOnceRead } from "@/lib/tenant-settings";
 import { useTenantWorkspace } from "@/lib/tenant-workspace";
 import { versionParam } from "@/lib/version-param";
 import { tenantPath } from "@/lib/workspace";
@@ -19,7 +18,7 @@ export default function FormatPage() {
   const { code } = useParams<{ code: string }>();
   const searchParams = useSearchParams();
   const { tenant, can } = useTenantWorkspace();
-  const timeZone = useTenantTimeZone();
+  const { timeZone, isLoading: zoneLoading } = useTenantTimeZoneOnceRead();
   const version = versionParam(searchParams.get("version"));
   const format = useFormat(code, version ?? undefined, version !== null);
 
@@ -31,21 +30,14 @@ export default function FormatPage() {
     return <NotFoundView />;
   }
 
-  const back = (
-    <Link
-      href={`${tenantPath(tenant.slug)}/formats`}
-      className="inline-flex min-h-11 w-fit items-center gap-1 text-sm text-primary underline-offset-4 hover:underline"
-    >
-      <ArrowLeft aria-hidden className="size-4" />
-      Formats
-    </Link>
-  );
+  const back = <BackLink href={`${tenantPath(tenant.slug)}/formats`}>Formats</BackLink>;
 
-  if (format.isPending || format.isError) {
+  // The tenant's zone is waited for too, so the publication date doesn't change day under the reader.
+  if (format.isPending || format.isError || zoneLoading) {
     return (
       <section className="grid gap-4">
         {back}
-        {format.isPending ? <Loading /> : <ProblemAlert error={format.error} />}
+        {format.isError ? <ProblemAlert error={format.error} /> : <Loading />}
       </section>
     );
   }

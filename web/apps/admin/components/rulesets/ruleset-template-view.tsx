@@ -6,7 +6,7 @@
 // platform console (T5b2) show the same view over their own reads.
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { Facts, NoneOr, ViewerSection } from "@/components/viewer/facts";
+import { Facts, NoneOr, ViewerSection, publishedOn } from "@/components/viewer/facts";
 import { ParametersTable } from "@/components/viewer/parameters-table";
 import { formatDay } from "@/lib/entitlements";
 import { numberRange } from "@/lib/parameters";
@@ -19,7 +19,6 @@ import {
   type RulesetTemplate,
 } from "@/lib/rulesets";
 import { codeLabel, formatSeconds, type SportDefinition } from "@/lib/sport-definition";
-import { formatDate } from "@/lib/tenant-settings";
 
 const linkClass = "inline-flex min-h-11 items-center text-primary underline-offset-4 hover:underline";
 
@@ -44,7 +43,7 @@ export function RulesetTemplateView({
   /** Where the sport's and a format's pages are; no links when left out. */
   sportHref?: string;
   formatHref?: (code: string) => string;
-  /** Where the publication date is shown: the tenant's zone in a workspace. */
+  /** Where the publication date is shown: the tenant's zone in a workspace, UTC in the console. */
   timeZone: string;
   /** A link back to the list, above the title. */
   back?: ReactNode;
@@ -75,7 +74,7 @@ export function RulesetTemplateView({
         {back}
         <h1 className="text-2xl font-semibold">{template.name}</h1>
         <p className="text-muted-foreground">
-          Version {template.version} · published {formatDate(template.publishedAt, timeZone)}
+          Version {template.version} · published {publishedOn(template.publishedAt, timeZone)}
         </p>
         <p className="text-sm text-muted-foreground">
           Read-only: a template changes only by publishing a new version. Content hash{" "}

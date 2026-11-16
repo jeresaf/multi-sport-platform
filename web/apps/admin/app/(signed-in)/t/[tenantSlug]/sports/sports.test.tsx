@@ -1,7 +1,7 @@
 // Tenant workspace → Sports: the published variants, and a variant's definition in tabs (S05 D17), all read from the
 // API and shown in the definition's own words; only for whoever holds `sport.read`. The definition is a test-only one
 // (test/sport-definitions.ts), so every sport word on screen must have come from it.
-import { cleanup, fireEvent, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { tenantCapabilities } from "@/test/capabilities";
 import { fakeApi, problem, renderWithQuery, type Answer, type Answers } from "@/test/render";
@@ -51,6 +51,9 @@ const settings: Answer = {
   },
 };
 
+// The last render's query client, for a test that waits on a query's state.
+let queryClient: ReturnType<typeof renderWithQuery>["queryClient"];
+
 function open(page: "list" | "variant", actions = reads, answers: Answers = {}) {
   const requests = fakeApi({
     "GET /api/account/v1/me": me,
@@ -60,7 +63,9 @@ function open(page: "list" | "variant", actions = reads, answers: Answers = {}) 
     "GET /api/admin/v1/sports/RINGBALL_SEVENS": { status: 200, body: ringball },
     ...answers,
   });
-  renderWithQuery(<TenantWorkspaceLayout>{page === "list" ? <SportsPage /> : <SportVariantPage />}</TenantWorkspaceLayout>);
+  ({ queryClient } = renderWithQuery(
+    <TenantWorkspaceLayout>{page === "list" ? <SportsPage /> : <SportVariantPage />}</TenantWorkspaceLayout>,
+  ));
   return requests;
 }
 
@@ -133,6 +138,54 @@ describe("sport variant", () => {
     const header = screen.getByRole("heading", { level: 1, name: "Ringball sevens" }).closest("header")!;
     expect(within(header).getByRole("link", { name: "Sports" }).getAttribute("href")).toBe("/t/kmsa/sports");
     expect(requests.find((request) => request.path === "/api/admin/v1/sports/RINGBALL_SEVENS")?.search).toBe("");
+  });
+
+  it("waits for the tenant's settings, so the date is never shown in UTC first (review #93 Q1)", async () => {
+    openVariant();
+    // Hold the settings back until the definition has arrived.
+    const answer = globalThis.fetch;
+    let release = () => {};
+    let settingsAsked = false;
+    const settingsRead = new Promise<void>((resolve) => (release = resolve));
+    vi.stubGlobal("fetch", async (request: Request) => {
+      if (new URL(request.url).pathname === "/api/admin/v1/tenant/settings") {
+        settingsAsked = true;
+        await settingsRead;
+      }
+      return answer(request);
+    });
+
+    // The definition has arrived and the page has rendered with it (re-review N5), the settings still held back.
+    await waitFor(() =>
+      expect(queryClient.getQueryState(["sports", "definition", "RINGBALL_SEVENS", "latest"])?.status).toBe("success"),
+    );
+    await act(async () => {});
+    expect(settingsAsked).toBe(true);
+    expect(screen.queryByRole("heading", { level: 1, name: "Ringball sevens" })).toBeNull();
+    expect(screen.queryByText(/\(UTC\)/)).toBeNull();
+    expect(screen.getByRole("status").textContent).toContain("Loading");
+
+    release();
+    expect(await screen.findByRole("heading", { level: 1, name: "Ringball sevens" })).toBeTruthy();
+    expect(screen.getByText(/published 2 Nov 2026$/)).toBeTruthy();
+  });
+
+  it("shows the publication date in UTC, and says so, when the tenant's settings can't be read (re-review N4)", async () => {
+    openVariant("", reads, {
+      "GET /api/admin/v1/tenant/settings": { status: 500, body: problem("PLATFORM_UNEXPECTED_ERROR", 500) },
+    });
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Ringball sevens" })).toBeTruthy();
+    expect(screen.getByText(/Ringball · version 2 · published 1 Nov 2026 \(UTC\)/)).toBeTruthy();
+  });
+
+  it("shows the publication date in UTC, and says so, to someone who can't read the tenant's settings", async () => {
+    const requests = openVariant("", ["sport.read"]);
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Ringball sevens" })).toBeTruthy();
+    // 21:30 UTC on 1 Nov: 2 Nov in Kampala, but the zone can't be read.
+    expect(screen.getByText(/Ringball · version 2 · published 1 Nov 2026 \(UTC\)/)).toBeTruthy();
+    expect(requests.some((request) => request.path === "/api/admin/v1/tenant/settings")).toBe(false);
   });
 
   it("lists the six tabs and puts the chosen one in the address", async () => {

@@ -296,12 +296,18 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
 
 ## Slice acceptance
 
-- [ ] Football is fully described by data; the ADDITIVE engine passes all scenarios; generators and the resolver are
-      deterministic; tenants enable sports within their entitlement.
-- [ ] Sport definitions, formats and templates are immutable once seeded (tests); tenant sports are covered by the
-      isolation harness; the RLS exception list is unchanged.
-- [ ] No sport code appears in generic backend or web code (architecture test, ESLint).
-- [ ] Docs updated (D22); the S04 carry-overs above are done and removed from PROGRESS.md.
+- [x] Football is fully described by data; the ADDITIVE engine passes all scenarios; generators and the resolver are
+      deterministic; tenants enable sports within their entitlement. (`football.yaml` and the equality test; the
+      scenario runner's 30 scenarios (27 football); `SeededRandom` vectors, the round robin's pinned hash,
+      `RulesetResolverTests`' pinned hash; T5a's quota tests and the demo e2e)
+- [x] Sport definitions, formats and templates are immutable once seeded (tests); tenant sports are covered by the
+      isolation harness; the RLS exception list is unchanged. (`SportDefinitionSeedTests`, `FormatDefinitionSeedTests`,
+      `RulesetTemplateSeedTests`; `TenantSportSample`; `RlsCoverageTests` still lists `outbox_messages` and
+      `tenant_domains` only)
+- [x] No sport code appears in generic backend or web code (architecture test, ESLint). (`SportLiteralTests`; the
+      apps' ESLint rule, T5b1a)
+- [x] Docs updated (D22); the S04 carry-overs above are done and removed from PROGRESS.md. (Q27 in T5a1;
+      `renewalStartsOn` stays with its own trigger, as above)
 
 ## Implementation notes
 
@@ -485,3 +491,9 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   definitions' **Sports** (Q1); Enable acts at once, Disable asks for the reason (Q4); the console mirrors the
   workspace with Sports, Formats and Rules templates under `platform.sport.read` (Q2). The demo spec runs on its own
   test tenant (Shoebill Community Sports Club, added to pilot-customer.md's test-only names) and stands in for ELSSC.
+- **T5b2b:** plan approved (owner, 2026-11-16): the console's dates are in UTC and say so (the console has no time
+  zone; as its Tenants list); one PR. The console's pages reuse the workspace's tables (moved to `SportsTable`,
+  `FormatsTable`, `RulesTemplatesTable`) and viewers over the platform reads. In a workspace the viewers wait for the
+  tenant's settings, and label a publication date in UTC only when they can't be read (review #93 Q1); other
+  workspace dates don't. The workspace screens' screenshots came with T5b1 and T5b2a; this task adds the
+  console's. Slice acceptance checked on the branch (backend, web and e2e suites).

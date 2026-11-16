@@ -1,15 +1,14 @@
 "use client";
 
-import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { Loading } from "@/components/loading";
 import { ProblemAlert } from "@/components/problem-alert";
 import { RulesetTemplateView } from "@/components/rulesets/ruleset-template-view";
 import { ForbiddenView, NotFoundView } from "@/components/status-page";
+import { BackLink } from "@/components/viewer/facts";
 import { isApiProblem } from "@/lib/api";
 import { namesByCode } from "@/lib/rulesets";
-import { useTenantTimeZone } from "@/lib/tenant-settings";
+import { useTenantTimeZoneOnceRead } from "@/lib/tenant-settings";
 import { useTenantWorkspace } from "@/lib/tenant-workspace";
 import { versionParam } from "@/lib/version-param";
 import { tenantPath } from "@/lib/workspace";
@@ -26,7 +25,7 @@ export default function RulesTemplatePage() {
   const { code } = useParams<{ code: string }>();
   const searchParams = useSearchParams();
   const { tenant, can } = useTenantWorkspace();
-  const timeZone = useTenantTimeZone();
+  const { timeZone, isLoading: zoneLoading } = useTenantTimeZoneOnceRead();
   const version = versionParam(searchParams.get("version"));
   const template = useRulesetTemplate(code, version ?? undefined, version !== null);
   const sport = template.data?.sport;
@@ -42,18 +41,11 @@ export default function RulesTemplatePage() {
   }
 
   const root = tenantPath(tenant.slug);
-  const back = (
-    <Link
-      href={`${root}/rules-templates`}
-      className="inline-flex min-h-11 w-fit items-center gap-1 text-sm text-primary underline-offset-4 hover:underline"
-    >
-      <ArrowLeft aria-hidden className="size-4" />
-      Rules templates
-    </Link>
-  );
+  const back = <BackLink href={`${root}/rules-templates`}>Rules templates</BackLink>;
 
-  // The definition is waited for only while it is being read, so its labels don't change under the reader.
-  if (template.isPending || template.isError || definition.fetchStatus === "fetching") {
+  // The definition is waited for only while it is being read, so its labels don't change under the reader; the
+  // tenant's zone too, so the publication date doesn't change day.
+  if (template.isPending || template.isError || definition.fetchStatus === "fetching" || zoneLoading) {
     return (
       <section className="grid gap-4">
         {back}

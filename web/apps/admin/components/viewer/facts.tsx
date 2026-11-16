@@ -1,6 +1,9 @@
 // The read-only viewers' building blocks (S05 D17): facts, sections, "None" and the phone-friendly row name. Shared by
 // the sport variant, format and ruleset template viewers, so they live here rather than under one of them.
+import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
 import type { ReactNode } from "react";
+import { formatDate } from "@/lib/tenant-settings";
 
 /**
  * Label and value pairs (a description list), two columns from tablet up. The label column has one width in every
@@ -66,4 +69,26 @@ export function RowName({ name, details }: Readonly<{ name: ReactNode; details: 
       </dl>
     </>
   );
+}
+
+/** A viewer's link back to its list, above the title ("Sports", "Formats", "Rules templates"). */
+export function BackLink({ href, children }: Readonly<{ href: string; children: ReactNode }>) {
+  return (
+    <Link
+      href={href}
+      className="inline-flex min-h-11 w-fit items-center gap-1 text-sm text-primary underline-offset-4 hover:underline"
+    >
+      <ArrowLeft aria-hidden className="size-4" />
+      {children}
+    </Link>
+  );
+}
+
+/**
+ * A publication date in a time zone: the tenant's in a workspace, UTC in the platform console (which has no zone) or
+ * for someone who can't read the tenant's settings. A date in UTC says so ("16 Nov 2026 (UTC)").
+ */
+export function publishedOn(instant: string, timeZone: string): string {
+  const date = formatDate(instant, timeZone);
+  return timeZone === "UTC" ? `${date} (UTC)` : date;
 }

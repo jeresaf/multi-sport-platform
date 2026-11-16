@@ -49,6 +49,9 @@ export function platformNavigation(): NavItem[] {
     { label: "Overview", href: platformPath, icon: LayoutDashboard },
     { label: "Tenants", href: `${platformPath}/tenants`, icon: Building2, action: "tenant.read" },
     { label: "Plans", href: `${platformPath}/plans`, icon: Package, action: "plan.read" },
+    { label: "Sports", href: `${platformPath}/sports`, icon: Trophy, action: "platform.sport.read" },
+    { label: "Formats", href: `${platformPath}/formats`, icon: Network, action: "platform.sport.read" },
+    { label: "Rules templates", href: `${platformPath}/rules-templates`, icon: BookOpen, action: "platform.sport.read" },
     { label: "Diagnostics", href: `${platformPath}/diagnostics`, icon: Activity, action: "platform.outbox.read" },
     { label: "Audit", href: `${platformPath}/audit`, icon: ScrollText, action: "platform.audit.read" },
   ];

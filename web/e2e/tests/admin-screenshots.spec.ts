@@ -53,6 +53,48 @@ test("screenshots of the platform console", async ({ page }) => {
   await shoot(page, "not-available", widths);
 });
 
+test("screenshots of the platform console's sport configuration", async ({ page }) => {
+  await signIn(page, platformAdmin.email, platformAdmin.password);
+  await expect(page.getByRole("heading", { level: 1, name: "Platform console" })).toBeVisible();
+  // The console's own entries (S05 D17), below Plans; the pages link within the console.
+  await page.getByRole("link", { name: "Sports" }).first().click();
+  await expect(page).toHaveURL(/\/platform\/sports$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Sports" })).toBeVisible();
+  await expect(loading(page)).toHaveCount(0);
+  await shoot(page, "platform-sports", [phone, ...widths]);
+
+  await page.getByRole("table").getByRole("link").first().click();
+  await expect(page).toHaveURL(/\/platform\/sports\/[^/]+$/);
+  await expect(page.getByRole("tab", { name: "Overview", selected: true })).toBeVisible();
+  // The console has no time zone: its dates are in UTC and say so.
+  await expect(page.getByText(/published .* \(UTC\)/)).toBeVisible();
+  await shoot(page, "platform-sport-overview", [phone, ...widths]);
+  await page.getByRole("tab", { name: "Scorer pad" }).click();
+  await expect(page.getByRole("tab", { name: "Scorer pad", selected: true })).toBeVisible();
+  await shoot(page, "platform-sport-scorer-pad", [phone, ...widths]);
+
+  await page.getByRole("link", { name: "Formats" }).first().click();
+  await expect(page.getByRole("heading", { level: 1, name: "Formats" })).toBeVisible();
+  await expect(loading(page)).toHaveCount(0);
+  await shoot(page, "platform-formats", [phone, ...widths]);
+
+  await page.getByRole("table").getByRole("link", { name: "League (round robin)" }).click();
+  await expect(page).toHaveURL(/\/platform\/formats\/[^/]+$/);
+  await expect(page.getByRole("heading", { level: 2, name: "Parameters" })).toBeVisible();
+  await shoot(page, "platform-format", [phone, ...widths]);
+
+  await page.getByRole("link", { name: "Rules templates" }).first().click();
+  await expect(page.getByRole("heading", { level: 1, name: "Rules templates" })).toBeVisible();
+  await expect(loading(page)).toHaveCount(0);
+  await shoot(page, "platform-rules-templates", [phone, ...widths]);
+
+  await page.getByRole("table").getByRole("link").first().click();
+  await expect(page).toHaveURL(/\/platform\/rules-templates\/[^/]+$/);
+  await expect(page.getByRole("heading", { level: 2, name: "Tiebreakers" })).toBeVisible();
+  await expect(loading(page)).toHaveCount(0);
+  await shoot(page, "platform-rules-template", [phone, ...widths]);
+});
+
 test("screenshots of the platform console's tenants", async ({ page, request }) => {
   await signInByApi(request, platformAdmin.email, platformAdmin.password);
   const kmsa = await tenantId(request, "kmsa");

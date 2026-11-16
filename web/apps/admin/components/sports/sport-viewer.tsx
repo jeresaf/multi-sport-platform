@@ -5,7 +5,7 @@
 // platform console (T5b2) show the same viewer over their own reads.
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@msp/ui/components/tabs";
 import type { ReactNode } from "react";
-import { formatDate } from "@/lib/tenant-settings";
+import { publishedOn } from "@/components/viewer/facts";
 import { codeLabel, type SportDefinition } from "@/lib/sport-definition";
 import { OverviewTab, PeriodsTab, PositionsTab, StatisticsTab } from "./definition-tabs";
 import { EventsTab } from "./events-tab";
@@ -37,7 +37,7 @@ export function SportViewer({
   definition: SportDefinition;
   tab: SportTab;
   onTabChange: (tab: SportTab) => void;
-  /** Where the publication date is shown: the tenant's zone in a workspace. */
+  /** Where the publication date is shown: the tenant's zone in a workspace, UTC in the console. */
   timeZone: string;
   /** A link back to the list, above the title. */
   back?: ReactNode;
@@ -50,7 +50,7 @@ export function SportViewer({
         <h1 className="text-2xl font-semibold">{definition.name}</h1>
         <p className="text-muted-foreground">
           {codeLabel(definition.sport)} · version {definition.version} · published{" "}
-          {formatDate(definition.publishedAt, timeZone)}
+          {publishedOn(definition.publishedAt, timeZone)}
         </p>
         <p className="text-sm text-muted-foreground">
           Read-only: a sport changes only by publishing a new version. Content hash{" "}

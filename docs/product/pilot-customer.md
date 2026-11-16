@@ -141,5 +141,6 @@ never seeded.
   corrected, re-approved result and an updated public table.
 - **Seeds:** S02 (tenants), S06 (people), S07 (clubs, teams, venues), S09 (competitions) use the names above.
 - **UX examples and docs** use KMSA names, never "Team A" or lorem ipsum.
-- **Entitlement demos:** enabling a 4th sport on STANDARD shows "Requires PRO"; ELSSC's event pass allows one
-  active edition.
+- **Entitlement demos:** a sport quota refusal says the limit, not a plan: "Your plan allows N sports." Only football
+  is published in S05, so the S05 demo shows it through the override `MAX_ENABLED_SPORTS = 0` (S05 D18); a 4th sport
+  on STANDARD (after cricket, S17) is refused the same way. ELSSC's event pass allows one active edition.
