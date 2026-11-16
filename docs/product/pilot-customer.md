@@ -125,7 +125,8 @@ named after trees and birds so they don't read as a real district, council or le
 Circle** (`acacia-schools`), **Jacaranda Corporate Games** (`jacaranda-games`), **Mvule Youth Football League**
 (`mvule-youth`), **Sunbird Junior Sports Club** (`sunbird-juniors`), **Acacia Road Runners** (`acacia-runners`),
 **Weaver Bird Athletics Club** (`weaver-athletics`), **Kingfisher Masters Hockey Club** (`kingfisher-masters`),
-**Hornbill Volleyball Club** (`hornbill-volleyball`). They are never seeded.
+**Hornbill Volleyball Club** (`hornbill-volleyball`), **Shoebill Community Sports Club** (`shoebill-sports`). They are
+never seeded.
 
 ## Privacy notes for this persona
 
