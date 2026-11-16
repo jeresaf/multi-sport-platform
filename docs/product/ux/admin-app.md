@@ -217,7 +217,7 @@ user's capabilities (docs/architecture/authorization.md); the server still enfor
 
 - **Enabled sports** (`/t/{slug}/settings/sports`, navigation entry after Members & roles, `tenant.sport.read`: every
   tenant role except Team manager). Named so it isn't confused with **Sports** (the definitions). Every published
-  variant with its sport and status ("Enabled since 16 Nov 2026" in the tenant's time zone, or "Not enabled"); a variant's
+  variant with its sport and status (an "Enabled" badge with "since 16 Nov 2026" in the tenant's time zone, or "Not enabled"); a variant's
   name opens its definition for someone with `sport.read`. Owners and admins see **Enable** (at once, no dialog; "… is
   enabled." is announced) and **Disable** (a dialog asks for the reason, kept with the enablement and in the audit
   trail; nothing that uses the variant changes). Each change answers the list as it is after it.

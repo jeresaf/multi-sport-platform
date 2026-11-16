@@ -29,9 +29,9 @@ test("slice demo: enable a sport within the plan, refused at an override of 0, e
 }) => {
   // Two signed-in people, two console changes and the audit trail's polls.
   test.slow();
-  const slug = `kisubi-netball-${run}`;
+  const slug = `shoebill-sports-${run}`;
   // Created and activated on STANDARD from yesterday (support/accounts.ts).
-  const tenantId = await createTenant(request, slug, `Kisubi Netball Club ${run}`);
+  const tenantId = await createTenant(request, slug, `Shoebill Community Sports Club ${run}`);
   const owner = { email: personEmail("agnes.nambi", slug), password: newPassword() };
   await acceptByApi(request, await inviteOwnerOf(request, tenantId, owner.email), owner.password);
 

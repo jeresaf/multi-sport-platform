@@ -479,3 +479,9 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   sport definition version for its labels and still renders without it (codes as words); parameter defaults are shown
   as the template writes them ("2700" under a label saying seconds), the rules as durations ("45 min"); one PR. Words
   follow the glossary (roster, lineup, contest), not the template's own sport words, except the template's labels.
+- **T5b2:** plan approved with the recommended answers (owner, 2026-11-16): T5b2 is two PRs, T5b2a (Settings → Sports
+  and the slice demo e2e) and T5b2b (the console, screenshots, slice close) (Q3); D17's Settings → Sports is labelled
+  **Enabled sports** in the navigation and on the page (`/t/{slug}/settings/sports`), so it isn't confused with the
+  definitions' **Sports** (Q1); Enable acts at once, Disable asks for the reason (Q4); the console mirrors the
+  workspace with Sports, Formats and Rules templates under `platform.sport.read` (Q2). The demo spec runs on its own
+  test tenant (Shoebill Community Sports Club, added to pilot-customer.md's test-only names) and stands in for ELSSC.

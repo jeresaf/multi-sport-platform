@@ -62,7 +62,7 @@ export default function EnabledSportsPage() {
   // The plan's limit, when every sport it allows is taken: the note says it once, and Enable on a new sport points to it.
   const atLimit = variants.map((sport) => sportLimitReason(sport, variants, quota)).find((reason) => reason !== null);
   const limitReason = can("tenant.sport.enable") ? (atLimit ?? null) : null;
-  const refusal = enableRefusal ?? disableRefusal ?? limitReason;
+  const refusal = enableRefusal ?? limitReason ?? disableRefusal;
 
   const enableSport = (sport: TenantSport) => {
     disable.reset();
@@ -165,7 +165,7 @@ export default function EnabledSportsPage() {
                     {sport.enabled && showsDisable ? (
                       <Button
                         variant="outline"
-                        disabled={disableRefusal !== null}
+                        disabled={disableRefusal !== null || enable.isPending}
                         aria-label={`Disable ${sport.name}`}
                         aria-describedby={disableRefusal ? "sports-unavailable" : undefined}
                         onClick={() => {
