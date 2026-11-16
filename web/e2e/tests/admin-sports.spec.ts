@@ -56,7 +56,7 @@ test("a scorer reads a sport's definition, tab by tab", async ({ page, request }
 // Tenant workspace → Formats (S05 D17) against the seeded formats: a registrar (every tenant role reads them) opens the
 // list and a format with its stages and parameters. Formats are generic, so the test names the seeded ones.
 test("a registrar reads the formats and a format's parameters", async ({ page, request }) => {
-  const owner = { email: personEmail("ruth.akello", "kmsa"), password: newPassword() };
+  const owner = { email: personEmail("peter.lubega", "kmsa"), password: newPassword() };
   await acceptByApi(request, await inviteOwner(request, "kmsa", owner.email), owner.password);
   await signInByApi(request, owner.email, owner.password);
   const tenantId = await myTenantId(request, "kmsa");
@@ -81,7 +81,7 @@ test("a registrar reads the formats and a format's parameters", async ({ page, r
   const cycles = page.getByRole("row").filter({ has: page.getByRole("rowheader", { name: /^Cycles/ }) });
   await expect(cycles.getByRole("cell")).toHaveText(["Whole number", "1", "1 to 4"]);
 
-  await page.getByRole("link", { name: "Formats" }).last().click();
+  await page.getByRole("main").getByRole("link", { name: "Formats" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Formats" })).toBeVisible();
 
   await page.goto("/t/kmsa/formats/NO_SUCH_FORMAT");
