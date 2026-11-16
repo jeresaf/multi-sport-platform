@@ -194,11 +194,7 @@ describe("a rules template", () => {
       "Any of, each once, in the order chosen: Points, Ring difference, Far rings, Toss of a coin",
     ]);
     expect(within(rowOf("Tiebreakers")).getByText("Applied in this order when crews are level on points.")).toBeTruthy();
-    expect(cells("When a bout is level")).toEqual([
-      "One of a list",
-      "Extra periods sudden death",
-      "One of: Extra periods sudden death, Shootout",
-    ]);
+    expect(cells("Coverage of a bout")).toEqual(["One of a list", "Detailed", "One of: Standard, Detailed"]);
     expect(cells("First spell (seconds)")).toEqual(["Whole number", "600", "300 to 900"]);
     expect(cells("Head-to-head again among crews still level")).toEqual(["Yes or no", "No", "Either"]);
   });
@@ -210,9 +206,9 @@ describe("a rules template", () => {
     const changeable = " (default; a competition may change it)";
     expect(items("Period lengths")).toEqual([`First spell: 10 min${changeable}`, "Interval: 1 min 30 s", "Second spell: 10 min 30 s"]);
     const contest = section("Contest");
-    expect(fact("When the scores are level", contest)).toBe(`Extra periods sudden death${changeable}`);
+    expect(fact("When the scores are level", contest)).toBe("Extra periods sudden death");
     expect(fact("Extra periods", contest)).toBe("Golden spell, then Ring-off");
-    expect(fact("Default coverage", contest)).toBe("Detailed");
+    expect(fact("Default coverage", contest)).toBe(`Detailed${changeable}`);
 
     const lineup = section("Lineup");
     expect(fact("Starters", lineup)).toBe("7");
@@ -223,7 +219,7 @@ describe("a rules template", () => {
     const substitutions = section("Substitutions");
     expect(fact("Substitutions", substitutions)).toBe("At most 6");
     expect(fact("Substitution windows", substitutions)).toBe("4");
-    expect(fact("Extra in extra time", substitutions)).toBe("1");
+    expect(fact("Extra in extra periods", substitutions)).toBe("1");
 
     const roster = section("Roster");
     expect(fact("Roster size", roster)).toBe("10 to 14");
@@ -233,10 +229,11 @@ describe("a rules template", () => {
     const standings = section("Standings");
     expect(fact("Points for a win", standings)).toBe(`3${changeable}`);
     expect(fact("Points for no result", standings)).toBe("1");
-    expect(fact("Points for a forfeit loss", standings)).toBe("-1");
+    expect(fact("Points for a forfeit win", standings)).toBe("2");
+    expect(fact("Points for a forfeit loss", standings)).toBe("0");
     expect(fact("Score of a forfeit", standings)).toBe("5–0");
     expect(items("Tiebreakers in order")).toEqual(["Points", "Ring difference", "Toss of a coin"]);
-    expect(within(standings).getByText("Default; a competition may change it.")).toBeTruthy();
+    expect(fact("Tiebreakers", standings)).toMatch(/Toss of a coin \(default; a competition may change it\)$/);
     expect(fact("Head-to-head applied again to those still level", standings)).toBe(`No${changeable}`);
 
     expect(items("Readiness checks")).toEqual(["Lineups approved", "Officials minimum"]);
@@ -250,6 +247,48 @@ describe("a rules template", () => {
     expect(fact("Age", eligibility)).toBe("14 to 17");
     expect(fact("Age worked out on", eligibility)).toBe("1 Jan 2027");
     expect(fact("Consent for minors", eligibility)).toBe("As the organisation's settings say");
+  });
+
+  // Every rule a template may make a parameter, by its path as the files write it, is marked where it is shown; one
+  // template per path, so a misspelt path leaves its rule unmarked (review #91 R3). The seeded templates' paths first.
+  const number = { type: "NUMBER", label: "A changeable rule", description: null, min: 0, max: 99, values: [], default: 1 } as const;
+  const flag = { ...number, type: "FLAG", min: null, max: null, default: false } as const;
+  it.each([
+    ["roster.min", number, "Roster size"],
+    ["roster.max", number, "Roster size"],
+    ["lineup.bench_max", number, "Substitutes on the bench"],
+    ["substitutions.max", number, "Substitutions"],
+    ["contest.period_seconds.SECOND_SPELL", number, "Second spell", "Period lengths"],
+    ["standings.points.win", number, "Points for a win"],
+    ["standings.points.draw", number, "Points for a draw"],
+    ["standings.points.loss", number, "Points for a loss"],
+    ["standings.points.no_result", number, "Points for no result"],
+    ["standings.points.forfeit_win", number, "Points for a forfeit win"],
+    ["standings.points.forfeit_loss", number, "Points for a forfeit loss"],
+    ["standings.forfeit_score.for", number, "Score of a forfeit"],
+    ["standings.h2h_reapply", flag, "Head-to-head applied again to those still level"],
+    ["lineup.starters", number, "Starters"],
+    ["lineup.requires_approval", flag, "Lineups need approval"],
+    ["lineup.positions.HOOP_GUARD.min", number, "Hoop guard", "Positions"],
+    ["substitutions.windows", number, "Substitution windows"],
+    ["substitutions.extra_in_extra_time", number, "Extra in extra periods"],
+    ["roster.requires_approval", flag, "Rosters need approval"],
+    ["operations.officials_minimum.RING_JUDGE", number, "Ring judge", "Officials at least"],
+    ["operations.scorer_correction_window_minutes", number, "Scorer corrections"],
+    ["operations.starting_soon_minutes", number, "Starting soon"],
+    ["eligibility.membership_required", flag, "Membership required"],
+    ["eligibility.min_age", number, "Age"],
+    ["eligibility.max_age", number, "Age"],
+  ] as const)("marks %s as a default a competition may change", async (path, parameter, label, list?: string) => {
+    openTemplate("RING_LEAGUE", "", reads, {
+      "GET /api/admin/v1/ruleset-templates/RING_LEAGUE": { status: 200, body: { ...ringLeague, parameters: { [path]: parameter } } },
+    });
+
+    await screen.findByRole("heading", { level: 1, name: "Ring league" });
+    const marked = screen.getAllByText("(default; a competition may change it)");
+    expect(marked).toHaveLength(1);
+    const where = list ? items(list).find((item) => item.startsWith(`${label}:`)) : fact(label, section("Rules"));
+    expect(where).toMatch(/\(default; a competition may change it\)$/);
   });
 
   it("describes every tiebreaker the template lists or allows", async () => {

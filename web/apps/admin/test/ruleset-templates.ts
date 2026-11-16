@@ -1,7 +1,9 @@
 // Test-only ruleset templates (S05 D17): invented codes and words, so a test passes only if the screen shows what the
-// template says. `ringLeague` pins the test-only Ringball definition (test/sport-definitions.ts, version 2), whose
-// labels it uses: a position and a position group, extra periods, an official role, and a parameter of each template
-// type. `quickBout` changes nothing and has no positions, officials, tiebreakers or description.
+// template says. Each is one the backend's template rules (RulesetTemplateRules, RulesetValueChecks) would accept
+// against the test-only Ringball definition (test/sport-definitions.ts, version 2) and the catalogue entries it carries
+// (review #91 R2): counts are never negative, and every choice fits the template's extra periods. `ringLeague` uses
+// the definition's labels: a position and a position group, extra periods, an official role, and a parameter of each
+// template type. `quickBout` changes nothing and has no positions, officials, tiebreakers or description.
 import type { RulesetTemplate } from "@/lib/rulesets";
 
 export const ringLeague: RulesetTemplate = {
@@ -26,14 +28,14 @@ export const ringLeague: RulesetTemplate = {
       values: ["POINTS", "RING_DIFFERENCE", "FAR_RINGS", "COIN_TOSS"],
       default: ["POINTS", "RING_DIFFERENCE", "COIN_TOSS"],
     },
-    "contest.tie_resolution": {
+    "contest.coverage_default": {
       type: "CHOICE",
-      label: "When a bout is level",
+      label: "Coverage of a bout",
       description: null,
       min: null,
       max: null,
-      values: ["EXTRA_PERIODS_SUDDEN_DEATH", "SHOOTOUT"],
-      default: "EXTRA_PERIODS_SUDDEN_DEATH",
+      values: ["STANDARD", "DETAILED"],
+      default: "DETAILED",
     },
     "standings.h2h_reapply": {
       type: "FLAG",
@@ -65,7 +67,7 @@ export const ringLeague: RulesetTemplate = {
     substitutions: { max: 6, windows: 4, extraInExtraTime: 1 },
     roster: { min: 10, max: 14, requiresApproval: false, lockPolicy: "FIRST_CONTEST" },
     standings: {
-      points: { win: 3, draw: 1, loss: 0, noResult: 1, forfeitWin: 3, forfeitLoss: -1 },
+      points: { win: 3, draw: 1, loss: 0, noResult: 1, forfeitWin: 2, forfeitLoss: 0 },
       forfeitScore: { scored: 5, conceded: 0 },
       tiebreakers: ["POINTS", "RING_DIFFERENCE", "COIN_TOSS"],
       headToHeadReapply: false,

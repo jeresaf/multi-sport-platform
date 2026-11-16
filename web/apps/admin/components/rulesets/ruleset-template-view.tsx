@@ -119,7 +119,7 @@ export function RulesetTemplateView({
       </ViewerSection>
 
       <section className="grid gap-6">
-        <h2 className="text-lg font-semibold">Rules</h2>
+        <h2 className="text-xl font-semibold">Rules</h2>
 
         <ViewerSection title="Contest">
           <Facts
@@ -177,7 +177,7 @@ export function RulesetTemplateView({
             items={[
               ["Substitutions", rule(`At most ${substitutions.max}`, "substitutions.max")],
               ["Substitution windows", rule(substitutions.windows, "substitutions.windows")],
-              ["Extra in extra time", rule(substitutions.extraInExtraTime, "substitutions.extra_in_extra_time")],
+              ["Extra in extra periods", rule(substitutions.extraInExtraTime, "substitutions.extra_in_extra_time")],
             ]}
           />
         </ViewerSection>
@@ -211,16 +211,16 @@ export function RulesetTemplateView({
               ],
               [
                 "Tiebreakers",
-                <NoneOr key="tiebreakers" empty={standings.tiebreakers.length === 0}>
-                  <ol aria-label="Tiebreakers in order" className="grid list-decimal gap-1 ps-5">
-                    {standings.tiebreakers.map((code) => (
-                      <li key={code}>{rulesetValueLabel(template, code)}</li>
-                    ))}
-                  </ol>
-                  {editable.has("standings.tiebreakers") ? (
-                    <p className="text-sm text-muted-foreground">Default; a competition may change it.</p>
-                  ) : null}
-                </NoneOr>,
+                rule(
+                  <NoneOr key="tiebreakers" empty={standings.tiebreakers.length === 0}>
+                    <ol aria-label="Tiebreakers in order" className="grid list-decimal gap-1 ps-5">
+                      {standings.tiebreakers.map((code) => (
+                        <li key={code}>{rulesetValueLabel(template, code)}</li>
+                      ))}
+                    </ol>
+                  </NoneOr>,
+                  "standings.tiebreakers",
+                ),
               ],
               [
                 "Head-to-head applied again to those still level",
@@ -233,7 +233,19 @@ export function RulesetTemplateView({
         <ViewerSection title="Contest operations">
           <Facts
             items={[
-              ["Ready to start when", rule(orNoneList(operations.readiness.map(codeLabel), "Readiness checks"), "operations.readiness")],
+              [
+                "Ready to start when",
+                rule(
+                  <NoneOr key="readiness" empty={operations.readiness.length === 0}>
+                    <ul aria-label="Readiness checks" className="grid gap-1">
+                      {operations.readiness.map((check) => (
+                        <li key={check}>{codeLabel(check)}</li>
+                      ))}
+                    </ul>
+                  </NoneOr>,
+                  "operations.readiness",
+                ),
+              ],
               [
                 "Officials at least",
                 <NoneOr key="officials" empty={officials.length === 0}>
@@ -291,18 +303,5 @@ export function RulesetTemplateView({
         </NoneOr>
       </ViewerSection>
     </section>
-  );
-}
-
-/** A list of words, or "None". */
-function orNoneList(items: readonly string[], label: string): ReactNode {
-  return items.length > 0 ? (
-    <ul aria-label={label} className="grid gap-1">
-      {items.map((item) => (
-        <li key={item}>{item}</li>
-      ))}
-    </ul>
-  ) : (
-    "None"
   );
 }

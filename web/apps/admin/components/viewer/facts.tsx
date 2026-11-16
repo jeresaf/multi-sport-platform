@@ -28,7 +28,8 @@ export function ViewerSection({
   const Heading = level === 2 ? "h2" : "h3";
   return (
     <section className="grid gap-3">
-      <Heading className="text-lg font-semibold">{title}</Heading>
+      {/* A page's sections (h2) read above a tab's or a group's parts (h3). */}
+      <Heading className={level === 2 ? "text-xl font-semibold" : "text-lg font-semibold"}>{title}</Heading>
       {children}
     </section>
   );
