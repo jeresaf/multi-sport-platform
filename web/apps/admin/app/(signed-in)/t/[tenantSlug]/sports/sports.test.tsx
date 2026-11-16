@@ -135,6 +135,15 @@ describe("sport variant", () => {
     expect(requests.find((request) => request.path === "/api/admin/v1/sports/RINGBALL_SEVENS")?.search).toBe("");
   });
 
+  it("shows the publication date in UTC, and says so, to someone who can't read the tenant's settings", async () => {
+    const requests = openVariant("", ["sport.read"]);
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Ringball sevens" })).toBeTruthy();
+    // 21:30 UTC on 1 Nov: 2 Nov in Kampala, but the zone can't be read.
+    expect(screen.getByText(/Ringball · version 2 · published 1 Nov 2026 \(UTC\)/)).toBeTruthy();
+    expect(requests.some((request) => request.path === "/api/admin/v1/tenant/settings")).toBe(false);
+  });
+
   it("lists the six tabs and puts the chosen one in the address", async () => {
     openVariant("version=2");
 
