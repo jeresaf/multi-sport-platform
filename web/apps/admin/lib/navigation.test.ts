@@ -16,6 +16,7 @@ describe("tenant navigation", () => {
       "sport.read",
       "format.read",
       "ruleset.read",
+      "tenant.sport.read",
     ];
     expect(labels(visibleNavigation(items, owner))).toEqual([
       "Overview",
@@ -24,6 +25,7 @@ describe("tenant navigation", () => {
       "Rules templates",
       "Organisation",
       "Members & roles",
+      "Enabled sports",
       "Subscription",
     ]);
   });
@@ -34,6 +36,7 @@ describe("tenant navigation", () => {
     expect(labels(visibleNavigation(items, ["sport.read", "tenant.settings.read"]))).toEqual(["Overview", "Sports", "Organisation"]);
     expect(labels(visibleNavigation(items, ["format.read"]))).toEqual(["Overview", "Formats"]);
     expect(labels(visibleNavigation(items, ["ruleset.read"]))).toEqual(["Overview", "Rules templates"]);
+    expect(labels(visibleNavigation(items, ["tenant.sport.read"]))).toEqual(["Overview", "Enabled sports"]);
     expect(labels(visibleNavigation(items, []))).toEqual(["Overview"]);
   });
 
@@ -42,6 +45,7 @@ describe("tenant navigation", () => {
     expect(currentItem(items, "/t/kmsa/settings/members")?.label).toBe("Members & roles");
     expect(currentItem(items, "/t/kmsa/settings/members/0199a3f0")?.label).toBe("Members & roles");
     expect(currentItem(items, "/t/kmsa/sports/A_VARIANT")?.label).toBe("Sports");
+    expect(currentItem(items, "/t/kmsa/settings/sports")?.label).toBe("Enabled sports");
     expect(currentItem(items, "/t/kmsa/formats/A_FORMAT")?.label).toBe("Formats");
     expect(currentItem(items, "/t/kmsa/rules-templates/A_TEMPLATE")?.label).toBe("Rules templates");
     expect(currentItem(items, "/t/kmsa/settings/membership")).toBeUndefined();
