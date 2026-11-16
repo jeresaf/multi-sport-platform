@@ -10,14 +10,9 @@ import { ForbiddenView, NotFoundView } from "@/components/status-page";
 import { isApiProblem } from "@/lib/api";
 import { useTenantTimeZone } from "@/lib/tenant-settings";
 import { useTenantWorkspace } from "@/lib/tenant-workspace";
+import { versionParam } from "@/lib/version-param";
 import { tenantPath } from "@/lib/workspace";
 import { useSportDefinition } from "../sports-data";
-
-/** `?version=` as a version number: undefined for the latest (no parameter), null for one that isn't a version. */
-function versionParam(value: string | null): number | undefined | null {
-  if (value === null) return undefined;
-  return /^[1-9][0-9]{0,8}$/.test(value) ? Number(value) : null;
-}
 
 /**
  * Tenant workspace → Sports → a variant (S05 D17): its definition in tabs. The tab is in the address (`?tab=`) so it

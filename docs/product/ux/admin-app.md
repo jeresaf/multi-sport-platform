@@ -150,9 +150,9 @@ user's capabilities (docs/architecture/authorization.md); the server still enfor
 
 ### As built (S05-T5b1a)
 
-- **Sports** (`/t/{slug}/sports`, navigation entry after Overview, `sport.read`: every tenant role): every published
-  variant with its sport, scoring family, shape and latest version; each opens its definition. Read-only; which sports
-  the tenant uses is Settings → Sports (T5b2).
+- **Sports** (`/t/{slug}/sports`, navigation entry after Overview, `sport.read`: every tenant role except Team
+  manager, who has no actions yet): every published variant with its sport, scoring family, shape and latest version;
+  each opens its definition. Read-only; which sports the tenant uses is Settings → Sports (T5b2).
 - **A variant** (`/t/{slug}/sports/{variant}`): a header with the name, sport, version, publication date (tenant time
   zone) and content hash, then tabs **Overview** (terminology, contest, lineup; the lineup numbers and period lengths
   are shown as defaults a competition's rules can change), **Periods**, **Events** (one card per
@@ -173,6 +173,23 @@ user's capabilities (docs/architecture/authorization.md); the server still enfor
   variant code from docs/domain/sports, or a name that is one (object key, class field or method, type member, enum
   member, property read such as `renderers.FOOTBALL`), in `apps/**`, except under `renderers/` and in tests (S05 D6). Not caught: a code inside JSX
   text or built from parts.
+
+### As built (S05-T5b1b1)
+
+- **Formats** (`/t/{slug}/formats`, navigation entry after Sports, `format.read`: every tenant role except Team
+  manager, who has no actions yet): every published format with its description, participants ("2 to 40
+  participants"), contest shapes and latest version; each opens the format. Read-only: a competition chooses its
+  format and parameters when it is set up (S09).
+- **A format** (`/t/{slug}/formats/{code}`): a header like a variant's (name, version, publication date in the tenant
+  time zone, content hash), then **Overview** (description, participants, contest shapes, the stages in order with
+  their type and generator, the generator left out when it is named as the stage type) and **Parameters** (label and
+  description; type: whole number, yes or no, one of a list; default; what a competition may choose: "1 to 4", "One
+  of: Seeded, Random, Manual", "Either" for a yes-or-no one). `?version=` opens an older version; an unknown format or
+  version, or a `?version=` that isn't a version number, is "Page not found". On a phone the list keeps the name and
+  the parameters table the name and default; the other columns are stacked under the name. No parameters or no
+  description says "None".
+- **Parameter wording** (`lib/parameters.ts`) is shared with the Rules templates page (T5b1b2), which labels its own
+  codes (tiebreakers) and uses the ordered list type. `FormatView` takes the format, so the console (T5b2) reuses it.
 
 ## Workspaces and screens
 
