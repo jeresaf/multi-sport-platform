@@ -8,7 +8,7 @@ import { readOnlyCapabilities, tenantCapabilities } from "@/test/capabilities";
 import { fakeApi, problem, renderWithQuery, type Answer, type Answers } from "@/test/render";
 import TenantWorkspaceLayout from "../../layout";
 import EnabledSportsPage from "./page";
-import type { TenantSport, TenantSports } from "./sports-settings-data";
+import { sportLimitReason, type TenantSport, type TenantSports } from "./sports-settings-data";
 
 vi.mock("next/navigation", () => ({
   useParams: () => ({ tenantSlug: "kmsa" }),
@@ -72,13 +72,19 @@ function open(actions: string[], answers: Answers = {}, capabilities = tenantCap
     "GET /api/admin/v1/tenant/sports": list([sevens, fives, hoopstick]),
     ...answers,
   });
-  renderWithQuery(
+  const { queryClient } = renderWithQuery(
     <TenantWorkspaceLayout>
       <EnabledSportsPage />
     </TenantWorkspaceLayout>,
   );
-  return requests;
+  // The Subscription page's read, as if it had been opened: a change must mark its usage stale.
+  queryClient.setQueryData(subscriptionKey, { usage: [] });
+  return Object.assign(requests, { queryClient });
 }
+
+const subscriptionKey = ["tenant-subscription", tenantId];
+const subscriptionStale = (requests: ReturnType<typeof open>) =>
+  requests.queryClient.getQueryState(subscriptionKey)?.isInvalidated === true;
 
 const row = (name: string) => screen.getByRole("row", { name: new RegExp(`^${name}`) });
 
@@ -126,6 +132,9 @@ describe("enabled sports", () => {
     expect(requests.filter((request) => request.method === "POST").map((request) => request.path)).toEqual([
       "/api/admin/v1/tenant/sports/HOOPSTICK/enable",
     ]);
+    // The Enable button is gone: focus is on the row's Disable, not lost (#92 R1); the subscription's usage is stale.
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("button", { name: "Disable Hoopstick" })));
+    expect(subscriptionStale(requests)).toBe(true);
   });
 
   it("asks for a reason before disabling, then sends it", async () => {
@@ -146,9 +155,36 @@ describe("enabled sports", () => {
 
     expect(await screen.findByText("Ringball sevens is disabled.")).toBeTruthy();
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-    expect(screen.getByRole("button", { name: "Enable Ringball sevens" })).toBeTruthy();
+    const enableAgain = screen.getByRole("button", { name: "Enable Ringball sevens" });
+    // The Disable button that opened the dialog is gone: focus is on the row's Enable (#92 R1).
+    await waitFor(() => expect(document.activeElement).toBe(enableAgain));
     const sent = requests.find((request) => request.method === "POST");
     expect(sent?.body).toEqual({ reason: "The league moved to the fives" });
+    expect(subscriptionStale(requests)).toBe(true);
+  });
+
+  it("keeps a disable refused because it was disabled meanwhile in the dialog, read again, and confirming it no more", async () => {
+    let reads = 0;
+    const requests = open(ownerActions, {
+      "GET /api/admin/v1/tenant/sports": () => {
+        reads += 1;
+        return list(reads === 1 ? [sevens, fives, hoopstick] : [{ ...sevens, enabled: false, enabledSince: null }, fives, hoopstick]);
+      },
+      "POST /api/admin/v1/tenant/sports/RINGBALL_SEVENS/disable": { status: 409, body: problem("TENANT_SPORT_NOT_ENABLED", 409) },
+    });
+
+    fireEvent.click(await screen.findByRole("button", { name: "Disable Ringball sevens" }));
+    const dialog = await screen.findByRole("dialog", { name: "Disable Ringball sevens?" });
+    fireEvent.change(within(dialog).getByLabelText("Reason"), { target: { value: "The league moved to the fives" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Disable" }));
+
+    expect(await within(dialog).findByText(errorMessage("TENANT_SPORT_NOT_ENABLED")!)).toBeTruthy();
+    await waitFor(() => expect(reads).toBe(2));
+    await waitFor(() =>
+      expect((within(dialog).getByRole("button", { name: "Disable" }) as HTMLButtonElement).disabled).toBe(true),
+    );
+    expect(requests.filter((request) => request.method === "POST")).toHaveLength(1);
+    expect(subscriptionStale(requests)).toBe(true);
   });
 
   it("at the limit, disables Enable for a new sport with the plan's limit, but not for a variant of a counted sport", async () => {
@@ -177,9 +213,9 @@ describe("enabled sports", () => {
     expect((screen.getByRole("button", { name: "Enable Ringball sevens" }) as HTMLButtonElement).disabled).toBe(true);
   });
 
-  it("shows the API's quota refusal with its limit and reads the list again", async () => {
+  it("after the API's quota refusal, reads the list again and says the limit once, with Enable disabled", async () => {
     let reads = 0;
-    open(ownerActions, {
+    const requests = open(ownerActions, {
       "GET /api/admin/v1/tenant/sports": () => {
         reads += 1;
         return list([sevens, fives, hoopstick], reads === 1 ? quota(1, 3) : quota(3, 3));
@@ -192,9 +228,17 @@ describe("enabled sports", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: "Enable Hoopstick" }));
 
-    expect(await screen.findByRole("alert")).toBeTruthy();
-    expect(within(screen.getByRole("alert")).getByText("Your plan allows 3 sports.")).toBeTruthy();
     await waitFor(() => expect(reads).toBe(2));
+    const enable = screen.getByRole("button", { name: "Enable Hoopstick" }) as HTMLButtonElement;
+    await waitFor(() => expect(enable.disabled).toBe(true));
+    expect(enable.getAttribute("aria-describedby")).toBe("sports-unavailable");
+    expect(screen.getByText("Used: 3 of 3 sports")).toBeTruthy();
+    // The note says the limit; the refusal's alert would only repeat it (#92 R4).
+    expect(screen.getAllByText("Your plan allows 3 sports.")).toHaveLength(1);
+    expect(screen.queryByRole("alert")).toBeNull();
+    // Enable can't be used now: focus goes to the heading rather than the page's body (#92 R1).
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("heading", { level: 1, name: "Enabled sports" })));
+    expect(subscriptionStale(requests)).toBe(true);
   });
 
   it("reads the list again when it was out of date", async () => {
@@ -233,5 +277,24 @@ describe("enabled sports", () => {
     const requests = open(["tenant.settings.read"]);
     expect(await screen.findByRole("heading", { name: "You can't open this page" })).toBeTruthy();
     expect(requests.some((request) => request.path === "/api/admin/v1/tenant/sports")).toBe(false);
+  });
+});
+
+// The limit's edge cases (#92 R5): unlimited, a limit lowered below the usage, a usage not known.
+describe("sportLimitReason", () => {
+  const variants = [sevens, fives, hoopstick];
+  it.each([
+    ["unlimited", quota(5, null), null],
+    ["below the limit", quota(2, 3), null],
+    ["at the limit", quota(3, 3), "Your plan allows 3 sports."],
+    ["over a lowered limit", quota(2, 1), "Your plan allows 1 sport."],
+    ["usage not read (no tenant.subscription.read)", null, null],
+    ["not measured", { ...quota(0, 1), measured: false, used: null }, null],
+  ])("a new sport, %s", (_, usage, expected) => {
+    expect(sportLimitReason(hoopstick, variants, usage)).toBe(expected);
+  });
+
+  it("never refuses a variant of a sport already enabled, even over the limit", () => {
+    expect(sportLimitReason(fives, variants, quota(2, 1))).toBeNull();
   });
 });

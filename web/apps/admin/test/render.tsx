@@ -5,9 +5,10 @@ import type { ReactElement } from "react";
 import { vi } from "vitest";
 import { createQueryClient } from "@/lib/query-client";
 
+/** Also returns the query client, so a test can see what a change marks stale. */
 export function renderWithQuery(ui: ReactElement) {
   const queryClient = createQueryClient();
-  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+  return { ...render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>), queryClient };
 }
 
 export type Answer = { status: number; body?: unknown };

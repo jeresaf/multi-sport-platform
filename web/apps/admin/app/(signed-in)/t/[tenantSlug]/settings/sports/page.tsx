@@ -4,7 +4,7 @@ import { Badge } from "@msp/ui/components/badge";
 import { Button } from "@msp/ui/components/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@msp/ui/components/table";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ActionDialog } from "@/components/action-dialog";
 import { EmptyState } from "@/components/empty-state";
 import { Loading } from "@/components/loading";
@@ -30,6 +30,9 @@ import {
 /** Columns shown from tablet width up. */
 const wide = "hidden tablet:table-cell";
 
+/** The id of a variant's Enable or Disable button: one per row, whichever it shows. */
+const actionId = (variant: string) => `sport-action-${variant}`;
+
 // A refusal that says the list was out of date (someone else changed it, or the quota filled meanwhile): read it again.
 const staleCodes = ["TENANT_SPORT_ALREADY_ENABLED", "TENANT_SPORT_NOT_ENABLED", "ENTITLEMENT_QUOTA_EXCEEDED"];
 
@@ -47,6 +50,24 @@ export default function EnabledSportsPage() {
   const disable = useDisableSport();
   const [disabling, setDisabling] = useState<TenantSport | null>(null);
   const [announcement, setAnnouncement] = useState("");
+  // After a change the row's button is replaced by the other one (Enable ↔ Disable): focus goes to the new one, or to the
+  // heading when it can't be used (the plan's limit), never to the page's body (review #92 R1).
+  const heading = useRef<HTMLHeadingElement>(null);
+  const [focusAfter, setFocusAfter] = useState<{ variant: string } | null>(null);
+  const disabled = useRef<string | null>(null);
+  const focusAction = (variant: string) => {
+    const button = document.getElementById(actionId(variant));
+    if (button instanceof HTMLButtonElement && !button.disabled) {
+      button.focus();
+    } else {
+      heading.current?.focus();
+    }
+  };
+  useEffect(() => {
+    if (focusAfter) {
+      focusAction(focusAfter.variant);
+    }
+  }, [focusAfter]);
 
   if (!can("tenant.sport.read")) {
     return <ForbiddenView />;
@@ -68,11 +89,16 @@ export default function EnabledSportsPage() {
     disable.reset();
     setAnnouncement("");
     enable.mutate(sport, {
-      onSuccess: () => setAnnouncement(`${sport.name} is enabled.`),
-      onError: (error) => {
+      onSuccess: () => {
+        setAnnouncement(`${sport.name} is enabled.`);
+        setFocusAfter({ variant: sport.variant });
+      },
+      // The button was disabled while the request ran: focus comes back once the list is as the refusal says.
+      onError: async (error) => {
         if (staleCodes.some((code) => isApiProblem(error, code))) {
-          void refresh();
+          await refresh();
         }
+        setFocusAfter({ variant: sport.variant });
       },
     });
   };
@@ -80,7 +106,9 @@ export default function EnabledSportsPage() {
   return (
     <section className="grid gap-6">
       <header className="grid gap-1">
-        <h1 className="text-2xl font-semibold">Enabled sports</h1>
+        <h1 ref={heading} tabIndex={-1} className="text-2xl font-semibold outline-none">
+          Enabled sports
+        </h1>
         <p className="text-muted-foreground">
           The sports {tenant.displayName} runs competitions in. Disabling one changes nothing that already uses it.
         </p>
@@ -99,7 +127,10 @@ export default function EnabledSportsPage() {
         </section>
       ) : null}
       {refusal ? <UnavailableNote id="sports-unavailable" reason={refusal} /> : null}
-      {enable.isError ? <ProblemAlert error={enable.error} /> : null}
+      {/* A quota refusal says what the note above already says once the list is read again (review #92 R4). */}
+      {enable.isError && !(limitReason && isApiProblem(enable.error, "ENTITLEMENT_QUOTA_EXCEEDED")) ? (
+        <ProblemAlert error={enable.error} />
+      ) : null}
 
       {sports.isPending ? <Loading /> : null}
       {sports.isError ? <ProblemAlert error={sports.error} /> : null}
@@ -164,6 +195,7 @@ export default function EnabledSportsPage() {
                   <TableCell className="text-right align-top">
                     {sport.enabled && showsDisable ? (
                       <Button
+                        id={actionId(sport.variant)}
                         variant="outline"
                         disabled={disableRefusal !== null || enable.isPending}
                         aria-label={`Disable ${sport.name}`}
@@ -180,6 +212,7 @@ export default function EnabledSportsPage() {
                     ) : null}
                     {!sport.enabled && showsEnable ? (
                       <Button
+                        id={actionId(sport.variant)}
                         disabled={enableRefusal !== null || limit !== null || enable.isPending}
                         aria-label={`Enable ${sport.name}`}
                         aria-describedby={enableRefusal || limit ? "sports-unavailable" : undefined}
@@ -208,12 +241,15 @@ export default function EnabledSportsPage() {
           reasonHint="Kept with the enablement and in the audit trail. Don't include personal details."
           pending={disable.isPending}
           error={disable.error}
+          // Disabled meanwhile (the refusal read the list again): the refusal stays, confirming again doesn't (#92 R2).
+          confirmDisabled={variants.find((sport) => sport.variant === disabling.variant)?.enabled !== true}
           onConfirm={(reason) =>
             disable.mutate(
               { sport: disabling, reason: reason ?? "" },
               {
                 onSuccess: () => {
                   setAnnouncement(`${disabling.name} is disabled.`);
+                  disabled.current = disabling.variant;
                   setDisabling(null);
                 },
                 onError: (error) => {
@@ -227,6 +263,15 @@ export default function EnabledSportsPage() {
           onReload={() => {
             void refresh();
             setDisabling(null);
+          }}
+          onCloseAutoFocus={(event) => {
+            // The Disable button that opened the dialog is gone: focus the row's Enable instead.
+            const variant = disabled.current;
+            if (variant) {
+              disabled.current = null;
+              event.preventDefault();
+              focusAction(variant);
+            }
           }}
         />
       ) : null}
