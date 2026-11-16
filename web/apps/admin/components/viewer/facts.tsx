@@ -1,3 +1,5 @@
+// The read-only viewers' building blocks (S05 D17): facts, sections, "None" and the phone-friendly row name. Shared by
+// the sport variant, format and ruleset template viewers, so they live here rather than under one of them.
 import type { ReactNode } from "react";
 
 /**

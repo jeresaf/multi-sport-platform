@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@msp/ui/components/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@msp/ui/components/table";
 import { codeLabel, eventLabel, listLabel, phaseLabel, type SportDefinition, type SportEventType } from "@/lib/sport-definition";
-import { Facts, ViewerSection } from "./facts";
+import { Facts, ViewerSection } from "@/components/viewer/facts";
 
 type Props = Readonly<{ definition: SportDefinition }>;
 

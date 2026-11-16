@@ -6,7 +6,7 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@msp/ui/components/table";
 import type { components } from "@msp/api-client";
 import type { ReactNode } from "react";
-import { Facts, NoneOr, RowName, ViewerSection, orNone, wide } from "@/components/sports/facts";
+import { Facts, NoneOr, RowName, ViewerSection, orNone, wide } from "@/components/viewer/facts";
 import { numberRange, parameterAllowed, parameterTypeLabel, parameterValueLabel } from "@/lib/parameters";
 import { codeLabel } from "@/lib/sport-definition";
 import { formatDate } from "@/lib/tenant-settings";

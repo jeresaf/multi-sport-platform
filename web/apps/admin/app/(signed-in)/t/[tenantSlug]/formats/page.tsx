@@ -6,7 +6,7 @@ import { EmptyState } from "@/components/empty-state";
 import { participantsLabel, shapesLabel } from "@/components/formats/format-view";
 import { Loading } from "@/components/loading";
 import { ProblemAlert } from "@/components/problem-alert";
-import { RowName, wide } from "@/components/sports/facts";
+import { RowName, wide } from "@/components/viewer/facts";
 import { ForbiddenView } from "@/components/status-page";
 import { useTenantWorkspace } from "@/lib/tenant-workspace";
 import { tenantPath } from "@/lib/workspace";
