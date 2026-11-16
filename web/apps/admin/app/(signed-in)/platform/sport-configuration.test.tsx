@@ -84,7 +84,7 @@ const cells = (name: string) =>
     .getAllByRole("cell")
     .map((cell) => cell.textContent);
 const backLink = (title: string) =>
-  within(screen.getByRole("heading", { level: 1, name: title }).closest("header")!).getAllByRole("link")[0];
+  within(screen.getByRole("heading", { level: 1, name: title }).closest("header")!).getAllByRole("link")[0]!;
 const adminReads = (requests: { path: string }[]) => requests.filter((request) => request.path.startsWith("/api/admin/"));
 
 beforeEach(() => {
