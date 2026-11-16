@@ -193,6 +193,12 @@
       "owner": "SportsConfiguration"
     },
     {
+      "code": "PERSON_CONCURRENCY_CONFLICT",
+      "status": 409,
+      "message": "The record was changed by someone else. Reload and try again.",
+      "owner": "Registry"
+    },
+    {
       "code": "PLATFORM_CONCURRENCY_CONFLICT",
       "status": 409,
       "message": "The record was changed by someone else. Reload and try again.",
