@@ -27,13 +27,13 @@ export function parameterValueLabel(value: ParameterValue, label: ValueLabel = c
   return value.length > 0 ? value.map(label).join(", then ") : "None";
 }
 
-/** What a competition may choose: a number's range, a choice's or a list's values; "Yes or no" for a flag. */
+/** What a competition may choose: a number's range, a choice's or a list's values; "Either" for a flag (its type says yes or no). */
 export function parameterAllowed(parameter: Parameter, label: ValueLabel = codeLabel): string {
   switch (parameter.type) {
     case "NUMBER":
       return numberRange(parameter.min, parameter.max);
     case "FLAG":
-      return "Yes or no";
+      return "Either";
     case "CHOICE":
       return `One of: ${parameter.values.map(label).join(", ")}`;
     case "LIST":

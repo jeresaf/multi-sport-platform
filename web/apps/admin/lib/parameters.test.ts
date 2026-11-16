@@ -32,7 +32,7 @@ describe("parameters in words", () => {
 
   it("says what a competition may choose", () => {
     expect(parameterAllowed(parameter("NUMBER", { min: 1, max: 4 }))).toBe("1 to 4");
-    expect(parameterAllowed(parameter("FLAG"))).toBe("Yes or no");
+    expect(parameterAllowed(parameter("FLAG"))).toBe("Either");
     expect(parameterAllowed(parameter("CHOICE", { values: ["RANKED", "RANDOM"] }))).toBe("One of: Ranked, Random");
     expect(parameterAllowed(parameter("LIST", { values: ["MOST_WINS", "FEWEST_LOSSES"] }))).toBe(
       "Any of, each once, in order: Most wins, Fewest losses",

@@ -181,8 +181,8 @@ user's capabilities (docs/architecture/authorization.md); the server still enfor
   the format. Read-only: a competition chooses its format and parameters when it is set up (S09).
 - **A format** (`/t/{slug}/formats/{code}`): a header like a variant's (name, version, publication date in the tenant
   time zone, content hash), then **Overview** (description, participants, contest shapes, the stages in order with
-  their type and generator) and **Parameters** (label and description; type: whole number, yes or no, one of a list;
-  default; what a competition may choose: "1 to 4", "One of: Seeded, Random, Manual"). `?version=` opens an older
+  their type and generator, the generator left out when it is named as the stage type) and **Parameters** (label and description; type: whole number, yes or no, one of a list;
+  default; what a competition may choose: "1 to 4", "One of: Seeded, Random, Manual", "Either" for a yes-or-no one). `?version=` opens an older
   version; an unknown format or version, or a `?version=` that isn't a version number, is "Page not found". On a
   phone the tables keep the name and default and stack the others under the name. No parameters or no description
   says "None".

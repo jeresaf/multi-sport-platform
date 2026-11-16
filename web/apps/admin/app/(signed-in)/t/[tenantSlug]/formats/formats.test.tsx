@@ -151,14 +151,15 @@ describe("a format", () => {
     await screen.findByRole("heading", { level: 1, name: "Ladder climb" });
     expect(cells("Challenges per week")).toEqual(["Whole number", "2", "1 to 3"]);
     expect(within(rowOf("Challenges per week")).getByText(ladder.parameters.challenges!.description!)).toBeTruthy();
-    expect(cells("Open ladder")).toEqual(["Yes or no", "No", "Yes or no"]);
+    expect(cells("Open ladder")).toEqual(["Yes or no", "No", "Either"]);
     expect(cells("Starting order")).toEqual(["One of a list", "By entry time", "One of: Ranked, Random, By entry time"]);
   });
 
-  it("says None for a format without parameters or a description", async () => {
+  it("says None for a format without parameters or a description, and leaves out a generator named as its stage", async () => {
     openFormat("SHOWDOWN");
 
     await screen.findByRole("heading", { level: 1, name: "Showdown" });
+    expect(within(screen.getByRole("list", { name: "Stages" })).getByRole("listitem").textContent).toBe("Final: single stage");
     expect(screen.getAllByText("None")).toHaveLength(2);
     expect(screen.queryByRole("table")).toBeNull();
   });

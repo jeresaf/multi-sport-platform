@@ -58,8 +58,9 @@ export function FormatView({
                 <ol aria-label="Stages" className="grid gap-1">
                   {format.stages.map((stage) => (
                     <li key={stage.code}>
-                      {codeLabel(stage.code)}: {codeLabel(stage.type).toLowerCase()} stage, drawn by the{" "}
-                      {codeLabel(stage.generator).toLowerCase()} generator
+                      {codeLabel(stage.code)}: {codeLabel(stage.type).toLowerCase()} stage
+                      {/* A generator named as its stage type says nothing more ("knockout stage, drawn by the knockout generator"). */}
+                      {stage.generator === stage.type ? null : `, drawn by the ${codeLabel(stage.generator).toLowerCase()} generator`}
                     </li>
                   ))}
                 </ol>
