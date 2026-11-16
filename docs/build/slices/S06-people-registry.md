@@ -3,12 +3,12 @@
 > Written by the S05 slice review (2026-11-16) against what S01–S05 actually built. It replaces the outline. Changes
 > from the outline: the decisions below (D1–D24) are written out as reviewer defaults; the owner confirms or changes
 > them in each task's plan. Photos and consent evidence go through a new Platform media service with a local-disk
-> adapter only (the Azure Blob adapter comes with the first deployment, Q41); the image library is the owner's choice
+> adapter only (the Azure Blob adapter comes with the first deployment, Q41); the image library is SkiaSharp
 > (Q35); `STORAGE_GB` is counted through Tenancy and checked by the uploading module (Q36). The person page has no
 > Audit tab until a tenant audit read exists (Q40). Merges stay in S25; nothing from team memberships (S08) or
 > competitions (S09). `TEAM_MANAGER`'s resource scopes, which S03–S05 said would come "with S06", move to S08 (S08
 > builds the `TEAM` scope chain; S06 adds no resource below the tenant). Task sizes are estimated and the likely PR
-> splits named. Open questions Q35–Q41 carry the recommended defaults this spec uses.
+> splits named. Q35–Q41 were answered with these defaults (owner, 2026-11-16).
 
 **Goal:** a tenant keeps one canonical record per real person — the owner's "Player Manager" — with strong duplicate
 prevention, role profiles (athlete, staff, official) on top of it, minors protected by default with guardian consent,
@@ -220,7 +220,8 @@ the ADRs and this spec win).
   file's first bytes, not the client's content type: photos JPEG, PNG or WebP up to 5 MB; evidence PDF, JPEG or PNG up
   to 10 MB (`422 MEDIA_TYPE_NOT_ALLOWED`, `413 MEDIA_TOO_LARGE`). Photos are re-encoded into `thumbnail` (160 px),
   `medium` (640 px) and `large` (1600 px, the longest side), which drops EXIF data such as GPS positions; the original
-  isn't kept. Evidence is stored as uploaded. The image library is a new dependency (Q35).
+  isn't kept. Evidence is stored as uploaded. The image library is SkiaSharp (MIT) with
+  `SkiaSharp.NativeAssets.Linux.NoDependencies`, a new native dependency: S06-T5a starts with its ADR (Q35).
 - **D17 — URLs.** Private files are served by short-lived signed URLs after a permission check (ADR-0014): the owning
   module checks its read action, then asks `IMediaAssets` for a URL. The local adapter's URL is
   `/api/public/v1/media/{token}` (`.AllowPublic()`, no tenant from the host; the token is Data Protection, purpose

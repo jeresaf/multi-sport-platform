@@ -9,8 +9,8 @@ at the start of every review.
   S00–S05 are done
 - **Current task:** S06-T1 — Registry module, the person and the reads — not started; next is `/next-task`
 - **Next:** S06-T2 — Duplicate check and create
-- **Blocked on:** the owner's review of the S05 slice review (S06 decisions D1–D24; open questions Q35–Q41, each with
-  a recommended default)
+- **Blocked on:** the owner's review of the S05 slice review (S06 decisions D1–D24); Q35–Q41 answered with the
+  recommended defaults (owner, 2026-11-16)
 
 ## Next up
 
@@ -18,7 +18,7 @@ at the start of every review.
 2. S06-T2 — Duplicate check and create (likely T2a, T2b)
 3. S06-T3 — Changing a person: biodata, lifecycle, aliases, identifiers
 4. S06-T4 — Role profiles (likely T4a, T4b)
-5. S06-T5 — Media and photos (likely T5a, T5b; Q35, Q36)
+5. S06-T5 — Media and photos (likely T5a, T5b; T5a starts with the SkiaSharp ADR, Q35)
 6. S06-T6 — Minors, consent and the public read (likely T6a, T6b)
 7. S06-T7 — Screens, demo data and slice close (likely T7a–T7d)
 
