@@ -188,7 +188,7 @@ user's capabilities (docs/architecture/authorization.md); the server still enfor
   the parameters table the name and default; the other columns are stacked under the name. No parameters or no
   description says "None".
 - **Parameter wording** (`lib/parameters.ts`) is shared with the Rules templates page (T5b1b2), which labels its own
-  codes (tiebreakers) and adds the ordered list type. `FormatView` takes the format, so the console (T5b2) reuses it.
+  codes (tiebreakers) and uses the ordered list type. `FormatView` takes the format, so the console (T5b2) reuses it.
 
 ## Workspaces and screens
 
