@@ -11,7 +11,7 @@ import {
   sideLabel,
   type SportDefinition,
 } from "@/lib/sport-definition";
-import { Facts, NoneOr, orNone, RowName, ViewerSection, wide } from "./facts";
+import { Facts, NoneOr, orNone, RowName, ViewerSection, wide } from "@/components/viewer/facts";
 
 type Props = Readonly<{ definition: SportDefinition }>;
 

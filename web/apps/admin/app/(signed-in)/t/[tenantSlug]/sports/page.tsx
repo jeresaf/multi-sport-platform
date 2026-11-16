@@ -5,7 +5,7 @@ import Link from "next/link";
 import { EmptyState } from "@/components/empty-state";
 import { Loading } from "@/components/loading";
 import { ProblemAlert } from "@/components/problem-alert";
-import { RowName, wide } from "@/components/sports/facts";
+import { RowName, wide } from "@/components/viewer/facts";
 import { ForbiddenView } from "@/components/status-page";
 import { codeLabel } from "@/lib/sport-definition";
 import { useTenantWorkspace } from "@/lib/tenant-workspace";

@@ -191,6 +191,28 @@ user's capabilities (docs/architecture/authorization.md); the server still enfor
 - **Parameter wording** (`lib/parameters.ts`) is shared with the Rules templates page (T5b1b2), which labels its own
   codes (tiebreakers) and uses the ordered list type. `FormatView` takes the format, so the console (T5b2) reuses it.
 
+### As built (S05-T5b1b2)
+
+- **Rules templates** (`/t/{slug}/rules-templates`, navigation entry after Formats, `ruleset.read`: every tenant role
+  except Team manager, who has no actions yet): every published ruleset template with its description, sport, formats
+  and latest version; each opens the template. The sport and format names come from the Sports and Formats lists when
+  the user may read them, else the codes are written as words. Read-only: a competition picks a template and changes
+  its parameters when it is set up (S09); the preview waits for the competition wizard.
+- **A template** (`/t/{slug}/rules-templates/{code}`): a header like a format's, then **Overview** (description; the
+  pinned sport version ("Football, version 1"), linking to that version's page; the formats, each linking
+  to its page), **Parameters** (the Formats table; tiebreakers labelled from the catalogue), **Rules** in sections:
+  Contest (period lengths, when the scores are level, extra periods, default coverage), Lineup (starters, bench,
+  approval, positions: a position by its label, a group as "Any of: …"), Substitutions, Roster, Standings (points,
+  forfeit score, tiebreakers in order, head-to-head applied again), Contest operations (readiness, officials at least,
+  scorer corrections, starting soon) and Eligibility (membership, age, the date it is worked out on, consent for
+  minors); then **Tiebreakers** (each one the template lists or allows, with its description). A rule a parameter
+  changes is marked "(default; a competition may change it)". Period, position and official labels come from the
+  pinned sport definition version; without it (no `sport.read`, or its read failed) they are words from the code and
+  the page still shows every rule. `?version=` and "Page not found" as for a format.
+- **Shared pieces:** the viewers' building blocks are `components/viewer/facts.tsx` (was `components/sports/`, review
+  #90 N2) and the parameters table `components/viewer/parameters-table.tsx` (formats and templates).
+  `RulesetTemplateView` takes the template, the definition and the format names, so the console (T5b2) reuses it.
+
 ## Workspaces and screens
 
 ### Platform console (platform staff)

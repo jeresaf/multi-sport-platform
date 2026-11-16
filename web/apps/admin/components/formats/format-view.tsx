@@ -3,11 +3,11 @@
 // A format, read-only (S05 D17): what it is, how many participants it takes, its stages and the parameters a
 // competition chooses. It takes the format rather than reading it, so the tenant workspace and the platform console
 // (T5b2) show the same view over their own reads.
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@msp/ui/components/table";
 import type { components } from "@msp/api-client";
 import type { ReactNode } from "react";
-import { Facts, NoneOr, RowName, ViewerSection, orNone, wide } from "@/components/sports/facts";
-import { numberRange, parameterAllowed, parameterTypeLabel, parameterValueLabel } from "@/lib/parameters";
+import { Facts, NoneOr, ViewerSection, orNone } from "@/components/viewer/facts";
+import { ParametersTable } from "@/components/viewer/parameters-table";
+import { numberRange } from "@/lib/parameters";
 import { codeLabel } from "@/lib/sport-definition";
 import { formatDate } from "@/lib/tenant-settings";
 
@@ -30,7 +30,6 @@ export function FormatView({
   /** A link back to the list, above the title. */
   back?: ReactNode;
 }>) {
-  const parameters = Object.entries(format.parameters);
   return (
     // `minmax(0, 1fr)`: a table would otherwise widen the page on a phone.
     <section className="grid grid-cols-[minmax(0,1fr)] gap-6">
@@ -73,43 +72,7 @@ export function FormatView({
 
       <ViewerSection title="Parameters" level={2}>
         <p className="text-muted-foreground">A competition chooses these when it uses the format.</p>
-        <NoneOr empty={parameters.length === 0}>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead scope="col">Parameter</TableHead>
-                <TableHead scope="col" className={wide}>
-                  Type
-                </TableHead>
-                <TableHead scope="col">Default</TableHead>
-                <TableHead scope="col" className={wide}>
-                  Allowed
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {parameters.map(([code, parameter]) => (
-                <TableRow key={code}>
-                  <TableHead scope="row" className="h-auto py-2 align-top whitespace-normal">
-                    <RowName
-                      name={parameter.label}
-                      details={[
-                        ["Type", parameterTypeLabel(parameter.type)],
-                        ["Allowed", parameterAllowed(parameter)],
-                      ]}
-                    />
-                    {parameter.description ? (
-                      <p className="mt-1 text-sm font-normal text-muted-foreground">{parameter.description}</p>
-                    ) : null}
-                  </TableHead>
-                  <TableCell className={`${wide} align-top`}>{parameterTypeLabel(parameter.type)}</TableCell>
-                  <TableCell className="align-top whitespace-normal">{parameterValueLabel(parameter.default)}</TableCell>
-                  <TableCell className={`${wide} align-top whitespace-normal`}>{parameterAllowed(parameter)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </NoneOr>
+        <ParametersTable parameters={format.parameters} />
       </ViewerSection>
     </section>
   );

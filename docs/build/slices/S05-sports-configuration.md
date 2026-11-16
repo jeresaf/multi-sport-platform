@@ -475,3 +475,7 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   console can reuse them (Q2); a template's page shows its editable parameters, then every rule read-only in sections
   (period, position and official labels from the pinned sport definition) and its tiebreakers (Q3); the address is
   `/rules-templates`, as the navigation label (Q4).
+- **T5b1b2:** plan approved with the recommended defaults (owner, 2026-11-16): the template page reads the pinned
+  sport definition version for its labels and still renders without it (codes as words); parameter defaults are shown
+  as the template writes them ("2700" under a label saying seconds), the rules as durations ("45 min"); one PR. Words
+  follow the glossary (roster, lineup, contest), not the template's own sport words, except the template's labels.
