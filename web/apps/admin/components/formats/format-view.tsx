@@ -49,7 +49,8 @@ export function FormatView({
       <ViewerSection title="Overview" level={2}>
         <Facts
           items={[
-            ["Description", format.description ?? "None"],
+            // An empty description is none, as in the list (which leaves it out).
+            ["Description", format.description || "None"],
             ["Participants", participantsLabel(format)],
             ["Contest shapes", shapesLabel(format)],
             [

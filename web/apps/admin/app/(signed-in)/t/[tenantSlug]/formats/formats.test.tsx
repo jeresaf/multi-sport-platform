@@ -99,8 +99,10 @@ describe("formats list", () => {
     expect(cells("Ladder climb")).toEqual(["4 to 24 participants", "Head to head, Field", "3"]);
     expect(within(rowOf("Ladder climb")).getByText(ladder.description!)).toBeTruthy();
     expect(cells("Showdown")).toEqual(["Only 2 participants", "Head to head", "1"]);
-    // The navigation's entry for the screen.
-    expect(screen.getAllByRole("link", { name: "Formats" }).length).toBeGreaterThan(0);
+    // The navigation's entry for the screen is the current one.
+    const entries = screen.getAllByRole("link", { name: "Formats" });
+    expect(entries.length).toBeGreaterThan(0);
+    expect(entries.every((entry) => entry.getAttribute("aria-current") === "page")).toBe(true);
   });
 
   it("says when nothing is published yet", async () => {
@@ -164,11 +166,24 @@ describe("a format", () => {
     expect(screen.queryByRole("table")).toBeNull();
   });
 
+  it("treats an empty description as none, as the list does", async () => {
+    openFormat("LADDER_CLIMB", "", reads, {
+      "GET /api/admin/v1/formats/LADDER_CLIMB": { status: 200, body: { ...ladder, description: "" } },
+    });
+
+    await screen.findByRole("heading", { level: 1, name: "Ladder climb" });
+    const description = screen.getByText("Description");
+    expect(description.nextElementSibling?.textContent).toBe("None");
+  });
+
   it("opens the version the address names", async () => {
-    const requests = openFormat("LADDER_CLIMB", "version=2");
+    const requests = openFormat("LADDER_CLIMB", "version=2", reads, {
+      "GET /api/admin/v1/formats/LADDER_CLIMB": { status: 200, body: { ...ladder, version: 2 } },
+    });
 
     await screen.findByRole("heading", { level: 1, name: "Ladder climb" });
     expect(requests.find((request) => request.path === "/api/admin/v1/formats/LADDER_CLIMB")?.search).toBe("?version=2");
+    expect(screen.getByText("Version 2 · published 2 Nov 2026")).toBeTruthy();
   });
 
   it("is not found for a version that isn't one, without asking the API", async () => {
