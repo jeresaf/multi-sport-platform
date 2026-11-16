@@ -5,16 +5,22 @@ at the start of every review.
 
 ## Now
 
-- **Current slice:** S05 — Sports configuration (docs/build/slices/S05-sports-configuration.md): all tasks built; slice
-  acceptance ticked in S05-T5b2b (#93, in review). S00–S04 are done
-- **Current task:** none — S05-T5b2b in review (#93)
-- **Next:** S05 slice review by the reviewer (and the S06 detailed spec, docs/build/slices/S06-people-registry.md is an
-  outline)
-- **Blocked on:** the S05 slice review and the S06 spec
+- **Current slice:** S06 — People registry (docs/build/slices/S06-people-registry.md, written by the S05 slice review).
+  S00–S05 are done
+- **Current task:** S06-T1 — Registry module, the person and the reads — not started; next is `/next-task`
+- **Next:** S06-T2 — Duplicate check and create
+- **Blocked on:** the owner's review of the S05 slice review (S06 decisions D1–D24); Q35–Q41 answered with the
+  recommended defaults (owner, 2026-11-16)
 
 ## Next up
 
-1. S05 slice review (reviewer); then S06 — People registry, once its detailed spec is written
+1. S06-T1 — Registry module, the person and the reads (likely T1a, T1b)
+2. S06-T2 — Duplicate check and create (likely T2a, T2b)
+3. S06-T3 — Changing a person: biodata, lifecycle, aliases, identifiers
+4. S06-T4 — Role profiles (likely T4a, T4b)
+5. S06-T5 — Media and photos (likely T5a, T5b; T5a starts with the SkiaSharp ADR, Q35)
+6. S06-T6 — Minors, consent and the public read (likely T6a, T6b)
+7. S06-T7 — Screens, demo data and slice close (likely T7a–T7d)
 
 ## Log
 
@@ -106,6 +112,7 @@ at the start of every review.
 | 2026-11-16 | S05-T5b1b2 | #91 | Tenant workspace **Rules templates** (D17): navigation entry after Formats (`ruleset.read`); `/t/{slug}/rules-templates` lists the published templates (description, sport, formats, latest version; names from the Sports and Formats lists when readable, else codes as words); `/t/{slug}/rules-templates/{code}` (`?version=`) shows the overview (pinned sport version and formats, linked), the parameters (tiebreakers labelled from the catalogue), every rule in sections (Contest, Lineup, Substitutions, Roster, Standings, Contest operations, Eligibility) with the pinned definition's period, position and official labels, rules a parameter changes marked as defaults, and the tiebreakers described. `RulesetTemplateView` takes the data (console reuse in T5b2); `lib/rulesets.ts`; the parameters table shared with `FormatView`; `components/sports/facts.tsx` moved to `components/viewer/` (review #90 N2). Vitest (`rules-templates.test.tsx` 47, `rulesets.test.ts` 4, navigation), Playwright (a viewer reads a template and opens its sport) and screenshots | Plan approved with the recommended defaults (owner): the page renders without the definition (codes as words), parameter defaults as the template writes them, one PR. No backend change, actions, errors, events, migrations or dependencies. Playwright not run locally (no Docker or .NET in the session); CI's e2e job was green on the first push (Playwright and screenshots). Pre-review (no blocker or major): every rule a template could make a parameter is marked (not only the seeded ones), a yes-or-no parameter in the test template, the Rules heading sized like the others, a correction window of 0 reads "Not after the end"; declined: `formatDay` stays in `lib/entitlements` (move with the next date helper), the sport and format names are not waited for (only the definition, whose labels fill the rules). Review #91 (reviewer subagent, APPROVE WITH NITS): R1 "Extra in extra periods" (no sport word), R2 test templates the backend would accept, R3 a test per markable rule path (29 with the re-review's), N1 tiebreakers marked like the other rules, N2 a page section (h2) larger than its parts, N4 one "None" pattern, N5 this row; N3 (markers on paths the backend never makes parameters) kept: harmless, and right if the backend widens them. Re-review #91 (APPROVE WITH NITS): R4 `quickBout` keeps the one tiebreaker the schema requires (no tiebreakers is a marked defensive test), N6 the tie resolution, a position's maximum and the forfeit score's "against" in the marker table, N7 this row. Re-review 2 (APPROVE WITH NITS): N8 the marker table's parameters are ones the backend accepts (the value at the path as default, a choice only where a tenant may choose). Admin Vitest: 282 tests in 29 files. Size: about 590 lines of code and docs, 520 of tests and test data |
 | 2026-11-16 | S05-T5b2a | #92 | Tenant settings **Enabled sports** (D17): navigation entry after Members & roles (`tenant.sport.read`); `/t/{slug}/settings/sports` lists every published variant with its sport and status (enabled since, in the tenant's time zone), a variant's name opening its definition for `sport.read`; owners and admins **Enable** at once and **Disable** with a reason (`ActionDialog`), each answer replacing the cached list; the sport quota's usage with the 80 % warning (`QuotaUsage`) for those who read the subscription; at the limit Enable on a new sport is disabled with "Your plan allows N sports." (`sportLimitReason`; a variant of a sport already enabled stays enabled, D13); read-only disables both with the reason; `ENTITLEMENT_QUOTA_EXCEEDED` and the two `TENANT_SPORT_*` 409s show their message and read the list again. e2e `admin-sports-demo` (slice demo on a tenant of its own, Shoebill Community Sports Club, added to pilot-customer.md's test-only names): enable ("1 of 3 sports"), disable with a reason, the override `MAX_ENABLED_SPORTS = 0` refuses by screen and API, removed, enabled again; the audit trail has two enablements on different rows, the refusal and the reasons; screenshots at three widths, light and dark. admin-app.md as built | Owner (plan 2026-11-16, recommended answers; Deviations: the label). No backend change, actions, errors, events, migrations or dependencies. `admin-subscription.spec.ts` reads the "Enabled sports" usage inside `main` (the new navigation entry has the entitlement's name). Tests: admin Vitest 303 passed; web lint, typecheck, test, build; the whole admin Playwright suite (31) passed locally against the real API. Size: about 330 production and 420 test lines (Vitest and e2e). Pre-review (fix before PR, one major, fixed): the test tenant was named after a real place (now an invented bird name); MINOR the T5b2 answers in the slice's notes; NITs: the limit note before a disable refusal, Disable held while an enable is pending, admin-app.md wording. The API's "Your plan allows 1 sports." against the screen's "1 sport" is as for staff users (not changed). Review #92 (subagent, request changes): R1 focus moves to the row's new button after Enable and Disable (to the heading when it is disabled, as after a quota refusal), not to the page's body; R2 the Disable dialog can't be confirmed again once a refusal shows the variant disabled; R3 tests see the screen after a refusal's re-read and the Subscription usage marked stale (`renderWithQuery` returns its query client); R4 a quota refusal's alert is dropped once the note says the limit; R5 `sportLimitReason` edge cases; Q1 (screenshots of this page here, the console's in T5b2b) to the owner. Re-review (subagent, approve with nits): N1 the Disable dialog gives focus to the row's button as it is now however it closes (after a refusal the Disable that opened it is gone); N2 a quota refusal without the usage keeps its alert (test); N3 the test count |
 | 2026-11-16 | S05-T5b2b | #93 | Slice close. Platform console: Sports, Formats and Rules templates (navigation after Plans, `platform.sport.read`), a list and an item page each over `GET /api/platform/v1/…`, reusing `SportViewer`, `FormatView` and `RulesetTemplateView` (`?tab=`, `?version=`, "Page not found", links within the console); the workspace's list tables moved to `SportsTable`, `FormatsTable`, `RulesTemplatesTable`, its back links to `BackLink`; the viewers' publication date in UTC says "(UTC)" (`publishedOn`): always in the console, in a workspace while it falls back to UTC. Vitest (console pages, navigation, the workspace's UTC label), Playwright console screenshots (phone, tablet, desktop; light and dark). admin-app.md as built; pilot-customer.md's quota demo per D18; S05 slice acceptance ticked with its evidence; roadmap S05 ☑ | Owner (plan 2026-11-16): console dates in UTC, one PR. No backend change: no actions, errors, events, migrations or packages; catalogues and OpenAPI regenerate unchanged. Tests: backend 2561 passed; web lint, typecheck, tests (admin 312), build; Playwright admin-screenshots and admin-sports-demo 7/7. Size: about 650 added and 190 removed lines of web code (about 180 moved from the workspace pages), 250 of tests, 55 of docs, over the ~600 estimate; one PR as agreed. Pre-review (ready, no blocker or major): a workspace test for the UTC label added; the docs say only the viewers' publication dates are labelled (other workspace dates that fall back to UTC aren't); lines re-wrapped. Not changed: a tenant zone spelled `Etc/UTC` isn't labelled (it is the tenant's own zone). Review #93 (subagent, approve with nits): R1 the console's extension to Formats and Rules templates recorded in Deviations; R2 every console page refused without `platform.sport.read` and a variant's Page not found tested; R3 the reused-database e2e item re-triggered to S06 (owner); N1 the long line went with the note's rewrite; N3 a failed read tested; N2 (`publishedOn` and `formatDay` into `lib/dates.ts`) still deferred to the next date helper; Q1 (owner): the workspace viewers wait for the tenant's settings (`useTenantTimeZoneOnceRead`), so a date is never shown in UTC and then on another day (test fails without it). Web 320 tests; admin e2e 32/32. Re-review (subagent, approve with nits; owner: fix all): N4 a failed settings read shows the labelled UTC date (test); N5 the Q1 test waits for the definition's answer, not a fixed delay; N6 the hook also waits while a failed settings read is read again. Web 321 tests; admin e2e 32/32 after `seed --reset` (the reused-database item hit locally: KMSA past 100 staff users) |
+| 2026-11-16 | S05 slice review | — | Docs only: S06 spec written by the reviewer (D1–D24, T1–T7); S05 slice review note (acceptance confirmed with evidence); Q35–Q41 added; tech debt regrouped (S06 items to S06's tasks; `TEAM_MANAGER`'s resource scopes moved from S06 to S08) | All S05 acceptance items met on main (1907d77): backend 2561 tests (architecture 45, unit 1390, integration 1126) and admin Vitest 321 pass; the RLS exception list unchanged; no sport code in generic code. The slice demo runs in CI (`admin-sports-demo.spec.ts`); the owner's manual demo is not recorded. Two stale triggers moved: resource scopes (S06 has no resource below the tenant; S08 builds the `TEAM` scope chain) and the reference lists' OpenAPI `pattern` (its "first web consumer" came in S03–S04) |
 
 ## Deviations from spec (agreed)
 
@@ -409,8 +416,24 @@ at the start of every review.
 Consolidated by the S00 slice review (2026-10-17); regrouped by owner (slice or trigger) at S01 acceptance
 (2026-10-18). The S00 carry-overs assigned to S01 are done. Regrouped by the S03 slice review (2026-10-20): the S03
 items are with S04's tasks or their own trigger. Regrouped by the S04 slice review (2026-10-30): Q27 is with
-S05-T5a (done in S05-T5a1, #87). Each item names where it gets done.
+S05-T5a (done in S05-T5a1, #87). Regrouped by the S05 slice review (2026-11-16): the items due in S06 are with S06's
+tasks; two stale triggers moved. Each item names where it gets done.
 
+**S06 — people registry** (carried over by the S05 slice review, 2026-11-16; docs/build/slices/S06-people-registry.md)
+- e2e on a reused local database (S04-T4b1; owner 2026-11-16, review #93 R3): every run adds owners to KMSA
+  (`admin-shell`, `admin-screenshots`), so after enough runs KMSA passes STANDARD's 100 staff users and `inviteMember`
+  on KMSA answers `403 ENTITLEMENT_QUOTA_EXCEEDED` (CI starts empty; `seed --reset` fixes it locally; hit again closing
+  S05). Move those specs to tenants of their own, or have them remove what they add. (S06-T7a)
+- `xmin`/`updated_*` cover only the aggregate root's row: a change to only a child entity or owned type doesn't bump
+  the root's version, so two edits to different children both succeed. Mark the root `Modified` when a dependent
+  changes, with a test (S01-T2a pre-review). (S06-T1a, D11: people have aliases, identifiers and profiles)
+- Validation field names are camelCased by their first letter only (`JsonNamingPolicy.CamelCase.ConvertName` on the
+  whole path), so `Address.Street` becomes `address.Street`: convert each path segment (#22 re-review N2). (S06-T2b,
+  the person's identifiers are the first nested request body)
+- `tenancy.demo.sports` (S05 D19: "the first slice whose demo data needs a sport"): S06's demo people have athlete
+  profiles. (S06-T7d, D23)
+
+**From S05** (each names its trigger)
 - The next version of the `KNOCKOUT` or `ROUND_ROBIN` format (published files never change): the `seeding` parameter's
   description names the codes (e.g. "SEEDED places…; RANDOM draws…") while the Formats page shows them as words
   ("Seeded, Random, Manual"); write the description in the same words (S05-T5b1b1, review #90).
@@ -451,11 +474,6 @@ S05-T5a (done in S05-T5a1, #87). Each item names where it gets done.
   every generator and report once (S05-T3a pre-review).
 
 **From S04** (each names its trigger)
-- e2e on a reused local database (S04-T4b1; owner 2026-10-30: kept until then): every run adds owners to KMSA
-  (`admin-shell`, `admin-screenshots`), so after enough runs KMSA passes STANDARD's 100 staff users and `inviteMember`
-  on KMSA answers `403 ENTITLEMENT_QUOTA_EXCEEDED` (CI starts empty; `seed --reset` fixes it locally). Move those specs
-  to tenants of their own, or have them remove what they add. (S06, the first task touching admin e2e; owner
-  2026-11-16, review #93 R3: the "any task touching those specs" trigger fired in four S05 PRs without action)
 - At the staff limit the screen disables **Invite someone**, so a pending address can't be invited again for a new
   link although the server allows it (a re-invitation takes no seat, D13; #73 R2). Offer it, for example a "Send a new
   link" action on a pending invitation. (Later, admin web)
@@ -497,7 +515,10 @@ S05-T5a (done in S05-T5a1, #87). Each item names where it gets done.
   granted only tenant-wide, so `GET /api/admin/v1/me/capabilities` is 403 for a member whose only roles are below the
   tenant: `TEAM_MANAGER` (team only), or `COMPETITION_MANAGER`, `RESULTS_OFFICER`, `DATA_ENTRY` or `SCORER` assigned
   at one competition or contest, even with `scopeType`/`scopeId` for their own resource (the S03-T6b2 shell shows the
-  403's reason). Decide how such a member reads their capabilities when requests carry resource scopes. (S06)
+  403's reason). Decide how such a member reads their capabilities when requests carry resource scopes. (S08, which builds the
+  `TEAM` scope chain; moved from S06 by the S05 slice review: S06 adds no resource below the tenant. S08 also gives
+  `TEAM_MANAGER` `sport.read` and `tenant.sport.read` if the owner wants them (S05-T1b2, T5a2 deviations) and corrects the
+  `IdentityRoles` comment and authorization.md, which still say S06)
 - An invitation a member sends at the same instant as their suspension or removal can commit after it and stay pending
   (S03-T5b, Q20; owner: accepted). Close it if it matters: refuse lookup and accept when the inviter is no longer an
   active member. (Later)
@@ -542,6 +563,8 @@ S05-T5a (done in S05-T5a1, #87). Each item names where it gets done.
 - The API needs `ConnectionStrings:Platform` (`sp_platform`) at runtime for the audit trail (S02-T2b): provision that
   secret for the API in Key Vault with the staging setup, or every audited request fails there (#33 N1).
 - SMTP provider for `IEmailSender` and `Email:From` on the real domain (S03 D13); the key ring's encryption is above.
+- Media (S06): allow `pg_trgm` in Azure's `azure.extensions` server parameter before `migrate` (the Registry
+  migration creates it); the Azure Blob adapter and SAS URLs (Q41); a media root or container per environment.
 - Run `seed --category CONFIGURATION` in every environment after `migrate` (S04: the plans); without it no tenant has
   plan values.
 - Platform staff roles (Q22): `PLATFORM_SUPPORT` can't be granted and no platform role can be revoked; the CLI
@@ -577,10 +600,6 @@ S05-T5a (done in S05-T5a1, #87). Each item names where it gets done.
   has no `ACTIVE` primary one. Impossible today (the platform subdomain is always primary and `ACTIVE`); once a
   platform subdomain can be `DISABLED`, keep one active primary per visible tenant or fall back to the resolved host
   (S02-T3b pre-review).
-- `xmin`/`updated_*` cover only the aggregate root's row: a change to only a child entity or owned type doesn't
-  bump the root's version, so two edits to different children both succeed. Mark the root `Modified` when a
-  dependent changes, with a test, before the first aggregate with child tables (S06 at the latest) (S01-T2a
-  pre-review).
 - The audit middleware's exception path (`FAILURE` with `PLATFORM_UNEXPECTED_ERROR`) has no test: no audited endpoint
   can throw yet. Add one with the first audited endpoint that can (S01-T6a).
 - Audit retention and partitioning by `occurred_at` (pack spec 40 §7): with the retention job (S01-T6a).
@@ -593,15 +612,12 @@ S05-T5a (done in S05-T5a1, #87). Each item names where it gets done.
   first slice that adds scheduled jobs; S01-T5a).
 - Human-readable console logs in Development (owner, #17 re-review): a readable console formatter behind a
   setting, used by the Development launch profile; JSON stays everywhere else. Can ride the next PR.
-- Validation field names are camelCased by their first letter only (`JsonNamingPolicy.CamelCase.ConvertName` on the
-  whole path), so `Address.Street` becomes `address.Street`: convert each path segment. With the first nested request
-  body (#22 re-review N2).
 - `ProblemDetails:TypeBaseUri` is the placeholder `https://errors.sportsplatform.invalid/` until Q10 (domain).
 - Reference names are English only: CLDR has Swahili, French and other names for the same codes; add a localised
   name per language with the first non-English UI (S01-T7b-1).
 - The OpenAPI document gives `time-zones?country=` no `pattern` (`^[A-Z]{2}$`) and documents no `ETag`/`Cache-Control`
-  response headers on the reference lists (the endpoint descriptions say both): add them with the first web consumer of
-  the reference lists, or when the OpenAPI document gets header support (#27 R1).
+  response headers on the reference lists (the endpoint descriptions say both): add them when the OpenAPI document gets
+  header support (#27 R1; the first web consumer of the lists came in S03–S04 without them, S05 slice review).
 - tzdata releases several times a year: rerun `build-reference-data.cs` with a new `Tzdata` pin when one changes a
   zone the customers use (the API host's own tzdata, used by `TimeZoneInfo`, comes with its container image).
 - Token colour values are placeholders (`web/packages/tokens/tokens.css`); owner/Branding (S22) to confirm. The
@@ -610,7 +626,8 @@ S05-T5a (done in S05-T5a1, #87). Each item names where it gets done.
   typescript-eslint supports it.
 - Colour-literal checks have known gaps and false positives (S00 Implementation notes, T2).
 - pnpm 12's minimum-release-age policy is on: new package versions are installable about a day after release.
-- The AR-33 test exempts the whole Host. When the first infrastructure adapter project lands (file storage, from
-  S06), replace the exemption with an explicit allow-list of adapter assemblies (S01-T1 pre-review).
+- The AR-33 test exempts the whole Host. When the first infrastructure adapter project lands (the Azure Blob adapter,
+  Q41; S06's local-disk adapter needs no cloud SDK), replace the exemption with an explicit allow-list of adapter
+  assemblies (S01-T1 pre-review).
 - Dependency updates are manual (exact pins everywhere): add Dependabot or Renovate for NuGet, npm and GitHub
   Actions, and pin actions by commit SHA (Phase 9 hardening at the latest).
