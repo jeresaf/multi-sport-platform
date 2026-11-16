@@ -14,10 +14,12 @@ describe("tenant navigation", () => {
       "membership.invite",
       "tenant.subscription.read",
       "sport.read",
+      "format.read",
     ];
     expect(labels(visibleNavigation(items, owner))).toEqual([
       "Overview",
       "Sports",
+      "Formats",
       "Organisation",
       "Members & roles",
       "Subscription",
@@ -28,6 +30,7 @@ describe("tenant navigation", () => {
     expect(labels(visibleNavigation(items, ["tenant.settings.read"]))).toEqual(["Overview", "Organisation"]);
     expect(labels(visibleNavigation(items, ["tenant.subscription.read"]))).toEqual(["Overview", "Subscription"]);
     expect(labels(visibleNavigation(items, ["sport.read", "tenant.settings.read"]))).toEqual(["Overview", "Sports", "Organisation"]);
+    expect(labels(visibleNavigation(items, ["format.read"]))).toEqual(["Overview", "Formats"]);
     expect(labels(visibleNavigation(items, []))).toEqual(["Overview"]);
   });
 
@@ -36,6 +39,7 @@ describe("tenant navigation", () => {
     expect(currentItem(items, "/t/kmsa/settings/members")?.label).toBe("Members & roles");
     expect(currentItem(items, "/t/kmsa/settings/members/0199a3f0")?.label).toBe("Members & roles");
     expect(currentItem(items, "/t/kmsa/sports/A_VARIANT")?.label).toBe("Sports");
+    expect(currentItem(items, "/t/kmsa/formats/A_FORMAT")?.label).toBe("Formats");
     expect(currentItem(items, "/t/kmsa/settings/membership")).toBeUndefined();
     expect(currentItem(items, "/t/kmsa/elsewhere")).toBeUndefined();
   });

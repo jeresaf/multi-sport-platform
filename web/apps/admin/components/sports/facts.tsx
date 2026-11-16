@@ -17,11 +17,16 @@ export function Facts({ items }: Readonly<{ items: ReadonlyArray<readonly [strin
   );
 }
 
-/** A titled part of a tab. */
-export function ViewerSection({ title, children }: Readonly<{ title: string; children: ReactNode }>) {
+/** A titled part of a tab (`h3`, under the tab's `h2`), or of a page without tabs (`level` 2). */
+export function ViewerSection({
+  title,
+  level = 3,
+  children,
+}: Readonly<{ title: string; level?: 2 | 3; children: ReactNode }>) {
+  const Heading = level === 2 ? "h2" : "h3";
   return (
     <section className="grid gap-3">
-      <h3 className="text-lg font-semibold">{title}</h3>
+      <Heading className="text-lg font-semibold">{title}</Heading>
       {children}
     </section>
   );
