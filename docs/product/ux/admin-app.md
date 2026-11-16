@@ -184,10 +184,13 @@ user's capabilities (docs/architecture/authorization.md); the server still enfor
   their type and generator, the generator left out when it is named as the stage type) and **Parameters** (label and
   description; type: whole number, yes or no, one of a list; default; what a competition may choose: "1 to 4", "One
   of: Seeded, Random, Manual", "Either" for a yes-or-no one). `?version=` opens an older version; an unknown format or
-  version, or a `?version=` that isn't a version number, is "Page not found". On a phone the tables keep the name and
-  default and stack the others under the name. No parameters or no description says "None".
+  version, or a `?version=` that isn't a version number, is "Page not found". On a phone the list keeps the name and
+  the parameters table the name and default; the other columns are stacked under the name. No parameters or no
+  description says "None".
 - **Parameter wording** (`lib/parameters.ts`) is shared with the Rules templates page (T5b1b2), which labels its own
   codes (tiebreakers) and adds the ordered list type. `FormatView` takes the format, so the console (T5b2) reuses it.
+
+## Workspaces and screens
 
 ### Platform console (platform staff)
 Tenants (list, create, detail: lifecycle, domains, subscription, members summary) · Plans & entitlements ·

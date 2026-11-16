@@ -37,7 +37,7 @@ export function parameterAllowed(parameter: Parameter, label: ValueLabel = codeL
     case "CHOICE":
       return `One of: ${parameter.values.map(label).join(", ")}`;
     case "LIST":
-      return `Any of, each once, in order: ${parameter.values.map(label).join(", ")}`;
+      return `Any of, each once, in the order chosen: ${parameter.values.map(label).join(", ")}`;
   }
 }
 

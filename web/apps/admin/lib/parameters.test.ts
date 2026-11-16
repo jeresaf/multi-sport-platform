@@ -35,7 +35,7 @@ describe("parameters in words", () => {
     expect(parameterAllowed(parameter("FLAG"))).toBe("Either");
     expect(parameterAllowed(parameter("CHOICE", { values: ["RANKED", "RANDOM"] }))).toBe("One of: Ranked, Random");
     expect(parameterAllowed(parameter("LIST", { values: ["MOST_WINS", "FEWEST_LOSSES"] }))).toBe(
-      "Any of, each once, in order: Most wins, Fewest losses",
+      "Any of, each once, in the order chosen: Most wins, Fewest losses",
     );
   });
 
