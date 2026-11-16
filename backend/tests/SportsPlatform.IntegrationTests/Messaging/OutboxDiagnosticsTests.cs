@@ -129,7 +129,7 @@ public sealed class OutboxDiagnosticsTests : DatabaseTest
     [Theory]
     [InlineData("?status=failed", "status")]
     [InlineData("?status=RETRYING", "status")]
-    [InlineData("?module=registry", "module")]
+    [InlineData("?module=nosuchmodule", "module")]
     [InlineData("?limit=0", "limit")]
     [InlineData("?limit=101", "limit")]
     [InlineData("?limit=abc", "limit")]

@@ -60,6 +60,7 @@ public sealed class MessagingInterceptor(
         {
             await DispatchDomainEventsAsync(context, cancellationToken);
             (context as ModuleDbContext)?.EnsureNewEntitiesHaveIds();
+            (context as ModuleDbContext)?.TouchRootsOfChangedChildren();
             QueueAudits(context);
             StampNewOutboxMessages(context);
         }

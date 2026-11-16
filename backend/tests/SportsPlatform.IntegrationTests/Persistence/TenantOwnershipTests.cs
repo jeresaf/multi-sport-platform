@@ -92,15 +92,17 @@ public sealed class TenantOwnershipTests(PostgresFixture fixture) : DatabaseTest
         var probeId = await SaveProbeAsync(_tenantA);
         await using (var scope = Scope(_tenantA, out var context))
         {
-            context.TenantProbeNotes.Add(new TenantProbeNote(probeId, "Goal nets replaced"));
+            var note = new TenantProbeNote(probeId, "Goal nets replaced");
+            context.AddRange(note, new TenantProbeNoteMark(note.Id, "Checked"));
             await context.SaveChangesAsync(Ct);
         }
 
-        // The probe's TenantId is in its alternate key, which EF itself never changes; the note's is only in a foreign key.
+        // The probe's and the note's TenantId are in an alternate key, which EF itself never changes; the mark's is only
+        // in a foreign key.
         await using (var scope = Scope(_tenantA, out var context))
         {
-            var note = await context.TenantProbeNotes.SingleAsync(Ct);
-            context.Entry(note).Property(n => n.TenantId).CurrentValue = _tenantB;
+            var mark = await context.TenantProbeNoteMarks.SingleAsync(Ct);
+            context.Entry(mark).Property(m => m.TenantId).CurrentValue = _tenantB;
 
             (await Should.ThrowAsync<TenantIsolationViolationException>(() => context.SaveChangesAsync(Ct)))
                 .Violation.ShouldBe(TenantIsolationViolation.OtherTenant);

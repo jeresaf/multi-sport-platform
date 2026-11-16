@@ -1,6 +1,7 @@
 using SportsPlatform.BuildingBlocks.Modules;
 using SportsPlatform.Modules.Identity;
 using SportsPlatform.Modules.Platform;
+using SportsPlatform.Modules.Registry;
 using SportsPlatform.Modules.SportsConfiguration;
 using SportsPlatform.Modules.Tenancy;
 
@@ -15,5 +16,6 @@ public static class ModuleRegistry
         new TenancyModule(),
         new IdentityModule(),
         new SportsConfigurationModule(),
+        new RegistryModule(),
     ];
 }

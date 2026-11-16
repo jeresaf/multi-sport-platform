@@ -10,6 +10,7 @@ using SportsPlatform.Modules.Identity.Domain.Invitations;
 using SportsPlatform.Modules.Identity.Domain.Memberships;
 using SportsPlatform.Modules.Identity.Domain.Roles;
 using SportsPlatform.Modules.Identity.Infrastructure.Users;
+using SportsPlatform.Modules.Registry.Domain.People;
 using SportsPlatform.Modules.Tenancy.Contracts.Subscriptions;
 using SportsPlatform.Modules.Tenancy.Domain.Entitlements;
 using SportsPlatform.Modules.Tenancy.Domain.Settings;
@@ -53,10 +54,15 @@ public static class IsolationSamples
         new TenantSportSample(),
         new TenantProbeSample(),
         new TenantProbeNoteSample(),
+        new TenantProbeNoteMarkSample(),
         new ConsumedNoteSample(),
         new TenantMembershipSample(),
         new RoleAssignmentSample(),
         new InvitationSample(),
+        new PersonSample(),
+        new PersonAliasSample(),
+        new PersonStatusChangeSample(),
+        new ExternalIdentifierSample(),
     ];
 
     public static IIsolationSample For(Type entityType) =>
@@ -186,6 +192,25 @@ public static class IsolationSamples
                 : null;
     }
 
+    private sealed class TenantProbeNoteMarkSample : IIsolationSample
+    {
+        public Type EntityType => typeof(TenantProbeNoteMark);
+
+        public Entity Add(DbContext context)
+        {
+            var probe = new TenantProbe("Seeta Hill Sports Field");
+            var note = new TenantProbeNote(probe.Id, "Nets replaced");
+            var mark = new TenantProbeNoteMark(note.Id, "Checked");
+            context.AddRange(probe, note, mark);
+            return mark;
+        }
+
+        public Entity? Referencing(IForeignKey foreignKey, Guid principalId) =>
+            foreignKey.PrincipalEntityType.ClrType == typeof(TenantProbeNote)
+                ? new TenantProbeNoteMark(principalId, "Urgent")
+                : null;
+    }
+
     private sealed class ConsumedNoteSample : IIsolationSample
     {
         public Type EntityType => typeof(ConsumedNote);
@@ -255,6 +280,80 @@ public static class IsolationSamples
             invitation.Accept(Guid.CreateVersion7(), principalId, IdentitySamples.Now).IsSuccess.ShouldBeTrue();
             return invitation;
         }
+    }
+
+    /// <summary>Registry: a person; its aliases and status history point at it.</summary>
+    private sealed class PersonSample : IIsolationSample
+    {
+        public Type EntityType => typeof(Person);
+
+        public Entity Add(DbContext context)
+        {
+            var person = RegistrySamples.NewPerson("Brenda", "Akello");
+            context.Add(person);
+            return person;
+        }
+
+        public Entity? Referencing(IForeignKey foreignKey, Guid principalId) => null;
+    }
+
+    private sealed class PersonAliasSample : IIsolationSample
+    {
+        public Type EntityType => typeof(PersonAlias);
+
+        public Entity Add(DbContext context)
+        {
+            var person = RegistrySamples.NewPerson("Peter", "Ochieng");
+            context.Add(person);
+            return person.AddAlias("Peter Okot", AliasKind.FormerName);
+        }
+
+        public Entity? Referencing(IForeignKey foreignKey, Guid principalId) =>
+            foreignKey.PrincipalEntityType.ClrType == typeof(Person)
+                ? new PersonAlias(principalId, "Pito", AliasKind.Nickname)
+                : null;
+    }
+
+    /// <summary>Registry: the history row a new person gets.</summary>
+    private sealed class PersonStatusChangeSample : IIsolationSample
+    {
+        public Type EntityType => typeof(PersonStatusChange);
+
+        public Entity Add(DbContext context)
+        {
+            var person = RegistrySamples.NewPerson("Ivan", "Mukasa");
+            context.Add(person);
+            return person.StatusHistory.Single();
+        }
+
+        public Entity? Referencing(IForeignKey foreignKey, Guid principalId) =>
+            foreignKey.PrincipalEntityType.ClrType == typeof(Person)
+                ? new PersonStatusChange(principalId, PersonStatus.Active, PersonStatus.Archived, "Left the association", SystemActor.Instance, RegistrySamples.Now)
+                : null;
+    }
+
+    /// <summary>Registry: an identifier names its person by ID without a foreign key, so nothing tenant-owned is referenced.</summary>
+    private sealed class ExternalIdentifierSample : IIsolationSample
+    {
+        public Type EntityType => typeof(ExternalIdentifier);
+
+        public Entity Add(DbContext context)
+        {
+            var person = RegistrySamples.NewPerson("Mariam", "Nankya");
+            var identifier = ExternalIdentifier.ForPerson(person.Id, "KMSA_REG_NO", "KM-2026-0147");
+            context.AddRange(person, identifier);
+            return identifier;
+        }
+
+        public Entity? Referencing(IForeignKey foreignKey, Guid principalId) => null;
+    }
+
+    private static class RegistrySamples
+    {
+        public static readonly DateTimeOffset Now = new(2026, 11, 16, 9, 0, 0, TimeSpan.Zero);
+
+        public static Person NewPerson(string firstName, string lastName) =>
+            Person.Create(new PersonBiodata(firstName, lastName), PersonSource.Manual, SystemActor.Instance, Now);
     }
 
     private static class IdentitySamples

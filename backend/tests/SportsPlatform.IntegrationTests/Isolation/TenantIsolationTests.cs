@@ -55,7 +55,9 @@ public sealed class TenantIsolationTests(PostgresFixture fixture) : DatabaseTest
         foreach (var state in new[] { EntityState.Modified, EntityState.Deleted })
         {
             await using var scope = ScopeFor(_tenantB, contextType, out var context);
-            context.Attach(row).State = state;
+            // The row alone, not the children it carries (a person's history): deleting a tracked parent of required
+            // children fails in EF before the save, and the interceptor is what this proves.
+            context.Entry(row).State = state;
             (await Should.ThrowAsync<TenantIsolationViolationException>(() => context.SaveChangesAsync(Ct)))
                 .Violation.ShouldBe(TenantIsolationViolation.OtherTenant);
         }

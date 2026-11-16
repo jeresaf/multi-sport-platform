@@ -5,6 +5,7 @@ using SportsPlatform.BuildingBlocks.Domain;
 using SportsPlatform.BuildingBlocks.Messaging;
 using SportsPlatform.BuildingBlocks.Persistence.Messaging;
 using SportsPlatform.BuildingBlocks.Tenancy;
+using SportsPlatform.IntegrationTests.Persistence;
 
 namespace SportsPlatform.IntegrationTests.Messaging;
 
@@ -137,6 +138,7 @@ public static class MessagingTestServices
         services.AddDomainEventSubscriber<ProbeRegistered, PublishProbeCreated>();
         services.AddDomainEventSubscriber<ProbeEchoed, EchoAgain>();
         services.AddDomainEventSubscriber<ProbeNoted, AddConsumedNote>();
+        services.AddDomainEventSubscriber<TenantProbeNoteRequested, AddRequestedProbeNote>();
         services.AddIntegrationEventConsumer<ProbeCreated.V1, RecordingConsumer, MessagingTestDbContext>(RecordingConsumer.Name);
         services.AddIntegrationEventConsumer<ProbeCreated.V1, FlakyConsumer, MessagingTestDbContext>(FlakyConsumer.Name);
         services.AddIntegrationEventConsumer<NoteRequested.V1, NoteWriter, MessagingTestDbContext>(NoteWriter.Name);
