@@ -190,7 +190,8 @@ public abstract class ModuleDbContext : DbContext
     }
 
     // A new tenant-owned row has no tenant until TenantOwnershipInterceptor stamps it, later in the save, with the
-    // scope's tenant: the value its composite foreign key will have.
+    // scope's tenant: the value its composite foreign key will have. Without a tenant the row matches no root, and the
+    // interceptor then refuses the save.
     private object? ForeignKeyValue(EntityEntry child, IProperty property)
     {
         var value = child.Property(property.Name).CurrentValue;

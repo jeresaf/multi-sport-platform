@@ -17,6 +17,12 @@ public sealed class NameNormaliserTests
     [InlineData("J.", "j")]
     [InlineData("St. John", "st john")]
     [InlineData("Mary   Anne\tGrace", "mary anne grace")]
+    [InlineData("Ssekandi,", "ssekandi")]
+    [InlineData("Nan\u00ADsubuga", "nansubuga")]
+    [InlineData("Nan\u200Bsubuga", "nansubuga")]
+    [InlineData("Ngʻangʻa", "nganga")]
+    [InlineData("Ngʼangʼa", "nganga")]
+    [InlineData("Otim\u2212Okot", "otimokot")]
     public void A_name_part_is_trimmed_lower_cased_and_stripped_of_accents_and_punctuation(string name, string expected) =>
         NameNormaliser.Normalise(name).ShouldBe(expected);
 
@@ -25,6 +31,7 @@ public sealed class NameNormaliserTests
     [InlineData("")]
     [InlineData("   ")]
     [InlineData("-'.")]
+    [InlineData("?,")]
     public void A_name_without_letters_or_digits_normalises_to_nothing(string? name) =>
         NameNormaliser.Normalise(name).ShouldBeEmpty();
 

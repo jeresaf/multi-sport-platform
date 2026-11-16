@@ -117,6 +117,8 @@ conflict (`<AREA>_CONCURRENCY_CONFLICT`). Rules:
   version.
 - A row that belongs to an aggregate without a foreign key to it (`registry.external_identifiers`) needs
   `context.MarkChanged(root)` in the command.
+- Every foreign key is followed, so a child moves the version of every loaded root it points at, not only its owner's.
+  Load only the aggregate the command changes; check other aggregates with a query that doesn't track them.
 
 ## Duplicate prevention
 
@@ -126,13 +128,15 @@ auto-merge. Person rules are specified in docs/build/slices/S06-people-registry.
 
 As built for people (S06-T1a):
 
-- **Normalised name** (`NameNormaliser`, Registry Domain): trimmed, lower-cased, accents removed, apostrophes,
-  hyphens and dots removed, inner whitespace collapsed. "Nänsubuga" → `nansubuga`, "Ng'ang'a" → `nganga`.
+- **Normalised name** (`NameNormaliser`, Registry Domain): trimmed, lower-cased, accents removed, everything that
+  isn't a letter or a digit removed (apostrophes, hyphens, dots, other punctuation, invisible characters), inner
+  whitespace collapsed. "Nänsubuga" → `nansubuga`, "Ng'ang'a" → `nganga`.
 - **Name key:** the normalised tokens of first, middle, last and other names, sorted and joined with one space.
   "Ssekandi John" and "John Ssekandi" both give `john ssekandi`. `registry.persons.name_key`; each alias has its own
   (`registry.person_aliases.name_key`).
 - **Similarity:** the `pg_trgm` extension (schema `public`, created by Registry's first migration as `sp_migrator`)
-  with a GIN `gin_trgm_ops` index on both name keys; queries use `EF.Functions.TrigramsSimilarity`.
+  with a GIN `gin_trgm_ops` index on both name keys; queries use `EF.Functions.TrigramsSimilarity`. These two
+  indexes don't start with `tenant_id` (GIN can't without `btree_gin`); RLS and the query filter still apply.
 - **External identifiers:** `registry.external_identifiers` has no foreign key to its entity (one table for every
   registry entity type; `entity_type` is `PERSON` until S07) and a unique index on `(tenant_id, authority,
   entity_type, value)` that includes ended rows.

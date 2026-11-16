@@ -22,7 +22,7 @@ paths:
   A change to only a child row also moves the root's `xmin` (S06 D11): before a save, `ModuleDbContext` follows each
   changed child's foreign keys to its aggregate root and, if the root is loaded, marks it changed. So load the root
   before changing its children. A row that belongs to an aggregate without a foreign key (an external identifier)
-  needs `context.MarkChanged(root)`.
+  needs `context.MarkChanged(root)`. Every loaded root a child points at is bumped, so don't track other aggregates.
 - Create a migration (run from the repository root; `dotnet tool restore` once first):
   ```bash
   dotnet ef migrations add <Name> --project backend/src/Modules/<M>/SportsPlatform.Modules.<M> \

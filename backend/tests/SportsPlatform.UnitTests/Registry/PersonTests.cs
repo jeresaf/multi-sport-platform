@@ -55,6 +55,7 @@ public sealed class PersonTests
     [InlineData("", "Akello")]
     [InlineData("Brenda", "  ")]
     [InlineData("-", "Akello")]
+    [InlineData("?", "Akello")]
     public void First_and_last_name_are_required(string first, string last) =>
         Should.Throw<ArgumentException>(() => Create(new PersonBiodata(first, last)));
 
@@ -76,6 +77,10 @@ public sealed class PersonTests
     [InlineData(300.1)]
     public void Weight_is_bounded(double weight) =>
         Should.Throw<ArgumentOutOfRangeException>(() => Create(new PersonBiodata("Denis", "Opoka", WeightKg: (decimal)weight)));
+
+    [Fact]
+    public void Weight_has_at_most_one_decimal() =>
+        Should.Throw<ArgumentException>(() => Create(new PersonBiodata("Denis", "Opoka", WeightKg: 72.55m)));
 
     [Fact]
     public void The_bounds_themselves_are_accepted()

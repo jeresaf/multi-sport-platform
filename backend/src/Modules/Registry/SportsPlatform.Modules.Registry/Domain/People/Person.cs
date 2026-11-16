@@ -135,6 +135,10 @@ public sealed class Person : AggregateRoot, ITenantOwned
         {
             ArgumentOutOfRangeException.ThrowIfLessThan(weight, PersonBiodata.MinWeightKg, nameof(biodata.WeightKg));
             ArgumentOutOfRangeException.ThrowIfGreaterThan(weight, PersonBiodata.MaxWeightKg, nameof(biodata.WeightKg));
+            if (decimal.Round(weight, 1) != weight)
+            {
+                throw new ArgumentException("A weight has at most one decimal.", nameof(biodata));
+            }
         }
 
         HeightCm = biodata.HeightCm;

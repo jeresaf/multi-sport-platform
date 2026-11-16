@@ -5,16 +5,12 @@ namespace SportsPlatform.Modules.Registry.Domain.People;
 
 /// <summary>
 /// Normalised names for search and the duplicate check (S06 D4). A name part is trimmed, lower-cased (invariant), its
-/// accents removed (NFD, non-spacing marks dropped), its apostrophes, hyphens and dots removed and its inner whitespace
-/// collapsed to one space. The <b>name key</b> is the normalised tokens of every part, sorted and joined with one space,
+/// accents removed (NFD, non-spacing marks dropped), everything that is not a letter or a digit removed (apostrophes,
+/// hyphens, dots, other punctuation, invisible format characters) and its inner whitespace collapsed to one space. The <b>name key</b> is the normalised tokens of every part, sorted and joined with one space,
 /// so "Ssekandi John" and "John Ssekandi" share <c>john ssekandi</c>.
 /// </summary>
 public static class NameNormaliser
 {
-    // Apostrophes (straight, curly, modifier letter, backtick), hyphens and dashes, and dots: "Ng'ang'a" → "nganga",
-    // "Okello-Owino" → "okelloowino", "J." → "j".
-    private const string _removed = "'’‘ʼ`´-‐‑‒–—.";
-
     /// <summary>One name part, normalised; empty for null or blank.</summary>
     public static string Normalise(string? name)
     {
@@ -33,8 +29,10 @@ public static class NameNormaliser
                 continue;
             }
 
-            if (CharUnicodeInfo.GetUnicodeCategory(character) == UnicodeCategory.NonSpacingMark
-                || _removed.Contains(character, StringComparison.Ordinal))
+            // "Ng'ang'a" → "nganga", "Okello-Owino" → "okelloowino", "J." → "j"; a soft hyphen or a zero-width space
+            // pasted with a name goes too. Modifier letters are the apostrophes some keyboards type (ʼ, ʻ).
+            if (!char.IsLetterOrDigit(character)
+                || CharUnicodeInfo.GetUnicodeCategory(character) == UnicodeCategory.ModifierLetter)
             {
                 continue;
             }
