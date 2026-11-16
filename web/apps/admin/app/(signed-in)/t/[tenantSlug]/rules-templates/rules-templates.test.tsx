@@ -251,39 +251,44 @@ describe("a rules template", () => {
 
   // Every rule a template may make a parameter, by its path as the files write it, is marked where it is shown; one
   // template per path, so a misspelt path leaves its rule unmarked (review #91 R3). The seeded templates' paths first.
-  const number = { type: "NUMBER", label: "A changeable rule", description: null, min: 0, max: 99, values: [], default: 1 } as const;
-  const flag = { ...number, type: "FLAG", min: null, max: null, default: false } as const;
+  // Each parameter is one the backend's rules accept on `ringLeague` (review #91 N8): a whole number or a yes or no as
+  // the value at its path is, that value as its default and inside its bounds; a choice only where a tenant may choose,
+  // among codes the sport supports and the extra periods fit.
+  const base = { label: "A changeable rule", description: null, min: null, max: null, values: [] } as const;
+  const int = (value: number) => ({ ...base, type: "NUMBER", min: 0, max: 3600, default: value }) as const;
+  const flag = (value: boolean) => ({ ...base, type: "FLAG", default: value }) as const;
+  const choice = (values: string[], value: string) => ({ ...base, type: "CHOICE", values, default: value }) as const;
   it.each([
-    ["roster.min", number, "Roster size"],
-    ["roster.max", number, "Roster size"],
-    ["lineup.bench_max", number, "Substitutes on the bench"],
-    ["substitutions.max", number, "Substitutions"],
-    ["contest.period_seconds.SECOND_SPELL", number, "Second spell", "Period lengths"],
-    // The placeholder type is enough: the test checks where the marker goes, not the parameter's choices.
-    ["contest.tie_resolution", number, "When the scores are level"],
-    ["contest.coverage_default", number, "Default coverage"],
-    ["standings.points.win", number, "Points for a win"],
-    ["standings.points.draw", number, "Points for a draw"],
-    ["standings.points.loss", number, "Points for a loss"],
-    ["standings.points.no_result", number, "Points for no result"],
-    ["standings.points.forfeit_win", number, "Points for a forfeit win"],
-    ["standings.points.forfeit_loss", number, "Points for a forfeit loss"],
-    ["standings.forfeit_score.for", number, "Score of a forfeit"],
-    ["standings.forfeit_score.against", number, "Score of a forfeit"],
-    ["standings.h2h_reapply", flag, "Head-to-head applied again to those still level"],
-    ["lineup.starters", number, "Starters"],
-    ["lineup.requires_approval", flag, "Lineups need approval"],
-    ["lineup.positions.HOOP_GUARD.min", number, "Hoop guard", "Positions"],
-    ["lineup.positions.HOOP_GUARD.max", number, "Hoop guard", "Positions"],
-    ["substitutions.windows", number, "Substitution windows"],
-    ["substitutions.extra_in_extra_time", number, "Extra in extra periods"],
-    ["roster.requires_approval", flag, "Rosters need approval"],
-    ["operations.officials_minimum.RING_JUDGE", number, "Ring judge", "Officials at least"],
-    ["operations.scorer_correction_window_minutes", number, "Scorer corrections"],
-    ["operations.starting_soon_minutes", number, "Starting soon"],
-    ["eligibility.membership_required", flag, "Membership required"],
-    ["eligibility.min_age", number, "Age"],
-    ["eligibility.max_age", number, "Age"],
+    ["roster.min", int(10), "Roster size"],
+    ["roster.max", int(14), "Roster size"],
+    ["lineup.bench_max", int(5), "Substitutes on the bench"],
+    ["substitutions.max", int(6), "Substitutions"],
+    ["contest.period_seconds.SECOND_SPELL", int(630), "Second spell", "Period lengths"],
+    // The only tie resolution the template's extra periods (a golden spell, then a ring-off) fit is its own.
+    ["contest.tie_resolution", choice(["EXTRA_PERIODS_SUDDEN_DEATH"], "EXTRA_PERIODS_SUDDEN_DEATH"), "When the scores are level"],
+    ["contest.coverage_default", choice(["BASIC", "STANDARD", "DETAILED"], "DETAILED"), "Default coverage"],
+    ["standings.points.win", int(3), "Points for a win"],
+    ["standings.points.draw", int(1), "Points for a draw"],
+    ["standings.points.loss", int(0), "Points for a loss"],
+    ["standings.points.no_result", int(1), "Points for no result"],
+    ["standings.points.forfeit_win", int(2), "Points for a forfeit win"],
+    ["standings.points.forfeit_loss", int(0), "Points for a forfeit loss"],
+    ["standings.forfeit_score.for", int(5), "Score of a forfeit"],
+    ["standings.forfeit_score.against", int(0), "Score of a forfeit"],
+    ["standings.h2h_reapply", flag(false), "Head-to-head applied again to those still level"],
+    ["lineup.starters", int(7), "Starters"],
+    ["lineup.requires_approval", flag(true), "Lineups need approval"],
+    ["lineup.positions.HOOP_GUARD.min", int(1), "Hoop guard", "Positions"],
+    ["lineup.positions.HOOP_GUARD.max", int(1), "Hoop guard", "Positions"],
+    ["substitutions.windows", int(4), "Substitution windows"],
+    ["substitutions.extra_in_extra_time", int(1), "Extra in extra periods"],
+    ["roster.requires_approval", flag(false), "Rosters need approval"],
+    ["operations.officials_minimum.RING_JUDGE", int(2), "Ring judge", "Officials at least"],
+    ["operations.scorer_correction_window_minutes", int(45), "Scorer corrections"],
+    ["operations.starting_soon_minutes", int(20), "Starting soon"],
+    ["eligibility.membership_required", flag(false), "Membership required"],
+    ["eligibility.min_age", int(14), "Age"],
+    ["eligibility.max_age", int(17), "Age"],
   ] as const)("marks %s as a default a competition may change", async (path, parameter, label, list?: string) => {
     openTemplate("RING_LEAGUE", "", reads, {
       "GET /api/admin/v1/ruleset-templates/RING_LEAGUE": { status: 200, body: { ...ringLeague, parameters: { [path]: parameter } } },
@@ -294,6 +299,8 @@ describe("a rules template", () => {
     expect(marked).toHaveLength(1);
     const where = list ? items(list).find((item) => item.startsWith(`${label}:`)) : fact(label, section("Rules"));
     expect(where).toMatch(/\(default; a competition may change it\)$/);
+    // The parameters table lists it with its type.
+    expect(cells("A changeable rule")[0]).toBe({ NUMBER: "Whole number", FLAG: "Yes or no", CHOICE: "One of a list" }[parameter.type]);
   });
 
   it("describes every tiebreaker the template lists or allows", async () => {
