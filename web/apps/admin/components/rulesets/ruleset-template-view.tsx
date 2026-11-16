@@ -51,7 +51,8 @@ export function RulesetTemplateView({
 }>) {
   const { contest, lineup, substitutions, roster, standings, operations, eligibility } = template.values;
   const editable = new Set(Object.keys(template.parameters));
-  // A rule a competition may change is the template's default for it (its parameter above says within what).
+  // A rule a competition may change is the template's default for it (its parameter above says within what). Every
+  // rule names its paths as the files write them (`values` keys), so any rule a template makes a parameter is marked.
   const rule = (value: ReactNode, ...paths: string[]) =>
     paths.some((path) => editable.has(path)) ? (
       <>
@@ -118,7 +119,7 @@ export function RulesetTemplateView({
       </ViewerSection>
 
       <section className="grid gap-6">
-        <h2 className="text-xl font-semibold">Rules</h2>
+        <h2 className="text-lg font-semibold">Rules</h2>
 
         <ViewerSection title="Contest">
           <Facts
@@ -138,7 +139,10 @@ export function RulesetTemplateView({
               ["When the scores are level", rule(codeLabel(contest.tieResolution), "contest.tie_resolution")],
               [
                 "Extra periods",
-                contest.extraPeriodSequence.length > 0 ? contest.extraPeriodSequence.map(period).join(", then ") : "None",
+                rule(
+                  contest.extraPeriodSequence.length > 0 ? contest.extraPeriodSequence.map(period).join(", then ") : "None",
+                  "contest.extra_period_sequence",
+                ),
               ],
               ["Default coverage", rule(codeLabel(contest.coverageDefault), "contest.coverage_default")],
             ]}
@@ -150,14 +154,15 @@ export function RulesetTemplateView({
             items={[
               ["Starters", rule(lineup.starters, "lineup.starters")],
               ["Substitutes on the bench", rule(`At most ${lineup.benchMax}`, "lineup.bench_max")],
-              ["Lineups need approval", yesNo(lineup.requiresApproval)],
+              ["Lineups need approval", rule(yesNo(lineup.requiresApproval), "lineup.requires_approval")],
               [
                 "Positions",
                 <NoneOr key="positions" empty={positions.length === 0}>
                   <ul aria-label="Positions" className="grid gap-1">
                     {positions.map(([code, range]) => (
                       <li key={code}>
-                        {positionLabel(definition, code)}: {numberRange(range.min, range.max)}
+                        {positionLabel(definition, code)}:{" "}
+                        {rule(numberRange(range.min, range.max), `lineup.positions.${code}.min`, `lineup.positions.${code}.max`)}
                       </li>
                     ))}
                   </ul>
@@ -181,8 +186,8 @@ export function RulesetTemplateView({
           <Facts
             items={[
               ["Roster size", rule(numberRange(roster.min, roster.max), "roster.min", "roster.max")],
-              ["Rosters need approval", yesNo(roster.requiresApproval)],
-              ["Roster locks", codeLabel(roster.lockPolicy)],
+              ["Rosters need approval", rule(yesNo(roster.requiresApproval), "roster.requires_approval")],
+              ["Roster locks", rule(codeLabel(roster.lockPolicy), "roster.lock_policy")],
             ]}
           />
         </ViewerSection>
@@ -196,7 +201,14 @@ export function RulesetTemplateView({
               ["Points for no result", rule(standings.points.noResult, "standings.points.no_result")],
               ["Points for a forfeit win", rule(standings.points.forfeitWin, "standings.points.forfeit_win")],
               ["Points for a forfeit loss", rule(standings.points.forfeitLoss, "standings.points.forfeit_loss")],
-              ["Score of a forfeit", `${standings.forfeitScore.scored}–${standings.forfeitScore.conceded}`],
+              [
+                "Score of a forfeit",
+                rule(
+                  `${standings.forfeitScore.scored}–${standings.forfeitScore.conceded}`,
+                  "standings.forfeit_score.for",
+                  "standings.forfeit_score.against",
+                ),
+              ],
               [
                 "Tiebreakers",
                 <NoneOr key="tiebreakers" empty={standings.tiebreakers.length === 0}>
@@ -210,7 +222,10 @@ export function RulesetTemplateView({
                   ) : null}
                 </NoneOr>,
               ],
-              ["Head-to-head applied again to those still level", yesNo(standings.headToHeadReapply)],
+              [
+                "Head-to-head applied again to those still level",
+                rule(yesNo(standings.headToHeadReapply), "standings.h2h_reapply"),
+              ],
             ]}
           />
         </ViewerSection>
@@ -218,21 +233,29 @@ export function RulesetTemplateView({
         <ViewerSection title="Contest operations">
           <Facts
             items={[
-              ["Ready to start when", orNoneList(operations.readiness.map(codeLabel), "Readiness checks")],
+              ["Ready to start when", rule(orNoneList(operations.readiness.map(codeLabel), "Readiness checks"), "operations.readiness")],
               [
                 "Officials at least",
                 <NoneOr key="officials" empty={officials.length === 0}>
                   <ul aria-label="Officials at least" className="grid gap-1">
                     {officials.map(([code, count]) => (
                       <li key={code}>
-                        {officialLabel(definition, code)}: {count}
+                        {officialLabel(definition, code)}: {rule(count, `operations.officials_minimum.${code}`)}
                       </li>
                     ))}
                   </ul>
                 </NoneOr>,
               ],
-              ["Scorer corrections", `Up to ${operations.scorerCorrectionWindowMinutes} min after the end`],
-              ["Starting soon", `${operations.startingSoonMinutes} min before the start`],
+              [
+                "Scorer corrections",
+                rule(
+                  operations.scorerCorrectionWindowMinutes > 0
+                    ? `Up to ${operations.scorerCorrectionWindowMinutes} min after the end`
+                    : "Not after the end",
+                  "operations.scorer_correction_window_minutes",
+                ),
+              ],
+              ["Starting soon", rule(`${operations.startingSoonMinutes} min before the start`, "operations.starting_soon_minutes")],
             ]}
           />
         </ViewerSection>
@@ -240,12 +263,21 @@ export function RulesetTemplateView({
         <ViewerSection title="Eligibility">
           <Facts
             items={[
-              ["Membership required", yesNo(eligibility.membershipRequired)],
-              ["Age", ageLabel(eligibility.minAge, eligibility.maxAge)],
-              ["Age worked out on", eligibility.ageReferenceDate ? formatDay(eligibility.ageReferenceDate) : "Not set"],
+              ["Membership required", rule(yesNo(eligibility.membershipRequired), "eligibility.membership_required")],
+              ["Age", rule(ageLabel(eligibility.minAge, eligibility.maxAge), "eligibility.min_age", "eligibility.max_age")],
+              [
+                "Age worked out on",
+                rule(
+                  eligibility.ageReferenceDate ? formatDay(eligibility.ageReferenceDate) : "Not set",
+                  "eligibility.age_reference_date",
+                ),
+              ],
               [
                 "Consent for minors",
-                minorConsentLabels[eligibility.minorConsentRequired] ?? codeLabel(eligibility.minorConsentRequired),
+                rule(
+                  minorConsentLabels[eligibility.minorConsentRequired] ?? codeLabel(eligibility.minorConsentRequired),
+                  "eligibility.minor_consent_required",
+                ),
               ],
             ]}
           />

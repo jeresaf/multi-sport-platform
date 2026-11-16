@@ -35,6 +35,15 @@ export const ringLeague: RulesetTemplate = {
       values: ["EXTRA_PERIODS_SUDDEN_DEATH", "SHOOTOUT"],
       default: "EXTRA_PERIODS_SUDDEN_DEATH",
     },
+    "standings.h2h_reapply": {
+      type: "FLAG",
+      label: "Head-to-head again among crews still level",
+      description: null,
+      min: null,
+      max: null,
+      values: [],
+      default: false,
+    },
     "contest.period_seconds.FIRST_SPELL": {
       type: "NUMBER",
       label: "First spell (seconds)",

@@ -200,6 +200,7 @@ describe("a rules template", () => {
       "One of: Extra periods sudden death, Shootout",
     ]);
     expect(cells("First spell (seconds)")).toEqual(["Whole number", "600", "300 to 900"]);
+    expect(cells("Head-to-head again among crews still level")).toEqual(["Yes or no", "No", "Either"]);
   });
 
   it("shows every rule in the pinned definition's words, marking those a competition may change", async () => {
@@ -236,7 +237,7 @@ describe("a rules template", () => {
     expect(fact("Score of a forfeit", standings)).toBe("5–0");
     expect(items("Tiebreakers in order")).toEqual(["Points", "Ring difference", "Toss of a coin"]);
     expect(within(standings).getByText("Default; a competition may change it.")).toBeTruthy();
-    expect(fact("Head-to-head applied again to those still level", standings)).toBe("No");
+    expect(fact("Head-to-head applied again to those still level", standings)).toBe(`No${changeable}`);
 
     expect(items("Readiness checks")).toEqual(["Lineups approved", "Officials minimum"]);
     expect(items("Officials at least")).toEqual(["Ring judge: 2"]);
@@ -278,6 +279,7 @@ describe("a rules template", () => {
     expect(fact("Tiebreakers")).toBe("None");
     expect(fact("Age")).toBe("No limit");
     expect(fact("Age worked out on")).toBe("Not set");
+    expect(fact("Scorer corrections")).toBe("Not after the end");
     expect(screen.queryByText(/a competition may change it/)).toBeNull();
   });
 
