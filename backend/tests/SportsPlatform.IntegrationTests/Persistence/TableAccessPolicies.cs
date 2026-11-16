@@ -109,6 +109,7 @@ public static class TableAccessPolicies
         // Tenant-owned test tables (S02-T2, RLS): the isolation harness and consumers under RLS.
         ["conventions_test.tenant_probes"] = TableAccess.ReadWrite,
         ["conventions_test.tenant_probe_notes"] = TableAccess.ReadWrite,
+        ["conventions_test.tenant_probe_note_marks"] = TableAccess.ReadWrite,
         ["messaging_test.consumed_notes"] = TableAccess.AppendOnly,
     };
 

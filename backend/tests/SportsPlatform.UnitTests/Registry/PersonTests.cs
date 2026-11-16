@@ -123,6 +123,19 @@ public sealed class PersonTests
         identifier.ValidTo.ShouldBeNull();
     }
 
+    [Fact]
+    public void An_alias_and_a_status_change_belong_to_a_person()
+    {
+        Should.Throw<ArgumentException>(() => new PersonAlias(Guid.Empty, "Pito", AliasKind.Nickname));
+        Should.Throw<ArgumentException>(() => new PersonStatusChange(
+            Guid.Empty, PersonStatus.Active, PersonStatus.Inactive, null, SystemActor.Instance, _now));
+    }
+
+    [Fact]
+    public void A_status_change_reason_is_bounded() =>
+        Should.Throw<ArgumentOutOfRangeException>(() => new PersonStatusChange(
+            Guid.CreateVersion7(), PersonStatus.Active, PersonStatus.Archived, new string('x', 501), SystemActor.Instance, _now));
+
     [Theory]
     [InlineData("kmsa_reg_no")]
     [InlineData("K")]

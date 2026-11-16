@@ -119,6 +119,8 @@ conflict (`<AREA>_CONCURRENCY_CONFLICT`). Rules:
   `context.MarkChanged(root)` in the command.
 - Every foreign key is followed, so a child moves the version of every loaded root it points at, not only its owner's.
   Load only the aggregate the command changes; check other aggregates with a query that doesn't track them.
+- A child that moves to another parent moves the version of the root it left as well.
+- An append-only root has no version to move: a change below a loaded one throws (a bug, not an expected failure).
 
 ## Duplicate prevention
 

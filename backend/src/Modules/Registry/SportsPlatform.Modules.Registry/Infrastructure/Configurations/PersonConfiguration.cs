@@ -103,8 +103,9 @@ internal sealed class PersonAliasConfiguration : IEntityTypeConfiguration<Person
 
         builder.Property(a => a.Name).HasMaxLength(PersonAlias.NameMaxLength).IsPersonalData(PersonalDataClass.Internal);
         builder.Property(a => a.NameKey).HasMaxLength(PersonAlias.NameMaxLength).IsPersonalData(PersonalDataClass.Internal);
-        builder.Property(a => a.Kind).HasConversion(EnumColumns.UpperSnake<AliasKind>()).HasMaxLength(20);
-        builder.Property(a => a.RemoveReason).HasMaxLength(PersonAlias.ReasonMaxLength);
+        builder.Property(a => a.Kind).HasConversion(EnumColumns.UpperSnake<AliasKind>()).HasMaxLength(20)
+            .IsPersonalData(PersonalDataClass.Internal);
+        builder.Property(a => a.RemoveReason).HasMaxLength(PersonAlias.ReasonMaxLength).IsPersonalData(PersonalDataClass.Internal);
         builder.Ignore(a => a.IsRemoved);
 
         builder.HasIndex(a => a.NameKey).HasMethod("gin").HasOperators("gin_trgm_ops").HasDatabaseName(NameKeyIndex);
@@ -128,9 +129,12 @@ internal sealed class PersonStatusChangeConfiguration : IEntityTypeConfiguration
         });
         builder.IsAppendOnly();
 
-        builder.Property(c => c.FromStatus).HasConversion(EnumColumns.UpperSnake<PersonStatus>()).HasMaxLength(20);
-        builder.Property(c => c.ToStatus).HasConversion(EnumColumns.UpperSnake<PersonStatus>()).HasMaxLength(20);
-        builder.Property(c => c.Reason).HasMaxLength(PersonStatusChange.ReasonMaxLength);
+        // A person's states (DECEASED among them) and why they changed are INTERNAL, like the person's status (S06 D3).
+        builder.Property(c => c.FromStatus).HasConversion(EnumColumns.UpperSnake<PersonStatus>()).HasMaxLength(20)
+            .IsPersonalData(PersonalDataClass.Internal);
+        builder.Property(c => c.ToStatus).HasConversion(EnumColumns.UpperSnake<PersonStatus>()).HasMaxLength(20)
+            .IsPersonalData(PersonalDataClass.Internal);
+        builder.Property(c => c.Reason).HasMaxLength(PersonStatusChange.ReasonMaxLength).IsPersonalData(PersonalDataClass.Internal);
         builder.Property(c => c.ActorKind).HasConversion(EnumColumns.UpperSnake<ActorKind>()).HasMaxLength(20);
 
         builder.HasIndex(c => new { c.TenantId, c.PersonId, c.OccurredAt });

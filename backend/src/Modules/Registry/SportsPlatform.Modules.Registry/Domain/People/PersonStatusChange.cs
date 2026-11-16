@@ -18,6 +18,17 @@ public sealed class PersonStatusChange : Entity, ITenantOwned
         : base(NewId())
     {
         ArgumentNullException.ThrowIfNull(actor);
+        if (personId == Guid.Empty)
+        {
+            throw new ArgumentException("A status change belongs to a person.", nameof(personId));
+        }
+
+        if (reason is not null)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(reason.Length, ReasonMaxLength, nameof(reason));
+        }
+
         PersonId = personId;
         FromStatus = fromStatus;
         ToStatus = toStatus;

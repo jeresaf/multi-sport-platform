@@ -15,6 +15,11 @@ public sealed class PersonAlias : Entity, ITenantOwned
     public PersonAlias(Guid personId, string name, AliasKind kind)
         : base(NewId())
     {
+        if (personId == Guid.Empty)
+        {
+            throw new ArgumentException("An alias belongs to a person.", nameof(personId));
+        }
+
         PersonId = personId;
         Name = Person.Required(name, NameMaxLength, nameof(name));
         NameKey = NameNormaliser.NameKey(Name);

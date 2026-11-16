@@ -167,24 +167,56 @@ public sealed class PersonPersistenceTests(PostgresFixture fixture) : DatabaseTe
     }
 
     [Fact]
-    public void Every_personal_column_is_classified_and_the_date_of_birth_is_private()
+    public void Every_column_of_the_person_tables_is_classified_or_listed_as_not_personal()
     {
         using var scope = RegistryTestData.ScopeFor(App.Services, RegistryTestData.Kmsa, out var context);
+        string[] audit = [AuditColumns.CreatedAt, AuditColumns.CreatedBy, AuditColumns.UpdatedAt, AuditColumns.UpdatedBy, AuditColumns.Version];
+        var notPersonal = new Dictionary<Type, string[]>
+        {
+            // IDs, the tenant and provenance.
+            [typeof(Person)] = [nameof(Person.Id), nameof(Person.TenantId), nameof(Person.Source), nameof(Person.ImportJobId)],
+
+            // IDs and who removed the alias when (staff, not the person).
+            [typeof(PersonAlias)] =
+            [
+                nameof(PersonAlias.Id), nameof(PersonAlias.TenantId), nameof(PersonAlias.PersonId),
+                nameof(PersonAlias.RemovedAt), nameof(PersonAlias.RemovedBy),
+            ],
+
+            // IDs and who made the change when (staff or the system).
+            [typeof(PersonStatusChange)] =
+            [
+                nameof(PersonStatusChange.Id), nameof(PersonStatusChange.TenantId), nameof(PersonStatusChange.PersonId),
+                nameof(PersonStatusChange.ActorKind), nameof(PersonStatusChange.ActorId), nameof(PersonStatusChange.OccurredAt),
+            ],
+
+            // IDs, the entity it names, the authority's code and the validity dates; the value is classified.
+            [typeof(ExternalIdentifier)] =
+            [
+                nameof(ExternalIdentifier.Id), nameof(ExternalIdentifier.TenantId), nameof(ExternalIdentifier.EntityType),
+                nameof(ExternalIdentifier.EntityId), nameof(ExternalIdentifier.Authority),
+                nameof(ExternalIdentifier.ValidFrom), nameof(ExternalIdentifier.ValidTo),
+            ],
+        };
+
+        foreach (var (type, listed) in notPersonal)
+        {
+            var entity = context.Model.FindEntityType(type)!;
+            var unclassified = entity.GetProperties()
+                .Where(property => property.FindAnnotation(Pii.Annotation) is null)
+                .Select(property => property.Name)
+                .Except(audit, StringComparer.Ordinal)
+                .Order(StringComparer.Ordinal)
+                .ToList();
+
+            unclassified.ShouldBe(listed.Order(StringComparer.Ordinal).ToList(), customMessage: type.Name);
+        }
+
         var person = context.Model.FindEntityType(typeof(Person))!;
-        string[] unclassified = [
-            nameof(Person.Id), nameof(Person.TenantId), nameof(Person.Source), nameof(Person.ImportJobId),
-            AuditColumns.CreatedAt, AuditColumns.CreatedBy, AuditColumns.UpdatedAt, AuditColumns.UpdatedBy, AuditColumns.Version,
-        ];
-
-        var missing = person.GetProperties()
-            .Where(property => property.FindAnnotation(Pii.Annotation) is null)
-            .Select(property => property.Name)
-            .Except(unclassified, StringComparer.Ordinal)
-            .ToList();
-
-        missing.ShouldBeEmpty();
         person.FindProperty(nameof(Person.DateOfBirth))![Pii.Annotation].ShouldBe("PRIVATE");
         person.FindProperty(nameof(Person.DisplayName))![Pii.Annotation].ShouldBe("PUBLIC");
         person.FindProperty(nameof(Person.FirstName))![Pii.Annotation].ShouldBe("INTERNAL");
+        context.Model.FindEntityType(typeof(PersonStatusChange))!
+            .FindProperty(nameof(PersonStatusChange.ToStatus))![Pii.Annotation].ShouldBe("INTERNAL");
     }
 }

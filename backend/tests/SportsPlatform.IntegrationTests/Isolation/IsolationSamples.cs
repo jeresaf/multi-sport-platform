@@ -54,6 +54,7 @@ public static class IsolationSamples
         new TenantSportSample(),
         new TenantProbeSample(),
         new TenantProbeNoteSample(),
+        new TenantProbeNoteMarkSample(),
         new ConsumedNoteSample(),
         new TenantMembershipSample(),
         new RoleAssignmentSample(),
@@ -188,6 +189,25 @@ public static class IsolationSamples
         public Entity? Referencing(IForeignKey foreignKey, Guid principalId) =>
             foreignKey.PrincipalEntityType.ClrType == typeof(TenantProbe)
                 ? new TenantProbeNote(principalId, "Floodlights checked")
+                : null;
+    }
+
+    private sealed class TenantProbeNoteMarkSample : IIsolationSample
+    {
+        public Type EntityType => typeof(TenantProbeNoteMark);
+
+        public Entity Add(DbContext context)
+        {
+            var probe = new TenantProbe("Seeta Hill Sports Field");
+            var note = new TenantProbeNote(probe.Id, "Nets replaced");
+            var mark = new TenantProbeNoteMark(note.Id, "Checked");
+            context.AddRange(probe, note, mark);
+            return mark;
+        }
+
+        public Entity? Referencing(IForeignKey foreignKey, Guid principalId) =>
+            foreignKey.PrincipalEntityType.ClrType == typeof(TenantProbeNote)
+                ? new TenantProbeNoteMark(principalId, "Urgent")
                 : null;
     }
 

@@ -26,6 +26,8 @@ public sealed class ConventionsTestDbContext(DbContextOptions<ConventionsTestDbC
 
     public DbSet<TenantProbeNote> TenantProbeNotes => Set<TenantProbeNote>();
 
+    public DbSet<TenantProbeNoteMark> TenantProbeNoteMarks => Set<TenantProbeNoteMark>();
+
     protected override Error ConcurrencyConflictError => ConcurrencyConflict;
 
     protected override void ConfigureModel(ModelBuilder modelBuilder)
@@ -45,9 +47,17 @@ public sealed class ConventionsTestDbContext(DbContextOptions<ConventionsTestDbC
         modelBuilder.Entity<TenantProbeNote>(note =>
         {
             note.Property(n => n.Text).HasMaxLength(200);
+            note.HasAlternateKey(n => new { n.TenantId, n.Id });
             note.HasOne<TenantProbe>().WithMany()
                 .HasForeignKey(n => new { n.TenantId, n.ProbeId })
                 .HasPrincipalKey(p => new { p.TenantId, p.Id });
+        });
+        modelBuilder.Entity<TenantProbeNoteMark>(mark =>
+        {
+            mark.Property(m => m.Label).HasMaxLength(50);
+            mark.HasOne<TenantProbeNote>().WithMany()
+                .HasForeignKey(m => new { m.TenantId, m.NoteId })
+                .HasPrincipalKey(n => new { n.TenantId, n.Id });
         });
     }
 }
@@ -116,6 +126,22 @@ public sealed class TenantProbe : AggregateRoot, ITenantOwned
     public string Name { get; private set; } = string.Empty;
 
     public void Rename(string name) => Name = name;
+
+    /// <summary>Asks <see cref="AddRequestedProbeNote"/> for a note, added while the save runs (a child from a subscriber).</summary>
+    public void RequestNote(string text) => Raise(new TenantProbeNoteRequested(Id, text));
+}
+
+public sealed record TenantProbeNoteRequested(Guid ProbeId, string Text) : IDomainEvent;
+
+/// <summary>Adds a child row of a loaded aggregate from a domain event subscriber (S06 D11).</summary>
+public sealed class AddRequestedProbeNote(ConventionsTestDbContext context) : IDomainEventSubscriber<TenantProbeNoteRequested>
+{
+    public Task HandleAsync(TenantProbeNoteRequested domainEvent, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(domainEvent);
+        context.Add(new TenantProbeNote(domainEvent.ProbeId, domainEvent.Text));
+        return Task.CompletedTask;
+    }
 }
 
 /// <summary>References a <see cref="TenantProbe"/> through the composite key <c>(tenant_id, probe_id)</c>.</summary>
@@ -139,6 +165,29 @@ public sealed class TenantProbeNote : Entity, ITenantOwned
     public string Text { get; private set; } = string.Empty;
 
     public void Edit(string text) => Text = text;
+
+    public void MoveTo(Guid probeId) => ProbeId = probeId;
+}
+
+/// <summary>A row two levels below its aggregate root: it points at a <see cref="TenantProbeNote"/> (S06 D11).</summary>
+public sealed class TenantProbeNoteMark : Entity, ITenantOwned
+{
+    public TenantProbeNoteMark(Guid noteId, string label)
+        : base(NewId())
+    {
+        NoteId = noteId;
+        Label = label;
+    }
+
+    private TenantProbeNoteMark()
+    {
+    }
+
+    public Guid TenantId { get; private set; }
+
+    public Guid NoteId { get; private set; }
+
+    public string Label { get; private set; } = string.Empty;
 }
 
 /// <summary>Lets <c>dotnet ef migrations add</c> build the context without starting the Host.</summary>

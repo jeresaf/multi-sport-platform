@@ -109,7 +109,8 @@ public abstract class ModuleDbContext : DbContext
         var entry = Entry(root);
         if (entry.State == EntityState.Detached)
         {
-            throw new InvalidOperationException($"{root.GetType().Name} {root.Id} is not loaded in this context; load it before changing its rows.");
+            throw new InvalidOperationException(
+                $"{root.GetType().Name} {root.Id} is not loaded in this context; load it before changing its rows.");
         }
 
         Touch(entry);
@@ -166,26 +167,38 @@ public abstract class ModuleDbContext : DbContext
 
         foreach (var foreignKey in child.Metadata.GetForeignKeys())
         {
-            var values = foreignKey.Properties.Select(property => ForeignKeyValue(child, property)).ToList();
-            var principal = entries.FirstOrDefault(entry =>
-                foreignKey.PrincipalEntityType.IsAssignableFrom(entry.Metadata)
-                && entry.State != EntityState.Detached
-                && foreignKey.PrincipalKey.Properties
-                    .Select(property => entry.Property(property.Name).CurrentValue)
-                    .SequenceEqual(values));
-            if (principal is null)
-            {
-                continue;
-            }
+            TouchPrincipal(foreignKey, foreignKey.Properties.Select(property => ForeignKeyValue(child, property)).ToList(), entries, visited);
 
-            if (principal.Entity is AggregateRoot)
+            // A child that moved to another parent, or left one, changes the aggregate it came from too.
+            if (child.State is EntityState.Modified or EntityState.Deleted
+                && foreignKey.Properties.Any(property => child.Property(property.Name).IsModified))
             {
-                Touch(principal);
+                TouchPrincipal(
+                    foreignKey, foreignKey.Properties.Select(property => child.Property(property.Name).OriginalValue).ToList(), entries, visited);
             }
-            else
-            {
-                TouchRootsAbove(principal, entries, visited);
-            }
+        }
+    }
+
+    private void TouchPrincipal(IForeignKey foreignKey, List<object?> values, List<EntityEntry> entries, HashSet<object> visited)
+    {
+        var principal = entries.FirstOrDefault(entry =>
+            foreignKey.PrincipalEntityType.IsAssignableFrom(entry.Metadata)
+            && entry.State != EntityState.Detached
+            && foreignKey.PrincipalKey.Properties
+                .Select(property => entry.Property(property.Name).CurrentValue)
+                .SequenceEqual(values));
+        if (principal is null)
+        {
+            return;
+        }
+
+        if (principal.Entity is AggregateRoot)
+        {
+            Touch(principal);
+        }
+        else
+        {
+            TouchRootsAbove(principal, entries, visited);
         }
     }
 
@@ -213,10 +226,11 @@ public abstract class ModuleDbContext : DbContext
             return;
         }
 
+        // An append-only root has no updated_at and its rows can't be updated at all: nothing may change below it.
         if (root.Metadata.FindProperty(AuditColumns.UpdatedAt) is null)
         {
-            root.State = EntityState.Modified;
-            return;
+            throw new InvalidOperationException(
+                $"{root.Metadata.ClrType.Name} is append-only, so its version can't move: a row below it was added, changed or deleted.");
         }
 
         root.Property(AuditColumns.UpdatedAt).IsModified = true;

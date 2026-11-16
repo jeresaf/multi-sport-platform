@@ -62,6 +62,80 @@ public sealed class ChildRowVersionTests(PostgresFixture fixture) : DatabaseTest
     }
 
     [Fact]
+    public async Task A_deleted_child_row_moves_the_roots_version()
+    {
+        var probe = await SaveProbeAsync("Seeta Hill Sports Field");
+        var noteId = await SaveNoteAsync(probe.Id, "Boundary rope missing");
+        var before = await VersionAsync(probe.Id);
+
+        await using (var scope = ScopeFor(out var context))
+        {
+            await context.TenantProbes.SingleAsync(p => p.Id == probe.Id, Ct);
+            context.Remove(await context.TenantProbeNotes.SingleAsync(n => n.Id == noteId, Ct));
+            await context.SaveChangesAsync(Ct);
+        }
+
+        (await VersionAsync(probe.Id)).Version.ShouldNotBe(before.Version);
+        (await CountNotesAsync(probe.Id)).ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task A_child_added_by_a_domain_event_subscriber_moves_the_roots_version()
+    {
+        var probe = await SaveProbeAsync("Ggaba Lakeside Rugby Ground");
+        var before = await VersionAsync(probe.Id);
+
+        await using (var scope = ScopeFor(out var context))
+        {
+            var loaded = await context.TenantProbes.SingleAsync(p => p.Id == probe.Id, Ct);
+            loaded.RequestNote("Posts padded");
+            await context.SaveChangesAsync(Ct);
+        }
+
+        (await CountNotesAsync(probe.Id)).ShouldBe(1);
+        (await VersionAsync(probe.Id)).Version.ShouldNotBe(before.Version);
+    }
+
+    [Fact]
+    public async Task A_row_two_levels_below_the_root_moves_the_roots_version()
+    {
+        var probe = await SaveProbeAsync("Metro Indoor Arena, Naguru");
+        var noteId = await SaveNoteAsync(probe.Id, "Scorers' table moved");
+        var before = await VersionAsync(probe.Id);
+
+        await using (var scope = ScopeFor(out var context))
+        {
+            await context.TenantProbes.SingleAsync(p => p.Id == probe.Id, Ct);
+            await context.TenantProbeNotes.SingleAsync(n => n.Id == noteId, Ct);
+            context.Add(new TenantProbeNoteMark(noteId, "Checked"));
+            await context.SaveChangesAsync(Ct);
+        }
+
+        (await VersionAsync(probe.Id)).Version.ShouldNotBe(before.Version);
+    }
+
+    [Fact]
+    public async Task A_child_moved_to_another_root_moves_both_roots_versions()
+    {
+        var from = await SaveProbeAsync("Bukoto Community Stadium");
+        var to = await SaveProbeAsync("Kisaasi Recreation Ground");
+        var noteId = await SaveNoteAsync(from.Id, "Spare corner flags");
+        var fromBefore = await VersionAsync(from.Id);
+        var toBefore = await VersionAsync(to.Id);
+
+        await using (var scope = ScopeFor(out var context))
+        {
+            await context.TenantProbes.Where(p => p.Id == from.Id || p.Id == to.Id).ToListAsync(Ct);
+            var note = await context.TenantProbeNotes.SingleAsync(n => n.Id == noteId, Ct);
+            note.MoveTo(to.Id);
+            await context.SaveChangesAsync(Ct);
+        }
+
+        (await VersionAsync(from.Id)).Version.ShouldNotBe(fromBefore.Version);
+        (await VersionAsync(to.Id)).Version.ShouldNotBe(toBefore.Version);
+    }
+
+    [Fact]
     public async Task A_child_saved_without_its_root_loaded_leaves_the_root_alone()
     {
         var probe = await SaveProbeAsync("Ggaba Lakeside Rugby Ground");
@@ -124,6 +198,15 @@ public sealed class ChildRowVersionTests(PostgresFixture fixture) : DatabaseTest
         context.Add(probe);
         await context.SaveChangesAsync(Ct);
         return probe;
+    }
+
+    private async Task<Guid> SaveNoteAsync(Guid probeId, string text)
+    {
+        await using var scope = ScopeFor(out var context);
+        var note = new TenantProbeNote(probeId, text);
+        context.Add(note);
+        await context.SaveChangesAsync(Ct);
+        return note.Id;
     }
 
     private async Task<(uint Version, DateTimeOffset UpdatedAt)> VersionAsync(Guid probeId)

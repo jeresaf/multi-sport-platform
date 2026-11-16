@@ -6,8 +6,9 @@ namespace SportsPlatform.Modules.Registry.Domain.People;
 /// <summary>
 /// Normalised names for search and the duplicate check (S06 D4). A name part is trimmed, lower-cased (invariant), its
 /// accents removed (NFD, non-spacing marks dropped), everything that is not a letter or a digit removed (apostrophes,
-/// hyphens, dots, other punctuation, invisible format characters) and its inner whitespace collapsed to one space. The <b>name key</b> is the normalised tokens of every part, sorted and joined with one space,
-/// so "Ssekandi John" and "John Ssekandi" share <c>john ssekandi</c>.
+/// hyphens, dots, other punctuation, invisible format characters) and its inner whitespace collapsed to one space.
+/// The <b>name key</b> is the normalised tokens of every part, sorted and joined with one space, so "Ssekandi John"
+/// and "John Ssekandi" share <c>john ssekandi</c>.
 /// </summary>
 public static class NameNormaliser
 {
