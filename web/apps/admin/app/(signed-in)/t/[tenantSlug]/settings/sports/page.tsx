@@ -155,8 +155,12 @@ export default function EnabledSportsPage() {
                       {status}
                     </div>
                   </TableHead>
-                  <TableCell className={`align-top ${wide}`}>{codeLabel(sport.sport)}</TableCell>
-                  <TableCell className={`align-top ${wide}`}>{status}</TableCell>
+                  <TableCell className={`align-top ${wide}`}>
+                    <span className="inline-flex min-h-11 items-center">{codeLabel(sport.sport)}</span>
+                  </TableCell>
+                  <TableCell className={`align-top ${wide}`}>
+                    <span className="inline-flex min-h-11 items-center">{status}</span>
+                  </TableCell>
                   <TableCell className="text-right align-top">
                     {sport.enabled && showsDisable ? (
                       <Button

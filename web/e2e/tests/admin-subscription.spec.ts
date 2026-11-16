@@ -72,7 +72,10 @@ test("a tenant's members see its subscription, and the banner while it ends, in 
   const staff = page.getByRole("listitem").filter({ hasText: "Staff users" });
   await expect(staff).toContainText("Used: 2 of");
   // Tenancy counts enabled sports (S05-T5a2); the registry's teams aren't counted until it exists.
-  await expect(page.getByRole("listitem").filter({ hasText: "Enabled sports" })).toContainText("Used: 0 of 3 sports");
+  // In the page, not the navigation's "Enabled sports" entry (S05-T5b2a).
+  await expect(page.getByRole("main").getByRole("listitem").filter({ hasText: "Enabled sports" })).toContainText(
+    "Used: 0 of 3 sports",
+  );
   await expect(page.getByRole("listitem").filter({ has: page.getByText("Teams", { exact: true }) })).toContainText("Usage: not measured yet");
   await shoot(page, "tenant-subscription", [phone, ...widths]);
 

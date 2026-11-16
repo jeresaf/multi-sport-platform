@@ -21,7 +21,7 @@ user's capabilities (docs/architecture/authorization.md); the server still enfor
   in this browser, else the first active tenant, else the console; someone with neither is told they belong to no
   organisation yet.
 - **Navigation follows the capabilities.** Each entry names the action its screen needs (tenant workspace: Organisation
-  `tenant.settings.read`, Members & roles `membership.read`, Subscription `tenant.subscription.read`; console: Tenants `tenant.read`, Plans `plan.read`, Diagnostics
+  `tenant.settings.read`, Members & roles `membership.read`, Enabled sports `tenant.sport.read`, Subscription `tenant.subscription.read`; console: Tenants `tenant.read`, Plans `plan.read`, Diagnostics
   `platform.outbox.read`, Audit `platform.audit.read`); entries the user's capabilities
   (`GET /api/admin/v1/me/capabilities`, `GET /api/platform/v1/me/capabilities`) don't allow are hidden, and their
   addresses answer "You can't open this page". Entries whose screens don't exist yet open "This screen isn't available
@@ -212,6 +212,25 @@ user's capabilities (docs/architecture/authorization.md); the server still enfor
 - **Shared pieces:** the viewers' building blocks are `components/viewer/facts.tsx` (was `components/sports/`, review
   #90 N2) and the parameters table `components/viewer/parameters-table.tsx` (formats and templates).
   `RulesetTemplateView` takes the template, the definition and the format names, so the console (T5b2) reuses it.
+
+### As built (S05-T5b2a)
+
+- **Enabled sports** (`/t/{slug}/settings/sports`, navigation entry after Members & roles, `tenant.sport.read`: every
+  tenant role except Team manager). Named so it isn't confused with **Sports** (the definitions). Every published
+  variant with its sport and status ("Enabled since 16 Nov 2026" in the tenant's time zone, or "Not enabled"); a variant's
+  name opens its definition for someone with `sport.read`. Owners and admins see **Enable** (at once, no dialog; "… is
+  enabled." is announced) and **Disable** (a dialog asks for the reason, kept with the enablement and in the audit
+  trail; nothing that uses the variant changes). Each change answers the list as it is after it.
+- **The sport quota** (for whoever may read the subscription, as `GET …/tenant/sports` sends it): "Used: 1 of 3 sports"
+  with the 80 % warning (`QuotaUsage`), and "Two variants of one sport count as one sport". At the limit, Enable on a
+  variant of a sport the tenant doesn't have yet is disabled with "Your plan allows N sports." (as invitations, S04-T4b2);
+  a variant of a sport already enabled stays enabled (D13). Without the usage the server's refusal is shown.
+- **Refusals:** `ENTITLEMENT_QUOTA_EXCEEDED` shows its `detail`; it, `TENANT_SPORT_ALREADY_ENABLED` and
+  `TENANT_SPORT_NOT_ENABLED` read the list again (someone else changed it). Read-only: both buttons disabled with the
+  reason.
+- **e2e** `admin-sports-demo`: the slice demo's enablement on a tenant of its own (enable, disable with a reason, an
+  override of 0 refuses by screen and API, removed, enabled again; the audit trail has both enablements, the refusal and
+  the reasons).
 
 ## Workspaces and screens
 
