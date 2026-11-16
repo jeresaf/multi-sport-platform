@@ -2,7 +2,7 @@
 
 **How to read this.** Work is cut into **slices**: thin, end-to-end increments (backend + UI + tests) that end
 in something demonstrable. Each slice contains **tasks**; **one task = one branch = one pull request**, reviewed
-before merge. Slices S00–S05 have detailed specs; S06–S14 have outlines that the reviewer turns into detailed
+before merge. Slices S00–S06 have detailed specs; S07–S14 have outlines that the reviewer turns into detailed
 specs just before they start (so specs reflect what was actually built). Later phases are listed here only.
 
 Status legend: ☐ not started · ◐ in progress · ☑ done. Claude Code updates this file when a slice completes.
@@ -27,7 +27,7 @@ Status legend: ☐ not started · ◐ in progress · ☑ done. Claude Code updat
 
 | Slice | Goal | Spec | Status |
 |---|---|---|---|
-| S06 | People registry: persons, duplicate prevention, athlete/staff/official profiles, minors' consent, media | [S06](slices/S06-people-registry.md) (outline) | ☐ |
+| S06 | People registry: persons, duplicate prevention, athlete/staff/official profiles, minors' consent, media | [S06](slices/S06-people-registry.md) (written by the S05 slice review) | ☐ |
 | S07 | Organisations, teams, venues | [S07](slices/S07-organisations-teams-venues.md) (outline) | ☐ |
 | S08 | Team operations: player memberships, staff assignments, the team-page flow | [S08](slices/S08-team-operations.md) (outline) | ☐ |
 

@@ -497,3 +497,20 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   tenant's settings, and label a publication date in UTC only when they can't be read (review #93 Q1); other
   workspace dates don't. The workspace screens' screenshots came with T5b1 and T5b2a; this task adds the
   console's. Slice acceptance checked on the branch (backend, web and e2e suites).
+
+**Slice review (2026-11-16).** All acceptance items are met on main (1907d77, #93): each task's evidence is named
+above and the tests exist; on main the backend runs 2561 tests (architecture 45, unit 1390, integration 1126) and the
+admin app 321 Vitest tests, all passing. The RLS exception list is unchanged (`outbox_messages`, `tenant_domains`);
+`tenancy.tenant_sports` has its isolation sample. No sport code in generic code (`SportLiteralTests`, the apps' ESLint
+rule); the only module references across modules are to `*.Contracts` (Tenancy → Sports Configuration Contracts, as
+D1 says). D1–D22 are built, with the agreed deviations in PROGRESS.md (JsonSchema.Net pinned to its last MIT release;
+`RulesetResolution` instead of `Result<RulesSnapshot>`; the console's Formats and Rules templates; "Enabled sports";
+the slice demo on Shoebill Community Sports Club instead of ELSSC). The slice demo runs in CI as
+`admin-sports-demo.spec.ts`; the owner's manual demo on KMSA and ELSSC is not recorded. No ADR drift. Two triggers
+were wrong and are moved: `TEAM_MANAGER`'s capabilities and sport reads wait for "resource scopes (S06)", but S06 adds
+no resource below the tenant; S08 builds the `TEAM` scope chain, so the item moves there (the code comment in
+`IdentityRoles`, authorization.md and the S05 deviations still say S06; S08 corrects them). The OpenAPI `pattern` for
+`time-zones?country=` was due "with the first web consumer of the reference lists", which came in S03–S04 without it;
+it now waits for OpenAPI header support. The reused-database e2e item (KMSA past 100 staff users) fired again while
+closing the slice and is S06's (S06-T7a). S06's spec carries the rest (docs/build/slices/S06-people-registry.md,
+"Carried over from S05").
