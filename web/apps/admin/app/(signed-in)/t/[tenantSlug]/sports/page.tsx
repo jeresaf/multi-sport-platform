@@ -1,13 +1,10 @@
 "use client";
 
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@msp/ui/components/table";
-import Link from "next/link";
 import { EmptyState } from "@/components/empty-state";
 import { Loading } from "@/components/loading";
 import { ProblemAlert } from "@/components/problem-alert";
-import { RowName, wide } from "@/components/viewer/facts";
+import { SportsTable } from "@/components/sports/sports-table";
 import { ForbiddenView } from "@/components/status-page";
-import { codeLabel } from "@/lib/sport-definition";
 import { useTenantWorkspace } from "@/lib/tenant-workspace";
 import { tenantPath } from "@/lib/workspace";
 import { useSportVariants } from "./sports-data";
@@ -40,50 +37,7 @@ export default function SportsPage() {
         <EmptyState title="No sports yet">No sports are published yet. Ask the platform team.</EmptyState>
       ) : null}
       {items.length > 0 ? (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead scope="col">Name</TableHead>
-              <TableHead scope="col">Sport</TableHead>
-              <TableHead scope="col" className={wide}>
-                Scoring family
-              </TableHead>
-              <TableHead scope="col" className={wide}>
-                Shape
-              </TableHead>
-              <TableHead scope="col" className={wide}>
-                Latest version
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {items.map((item) => (
-              <TableRow key={item.variant}>
-                <TableHead scope="row" className="h-auto py-2 align-top whitespace-normal">
-                  <RowName
-                    name={
-                      <Link
-                        href={`${tenantPath(tenant.slug)}/sports/${encodeURIComponent(item.variant)}`}
-                        className="inline-flex min-h-11 items-center text-primary underline-offset-4 hover:underline"
-                      >
-                        {item.name}
-                      </Link>
-                    }
-                    details={[
-                      ["Scoring family", codeLabel(item.scoringFamily)],
-                      ["Shape", codeLabel(item.shape)],
-                      ["Latest version", item.latestVersion],
-                    ]}
-                  />
-                </TableHead>
-                <TableCell className="align-top">{codeLabel(item.sport)}</TableCell>
-                <TableCell className={wide}>{codeLabel(item.scoringFamily)}</TableCell>
-                <TableCell className={wide}>{codeLabel(item.shape)}</TableCell>
-                <TableCell className={wide}>{item.latestVersion}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <SportsTable items={items} href={(variant) => `${tenantPath(tenant.slug)}/sports/${encodeURIComponent(variant)}`} />
       ) : null}
     </section>
   );

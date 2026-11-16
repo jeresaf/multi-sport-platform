@@ -5,11 +5,10 @@
 // (T5b2) show the same view over their own reads.
 import type { components } from "@msp/api-client";
 import type { ReactNode } from "react";
-import { Facts, NoneOr, ViewerSection, orNone } from "@/components/viewer/facts";
+import { Facts, NoneOr, ViewerSection, orNone, publishedOn } from "@/components/viewer/facts";
 import { ParametersTable } from "@/components/viewer/parameters-table";
 import { numberRange } from "@/lib/parameters";
 import { codeLabel } from "@/lib/sport-definition";
-import { formatDate } from "@/lib/tenant-settings";
 
 export type FormatDefinition = components["schemas"]["FormatDefinitionResponse"];
 
@@ -25,7 +24,7 @@ export function FormatView({
   back,
 }: Readonly<{
   format: FormatDefinition;
-  /** Where the publication date is shown: the tenant's zone in a workspace. */
+  /** Where the publication date is shown: the tenant's zone in a workspace, UTC in the console. */
   timeZone: string;
   /** A link back to the list, above the title. */
   back?: ReactNode;
@@ -37,7 +36,7 @@ export function FormatView({
         {back}
         <h1 className="text-2xl font-semibold">{format.name}</h1>
         <p className="text-muted-foreground">
-          Version {format.version} · published {formatDate(format.publishedAt, timeZone)}
+          Version {format.version} · published {publishedOn(format.publishedAt, timeZone)}
         </p>
         <p className="text-sm text-muted-foreground">
           Read-only: a format changes only by publishing a new version. Content hash{" "}

@@ -1,12 +1,11 @@
 "use client";
 
-import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { FormatView } from "@/components/formats/format-view";
 import { Loading } from "@/components/loading";
 import { ProblemAlert } from "@/components/problem-alert";
 import { ForbiddenView, NotFoundView } from "@/components/status-page";
+import { BackLink } from "@/components/viewer/facts";
 import { isApiProblem } from "@/lib/api";
 import { useTenantTimeZone } from "@/lib/tenant-settings";
 import { useTenantWorkspace } from "@/lib/tenant-workspace";
@@ -31,15 +30,7 @@ export default function FormatPage() {
     return <NotFoundView />;
   }
 
-  const back = (
-    <Link
-      href={`${tenantPath(tenant.slug)}/formats`}
-      className="inline-flex min-h-11 w-fit items-center gap-1 text-sm text-primary underline-offset-4 hover:underline"
-    >
-      <ArrowLeft aria-hidden className="size-4" />
-      Formats
-    </Link>
-  );
+  const back = <BackLink href={`${tenantPath(tenant.slug)}/formats`}>Formats</BackLink>;
 
   if (format.isPending || format.isError) {
     return (

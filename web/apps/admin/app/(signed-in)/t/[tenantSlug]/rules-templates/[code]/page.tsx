@@ -1,12 +1,11 @@
 "use client";
 
-import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { Loading } from "@/components/loading";
 import { ProblemAlert } from "@/components/problem-alert";
 import { RulesetTemplateView } from "@/components/rulesets/ruleset-template-view";
 import { ForbiddenView, NotFoundView } from "@/components/status-page";
+import { BackLink } from "@/components/viewer/facts";
 import { isApiProblem } from "@/lib/api";
 import { namesByCode } from "@/lib/rulesets";
 import { useTenantTimeZone } from "@/lib/tenant-settings";
@@ -42,15 +41,7 @@ export default function RulesTemplatePage() {
   }
 
   const root = tenantPath(tenant.slug);
-  const back = (
-    <Link
-      href={`${root}/rules-templates`}
-      className="inline-flex min-h-11 w-fit items-center gap-1 text-sm text-primary underline-offset-4 hover:underline"
-    >
-      <ArrowLeft aria-hidden className="size-4" />
-      Rules templates
-    </Link>
-  );
+  const back = <BackLink href={`${root}/rules-templates`}>Rules templates</BackLink>;
 
   // The definition is waited for only while it is being read, so its labels don't change under the reader.
   if (template.isPending || template.isError || definition.fetchStatus === "fetching") {

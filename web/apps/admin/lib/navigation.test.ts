@@ -58,4 +58,18 @@ describe("platform navigation", () => {
     const support = ["tenant.read", "plan.read", "platform.audit.read"];
     expect(labels(visibleNavigation(platformNavigation(), support))).toEqual(["Overview", "Tenants", "Plans", "Audit"]);
   });
+
+  it("shows Sports, Formats and Rules templates with platform.sport.read, and finds their pages", () => {
+    const items = platformNavigation();
+    expect(labels(visibleNavigation(items, ["plan.read", "platform.sport.read"]))).toEqual([
+      "Overview",
+      "Plans",
+      "Sports",
+      "Formats",
+      "Rules templates",
+    ]);
+    expect(currentItem(items, "/platform/sports/A_VARIANT")?.label).toBe("Sports");
+    expect(currentItem(items, "/platform/formats/A_FORMAT")?.label).toBe("Formats");
+    expect(currentItem(items, "/platform/rules-templates/A_TEMPLATE")?.label).toBe("Rules templates");
+  });
 });

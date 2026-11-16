@@ -7,10 +7,9 @@ at the start of every review.
 
 - **Current slice:** S05 — Sports configuration (docs/build/slices/S05-sports-configuration.md, rewritten by the S04
   slice review). S00–S04 are done
-- **Current task:** S05-T5b2a — in review (#92): Settings → Enabled sports and the slice demo e2e; plan approved with the
-  recommended answers (owner, 2026-11-16): T5b2 is two PRs (T5b2a, T5b2b), the settings entry is "Enabled sports",
-  the console mirrors the workspace (Sports, Formats, Rules templates), Enable acts at once
-- **Next:** S05-T5b2b — the console's Sports, Formats and Rules templates, screenshots, slice close
+- **Current task:** S05-T5b2b — the console's Sports, Formats and Rules templates, screenshots, slice close; plan
+  approved (owner, 2026-11-16): console dates in UTC, one PR
+- **Next:** S05 slice review (reviewer)
 - **Blocked on:** nothing
 
 ## Next up

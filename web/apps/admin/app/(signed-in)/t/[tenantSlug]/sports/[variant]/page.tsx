@@ -1,12 +1,11 @@
 "use client";
 
-import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
 import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Loading } from "@/components/loading";
 import { ProblemAlert } from "@/components/problem-alert";
 import { SportViewer, sportTab, type SportTab } from "@/components/sports/sport-viewer";
 import { ForbiddenView, NotFoundView } from "@/components/status-page";
+import { BackLink } from "@/components/viewer/facts";
 import { isApiProblem } from "@/lib/api";
 import { useTenantTimeZone } from "@/lib/tenant-settings";
 import { useTenantWorkspace } from "@/lib/tenant-workspace";
@@ -41,15 +40,7 @@ export default function SportVariantPage() {
     next.set("tab", tab);
     router.replace(`${pathname}?${next.toString()}`, { scroll: false });
   };
-  const back = (
-    <Link
-      href={`${tenantPath(tenant.slug)}/sports`}
-      className="inline-flex min-h-11 w-fit items-center gap-1 text-sm text-primary underline-offset-4 hover:underline"
-    >
-      <ArrowLeft aria-hidden className="size-4" />
-      Sports
-    </Link>
-  );
+  const back = <BackLink href={`${tenantPath(tenant.slug)}/sports`}>Sports</BackLink>;
 
   if (definition.isPending || definition.isError) {
     return (
