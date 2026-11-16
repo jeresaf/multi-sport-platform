@@ -3,7 +3,8 @@
 // against the test-only Ringball definition (test/sport-definitions.ts, version 2) and the catalogue entries it carries
 // (review #91 R2): counts are never negative, and every choice fits the template's extra periods. `ringLeague` uses
 // the definition's labels: a position and a position group, extra periods, an official role, and a parameter of each
-// template type. `quickBout` changes nothing and has no positions, officials, tiebreakers or description.
+// template type. `quickBout` changes nothing, has no positions, officials or description, and the one tiebreaker the
+// schema requires at least (review #91 R4).
 import type { RulesetTemplate } from "@/lib/rulesets";
 
 export const ringLeague: RulesetTemplate = {
@@ -106,9 +107,9 @@ export const quickBout: RulesetTemplate = {
     ...ringLeague.values,
     contest: { periodSeconds: { FIRST_SPELL: 300 }, tieResolution: "DRAW", extraPeriodSequence: [], coverageDefault: "RESULT_ONLY" },
     lineup: { starters: 7, benchMax: 0, requiresApproval: false, positions: {} },
-    standings: { ...ringLeague.values.standings, tiebreakers: [], headToHeadReapply: false },
+    standings: { ...ringLeague.values.standings, tiebreakers: ["POINTS"], headToHeadReapply: false },
     operations: { readiness: [], officialsMinimum: {}, scorerCorrectionWindowMinutes: 0, startingSoonMinutes: 10 },
     eligibility: { membershipRequired: true, minAge: null, maxAge: null, ageReferenceDate: null, minorConsentRequired: "TENANT_DEFAULT" },
   },
-  tiebreakers: [],
+  tiebreakers: [ringLeague.tiebreakers[0]!],
 };

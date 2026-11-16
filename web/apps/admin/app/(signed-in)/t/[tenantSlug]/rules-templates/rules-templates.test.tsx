@@ -259,6 +259,9 @@ describe("a rules template", () => {
     ["lineup.bench_max", number, "Substitutes on the bench"],
     ["substitutions.max", number, "Substitutions"],
     ["contest.period_seconds.SECOND_SPELL", number, "Second spell", "Period lengths"],
+    // The placeholder type is enough: the test checks where the marker goes, not the parameter's choices.
+    ["contest.tie_resolution", number, "When the scores are level"],
+    ["contest.coverage_default", number, "Default coverage"],
     ["standings.points.win", number, "Points for a win"],
     ["standings.points.draw", number, "Points for a draw"],
     ["standings.points.loss", number, "Points for a loss"],
@@ -266,10 +269,12 @@ describe("a rules template", () => {
     ["standings.points.forfeit_win", number, "Points for a forfeit win"],
     ["standings.points.forfeit_loss", number, "Points for a forfeit loss"],
     ["standings.forfeit_score.for", number, "Score of a forfeit"],
+    ["standings.forfeit_score.against", number, "Score of a forfeit"],
     ["standings.h2h_reapply", flag, "Head-to-head applied again to those still level"],
     ["lineup.starters", number, "Starters"],
     ["lineup.requires_approval", flag, "Lineups need approval"],
     ["lineup.positions.HOOP_GUARD.min", number, "Hoop guard", "Positions"],
+    ["lineup.positions.HOOP_GUARD.max", number, "Hoop guard", "Positions"],
     ["substitutions.windows", number, "Substitution windows"],
     ["substitutions.extra_in_extra_time", number, "Extra in extra periods"],
     ["roster.requires_approval", flag, "Rosters need approval"],
@@ -305,7 +310,7 @@ describe("a rules template", () => {
     expect(fact("Far rings", tiebreakers)).toBe("More rings from beyond the far line.");
   });
 
-  it("says None for a template that changes nothing and lists no positions, officials or tiebreakers", async () => {
+  it("says None for a template that changes nothing and lists no positions or officials", async () => {
     openTemplate("QUICK_BOUT");
 
     await screen.findByRole("heading", { level: 1, name: "Quick bout" });
@@ -315,11 +320,22 @@ describe("a rules template", () => {
     expect(fact("Positions")).toBe("None");
     expect(fact("Ready to start when")).toBe("None");
     expect(fact("Officials at least")).toBe("None");
-    expect(fact("Tiebreakers")).toBe("None");
+    expect(fact("Tiebreakers")).toBe("Points");
     expect(fact("Age")).toBe("No limit");
     expect(fact("Age worked out on")).toBe("Not set");
     expect(fact("Scorer corrections")).toBe("Not after the end");
     expect(screen.queryByText(/a competition may change it/)).toBeNull();
+  });
+
+  // Defensive: the template schema requires a tiebreaker, so no published template has none; the page still says so.
+  it("says None for no tiebreakers", async () => {
+    const none = { ...quickBout, values: { ...quickBout.values, standings: { ...quickBout.values.standings, tiebreakers: [] } }, tiebreakers: [] };
+    openTemplate("QUICK_BOUT", "", reads, { "GET /api/admin/v1/ruleset-templates/QUICK_BOUT": { status: 200, body: none } });
+
+    await screen.findByRole("heading", { level: 1, name: "Quick bout" });
+    expect(fact("Tiebreakers", section("Rules"))).toBe("None");
+    const catalogue = screen.getByRole("heading", { level: 2, name: "Tiebreakers" }).closest("section")!;
+    expect(within(catalogue).getByText("None")).toBeTruthy();
   });
 
   it("writes the definition's codes as words, without links, when the sport and formats can't be read", async () => {
