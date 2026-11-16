@@ -16,7 +16,10 @@ public sealed class PersonPersistenceTests(PostgresFixture fixture) : DatabaseTe
         var saved = await RegistryTestData.SavePersonAsync(App.Services, RegistryTestData.Kmsa, RegistryTestData.JohnSsekandi, Ct);
 
         await using var scope = RegistryTestData.ScopeFor(App.Services, RegistryTestData.Kmsa, out var context);
-        var person = await context.Set<Person>().Include(p => p.StatusHistory).Include(p => p.Aliases).SingleAsync(p => p.Id == saved.Id, Ct);
+        var person = await context.Set<Person>()
+            .Include(p => p.StatusHistory)
+            .Include(p => p.Aliases)
+            .SingleAsync(p => p.Id == saved.Id, Ct);
 
         person.TenantId.ShouldBe(RegistryTestData.Kmsa);
         person.DisplayName.ShouldBe("John Ssekandi");
@@ -104,7 +107,8 @@ public sealed class PersonPersistenceTests(PostgresFixture fixture) : DatabaseTe
         {
             context.Add(ExternalIdentifier.ForPerson(shamim.Id, "KMSA_REG_NO", "KM-2026-0147"));
             var exception = await Should.ThrowAsync<DbUpdateException>(() => context.SaveChangesAsync(Ct));
-            exception.InnerException.ShouldBeOfType<PostgresException>().ConstraintName.ShouldBe("ux_external_identifiers_tenant_id_authority_entity_type_value");
+            exception.InnerException.ShouldBeOfType<PostgresException>()
+                .ConstraintName.ShouldBe("ux_external_identifiers_tenant_id_authority_entity_type_value");
         }
 
         // Another tenant may hold the same value.
@@ -170,7 +174,10 @@ public sealed class PersonPersistenceTests(PostgresFixture fixture) : DatabaseTe
     public void Every_column_of_the_person_tables_is_classified_or_listed_as_not_personal()
     {
         using var scope = RegistryTestData.ScopeFor(App.Services, RegistryTestData.Kmsa, out var context);
-        string[] audit = [AuditColumns.CreatedAt, AuditColumns.CreatedBy, AuditColumns.UpdatedAt, AuditColumns.UpdatedBy, AuditColumns.Version];
+        string[] audit =
+        [
+            AuditColumns.CreatedAt, AuditColumns.CreatedBy, AuditColumns.UpdatedAt, AuditColumns.UpdatedBy, AuditColumns.Version,
+        ];
         var notPersonal = new Dictionary<Type, string[]>
         {
             // IDs, the tenant and provenance.

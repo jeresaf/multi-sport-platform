@@ -19,7 +19,9 @@ internal static class RegistryTestData
     public static readonly DateTimeOffset Now = new(2026, 11, 16, 9, 0, 0, TimeSpan.Zero);
 
     public static PersonBiodata JohnSsekandi { get; } =
-        new("John", "Ssekandi", Gender: Gender.Male, DateOfBirth: new DateOnly(2001, 4, 12), Nationality: "UG", HeightCm: 178, WeightKg: 72.5m);
+        new(
+            "John", "Ssekandi", Gender: Gender.Male, DateOfBirth: new DateOnly(2001, 4, 12), Nationality: "UG",
+            HeightCm: 178, WeightKg: 72.5m);
 
     public static Person NewPerson(PersonBiodata biodata) =>
         Person.Create(biodata, PersonSource.Manual, SystemActor.Instance, Now);

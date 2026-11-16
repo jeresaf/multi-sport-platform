@@ -136,6 +136,29 @@ public sealed class ChildRowVersionTests(PostgresFixture fixture) : DatabaseTest
     }
 
     [Fact]
+    public async Task A_child_moved_and_deleted_in_one_save_moves_only_the_version_of_the_root_it_was_stored_under()
+    {
+        var from = await SaveProbeAsync("Seeta Hill Sports Field");
+        var to = await SaveProbeAsync("Ggaba Lakeside Rugby Ground");
+        var noteId = await SaveNoteAsync(from.Id, "Old scoreboard");
+        var fromBefore = await VersionAsync(from.Id);
+        var toBefore = await VersionAsync(to.Id);
+
+        await using (var scope = ScopeFor(out var context))
+        {
+            await context.TenantProbes.Where(p => p.Id == from.Id || p.Id == to.Id).ToListAsync(Ct);
+            var note = await context.TenantProbeNotes.SingleAsync(n => n.Id == noteId, Ct);
+            note.MoveTo(to.Id);
+            context.Remove(note);
+            await context.SaveChangesAsync(Ct);
+        }
+
+        (await VersionAsync(from.Id)).Version.ShouldNotBe(fromBefore.Version);
+        (await VersionAsync(to.Id)).ShouldBe(toBefore);
+        (await CountNotesAsync(from.Id)).ShouldBe(0);
+    }
+
+    [Fact]
     public async Task A_child_saved_without_its_root_loaded_leaves_the_root_alone()
     {
         var probe = await SaveProbeAsync("Ggaba Lakeside Rugby Ground");

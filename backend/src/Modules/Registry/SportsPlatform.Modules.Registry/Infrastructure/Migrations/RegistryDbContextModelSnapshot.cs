@@ -451,7 +451,8 @@ namespace SportsPlatform.Modules.Registry.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)")
-                        .HasColumnName("kind");
+                        .HasColumnName("kind")
+                        .HasAnnotation("pii", "INTERNAL");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -474,7 +475,8 @@ namespace SportsPlatform.Modules.Registry.Infrastructure.Migrations
                     b.Property<string>("RemoveReason")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)")
-                        .HasColumnName("remove_reason");
+                        .HasColumnName("remove_reason")
+                        .HasAnnotation("pii", "INTERNAL");
 
                     b.Property<DateTimeOffset?>("RemovedAt")
                         .HasColumnType("timestamp with time zone")
@@ -545,7 +547,8 @@ namespace SportsPlatform.Modules.Registry.Infrastructure.Migrations
                     b.Property<string>("FromStatus")
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)")
-                        .HasColumnName("from_status");
+                        .HasColumnName("from_status")
+                        .HasAnnotation("pii", "INTERNAL");
 
                     b.Property<DateTimeOffset>("OccurredAt")
                         .HasColumnType("timestamp with time zone")
@@ -558,7 +561,8 @@ namespace SportsPlatform.Modules.Registry.Infrastructure.Migrations
                     b.Property<string>("Reason")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)")
-                        .HasColumnName("reason");
+                        .HasColumnName("reason")
+                        .HasAnnotation("pii", "INTERNAL");
 
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uuid")
@@ -568,7 +572,8 @@ namespace SportsPlatform.Modules.Registry.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)")
-                        .HasColumnName("to_status");
+                        .HasColumnName("to_status")
+                        .HasAnnotation("pii", "INTERNAL");
 
                     b.HasKey("Id")
                         .HasName("pk_person_status_changes");

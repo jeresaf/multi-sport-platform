@@ -167,19 +167,26 @@ public abstract class ModuleDbContext : DbContext
 
         foreach (var foreignKey in child.Metadata.GetForeignKeys())
         {
-            TouchPrincipal(foreignKey, foreignKey.Properties.Select(property => ForeignKeyValue(child, property)).ToList(), entries, visited);
-
-            // A child that moved to another parent, or left one, changes the aggregate it came from too.
-            if (child.State is EntityState.Modified or EntityState.Deleted
-                && foreignKey.Properties.Any(property => child.Property(property.Name).IsModified))
+            var current = foreignKey.Properties.Select(property => ForeignKeyValue(child, property)).ToList();
+            if (child.State == EntityState.Added)
             {
-                TouchPrincipal(
-                    foreignKey, foreignKey.Properties.Select(property => child.Property(property.Name).OriginalValue).ToList(), entries, visited);
+                TouchPrincipal(foreignKey, current, entries, visited);
+                continue;
+            }
+
+            // The stored key names the aggregate the row belongs to in the database: a deleted row leaves that one,
+            // whatever its key was set to before the delete; a changed row that moved leaves it and joins another.
+            var stored = foreignKey.Properties.Select(property => child.Property(property.Name).OriginalValue).ToList();
+            TouchPrincipal(foreignKey, stored, entries, visited);
+            if (child.State == EntityState.Modified && !stored.SequenceEqual(current))
+            {
+                TouchPrincipal(foreignKey, current, entries, visited);
             }
         }
     }
 
-    private void TouchPrincipal(IForeignKey foreignKey, List<object?> values, List<EntityEntry> entries, HashSet<object> visited)
+    private void TouchPrincipal(
+        IForeignKey foreignKey, List<object?> values, List<EntityEntry> entries, HashSet<object> visited)
     {
         var principal = entries.FirstOrDefault(entry =>
             foreignKey.PrincipalEntityType.IsAssignableFrom(entry.Metadata)
