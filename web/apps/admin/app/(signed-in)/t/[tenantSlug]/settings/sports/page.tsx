@@ -54,7 +54,8 @@ export default function EnabledSportsPage() {
   // heading when it can't be used (the plan's limit), never to the page's body (review #92 R1).
   const heading = useRef<HTMLHeadingElement>(null);
   const [focusAfter, setFocusAfter] = useState<{ variant: string } | null>(null);
-  const disabled = useRef<string | null>(null);
+  // The variant whose Disable opened the dialog: its row's button may be replaced by the time the dialog closes.
+  const opened = useRef<string | null>(null);
   const focusAction = (variant: string) => {
     const button = document.getElementById(actionId(variant));
     if (button instanceof HTMLButtonElement && !button.disabled) {
@@ -204,6 +205,7 @@ export default function EnabledSportsPage() {
                           enable.reset();
                           disable.reset();
                           setAnnouncement("");
+                          opened.current = sport.variant;
                           setDisabling(sport);
                         }}
                       >
@@ -249,7 +251,6 @@ export default function EnabledSportsPage() {
               {
                 onSuccess: () => {
                   setAnnouncement(`${disabling.name} is disabled.`);
-                  disabled.current = disabling.variant;
                   setDisabling(null);
                 },
                 onError: (error) => {
@@ -265,10 +266,11 @@ export default function EnabledSportsPage() {
             setDisabling(null);
           }}
           onCloseAutoFocus={(event) => {
-            // The Disable button that opened the dialog is gone: focus the row's Enable instead.
-            const variant = disabled.current;
+            // However it closes (disabled, cancelled, or after a refusal that read the list again), the button that
+            // opened it may be gone: focus the row's button as it is now, or the heading (#92 N1).
+            const variant = opened.current;
             if (variant) {
-              disabled.current = null;
+              opened.current = null;
               event.preventDefault();
               focusAction(variant);
             }

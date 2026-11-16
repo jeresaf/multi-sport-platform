@@ -185,6 +185,23 @@ describe("enabled sports", () => {
     );
     expect(requests.filter((request) => request.method === "POST")).toHaveLength(1);
     expect(subscriptionStale(requests)).toBe(true);
+
+    // The Disable that opened the dialog is gone: closing it focuses the row's Enable, not the page's body (#92 N1).
+    fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    await waitFor(() =>
+      expect(document.activeElement).toBe(screen.getByRole("button", { name: "Enable Ringball sevens" })),
+    );
+  });
+
+  it("cancelling the disable dialog gives focus back to the row's Disable", async () => {
+    open(ownerActions);
+    const disableButton = await screen.findByRole("button", { name: "Disable Ringball sevens" });
+    fireEvent.click(disableButton);
+    const dialog = await screen.findByRole("dialog", { name: "Disable Ringball sevens?" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    await waitFor(() => expect(document.activeElement).toBe(disableButton));
   });
 
   it("at the limit, disables Enable for a new sport with the plan's limit, but not for a variant of a counted sport", async () => {
@@ -239,6 +256,22 @@ describe("enabled sports", () => {
     // Enable can't be used now: focus goes to the heading rather than the page's body (#92 R1).
     await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("heading", { level: 1, name: "Enabled sports" })));
     expect(subscriptionStale(requests)).toBe(true);
+  });
+
+  it("without the usage (no tenant.subscription.read), shows the API's quota refusal with its limit", async () => {
+    open(["tenant.settings.read", "tenant.sport.read", "tenant.sport.enable", "tenant.sport.disable"], {
+      "GET /api/admin/v1/tenant/sports": list([sevens, fives, hoopstick], null),
+      "POST /api/admin/v1/tenant/sports/HOOPSTICK/enable": {
+        status: 403,
+        body: problem("ENTITLEMENT_QUOTA_EXCEEDED", 403, { detail: "Your plan allows 1 sport." }),
+      },
+    });
+
+    fireEvent.click(await screen.findByRole("button", { name: "Enable Hoopstick" }));
+
+    // The screen can't know the limit, so the refusal's alert is what says it (#92 N2).
+    expect(within(await screen.findByRole("alert")).getByText("Your plan allows 1 sport.")).toBeTruthy();
+    expect(screen.queryByText(/Used:/)).toBeNull();
   });
 
   it("reads the list again when it was out of date", async () => {
