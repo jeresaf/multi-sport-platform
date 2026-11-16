@@ -164,6 +164,16 @@ test("screenshots of a tenant workspace", async ({ page, request }) => {
   await expect(page.getByRole("heading", { level: 2, name: "Parameters" })).toBeVisible();
   await shoot(page, "format", [phone, ...widths]);
 
+  await page.goto("/t/kmsa/rules-templates");
+  await expect(page.getByRole("heading", { level: 1, name: "Rules templates" })).toBeVisible();
+  await expect(loading(page)).toHaveCount(0);
+  await shoot(page, "rules-templates", [phone, ...widths]);
+
+  await page.getByRole("table").getByRole("link").first().click();
+  await expect(page.getByRole("heading", { level: 2, name: "Tiebreakers" })).toBeVisible();
+  await expect(loading(page)).toHaveCount(0);
+  await shoot(page, "rules-template", [phone, ...widths]);
+
   await page.goto("/platform");
   await expect(page.getByRole("heading", { level: 1, name: "You can't open this page" })).toBeVisible();
   await shoot(page, "forbidden", [phone, ...widths]);

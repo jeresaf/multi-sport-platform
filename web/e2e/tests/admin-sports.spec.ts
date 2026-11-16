@@ -88,3 +88,41 @@ test("a registrar reads the formats and a format's parameters", async ({ page, r
   await page.goto("/t/kmsa/formats/NO_SUCH_FORMAT");
   await expect(page.getByRole("heading", { level: 1, name: "Page not found" })).toBeVisible();
 });
+
+// Tenant workspace → Rules templates (S05 D17) against the seeded templates: a viewer (every tenant role except Team
+// manager reads them) opens the list, a template's parameters, rules and tiebreakers, and its pinned sport version.
+// The test reads the template's name from the list instead of naming a sport.
+test("a viewer reads a rules template and opens its sport", async ({ page, request }) => {
+  const owner = { email: personEmail("sarah.nabirye", "kmsa"), password: newPassword() };
+  await acceptByApi(request, await inviteOwner(request, "kmsa", owner.email), owner.password);
+  await signInByApi(request, owner.email, owner.password);
+  const tenantId = await myTenantId(request, "kmsa");
+
+  const viewer = { email: personEmail("daniel.ssempijja", "kmsa"), password: newPassword() };
+  await acceptByApi(request, await inviteMember(request, { ...owner, tenantId }, viewer.email, ["VIEWER"]), viewer.password);
+  await signIn(page, viewer.email, viewer.password);
+  await expect(page.getByRole("heading", { level: 1, name: "Kampala Metro Sports Association" })).toBeVisible();
+
+  await page.getByRole("navigation").getByRole("link", { name: "Rules templates" }).first().click();
+  await expect(page.getByRole("heading", { level: 1, name: "Rules templates" })).toBeVisible();
+  const first = page.getByRole("table").getByRole("link").first();
+  const name = (await first.textContent())!;
+  await first.click();
+
+  await expect(page.getByRole("heading", { level: 1, name })).toBeVisible();
+  await expect(page.getByText(/Version 1 · published/)).toBeVisible();
+  for (const heading of ["Overview", "Parameters", "Rules", "Tiebreakers"]) {
+    await expect(page.getByRole("heading", { level: 2, name: heading })).toBeVisible();
+  }
+  await expect(page.getByRole("row").filter({ has: page.getByRole("rowheader", { name: /^Tiebreakers/ }) })).toBeVisible();
+  expect(await page.getByRole("list", { name: "Period lengths" }).getByRole("listitem").count()).toBeGreaterThan(0);
+  expect(await page.getByRole("list", { name: "Tiebreakers in order" }).getByRole("listitem").count()).toBeGreaterThan(0);
+
+  // The template pins its sport definition's version; the link opens that version.
+  await page.getByRole("link", { name: /, version 1$/ }).click();
+  await expect(page).toHaveURL(/\/t\/kmsa\/sports\/[A-Z_]+\?version=1$/);
+  await expect(page.getByRole("tab", { name: "Overview", selected: true })).toBeVisible();
+
+  await page.goto("/t/kmsa/rules-templates/NO_SUCH_TEMPLATE");
+  await expect(page.getByRole("heading", { level: 1, name: "Page not found" })).toBeVisible();
+});
