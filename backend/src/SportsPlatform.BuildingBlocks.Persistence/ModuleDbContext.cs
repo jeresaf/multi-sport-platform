@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata;
 using SportsPlatform.BuildingBlocks.Auditing;
 using SportsPlatform.BuildingBlocks.Domain;
@@ -13,7 +14,7 @@ namespace SportsPlatform.BuildingBlocks.Persistence;
 
 /// <summary>
 /// Base for each module's DbContext (the module's unit of work). Applies the data conventions: the module's schema,
-/// app-generated UUIDv7 keys, audit columns, <c>xmin</c> concurrency for aggregates
+/// app-generated UUIDv7 keys, audit columns, <c>xmin</c> concurrency for aggregates, child rows included
 /// (docs/architecture/data-conventions.md), and the module's <c>outbox_messages</c> and <c>inbox_messages</c>
 /// (docs/architecture/events-and-jobs.md), and tenant isolation for <see cref="ITenantOwned"/> entities: a query filter
 /// on the current tenant and composite foreign keys between tenant-owned tables (docs/architecture/multi-tenancy.md).
@@ -96,16 +97,128 @@ public abstract class ModuleDbContext : DbContext
         return message;
     }
 
+    /// <summary>
+    /// Marks an aggregate root as changed, so the save moves its version and a concurrent change to the same aggregate
+    /// conflicts. Child rows that point at their root with a foreign key do this by themselves
+    /// (<see cref="TouchRootsOfChangedChildren"/>); call it for a row that belongs to the aggregate without one, such as
+    /// an external identifier. The root must be loaded in this context.
+    /// </summary>
+    public void MarkChanged(AggregateRoot root)
+    {
+        ArgumentNullException.ThrowIfNull(root);
+        var entry = Entry(root);
+        if (entry.State == EntityState.Detached)
+        {
+            throw new InvalidOperationException($"{root.GetType().Name} {root.Id} is not loaded in this context; load it before changing its rows.");
+        }
+
+        Touch(entry);
+    }
+
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
         EnsureNewEntitiesHaveIds();
+        TouchRootsOfChangedChildren();
         return base.SaveChanges(acceptAllChangesOnSuccess);
     }
 
     public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
     {
         EnsureNewEntitiesHaveIds();
+        TouchRootsOfChangedChildren();
         return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+    }
+
+    /// <summary>
+    /// A change to only a child row doesn't touch its aggregate root's row, so the root's <c>xmin</c> wouldn't notice
+    /// it. For every added, changed or deleted entity that isn't a root, this follows its foreign keys up to the
+    /// aggregate root and, if that root is loaded and unchanged, marks it changed: the save then updates the root's row
+    /// (its <c>updated_*</c> columns) under its version check. A root that isn't loaded is left alone: commands load
+    /// the aggregate they change. Also run by <see cref="MessagingInterceptor"/> for rows that domain event subscribers
+    /// added.
+    /// </summary>
+    internal void TouchRootsOfChangedChildren()
+    {
+        var entries = ChangeTracker.Entries().ToList();
+        var changedChildren = entries
+            .Where(entry => entry.State is EntityState.Added or EntityState.Modified or EntityState.Deleted
+                && entry.Entity is not AggregateRoot
+                && entry.Metadata.GetForeignKeys().Any())
+            .ToList();
+        if (changedChildren.Count == 0)
+        {
+            return;
+        }
+
+        var visited = new HashSet<object>(ReferenceEqualityComparer.Instance);
+        foreach (var child in changedChildren)
+        {
+            TouchRootsAbove(child, entries, visited);
+        }
+    }
+
+    private void TouchRootsAbove(EntityEntry child, List<EntityEntry> entries, HashSet<object> visited)
+    {
+        if (!visited.Add(child.Entity))
+        {
+            return;
+        }
+
+        foreach (var foreignKey in child.Metadata.GetForeignKeys())
+        {
+            var values = foreignKey.Properties.Select(property => ForeignKeyValue(child, property)).ToList();
+            var principal = entries.FirstOrDefault(entry =>
+                foreignKey.PrincipalEntityType.IsAssignableFrom(entry.Metadata)
+                && entry.State != EntityState.Detached
+                && foreignKey.PrincipalKey.Properties
+                    .Select(property => entry.Property(property.Name).CurrentValue)
+                    .SequenceEqual(values));
+            if (principal is null)
+            {
+                continue;
+            }
+
+            if (principal.Entity is AggregateRoot)
+            {
+                Touch(principal);
+            }
+            else
+            {
+                TouchRootsAbove(principal, entries, visited);
+            }
+        }
+    }
+
+    // A new tenant-owned row has no tenant until TenantOwnershipInterceptor stamps it, later in the save, with the
+    // scope's tenant: the value its composite foreign key will have.
+    private object? ForeignKeyValue(EntityEntry child, IProperty property)
+    {
+        var value = child.Property(property.Name).CurrentValue;
+        return child.State == EntityState.Added
+            && child.Entity is ITenantOwned
+            && property.Name == nameof(ITenantOwned.TenantId)
+            && value is Guid tenantId
+            && tenantId == Guid.Empty
+            ? CurrentTenantId
+            : value;
+    }
+
+    // An unchanged root gets its updated_at marked as modified; AuditColumnsInterceptor then stamps it and the UPDATE
+    // carries the root's version check.
+    private static void Touch(EntityEntry root)
+    {
+        if (root.State != EntityState.Unchanged)
+        {
+            return;
+        }
+
+        if (root.Metadata.FindProperty(AuditColumns.UpdatedAt) is null)
+        {
+            root.State = EntityState.Modified;
+            return;
+        }
+
+        root.Property(AuditColumns.UpdatedAt).IsModified = true;
     }
 
     /// <summary>Configure the module's entities here; the conventions are applied afterwards.</summary>
