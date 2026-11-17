@@ -199,9 +199,39 @@
       "owner": "Registry"
     },
     {
+      "code": "PERSON_DATE_OF_BIRTH_IN_FUTURE",
+      "status": 422,
+      "message": "A date of birth can't be after today (the tenant's date).",
+      "owner": "Registry"
+    },
+    {
+      "code": "PERSON_DUPLICATE_CHECK_REQUIRED",
+      "status": 422,
+      "message": "Run the duplicate check for these details first: the check token is missing, expired, or for other details or another user.",
+      "owner": "Registry"
+    },
+    {
+      "code": "PERSON_DUPLICATE_CHECK_STALE",
+      "status": 409,
+      "message": "The registry changed since the duplicate check: run it again and review the people it finds.",
+      "owner": "Registry"
+    },
+    {
+      "code": "PERSON_DUPLICATE_OVERRIDE_REQUIRED",
+      "status": 422,
+      "message": "The duplicate check found people who may be the same person: give a reason to proceed.",
+      "owner": "Registry"
+    },
+    {
       "code": "PERSON_EXTERNAL_ID_AUTHORITY_RESERVED",
       "status": 422,
       "message": "National identity documents (NATIONAL_ID, NIN, PASSPORT) are not collected as external identifiers.",
+      "owner": "Registry"
+    },
+    {
+      "code": "PERSON_EXTERNAL_ID_EXISTS",
+      "status": 409,
+      "message": "Another person already has this external identifier (the same authority and value).",
       "owner": "Registry"
     },
     {

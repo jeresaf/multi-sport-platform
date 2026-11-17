@@ -39,7 +39,12 @@ the message is the default title and may change.
 | `FORMAT_PARAMETER_INVALID` | 422 | A format parameter is unknown, of the wrong type or out of its range. | SportsConfiguration |
 | `FORMAT_PARTICIPANT_COUNT_INVALID` | 422 | The format can't be drawn for this number of participants. | SportsConfiguration |
 | `PERSON_CONCURRENCY_CONFLICT` | 409 | The record was changed by someone else. Reload and try again. | Registry |
+| `PERSON_DATE_OF_BIRTH_IN_FUTURE` | 422 | A date of birth can't be after today (the tenant's date). | Registry |
+| `PERSON_DUPLICATE_CHECK_REQUIRED` | 422 | Run the duplicate check for these details first: the check token is missing, expired, or for other details or another user. | Registry |
+| `PERSON_DUPLICATE_CHECK_STALE` | 409 | The registry changed since the duplicate check: run it again and review the people it finds. | Registry |
+| `PERSON_DUPLICATE_OVERRIDE_REQUIRED` | 422 | The duplicate check found people who may be the same person: give a reason to proceed. | Registry |
 | `PERSON_EXTERNAL_ID_AUTHORITY_RESERVED` | 422 | National identity documents (NATIONAL_ID, NIN, PASSPORT) are not collected as external identifiers. | Registry |
+| `PERSON_EXTERNAL_ID_EXISTS` | 409 | Another person already has this external identifier (the same authority and value). | Registry |
 | `PERSON_NAME_INVALID` | 422 | A first and a last name each need at least one letter or digit. | Registry |
 | `PERSON_NOT_FOUND` | 404 | The person was not found. | Registry |
 | `PLATFORM_CONCURRENCY_CONFLICT` | 409 | The record was changed by someone else. Reload and try again. | Platform |

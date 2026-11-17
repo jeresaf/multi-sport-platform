@@ -100,6 +100,17 @@ public sealed class DuplicateCheckTests(PostgresFixture fixture) : DatabaseTest(
             ["John Ssekandi|POSSIBLE|ACTIVE|NAME_SIMILARITY:80,SAME_NATIONALITY"]
         },
         {
+            // Q44: a nationality in common counts, primary or secondary on either side.
+            "a close name born two years apart whose secondary nationality is the person's is POSSIBLE",
+            new { firstName = "John", lastName = "Sekandi", dateOfBirth = "2003-01-01", nationality = "KE", secondaryNationality = "UG" },
+            ["John Ssekandi|POSSIBLE|ACTIVE|NAME_SIMILARITY:80,SAME_NATIONALITY"]
+        },
+        {
+            "a close name born years apart with the person's secondary nationality is POSSIBLE",
+            new { firstName = "Denis", lastName = "Opokaa", middleName = "Okot", dateOfBirth = "1985-01-01", nationality = "KE" },
+            ["Denis Opoka|POSSIBLE|ACTIVE|NAME_SIMILARITY:83,SAME_NATIONALITY"]
+        },
+        {
             "the same names with another birth date are POSSIBLE, however far apart",
             new { firstName = "John", lastName = "Ssekandi", dateOfBirth = "1988-01-01" },
             ["John Ssekandi|POSSIBLE|ACTIVE|SAME_NAME_KEY"]
@@ -330,6 +341,7 @@ public sealed class DuplicateCheckTests(PostgresFixture fixture) : DatabaseTest(
         text.ShouldNotContain("2001-04-12");
         text.ShouldNotContain("2002-11-30");
         text.ShouldNotContain("dateOfBirth", Case.Insensitive);
+        JsonDocument.Parse(text).RootElement.EnumerateObject().Select(property => property.Name).ShouldBe(["candidates", "checkToken"]);
 
         await App.Telemetry.WaitForRequestLogAsync(DuplicateCheckPath);
         foreach (var date in new[] { "2001-04-12", "2002-11-30", "Ssekandi" })
@@ -371,6 +383,9 @@ public sealed class DuplicateCheckTests(PostgresFixture fixture) : DatabaseTest(
             "VALIDATION_INVALID_REQUEST", "externalIdentifiers[0].authority"
         },
         { """{"firstName":"John","lastName":"Ssekandi","nationality":"UG\n"}""", "VALIDATION_INVALID_REQUEST", "nationality" },
+        { """{"firstName":"John","lastName":"Ssekandi","nationality":"XX"}""", "VALIDATION_INVALID_REQUEST", "nationality" },
+        { """{"firstName":"John","lastName":"Ssekandi","secondaryNationality":"ke"}""", "VALIDATION_INVALID_REQUEST", "secondaryNationality" },
+
         { """{"firstName":"John","lastName":"Ssekandi","externalIdentifiers":[null]}""", "VALIDATION_INVALID_REQUEST", "externalIdentifiers" },
         {
             $$"""{"firstName":"John","lastName":"Ssekandi","externalIdentifiers":[{{string.Join(',', Enumerable.Range(0, 11).Select(i => $$"""{"authority":"KMSA_REG_NO","value":"K-{{i}}"}"""))}}]}""",
@@ -406,6 +421,25 @@ public sealed class DuplicateCheckTests(PostgresFixture fixture) : DatabaseTest(
             .Select(error => (error.GetProperty("field").GetString(), error.GetProperty("code").GetString()))
             .ShouldBe([(field, code)]);
         problem.GetRawText().ShouldNotContain("CM0000000000XX");
+    }
+
+    // Q43, on the tenant's date (Kampala). The test clock is shared by the run's tests, so the dates follow it.
+    [Fact]
+    public async Task A_date_of_birth_of_today_is_checked_and_tomorrow_is_refused()
+    {
+        var (_, registrar) = await TenantAsync("kmsa", IdentityRoles.Registrar);
+        var today = DateOnly.FromDateTime(App.Clock.GetUtcNow().ToOffset(TimeSpan.FromHours(3)).DateTime);
+
+        using var checkedToday = await registrar.PostAsJsonAsync(
+            DuplicateCheckPath, new { firstName = "John", lastName = "Ssekandi", dateOfBirth = today }, Ct);
+        using var tomorrow = await registrar.PostAsJsonAsync(
+            DuplicateCheckPath, new { firstName = "John", lastName = "Ssekandi", dateOfBirth = today.AddDays(1) }, Ct);
+
+        checkedToday.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var problem = await tomorrow.ShouldBeProblemAsync(HttpStatusCode.UnprocessableEntity, "PERSON_DATE_OF_BIRTH_IN_FUTURE");
+        problem.GetProperty("errors").EnumerateArray()
+            .Select(error => (error.GetProperty("field").GetString(), error.GetProperty("code").GetString()))
+            .ShouldBe([("dateOfBirth", "PERSON_DATE_OF_BIRTH_IN_FUTURE")]);
     }
 
     [Fact]

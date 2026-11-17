@@ -607,7 +607,11 @@ export interface paths {
          */
         get: operations["ListPeople"];
         put?: never;
-        post?: never;
+        /**
+         * Add a person after a duplicate check
+         * @description Adds an ACTIVE person to the tenant named by `X-Tenant-Id`. Run the duplicate check first with the same names, date of birth, nationalities and external identifiers, and send its `checkToken`: without one, or with one that is expired (30 minutes), for other details or another user, the create is PERSON_DUPLICATE_CHECK_REQUIRED. The check runs again: an external identifier another person holds is PERSON_EXTERNAL_ID_EXISTS; a person the check didn't answer (added since) is PERSON_DUPLICATE_CHECK_STALE (check again); people it answered need `overrideReason` (PERSON_DUPLICATE_OVERRIDE_REQUIRED), and each is then remembered as not the same person, so the check doesn't show the pair again. A first or last name without a letter or a digit is PERSON_NAME_INVALID; a date of birth after the tenant's date is PERSON_DATE_OF_BIRTH_IN_FUTURE; the authorities NATIONAL_ID, NIN and PASSPORT are PERSON_EXTERNAL_ID_AUTHORITY_RESERVED. The reason is kept permanently on the decisions and in the audit trail: don't include personal data. Answers the person as GET /people/{personId} does.
+         */
+        post: operations["CreatePerson"];
         delete?: never;
         options?: never;
         head?: never;
@@ -625,7 +629,7 @@ export interface paths {
         put?: never;
         /**
          * Check a person against the registry for duplicates
-         * @description Compares a new or changed person with the people of the tenant named by `X-Tenant-Id`, whatever their status, and answers those who may be the same person, strongest first, at most 20. `EXACT_IDENTIFIER`: an external identifier with the same authority and value. `LIKELY`: the same date of birth and the same names in any order, or names at least 80 % similar. `POSSIBLE`: names at least 60 % similar and a date of birth missing, birth years within one year or the same nationality; the same names with another date of birth; or the same date of birth and last name. Names are also compared with aliases. `evidence` says why; it never carries the other person's date of birth. With `personId` (a person being changed), that person and everyone already decided "not the same person" as them are left out. Nothing is saved. A first or last name without a letter or a digit is PERSON_NAME_INVALID; the authorities NATIONAL_ID, NIN and PASSPORT are PERSON_EXTERNAL_ID_AUTHORITY_RESERVED.
+         * @description Compares a new or changed person with the people of the tenant named by `X-Tenant-Id`, whatever their status, and answers those who may be the same person, strongest first, at most 20. `EXACT_IDENTIFIER`: an external identifier with the same authority and value. `LIKELY`: the same date of birth and the same names in any order, or names at least 80 % similar. `POSSIBLE`: names at least 60 % similar and a date of birth missing, birth years within one year or a nationality in common (primary or secondary, on either side); the same names with another date of birth; or the same date of birth and last name. Names are also compared with aliases. `evidence` says why; it never carries the other person's date of birth. With `personId` (a person being changed), that person and everyone already decided "not the same person" as them are left out. Nothing is saved; `checkToken` (valid 30 minutes, for these details and this user) is what creating the person needs. A first or last name without a letter or a digit is PERSON_NAME_INVALID; a date of birth after the tenant's date is PERSON_DATE_OF_BIRTH_IN_FUTURE; the authorities NATIONAL_ID, NIN and PASSPORT are PERSON_EXTERNAL_ID_AUTHORITY_RESERVED. Nationalities are active countries of the reference data.
          */
         post: operations["CheckPersonDuplicates"];
         delete?: never;
@@ -1577,7 +1581,7 @@ export interface components {
             version?: null | number;
         };
         /**
-         * @description The person to check (S06 D5): the names, date of birth, nationality and external identifiers a create or an update
+         * @description The person to check (S06 D5): the names, date of birth, nationalities and external identifiers a create or an update
          *     would save. `personId` names the person being changed (S06 D8): that person is left out, and so is everyone
          *     already decided "not the same person" as them (S06 D7).
          */
@@ -1589,16 +1593,18 @@ export interface components {
             /** Format: date */
             dateOfBirth?: null | string;
             nationality?: null | string;
+            secondaryNationality?: null | string;
             externalIdentifiers?: null | components["schemas"]["CandidateIdentifier"][];
             /** Format: uuid */
             personId?: null | string;
         };
         /**
-         * @description The duplicate check's answer (S06 D5): the existing people who may be the same person, strongest first, at most 20.
-         *     It carries no `PRIVATE` value: a birth year, never a date of birth.
+         * @description The duplicate check's answer (S06 D5): the existing people who may be the same person, strongest first, at most 20,
+         *     and the token a create needs (S06 D6). It carries no `PRIVATE` value: a birth year, never a date of birth.
          */
         CheckDuplicatesResponse: {
             candidates: components["schemas"]["DuplicateCandidateResponse"][];
+            checkToken: string;
         };
         /** @enum {unknown} */
         ContestShape: "HEAD_TO_HEAD" | "FIELD";
@@ -1620,6 +1626,29 @@ export interface components {
          * @enum {unknown}
          */
         CoverageLevel: "RESULT_ONLY" | "BASIC" | "STANDARD" | "DETAILED";
+        /**
+         * @description A new person (S06 D2, D6): the biodata, external identifiers, the duplicate check's token for the same details, and
+         *     the reason to proceed past the people the check found.
+         */
+        CreatePersonRequest: {
+            firstName: null | string;
+            lastName: null | string;
+            middleName?: null | string;
+            otherNames?: null | string;
+            displayName?: null | string;
+            gender?: null | components["schemas"]["Gender"];
+            /** Format: date */
+            dateOfBirth?: null | string;
+            nationality?: null | string;
+            secondaryNationality?: null | string;
+            /** Format: int32 */
+            heightCm?: null | number;
+            /** Format: double */
+            weightKg?: null | number;
+            externalIdentifiers?: null | components["schemas"]["NewExternalIdentifier"][];
+            checkToken?: null | string;
+            overrideReason?: null | string;
+        };
         /**
          * @description A new tenant. Every field but `publicEnabled` (default false) is required; unknown members are rejected,
          *     so a status can't be sent (a new tenant is always `PROVISIONING`).
@@ -2022,6 +2051,13 @@ export interface components {
          * @enum {unknown}
          */
         MinorRegistrationConsent: "REQUIRED" | "RECOMMENDED" | "OFF";
+        /** @description An external identifier of the new person: the authority's code, its value, and since when it is valid. */
+        NewExternalIdentifier: {
+            authority: null | string;
+            value: null | string;
+            /** Format: date */
+            validFrom?: null | string;
+        };
         /**
          * @description One outbox message in the platform diagnostics: envelope and delivery state, no payload. `heldBackBy` is set on
          *     a `PENDING` message that waits for an earlier, not yet processed message of its aggregate.
@@ -4688,6 +4724,77 @@ export interface operations {
             };
         };
     };
+    CreatePerson: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePersonRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `PERSON_DUPLICATE_CHECK_STALE`, `PERSON_EXTERNAL_ID_EXISTS` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `PERSON_DATE_OF_BIRTH_IN_FUTURE`, `PERSON_DUPLICATE_CHECK_REQUIRED`, `PERSON_DUPLICATE_OVERRIDE_REQUIRED`, `PERSON_EXTERNAL_ID_AUTHORITY_RESERVED`, `PERSON_NAME_INVALID` */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     CheckPersonDuplicates: {
         parameters: {
             query?: never;
@@ -4746,7 +4853,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description Problem Details; `code`: `PERSON_EXTERNAL_ID_AUTHORITY_RESERVED`, `PERSON_NAME_INVALID` */
+            /** @description Problem Details; `code`: `PERSON_DATE_OF_BIRTH_IN_FUTURE`, `PERSON_EXTERNAL_ID_AUTHORITY_RESERVED`, `PERSON_NAME_INVALID` */
             422: {
                 headers: {
                     [name: string]: unknown;

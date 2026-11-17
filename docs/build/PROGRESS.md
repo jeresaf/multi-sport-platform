@@ -7,20 +7,19 @@ at the start of every review.
 
 - **Current slice:** S06 — People registry (docs/build/slices/S06-people-registry.md, written by the S05 slice review).
   S00–S05 are done
-- **Current task:** S06-T2a — the duplicate check: matching, thresholds, `duplicate_decisions`, the check endpoint —
-  in review (#97)
-- **Next:** S06-T2b — the check token, create, decisions written, the concurrency test; next is `/next-task` once
-  #97 merges (Q42–Q44 are for its plan; Q42 before it starts)
-- **Blocked on:** the review of #97
+- **Current task:** S06-T2b — the check token, create with its four refusals, decisions written, the concurrency
+  test — in review (#98)
+- **Next:** S06-T3 — changing a person: biodata, lifecycle, aliases, identifiers; `/next-task` once #98 merges
+  (Q45 is for its plan)
+- **Blocked on:** the review of #98
 
 ## Next up
 
-1. S06-T2b — The check token, create with its four refusals, decisions written, the concurrency test
-2. S06-T3 — Changing a person: biodata, lifecycle, aliases, identifiers
-3. S06-T4 — Role profiles (likely T4a, T4b; T4 adds the directory's `profile` and `variant` filters)
-4. S06-T5 — Media and photos (likely T5a, T5b; T5a starts with the SkiaSharp ADR, Q35)
-5. S06-T6 — Minors, consent and the public read (likely T6a, T6b)
-6. S06-T7 — Screens, demo data and slice close (likely T7a–T7d)
+1. S06-T3 — Changing a person: biodata, lifecycle, aliases, identifiers
+2. S06-T4 — Role profiles (likely T4a, T4b; T4 adds the directory's `profile` and `variant` filters)
+3. S06-T5 — Media and photos (likely T5a, T5b; T5a starts with the SkiaSharp ADR, Q35)
+4. S06-T6 — Minors, consent and the public read (likely T6a, T6b)
+5. S06-T7 — Screens, demo data and slice close (likely T7a–T7d)
 
 ## Log
 
@@ -116,6 +115,7 @@ at the start of every review.
 | 2026-11-16 | S06-T1a | #95 | Registry module (schema `registry`, depends on Platform, Tenancy and Sports Configuration Contracts): `Person` aggregate (`registry.persons`, classified columns, `first_name_key`/`last_name_key`/`name_key`), `PersonAlias`, `PersonStatusChange` (append-only), `ExternalIdentifier` (no foreign key; unique `(tenant_id, authority, entity_type, value)`); all tenant-owned with RLS, isolation samples and table policies. `NameNormaliser` (D4) and the order-independent name key; `pg_trgm` with GIN indexes on both name keys. D11 in `ModuleDbContext`: a changed child row marks its loaded aggregate root changed, `MarkChanged(root)` for rows without a foreign key. Error `PERSON_CONCURRENCY_CONFLICT`. Backend 2642 tests pass | T1 split in T1a and T1b (owner). See Deviations. Pre-review (ready; no blocker or major): name keys keep only letters and digits, weight has one decimal; follow-ups in Tech debt. No actions, events, endpoints or dependencies |
 | 2026-11-17 | S06-T1b | #96 | Registry reads under `/api/admin/v1/people`: the directory (cursor by last name key, first name key, ID; `q` by prefix, trigram similarity ≥ 0.3, alias or exact external identifier; `status`, `ageStatus`; `limit` typed as an integer and enums documented in OpenAPI), `…/{id}` (with `ETag`), `…/{id}/private` (`person.read_private`, audited per read, `no-store`), `…/{id}/status-changes`. `person.read` and `person.read_private` with D21's roles. `Age`/`AgeStatus` on the tenant's date (`TenantToday` through `ITenantAccess`). `IPeopleDirectory` in Contracts. `PERSON_NOT_FOUND`. `PublicDtoClassificationTests` (every public response property is `PUBLIC`; site, reference and health DTOs classified) and the date-of-birth redaction test. Backend 2710 tests pass | See Deviations. No migration, events or dependencies |
 | 2026-11-17 | S06-T2a | #97 | The duplicate check, `POST /api/admin/v1/people/duplicate-check` (`person.duplicate_check`, audit `NONE`; owner, admin, registrar): `DuplicateMatcher` (`EXACT_IDENTIFIER`; `LIKELY` = same birth date and same name key or similarity ≥ 0.8; `POSSIBLE` = similarity ≥ 0.6 with a date missing, years within one or the same nationality, the same key with another date, or the sibling rule) with evidence codes, `DuplicateFinder` (name key and live aliases, identifiers ended ones included, every status, at most 20, strongest first), optional `personId` (self and decided pairs left out); `registry.duplicate_decisions` (RLS, isolation sample; read only until T2b); `PERSON_NAME_INVALID`, `PERSON_EXTERNAL_ID_AUTHORITY_RESERVED`; validation field names convert every path segment | Owner (plan): sibling rule, own unaudited action, T2a/T2b split (all change D5). About 1,500 changed lines without generated files and the migration (estimate 900), kept as one PR. Pre-review (one major, fixed): a decided pair sharing an identifier is still `EXACT_IDENTIFIER`; the cut before classifying keeps alias and same-birth-date matches; `\z` in the validator's patterns; an ended identifier tested. Not done: a read-only tenant test (the pipeline's own tests cover the flag). Q42, Q43 opened |
+| 2026-11-17 | S06-T2b | #98 | Creating a person, `POST /api/admin/v1/people` (`person.create`, audit `REQUIRED`; owner, admin, registrar): the check answers `checkToken` (Data Protection `registry.duplicate-check`, 30 minutes; tenant, actor, a hash of the normalised inputs, the candidates); create re-runs the check under `registry.people:<tenantId>` and refuses with `PERSON_DUPLICATE_CHECK_REQUIRED` (422), `PERSON_EXTERNAL_ID_EXISTS` (409), `PERSON_DUPLICATE_CHECK_STALE` (409), `PERSON_DUPLICATE_OVERRIDE_REQUIRED` (422); with a reason it saves a `NOT_SAME` decision per candidate; audit metadata names the candidates by ID and confidence. Q42: `ActionDefinition.grantedWith` and a `RoleRules` startup rule (`person.duplicate_check` only with `person.read_private`). Q43: `PERSON_DATE_OF_BIRTH_IN_FUTURE` (422) in check and create. Q44: a nationality in common, secondary ones included; the check takes `secondaryNationality`. Shared `PersonDetailsValidator<T>` and `PersonDetailsRules`; `RegistryTestData.CreatePersonAsync` | Owner (plan): Q42–Q44 with the builder's suggestions. About 1,300 changed lines without generated files (estimate 1,000), kept as one PR. The check now checks nationalities against the reference data (T2a: format only) and refuses fields it doesn't compare (gender, height, weight, `validFrom`). No migration, no events, no dependencies |
 
 ## Deviations from spec (agreed)
 
@@ -458,6 +458,18 @@ at the start of every review.
   confirms a date the caller sent, and D5's "safe without `person.read_private`" sentence waits for Q42 (to answer
   before T2b); N1 a comment at `AuthorityPattern`; N2 noted for S25. The reviewer's questions are Q44 (secondary
   nationality) and Q45 (decided pairs stay hidden).
+- **S06-T2b (owner, plan 2026-11-17):** Q42 — the check stays unaudited and without a rate limit; a role may grant
+  `person.duplicate_check` only with `person.read_private` (startup rule). Q43 — a date of birth after the tenant's
+  date is refused (`PERSON_DATE_OF_BIRTH_IN_FUTURE`). Q44 — D5's "same nationality" is a nationality in common,
+  primary or secondary on either side. Builder's choices for the review: the check validates nationalities against
+  the reference data; create takes no aliases (T3's action); a reason sent with no candidates is audited and writes
+  nothing else; `person.create` declares `grantedWith: person.duplicate_check, person.read` (pre-review M2, review
+  #98 R1), so a role granting create also grants the check, the private read and the read it answers with.
+  Review of #98 (subagent, approve with nits, 2026-11-17): R1 the above; R2 a test that create's logs carry neither
+  the date of birth nor the names; R3 a test that a reason with no candidates is audited and writes no decision; R4
+  modules.md as built; R5 the concurrency test's wait has a deadline and counts this database's waiters only; R6
+  this entry moved below T2a. Owner's answers (2026-11-17): the builder's choices above are accepted; the catalogue
+  export's `grantedWith` column can wait (tech debt).
 
 ## Tech debt / follow-ups
 
@@ -468,6 +480,10 @@ S05-T5a (done in S05-T5a1, #87). Regrouped by the S05 slice review (2026-11-16):
 tasks; two stale triggers moved. Each item names where it gets done.
 
 **S06 — people registry** (carried over by the S05 slice review, 2026-11-16; docs/build/slices/S06-people-registry.md)
+- S06-T2b pre-review (N4, N5): the action catalogue export (`docs/generated/actions.md`, `contracts/actions.json`)
+  doesn't show an action's `grantedWith` (`person.duplicate_check` → `person.read_private`, `person.create` →
+  `person.duplicate_check`, `person.read`); add the column with the next catalogue change. An identifier's `validFrom` has no bound
+  (a date far in the future is accepted); decide with T3's `person.external_id.add`.
 - e2e on a reused local database (S04-T4b1; owner 2026-11-16, review #93 R3): every run adds owners to KMSA
   (`admin-shell`, `admin-screenshots`), so after enough runs KMSA passes STANDARD's 100 staff users and `inviteMember`
   on KMSA answers `403 ENTITLEMENT_QUOTA_EXCEEDED` (CI starts empty; `seed --reset` fixes it locally; hit again closing

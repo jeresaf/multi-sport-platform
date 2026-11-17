@@ -325,14 +325,14 @@ Deliver:
   concurrency test, errors).
 
 Acceptance:
-- [ ] Table-driven tests: exact identifier blocks; same birth date with reordered names is `LIKELY`; twins with one
+- [x] Table-driven tests: exact identifier blocks; same birth date with reordered names is `LIKELY`; twins with one
       birth date and different first names are `POSSIBLE` or no match, never `LIKELY`; similarity 0.59 / 0.6 / 0.79 /
       0.8 on either side of each threshold; missing birth dates; an alias match; an archived person is found and
       marked; a decided pair isn't shown.
-- [ ] Create without a check, with a stale check or past candidates without a reason is refused with its code; with a
+- [x] Create without a check, with a stale check or past candidates without a reason is refused with its code; with a
       reason it succeeds, the audit entry keeps the reason and the pair isn't warned again (tests).
-- [ ] Two creates of the same person at once: one succeeds, one gets `409 PERSON_DUPLICATE_CHECK_STALE` (test).
-- [ ] The check's answer carries no `PRIVATE` value (test).
+- [x] Two creates of the same person at once: one succeeds, one gets `409 PERSON_DUPLICATE_CHECK_STALE` (test).
+- [x] The check's answer carries no `PRIVATE` value (test).
 
 ### T3 — Changing a person: biodata, lifecycle, aliases, identifiers (~1–2 PRs, about 800 lines)
 Deliver:
@@ -480,3 +480,17 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   `SAME_LAST_NAME` is given whenever the sibling rule holds and the name keys differ; the rows read before
   classifying keep identifier, same-key and same-birth-date matches first. Q42 (the check as an unaudited way to
   learn a date of birth) and Q43 (a future date of birth) are open for T2b.
+- **T2b:** the check token, create and the decisions. Owner decisions (plan, 2026-11-17): **Q42** — the check stays
+  unaudited and isn't rate-limited; it declares `grantedWith: person.read_private` and a startup rule (`RoleRules`)
+  refuses a role that grants it without the private read. **Q43** — a date of birth after the tenant's date is `422
+  PERSON_DATE_OF_BIRTH_IN_FUTURE` on `dateOfBirth`, in the check and create (T3's update uses the same
+  `PersonDetailsRules`). **Q44** — `SAME_NATIONALITY` counts a nationality in common, primary or secondary on either
+  side; the check takes `secondaryNationality`. As built: the check answers `checkToken`; the token's expiry is in
+  the token and read with `TimeProvider` (Data Protection's own time limit can't be tested); the check and create
+  share `PersonDetailsValidator<T>`, which now checks nationalities against the reference data in the check too
+  (T2a: format only). The check takes only what it compares (no gender, height, weight, display name or `validFrom`).
+  Create takes no aliases (T3's `person.alias.add`); identifiers may carry `validFrom`. `PERSON_EXTERNAL_ID_EXISTS`
+  wins over a reason and names the first taken identifier's field. Refusals after the check runs again are audited
+  with the candidates' IDs and confidence. `RegistryTestData.CreatePersonAsync` creates through the handlers.
+  Review of #98 (owner, 2026-11-17): these choices are accepted; `person.create` is granted only with
+  `person.duplicate_check` and `person.read`.

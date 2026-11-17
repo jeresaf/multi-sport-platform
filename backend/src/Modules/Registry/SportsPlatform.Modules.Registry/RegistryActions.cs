@@ -25,7 +25,8 @@ public static class RegistryActions
 
     /// <summary>
     /// Its own action, not <c>person.create</c>: the check saves nothing and is not audited, and the pipeline audits
-    /// every request of an audited action (owner, S06-T2a plan).
+    /// every request of an audited action (owner, S06-T2a plan). Its evidence can confirm a date of birth the caller
+    /// guessed, so it is only granted with <c>person.read_private</c> (owner, Q42).
     /// </summary>
     public static readonly ActionDefinition PersonDuplicateCheck = new(
         "person.duplicate_check",
@@ -33,5 +34,19 @@ public static class RegistryActions
         ActionScope.Tenant,
         AuditRequirement.None,
         since: "S06",
-        scopableBy: [AssignmentScope.Tenant]);
+        scopableBy: [AssignmentScope.Tenant],
+        grantedWith: ["person.read_private"]);
+
+    /// <summary>
+    /// Needs the duplicate check's token, so it is only granted with the check (pre-review of S06-T2b); answers the
+    /// person as <c>person.read</c> does, so it is only granted with that read too (review #98 R1).
+    /// </summary>
+    public static readonly ActionDefinition PersonCreate = new(
+        "person.create",
+        "Add a person to the registry after a duplicate check; proceeding past possible duplicates needs a reason, and the pairs are remembered as not the same person.",
+        ActionScope.Tenant,
+        AuditRequirement.Required,
+        since: "S06",
+        scopableBy: [AssignmentScope.Tenant],
+        grantedWith: ["person.duplicate_check", "person.read"]);
 }

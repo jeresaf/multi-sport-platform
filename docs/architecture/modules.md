@@ -141,6 +141,9 @@ calling module checks its own. Whether a person is a minor is computed on the te
 **As built (S06-T2a):** the duplicate check, `POST /api/admin/v1/people/duplicate-check`, and
 `registry.duplicate_decisions` (data-conventions.md, Duplicate prevention). `DuplicateFinder` is what create and
 update run again under their lock (S06-T2b, T3).
+**As built (S06-T2b):** `POST /api/admin/v1/people` creates a person after the check: the check answers a token
+(Data Protection, 30 minutes), create runs the check again under `registry.people:<tenantId>`, and proceeding past
+candidates records "not the same person" decisions (data-conventions.md, Duplicate prevention).
 **First slice:** S06 (people), S07 (organisations, teams, venues).
 **As built (S06-T1a):** schema `registry`, every table tenant-owned (RLS): `persons` (classified columns, name keys),
 `person_aliases`, `person_status_changes` (append-only), `external_identifiers`. No endpoints or Contracts yet.
