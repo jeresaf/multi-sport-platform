@@ -165,6 +165,9 @@ public sealed class PeopleReadTests(PostgresFixture fixture) : DatabaseTest(fixt
     [InlineData("limit=101")]
     [InlineData("limit=ten")]
     [InlineData("cursor=bm90LWEtY3Vyc29y")]
+    [InlineData("q=%00")]
+    [InlineData("q=John%00")]
+    [InlineData("q=John%09Ssekandi")]
     [InlineData("q=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")]
     public async Task A_bad_query_is_refused(string query)
     {

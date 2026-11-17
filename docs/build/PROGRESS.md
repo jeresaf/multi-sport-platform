@@ -429,7 +429,7 @@ at the start of every review.
   snapshot and designer regenerated with the R4 annotations; N3 logged in Tech debt; N4–N5 wrapping and a doc line.
 - **S06-T1b (owner, plan 2026-11-17):** the directory's `profile` and `variant` filters (D22) move to T4, which adds
   the profile tables; the public-DTO classification test is strict (an unclassified property fails), so existing
-  public DTOs are classified; `q`'s similarity threshold is 0.3; one PR (about 1,500 changed lines without generated
+  public DTOs are classified; `q`'s similarity threshold is 0.3; one PR (about 1,600 changed lines without generated
   files). Builder's choices for the review: `isMinor` is true only for a known minor (`UNKNOWN` has `isMinor` false);
   no `photo`, profiles or consent scopes in the detail until their tasks; the status history is not paged; `/private`
   is `no-store`; search results are sorted by name, not relevance; tests set `ARCHIVED` in the table until T3.
@@ -437,6 +437,11 @@ at the start of every review.
   classification test also fails a public API endpoint without a typed response and an untyped property, and takes the
   `person.read` responses from the endpoints; the redaction test waits for the last request and covers the search
   text; search follow-ups in Tech debt. A private read of an unknown ID is audited as a failure naming that ID.
+  Review of #96 (subagent, request changes, 2026-11-17): R1 a control character in `q` (a NUL made PostgreSQL refuse
+  the parameter: 500) is now `VALIDATION_INVALID_QUERY`. Open for the owner: Q1 `isMinor` for `UNKNOWN` (the reviewer
+  prefers true unless `ADULT`; N1 follows from it); Q2 the audit entry of `person.read_private` is written after the
+  response and is lost if that write fails (accept with a tech-debt line for T6, or write it before answering); Q3 a
+  private read of an unknown ID is audited as a failure naming the ID sent.
 
 ## Tech debt / follow-ups
 

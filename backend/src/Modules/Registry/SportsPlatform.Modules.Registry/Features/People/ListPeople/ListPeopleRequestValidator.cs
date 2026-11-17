@@ -9,7 +9,10 @@ public sealed class ListPeopleRequestValidator : AbstractValidator<ListPeopleReq
     {
         RuleFor(request => request.Q)
             .Must(q => q is null || q.Length <= ListPeopleRequest.SearchMaxLength)
-            .WithMessage($"'q' is at most {ListPeopleRequest.SearchMaxLength} characters.");
+            .WithMessage($"'q' is at most {ListPeopleRequest.SearchMaxLength} characters.")
+            // PostgreSQL refuses a NUL in text, and no name or identifier holds a control character.
+            .Must(q => q is null || !q.Any(char.IsControl))
+            .WithMessage("'q' can't contain control characters.");
         RuleFor(request => request.Status)
             .Must(status => status is null || ListPeopleRequest.TryParseStatus(status, out _))
             .WithMessage($"'status' must be one of: {string.Join(", ", ListPeopleRequest.Statuses)}.");
