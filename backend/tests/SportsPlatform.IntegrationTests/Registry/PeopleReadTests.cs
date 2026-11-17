@@ -103,6 +103,25 @@ public sealed class PeopleReadTests(PostgresFixture fixture) : DatabaseTest(fixt
         page.Names().ShouldBe(expected is null ? [] : [expected]);
     }
 
+    [Fact]
+    public async Task Search_and_filters_page_by_cursor_too()
+    {
+        var (kmsa, registrar) = await TenantAsync("kmsa", IdentityRoles.Registrar);
+        foreach (var biodata in new[] { ShamimNankya, MariamNankya, JohnSsekandi, BrendaAkello })
+        {
+            await SavePersonAsync(App.Services, kmsa, biodata, Ct);
+        }
+
+        var first = await registrar.ReadJsonAsync($"{PeoplePath}?q=Nankya&status=ACTIVE&limit=1", Ct);
+        var cursor = first.GetProperty("page").GetProperty("nextCursor").GetString();
+        var second = await registrar.ReadJsonAsync($"{PeoplePath}?q=Nankya&status=ACTIVE&limit=1&cursor={cursor}", Ct);
+
+        first.Names().ShouldBe(["Mariam Nankya"]);
+        second.Names().ShouldBe(["Shamim Nankya"]);
+        second.GetProperty("page").GetProperty("hasMore").GetBoolean().ShouldBeFalse();
+        (await registrar.ReadJsonAsync($"{PeoplePath}?status=INACTIVE", Ct)).Names().ShouldBeEmpty();
+    }
+
     [Theory]
     [InlineData("ADULT", "John Ssekandi")]
     [InlineData("MINOR", "Brenda Akello")]
@@ -146,6 +165,7 @@ public sealed class PeopleReadTests(PostgresFixture fixture) : DatabaseTest(fixt
     [InlineData("limit=101")]
     [InlineData("limit=ten")]
     [InlineData("cursor=bm90LWEtY3Vyc29y")]
+    [InlineData("q=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")]
     public async Task A_bad_query_is_refused(string query)
     {
         var (_, registrar) = await TenantAsync("kmsa", IdentityRoles.Registrar);
@@ -237,10 +257,14 @@ public sealed class PeopleReadTests(PostgresFixture fixture) : DatabaseTest(fixt
         using var missing = await registrar.GetAsync(PrivatePath(Guid.CreateVersion7()), Ct);
 
         await missing.ShouldBeProblemAsync(HttpStatusCode.NotFound, "PERSON_NOT_FOUND");
-        await App.Telemetry.WaitForRequestLogAsync(PrivatePath(john.Id));
+        var missingPath = missing.RequestMessage!.RequestUri!.AbsolutePath;
+        await App.Telemetry.WaitForRequestLogAsync(missingPath);
+        await App.Telemetry.WaitForServerSpanAsync(missingPath);
         var entries = await AuditEntriesAsync();
         entries.Count.ShouldBe(2);
-        foreach (var date in new[] { "2001-04-12", "04/12/2001", "12/04/2001", "2001/04/12" })
+
+        // The search text is a name: the query string is neither logged nor traced.
+        foreach (var date in new[] { "2001-04-12", "04/12/2001", "12/04/2001", "2001/04/12", "Ssekandi" })
         {
             App.Telemetry.Events.ShouldAllBe(e =>
                 !e.RenderMessage(null).Contains(date, StringComparison.Ordinal)

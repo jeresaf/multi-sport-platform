@@ -24,6 +24,16 @@ public sealed class PersonCursorTests
         decoded.ShouldBe(cursor);
     }
 
+    // A page that ends on the longest names in a three-byte script must still give a cursor the list accepts.
+    [Fact]
+    public void A_cursor_of_the_longest_keys_survives_encoding()
+    {
+        var cursor = new PersonCursor(new string('አ', 100), new string('ም', 100), _id);
+
+        PersonCursor.TryDecode(cursor.Encode(), out var decoded).ShouldBeTrue();
+        decoded.ShouldBe(cursor);
+    }
+
     [Theory]
     [InlineData(null)]
     [InlineData("")]
@@ -44,7 +54,7 @@ public sealed class PersonCursorTests
     [Fact]
     public void A_cursor_longer_than_any_sort_key_or_with_bytes_that_are_not_text_is_refused()
     {
-        PersonCursor.TryDecode(Base64Url.EncodeToString(Encoding.UTF8.GetBytes(new string('a', 400))), out _).ShouldBeFalse();
+        PersonCursor.TryDecode(Base64Url.EncodeToString(Encoding.UTF8.GetBytes(new string('a', 800))), out _).ShouldBeFalse();
         PersonCursor.TryDecode(Base64Url.EncodeToString([0xC3, 0x28, 0x0A, 0x61, 0x0A]), out _).ShouldBeFalse();
     }
 }

@@ -12,7 +12,8 @@ namespace SportsPlatform.Modules.Registry.Features.People;
 public sealed record PersonCursor(string LastNameKey, string FirstNameKey, Guid Id)
 {
     private const char _separator = '\n';
-    private const int _maxLength = 400;
+    // Room for two name keys of 100 characters at three UTF-8 bytes each, the ID and base64's extra third.
+    private const int _maxLength = 1000;
 
     public string Encode() => Base64Url.EncodeToString(Encoding.UTF8.GetBytes(
         string.Create(CultureInfo.InvariantCulture, $"{LastNameKey}{_separator}{FirstNameKey}{_separator}{Id:N}")));

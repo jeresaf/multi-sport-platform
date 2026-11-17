@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Text.Json;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http.Metadata;
 using Microsoft.AspNetCore.Routing;
@@ -6,6 +7,7 @@ using SportsPlatform.BuildingBlocks.Actions;
 using SportsPlatform.BuildingBlocks.Privacy;
 using SportsPlatform.Host;
 using SportsPlatform.IntegrationTests.Infrastructure;
+using SportsPlatform.Modules.Registry;
 using SportsPlatform.Modules.Registry.Features.People;
 using SportsPlatform.Modules.Registry.Features.People.ListPeople;
 using SportsPlatform.Modules.Registry.Features.People.ListPersonStatusChanges;
@@ -38,7 +40,17 @@ public sealed class PublicDtoClassificationTests
             .Distinct()
             .ToList();
 
+        // A public API endpoint that documents no typed response would have nothing to check: it must document one.
+        var untyped = endpoints
+            .Where(endpoint => endpoint is RouteEndpoint route
+                && route.RoutePattern.RawText!.StartsWith("/api/public/", StringComparison.Ordinal)
+                && !endpoint.Metadata.GetOrderedMetadata<IProducesResponseTypeMetadata>()
+                    .Any(produces => produces.StatusCode is >= 200 and < 300 && produces.Type is not null && produces.Type != typeof(void)))
+            .Select(endpoint => endpoint.DisplayName)
+            .ToList();
+
         endpoints.ShouldContain(endpoint => endpoint.DisplayName!.Contains("/api/public/v1/site", StringComparison.Ordinal));
+        untyped.ShouldBeEmpty();
         violations.ShouldBeEmpty();
     }
 
@@ -51,17 +63,34 @@ public sealed class PublicDtoClassificationTests
             $"{typeof(Inner).FullName}.LegalName (INTERNAL)",
             $"{typeof(Inner).FullName}.DateOfBirth (PRIVATE)",
         ], ignoreOrder: true);
+        NotClassified(typeof(Loose), PersonalDataClass.Public).ShouldBe(
+        [
+            $"{typeof(Loose).FullName}.Anything (untyped: object)",
+            $"{typeof(Loose).FullName}.Raw (untyped: JsonElement)",
+            $"{typeof(Loose).FullName}.Bag (untyped: object)",
+        ], ignoreOrder: true);
         NotClassified(typeof(Inner[]), PersonalDataClass.Private).ShouldBeEmpty();
     }
 
-    // T1 acceptance: person.read answers no PRIVATE field. Every property of the Registry's responses is classified, at
-    // most INTERNAL; the page envelope (BuildingBlocks) holds no personal value.
-    [Theory]
-    [InlineData(typeof(ListPeopleResponse))]
-    [InlineData(typeof(PersonResponse))]
-    [InlineData(typeof(ListPersonStatusChangesResponse))]
-    public void The_person_read_answers_classified_fields_that_are_at_most_internal(Type response) =>
-        NotClassified(response, PersonalDataClass.Internal, InRegistry).ShouldBeEmpty();
+    // T1 acceptance: person.read answers no PRIVATE field. Every property of the responses of every endpoint that
+    // declares person.read is classified, at most INTERNAL; the page envelope (BuildingBlocks) holds no personal value.
+    [Fact]
+    public async Task The_person_read_answers_classified_fields_that_are_at_most_internal()
+    {
+        await using var app = SportsPlatformApp.Build(WebApplication.CreateBuilder(new WebApplicationOptions { EnvironmentName = TestEnvironment.Name }));
+
+        var responses = ((IEndpointRouteBuilder)app).DataSources
+            .SelectMany(source => source.Endpoints)
+            .Where(endpoint => endpoint.Metadata.GetMetadata<RequiresActionMetadata>()?.Action == RegistryActions.PersonRead)
+            .SelectMany(endpoint => endpoint.Metadata.GetOrderedMetadata<IProducesResponseTypeMetadata>())
+            .Where(produces => produces.StatusCode is >= 200 and < 300 && produces.Type is not null)
+            .Select(produces => produces.Type!)
+            .Distinct()
+            .ToList();
+
+        responses.ShouldBe([typeof(ListPeopleResponse), typeof(PersonResponse), typeof(ListPersonStatusChangesResponse)], ignoreOrder: true);
+        responses.SelectMany(response => NotClassified(response, PersonalDataClass.Internal, InRegistry)).ShouldBeEmpty();
+    }
 
     [Fact]
     public void The_private_read_is_the_one_that_answers_a_private_field() =>
@@ -106,8 +135,15 @@ public sealed class PublicDtoClassificationTests
                     continue;
                 }
 
+                // A value of any shape can't be checked: such a property has no place in a classified response.
+                var untyped = new[] { property.PropertyType }.Concat(property.PropertyType.GetGenericArguments())
+                    .FirstOrDefault(part => part == typeof(object) || part == typeof(JsonElement) || part == typeof(JsonDocument));
                 var classification = property.GetCustomAttribute<PersonalDataAttribute>()?.Classification;
-                if (classification is null)
+                if (untyped is not null)
+                {
+                    found.Add($"{type.FullName}.{property.Name} (untyped: {(untyped == typeof(object) ? "object" : untyped.Name)})");
+                }
+                else if (classification is null)
                 {
                     found.Add($"{type.FullName}.{property.Name} (not classified)");
                 }
@@ -125,6 +161,11 @@ public sealed class PublicDtoClassificationTests
         [property: PersonalData(PersonalDataClass.Public)] string DisplayName,
         string Unclassified,
         [property: PersonalData(PersonalDataClass.Public)] IReadOnlyList<Inner> People);
+
+    private sealed record Loose(
+        [property: PersonalData(PersonalDataClass.Public)] object Anything,
+        [property: PersonalData(PersonalDataClass.Public)] JsonElement Raw,
+        [property: PersonalData(PersonalDataClass.Public)] IReadOnlyDictionary<string, object> Bag);
 
     private sealed record Inner(
         [property: PersonalData(PersonalDataClass.Internal)] string LegalName,
