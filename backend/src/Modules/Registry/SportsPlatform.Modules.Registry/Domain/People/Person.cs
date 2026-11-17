@@ -242,8 +242,8 @@ public sealed class Person : AggregateRoot, ITenantOwned
     }
 
     /// <summary>
-    /// Replaces an athlete profile's details (S06 D12): a correction, allowed whatever the person's status (Q45) but not
-    /// on an archived profile (<c>PERSON_PROFILE_ARCHIVED</c>). The use case has checked the codes.
+    /// Replaces an athlete profile's details (S06 D12): a correction, allowed whatever the person's status (D9; owner,
+    /// S06-T3 plan) but not on an archived profile (<c>PERSON_PROFILE_ARCHIVED</c>). The use case has checked the codes.
     /// </summary>
     public Result UpdateAthleteProfile(Guid profileId, AthleteProfileDetails details)
     {

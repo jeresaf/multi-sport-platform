@@ -70,7 +70,9 @@ internal static class AthleteProfileEndpoints
             .WithDescription(
                 "Replaces the profile's positions, dominant side and public name (a field left out is cleared); the variant " +
                 "never changes. A correction: allowed whatever the person's status and whether or not the tenant still has " +
-                $"the variant enabled, but not on an archived profile (PERSON_PROFILE_ARCHIVED). {_codesNote} {_versionNote}")
+                "the variant enabled, but not on an archived profile (PERSON_PROFILE_ARCHIVED). Every position sent is checked " +
+                "against the variant's latest definition, so one a newer definition dropped must be replaced or left out. " +
+                $"{_codesNote} {_versionNote}")
             .RequireAction(RegistryActions.AthleteProfileUpdate)
             .AcceptsIfMatch()
             .ReturnsETag()

@@ -63,6 +63,7 @@ public sealed class AthleteProfileTests(PostgresFixture fixture) : DatabaseTest(
 
         // A whole replacement: what is left out is cleared.
         var updated = await OkAsync(await registrar.PutAsJsonAsync(ProfilePath(person, profileId), new { primaryPosition = "TB_KEEPER" }, Ct));
+        updated.GetProperty("version").GetUInt32().ShouldNotBe(added.GetProperty("version").GetUInt32());
         var changed = updated.GetProperty("athleteProfiles").EnumerateArray().ShouldHaveSingleItem();
         changed.GetProperty("primaryPosition").GetString().ShouldBe("TB_KEEPER");
         changed.GetProperty("otherPositions").GetArrayLength().ShouldBe(0);
@@ -72,6 +73,7 @@ public sealed class AthleteProfileTests(PostgresFixture fixture) : DatabaseTest(
         var retired = await OkAsync(await registrar.PostAsJsonAsync(
             StatusPath(person, profileId), new { status = "RETIRED", reason = " Retired after the season " }, Ct));
         retired.GetProperty("athleteProfiles")[0].GetProperty("status").GetString().ShouldBe("RETIRED");
+        retired.GetProperty("version").GetUInt32().ShouldNotBe(updated.GetProperty("version").GetUInt32());
         await OkAsync(await registrar.PostAsJsonAsync(StatusPath(person, profileId), new { status = "ACTIVE", reason = "Came back" }, Ct));
 
         await using (var scope = ScopeFor(App.Services, kmsa, out var context))
