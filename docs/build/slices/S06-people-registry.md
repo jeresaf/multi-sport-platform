@@ -325,14 +325,14 @@ Deliver:
   concurrency test, errors).
 
 Acceptance:
-- [ ] Table-driven tests: exact identifier blocks; same birth date with reordered names is `LIKELY`; twins with one
+- [x] Table-driven tests: exact identifier blocks; same birth date with reordered names is `LIKELY`; twins with one
       birth date and different first names are `POSSIBLE` or no match, never `LIKELY`; similarity 0.59 / 0.6 / 0.79 /
       0.8 on either side of each threshold; missing birth dates; an alias match; an archived person is found and
       marked; a decided pair isn't shown.
-- [ ] Create without a check, with a stale check or past candidates without a reason is refused with its code; with a
+- [x] Create without a check, with a stale check or past candidates without a reason is refused with its code; with a
       reason it succeeds, the audit entry keeps the reason and the pair isn't warned again (tests).
-- [ ] Two creates of the same person at once: one succeeds, one gets `409 PERSON_DUPLICATE_CHECK_STALE` (test).
-- [ ] The check's answer carries no `PRIVATE` value (test).
+- [x] Two creates of the same person at once: one succeeds, one gets `409 PERSON_DUPLICATE_CHECK_STALE` (test).
+- [x] The check's answer carries no `PRIVATE` value (test).
 
 ### T3 — Changing a person: biodata, lifecycle, aliases, identifiers (~1–2 PRs, about 800 lines)
 Deliver:
