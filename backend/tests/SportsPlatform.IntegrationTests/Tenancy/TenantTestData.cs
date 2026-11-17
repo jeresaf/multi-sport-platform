@@ -209,6 +209,17 @@ internal static class TenantTestData
         return sport.Id;
     }
 
+    /// <summary>Disables the tenant's enabled <paramref name="variant"/> (S05 D12), by the platform's staff member, without the audit.</summary>
+    public static async Task DisableSportAsync(IServiceProvider services, Guid tenantId, string variant, CancellationToken cancellationToken)
+    {
+        await using var scope = services.CreateAsyncScope();
+        scope.ServiceProvider.GetRequiredService<TenantContext>().Set(tenantId);
+        var context = scope.ServiceProvider.GetRequiredService<TenancyDbContext>();
+        var sport = await context.Set<TenantSport>().SingleAsync(s => s.Variant == variant && s.DisabledAt == null, cancellationToken);
+        sport.Disable("End of the schools season", new UserActor(StaffId), new DateTimeOffset(2026, 10, 2, 8, 0, 0, TimeSpan.Zero));
+        await context.SaveChangesAsync(cancellationToken);
+    }
+
     /// <summary>Changes a saved tenant through its domain methods, under that tenant (its status history is tenant-owned).</summary>
     public static async Task ChangeAsync(IServiceProvider services, Guid tenantId, Action<Tenant> change, CancellationToken cancellationToken)
     {
