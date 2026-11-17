@@ -86,6 +86,9 @@ public static class TableAccessPolicies
         ["registry.person_status_changes"] = TableAccess.AppendOnly,
         ["registry.external_identifiers"] = TableAccess.ReadWrite,
 
+        // Duplicate decisions (S06-T2a, RLS): written by a create or an update past candidates; undone with merges (S25).
+        ["registry.duplicate_decisions"] = TableAccess.ReadWrite,
+
         ["identity.outbox_messages"] = TableAccess.ReadWrite,
         ["registry.outbox_messages"] = TableAccess.ReadWrite,
         ["registry.inbox_messages"] = TableAccess.ReadWrite,

@@ -17,6 +17,12 @@ public sealed partial class ExternalIdentifier : Entity, ITenantOwned
     public const int AuthorityMaxLength = 40;
     public const int ValueMaxLength = 100;
 
+    /// <summary>
+    /// Authorities that name national identity documents: <c>SENSITIVE</c> (ADR-0015) and not collected in S06 (D10).
+    /// </summary>
+    public static readonly IReadOnlySet<string> ReservedAuthorities =
+        new HashSet<string>(StringComparer.Ordinal) { "NATIONAL_ID", "NIN", "PASSPORT" };
+
     private ExternalIdentifier(
         ExternalIdentifierEntityType entityType, Guid entityId, string authority, string value, DateOnly? validFrom)
         : base(NewId())

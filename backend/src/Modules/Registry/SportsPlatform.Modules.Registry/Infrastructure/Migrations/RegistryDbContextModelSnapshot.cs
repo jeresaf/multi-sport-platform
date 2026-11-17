@@ -170,6 +170,96 @@ namespace SportsPlatform.Modules.Registry.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("SportsPlatform.Modules.Registry.Domain.People.Duplicates.DuplicateDecision", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("ActorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("actor_id");
+
+                    b.Property<string>("ActorKind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("actor_kind");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTimeOffset>("DecidedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("decided_at");
+
+                    b.Property<string>("Decision")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("decision")
+                        .HasAnnotation("pii", "INTERNAL");
+
+                    b.Property<Guid>("PersonHighId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("person_high_id");
+
+                    b.Property<Guid>("PersonLowId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("person_low_id");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("reason")
+                        .HasAnnotation("pii", "INTERNAL");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_duplicate_decisions");
+
+                    b.HasIndex("TenantId", "PersonHighId")
+                        .HasDatabaseName("ix_duplicate_decisions_tenant_id_person_high_id");
+
+                    b.HasIndex("TenantId", "PersonLowId", "PersonHighId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_duplicate_decisions_tenant_id_person_low_id_person_high_id");
+
+                    b.ToTable("duplicate_decisions", "registry", t =>
+                        {
+                            t.HasCheckConstraint("ck_duplicate_decisions_actor_kind", "actor_kind IN ('USER', 'SYSTEM', 'ANONYMOUS')");
+
+                            t.HasCheckConstraint("ck_duplicate_decisions_decision", "decision IN ('NOT_SAME')");
+
+                            t.HasCheckConstraint("ck_duplicate_decisions_pair", "person_low_id < person_high_id");
+
+                            t.HasCheckConstraint("ck_duplicate_decisions_reason", "btrim(reason) <> ''");
+                        });
+                });
+
             modelBuilder.Entity("SportsPlatform.Modules.Registry.Domain.People.ExternalIdentifier", b =>
                 {
                     b.Property<Guid>("Id")
@@ -591,6 +681,25 @@ namespace SportsPlatform.Modules.Registry.Infrastructure.Migrations
                         });
 
                     b.HasAnnotation("SportsPlatform:AppendOnly", true);
+                });
+
+            modelBuilder.Entity("SportsPlatform.Modules.Registry.Domain.People.Duplicates.DuplicateDecision", b =>
+                {
+                    b.HasOne("SportsPlatform.Modules.Registry.Domain.People.Person", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId", "PersonHighId")
+                        .HasPrincipalKey("TenantId", "Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_duplicate_decisions_person_tenant_id_person_high_id");
+
+                    b.HasOne("SportsPlatform.Modules.Registry.Domain.People.Person", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId", "PersonLowId")
+                        .HasPrincipalKey("TenantId", "Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_duplicate_decisions_person_tenant_id_person_low_id");
                 });
 
             modelBuilder.Entity("SportsPlatform.Modules.Registry.Domain.People.PersonAlias", b =>
