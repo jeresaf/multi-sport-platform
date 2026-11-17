@@ -157,7 +157,8 @@ As built for people (S06-T2a), the duplicate check (`DuplicateMatcher`, Registry
 
 - **Rules.** `EXACT_IDENTIFIER`: an external identifier with the same authority and value (ended ones included).
   `LIKELY`: the same date of birth and (the same name key, or similarity ≥ 0.8). `POSSIBLE`: similarity ≥ 0.6 and (a
-  date of birth missing, or birth years within one year, or the same nationality); or the same name key with another
+  date of birth missing, or birth years within one year, or a nationality in common: primary or secondary on either
+  side, Q44); or the same name key with another
   date of birth; or the same date of birth and the same normalised last name (twins and siblings, whose first names
   are unlike: "Mariam Nankya" and "Shamim Nankya" score 0.33). The thresholds are `DuplicateThresholds`, not tenant
   settings.
@@ -174,7 +175,28 @@ As built for people (S06-T2a), the duplicate check (`DuplicateMatcher`, Registry
   person_high_id`, as PostgreSQL orders UUIDs; unique per tenant), `decision` `NOT_SAME`, reason, actor and time;
   both IDs are composite foreign keys to `persons`. Written from S06-T2b on.
 - **Not collected.** The authorities `NATIONAL_ID`, `NIN` and `PASSPORT` are refused
-  (`PERSON_EXTERNAL_ID_AUTHORITY_RESERVED`, ADR-0015).
+  (`PERSON_EXTERNAL_ID_AUTHORITY_RESERVED`, ADR-0015). A date of birth after the tenant's date is refused
+  (`PERSON_DATE_OF_BIRTH_IN_FUTURE`, Q43). The check, create and (S06-T3) update share these rules
+  (`PersonDetailsRules`) and one validator (`PersonDetailsValidator<T>`; nationalities are active countries).
+
+As built for people (S06-T2b), creating one (`POST /api/admin/v1/people`, `CreatePersonHandler`):
+
+- **The check token** (`DuplicateCheckTokens`): Data Protection, purpose `registry.duplicate-check`, holding the
+  tenant, the actor, a SHA-256 of the normalised inputs (name key, last-name key, date of birth, both nationalities,
+  the sorted identifiers, `personId`) and the IDs the check answered; it expires 30 minutes after the check (the
+  expiry is in the token and read with `TimeProvider`). The token is opaque: no input is readable from it. A check
+  with `personId` gives a token only an update of that person can use.
+- **Order of refusals.** The details' rules; then the token (`422 PERSON_DUPLICATE_CHECK_REQUIRED` on `checkToken`
+  when it is missing, expired, or for other inputs, another actor or another tenant). Then, in a transaction holding
+  `pg_advisory_xact_lock(hashtextextended('registry.people:<tenantId>', 0))`, the check runs again: a shared
+  identifier is `409 PERSON_EXTERNAL_ID_EXISTS` (on `externalIdentifiers[i].value`, whatever the reason); a person
+  the token doesn't list is `409 PERSON_DUPLICATE_CHECK_STALE`; candidates without `overrideReason` are `422
+  PERSON_DUPLICATE_OVERRIDE_REQUIRED`.
+- **Saved together:** the person (`MANUAL`), its identifiers, and a `NOT_SAME` decision with the reason for each
+  candidate. Two creates of one person queue on the lock and the second finds the first's person (stale), and so
+  does a create repeated with the same token: no `Idempotency-Key`.
+- **Audit:** entity `Person`, the reason, and metadata `{candidates: [{personId, confidence}]}` (IDs and codes only);
+  refusals are audited with the same metadata once the check has run again.
 
 ## Migrations
 
