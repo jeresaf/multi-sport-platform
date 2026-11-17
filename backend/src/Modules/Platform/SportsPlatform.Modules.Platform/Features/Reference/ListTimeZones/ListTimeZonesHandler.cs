@@ -1,13 +1,17 @@
 using Microsoft.EntityFrameworkCore;
+using SportsPlatform.BuildingBlocks.Privacy;
 using SportsPlatform.Modules.Platform.Domain.Reference;
 using SportsPlatform.Modules.Platform.Infrastructure;
 
 namespace SportsPlatform.Modules.Platform.Features.Reference.ListTimeZones;
 
 /// <summary>An IANA time zone: its ID as <c>code</c> (<c>Africa/Kampala</c>) and its country; no country for <c>Etc/UTC</c>.</summary>
-public sealed record TimeZoneResponse(string Code, string? CountryCode);
+public sealed record TimeZoneResponse(
+    [property: PersonalData(PersonalDataClass.Public)] string Code,
+    [property: PersonalData(PersonalDataClass.Public)] string? CountryCode);
 
-public sealed record ListTimeZonesResponse(IReadOnlyList<TimeZoneResponse> Items);
+public sealed record ListTimeZonesResponse(
+    [property: PersonalData(PersonalDataClass.Public)] IReadOnlyList<TimeZoneResponse> Items);
 
 /// <summary>Active time zones, ordered by code; only one country's zones when one is given.</summary>
 public sealed class ListTimeZonesHandler(PlatformDbContext context)
