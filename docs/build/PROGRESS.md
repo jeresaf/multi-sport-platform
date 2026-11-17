@@ -8,7 +8,7 @@ at the start of every review.
 - **Current slice:** S06 — People registry (docs/build/slices/S06-people-registry.md, written by the S05 slice review).
   S00–S05 are done
 - **Current task:** S06-T2a — the duplicate check: matching, thresholds, `duplicate_decisions`, the check endpoint —
-  in progress (plan approved 2026-11-17)
+  implemented on `claude/dazzling-wright-km7ldq` (plan approved 2026-11-17); next step `/finish-task`
 - **Next:** S06-T2b — the check token, create, decisions written, the concurrency test
 - **Blocked on:** nothing
 
@@ -441,6 +441,15 @@ at the start of every review.
   `ADULT`, so `UNKNOWN` is treated as a minor, and the OpenAPI descriptions say so (N1); Q2 the audit entry of
   `person.read_private` stays written after the response for now (Tech debt, T6); Q3 a private read of an unknown ID
   is audited as a failure naming the ID sent: confirmed.
+- **S06-T2a (owner, plan 2026-11-17):** three changes to D5. A sibling rule: the same date of birth and the same
+  normalised last name is `POSSIBLE` (evidence `SAME_LAST_NAME`), because D5's thresholds found neither demo twin pair
+  (0.33 and 0.27). The check has its own unaudited action, `person.duplicate_check`, instead of `person.create`
+  (every request of an audited action is audited). T2 is split: T2a has the matching, `registry.duplicate_decisions`
+  and the check endpoint; T2b the token, create and the decisions' writes. Builder's choices for the review: an
+  optional `personId` on the check (the person being changed: left out, with everyone decided "not the same person"
+  as them); `PERSON_NAME_INVALID` and `PERSON_EXTERNAL_ID_AUTHORITY_RESERVED` (422) at the check; the nationality's
+  format only; the similarity percentage rounded down; `Cache-Control: no-store`; no athlete sports on candidates
+  until T4.
 
 ## Tech debt / follow-ups
 
@@ -471,14 +480,12 @@ tasks; two stale triggers moved. Each item names where it gets done.
   minimum only). Revisit with the People screen's search box. (S06-T7)
 - `RegistryDbContext` has one conflict error, `PERSON_CONCURRENCY_CONFLICT`: decide per-aggregate errors or a neutral
   code before organisations, teams and venues save through it (#95 Q1). (S07-T1)
-- Name keys: T2's plan tests "Okello-Owino" against "Okello Owino" at the duplicate thresholds; T2's validation
-  refuses a name whose key is empty (a name with no letter or digit, or only in a script outside the BMP) with a 422
-  (#95 Q2, R8). (S06-T2)
 - Managed PostgreSQL must allow-list the `pg_trgm` extension before Registry's first migration runs (#95 Q3). (first
   deployment, with Q41)
-- Validation field names are camelCased by their first letter only (`JsonNamingPolicy.CamelCase.ConvertName` on the
-  whole path), so `Address.Street` becomes `address.Street`: convert each path segment (#22 re-review N2). (S06-T2b,
-  the person's identifiers are the first nested request body)
+- Duplicate check (S06-T2a): like the directory's search, `similarity(name_key, …) >= 0.6` can't use the trigram
+  indexes, so each check filters the tenant's people, and it reads at most 200 matching rows before classifying
+  (identifier matches first, then the closest names). Fine at pilot size; revisit with imports (Data Exchange) or the
+  first tenant above a few ten thousand people. (Later)
 - `tenancy.demo.sports` (S05 D19: "the first slice whose demo data needs a sport"): S06's demo people have athlete
   profiles. (S06-T7d, D23)
 

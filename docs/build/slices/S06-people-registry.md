@@ -464,3 +464,15 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   birth only until T6 adds consents, with `Cache-Control: no-store`. The status history is not paged. The cursor
   holds the last person's normalised names and ID (base64url). Tests move a person to `ARCHIVED` in the table until
   T3's commands exist.
+- **T2a:** the duplicate check without the token (T2b). Owner decisions (plan, 2026-11-17), all three changing D5:
+  a **sibling rule** — the same date of birth and the same normalised last name is `POSSIBLE`, with the evidence code
+  `SAME_LAST_NAME` (D5's thresholds found neither demo twin pair: "Mariam Nankya" and "Shamim Nankya" score 0.33);
+  the check has **its own action**, `person.duplicate_check` (audit `NONE`), because every request of an audited
+  action is audited and `person.create` is `REQUIRED`; `registry.duplicate_decisions` comes with T2a and the check
+  reads it. As built: the request takes an optional `personId` (the person being changed, D8), which leaves out that
+  person and everyone decided "not the same person" as them; a new person has no decisions yet, so the "decided pair
+  isn't shown" case is tested through `personId`. `PERSON_NAME_INVALID` (422) for a first or last name without a
+  letter or a digit; `PERSON_EXTERNAL_ID_AUTHORITY_RESERVED` (422) already at the check. The nationality is checked
+  for its format only (create checks it against the reference data). Candidates carry no athlete sports until T4.
+  Scores against the demo data: "Ssekandi John" same key; Peter Ochieng and Peter Ochieng Okot 0.78; "Okello-Owino"
+  and "Okello Owino" 0.82 with a first name (0.71 alone).
