@@ -341,10 +341,10 @@ Deliver:
 - Likely one PR; split into T3a (update, lifecycle) and T3b (aliases, identifiers) if it passes ~600 lines.
 
 Acceptance:
-- [ ] Every transition in D9 is allowed, every other refused (`409 PERSON_STATUS_INVALID`), each with its history row
+- [x] Every transition in D9 is allowed, every other refused (`409 PERSON_STATUS_INVALID`), each with its history row
       and audit reason (table-driven).
 - [ ] An identifier already used by another person, even ended, is refused with `PERSON_EXTERNAL_ID_EXISTS` (test).
-- [ ] A name change that creates a `LIKELY` match needs a check and a reason (test).
+- [x] A name change that creates a `LIKELY` match needs a check and a reason (test).
 
 ### T4 — Role profiles (~2 PRs, about 1,000 lines)
 Deliver:
@@ -494,3 +494,14 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   with the candidates' IDs and confidence. `RegistryTestData.CreatePersonAsync` creates through the handlers.
   Review of #98 (owner, 2026-11-17): these choices are accepted; `person.create` is granted only with
   `person.duplicate_check` and `person.read`.
+- **T3a:** the update and the lifecycle. Owner decisions (plan, 2026-11-17): **Q45** — D7 as written: a decided pair
+  stays hidden from the update's check; `PUT` takes **no external identifiers** (they change only through T3b's
+  actions, the add running only the exact check), so the update's check is run with `personId` and no identifiers;
+  adding an alias runs no check (T3b); an `ARCHIVED` or `DECEASED` person can still be corrected (biodata, removing an
+  alias, ending an identifier). As built: `PUT` replaces the whole biodata (a field left out is cleared) and needs a
+  token only when `Person.ChangesIdentity` — the name key, the normalised last name, the date of birth or either
+  nationality changed; a name written differently (case, accents, punctuation) keeps the keys and needs none. The
+  update holds `registry.people:<tenantId>` only when it runs the check. `person.deactivate`/`.reactivate` take no
+  reason; the others need one (1–500, `VALIDATION_REASON_REQUIRED`). The lifecycle endpoints follow Tenancy's (`If-Match`
+  or `version`, answer the person with its `ETag`). `PersonBiodataValidator<T>` holds the display name, height and
+  weight bounds for create and update; `DuplicateReviewAuditMetadata` replaces `CreatePersonAuditMetadata` (same JSON).
