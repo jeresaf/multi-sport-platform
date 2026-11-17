@@ -253,6 +253,22 @@
       "since": "S03"
     },
     {
+      "code": "person.duplicate_check",
+      "module": "Registry",
+      "description": "Check a new or changed person's names, date of birth, nationality and external identifiers against the people already in the registry.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "NONE",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S06"
+    },
+    {
       "code": "person.read",
       "module": "Registry",
       "description": "View the people directory and a person's record: names, aliases, external identifiers, status and its history, birth year and whether the person is a minor.",

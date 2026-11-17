@@ -11,6 +11,7 @@ using SportsPlatform.Modules.Identity.Domain.Memberships;
 using SportsPlatform.Modules.Identity.Domain.Roles;
 using SportsPlatform.Modules.Identity.Infrastructure.Users;
 using SportsPlatform.Modules.Registry.Domain.People;
+using SportsPlatform.Modules.Registry.Domain.People.Duplicates;
 using SportsPlatform.Modules.Tenancy.Contracts.Subscriptions;
 using SportsPlatform.Modules.Tenancy.Domain.Entitlements;
 using SportsPlatform.Modules.Tenancy.Domain.Settings;
@@ -63,6 +64,7 @@ public static class IsolationSamples
         new PersonAliasSample(),
         new PersonStatusChangeSample(),
         new ExternalIdentifierSample(),
+        new DuplicateDecisionSample(),
     ];
 
     public static IIsolationSample For(Type entityType) =>
@@ -346,6 +348,37 @@ public static class IsolationSamples
         }
 
         public Entity? Referencing(IForeignKey foreignKey, Guid principalId) => null;
+    }
+
+    /// <summary>Registry: a decision about two people of the tenant; neither may be another tenant's.</summary>
+    private sealed class DuplicateDecisionSample : IIsolationSample
+    {
+        public Type EntityType => typeof(DuplicateDecision);
+
+        public Entity Add(DbContext context)
+        {
+            var peter = RegistrySamples.NewPerson("Peter", "Ochieng");
+            var other = RegistrySamples.NewPerson("Peter", "Okot");
+            var decision = DuplicateDecision.NotSame(peter.Id, other.Id, "Cousins at different clubs", SystemActor.Instance, RegistrySamples.Now);
+            context.AddRange(peter, other, decision);
+            return decision;
+        }
+
+        // The principal sits in the column of the key under test: the other ID is made to sort after or before it.
+        // (That other person doesn't exist either; the harness can add one row only, and both keys are checked.)
+        public Entity? Referencing(IForeignKey foreignKey, Guid principalId)
+        {
+            if (foreignKey.PrincipalEntityType.ClrType != typeof(Person))
+            {
+                return null;
+            }
+
+            var principalIsLow = foreignKey.Properties.Any(property => property.Name == nameof(DuplicateDecision.PersonLowId));
+            var other = Convert.FromHexString(principalId.ToString("N"));
+            other[0] = principalIsLow ? (byte)0xff : (byte)0x00;
+            return DuplicateDecision.NotSame(
+                principalId, new Guid(Convert.ToHexString(other)), "Cousins at different clubs", SystemActor.Instance, RegistrySamples.Now);
+        }
     }
 
     private static class RegistrySamples

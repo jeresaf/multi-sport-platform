@@ -7,14 +7,15 @@ at the start of every review.
 
 - **Current slice:** S06 — People registry (docs/build/slices/S06-people-registry.md, written by the S05 slice review).
   S00–S05 are done
-- **Current task:** S06-T1b — `person.read`, `person.read_private`, the reads, `IPeopleDirectory`, roles, classification
-  and redaction tests — in review (#96)
-- **Next:** S06-T2 — Duplicate check and create; next is `/next-task` once #96 merges
-- **Blocked on:** the review of #96
+- **Current task:** S06-T2a — the duplicate check: matching, thresholds, `duplicate_decisions`, the check endpoint —
+  in review (#97)
+- **Next:** S06-T2b — the check token, create, decisions written, the concurrency test; next is `/next-task` once
+  #97 merges (Q42–Q44 are for its plan; Q42 before it starts)
+- **Blocked on:** the review of #97
 
 ## Next up
 
-1. S06-T2 — Duplicate check and create (likely T2a, T2b)
+1. S06-T2b — The check token, create with its four refusals, decisions written, the concurrency test
 2. S06-T3 — Changing a person: biodata, lifecycle, aliases, identifiers
 3. S06-T4 — Role profiles (likely T4a, T4b; T4 adds the directory's `profile` and `variant` filters)
 4. S06-T5 — Media and photos (likely T5a, T5b; T5a starts with the SkiaSharp ADR, Q35)
@@ -114,6 +115,7 @@ at the start of every review.
 | 2026-11-16 | S05 slice review | — | Docs only: S06 spec written by the reviewer (D1–D24, T1–T7); S05 slice review note (acceptance confirmed with evidence); Q35–Q41 added; tech debt regrouped (S06 items to S06's tasks; `TEAM_MANAGER`'s resource scopes moved from S06 to S08) | All S05 acceptance items met on main (1907d77): backend 2561 tests (architecture 45, unit 1390, integration 1126) and admin Vitest 321 pass; the RLS exception list unchanged; no sport code in generic code. The slice demo runs in CI (`admin-sports-demo.spec.ts`); the owner's manual demo is not recorded. Two stale triggers moved: resource scopes (S06 has no resource below the tenant; S08 builds the `TEAM` scope chain) and the reference lists' OpenAPI `pattern` (its "first web consumer" came in S03–S04) |
 | 2026-11-16 | S06-T1a | #95 | Registry module (schema `registry`, depends on Platform, Tenancy and Sports Configuration Contracts): `Person` aggregate (`registry.persons`, classified columns, `first_name_key`/`last_name_key`/`name_key`), `PersonAlias`, `PersonStatusChange` (append-only), `ExternalIdentifier` (no foreign key; unique `(tenant_id, authority, entity_type, value)`); all tenant-owned with RLS, isolation samples and table policies. `NameNormaliser` (D4) and the order-independent name key; `pg_trgm` with GIN indexes on both name keys. D11 in `ModuleDbContext`: a changed child row marks its loaded aggregate root changed, `MarkChanged(root)` for rows without a foreign key. Error `PERSON_CONCURRENCY_CONFLICT`. Backend 2642 tests pass | T1 split in T1a and T1b (owner). See Deviations. Pre-review (ready; no blocker or major): name keys keep only letters and digits, weight has one decimal; follow-ups in Tech debt. No actions, events, endpoints or dependencies |
 | 2026-11-17 | S06-T1b | #96 | Registry reads under `/api/admin/v1/people`: the directory (cursor by last name key, first name key, ID; `q` by prefix, trigram similarity ≥ 0.3, alias or exact external identifier; `status`, `ageStatus`; `limit` typed as an integer and enums documented in OpenAPI), `…/{id}` (with `ETag`), `…/{id}/private` (`person.read_private`, audited per read, `no-store`), `…/{id}/status-changes`. `person.read` and `person.read_private` with D21's roles. `Age`/`AgeStatus` on the tenant's date (`TenantToday` through `ITenantAccess`). `IPeopleDirectory` in Contracts. `PERSON_NOT_FOUND`. `PublicDtoClassificationTests` (every public response property is `PUBLIC`; site, reference and health DTOs classified) and the date-of-birth redaction test. Backend 2710 tests pass | See Deviations. No migration, events or dependencies |
+| 2026-11-17 | S06-T2a | #97 | The duplicate check, `POST /api/admin/v1/people/duplicate-check` (`person.duplicate_check`, audit `NONE`; owner, admin, registrar): `DuplicateMatcher` (`EXACT_IDENTIFIER`; `LIKELY` = same birth date and same name key or similarity ≥ 0.8; `POSSIBLE` = similarity ≥ 0.6 with a date missing, years within one or the same nationality, the same key with another date, or the sibling rule) with evidence codes, `DuplicateFinder` (name key and live aliases, identifiers ended ones included, every status, at most 20, strongest first), optional `personId` (self and decided pairs left out); `registry.duplicate_decisions` (RLS, isolation sample; read only until T2b); `PERSON_NAME_INVALID`, `PERSON_EXTERNAL_ID_AUTHORITY_RESERVED`; validation field names convert every path segment | Owner (plan): sibling rule, own unaudited action, T2a/T2b split (all change D5). About 1,500 changed lines without generated files and the migration (estimate 900), kept as one PR. Pre-review (one major, fixed): a decided pair sharing an identifier is still `EXACT_IDENTIFIER`; the cut before classifying keeps alias and same-birth-date matches; `\z` in the validator's patterns; an ended identifier tested. Not done: a read-only tenant test (the pipeline's own tests cover the flag). Q42, Q43 opened |
 
 ## Deviations from spec (agreed)
 
@@ -441,6 +443,21 @@ at the start of every review.
   `ADULT`, so `UNKNOWN` is treated as a minor, and the OpenAPI descriptions say so (N1); Q2 the audit entry of
   `person.read_private` stays written after the response for now (Tech debt, T6); Q3 a private read of an unknown ID
   is audited as a failure naming the ID sent: confirmed.
+- **S06-T2a (owner, plan 2026-11-17):** three changes to D5. A sibling rule: the same date of birth and the same
+  normalised last name is `POSSIBLE` (evidence `SAME_LAST_NAME`), because D5's thresholds found neither demo twin pair
+  (0.33 and 0.27). The check has its own unaudited action, `person.duplicate_check`, instead of `person.create`
+  (every request of an audited action is audited). T2 is split: T2a has the matching, `registry.duplicate_decisions`
+  and the check endpoint; T2b the token, create and the decisions' writes. Builder's choices for the review: an
+  optional `personId` on the check (the person being changed: left out, with everyone decided "not the same person"
+  as them); `PERSON_NAME_INVALID` and `PERSON_EXTERNAL_ID_AUTHORITY_RESERVED` (422) at the check; the nationality's
+  format only; the similarity percentage rounded down; `Cache-Control: no-store`; no athlete sports on candidates
+  until T4.
+  Review of #97 (subagent, approve with nits, 2026-11-17): R1 the 200-row cut and its order have a test
+  (`DuplicateFinder.MaxRows`); R2 no new test: `TenantAccessModeTests.Under_read_only_every_admin_endpoint_is_refused…`
+  already posts to every admin endpoint, the check included; R3 the evidence comment says `SAME_DATE_OF_BIRTH`
+  confirms a date the caller sent, and D5's "safe without `person.read_private`" sentence waits for Q42 (to answer
+  before T2b); N1 a comment at `AuthorityPattern`; N2 noted for S25. The reviewer's questions are Q44 (secondary
+  nationality) and Q45 (decided pairs stay hidden).
 
 ## Tech debt / follow-ups
 
@@ -471,14 +488,12 @@ tasks; two stale triggers moved. Each item names where it gets done.
   minimum only). Revisit with the People screen's search box. (S06-T7)
 - `RegistryDbContext` has one conflict error, `PERSON_CONCURRENCY_CONFLICT`: decide per-aggregate errors or a neutral
   code before organisations, teams and venues save through it (#95 Q1). (S07-T1)
-- Name keys: T2's plan tests "Okello-Owino" against "Okello Owino" at the duplicate thresholds; T2's validation
-  refuses a name whose key is empty (a name with no letter or digit, or only in a script outside the BMP) with a 422
-  (#95 Q2, R8). (S06-T2)
 - Managed PostgreSQL must allow-list the `pg_trgm` extension before Registry's first migration runs (#95 Q3). (first
   deployment, with Q41)
-- Validation field names are camelCased by their first letter only (`JsonNamingPolicy.CamelCase.ConvertName` on the
-  whole path), so `Address.Street` becomes `address.Street`: convert each path segment (#22 re-review N2). (S06-T2b,
-  the person's identifiers are the first nested request body)
+- Duplicate check (S06-T2a): like the directory's search, `similarity(name_key, …) >= 0.6` can't use the trigram
+  indexes, so each check filters the tenant's people, and it reads at most 200 matching rows before classifying
+  (identifier matches, the same name key, the same date of birth, then the closest name or alias). Fine at pilot size; revisit with imports (Data Exchange) or the
+  first tenant above a few ten thousand people. (Later)
 - `tenancy.demo.sports` (S05 D19: "the first slice whose demo data needs a sport"): S06's demo people have athlete
   profiles. (S06-T7d, D23)
 

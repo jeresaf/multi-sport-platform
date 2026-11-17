@@ -2736,6 +2736,110 @@
         }
       }
     },
+    "/api/admin/v1/people/duplicate-check": {
+      "post": {
+        "tags": [
+          "People"
+        ],
+        "summary": "Check a person against the registry for duplicates",
+        "description": "Compares a new or changed person with the people of the tenant named by `X-Tenant-Id`, whatever their status, and answers those who may be the same person, strongest first, at most 20. `EXACT_IDENTIFIER`: an external identifier with the same authority and value. `LIKELY`: the same date of birth and the same names in any order, or names at least 80 % similar. `POSSIBLE`: names at least 60 % similar and a date of birth missing, birth years within one year or the same nationality; the same names with another date of birth; or the same date of birth and last name. Names are also compared with aliases. `evidence` says why; it never carries the other person's date of birth. With `personId` (a person being changed), that person and everyone already decided \"not the same person\" as them are left out. Nothing is saved. A first or last name without a letter or a digit is PERSON_NAME_INVALID; the authorities NATIONAL_ID, NIN and PASSPORT are PERSON_EXTERNAL_ID_AUTHORITY_RESERVED.",
+        "operationId": "CheckPersonDuplicates",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckDuplicatesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckDuplicatesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_REQUEST",
+              "VALIDATION_MALFORMED_REQUEST"
+            ]
+          },
+          "422": {
+            "description": "Problem Details; `code`: `PERSON_EXTERNAL_ID_AUTHORITY_RESERVED`, `PERSON_NAME_INVALID`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "PERSON_EXTERNAL_ID_AUTHORITY_RESERVED",
+              "PERSON_NAME_INVALID"
+            ]
+          },
+          "404": {
+            "description": "Problem Details; `code`: `PERSON_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "PERSON_NOT_FOUND"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING",
+              "TENANT_READ_ONLY"
+            ]
+          }
+        }
+      }
+    },
     "/api/admin/v1/people/{personId}": {
       "get": {
         "tags": [
@@ -6631,6 +6735,29 @@
         "additionalProperties": false,
         "description": "The body of `subscription.cancel` (audit `REQUIRED_WITH_REASON`). The reason is kept permanently on the\ncancelled periods and in the audit trail and is not redacted: it must not contain personal data."
       },
+      "CandidateIdentifier": {
+        "required": [
+          "authority",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "authority": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "value": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "description": "An external identifier of the person to check: the authority's code and the value it gave."
+      },
       "CapabilitiesResponse": {
         "required": [
           "actions",
@@ -6846,6 +6973,85 @@
         "additionalProperties": false,
         "description": "The body of `suspend`, `archive` and `unarchive` (audit `REQUIRED_WITH_REASON`). The reason is kept\npermanently in the status history and the audit trail and is not redacted: it must not contain personal data."
       },
+      "CheckDuplicatesRequest": {
+        "required": [
+          "firstName",
+          "lastName"
+        ],
+        "type": "object",
+        "properties": {
+          "firstName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "lastName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "middleName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "otherNames": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "dateOfBirth": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "nationality": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "externalIdentifiers": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/CandidateIdentifier"
+            }
+          },
+          "personId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false,
+        "description": "The person to check (S06 D5): the names, date of birth, nationality and external identifiers a create or an update\nwould save. `personId` names the person being changed (S06 D8): that person is left out, and so is everyone\nalready decided \"not the same person\" as them (S06 D7)."
+      },
+      "CheckDuplicatesResponse": {
+        "required": [
+          "candidates"
+        ],
+        "type": "object",
+        "properties": {
+          "candidates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DuplicateCandidateResponse"
+            }
+          }
+        },
+        "description": "The duplicate check's answer (S06 D5): the existing people who may be the same person, strongest first, at most 20.\nIt carries no `PRIVATE` value: a birth year, never a date of birth."
+      },
       "ContestShape": {
         "enum": [
           "HEAD_TO_HEAD",
@@ -7006,6 +7212,86 @@
         },
         "additionalProperties": false,
         "description": "The body of `tenant.sport.disable` (audit `REQUIRED_WITH_REASON`). The reason is kept permanently on the\nenablement and in the audit trail and is not redacted: it must not contain personal data."
+      },
+      "DuplicateCandidateResponse": {
+        "required": [
+          "personId",
+          "displayName",
+          "birthYear",
+          "status",
+          "confidence",
+          "evidence"
+        ],
+        "type": "object",
+        "properties": {
+          "personId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "birthYear": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "status": {
+            "$ref": "#/components/schemas/PersonStatus"
+          },
+          "confidence": {
+            "$ref": "#/components/schemas/DuplicateConfidence"
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DuplicateEvidenceResponse"
+            }
+          }
+        },
+        "description": "A person who matched. `EXACT_IDENTIFIER` blocks creation; `LIKELY` and `POSSIBLE` need a reason to\nproceed. `status` marks an archived, inactive or deceased person."
+      },
+      "DuplicateConfidence": {
+        "enum": [
+          "POSSIBLE",
+          "LIKELY",
+          "EXACT_IDENTIFIER"
+        ],
+        "description": "How sure the duplicate check is that an existing person is the candidate (S06 D5), weakest first."
+      },
+      "DuplicateEvidenceCode": {
+        "enum": [
+          "SAME_EXTERNAL_ID",
+          "SAME_DATE_OF_BIRTH",
+          "BIRTH_YEAR_WITHIN_ONE",
+          "SAME_NAME_KEY",
+          "NAME_SIMILARITY",
+          "SAME_LAST_NAME",
+          "SAME_NATIONALITY",
+          "ALIAS_MATCH"
+        ],
+        "description": "Why a person matched. The answer never carries the other person's date of birth; `SAME_DATE_OF_BIRTH` confirms\na date the caller already sent."
+      },
+      "DuplicateEvidenceResponse": {
+        "required": [
+          "code",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/DuplicateEvidenceCode"
+          },
+          "value": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Why the person matched. `value`: the authority for `SAME_EXTERNAL_ID`, the whole percentage for\n`NAME_SIMILARITY`, otherwise null."
       },
       "EffectiveEntitlementResponse": {
         "required": [

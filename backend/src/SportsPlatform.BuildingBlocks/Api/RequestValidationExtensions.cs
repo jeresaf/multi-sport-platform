@@ -73,9 +73,19 @@ public static class RequestValidationExtensions
         var problem = error.ToProblem(string.Join(" ", result.Errors.Select(failure => failure.ErrorMessage)));
         problem.ProblemDetails.Extensions[ProblemFields.Errors] = result.Errors
             .Select(failure => new FieldError(
-                JsonNamingPolicy.CamelCase.ConvertName(failure.PropertyName),
+                FieldName(failure.PropertyName),
                 Error.IsCode(failure.ErrorCode) ? failure.ErrorCode : error.Code))
             .ToList();
         return problem;
+    }
+
+    /// <summary>
+    /// A validator's property path as the request's JSON names it: every segment camelCased, indexes kept
+    /// (<c>ExternalIdentifiers[0].Value</c> → <c>externalIdentifiers[0].value</c>).
+    /// </summary>
+    public static string FieldName(string propertyPath)
+    {
+        ArgumentNullException.ThrowIfNull(propertyPath);
+        return string.Join('.', propertyPath.Split('.').Select(JsonNamingPolicy.CamelCase.ConvertName));
     }
 }

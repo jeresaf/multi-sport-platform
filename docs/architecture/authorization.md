@@ -173,7 +173,10 @@ available while read-only; audit `NONE`) for `TENANT_OWNER`, `TENANT_ADMIN`, `RE
 `RESULTS_OFFICER`, `DATA_ENTRY` and `VIEWER`. It answers `INTERNAL` and `PUBLIC` fields: the birth year, `isMinor` (true unless the person is known to be an adult) and
 `ageStatus`, never the date of birth. `person.read_private` (`GET …/people/{id}/private`; available while read-only;
 audit `REQUIRED`, one entry per read naming the person by ID, no metadata) for `TENANT_OWNER`, `TENANT_ADMIN` and
-`REGISTRAR`. `SCORER` and `TEAM_MANAGER` hold neither in S06.
+`REGISTRAR`. `SCORER` and `TEAM_MANAGER` hold neither in S06. `person.duplicate_check` (`POST
+…/people/duplicate-check`, S06-T2a; audit `NONE`; not available while read-only) for `TENANT_OWNER`, `TENANT_ADMIN` and
+`REGISTRAR`: it is its own action because the check saves nothing, and every request of an audited action gets an
+audit entry (`person.create` is audited).
 
 | Role | Typical scope | Includes (summary) |
 |---|---|---|

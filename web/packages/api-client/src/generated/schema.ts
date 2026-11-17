@@ -614,6 +614,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/v1/people/duplicate-check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Check a person against the registry for duplicates
+         * @description Compares a new or changed person with the people of the tenant named by `X-Tenant-Id`, whatever their status, and answers those who may be the same person, strongest first, at most 20. `EXACT_IDENTIFIER`: an external identifier with the same authority and value. `LIKELY`: the same date of birth and the same names in any order, or names at least 80 % similar. `POSSIBLE`: names at least 60 % similar and a date of birth missing, birth years within one year or the same nationality; the same names with another date of birth; or the same date of birth and last name. Names are also compared with aliases. `evidence` says why; it never carries the other person's date of birth. With `personId` (a person being changed), that person and everyone already decided "not the same person" as them are left out. Nothing is saved. A first or last name without a letter or a digit is PERSON_NAME_INVALID; the authorities NATIONAL_ID, NIN and PASSPORT are PERSON_EXTERNAL_ID_AUTHORITY_RESERVED.
+         */
+        post: operations["CheckPersonDuplicates"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/v1/people/{personId}": {
         parameters: {
             query?: never;
@@ -1480,6 +1500,11 @@ export interface components {
         CancelSubscriptionRequest: {
             reason: null | string;
         };
+        /** @description An external identifier of the person to check: the authority's code and the value it gave. */
+        CandidateIdentifier: {
+            authority: null | string;
+            value: null | string;
+        };
         /**
          * @description The platform action codes the caller may perform, in ordinal order; Scope is always null (kept so
          *     the platform list has the shape it had in S03). The tenant list is TenantCapabilitiesResponse.
@@ -1551,6 +1576,30 @@ export interface components {
             /** Format: uint32 */
             version?: null | number;
         };
+        /**
+         * @description The person to check (S06 D5): the names, date of birth, nationality and external identifiers a create or an update
+         *     would save. `personId` names the person being changed (S06 D8): that person is left out, and so is everyone
+         *     already decided "not the same person" as them (S06 D7).
+         */
+        CheckDuplicatesRequest: {
+            firstName: null | string;
+            lastName: null | string;
+            middleName?: null | string;
+            otherNames?: null | string;
+            /** Format: date */
+            dateOfBirth?: null | string;
+            nationality?: null | string;
+            externalIdentifiers?: null | components["schemas"]["CandidateIdentifier"][];
+            /** Format: uuid */
+            personId?: null | string;
+        };
+        /**
+         * @description The duplicate check's answer (S06 D5): the existing people who may be the same person, strongest first, at most 20.
+         *     It carries no `PRIVATE` value: a birth year, never a date of birth.
+         */
+        CheckDuplicatesResponse: {
+            candidates: components["schemas"]["DuplicateCandidateResponse"][];
+        };
         /** @enum {unknown} */
         ContestShape: "HEAD_TO_HEAD" | "FIELD";
         CountRangeResponse: {
@@ -1599,6 +1648,39 @@ export interface components {
          */
         DisableSportRequest: {
             reason: null | string;
+        };
+        /**
+         * @description A person who matched. `EXACT_IDENTIFIER` blocks creation; `LIKELY` and `POSSIBLE` need a reason to
+         *     proceed. `status` marks an archived, inactive or deceased person.
+         */
+        DuplicateCandidateResponse: {
+            /** Format: uuid */
+            personId: string;
+            displayName: string;
+            /** Format: int32 */
+            birthYear: null | number;
+            status: components["schemas"]["PersonStatus"];
+            confidence: components["schemas"]["DuplicateConfidence"];
+            evidence: components["schemas"]["DuplicateEvidenceResponse"][];
+        };
+        /**
+         * @description How sure the duplicate check is that an existing person is the candidate (S06 D5), weakest first.
+         * @enum {unknown}
+         */
+        DuplicateConfidence: "POSSIBLE" | "LIKELY" | "EXACT_IDENTIFIER";
+        /**
+         * @description Why a person matched. The answer never carries the other person's date of birth; `SAME_DATE_OF_BIRTH` confirms
+         *     a date the caller already sent.
+         * @enum {unknown}
+         */
+        DuplicateEvidenceCode: "SAME_EXTERNAL_ID" | "SAME_DATE_OF_BIRTH" | "BIRTH_YEAR_WITHIN_ONE" | "SAME_NAME_KEY" | "NAME_SIMILARITY" | "SAME_LAST_NAME" | "SAME_NATIONALITY" | "ALIAS_MATCH";
+        /**
+         * @description Why the person matched. `value`: the authority for `SAME_EXTERNAL_ID`, the whole percentage for
+         *     `NAME_SIMILARITY`, otherwise null.
+         */
+        DuplicateEvidenceResponse: {
+            code: components["schemas"]["DuplicateEvidenceCode"];
+            value: null | string;
         };
         /**
          * @description A tenant's value of one entitlement today and where it comes from: `DEFAULT`, `PLAN` (the current period's
@@ -4597,6 +4679,75 @@ export interface operations {
             };
             /** @description Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING` */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    CheckPersonDuplicates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CheckDuplicatesRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckDuplicatesResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `PERSON_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `PERSON_EXTERNAL_ID_AUTHORITY_RESERVED`, `PERSON_NAME_INVALID` */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

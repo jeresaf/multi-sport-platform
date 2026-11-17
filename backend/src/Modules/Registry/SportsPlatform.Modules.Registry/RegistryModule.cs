@@ -5,6 +5,7 @@ using SportsPlatform.BuildingBlocks.Modules;
 using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.Modules.Registry.Contracts.People;
 using SportsPlatform.Modules.Registry.Features.People;
+using SportsPlatform.Modules.Registry.Features.People.CheckDuplicates;
 using SportsPlatform.Modules.Registry.Features.People.GetPerson;
 using SportsPlatform.Modules.Registry.Features.People.GetPersonPrivate;
 using SportsPlatform.Modules.Registry.Features.People.ListPeople;
@@ -16,7 +17,7 @@ namespace SportsPlatform.Modules.Registry;
 /// <summary>
 /// Registry: the canonical records of people (S06), then organisations, teams and venues (S07)
 /// (docs/architecture/modules.md). Every table is tenant-owned. S06-T1b: the people reads and
-/// <see cref="IPeopleDirectory"/>.
+/// <see cref="IPeopleDirectory"/>. S06-T2a: the duplicate check.
 /// </summary>
 public sealed class RegistryModule : IModule
 {
@@ -36,7 +37,10 @@ public sealed class RegistryModule : IModule
         services.AddScoped<GetPersonPrivateHandler>();
         services.AddScoped<ListPersonStatusChangesHandler>();
         services.AddScoped<IPeopleDirectory, PeopleDirectory>();
+        services.AddScoped<DuplicateFinder>();
+        services.AddScoped<CheckDuplicatesHandler>();
         services.AddSingleton<IValidator<ListPeopleRequest>, ListPeopleRequestValidator>();
+        services.AddSingleton<IValidator<CheckDuplicatesRequest>, CheckDuplicatesRequestValidator>();
     }
 
     public void MapEndpoints(ApiEndpointGroups groups)
@@ -45,6 +49,7 @@ public sealed class RegistryModule : IModule
 
         var people = PeopleEndpoints.Group(groups.Admin);
         ListPeopleEndpoint.Map(people);
+        CheckDuplicatesEndpoint.Map(people);
         GetPersonEndpoint.Map(people);
         GetPersonPrivateEndpoint.Map(people);
         ListPersonStatusChangesEndpoint.Map(people);

@@ -55,9 +55,13 @@ public static class IdentityRoles
     // A person's private data, audited per read (S06 D21): those who run the tenant and the registrar.
     private const string _personReadPrivate = "person.read_private";
 
+    // Changing the registry's people (S06 D21): those who run the tenant and the registrar. The duplicate check is its
+    // own unaudited action (S06-T2a).
+    private const string _personDuplicateCheck = "person.duplicate_check";
+
     private static readonly string[] _tenantAdministration =
     [
-        _personRead, _personReadPrivate,
+        _personRead, _personReadPrivate, _personDuplicateCheck,
         _tenantSettingsRead, _tenantSettingsUpdate, _capabilitiesRead, _sportRead, _formatRead, _rulesetRead, _tenantSportRead,
         "tenant.sport.enable", "tenant.sport.disable", _membershipRead, "membership.suspend", "membership.restore", "membership.remove", "role.assign", "role.revoke",
         "membership.invite", "invitation.revoke", _subscriptionRead,
@@ -110,7 +114,7 @@ public static class IdentityRoles
             _tenantAdministration, [AssignmentScope.Tenant]),
         new(Registrar, RoleScope.Tenant,
             "People, organisations, teams and venues: create, update, duplicate review; no merges.",
-            [.. _tenantContext, _personRead, _personReadPrivate], [AssignmentScope.Tenant]),
+            [.. _tenantContext, _personRead, _personReadPrivate, _personDuplicateCheck], [AssignmentScope.Tenant]),
         new(CompetitionManager, RoleScope.Tenant,
             "Competitions, editions, registrations, roster approval, stages, fixtures, officials, contest admin, standings recalculation.",
             [.. _tenantContext, _personRead], [AssignmentScope.Tenant, AssignmentScope.Competition]),
