@@ -476,3 +476,7 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   for its format only (create checks it against the reference data). Candidates carry no athlete sports until T4.
   Scores against the demo data: "Ssekandi John" same key; Peter Ochieng and Peter Ochieng Okot 0.78; "Okello-Owino"
   and "Okello Owino" 0.82 with a first name (0.71 alone).
+  Pre-review: a decided pair that shares an external identifier is still answered as `EXACT_IDENTIFIER`;
+  `SAME_LAST_NAME` is given whenever the sibling rule holds and the name keys differ; the rows read before
+  classifying keep identifier, same-key and same-birth-date matches first. Q42 (the check as an unaudited way to
+  learn a date of birth) and Q43 (a future date of birth) are open for T2b.
