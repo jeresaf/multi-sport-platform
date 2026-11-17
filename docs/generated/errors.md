@@ -47,6 +47,7 @@ the message is the default title and may change.
 | `PERSON_EXTERNAL_ID_EXISTS` | 409 | Another person already has this external identifier (the same authority and value). | Registry |
 | `PERSON_NAME_INVALID` | 422 | A first and a last name each need at least one letter or digit. | Registry |
 | `PERSON_NOT_FOUND` | 404 | The person was not found. | Registry |
+| `PERSON_STATUS_INVALID` | 409 | The person's current status doesn't allow this change. | Registry |
 | `PLATFORM_CONCURRENCY_CONFLICT` | 409 | The record was changed by someone else. Reload and try again. | Platform |
 | `PLATFORM_METHOD_NOT_ALLOWED` | 405 | This endpoint does not support the HTTP method. | BuildingBlocks |
 | `PLATFORM_OUTBOX_MESSAGE_NOT_FAILED` | 409 | Only a FAILED outbox message can be re-driven. | Platform |

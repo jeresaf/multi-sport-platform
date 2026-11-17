@@ -515,7 +515,7 @@ public sealed class DuplicateCheckTests(PostgresFixture fixture) : DatabaseTest(
         await SavePersonAsync(App.Services, tenantId, _patrickOkelloOwino, Ct);
         var lillian = await SavePersonAsync(
             App.Services, tenantId, new PersonBiodata("Lillian", "Namaganda", DateOfBirth: new DateOnly(2010, 6, 14)), Ct);
-        await SetStatusAsync(App.Services, tenantId, lillian.Id, PersonStatus.Archived, Ct);
+        await ChangeStatusAsync(App.Services, tenantId, lillian.Id, PersonTransition.Archive, Ct);
 
         // Denis has a former name that still matches and a nickname that was removed.
         await using var scope = ScopeFor(App.Services, tenantId, out var context);

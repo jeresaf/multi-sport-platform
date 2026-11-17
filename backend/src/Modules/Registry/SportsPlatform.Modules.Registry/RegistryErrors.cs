@@ -10,6 +10,9 @@ public static class RegistryErrors
 
     public static readonly Error PersonNotFound = new("PERSON_NOT_FOUND", "The person was not found.", ErrorKind.NotFound);
 
+    public static readonly Error StatusInvalid = new(
+        "PERSON_STATUS_INVALID", "The person's current status doesn't allow this change.", ErrorKind.Conflict);
+
     public static readonly Error NameInvalid = new(
         "PERSON_NAME_INVALID", "A first and a last name each need at least one letter or digit.", ErrorKind.Unprocessable);
 

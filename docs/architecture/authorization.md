@@ -181,6 +181,11 @@ audit entry (`person.create` is audited). Its evidence can confirm a date of bir
 read (Q42). `person.create` (`POST …/people`, S06-T2b; audit `REQUIRED`, with the override reason; not available while
 read-only) for `TENANT_OWNER`, `TENANT_ADMIN` and `REGISTRAR`; it needs the check's token, so it declares
 `grantedWith: person.duplicate_check` (a role granting create also grants the check, and so the private read).
+`person.update` (`PUT …/people/{id}`, S06-T3a; audit `REQUIRED`, with the override reason when the check found people;
+`grantedWith: person.duplicate_check, person.read`) and the lifecycle actions (`POST …/people/{id}/…`;
+`grantedWith: person.read`): `person.deactivate` and `person.reactivate` (audit `REQUIRED`, optional reason), `person.archive`,
+`person.unarchive` and `person.mark_deceased` (`REQUIRED_WITH_REASON`), all for `TENANT_OWNER`, `TENANT_ADMIN` and
+`REGISTRAR`, none available while read-only.
 
 | Role | Typical scope | Includes (summary) |
 |---|---|---|

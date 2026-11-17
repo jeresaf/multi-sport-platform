@@ -169,6 +169,18 @@ new editions; existing editions keep working. `ARCHIVED` = hidden from pickers, 
 
 Merged persons accept no new relationships. Archive never deletes history.
 
+### Person (stored, as built in S06-T3a)
+
+```text
+ACTIVE ──deactivate (optional reason)──► INACTIVE ──reactivate (optional reason)──► ACTIVE
+ACTIVE | INACTIVE ──archive (reason)──► ARCHIVED ──unarchive (reason)──► ACTIVE
+ACTIVE | INACTIVE ──mark-deceased (reason)──► DECEASED   (final in S06)
+```
+
+Every change writes a row to `registry.person_status_changes` (from, to, reason, actor, time); any other change is
+`409 PERSON_STATUS_INVALID`. `MERGED` comes with merges (S25). An `ARCHIVED` or `DECEASED` person's biodata can still
+be corrected; it takes no new profile, alias, identifier, consent or photo (S06 D9; owner, S06-T3 plan).
+
 ---
 
 ## Team Operations

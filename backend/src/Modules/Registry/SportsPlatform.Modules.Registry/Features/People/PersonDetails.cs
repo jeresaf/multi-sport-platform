@@ -30,6 +30,16 @@ public interface IPersonDetails
     IReadOnlyList<IIdentifierDetails?>? ExternalIdentifiers { get; }
 }
 
+/// <summary>The whole biodata a create or an update saves (S06 D2): the details the check compares and the rest.</summary>
+public interface IPersonBiodataDetails : IPersonDetails
+{
+    string? DisplayName { get; }
+
+    int? HeightCm { get; }
+
+    decimal? WeightKg { get; }
+}
+
 /// <summary>An external identifier as sent: the authority's code and the value it gave.</summary>
 public interface IIdentifierDetails
 {

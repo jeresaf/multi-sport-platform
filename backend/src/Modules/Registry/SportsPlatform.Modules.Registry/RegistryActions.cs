@@ -49,4 +49,46 @@ public static class RegistryActions
         since: "S06",
         scopableBy: [AssignmentScope.Tenant],
         grantedWith: ["person.duplicate_check", "person.read"]);
+
+    /// <summary>
+    /// A change to what the duplicate check compares needs its token, so it is only granted with the check; it answers
+    /// the person as <c>person.read</c> does, so it is only granted with that read too (as <c>person.create</c>).
+    /// </summary>
+    public static readonly ActionDefinition PersonUpdate = new(
+        "person.update",
+        "Change a person's biodata; a change to the names, date of birth or nationalities needs a duplicate check, and proceeding past possible duplicates needs a reason.",
+        ActionScope.Tenant,
+        AuditRequirement.Required,
+        since: "S06",
+        scopableBy: [AssignmentScope.Tenant],
+        grantedWith: ["person.duplicate_check", "person.read"]);
+
+    public static readonly ActionDefinition PersonDeactivate = Lifecycle(
+        "person.deactivate", "Mark an active person inactive, with an optional reason.", AuditRequirement.Required);
+
+    public static readonly ActionDefinition PersonReactivate = Lifecycle(
+        "person.reactivate", "Make an inactive person active again, with an optional reason.", AuditRequirement.Required);
+
+    public static readonly ActionDefinition PersonArchive = Lifecycle(
+        "person.archive",
+        "Archive an active or inactive person, with a reason: the record and its history stay, and it takes no new profile, alias, identifier, consent or photo.",
+        AuditRequirement.RequiredWithReason);
+
+    public static readonly ActionDefinition PersonUnarchive = Lifecycle(
+        "person.unarchive", "Make an archived person active again, with a reason.", AuditRequirement.RequiredWithReason);
+
+    public static readonly ActionDefinition PersonMarkDeceased = Lifecycle(
+        "person.mark_deceased",
+        "Record that an active or inactive person has died, with a reason; final: the record and its history stay.",
+        AuditRequirement.RequiredWithReason);
+
+    // The lifecycle actions answer the person as person.read does, so they are only granted with that read.
+    private static ActionDefinition Lifecycle(string code, string description, AuditRequirement audit) => new(
+        code,
+        description,
+        ActionScope.Tenant,
+        audit,
+        since: "S06",
+        scopableBy: [AssignmentScope.Tenant],
+        grantedWith: ["person.read"]);
 }

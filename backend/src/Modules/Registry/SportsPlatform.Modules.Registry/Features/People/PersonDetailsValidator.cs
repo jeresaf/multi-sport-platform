@@ -66,6 +66,32 @@ public sealed class PersonDetailsValidator<T> : AbstractValidator<T>
         .WithMessage($"'{field}' must be a country of the reference data.");
 }
 
+/// <summary>
+/// The shape of <see cref="IPersonBiodataDetails"/>, shared by create and update (S06 D2, D8):
+/// <see cref="PersonDetailsValidator{T}"/> and the display name, height and weight bounds. Scoped: it reads the
+/// reference data.
+/// </summary>
+public sealed class PersonBiodataValidator<T> : AbstractValidator<T>
+    where T : IPersonBiodataDetails
+{
+    public PersonBiodataValidator(IReferenceData reference)
+    {
+        Include(new PersonDetailsValidator<T>(reference));
+        RuleFor(request => request.DisplayName)
+            .Must(name => name is null || name.Trim().Length <= PersonBiodata.DisplayNameMaxLength)
+            .WithMessage($"'displayName' must be at most {PersonBiodata.DisplayNameMaxLength} characters.");
+        RuleFor(request => request.HeightCm)
+            .InclusiveBetween(PersonBiodata.MinHeightCm, PersonBiodata.MaxHeightCm)
+            .WithMessage($"'heightCm' must be {PersonBiodata.MinHeightCm}–{PersonBiodata.MaxHeightCm}.")
+            .When(request => request.HeightCm is not null);
+        RuleFor(request => request.WeightKg)
+            .Must(weight => weight >= PersonBiodata.MinWeightKg && weight <= PersonBiodata.MaxWeightKg
+                && decimal.Round(weight!.Value, 1) == weight)
+            .WithMessage($"'weightKg' must be {PersonBiodata.MinWeightKg}–{PersonBiodata.MaxWeightKg} with at most one decimal.")
+            .When(request => request.WeightKg is not null);
+    }
+}
+
 /// <summary>The validator's patterns (a generated regex can't be declared in a generic type).</summary>
 internal static partial class PersonDetailsPatterns
 {

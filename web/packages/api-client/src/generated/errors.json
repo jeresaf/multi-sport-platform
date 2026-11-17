@@ -247,6 +247,12 @@
       "owner": "Registry"
     },
     {
+      "code": "PERSON_STATUS_INVALID",
+      "status": 409,
+      "message": "The person's current status doesn't allow this change.",
+      "owner": "Registry"
+    },
+    {
       "code": "PLATFORM_CONCURRENCY_CONFLICT",
       "status": 409,
       "message": "The record was changed by someone else. Reload and try again.",

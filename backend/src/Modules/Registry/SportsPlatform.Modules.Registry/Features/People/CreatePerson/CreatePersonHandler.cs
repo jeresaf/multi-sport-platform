@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.BuildingBlocks.Auditing;
-using SportsPlatform.BuildingBlocks.Privacy;
 using SportsPlatform.BuildingBlocks.Tenancy;
 using SportsPlatform.Modules.Registry.Domain.People;
 using SportsPlatform.Modules.Registry.Domain.People.Duplicates;
@@ -11,17 +10,6 @@ using SportsPlatform.Modules.Registry.Infrastructure;
 using SportsPlatform.Modules.Registry.Infrastructure.Configurations;
 
 namespace SportsPlatform.Modules.Registry.Features.People.CreatePerson;
-
-/// <summary>
-/// The audit metadata of a create (S06 D6): the people the check found, by ID, with their confidence. No names, no
-/// dates; the reason to proceed is the entry's reason.
-/// </summary>
-public sealed record CreatePersonAuditMetadata(
-    [property: PersonalData(PersonalDataClass.Internal)] IReadOnlyList<DuplicateCandidateAudit> Candidates);
-
-public sealed record DuplicateCandidateAudit(
-    [property: PersonalData(PersonalDataClass.Internal)] Guid PersonId,
-    [property: PersonalData(PersonalDataClass.Internal)] DuplicateConfidence Confidence);
 
 /// <summary>
 /// Creates a person after a duplicate check (S06 D6, D7). The details' own rules come first, then the token. In a
@@ -66,7 +54,7 @@ public sealed class CreatePersonHandler(
 
         // Read after the lock: a new statement, so in READ COMMITTED it sees every person committed before it.
         var candidates = await finder.FindAsync(input, cancellationToken);
-        audit.Describe(metadata: new CreatePersonAuditMetadata(
+        audit.Describe(metadata: new DuplicateReviewAuditMetadata(
             [.. candidates.Select(candidate => new DuplicateCandidateAudit(candidate.PersonId, candidate.Match.Confidence))]));
 
         if (candidates.Any(candidate => candidate.Match.Confidence == DuplicateConfidence.ExactIdentifier))

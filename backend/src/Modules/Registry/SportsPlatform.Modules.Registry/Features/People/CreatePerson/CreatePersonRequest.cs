@@ -23,7 +23,7 @@ public sealed record CreatePersonRequest(
     decimal? WeightKg = null,
     IReadOnlyList<NewExternalIdentifier>? ExternalIdentifiers = null,
     string? CheckToken = null,
-    string? OverrideReason = null) : IPersonDetails
+    string? OverrideReason = null) : IPersonBiodataDetails
 {
     public const int CheckTokenMaxLength = 4000;
 
