@@ -43,8 +43,12 @@ public sealed class AthleteProfileTests(PostgresFixture fixture) : DatabaseTest(
 
         var added = await OkAsync(await registrar.PostAsJsonAsync(ProfilesPath(person), new
         {
-            variant = TestballFull, primaryPosition = "TB_MID", otherPositions = _wingAndStriker,
-            dominantSide = "RIGHT", publicName = " J.  Ssekandi ", version = before,
+            variant = TestballFull,
+            primaryPosition = "TB_MID",
+            otherPositions = _wingAndStriker,
+            dominantSide = "RIGHT",
+            publicName = " J.  Ssekandi ",
+            version = before,
         }, Ct));
 
         added.GetProperty("version").GetUInt32().ShouldNotBe(before);

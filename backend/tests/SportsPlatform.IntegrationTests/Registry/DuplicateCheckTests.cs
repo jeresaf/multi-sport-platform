@@ -337,7 +337,7 @@ public sealed class DuplicateCheckTests(PostgresFixture fixture) : DatabaseTest(
         (candidates[0].GetProperty("personId").GetGuid(), candidates[0].GetProperty("birthYear").GetInt32()).ShouldBe((john.Id, 2001));
         candidates[1].GetProperty("birthYear").GetInt32().ShouldBe(2002);
         candidates[0].EnumerateObject().Select(property => property.Name)
-            .ShouldBe(["personId", "displayName", "birthYear", "status", "confidence", "evidence"]);
+            .ShouldBe(["personId", "displayName", "birthYear", "status", "confidence", "evidence", "athleteVariants"]);
         text.ShouldNotContain("2001-04-12");
         text.ShouldNotContain("2002-11-30");
         text.ShouldNotContain("dateOfBirth", Case.Insensitive);
