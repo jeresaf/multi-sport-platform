@@ -71,6 +71,17 @@ internal sealed class PersonConfiguration : IEntityTypeConfiguration<Person>
             .HasPrincipalKey(p => new { p.TenantId, p.Id })
             .OnDelete(DeleteBehavior.Restrict);
         builder.Navigation(p => p.StatusHistory).HasField("_statusHistory").UsePropertyAccessMode(PropertyAccessMode.Field);
+        builder.HasMany(p => p.AthleteProfiles).WithOne()
+            .HasForeignKey(a => new { a.TenantId, a.PersonId })
+            .HasPrincipalKey(p => new { p.TenantId, p.Id })
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.Navigation(p => p.AthleteProfiles).HasField("_athleteProfiles").UsePropertyAccessMode(PropertyAccessMode.Field);
+        builder.HasMany(p => p.ProfileStatusHistory).WithOne()
+            .HasForeignKey(c => new { c.TenantId, c.PersonId })
+            .HasPrincipalKey(p => new { p.TenantId, p.Id })
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.Navigation(p => p.ProfileStatusHistory).HasField("_profileStatusHistory")
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
 
         builder.HasIndex(p => p.NameKey).HasMethod("gin").HasOperators("gin_trgm_ops").HasDatabaseName(NameKeyIndex);
         builder.HasIndex(p => new { p.TenantId, p.LastNameKey, p.FirstNameKey, p.Id }).HasDatabaseName(DirectoryIndex);
