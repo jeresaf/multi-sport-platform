@@ -17,7 +17,6 @@ using static SportsPlatform.IntegrationTests.Identity.MembershipTestData;
 using static SportsPlatform.IntegrationTests.Registry.PeopleRequests;
 using static SportsPlatform.IntegrationTests.Registry.RegistryTestData;
 using ContractStatus = SportsPlatform.Modules.Registry.Contracts.People.PersonStatus;
-using PersonStatus = SportsPlatform.Modules.Registry.Domain.People.PersonStatus;
 
 namespace SportsPlatform.IntegrationTests.Registry;
 
@@ -38,7 +37,7 @@ public sealed class PeopleReadTests(PostgresFixture fixture) : DatabaseTest(fixt
         }
 
         var ivan = await SavePersonAsync(App.Services, kmsa, IvanMukasa, Ct);
-        await SetStatusAsync(App.Services, kmsa, ivan.Id, PersonStatus.Archived, Ct);
+        await ChangeStatusAsync(App.Services, kmsa, ivan.Id, PersonTransition.Archive, Ct);
 
         var page = await registrar.ReadJsonAsync(PeoplePath, Ct);
 
@@ -350,7 +349,7 @@ public sealed class PeopleReadTests(PostgresFixture fixture) : DatabaseTest(fixt
         var john = await SavePersonAsync(App.Services, kmsa, JohnSsekandi, Ct);
         var brenda = await SavePersonAsync(App.Services, kmsa, BrendaAkello, Ct);
         var ivan = await SavePersonAsync(App.Services, kmsa, IvanMukasa, Ct);
-        await SetStatusAsync(App.Services, kmsa, ivan.Id, PersonStatus.Archived, Ct);
+        await ChangeStatusAsync(App.Services, kmsa, ivan.Id, PersonTransition.Archive, Ct);
 
         var summaries = await DirectoryAsync(kmsa, john.Id, brenda.Id, ivan.Id, ivan.Id, Guid.CreateVersion7());
 

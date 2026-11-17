@@ -59,10 +59,15 @@ public static class IdentityRoles
     // own unaudited action (S06-T2a).
     private const string _personDuplicateCheck = "person.duplicate_check";
     private const string _personCreate = "person.create";
+    private static readonly string[] _personChanges =
+    [
+        _personDuplicateCheck, _personCreate, "person.update", "person.deactivate", "person.reactivate", "person.archive",
+        "person.unarchive", "person.mark_deceased",
+    ];
 
     private static readonly string[] _tenantAdministration =
     [
-        _personRead, _personReadPrivate, _personDuplicateCheck, _personCreate,
+        _personRead, _personReadPrivate, .. _personChanges,
         _tenantSettingsRead, _tenantSettingsUpdate, _capabilitiesRead, _sportRead, _formatRead, _rulesetRead, _tenantSportRead,
         "tenant.sport.enable", "tenant.sport.disable", _membershipRead, "membership.suspend", "membership.restore", "membership.remove", "role.assign", "role.revoke",
         "membership.invite", "invitation.revoke", _subscriptionRead,
@@ -115,7 +120,7 @@ public static class IdentityRoles
             _tenantAdministration, [AssignmentScope.Tenant]),
         new(Registrar, RoleScope.Tenant,
             "People, organisations, teams and venues: create, update, duplicate review; no merges.",
-            [.. _tenantContext, _personRead, _personReadPrivate, _personDuplicateCheck, _personCreate], [AssignmentScope.Tenant]),
+            [.. _tenantContext, _personRead, _personReadPrivate, .. _personChanges], [AssignmentScope.Tenant]),
         new(CompetitionManager, RoleScope.Tenant,
             "Competitions, editions, registrations, roster approval, stages, fixtures, officials, contest admin, standings recalculation.",
             [.. _tenantContext, _personRead], [AssignmentScope.Tenant, AssignmentScope.Competition]),

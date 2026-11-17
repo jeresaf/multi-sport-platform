@@ -15,6 +15,8 @@ internal static class PeopleRequests
 
     public static string PrivatePath(Guid personId) => $"{PeoplePath}/{personId}/private";
 
+    public static string StatusPath(Guid personId, string transition) => $"{PeoplePath}/{personId}/{transition}";
+
     public static string StatusChangesPath(Guid personId) => $"{PeoplePath}/{personId}/status-changes";
 
     public static async Task<JsonElement> ReadJsonAsync(this HttpClient client, string path, CancellationToken cancellationToken)
@@ -27,4 +29,28 @@ internal static class PeopleRequests
     /// <summary>The display names of a page of the directory, in the order answered.</summary>
     public static List<string?> Names(this JsonElement page) =>
         [.. page.GetProperty("items").EnumerateArray().Select(item => item.GetProperty("displayName").GetString())];
+
+    public static async Task<JsonElement> CheckAsync(HttpClient client, object body)
+    {
+        using var response = await client.PostAsJsonAsync(DuplicateCheckPath, body, TestContext.Current.CancellationToken);
+        response.StatusCode.ShouldBe(HttpStatusCode.OK, await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+        return await response.Content.ReadFromJsonAsync<JsonElement>(TestContext.Current.CancellationToken);
+    }
+
+    public static async Task<string> CheckTokenAsync(HttpClient client, object body) =>
+        (await CheckAsync(client, body)).GetProperty("checkToken").GetString()!;
+
+    public static List<(string?, string?)> Fields(JsonElement problem) =>
+    [
+        .. problem.GetProperty("errors").EnumerateArray()
+            .Select(error => (error.GetProperty("field").GetString(), error.GetProperty("code").GetString())),
+    ];
+
+    /// <summary>The body with one more member, or one replaced.</summary>
+    public static Dictionary<string, object?> With(object body, string name, object? value)
+    {
+        var merged = JsonSerializer.Deserialize<Dictionary<string, object?>>(JsonSerializer.Serialize(body))!;
+        merged[name] = value;
+        return merged;
+    }
 }

@@ -1,5 +1,6 @@
 using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.BuildingBlocks.Domain;
+using SportsPlatform.BuildingBlocks.Results;
 
 namespace SportsPlatform.Modules.Registry.Domain.People;
 
@@ -93,6 +94,56 @@ public sealed class Person : AggregateRoot, ITenantOwned
         person.Apply(biodata);
         person._statusHistory.Add(new PersonStatusChange(person.Id, null, person.Status, null, actor, now));
         return person;
+    }
+
+    /// <summary>
+    /// Replaces the biodata (S06 D8). The use case has validated it and, when the names, date of birth or nationalities
+    /// changed (<see cref="ChangesIdentity"/>), run the duplicate check. The status, source and profile flag stay.
+    /// </summary>
+    public void Update(PersonBiodata biodata)
+    {
+        ArgumentNullException.ThrowIfNull(biodata);
+        Apply(biodata);
+    }
+
+    /// <summary>
+    /// Whether <paramref name="biodata"/> changes what the duplicate check compares (S06 D5, D8): the name key, the
+    /// normalised last name, the date of birth or a nationality. A change of case, accents or punctuation in a name
+    /// leaves the keys as they are and needs no check; the display name, gender, height and weight never do.
+    /// </summary>
+    public bool ChangesIdentity(PersonBiodata biodata)
+    {
+        ArgumentNullException.ThrowIfNull(biodata);
+        return NameNormaliser.NameKey(biodata.FirstName, biodata.MiddleName, biodata.LastName, biodata.OtherNames) != NameKey
+            || NameNormaliser.Normalise(biodata.LastName) != LastNameKey
+            || biodata.DateOfBirth != DateOfBirth
+            || biodata.Nationality != Nationality
+            || biodata.SecondaryNationality != SecondaryNationality;
+    }
+
+    /// <summary>
+    /// Moves the person along the lifecycle (S06 D9; docs/domain/state-machines.md, Registry) and writes a history row.
+    /// A transition the current status doesn't allow is <c>PERSON_STATUS_INVALID</c>. <paramref name="reason"/> is
+    /// required where <see cref="PersonTransitions.NeedsReason"/> says so (the endpoint has validated it).
+    /// </summary>
+    public Result ChangeStatus(PersonTransition transition, string? reason, ICurrentActor actor, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(actor);
+        var trimmed = string.IsNullOrWhiteSpace(reason) ? null : reason.Trim();
+        if (PersonTransitions.NeedsReason(transition) && trimmed is null)
+        {
+            throw new ArgumentException("This transition needs a reason.", nameof(reason));
+        }
+
+        if (PersonTransitions.Target(transition, Status) is not { } to)
+        {
+            return Result.Failure(RegistryErrors.StatusInvalid);
+        }
+
+        var from = Status;
+        Status = to;
+        _statusHistory.Add(new PersonStatusChange(Id, from, to, trimmed, actor, now));
+        return Result.Success();
     }
 
     /// <summary>Adds an alias with its own name key, so the person is found and matched under that name too (S06 D10).</summary>

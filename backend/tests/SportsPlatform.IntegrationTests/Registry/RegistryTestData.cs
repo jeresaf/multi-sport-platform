@@ -106,16 +106,13 @@ internal static class RegistryTestData
         return personId!.Value;
     }
 
-    /// <summary>
-    /// Moves a person to <paramref name="status"/> in the table: the person's status commands come with S06-T3, and the
-    /// reads must already show and filter every state.
-    /// </summary>
-    public static async Task SetStatusAsync(
-        IServiceProvider services, Guid tenantId, Guid personId, PersonStatus status, CancellationToken cancellationToken)
+    /// <summary>Moves a person along <paramref name="transition"/> as the system, with a reason (S06 D9).</summary>
+    public static async Task ChangeStatusAsync(
+        IServiceProvider services, Guid tenantId, Guid personId, PersonTransition transition, CancellationToken cancellationToken)
     {
         await using var scope = ScopeFor(services, tenantId, out var context);
-        var name = status.ToString().ToUpperInvariant();
-        (await context.Database.ExecuteSqlAsync(
-            $"UPDATE registry.persons SET status = {name} WHERE id = {personId}", cancellationToken)).ShouldBe(1);
+        var person = await context.Set<Person>().SingleAsync(p => p.Id == personId, cancellationToken);
+        person.ChangeStatus(transition, "Left the association", SystemActor.Instance, Now).IsSuccess.ShouldBeTrue();
+        await context.SaveChangesAsync(cancellationToken);
     }
 }

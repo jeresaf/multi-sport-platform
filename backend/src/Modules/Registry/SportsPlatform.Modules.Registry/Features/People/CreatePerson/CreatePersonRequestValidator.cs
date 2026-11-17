@@ -1,12 +1,11 @@
 using FluentValidation;
 using SportsPlatform.Modules.Platform.Contracts.Reference;
-using SportsPlatform.Modules.Registry.Domain.People;
 using SportsPlatform.Modules.Registry.Domain.People.Duplicates;
 
 namespace SportsPlatform.Modules.Registry.Features.People.CreatePerson;
 
 /// <summary>
-/// The request's shape: <see cref="PersonDetailsValidator{T}"/>, the display name, height and weight bounds, an
+/// The request's shape: <see cref="PersonBiodataValidator{T}"/> (the details, display name, height and weight), an
 /// identifier sent once, and a reason that isn't blank. A missing token is the handler's
 /// (<c>PERSON_DUPLICATE_CHECK_REQUIRED</c>). Scoped: it reads the reference data.
 /// </summary>
@@ -14,19 +13,7 @@ public sealed class CreatePersonRequestValidator : AbstractValidator<CreatePerso
 {
     public CreatePersonRequestValidator(IReferenceData reference)
     {
-        Include(new PersonDetailsValidator<CreatePersonRequest>(reference));
-        RuleFor(request => request.DisplayName)
-            .Must(name => name is null || name.Trim().Length <= PersonBiodata.DisplayNameMaxLength)
-            .WithMessage($"'displayName' must be at most {PersonBiodata.DisplayNameMaxLength} characters.");
-        RuleFor(request => request.HeightCm)
-            .InclusiveBetween(PersonBiodata.MinHeightCm, PersonBiodata.MaxHeightCm)
-            .WithMessage($"'heightCm' must be {PersonBiodata.MinHeightCm}–{PersonBiodata.MaxHeightCm}.")
-            .When(request => request.HeightCm is not null);
-        RuleFor(request => request.WeightKg)
-            .Must(weight => weight >= PersonBiodata.MinWeightKg && weight <= PersonBiodata.MaxWeightKg
-                && decimal.Round(weight!.Value, 1) == weight)
-            .WithMessage($"'weightKg' must be {PersonBiodata.MinWeightKg}–{PersonBiodata.MaxWeightKg} with at most one decimal.")
-            .When(request => request.WeightKg is not null);
+        Include(new PersonBiodataValidator<CreatePersonRequest>(reference));
         RuleFor(request => request.ExternalIdentifiers)
             .Must(identifiers => identifiers!
                 .GroupBy(identifier => (identifier.Authority, identifier.Value?.Trim()))

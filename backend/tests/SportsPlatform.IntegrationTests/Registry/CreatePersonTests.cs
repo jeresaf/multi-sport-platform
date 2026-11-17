@@ -383,35 +383,11 @@ public sealed class CreatePersonTests(PostgresFixture fixture) : DatabaseTest(fi
             .SqlQuery<int>($"SELECT count(*)::int AS \"Value\" FROM pg_locks WHERE locktype = 'advisory' AND NOT granted AND database = (SELECT oid FROM pg_database WHERE datname = current_database())")
             .SingleAsync(Ct);
 
-    private static async Task<JsonElement> CheckAsync(HttpClient client, object body)
-    {
-        using var response = await client.PostAsJsonAsync(DuplicateCheckPath, body, Ct);
-        response.StatusCode.ShouldBe(HttpStatusCode.OK, await response.Content.ReadAsStringAsync(Ct));
-        return await response.Content.ReadFromJsonAsync<JsonElement>(Ct);
-    }
-
-    private static async Task<string> CheckTokenAsync(HttpClient client, object body) =>
-        (await CheckAsync(client, body)).GetProperty("checkToken").GetString()!;
-
     private static async Task ShouldNeedACheckAsync(HttpClient client, object body)
     {
         using var response = await client.PostAsJsonAsync(PeoplePath, body, Ct);
         var problem = await response.ShouldBeProblemAsync(HttpStatusCode.UnprocessableEntity, "PERSON_DUPLICATE_CHECK_REQUIRED");
         Fields(problem).ShouldBe([("checkToken", "PERSON_DUPLICATE_CHECK_REQUIRED")]);
-    }
-
-    private static List<(string?, string?)> Fields(JsonElement problem) =>
-    [
-        .. problem.GetProperty("errors").EnumerateArray()
-            .Select(error => (error.GetProperty("field").GetString(), error.GetProperty("code").GetString())),
-    ];
-
-    // The body with one more member, or one replaced.
-    private static Dictionary<string, object?> With(object body, string name, object? value)
-    {
-        var merged = JsonSerializer.Deserialize<Dictionary<string, object?>>(JsonSerializer.Serialize(body))!;
-        merged[name] = value;
-        return merged;
     }
 
     /// <summary>An active tenant (time zone Africa/Kampala) and a client of a member with <paramref name="role"/> tenant-wide.</summary>

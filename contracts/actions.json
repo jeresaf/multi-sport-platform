@@ -253,9 +253,41 @@
       "since": "S03"
     },
     {
+      "code": "person.archive",
+      "module": "Registry",
+      "description": "Archive an active or inactive person, with a reason: the record and its history stay, and it takes no new profile, alias, identifier, consent or photo.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED_WITH_REASON",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S06"
+    },
+    {
       "code": "person.create",
       "module": "Registry",
       "description": "Add a person to the registry after a duplicate check; proceeding past possible duplicates needs a reason, and the pairs are remembered as not the same person.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S06"
+    },
+    {
+      "code": "person.deactivate",
+      "module": "Registry",
+      "description": "Mark an active person inactive.",
       "scope": "TENANT",
       "scopableBy": [
         "TENANT"
@@ -277,6 +309,38 @@
         "TENANT"
       ],
       "audit": "NONE",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S06"
+    },
+    {
+      "code": "person.mark_deceased",
+      "module": "Registry",
+      "description": "Record that an active or inactive person has died, with a reason; final: the record and its history stay.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED_WITH_REASON",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S06"
+    },
+    {
+      "code": "person.reactivate",
+      "module": "Registry",
+      "description": "Make an inactive person active again.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED",
       "entitlement": null,
       "idempotent": false,
       "allowsAnonymous": false,
@@ -314,6 +378,38 @@
       "allowsAnonymous": false,
       "availableWhenBlocked": false,
       "availableWhenReadOnly": true,
+      "since": "S06"
+    },
+    {
+      "code": "person.unarchive",
+      "module": "Registry",
+      "description": "Make an archived person active again, with a reason.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED_WITH_REASON",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S06"
+    },
+    {
+      "code": "person.update",
+      "module": "Registry",
+      "description": "Change a person's biodata; a change to the names, date of birth or nationalities needs a duplicate check, and proceeding past possible duplicates needs a reason.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
       "since": "S06"
     },
     {
