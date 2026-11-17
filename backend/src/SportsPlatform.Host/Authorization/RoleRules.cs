@@ -8,7 +8,8 @@ namespace SportsPlatform.Host.Authorization;
 /// <summary>
 /// Startup check of the roles defined in code (S03 D9): every action a role grants is declared in the catalogue and
 /// fits the role (platform roles only platform actions; tenant roles only tenant actions that one of their assignment
-/// scopes can grant), role codes are unique, and the platform roles are the ones the database accepts.
+/// scopes can grant), an action's <see cref="ActionDefinition.GrantedWith"/> is granted by the same role, role codes are
+/// unique, and the platform roles are the ones the database accepts.
 /// </summary>
 public static class RoleRules
 {
@@ -55,6 +56,12 @@ public static class RoleRules
                 else if (role.Scope == RoleScope.Tenant && !role.AssignableAt.Any(action.ScopableBy.Contains))
                 {
                     violations.Add($"Role {role.Code} grants '{code}', which none of its assignment scopes can grant.");
+                }
+                else
+                {
+                    violations.AddRange(action.GrantedWith
+                        .Where(required => !role.Actions.Contains(required, StringComparer.Ordinal))
+                        .Select(required => $"Role {role.Code} grants '{code}' without '{required}', which it must be granted with."));
                 }
             }
         }

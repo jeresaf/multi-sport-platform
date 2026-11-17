@@ -53,6 +53,16 @@ public sealed class RoleRulesTests
     }
 
     [Fact]
+    public void A_role_granting_the_duplicate_check_without_the_private_read_is_refused()
+    {
+        // The check's evidence can confirm a date of birth, which only person.read_private may read (S06 Q42).
+        var violations = RoleRules.Validate(With(Tenant(IdentityRoles.Viewer, ["person.read", "person.duplicate_check"])), _catalogue);
+
+        violations.ShouldHaveSingleItem()
+            .ShouldBe("Role VIEWER grants 'person.duplicate_check' without 'person.read_private', which it must be granted with.");
+    }
+
+    [Fact]
     public void Role_codes_scopes_and_platform_roles_are_checked()
     {
         var roles = IdentityRoles.All

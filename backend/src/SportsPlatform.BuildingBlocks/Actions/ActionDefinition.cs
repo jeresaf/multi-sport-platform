@@ -45,7 +45,8 @@ public sealed class ActionDefinition
         bool idempotent = false,
         bool allowsAnonymous = false,
         bool availableWhenBlocked = false,
-        bool availableWhenReadOnly = false)
+        bool availableWhenReadOnly = false,
+        IReadOnlyList<string>? grantedWith = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(description);
         ArgumentException.ThrowIfNullOrWhiteSpace(since);
@@ -95,6 +96,7 @@ public sealed class ActionDefinition
         AllowsAnonymous = allowsAnonymous;
         AvailableWhenBlocked = availableWhenBlocked;
         AvailableWhenReadOnly = availableWhenReadOnly;
+        GrantedWith = [.. (grantedWith ?? []).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)];
     }
 
     public ActionCode Code { get; }
@@ -133,6 +135,12 @@ public sealed class ActionDefinition
     /// that sets it checks its own window in the handler.
     /// </summary>
     public bool AvailableWhenReadOnly { get; }
+
+    /// <summary>
+    /// Actions a role must also grant when it grants this one (a startup rule, RoleRules), e.g. a check whose answer
+    /// can disclose what only another action may read (S06 Q42).
+    /// </summary>
+    public IReadOnlyList<string> GrantedWith { get; }
 
     /// <summary>The slice that introduced the action, e.g. <c>S01</c>.</summary>
     public string Since { get; }
