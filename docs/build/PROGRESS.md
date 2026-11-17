@@ -7,18 +7,16 @@ at the start of every review.
 
 - **Current slice:** S06 — People registry (docs/build/slices/S06-people-registry.md, written by the S05 slice review).
   S00–S05 are done
-- **Current task:** S06-T3b — aliases and external identifiers (`person.alias.add`/`.remove`,
-  `person.external_id.add`/`.end`; `PERSON_ARCHIVED`/`PERSON_DECEASED` guards) — in progress
-- **Next:** S06-T4 — role profiles
-- **Blocked on:** —
+- **Current task:** S06-T3b — aliases and external identifiers — in review (#PR)
+- **Next:** S06-T4 — role profiles; `/next-task` once T3b merges
+- **Blocked on:** the review of #PR
 
 ## Next up
 
-1. S06-T3b — Aliases and external identifiers (`PERSON_ARCHIVED`, `PERSON_DECEASED`)
-2. S06-T4 — Role profiles (likely T4a, T4b; T4 adds the directory's `profile` and `variant` filters)
-3. S06-T5 — Media and photos (likely T5a, T5b; T5a starts with the SkiaSharp ADR, Q35)
-4. S06-T6 — Minors, consent and the public read (likely T6a, T6b)
-5. S06-T7 — Screens, demo data and slice close (likely T7a–T7d)
+1. S06-T4 — Role profiles (likely T4a, T4b; T4 adds the directory's `profile` and `variant` filters)
+2. S06-T5 — Media and photos (likely T5a, T5b; T5a starts with the SkiaSharp ADR, Q35)
+3. S06-T6 — Minors, consent and the public read (likely T6a, T6b)
+4. S06-T7 — Screens, demo data and slice close (likely T7a–T7d)
 
 ## Log
 
@@ -116,6 +114,7 @@ at the start of every review.
 | 2026-11-17 | S06-T2a | #97 | The duplicate check, `POST /api/admin/v1/people/duplicate-check` (`person.duplicate_check`, audit `NONE`; owner, admin, registrar): `DuplicateMatcher` (`EXACT_IDENTIFIER`; `LIKELY` = same birth date and same name key or similarity ≥ 0.8; `POSSIBLE` = similarity ≥ 0.6 with a date missing, years within one or the same nationality, the same key with another date, or the sibling rule) with evidence codes, `DuplicateFinder` (name key and live aliases, identifiers ended ones included, every status, at most 20, strongest first), optional `personId` (self and decided pairs left out); `registry.duplicate_decisions` (RLS, isolation sample; read only until T2b); `PERSON_NAME_INVALID`, `PERSON_EXTERNAL_ID_AUTHORITY_RESERVED`; validation field names convert every path segment | Owner (plan): sibling rule, own unaudited action, T2a/T2b split (all change D5). About 1,500 changed lines without generated files and the migration (estimate 900), kept as one PR. Pre-review (one major, fixed): a decided pair sharing an identifier is still `EXACT_IDENTIFIER`; the cut before classifying keeps alias and same-birth-date matches; `\z` in the validator's patterns; an ended identifier tested. Not done: a read-only tenant test (the pipeline's own tests cover the flag). Q42, Q43 opened |
 | 2026-11-17 | S06-T2b | #98 | Creating a person, `POST /api/admin/v1/people` (`person.create`, audit `REQUIRED`; owner, admin, registrar): the check answers `checkToken` (Data Protection `registry.duplicate-check`, 30 minutes; tenant, actor, a hash of the normalised inputs, the candidates); create re-runs the check under `registry.people:<tenantId>` and refuses with `PERSON_DUPLICATE_CHECK_REQUIRED` (422), `PERSON_EXTERNAL_ID_EXISTS` (409), `PERSON_DUPLICATE_CHECK_STALE` (409), `PERSON_DUPLICATE_OVERRIDE_REQUIRED` (422); with a reason it saves a `NOT_SAME` decision per candidate; audit metadata names the candidates by ID and confidence. Q42: `ActionDefinition.grantedWith` and a `RoleRules` startup rule (`person.duplicate_check` only with `person.read_private`). Q43: `PERSON_DATE_OF_BIRTH_IN_FUTURE` (422) in check and create. Q44: a nationality in common, secondary ones included; the check takes `secondaryNationality`. Shared `PersonDetailsValidator<T>` and `PersonDetailsRules`; `RegistryTestData.CreatePersonAsync` | Owner (plan): Q42–Q44 with the builder's suggestions. About 1,300 changed lines without generated files (estimate 1,000), kept as one PR. The check now checks nationalities against the reference data (T2a: format only) and refuses fields it doesn't compare (gender, height, weight, `validFrom`). No migration, no events, no dependencies |
 | 2026-11-17 | S06-T3a | #99 | `PUT /api/admin/v1/people/{id}` (`person.update`, audit `REQUIRED`; `If-Match` or `version`): replaces the biodata, whatever the status; a change to the name key, the normalised last name, the date of birth or a nationality (`Person.ChangesIdentity`) needs a check run with `personId` and runs it again under `registry.people:<tenantId>` as create does (`CHECK_REQUIRED`, `STALE`, `OVERRIDE_REQUIRED`; decisions recorded; candidates in the audit metadata, `DuplicateReviewAuditMetadata`); a display name, gender, height or weight change, or a name written differently (case, accents, punctuation), needs no token. Lifecycle (D9): `POST …/{deactivate,reactivate,archive,unarchive,mark-deceased}` (`person.deactivate`, `person.reactivate` audit `REQUIRED`; `person.archive`, `person.unarchive`, `person.mark_deceased` `REQUIRED_WITH_REASON`), `PersonTransitions` table, a history row each, `409 PERSON_STATUS_INVALID`. Roles: owner, admin, registrar (`grantedWith: person.read`; update also `person.duplicate_check`). `PersonBiodataValidator<T>` shared by create and update; tests' `SetStatusAsync` (SQL) replaced by `ChangeStatusAsync` (domain) | Owner (plan): Q45 kept as D7; PUT takes no identifiers (D8 deviation); adding an alias runs no check (T3b); an archived or deceased person can still be corrected. Split T3a / T3b. No migration, event or dependency. Pre-review (ready; no blocker or major): the read-only test covers all five lifecycle actions; kept as built: an `overrideReason` sent when nothing needed one is audited (as create, accepted in #98); `TEAM_MANAGER` isn't in the role theories (assignable at a team only, as create's). About 1,600 changed lines without generated files, docs included (T3 estimate 800; split T3a/T3b). Review of #99 (subagent, approve with nits): R1 a test that an update and a create matching each other at once leave one `PERSON_DUPLICATE_CHECK_STALE` (fails without the update's lock); R2 deactivate/reactivate take an optional reason (owner, Q1); R3 this size note. Owner: Q2 R1 fixed in this PR |
+| 2026-11-17 | S06-T3b | #PR | Aliases and external identifiers under `/api/admin/v1/people/{id}`: `POST …/aliases` (`person.alias.add`, audit `REQUIRED`; no duplicate check), `POST …/aliases/{aliasId}/remove` (`person.alias.remove`, `REQUIRED_WITH_REASON`; stamps who, when, why), `POST …/external-identifiers` (`person.external_id.add`, `REQUIRED`; holds `registry.people:<tenantId>`, a value with that authority any person has or had → `409 PERSON_EXTERNAL_ID_EXISTS` on `value`; reserved authorities 422), `POST …/external-identifiers/{identifierId}/end` (`person.external_id.end`, `REQUIRED`; optional `validTo` and reason). Each takes `If-Match`/`version` and answers the person with its `ETag`; the version moves (D11). `Person.EnsureAcceptsNewChildren` → `409 PERSON_ARCHIVED`/`PERSON_DECEASED` for new aliases and identifiers (T4–T6 reuse it); removing and ending stay allowed. New errors `PERSON_ALIAS_EXISTS`, `PERSON_ALIAS_NOT_FOUND`, `PERSON_ALIAS_REMOVED`, `PERSON_EXTERNAL_ID_NOT_FOUND`, `PERSON_EXTERNAL_ID_ENDED`, `PERSON_EXTERNAL_ID_VALIDITY_INVALID`. Roles: owner, admin, registrar (`grantedWith: person.read`). `IdentifierDetailsRules` shared with create and the check; `PersonChanges` (load at version, the people lock, the answer); `Person.AddAlias` returns a `Result`. T3 acceptance complete. Backend 2979 tests pass | Owner (plan): an alias with a name key the person already has is refused; two open identifiers of one authority allowed; `validTo` defaults to today, ≤ today, ≥ `validFrom`. No migration, event or dependency. About 1,270 changed lines without generated files (most of it the integration tests; T3 estimate 800 for both PRs). Pre-review (ready; no blocker or major): doc comment moved back to `PersonDetailsPatterns`; the version note says a simultaneous change can conflict without `version`; a future `validFrom` makes an identifier unendable until then → Q46 (open) |
 
 ## Deviations from spec (agreed)
 
@@ -478,6 +477,11 @@ at the start of every review.
   are refused. T3 is two PRs (T3a update and lifecycle, T3b aliases and identifiers). Review of #99 (owner, Q1):
   `person.deactivate` and `person.reactivate` take an optional reason (D9 names none), kept in the history and the
   audit entry.
+- **S06-T3b (owner, plan 2026-11-17):** beyond D10: an alias whose name key is already the person's own or a current
+  alias's is `409 PERSON_ALIAS_EXISTS`; a person may hold two open identifiers of one authority; ending takes an
+  optional `validTo` (default the tenant's today), not after today and not before `validFrom` (`422
+  PERSON_EXTERNAL_ID_VALIDITY_INVALID`), and an optional reason. `PERSON_EXTERNAL_ID_EXISTS` also covers the person's
+  own value (its message no longer says "another person").
 
 ## Tech debt / follow-ups
 
