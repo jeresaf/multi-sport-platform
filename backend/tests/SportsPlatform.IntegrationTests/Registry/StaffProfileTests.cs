@@ -207,7 +207,7 @@ public sealed class StaffProfileTests(PostgresFixture fixture) : DatabaseTest(fi
         closed.GetProperty("staffProfiles").EnumerateArray().ShouldHaveSingleItem().GetProperty("status").GetString().ShouldBe("RETIRED");
     }
 
-    // T4 acceptance (staff part; T4b2 adds the official profile): one person holds athlete and staff profiles at once.
+    // One person holds athlete and staff profiles at once (the T4 acceptance over all three kinds is OfficialProfileTests').
     [Fact]
     public async Task A_person_holds_one_open_staff_profile_beside_athlete_profiles()
     {

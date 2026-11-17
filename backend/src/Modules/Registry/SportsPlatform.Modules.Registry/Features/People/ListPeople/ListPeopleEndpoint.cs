@@ -18,7 +18,8 @@ internal static class ListPeopleEndpoint
             "or an alias by prefix or similarity (in any order: \"Ssekandi John\" finds John Ssekandi) and an external " +
             "identifier's value exactly. Filter by `status` (without it, archived people are left out) and `ageStatus` " +
             "(on the tenant's date; UNKNOWN: no date of birth); `profile` and `variant` keep people with a profile of that " +
-            "kind and sport variant that isn't archived: an athlete profile's variant or one of a staff profile's capabilities " +
+            "kind and sport variant that isn't archived: an athlete profile's variant or one of a staff or official profile's " +
+            "capabilities " +
             "(a variant without people answers an empty page). `limit` is " +
             "1–100 (25). Items carry the birth year, never the date of birth. `isMinor` is true unless the person is known to be an adult (`ageStatus` UNKNOWN: true).")
         .RequireAction(RegistryActions.PersonRead)

@@ -47,8 +47,15 @@ public sealed class GetPersonHandler(RegistryDbContext context, TenantToday tena
             .OrderBy(s => s.Id)
             .ToListAsync(cancellationToken);
 
+        var officialProfiles = await context.Set<OfficialProfile>().AsNoTracking()
+            .Include(o => o.Capabilities)
+            .Where(o => o.PersonId == personId)
+            .OrderBy(o => o.Id)
+            .ToListAsync(cancellationToken);
+
         var p = person.Person;
-        var ageStatus = Age.StatusOn(p.DateOfBirth, await tenantToday.GetAsync(cancellationToken));
+        var today = await tenantToday.GetAsync(cancellationToken);
+        var ageStatus = Age.StatusOn(p.DateOfBirth, today);
         return Result.Success(new PersonResponse(
             p.Id, p.FirstName, p.MiddleName, p.LastName, p.OtherNames, p.DisplayName, p.Gender, p.DateOfBirth?.Year,
             Age.IsTreatedAsMinor(ageStatus), ageStatus, p.Nationality, p.SecondaryNationality, p.HeightCm, p.WeightKg,
@@ -60,6 +67,12 @@ public sealed class GetPersonHandler(RegistryDbContext context, TenantToday tena
                 [.. s.Capabilities.OrderBy(c => c.Variant, StringComparer.Ordinal).ThenBy(c => c.Role, StringComparer.Ordinal)
                     .Select(c => new StaffCapabilityResponse(c.Variant, c.Role, c.Qualification))],
                 s.Status))],
+            [.. officialProfiles.Select(o => new OfficialProfileResponse(
+                o.Id,
+                [.. o.Capabilities.OrderBy(c => c.Variant, StringComparer.Ordinal).ThenBy(c => c.Role, StringComparer.Ordinal)
+                    .Select(c => new OfficialCapabilityResponse(
+                        c.Variant, c.Role, c.Grade, c.LicenceNumber, c.LicenceValidUntil, c.LicenceExpiredOn(today)))],
+                o.Status))],
             person.Version));
     }
 }

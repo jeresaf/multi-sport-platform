@@ -18,6 +18,7 @@ public sealed class Person : AggregateRoot, ITenantOwned
     private readonly List<PersonStatusChange> _statusHistory = [];
     private readonly List<AthleteProfile> _athleteProfiles = [];
     private readonly List<StaffProfile> _staffProfiles = [];
+    private readonly List<OfficialProfile> _officialProfiles = [];
     private readonly List<ProfileStatusChange> _profileStatusHistory = [];
 
     private Person()
@@ -89,6 +90,9 @@ public sealed class Person : AggregateRoot, ITenantOwned
 
     /// <summary>Every staff profile, archived ones included; load them (with their capabilities) before a profile command.</summary>
     public IReadOnlyList<StaffProfile> StaffProfiles => _staffProfiles;
+
+    /// <summary>Every official profile, archived ones included; load them (with their capabilities) before a profile command.</summary>
+    public IReadOnlyList<OfficialProfile> OfficialProfiles => _officialProfiles;
 
     /// <summary>The status history of every profile; commands only add to it, so it needn't be loaded.</summary>
     public IReadOnlyList<ProfileStatusChange> ProfileStatusHistory => _profileStatusHistory;
@@ -336,6 +340,69 @@ public sealed class Person : AggregateRoot, ITenantOwned
         Guid profileId, ProfileStatus to, string reason, ICurrentActor actor, DateTimeOffset now) =>
         ChangeProfileStatus(
             ProfileKind.Staff, _staffProfiles.SingleOrDefault(existing => existing.Id == profileId), to, reason, actor, now);
+
+    /// <summary>
+    /// Adds an <c>ACTIVE</c> official profile with its capabilities and the first row of its history (S06 D12). Refused on
+    /// an archived or deceased person (D9) and when the person already holds an open official profile
+    /// (<c>PERSON_OFFICIAL_PROFILE_EXISTS</c>: a retired one is reactivated, not doubled). The use case has checked the
+    /// variants are enabled and the roles are the definitions'.
+    /// </summary>
+    public Result<OfficialProfile> AddOfficialProfile(
+        IReadOnlyList<OfficialCapabilityDetails> capabilities, ICurrentActor actor, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(actor);
+        var accepts = EnsureAcceptsNewChildren();
+        if (accepts.IsFailure)
+        {
+            return accepts.Error;
+        }
+
+        if (_officialProfiles.Any(existing => ProfileTransitions.IsOpen(existing.Status)))
+        {
+            return RegistryErrors.OfficialProfileExists;
+        }
+
+        var profile = new OfficialProfile(Id, capabilities);
+        _officialProfiles.Add(profile);
+        _profileStatusHistory.Add(
+            new ProfileStatusChange(Id, ProfileKind.Official, profile.Id, null, profile.Status, null, actor, now));
+        return Result.Success(profile);
+    }
+
+    /// <summary>
+    /// Replaces an official profile's capabilities (S06 D12), but not on an archived profile
+    /// (<c>PERSON_PROFILE_ARCHIVED</c>). On an archived or deceased person (D9) held capabilities may be kept, removed or
+    /// have their grade and licence changed, but a role the profile doesn't hold is new data and refused (as staff
+    /// profiles, owner, review #102 R2). The use case has checked the codes, and that an added capability's variant is
+    /// enabled.
+    /// </summary>
+    public Result UpdateOfficialProfile(Guid profileId, IReadOnlyList<OfficialCapabilityDetails> capabilities)
+    {
+        var profile = _officialProfiles.SingleOrDefault(existing => existing.Id == profileId);
+        if (profile is null)
+        {
+            return Result.Failure(RegistryErrors.ProfileNotFound);
+        }
+
+        if (!ProfileTransitions.IsOpen(profile.Status))
+        {
+            return Result.Failure(RegistryErrors.ProfileArchived);
+        }
+
+        if (capabilities.Any(c => !profile.Holds(c.Variant, c.Role)) && EnsureAcceptsNewChildren() is { IsFailure: true } refused)
+        {
+            return refused;
+        }
+
+        profile.Replace(capabilities);
+        return Result.Success();
+    }
+
+    /// <summary>Moves an official profile; see <see cref="ChangeProfileStatus"/>.</summary>
+    public Result ChangeOfficialProfileStatus(
+        Guid profileId, ProfileStatus to, string reason, ICurrentActor actor, DateTimeOffset now) =>
+        ChangeProfileStatus(
+            ProfileKind.Official, _officialProfiles.SingleOrDefault(existing => existing.Id == profileId), to, reason, actor, now);
 
     /// <summary>
     /// Moves a profile to <paramref name="to"/> with a reason and a history row (S06 D12,

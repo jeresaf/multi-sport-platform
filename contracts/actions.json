@@ -301,6 +301,54 @@
       "since": "S03"
     },
     {
+      "code": "official_profile.create",
+      "module": "Registry",
+      "description": "Record that a person works as an official (referee, judge…), with roles from the definitions of sport variants the tenant has enabled, grades and licences; one official profile that isn't archived; not for an archived or deceased person.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S06"
+    },
+    {
+      "code": "official_profile.status.change",
+      "module": "Registry",
+      "description": "Make an official profile inactive, retired, active again or archived (final), with a reason; every change is kept.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED_WITH_REASON",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S06"
+    },
+    {
+      "code": "official_profile.update",
+      "module": "Registry",
+      "description": "Change an official profile's roles, grades and licences.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S06"
+    },
+    {
       "code": "person.alias.add",
       "module": "Registry",
       "description": "Add another name a person is known by (former name, nickname, spelling), so search and the duplicate check find them under it too; not for an archived or deceased person.",

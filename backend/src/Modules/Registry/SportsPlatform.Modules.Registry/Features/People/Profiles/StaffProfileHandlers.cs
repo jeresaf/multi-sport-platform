@@ -63,9 +63,10 @@ public sealed class CreateStaffProfileHandler(
 }
 
 /// <summary>
-/// Replaces a staff profile's capabilities (S06 D12): allowed whatever the person's status. A capability the profile
-/// already holds may stay on a variant the tenant has since disabled; an added one needs its variant enabled. Every role
-/// must be the variant's latest definition's.
+/// Replaces a staff profile's capabilities (S06 D12), a correction: held capabilities may be kept, removed or re-qualified
+/// whatever the person's status, but adding one needs a person who is neither archived nor deceased (review #102 R2). A
+/// capability the profile already holds may stay on a variant the tenant has since disabled; an added one needs its
+/// variant enabled. Every role must be the variant's latest definition's.
 /// </summary>
 public sealed class UpdateStaffProfileHandler(RegistryDbContext context, SportCodes sportCodes, AuditScope audit)
 {
@@ -168,8 +169,8 @@ public sealed record StaffProfileAuditMetadata(
     [property: PersonalData(PersonalDataClass.Internal)] IReadOnlyList<string> Variants,
     [property: PersonalData(PersonalDataClass.Internal)] ProfileStatus? FromStatus = null,
     [property: PersonalData(PersonalDataClass.Internal)] ProfileStatus? ToStatus = null,
-    [property: PersonalData(PersonalDataClass.Internal)] IReadOnlyList<StaffCapabilityAuditEntry>? Added = null,
-    [property: PersonalData(PersonalDataClass.Internal)] IReadOnlyList<StaffCapabilityAuditEntry>? Removed = null)
+    [property: PersonalData(PersonalDataClass.Internal)] IReadOnlyList<CapabilityAuditEntry>? Added = null,
+    [property: PersonalData(PersonalDataClass.Internal)] IReadOnlyList<CapabilityAuditEntry>? Removed = null)
 {
     /// <summary>
     /// The metadata of a create (<paramref name="existing"/> null: every capability is added) or of an update of
@@ -180,21 +181,25 @@ public sealed record StaffProfileAuditMetadata(
         new(
             profileId,
             [.. capabilities.Select(c => c.Variant).Distinct().Order(StringComparer.Ordinal)],
-            Added: Sorted(capabilities.Where(c => existing is null || !existing.Holds(c.Variant, c.Role)).Select(c => (c.Variant, c.Role))),
+            Added: CapabilityAuditEntry.Sorted(capabilities.Where(c => existing is null || !existing.Holds(c.Variant, c.Role)).Select(c => (c.Variant, c.Role))),
             Removed: existing is null
                 ? []
-                : Sorted(existing.Capabilities
+                : CapabilityAuditEntry.Sorted(existing.Capabilities
                     .Where(held => !capabilities.Any(c => c.Variant == held.Variant && c.Role == held.Role))
                     .Select(held => (held.Variant, held.Role))));
-
-    private static IReadOnlyList<StaffCapabilityAuditEntry> Sorted(IEnumerable<(string Variant, string Role)> capabilities) =>
-    [
-        .. capabilities.OrderBy(c => c.Variant, StringComparer.Ordinal).ThenBy(c => c.Role, StringComparer.Ordinal)
-            .Select(c => new StaffCapabilityAuditEntry(c.Variant, c.Role)),
-    ];
 }
 
-/// <summary>A capability named in a staff profile's audit entry: its variant and role codes (definition data).</summary>
-public sealed record StaffCapabilityAuditEntry(
+/// <summary>
+/// A capability named in a staff or official profile's audit entry: its variant and role codes (definition data).
+/// </summary>
+public sealed record CapabilityAuditEntry(
     [property: PersonalData(PersonalDataClass.Internal)] string Variant,
-    [property: PersonalData(PersonalDataClass.Internal)] string Role);
+    [property: PersonalData(PersonalDataClass.Internal)] string Role)
+{
+    /// <summary>The capabilities by variant, then role.</summary>
+    public static IReadOnlyList<CapabilityAuditEntry> Sorted(IEnumerable<(string Variant, string Role)> capabilities) =>
+    [
+        .. capabilities.OrderBy(c => c.Variant, StringComparer.Ordinal).ThenBy(c => c.Role, StringComparer.Ordinal)
+            .Select(c => new CapabilityAuditEntry(c.Variant, c.Role)),
+    ];
+}
