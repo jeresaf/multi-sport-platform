@@ -17,13 +17,21 @@ namespace SportsPlatform.Modules.Registry.Features.People;
 internal static class PersonChanges
 {
     /// <summary>
-    /// The person with its aliases, or <c>PERSON_NOT_FOUND</c>, or <c>PERSON_CONCURRENCY_CONFLICT</c> when
-    /// <paramref name="version"/> or <paramref name="ifMatch"/> names another version.
+    /// The person with its aliases (and its athlete profiles when <paramref name="withAthleteProfiles"/>), or
+    /// <c>PERSON_NOT_FOUND</c>, or <c>PERSON_CONCURRENCY_CONFLICT</c> when <paramref name="version"/> or
+    /// <paramref name="ifMatch"/> names another version.
     /// </summary>
     public static async Task<(Person? Person, FieldRefusal? Refusal)> LoadAsync(
-        RegistryDbContext context, Guid personId, uint? version, IfMatch ifMatch, CancellationToken cancellationToken)
+        RegistryDbContext context, Guid personId, uint? version, IfMatch ifMatch, CancellationToken cancellationToken,
+        bool withAthleteProfiles = false)
     {
-        var person = await context.Set<Person>().Include(p => p.Aliases).SingleOrDefaultAsync(p => p.Id == personId, cancellationToken);
+        var people = context.Set<Person>().Include(p => p.Aliases).AsQueryable();
+        if (withAthleteProfiles)
+        {
+            people = people.Include(p => p.AthleteProfiles).AsSplitQuery();
+        }
+
+        var person = await people.SingleOrDefaultAsync(p => p.Id == personId, cancellationToken);
         if (person is null)
         {
             return (null, new(RegistryErrors.PersonNotFound));

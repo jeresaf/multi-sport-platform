@@ -603,7 +603,7 @@ export interface paths {
         };
         /**
          * List the tenant's people
-         * @description The people of the tenant named by `X-Tenant-Id`, sorted by last name, first name and ID. `q` matches a name or an alias by prefix or similarity (in any order: "Ssekandi John" finds John Ssekandi) and an external identifier's value exactly. Filter by `status` (without it, archived people are left out) and `ageStatus` (on the tenant's date; UNKNOWN: no date of birth). `limit` is 1–100 (25). Items carry the birth year, never the date of birth. `isMinor` is true unless the person is known to be an adult (`ageStatus` UNKNOWN: true).
+         * @description The people of the tenant named by `X-Tenant-Id`, sorted by last name, first name and ID. `q` matches a name or an alias by prefix or similarity (in any order: "Ssekandi John" finds John Ssekandi) and an external identifier's value exactly. Filter by `status` (without it, archived people are left out) and `ageStatus` (on the tenant's date; UNKNOWN: no date of birth); `profile` and `variant` keep people with a profile of that kind and sport variant that isn't archived (a variant without people answers an empty page). `limit` is 1–100 (25). Items carry the birth year, never the date of birth. `isMinor` is true unless the person is known to be an adult (`ageStatus` UNKNOWN: true).
          */
         get: operations["ListPeople"];
         put?: never;
@@ -836,6 +836,66 @@ export interface paths {
          * @description Ends an identifier, whatever the person's status: it is kept with its `validTo`, and its value is never given to anyone else. The body is optional: `validTo` defaults to today (the tenant's date) and can't be after it or before `validFrom` (PERSON_EXTERNAL_ID_VALIDITY_INVALID); `reason` (1–500 characters) is kept permanently in the audit trail: don't include personal data. An identifier already ended is PERSON_EXTERNAL_ID_ENDED. Send `version` or `If-Match` from the last read to get 409 PERSON_CONCURRENCY_CONFLICT if the person changed since; without them, a change to the same person saved at the same moment can still answer it. Answers the person as GET /people/{personId} does; its version moves.
          */
         post: operations["EndPersonExternalIdentifier"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/people/{personId}/athlete-profiles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add an athlete profile to a person
+         * @description Records that the person plays a sport variant the tenant has enabled (PERSON_SPORT_NOT_ENABLED otherwise); the profile starts ACTIVE. A person holds one profile per variant that isn't archived (PERSON_ATHLETE_PROFILE_EXISTS: change or reactivate that one). An archived or deceased person takes no new profile (PERSON_ARCHIVED, PERSON_DECEASED). Codes are the sport variant's (GET /sports/{variant} gives their labels): `primaryPosition` and `otherPositions` (up to 5, distinct, not the primary one) must be positions of the variant's latest definition (PERSON_POSITION_UNKNOWN, on the field). `publicName` is the name shown with the sport; null shows the display name. Send `version` or `If-Match` from the last read of the person to get 409 PERSON_CONCURRENCY_CONFLICT if the person or any of their profiles changed since; without them, a change to the same person saved at the same moment can still answer it. Answers the person as GET /people/{personId} does; its version moves.
+         */
+        post: operations["CreateAthleteProfile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/people/{personId}/athlete-profiles/{profileId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Change an athlete profile
+         * @description Replaces the profile's positions, dominant side and public name (a field left out is cleared); the variant never changes. A correction: allowed whatever the person's status and whether or not the tenant still has the variant enabled, but not on an archived profile (PERSON_PROFILE_ARCHIVED). Every position sent is checked against the variant's latest definition, so one a newer definition dropped must be replaced or left out. Codes are the sport variant's (GET /sports/{variant} gives their labels): `primaryPosition` and `otherPositions` (up to 5, distinct, not the primary one) must be positions of the variant's latest definition (PERSON_POSITION_UNKNOWN, on the field). `publicName` is the name shown with the sport; null shows the display name. Send `version` or `If-Match` from the last read of the person to get 409 PERSON_CONCURRENCY_CONFLICT if the person or any of their profiles changed since; without them, a change to the same person saved at the same moment can still answer it. Answers the person as GET /people/{personId} does; its version moves.
+         */
+        put: operations["UpdateAthleteProfile"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/people/{personId}/athlete-profiles/{profileId}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Change an athlete profile's status
+         * @description Moves the profile, with a reason (body `{ "status": …, "reason": … }`, both required): ACTIVE ⇄ INACTIVE; ACTIVE or INACTIVE → RETIRED; RETIRED → ACTIVE; any status but ARCHIVED → ARCHIVED, which is final. Any other move is PERSON_PROFILE_STATUS_INVALID; a move to ACTIVE is refused on an archived or deceased person (PERSON_ARCHIVED, PERSON_DECEASED). Each move is kept in the profile's history. The reason is kept permanently in that history and the audit trail: don't include personal data. Send `version` or `If-Match` from the last read of the person to get 409 PERSON_CONCURRENCY_CONFLICT if the person or any of their profiles changed since; without them, a change to the same person saved at the same moment can still answer it. Answers the person as GET /people/{personId} does; its version moves.
+         */
+        post: operations["ChangeAthleteProfileStatus"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1669,6 +1729,20 @@ export interface components {
             version?: null | number;
         };
         /**
+         * @description A sport variant the person plays (S06 D12): codes of the variant's definition (its labels come from
+         *     `GET /sports/{variant}`, AR-29). `publicName` as recorded: null shows the display name.
+         */
+        AthleteProfileResponse: {
+            /** Format: uuid */
+            id: string;
+            variant: string;
+            primaryPosition: null | string;
+            otherPositions: string[];
+            dominantSide: null | components["schemas"]["DominantSide"];
+            publicName: null | string;
+            status: components["schemas"]["ProfileStatus"];
+        };
+        /**
          * @description One audit entry as platform staff see it: every column, with `metadata` as the JSON object it was stored as
          *     (personal data already masked when it was recorded).
          */
@@ -1791,6 +1865,16 @@ export interface components {
         ChangePlanRequest: {
             planCode: null | string;
         };
+        /**
+         * @description A profile's new status, with a reason (audit `REQUIRED_WITH_REASON`). The reason is kept permanently in the
+         *     profile's history and the audit trail and is not redacted: it must not contain personal data.
+         */
+        ChangeProfileStatusRequest: {
+            status: null | components["schemas"]["ProfileStatus"];
+            reason: null | string;
+            /** Format: uint32 */
+            version?: null | number;
+        };
         /** @description The optional body of `activate` and `restore`: `version`, when sent, must be the tenant's current one. */
         ChangeTenantStatusRequest: {
             /** Format: uint32 */
@@ -1852,6 +1936,19 @@ export interface components {
          */
         CoverageLevel: "RESULT_ONLY" | "BASIC" | "STANDARD" | "DETAILED";
         /**
+         * @description A new athlete profile (S06 D12): the variant's code, then the details as UpdateAthleteProfileRequest
+         *     takes them; `version`, when sent, must be the person's current one.
+         */
+        CreateAthleteProfileRequest: {
+            variant: null | string;
+            primaryPosition?: null | string;
+            otherPositions?: null | string[];
+            dominantSide?: null | components["schemas"]["DominantSide"];
+            publicName?: null | string;
+            /** Format: uint32 */
+            version?: null | number;
+        };
+        /**
          * @description A new person (S06 D2, D6): the biodata, external identifiers, the duplicate check's token for the same details, and
          *     the reason to proceed past the people the check found.
          */
@@ -1903,9 +2000,12 @@ export interface components {
         DisableSportRequest: {
             reason: null | string;
         };
+        /** @enum {unknown} */
+        DominantSide: "LEFT" | "RIGHT" | "BOTH" | null;
         /**
          * @description A person who matched. `EXACT_IDENTIFIER` blocks creation; `LIKELY` and `POSSIBLE` need a reason to
-         *     proceed. `status` marks an archived, inactive or deceased person.
+         *     proceed. `status` marks an archived, inactive or deceased person. `athleteVariants`: the sport variants of
+         *     their athlete profiles that aren't archived, by code (S06 D5).
          */
         DuplicateCandidateResponse: {
             /** Format: uuid */
@@ -1916,6 +2016,7 @@ export interface components {
             status: components["schemas"]["PersonStatus"];
             confidence: components["schemas"]["DuplicateConfidence"];
             evidence: components["schemas"]["DuplicateEvidenceResponse"][];
+            athleteVariants: string[];
         };
         /**
          * @description How sure the duplicate check is that an existing person is the candidate (S06 D5), weakest first.
@@ -2377,7 +2478,8 @@ export interface components {
         };
         /**
          * @description A person's record as `person.read` shows it (S06 D3, D22): no `PRIVATE` field. Aliases are the ones not
-         *     removed. `version` is also the `ETag`; a change to an alias or an identifier changes it too (S06 D11).
+         *     removed; athlete profiles are all of them, archived ones included, by variant. `version` is also the `ETag`;
+         *     a change to an alias, an identifier or a profile changes it too (S06 D11).
          */
         PersonResponse: {
             /** Format: uuid */
@@ -2403,6 +2505,7 @@ export interface components {
             source: components["schemas"]["PersonSource"];
             aliases: components["schemas"]["PersonAliasResponse"][];
             externalIdentifiers: components["schemas"]["ExternalIdentifierResponse"][];
+            athleteProfiles: components["schemas"]["AthleteProfileResponse"][];
             /** Format: uint32 */
             version: number;
         };
@@ -2489,6 +2592,12 @@ export interface components {
                 code: string;
             }[];
         };
+        /**
+         * @description A role profile's stored states in S06 (docs/domain/state-machines.md, Registry). `SUSPENDED` comes with
+         *     discipline (S13+).
+         * @enum {unknown}
+         */
+        ProfileStatus: "ACTIVE" | "INACTIVE" | "RETIRED" | "ARCHIVED";
         /**
          * @description One quota's usage (S04 D15): `used` of `limit` (null = unlimited) when a module measures it
          *     (`measured`); otherwise `used` is null: not measured yet. `warning`: the tenant uses 80 % of the
@@ -3226,6 +3335,18 @@ export interface components {
             code: string;
             entitlement: null | string;
             plans: null | string[];
+        };
+        /**
+         * @description An athlete profile's details, replaced as a whole (a field left out is cleared); the variant never changes.
+         *     `version`, when sent, must be the person's current one.
+         */
+        UpdateAthleteProfileRequest: {
+            primaryPosition?: null | string;
+            otherPositions?: null | string[];
+            dominantSide?: null | components["schemas"]["DominantSide"];
+            publicName?: null | string;
+            /** Format: uint32 */
+            version?: null | number;
         };
         /**
          * @description A person's whole biodata, replacing what is stored (S06 D8): a field left out is cleared. External identifiers and
@@ -4950,6 +5071,8 @@ export interface operations {
                 ageStatus?: "ADULT" | "MINOR" | "UNKNOWN";
                 limit?: number;
                 cursor?: string;
+                profile?: "ATHLETE";
+                variant?: string;
             };
             header?: never;
             path?: never;
@@ -5975,6 +6098,254 @@ export interface operations {
             };
             /** @description Problem Details; `code`: `PERSON_EXTERNAL_ID_VALIDITY_INVALID` */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    CreateAthleteProfile: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too. */
+                "If-Match"?: string;
+            };
+            path: {
+                personId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateAthleteProfileRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `PERSON_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `PERSON_ARCHIVED`, `PERSON_ATHLETE_PROFILE_EXISTS`, `PERSON_CONCURRENCY_CONFLICT`, `PERSON_DECEASED` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `PERSON_POSITION_UNKNOWN`, `PERSON_SPORT_NOT_ENABLED` */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    UpdateAthleteProfile: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too. */
+                "If-Match"?: string;
+            };
+            path: {
+                personId: string;
+                profileId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAthleteProfileRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `PERSON_NOT_FOUND`, `PERSON_PROFILE_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `PERSON_CONCURRENCY_CONFLICT`, `PERSON_PROFILE_ARCHIVED` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `PERSON_POSITION_UNKNOWN` */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ChangeAthleteProfileStatus: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too. */
+                "If-Match"?: string;
+            };
+            path: {
+                personId: string;
+                profileId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeProfileStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST`, `VALIDATION_REASON_REQUIRED` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `PERSON_NOT_FOUND`, `PERSON_PROFILE_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `PERSON_ARCHIVED`, `PERSON_CONCURRENCY_CONFLICT`, `PERSON_DECEASED`, `PERSON_PROFILE_STATUS_INVALID` */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

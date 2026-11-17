@@ -54,6 +54,9 @@
         "TENANT"
       ],
       "actions": [
+        "athlete_profile.create",
+        "athlete_profile.status.change",
+        "athlete_profile.update",
         "format.read",
         "invitation.revoke",
         "membership.invite",
@@ -97,6 +100,9 @@
         "TENANT"
       ],
       "actions": [
+        "athlete_profile.create",
+        "athlete_profile.status.change",
+        "athlete_profile.update",
         "format.read",
         "invitation.revoke",
         "membership.invite",
@@ -139,6 +145,9 @@
         "TENANT"
       ],
       "actions": [
+        "athlete_profile.create",
+        "athlete_profile.status.change",
+        "athlete_profile.update",
         "format.read",
         "person.alias.add",
         "person.alias.remove",

@@ -9,7 +9,8 @@ namespace SportsPlatform.IntegrationTests.Tenancy;
 /// <summary>
 /// S05 D18: the sport quota can't be shown with football alone, so a test app lists three test-only variants beside the
 /// seeded ones: two of one sport (<see cref="TestballFull"/>, <see cref="TestballShort"/>) and one of another
-/// (<see cref="Testhoop"/>). Only the list is extended (what Tenancy reads); a test variant has no definition to get.
+/// (<see cref="Testhoop"/>). Each has a definition made from the seeded football one with test positions of its own
+/// (S06-T4: profiles check their codes against the definition), so tests never depend on a real sport's codes.
 /// </summary>
 internal sealed class TestSportDefinitions(ISportDefinitions seeded) : ISportDefinitions
 {
@@ -27,8 +28,36 @@ internal sealed class TestSportDefinitions(ISportDefinitions seeded) : ISportDef
     public async Task<IReadOnlyList<SportVariant>> ListAsync(CancellationToken cancellationToken) =>
         [.. await seeded.ListAsync(cancellationToken), .. _testVariants];
 
-    public Task<SportDefinition?> GetAsync(string variant, int? version, CancellationToken cancellationToken) =>
-        seeded.GetAsync(variant, version, cancellationToken);
+    /// <summary>The positions of the two Testball variants.</summary>
+    public static IReadOnlyList<string> TestballPositions { get; } = ["TB_KEEPER", "TB_BACK", "TB_MID", "TB_WING", "TB_STRIKER"];
+
+    /// <summary>The positions of Testhoop.</summary>
+    public static IReadOnlyList<string> TesthoopPositions { get; } = ["TH_GUARD", "TH_FORWARD", "TH_CENTRE"];
+
+    public async Task<SportDefinition?> GetAsync(string variant, int? version, CancellationToken cancellationToken)
+    {
+        if (_testVariants.SingleOrDefault(test => test.Variant == variant) is not { } test)
+        {
+            return await seeded.GetAsync(variant, version, cancellationToken);
+        }
+
+        if (version is not (null or 1))
+        {
+            return null;
+        }
+
+        var template = await seeded.GetAsync(TenantSportRequests.Football, version: null, cancellationToken)
+            ?? throw new InvalidOperationException("The seeded football definition is missing.");
+        var positions = test.Sport == "TESTHOOP" ? TesthoopPositions : TestballPositions;
+        return template with
+        {
+            Variant = test.Variant,
+            Sport = test.Sport,
+            Version = 1,
+            Name = test.Name,
+            Positions = [.. positions.Select(code => new PositionDefinition(code, $"Position {code}", "TEST"))],
+        };
+    }
 
     /// <summary>
     /// <paramref name="app"/> with these variants: the same settings, clock, authorization and test services, on a server

@@ -12,6 +12,7 @@ using SportsPlatform.Modules.Identity.Domain.Roles;
 using SportsPlatform.Modules.Identity.Infrastructure.Users;
 using SportsPlatform.Modules.Registry.Domain.People;
 using SportsPlatform.Modules.Registry.Domain.People.Duplicates;
+using SportsPlatform.Modules.Registry.Domain.People.Profiles;
 using SportsPlatform.Modules.Tenancy.Contracts.Subscriptions;
 using SportsPlatform.Modules.Tenancy.Domain.Entitlements;
 using SportsPlatform.Modules.Tenancy.Domain.Settings;
@@ -65,6 +66,8 @@ public static class IsolationSamples
         new PersonStatusChangeSample(),
         new ExternalIdentifierSample(),
         new DuplicateDecisionSample(),
+        new AthleteProfileSample(),
+        new ProfileStatusChangeSample(),
     ];
 
     public static IIsolationSample For(Type entityType) =>
@@ -334,6 +337,45 @@ public static class IsolationSamples
                 : null;
     }
 
+    /// <summary>Registry: an athlete profile points at its person.</summary>
+    private sealed class AthleteProfileSample : IIsolationSample
+    {
+        public Type EntityType => typeof(AthleteProfile);
+
+        public Entity Add(DbContext context)
+        {
+            var person = RegistrySamples.NewPerson("Denis", "Opoka");
+            context.Add(person);
+            return person.AddAthleteProfile("TESTBALL_FULL", RegistrySamples.Midfielder, SystemActor.Instance, RegistrySamples.Now).Value;
+        }
+
+        public Entity? Referencing(IForeignKey foreignKey, Guid principalId) =>
+            foreignKey.PrincipalEntityType.ClrType == typeof(Person)
+                ? new AthleteProfile(principalId, "TESTBALL_FULL", RegistrySamples.Midfielder)
+                : null;
+    }
+
+    /// <summary>Registry: the history row a new profile gets; it points at the person.</summary>
+    private sealed class ProfileStatusChangeSample : IIsolationSample
+    {
+        public Type EntityType => typeof(ProfileStatusChange);
+
+        public Entity Add(DbContext context)
+        {
+            var person = RegistrySamples.NewPerson("Shamim", "Nankya");
+            context.Add(person);
+            person.AddAthleteProfile("TESTBALL_FULL", RegistrySamples.Midfielder, SystemActor.Instance, RegistrySamples.Now).IsSuccess.ShouldBeTrue();
+            return person.ProfileStatusHistory.Single();
+        }
+
+        public Entity? Referencing(IForeignKey foreignKey, Guid principalId) =>
+            foreignKey.PrincipalEntityType.ClrType == typeof(Person)
+                ? new ProfileStatusChange(
+                    principalId, ProfileKind.Athlete, Guid.CreateVersion7(), ProfileStatus.Active, ProfileStatus.Retired, "Retired",
+                    SystemActor.Instance, RegistrySamples.Now)
+                : null;
+    }
+
     /// <summary>Registry: an identifier names its person by ID without a foreign key, so nothing tenant-owned is referenced.</summary>
     private sealed class ExternalIdentifierSample : IIsolationSample
     {
@@ -387,6 +429,8 @@ public static class IsolationSamples
 
         public static Person NewPerson(string firstName, string lastName) =>
             Person.Create(new PersonBiodata(firstName, lastName), PersonSource.Manual, SystemActor.Instance, Now);
+
+        public static AthleteProfileDetails Midfielder { get; } = new("TB_MID", [], DominantSide.Left, null);
     }
 
     private static class IdentitySamples

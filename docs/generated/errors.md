@@ -42,6 +42,7 @@ the message is the default title and may change.
 | `PERSON_ALIAS_NOT_FOUND` | 404 | The person has no such alias. | Registry |
 | `PERSON_ALIAS_REMOVED` | 409 | The alias is already removed. | Registry |
 | `PERSON_ARCHIVED` | 409 | The person is archived: they take no new profile, alias, identifier, consent or photo. | Registry |
+| `PERSON_ATHLETE_PROFILE_EXISTS` | 409 | The person already has an athlete profile for this sport variant: change or reactivate it instead. | Registry |
 | `PERSON_CONCURRENCY_CONFLICT` | 409 | The record was changed by someone else. Reload and try again. | Registry |
 | `PERSON_DATE_OF_BIRTH_IN_FUTURE` | 422 | A date of birth can't be after today (the tenant's date). | Registry |
 | `PERSON_DECEASED` | 409 | The person is recorded as deceased: they take no new profile, alias, identifier, consent or photo. | Registry |
@@ -55,6 +56,11 @@ the message is the default title and may change.
 | `PERSON_EXTERNAL_ID_VALIDITY_INVALID` | 422 | An identifier's end date can't be before its start date or after today (the tenant's date). | Registry |
 | `PERSON_NAME_INVALID` | 422 | A first and a last name each need at least one letter or digit. | Registry |
 | `PERSON_NOT_FOUND` | 404 | The person was not found. | Registry |
+| `PERSON_POSITION_UNKNOWN` | 422 | The sport variant's definition has no such position. | Registry |
+| `PERSON_PROFILE_ARCHIVED` | 409 | The profile is archived: it takes no more changes. | Registry |
+| `PERSON_PROFILE_NOT_FOUND` | 404 | The person has no such profile. | Registry |
+| `PERSON_PROFILE_STATUS_INVALID` | 409 | The profile's current status doesn't allow this change. | Registry |
+| `PERSON_SPORT_NOT_ENABLED` | 422 | The tenant hasn't enabled this sport variant: enable it first. | Registry |
 | `PERSON_STATUS_INVALID` | 409 | The person's current status doesn't allow this change. | Registry |
 | `PLATFORM_CONCURRENCY_CONFLICT` | 409 | The record was changed by someone else. Reload and try again. | Platform |
 | `PLATFORM_METHOD_NOT_ALLOWED` | 405 | This endpoint does not support the HTTP method. | BuildingBlocks |

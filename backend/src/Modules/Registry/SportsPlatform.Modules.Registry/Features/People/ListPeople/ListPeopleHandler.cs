@@ -3,6 +3,7 @@ using SportsPlatform.BuildingBlocks.Api;
 using SportsPlatform.BuildingBlocks.Privacy;
 using SportsPlatform.Modules.Registry.Contracts.People;
 using SportsPlatform.Modules.Registry.Domain.People;
+using SportsPlatform.Modules.Registry.Domain.People.Profiles;
 using SportsPlatform.Modules.Registry.Infrastructure;
 using PersonStatus = SportsPlatform.Modules.Registry.Domain.People.PersonStatus;
 
@@ -15,7 +16,8 @@ public sealed record ListPeopleResponse(
 /// <summary>
 /// The directory of the request's tenant (query filter and RLS), sorted by normalised last name, normalised first name
 /// and ID (S06 D22). <c>q</c> matches a name or an alias (not a removed one) by prefix or trigram similarity, and an
-/// external identifier's value exactly. Without a status, archived people are left out. The date of birth is read to
+/// external identifier's value exactly. Without a status, archived people are left out. <c>profile</c> and
+/// <c>variant</c> keep people holding an open (not archived) profile of that kind and variant. The date of birth is read to
 /// compute the birth year and the age status on the tenant's date, and goes no further.
 /// </summary>
 public sealed class ListPeopleHandler(RegistryDbContext context, TenantToday tenantToday)
@@ -41,6 +43,14 @@ public sealed class ListPeopleHandler(RegistryDbContext context, TenantToday ten
             AgeStatus.Unknown => people.Where(p => p.DateOfBirth == null),
             _ => people,
         };
+
+        // Only athlete profiles exist yet (S06-T4a): either filter reads them; T4b adds staff and official profiles.
+        if (query.Profile is not null || query.Variant is not null)
+        {
+            var variant = query.Variant;
+            people = people.Where(p => context.Set<AthleteProfile>().Any(a =>
+                a.PersonId == p.Id && a.Status != ProfileStatus.Archived && (variant == null || a.Variant == variant)));
+        }
 
         if (query.Search is { } search)
         {

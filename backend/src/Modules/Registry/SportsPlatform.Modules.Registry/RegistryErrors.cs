@@ -68,4 +68,23 @@ public static class RegistryErrors
         "PERSON_EXTERNAL_ID_VALIDITY_INVALID",
         "An identifier's end date can't be before its start date or after today (the tenant's date).",
         ErrorKind.Unprocessable);
+
+    public static readonly Error SportNotEnabled = new(
+        "PERSON_SPORT_NOT_ENABLED", "The tenant hasn't enabled this sport variant: enable it first.", ErrorKind.Unprocessable);
+
+    public static readonly Error PositionUnknown = new(
+        "PERSON_POSITION_UNKNOWN", "The sport variant's definition has no such position.", ErrorKind.Unprocessable);
+
+    public static readonly Error AthleteProfileExists = new(
+        "PERSON_ATHLETE_PROFILE_EXISTS",
+        "The person already has an athlete profile for this sport variant: change or reactivate it instead.",
+        ErrorKind.Conflict);
+
+    public static readonly Error ProfileNotFound = new("PERSON_PROFILE_NOT_FOUND", "The person has no such profile.", ErrorKind.NotFound);
+
+    public static readonly Error ProfileArchived = new(
+        "PERSON_PROFILE_ARCHIVED", "The profile is archived: it takes no more changes.", ErrorKind.Conflict);
+
+    public static readonly Error ProfileStatusInvalid = new(
+        "PERSON_PROFILE_STATUS_INVALID", "The profile's current status doesn't allow this change.", ErrorKind.Conflict);
 }

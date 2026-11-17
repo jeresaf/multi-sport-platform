@@ -185,7 +185,11 @@ read-only) for `TENANT_OWNER`, `TENANT_ADMIN` and `REGISTRAR`; it needs the chec
 `grantedWith: person.duplicate_check, person.read`) and the lifecycle actions (`POST …/people/{id}/…`;
 `grantedWith: person.read`): `person.deactivate` and `person.reactivate` (audit `REQUIRED`, optional reason), `person.archive`,
 `person.unarchive` and `person.mark_deceased` (`REQUIRED_WITH_REASON`), all for `TENANT_OWNER`, `TENANT_ADMIN` and
-`REGISTRAR`, none available while read-only.
+`REGISTRAR`, none available while read-only. Aliases and identifiers (S06-T3b): `person.alias.add`, `person.external_id.add`,
+`person.external_id.end` (audit `REQUIRED`) and `person.alias.remove` (`REQUIRED_WITH_REASON`). Athlete profiles (S06-T4a,
+D12): `athlete_profile.create`, `athlete_profile.update` (audit `REQUIRED`) and `athlete_profile.status.change`
+(`REQUIRED_WITH_REASON`). All of these declare `grantedWith: person.read` (they answer the person) and are held by
+`TENANT_OWNER`, `TENANT_ADMIN` and `REGISTRAR`; none is available while read-only.
 
 | Role | Typical scope | Includes (summary) |
 |---|---|---|

@@ -85,6 +85,54 @@
       "since": "S03"
     },
     {
+      "code": "athlete_profile.create",
+      "module": "Registry",
+      "description": "Record that a person plays a sport variant the tenant has enabled, with positions from its definition; one profile per variant that isn't archived; not for an archived or deceased person.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S06"
+    },
+    {
+      "code": "athlete_profile.status.change",
+      "module": "Registry",
+      "description": "Make an athlete profile inactive, retired, active again or archived (final), with a reason; every change is kept.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED_WITH_REASON",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S06"
+    },
+    {
+      "code": "athlete_profile.update",
+      "module": "Registry",
+      "description": "Change an athlete profile's positions, dominant side and public name.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S06"
+    },
+    {
       "code": "entitlement.override",
       "module": "Tenancy",
       "description": "Give a tenant its own value of an entitlement in place of its plan's, with a reason, optionally until a date; replaces an earlier override of it.",

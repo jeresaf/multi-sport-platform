@@ -1,6 +1,7 @@
 using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.BuildingBlocks.Domain;
 using SportsPlatform.BuildingBlocks.Results;
+using SportsPlatform.Modules.Registry.Domain.People.Profiles;
 
 namespace SportsPlatform.Modules.Registry.Domain.People;
 
@@ -8,13 +9,15 @@ namespace SportsPlatform.Modules.Registry.Domain.People;
 /// One real person in a tenant's registry (<c>registry.persons</c>, tenant-owned, S06 D1, D2): the canonical record that
 /// role profiles, memberships and registrations point at. Its ID never changes (AR-23). Names are kept as entered and as
 /// normalised keys (<see cref="NameNormaliser"/>) for search and the duplicate check. Whether the person is a minor is
-/// computed from the date of birth on every read, never stored (ADR-0015). Aliases and the status history are its
-/// children; a change to one changes the person's version (S06 D11).
+/// computed from the date of birth on every read, never stored (ADR-0015). Aliases, role profiles and the status
+/// histories are its children; a change to one changes the person's version (S06 D11; owner, S06-T4 plan).
 /// </summary>
 public sealed class Person : AggregateRoot, ITenantOwned
 {
     private readonly List<PersonAlias> _aliases = [];
     private readonly List<PersonStatusChange> _statusHistory = [];
+    private readonly List<AthleteProfile> _athleteProfiles = [];
+    private readonly List<ProfileStatusChange> _profileStatusHistory = [];
 
     private Person()
     {
@@ -79,6 +82,12 @@ public sealed class Person : AggregateRoot, ITenantOwned
     public IReadOnlyList<PersonAlias> Aliases => _aliases;
 
     public IReadOnlyList<PersonStatusChange> StatusHistory => _statusHistory;
+
+    /// <summary>Every athlete profile, archived ones included; load them before a profile command.</summary>
+    public IReadOnlyList<AthleteProfile> AthleteProfiles => _athleteProfiles;
+
+    /// <summary>The status history of every profile; commands only add to it, so it needn't be loaded.</summary>
+    public IReadOnlyList<ProfileStatusChange> ProfileStatusHistory => _profileStatusHistory;
 
     /// <summary>
     /// A new <c>ACTIVE</c> person in the scope's tenant (stamped on save), with the first row of its status history.
@@ -201,6 +210,88 @@ public sealed class Person : AggregateRoot, ITenantOwned
         }
 
         alias.Remove(reason, actor, now);
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Adds an <c>ACTIVE</c> athlete profile for <paramref name="variant"/> with the first row of its history (S06 D12).
+    /// Refused on an archived or deceased person (D9) and when the person already holds an open profile for the variant
+    /// (<c>PERSON_ATHLETE_PROFILE_EXISTS</c>: a retired one is reactivated, not doubled). The use case has checked that
+    /// the variant is enabled and the codes are the definition's.
+    /// </summary>
+    public Result<AthleteProfile> AddAthleteProfile(
+        string variant, AthleteProfileDetails details, ICurrentActor actor, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(actor);
+        var accepts = EnsureAcceptsNewChildren();
+        if (accepts.IsFailure)
+        {
+            return accepts.Error;
+        }
+
+        if (_athleteProfiles.Any(existing => existing.Variant == variant && ProfileTransitions.IsOpen(existing.Status)))
+        {
+            return RegistryErrors.AthleteProfileExists;
+        }
+
+        var profile = new AthleteProfile(Id, variant, details);
+        _athleteProfiles.Add(profile);
+        _profileStatusHistory.Add(
+            new ProfileStatusChange(Id, ProfileKind.Athlete, profile.Id, null, profile.Status, null, actor, now));
+        return Result.Success(profile);
+    }
+
+    /// <summary>
+    /// Replaces an athlete profile's details (S06 D12): a correction, allowed whatever the person's status (D9; owner,
+    /// S06-T3 plan) but not on an archived profile (<c>PERSON_PROFILE_ARCHIVED</c>). The use case has checked the codes.
+    /// </summary>
+    public Result UpdateAthleteProfile(Guid profileId, AthleteProfileDetails details)
+    {
+        var profile = _athleteProfiles.SingleOrDefault(existing => existing.Id == profileId);
+        if (profile is null)
+        {
+            return Result.Failure(RegistryErrors.ProfileNotFound);
+        }
+
+        if (!ProfileTransitions.IsOpen(profile.Status))
+        {
+            return Result.Failure(RegistryErrors.ProfileArchived);
+        }
+
+        profile.Update(details);
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Moves an athlete profile to <paramref name="to"/> with a reason and a history row (S06 D12,
+    /// <see cref="ProfileTransitions"/>). A move the current status doesn't allow is <c>PERSON_PROFILE_STATUS_INVALID</c>;
+    /// a move to <c>ACTIVE</c> is refused on an archived or deceased person (D9), every other move is allowed.
+    /// </summary>
+    public Result ChangeAthleteProfileStatus(
+        Guid profileId, ProfileStatus to, string reason, ICurrentActor actor, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(actor);
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+        var profile = _athleteProfiles.SingleOrDefault(existing => existing.Id == profileId);
+        if (profile is null)
+        {
+            return Result.Failure(RegistryErrors.ProfileNotFound);
+        }
+
+        if (!ProfileTransitions.IsAllowed(profile.Status, to))
+        {
+            return Result.Failure(RegistryErrors.ProfileStatusInvalid);
+        }
+
+        if (to == ProfileStatus.Active && EnsureAcceptsNewChildren() is { IsFailure: true } refused)
+        {
+            return refused;
+        }
+
+        var from = profile.Status;
+        profile.MoveTo(to);
+        _profileStatusHistory.Add(
+            new ProfileStatusChange(Id, ProfileKind.Athlete, profile.Id, from, to, reason.Trim(), actor, now));
         return Result.Success();
     }
 

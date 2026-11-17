@@ -4,6 +4,7 @@ using SportsPlatform.BuildingBlocks.Api;
 using SportsPlatform.BuildingBlocks.Privacy;
 using SportsPlatform.Modules.Registry.Contracts.People;
 using SportsPlatform.Modules.Registry.Domain.People;
+using SportsPlatform.Modules.Registry.Domain.People.Profiles;
 using PersonStatus = SportsPlatform.Modules.Registry.Domain.People.PersonStatus;
 
 namespace SportsPlatform.Modules.Registry.Features.People;
@@ -27,7 +28,8 @@ public sealed record PersonListItem(
 
 /// <summary>
 /// A person's record as <c>person.read</c> shows it (S06 D3, D22): no <c>PRIVATE</c> field. Aliases are the ones not
-/// removed. <c>version</c> is also the <c>ETag</c>; a change to an alias or an identifier changes it too (S06 D11).
+/// removed; athlete profiles are all of them, archived ones included, by variant. <c>version</c> is also the <c>ETag</c>;
+/// a change to an alias, an identifier or a profile changes it too (S06 D11).
 /// </summary>
 public sealed record PersonResponse(
     [property: PersonalData(PersonalDataClass.Public)] Guid Id,
@@ -49,6 +51,7 @@ public sealed record PersonResponse(
     [property: PersonalData(PersonalDataClass.Internal)] PersonSource Source,
     [property: PersonalData(PersonalDataClass.Internal)] IReadOnlyList<PersonAliasResponse> Aliases,
     [property: PersonalData(PersonalDataClass.Internal)] IReadOnlyList<ExternalIdentifierResponse> ExternalIdentifiers,
+    [property: PersonalData(PersonalDataClass.Internal)] IReadOnlyList<AthleteProfileResponse> AthleteProfiles,
     [property: PersonalData(PersonalDataClass.Internal)] uint Version)
 {
     public void SetETag(HttpResponse response)
@@ -62,6 +65,19 @@ public sealed record PersonAliasResponse(
     [property: PersonalData(PersonalDataClass.Internal)] Guid Id,
     [property: PersonalData(PersonalDataClass.Internal)] string Name,
     [property: PersonalData(PersonalDataClass.Internal)] AliasKind Kind);
+
+/// <summary>
+/// A sport variant the person plays (S06 D12): codes of the variant's definition (its labels come from
+/// <c>GET /sports/{variant}</c>, AR-29). <c>publicName</c> as recorded: null shows the display name.
+/// </summary>
+public sealed record AthleteProfileResponse(
+    [property: PersonalData(PersonalDataClass.Internal)] Guid Id,
+    [property: PersonalData(PersonalDataClass.Public)] string Variant,
+    [property: PersonalData(PersonalDataClass.Public)] string? PrimaryPosition,
+    [property: PersonalData(PersonalDataClass.Public)] IReadOnlyList<string> OtherPositions,
+    [property: PersonalData(PersonalDataClass.Internal)] DominantSide? DominantSide,
+    [property: PersonalData(PersonalDataClass.Public)] string? PublicName,
+    [property: PersonalData(PersonalDataClass.Internal)] ProfileStatus Status);
 
 /// <summary>An identifier another authority gave the person; one with <c>validTo</c> has ended (S06 D10).</summary>
 public sealed record ExternalIdentifierResponse(

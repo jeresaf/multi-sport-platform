@@ -2629,7 +2629,7 @@
           "People"
         ],
         "summary": "List the tenant's people",
-        "description": "The people of the tenant named by `X-Tenant-Id`, sorted by last name, first name and ID. `q` matches a name or an alias by prefix or similarity (in any order: \"Ssekandi John\" finds John Ssekandi) and an external identifier's value exactly. Filter by `status` (without it, archived people are left out) and `ageStatus` (on the tenant's date; UNKNOWN: no date of birth). `limit` is 1–100 (25). Items carry the birth year, never the date of birth. `isMinor` is true unless the person is known to be an adult (`ageStatus` UNKNOWN: true).",
+        "description": "The people of the tenant named by `X-Tenant-Id`, sorted by last name, first name and ID. `q` matches a name or an alias by prefix or similarity (in any order: \"Ssekandi John\" finds John Ssekandi) and an external identifier's value exactly. Filter by `status` (without it, archived people are left out) and `ageStatus` (on the tenant's date; UNKNOWN: no date of birth); `profile` and `variant` keep people with a profile of that kind and sport variant that isn't archived (a variant without people answers an empty page). `limit` is 1–100 (25). Items carry the birth year, never the date of birth. `isMinor` is true unless the person is known to be an adult (`ageStatus` UNKNOWN: true).",
         "operationId": "ListPeople",
         "parameters": [
           {
@@ -2674,6 +2674,23 @@
           },
           {
             "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "profile",
+            "in": "query",
+            "schema": {
+              "enum": [
+                "ATHLETE"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "variant",
             "in": "query",
             "schema": {
               "type": "string"
@@ -4407,6 +4424,451 @@
             },
             "x-error-codes": [
               "PERSON_EXTERNAL_ID_VALIDITY_INVALID"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING",
+              "TENANT_READ_ONLY"
+            ]
+          }
+        }
+      }
+    },
+    "/api/admin/v1/people/{personId}/athlete-profiles": {
+      "post": {
+        "tags": [
+          "People"
+        ],
+        "summary": "Add an athlete profile to a person",
+        "description": "Records that the person plays a sport variant the tenant has enabled (PERSON_SPORT_NOT_ENABLED otherwise); the profile starts ACTIVE. A person holds one profile per variant that isn't archived (PERSON_ATHLETE_PROFILE_EXISTS: change or reactivate that one). An archived or deceased person takes no new profile (PERSON_ARCHIVED, PERSON_DECEASED). Codes are the sport variant's (GET /sports/{variant} gives their labels): `primaryPosition` and `otherPositions` (up to 5, distinct, not the primary one) must be positions of the variant's latest definition (PERSON_POSITION_UNKNOWN, on the field). `publicName` is the name shown with the sport; null shows the display name. Send `version` or `If-Match` from the last read of the person to get 409 PERSON_CONCURRENCY_CONFLICT if the person or any of their profiles changed since; without them, a change to the same person saved at the same moment can still answer it. Answers the person as GET /people/{personId} does; its version moves.",
+        "operationId": "CreateAthleteProfile",
+        "parameters": [
+          {
+            "name": "personId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAthleteProfileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_REQUEST",
+              "VALIDATION_MALFORMED_REQUEST"
+            ]
+          },
+          "404": {
+            "description": "Problem Details; `code`: `PERSON_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "PERSON_NOT_FOUND"
+            ]
+          },
+          "409": {
+            "description": "Problem Details; `code`: `PERSON_ARCHIVED`, `PERSON_ATHLETE_PROFILE_EXISTS`, `PERSON_CONCURRENCY_CONFLICT`, `PERSON_DECEASED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "PERSON_ARCHIVED",
+              "PERSON_ATHLETE_PROFILE_EXISTS",
+              "PERSON_CONCURRENCY_CONFLICT",
+              "PERSON_DECEASED"
+            ]
+          },
+          "422": {
+            "description": "Problem Details; `code`: `PERSON_POSITION_UNKNOWN`, `PERSON_SPORT_NOT_ENABLED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "PERSON_POSITION_UNKNOWN",
+              "PERSON_SPORT_NOT_ENABLED"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING",
+              "TENANT_READ_ONLY"
+            ]
+          }
+        }
+      }
+    },
+    "/api/admin/v1/people/{personId}/athlete-profiles/{profileId}": {
+      "put": {
+        "tags": [
+          "People"
+        ],
+        "summary": "Change an athlete profile",
+        "description": "Replaces the profile's positions, dominant side and public name (a field left out is cleared); the variant never changes. A correction: allowed whatever the person's status and whether or not the tenant still has the variant enabled, but not on an archived profile (PERSON_PROFILE_ARCHIVED). Every position sent is checked against the variant's latest definition, so one a newer definition dropped must be replaced or left out. Codes are the sport variant's (GET /sports/{variant} gives their labels): `primaryPosition` and `otherPositions` (up to 5, distinct, not the primary one) must be positions of the variant's latest definition (PERSON_POSITION_UNKNOWN, on the field). `publicName` is the name shown with the sport; null shows the display name. Send `version` or `If-Match` from the last read of the person to get 409 PERSON_CONCURRENCY_CONFLICT if the person or any of their profiles changed since; without them, a change to the same person saved at the same moment can still answer it. Answers the person as GET /people/{personId} does; its version moves.",
+        "operationId": "UpdateAthleteProfile",
+        "parameters": [
+          {
+            "name": "personId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "profileId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAthleteProfileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_REQUEST",
+              "VALIDATION_MALFORMED_REQUEST"
+            ]
+          },
+          "404": {
+            "description": "Problem Details; `code`: `PERSON_NOT_FOUND`, `PERSON_PROFILE_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "PERSON_NOT_FOUND",
+              "PERSON_PROFILE_NOT_FOUND"
+            ]
+          },
+          "409": {
+            "description": "Problem Details; `code`: `PERSON_CONCURRENCY_CONFLICT`, `PERSON_PROFILE_ARCHIVED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "PERSON_CONCURRENCY_CONFLICT",
+              "PERSON_PROFILE_ARCHIVED"
+            ]
+          },
+          "422": {
+            "description": "Problem Details; `code`: `PERSON_POSITION_UNKNOWN`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "PERSON_POSITION_UNKNOWN"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING",
+              "TENANT_READ_ONLY"
+            ]
+          }
+        }
+      }
+    },
+    "/api/admin/v1/people/{personId}/athlete-profiles/{profileId}/status": {
+      "post": {
+        "tags": [
+          "People"
+        ],
+        "summary": "Change an athlete profile's status",
+        "description": "Moves the profile, with a reason (body `{ \"status\": …, \"reason\": … }`, both required): ACTIVE ⇄ INACTIVE; ACTIVE or INACTIVE → RETIRED; RETIRED → ACTIVE; any status but ARCHIVED → ARCHIVED, which is final. Any other move is PERSON_PROFILE_STATUS_INVALID; a move to ACTIVE is refused on an archived or deceased person (PERSON_ARCHIVED, PERSON_DECEASED). Each move is kept in the profile's history. The reason is kept permanently in that history and the audit trail: don't include personal data. Send `version` or `If-Match` from the last read of the person to get 409 PERSON_CONCURRENCY_CONFLICT if the person or any of their profiles changed since; without them, a change to the same person saved at the same moment can still answer it. Answers the person as GET /people/{personId} does; its version moves.",
+        "operationId": "ChangeAthleteProfileStatus",
+        "parameters": [
+          {
+            "name": "personId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "profileId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeProfileStatusRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST`, `VALIDATION_REASON_REQUIRED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_REQUEST",
+              "VALIDATION_MALFORMED_REQUEST",
+              "VALIDATION_REASON_REQUIRED"
+            ]
+          },
+          "404": {
+            "description": "Problem Details; `code`: `PERSON_NOT_FOUND`, `PERSON_PROFILE_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "PERSON_NOT_FOUND",
+              "PERSON_PROFILE_NOT_FOUND"
+            ]
+          },
+          "409": {
+            "description": "Problem Details; `code`: `PERSON_ARCHIVED`, `PERSON_CONCURRENCY_CONFLICT`, `PERSON_DECEASED`, `PERSON_PROFILE_STATUS_INVALID`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "PERSON_ARCHIVED",
+              "PERSON_CONCURRENCY_CONFLICT",
+              "PERSON_DECEASED",
+              "PERSON_PROFILE_STATUS_INVALID"
             ]
           },
           "401": {
@@ -8201,6 +8663,59 @@
         "additionalProperties": false,
         "description": "A role to give a member: its code and scope (`TENANT` when not sent; the only scope S03 accepts, so\n`scopeId` stays empty). `version`, when sent, must be the membership's current one."
       },
+      "AthleteProfileResponse": {
+        "required": [
+          "id",
+          "variant",
+          "primaryPosition",
+          "otherPositions",
+          "dominantSide",
+          "publicName",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "variant": {
+            "type": "string"
+          },
+          "primaryPosition": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "otherPositions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "dominantSide": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DominantSide"
+              }
+            ]
+          },
+          "publicName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/ProfileStatus"
+          }
+        },
+        "description": "A sport variant the person plays (S06 D12): codes of the variant's definition (its labels come from\n`GET /sports/{variant}`, AR-29). `publicName` as recorded: null shows the display name."
+      },
       "AuditEntryResponse": {
         "required": [
           "id",
@@ -8570,6 +9085,40 @@
         "additionalProperties": false,
         "description": "The higher plan to move to now."
       },
+      "ChangeProfileStatusRequest": {
+        "required": [
+          "status",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ProfileStatus"
+              }
+            ]
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "version": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "uint32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A profile's new status, with a reason (audit `REQUIRED_WITH_REASON`). The reason is kept permanently in the\nprofile's history and the audit trail and is not redacted: it must not contain personal data."
+      },
       "ChangeTenantStatusRequest": {
         "type": "object",
         "properties": {
@@ -8751,6 +9300,60 @@
           "DETAILED"
         ],
         "description": "In order: a level includes every level before it."
+      },
+      "CreateAthleteProfileRequest": {
+        "required": [
+          "variant"
+        ],
+        "type": "object",
+        "properties": {
+          "variant": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "primaryPosition": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "otherPositions": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "dominantSide": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DominantSide"
+              }
+            ]
+          },
+          "publicName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "version": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "uint32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A new athlete profile (S06 D12): the variant's code, then the details as UpdateAthleteProfileRequest\ntakes them; `version`, when sent, must be the person's current one."
       },
       "CreatePersonRequest": {
         "required": [
@@ -8962,6 +9565,14 @@
         "additionalProperties": false,
         "description": "The body of `tenant.sport.disable` (audit `REQUIRED_WITH_REASON`). The reason is kept permanently on the\nenablement and in the audit trail and is not redacted: it must not contain personal data."
       },
+      "DominantSide": {
+        "enum": [
+          "LEFT",
+          "RIGHT",
+          "BOTH",
+          null
+        ]
+      },
       "DuplicateCandidateResponse": {
         "required": [
           "personId",
@@ -8969,7 +9580,8 @@
           "birthYear",
           "status",
           "confidence",
-          "evidence"
+          "evidence",
+          "athleteVariants"
         ],
         "type": "object",
         "properties": {
@@ -8998,9 +9610,15 @@
             "items": {
               "$ref": "#/components/schemas/DuplicateEvidenceResponse"
             }
+          },
+          "athleteVariants": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
-        "description": "A person who matched. `EXACT_IDENTIFIER` blocks creation; `LIKELY` and `POSSIBLE` need a reason to\nproceed. `status` marks an archived, inactive or deceased person."
+        "description": "A person who matched. `EXACT_IDENTIFIER` blocks creation; `LIKELY` and `POSSIBLE` need a reason to\nproceed. `status` marks an archived, inactive or deceased person. `athleteVariants`: the sport variants of\ntheir athlete profiles that aren't archived, by code (S06 D5)."
       },
       "DuplicateConfidence": {
         "enum": [
@@ -10459,6 +11077,7 @@
           "source",
           "aliases",
           "externalIdentifiers",
+          "athleteProfiles",
           "version"
         ],
         "type": "object",
@@ -10558,12 +11177,18 @@
               "$ref": "#/components/schemas/ExternalIdentifierResponse"
             }
           },
+          "athleteProfiles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AthleteProfileResponse"
+            }
+          },
           "version": {
             "type": "integer",
             "format": "uint32"
           }
         },
-        "description": "A person's record as `person.read` shows it (S06 D3, D22): no `PRIVATE` field. Aliases are the ones not\nremoved. `version` is also the `ETag`; a change to an alias or an identifier changes it too (S06 D11)."
+        "description": "A person's record as `person.read` shows it (S06 D3, D22): no `PRIVATE` field. Aliases are the ones not\nremoved; athlete profiles are all of them, archived ones included, by variant. `version` is also the `ETag`;\na change to an alias, an identifier or a profile changes it too (S06 D11)."
       },
       "PersonSource": {
         "enum": [
@@ -10873,6 +11498,15 @@
             "description": "Validation failures, one per field: `field` (camelCase) and `code`."
           }
         }
+      },
+      "ProfileStatus": {
+        "enum": [
+          "ACTIVE",
+          "INACTIVE",
+          "RETIRED",
+          "ARCHIVED"
+        ],
+        "description": "A role profile's stored states in S06 (docs/domain/state-machines.md, Registry). `SUSPENDED` comes with\ndiscipline (S13+)."
       },
       "QuotaUsageResponse": {
         "required": [
@@ -13185,6 +13819,51 @@
           }
         },
         "description": "An action the caller's roles grant that the tenant can't use now. `code` is the refusal the request would get\nfirst: `TENANT_READ_ONLY` (step 1) or `ENTITLEMENT_REQUIRED` (step 2). For `ENTITLEMENT_REQUIRED`,\n`entitlement` is the entitlement the action names and `plans` the active plans, in rank order, that include\nit (empty when none does); both are null for `TENANT_READ_ONLY`."
+      },
+      "UpdateAthleteProfileRequest": {
+        "type": "object",
+        "properties": {
+          "primaryPosition": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "otherPositions": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "dominantSide": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DominantSide"
+              }
+            ]
+          },
+          "publicName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "version": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "uint32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "An athlete profile's details, replaced as a whole (a field left out is cleared); the variant never changes.\n`version`, when sent, must be the person's current one."
       },
       "UpdatePersonRequest": {
         "required": [

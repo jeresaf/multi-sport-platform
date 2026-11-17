@@ -14,6 +14,7 @@ using SportsPlatform.Modules.Registry.Features.People.GetPerson;
 using SportsPlatform.Modules.Registry.Features.People.GetPersonPrivate;
 using SportsPlatform.Modules.Registry.Features.People.ListPeople;
 using SportsPlatform.Modules.Registry.Features.People.ListPersonStatusChanges;
+using SportsPlatform.Modules.Registry.Features.People.Profiles;
 using SportsPlatform.Modules.Registry.Features.People.UpdatePerson;
 using SportsPlatform.Modules.Registry.Infrastructure;
 
@@ -23,7 +24,7 @@ namespace SportsPlatform.Modules.Registry;
 /// Registry: the canonical records of people (S06), then organisations, teams and venues (S07)
 /// (docs/architecture/modules.md). Every table is tenant-owned. S06-T1b: the people reads and
 /// <see cref="IPeopleDirectory"/>. S06-T2a: the duplicate check. S06-T2b: its token and create. S06-T3a: the
-/// update and the lifecycle. S06-T3b: aliases and external identifiers.
+/// update and the lifecycle. S06-T3b: aliases and external identifiers. S06-T4a: athlete profiles.
 /// </summary>
 public sealed class RegistryModule : IModule
 {
@@ -53,6 +54,10 @@ public sealed class RegistryModule : IModule
         services.AddScoped<RemovePersonAliasHandler>();
         services.AddScoped<AddExternalIdentifierHandler>();
         services.AddScoped<EndExternalIdentifierHandler>();
+        services.AddScoped<SportCodes>();
+        services.AddScoped<CreateAthleteProfileHandler>();
+        services.AddScoped<UpdateAthleteProfileHandler>();
+        services.AddScoped<ChangeAthleteProfileStatusHandler>();
         services.AddSingleton<IValidator<ListPeopleRequest>, ListPeopleRequestValidator>();
         services.AddScoped<IValidator<CheckDuplicatesRequest>, CheckDuplicatesRequestValidator>();
         services.AddScoped<IValidator<CreatePersonRequest>, CreatePersonRequestValidator>();
@@ -63,6 +68,9 @@ public sealed class RegistryModule : IModule
         services.AddSingleton<IValidator<RemovePersonAliasRequest>, RemovePersonAliasRequestValidator>();
         services.AddSingleton<IValidator<AddExternalIdentifierRequest>, AddExternalIdentifierRequestValidator>();
         services.AddSingleton<IValidator<EndExternalIdentifierRequest>, EndExternalIdentifierRequestValidator>();
+        services.AddSingleton<IValidator<CreateAthleteProfileRequest>, CreateAthleteProfileRequestValidator>();
+        services.AddSingleton<IValidator<UpdateAthleteProfileRequest>, UpdateAthleteProfileRequestValidator>();
+        services.AddSingleton<IValidator<ChangeProfileStatusRequest>, ChangeProfileStatusRequestValidator>();
     }
 
     public void MapEndpoints(ApiEndpointGroups groups)
@@ -78,6 +86,7 @@ public sealed class RegistryModule : IModule
         ChangePersonStatusEndpoints.Map(people);
         PersonAliasEndpoints.Map(people);
         ExternalIdentifierEndpoints.Map(people);
+        AthleteProfileEndpoints.Map(people);
         GetPersonPrivateEndpoint.Map(people);
         ListPersonStatusChangesEndpoint.Map(people);
     }

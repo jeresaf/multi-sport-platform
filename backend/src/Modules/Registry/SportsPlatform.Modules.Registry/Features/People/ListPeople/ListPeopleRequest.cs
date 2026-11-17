@@ -2,15 +2,19 @@ using System.Globalization;
 using Microsoft.AspNetCore.Mvc;
 using SportsPlatform.BuildingBlocks.Persistence.Messaging;
 using SportsPlatform.Modules.Registry.Contracts.People;
+using SportsPlatform.Modules.Registry.Domain.People.Profiles;
 using PersonStatus = SportsPlatform.Modules.Registry.Domain.People.PersonStatus;
 
 namespace SportsPlatform.Modules.Registry.Features.People.ListPeople;
 
 /// <summary>
 /// <paramref name="Search"/> is the trimmed <c>q</c>; no status means every state but <c>ARCHIVED</c>;
+/// <paramref name="Profile"/> and <paramref name="Variant"/> keep people with an open profile of that kind or variant;
 /// <paramref name="After"/> is the sort key of the previous page's last person.
 /// </summary>
-public sealed record PeopleQuery(string? Search, PersonStatus? Status, AgeStatus? AgeStatus, int Limit, PersonCursor? After);
+public sealed record PeopleQuery(
+    string? Search, PersonStatus? Status, AgeStatus? AgeStatus, int Limit, PersonCursor? After,
+    ProfileKind? Profile = null, string? Variant = null);
 
 /// <summary>The directory's query parameters as sent (text, so every bad value is <c>VALIDATION_INVALID_QUERY</c>).</summary>
 public sealed record ListPeopleRequest(
@@ -18,22 +22,31 @@ public sealed record ListPeopleRequest(
     [FromQuery(Name = "status")] string? Status,
     [FromQuery(Name = "ageStatus")] string? AgeStatus,
     [FromQuery(Name = "limit")] string? Limit,
-    [FromQuery(Name = "cursor")] string? Cursor)
+    [FromQuery(Name = "cursor")] string? Cursor,
+    [FromQuery(Name = "profile")] string? Profile = null,
+    [FromQuery(Name = "variant")] string? Variant = null)
 {
+    public const int VariantMaxLength = AthleteProfile.VariantMaxLength;
+
     public const int DefaultLimit = 25;
     public const int MaxLimit = 100;
     public const int SearchMaxLength = 100;
 
     private static readonly Dictionary<string, PersonStatus> _statuses = Names<PersonStatus>();
     private static readonly Dictionary<string, AgeStatus> _ageStatuses = Names<AgeStatus>();
+    private static readonly Dictionary<string, ProfileKind> _profiles = Names<ProfileKind>();
 
     public static IReadOnlyCollection<string> Statuses => _statuses.Keys;
 
     public static IReadOnlyCollection<string> AgeStatuses => _ageStatuses.Keys;
 
+    public static IReadOnlyCollection<string> Profiles => _profiles.Keys;
+
     public static bool TryParseStatus(string value, out PersonStatus status) => _statuses.TryGetValue(value, out status);
 
     public static bool TryParseAgeStatus(string value, out AgeStatus status) => _ageStatuses.TryGetValue(value, out status);
+
+    public static bool TryParseProfile(string value, out ProfileKind profile) => _profiles.TryGetValue(value, out profile);
 
     public static bool TryParseLimit(string value, out int limit) =>
         int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out limit) && limit is >= 1 and <= MaxLimit;
@@ -65,7 +78,13 @@ public sealed record ListPeopleRequest(
             after = PersonCursor.TryDecode(Cursor, out var cursor) ? cursor : throw NotValidated();
         }
 
-        return new PeopleQuery(string.IsNullOrWhiteSpace(Q) ? null : Q.Trim(), status, ageStatus, limit, after);
+        ProfileKind? profile = null;
+        if (Profile is not null)
+        {
+            profile = TryParseProfile(Profile, out var parsed) ? parsed : throw NotValidated();
+        }
+
+        return new PeopleQuery(string.IsNullOrWhiteSpace(Q) ? null : Q.Trim(), status, ageStatus, limit, after, profile, Variant);
     }
 
     private static Dictionary<string, TEnum> Names<TEnum>()

@@ -102,7 +102,22 @@ public static class RegistryActions
         "End a person's external identifier; it is kept, and its value is never given to anyone else.",
         AuditRequirement.Required);
 
-    // The lifecycle, alias and identifier actions answer the person as person.read does, so they are only granted with
+    public static readonly ActionDefinition AthleteProfileCreate = Lifecycle(
+        "athlete_profile.create",
+        "Record that a person plays a sport variant the tenant has enabled, with positions from its definition; one profile per variant that isn't archived; not for an archived or deceased person.",
+        AuditRequirement.Required);
+
+    public static readonly ActionDefinition AthleteProfileUpdate = Lifecycle(
+        "athlete_profile.update",
+        "Change an athlete profile's positions, dominant side and public name.",
+        AuditRequirement.Required);
+
+    public static readonly ActionDefinition AthleteProfileStatusChange = Lifecycle(
+        "athlete_profile.status.change",
+        "Make an athlete profile inactive, retired, active again or archived (final), with a reason; every change is kept.",
+        AuditRequirement.RequiredWithReason);
+
+    // The lifecycle, alias, identifier and profile actions answer the person as person.read does, so they are only granted with
     // that read.
     private static ActionDefinition Lifecycle(string code, string description, AuditRequirement audit) => new(
         code,
