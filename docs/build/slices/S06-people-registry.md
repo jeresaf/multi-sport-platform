@@ -353,10 +353,10 @@ Deliver:
 - Likely T4a (athlete profiles) and T4b (staff and official profiles).
 
 Acceptance:
-- [ ] A profile for a variant the tenant hasn't enabled, or a position or role code the definition doesn't have, is
+- [x] A profile for a variant the tenant hasn't enabled, or a position or role code the definition doesn't have, is
       refused with its code (tests with S05's test-only definitions, `TestSportDefinitions`).
-- [ ] One person holds athlete, staff and official profiles at once; an archived person gets none (tests).
-- [ ] No sport code in the module's generic code (`SportLiteralTests` stays green).
+- [x] One person holds athlete, staff and official profiles at once; an archived person gets none (tests).
+- [x] No sport code in the module's generic code (`SportLiteralTests` stays green).
 
 ### T5 — Media and photos (~2 PRs, about 1,100 lines)
 Deliver:
@@ -561,3 +561,22 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   deleted. Two updates adding the same capability at once answer `409 PERSON_CONCURRENCY_CONFLICT` (the version or
   the capability index). The person read lists every staff profile (archived ones included, oldest first) with its
   capabilities by variant and role. `TestSportDefinitions` gives its test variants test staff roles.
+- **T4b2:** official profiles. Owner decisions (plan, 2026-11-17): grade, licence number and licence valid-until are
+  each optional and independent (a school referee may have no licence); a valid-until date already past is accepted;
+  `licenceExpired` is true when valid-until is before the tenant's today (a licence is valid through its last day),
+  false without a date, and blocks nothing; licence numbers are not checked for uniqueness. As built: `POST
+  …/people/{id}/official-profiles` and `PUT …/official-profiles/{profileId}` take `{capabilities: [{variant, role,
+  grade, licenceNumber, licenceValidUntil}], version}` (1–10, one per variant and role, replaced as a whole as staff
+  capabilities are; grade and licence number up to 50 characters, stored trimmed with inner whitespace collapsed),
+  `POST …/official-profiles/{profileId}/status` as the others. Tables `registry.official_profiles` (one open per person)
+  and `registry.official_capabilities` (unique per profile, variant and role; the index is
+  `ux_official_capabilities_tenant_id_profile_id_variant_role`, within PostgreSQL's 63 characters), both RLS; the
+  history's `profile_kind` takes `OFFICIAL`. New code `PERSON_OFFICIAL_PROFILE_EXISTS` (409); `PERSON_ROLE_UNKNOWN`
+  and `PERSON_SPORT_NOT_ENABLED` as for staff. `SportCodes` checks staff and official capabilities with one rule (the
+  definition's `staff_roles` or `official_roles`); the audit entries of both kinds name capabilities as
+  `CapabilityAuditEntry` (variant and role; same JSON as T4b1), never a grade or a licence. On an archived or deceased
+  person held capabilities may be kept, removed or re-licensed, not added (as staff). Every column is `INTERNAL` (D3).
+  The person read lists every official profile (archived ones included, oldest first) with its capabilities by variant
+  and role and `licenceExpired`; the directory takes `profile=OFFICIAL`, and `variant` matches an official capability.
+  `TestSportDefinitions` gives its test variants test official roles. The T4 acceptance boxes are ticked
+  (`OfficialProfileTests`: all three profiles on one person, an archived person refused each kind).

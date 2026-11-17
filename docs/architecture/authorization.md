@@ -189,7 +189,8 @@ read-only) for `TENANT_OWNER`, `TENANT_ADMIN` and `REGISTRAR`; it needs the chec
 `person.external_id.end` (audit `REQUIRED`) and `person.alias.remove` (`REQUIRED_WITH_REASON`). Athlete profiles (S06-T4a,
 D12): `athlete_profile.create`, `athlete_profile.update` (audit `REQUIRED`) and `athlete_profile.status.change`
 (`REQUIRED_WITH_REASON`); staff profiles (S06-T4b1) the same: `staff_profile.create`, `staff_profile.update` and
-`staff_profile.status.change`. All of these declare `grantedWith: person.read` (they answer the person) and are held by
+`staff_profile.status.change`; official profiles (S06-T4b2) too: `official_profile.create`, `official_profile.update` and
+`official_profile.status.change`. All of these declare `grantedWith: person.read` (they answer the person) and are held by
 `TENANT_OWNER`, `TENANT_ADMIN` and `REGISTRAR`; none is available while read-only.
 
 | Role | Typical scope | Includes (summary) |

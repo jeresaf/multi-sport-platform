@@ -190,14 +190,14 @@ ACTIVE | INACTIVE | RETIRED ──archive (reason)──► ARCHIVED   (final)
 ```
 
 One endpoint per profile kind (`POST …/athlete-profiles/{profileId}/status`, `POST …/staff-profiles/{profileId}/status`,
-with `{status, reason}`); any other move is
+`POST …/official-profiles/{profileId}/status`, with `{status, reason}`); any other move is
 `409 PERSON_PROFILE_STATUS_INVALID`. Every move writes a row to `registry.profile_status_changes` (kind, profile, from,
 to, reason, actor, time; the first row at creation). A profile is open until archived: a person holds one open athlete
-profile per variant and one open staff profile (a retired one is reactivated, not doubled). An archived profile takes no change: an update is
+profile per variant, one open staff profile and one open official profile (a retired one is reactivated, not doubled). An archived profile takes no change: an update is
 `409 PERSON_PROFILE_ARCHIVED`, a move `409 PERSON_PROFILE_STATUS_INVALID`. On an archived or
 deceased person a profile can be corrected, deactivated, retired or archived, but not moved to `ACTIVE`, and no new
-profile starts (owner, S06-T4 plan); a staff profile's correction there may keep, remove or re-qualify its roles but
-not add one (owner, review #102). `SUSPENDED` comes with discipline (S13+).
+profile starts (owner, S06-T4 plan); a staff or official profile's correction there may keep, remove or re-qualify
+(re-license) its roles but not add one (owner, review #102; S06-T4b2). An official's expired licence changes no status. `SUSPENDED` comes with discipline (S13+).
 
 ---
 

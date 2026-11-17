@@ -166,6 +166,11 @@ variant and role) are children of the person in the same way (`POST …/staff-pr
 replacing the capabilities as a whole, `POST …/staff-profiles/{profileId}/status`). `SportCodes` checks a capability's
 variant through `IEnabledSports` unless the profile already holds it, and its role through `ISportDefinitions`. The
 directory's `variant` matches an athlete profile's variant or a staff capability's.
+**As built (S06-T4b2):** official profiles (`registry.official_profiles`, one open per person) with their capabilities
+(`registry.official_capabilities`: variant, an `official_roles` code of its definition, optional grade, licence number
+and licence valid-until date; 1–10, one per variant and role) work as staff profiles do (`…/official-profiles`). The
+person read shows `licenceExpired` on the tenant's date; nothing blocks on it in S06. The directory takes
+`profile=OFFICIAL`, and `variant` also matches an official capability's.
 **First slice:** S06 (people), S07 (organisations, teams, venues).
 **As built (S06-T1a):** schema `registry`, every table tenant-owned (RLS): `persons` (classified columns, name keys),
 `person_aliases`, `person_status_changes` (append-only), `external_identifiers`. No endpoints or Contracts yet.
