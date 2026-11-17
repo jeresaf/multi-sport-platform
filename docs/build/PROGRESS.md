@@ -7,10 +7,10 @@ at the start of every review.
 
 - **Current slice:** S06 — People registry (docs/build/slices/S06-people-registry.md, written by the S05 slice review).
   S00–S05 are done
-- **Current task:** S06-T3a — changing a person's biodata (`PUT`, the check on a change of identity) and the
-  lifecycle actions — in review (#99)
-- **Next:** S06-T3b — aliases and external identifiers; `/next-task` once T3a merges
-- **Blocked on:** the review of #99
+- **Current task:** S06-T3b — aliases and external identifiers (`person.alias.add`/`.remove`,
+  `person.external_id.add`/`.end`; `PERSON_ARCHIVED`/`PERSON_DECEASED` guards) — in progress
+- **Next:** S06-T4 — role profiles
+- **Blocked on:** —
 
 ## Next up
 
