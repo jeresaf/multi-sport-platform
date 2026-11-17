@@ -594,6 +594,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/v1/people": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the tenant's people
+         * @description The people of the tenant named by `X-Tenant-Id`, sorted by last name, first name and ID. `q` matches a name or an alias by prefix or similarity (in any order: "Ssekandi John" finds John Ssekandi) and an external identifier's value exactly. Filter by `status` (without it, archived people are left out) and `ageStatus` (on the tenant's date; UNKNOWN: no date of birth). `limit` is 1–100 (25). Items carry the birth year, never the date of birth. `isMinor` is true unless the person is known to be an adult (`ageStatus` UNKNOWN: true).
+         */
+        get: operations["ListPeople"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/people/{personId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a person
+         * @description A person of the tenant named by `X-Tenant-Id`, whatever their status: names, aliases, external identifiers, the birth year, `isMinor` and `ageStatus` on the tenant's date, and `version` (also the `ETag`). The date of birth is in the private read. `isMinor` is true unless the person is known to be an adult: without a date of birth, `ageStatus` is UNKNOWN and `isMinor` is true.
+         */
+        get: operations["GetPerson"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/people/{personId}/private": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a person's private data
+         * @description The person's full date of birth. Every read is audited, naming the person.
+         */
+        get: operations["GetPersonPrivate"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/people/{personId}/status-changes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List a person's status history
+         * @description Every status the person has had, newest first, with who changed it, when and why.
+         */
+        get: operations["ListPersonStatusChanges"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/platform/v1/diagnostics/outbox": {
         parameters: {
             query?: never;
@@ -1314,6 +1394,18 @@ export interface components {
          */
         ActorSide: "OWN" | "OPPONENT";
         /**
+         * @description Whether a person is an adult on the tenant's date (S06 D13): computed from the date of birth on every read, never
+         *     stored. AgeStatus.Unknown means no date of birth is recorded; such a person is treated as a minor wherever data
+         *     is shown publicly.
+         * @enum {unknown}
+         */
+        AgeStatus: "ADULT" | "MINOR" | "UNKNOWN";
+        /**
+         * @description What an alias is (S06 D10).
+         * @enum {unknown}
+         */
+        AliasKind: "FORMER_NAME" | "NICKNAME" | "SPELLING";
+        /**
          * @description A role assignment scope that can grant a tenant action.
          * @enum {unknown}
          */
@@ -1568,6 +1660,17 @@ export interface components {
         EventEffect: "SEND_OFF" | "TEMPORARY_SUSPENSION" | "SUBSTITUTE" | "TEMPORARY_SUBSTITUTE" | "RETURN" | "DISQUALIFY" | "FOUL_COUNT";
         /** @enum {unknown} */
         EventImportance: "KEY" | "STANDARD" | "DETAILED" | "TECHNICAL";
+        /** @description An identifier another authority gave the person; one with `validTo` has ended (S06 D10). */
+        ExternalIdentifierResponse: {
+            /** Format: uuid */
+            id: string;
+            authority: string;
+            value: string;
+            /** Format: date */
+            validFrom: null | string;
+            /** Format: date */
+            validTo: null | string;
+        };
         /** @description The score recorded for a forfeit (the file's `for` and `against`). */
         ForfeitScoreResponse: {
             /** Format: int32 */
@@ -1633,6 +1736,8 @@ export interface components {
             type: components["schemas"]["StageType"];
             generator: string;
         };
+        /** @enum {unknown} */
+        Gender: "FEMALE" | "MALE" | null;
         /**
          * @description The body of `entitlement.override` (audit `REQUIRED_WITH_REASON`): `value` in place of the plan's for
          *     `entitlementCode`, until `effectiveUntil` (the tenant's date, included; none = until removed). The reason
@@ -1717,6 +1822,13 @@ export interface components {
         ListOutboxMessagesResponse: {
             items: components["schemas"]["OutboxMessageResponse"][];
             page: components["schemas"]["PageInfo"];
+        };
+        ListPeopleResponse: {
+            items: components["schemas"]["PersonListItem"][];
+            page: components["schemas"]["PageInfo"];
+        };
+        ListPersonStatusChangesResponse: {
+            items: components["schemas"]["PersonStatusChangeResponse"][];
         };
         ListPlansResponse: {
             items: components["schemas"]["PlanResponse"][];
@@ -1877,6 +1989,92 @@ export interface components {
         ParameterValue: number | boolean | string | string[];
         /** @enum {unknown} */
         PeriodClock: "COUNT_UP" | "COUNT_DOWN" | "NONE";
+        PersonAliasResponse: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            kind: components["schemas"]["AliasKind"];
+        };
+        /**
+         * @description A person in the directory (S06 D22). `person.read` answers `INTERNAL` and `PUBLIC` fields only: the
+         *     birth year, `isMinor` and `ageStatus` on the tenant's date, never the date of birth (S06 D3, D13).
+         *     `isMinor` is true unless the person is known to be an adult: a person without a date of birth
+         *     (`UNKNOWN`) is treated as a minor.
+         */
+        PersonListItem: {
+            /** Format: uuid */
+            id: string;
+            displayName: string;
+            firstName: string;
+            lastName: string;
+            status: components["schemas"]["PersonStatus"];
+            /** Format: int32 */
+            birthYear: null | number;
+            isMinor: boolean;
+            ageStatus: components["schemas"]["AgeStatus"];
+            nationality: null | string;
+        };
+        /** @description A person's `PRIVATE` data, for `person.read_private` (S06 D3): the full date of birth. */
+        PersonPrivateResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date */
+            dateOfBirth: null | string;
+        };
+        /**
+         * @description A person's record as `person.read` shows it (S06 D3, D22): no `PRIVATE` field. Aliases are the ones not
+         *     removed. `version` is also the `ETag`; a change to an alias or an identifier changes it too (S06 D11).
+         */
+        PersonResponse: {
+            /** Format: uuid */
+            id: string;
+            firstName: string;
+            middleName: null | string;
+            lastName: string;
+            otherNames: null | string;
+            displayName: string;
+            gender: null | components["schemas"]["Gender"];
+            /** Format: int32 */
+            birthYear: null | number;
+            isMinor: boolean;
+            ageStatus: components["schemas"]["AgeStatus"];
+            nationality: null | string;
+            secondaryNationality: null | string;
+            /** Format: int32 */
+            heightCm: null | number;
+            /** Format: double */
+            weightKg: null | number;
+            publicProfileEnabled: boolean;
+            status: components["schemas"]["PersonStatus"];
+            source: components["schemas"]["PersonSource"];
+            aliases: components["schemas"]["PersonAliasResponse"][];
+            externalIdentifiers: components["schemas"]["ExternalIdentifierResponse"][];
+            /** Format: uint32 */
+            version: number;
+        };
+        /**
+         * @description Where a record came from (AR-22). Imports add their own value with Data Exchange.
+         * @enum {unknown}
+         */
+        PersonSource: "MANUAL" | "SEED";
+        /**
+         * @description A person's stored states in S06 (docs/domain/state-machines.md, Registry; `MERGED` comes with merges, S25).
+         * @enum {unknown}
+         */
+        PersonStatus: "ACTIVE" | "INACTIVE" | "DECEASED" | "ARCHIVED";
+        /** @description One row of a person's status history (S06 D9): `fromStatus` is null for the row written at creation. */
+        PersonStatusChangeResponse: {
+            /** Format: uuid */
+            id: string;
+            fromStatus: null | components["schemas"]["PersonStatus"];
+            toStatus: components["schemas"]["PersonStatus"];
+            reason: null | string;
+            actorKind: components["schemas"]["ActorKind"];
+            /** Format: uuid */
+            actorId: string;
+            /** Format: date-time */
+            occurredAt: string;
+        };
         /** @enum {unknown} */
         PhaseKind: "PLAY" | "BREAK" | "SHOOTOUT";
         /**
@@ -4346,6 +4544,208 @@ export interface operations {
             };
             /** @description Problem Details; `code`: `FORMAT_PARAMETER_INVALID`, `RULESET_INCOMPATIBLE_FORMAT`, `RULESET_PARAMETER_OUT_OF_RANGE`, `RULESET_PARAMETER_UNKNOWN`, `RULESET_TIE_RESOLUTION_UNSUPPORTED`, `RULESET_UNKNOWN_TIEBREAKER` */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListPeople: {
+        parameters: {
+            query?: {
+                q?: string;
+                status?: "ACTIVE" | "INACTIVE" | "DECEASED" | "ARCHIVED";
+                ageStatus?: "ADULT" | "MINOR" | "UNKNOWN";
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListPeopleResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_QUERY` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetPerson: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                personId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `PERSON_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetPersonPrivate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                personId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonPrivateResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `PERSON_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListPersonStatusChanges: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                personId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListPersonStatusChangesResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `PERSON_NOT_FOUND` */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

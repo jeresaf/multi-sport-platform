@@ -48,8 +48,16 @@ public static class IdentityRoles
     // Which sport variants the tenant has enabled goes with the sport's words (S05 D14): the same roles (owner, S05-T5a2).
     private const string _tenantSportRead = "tenant.sport.read";
 
+    // The people directory and a person's record without private data (S06 D21): every tenant-wide role that works
+    // with people. SCORER and TEAM_MANAGER get none in S06 (S08 decides a team manager's).
+    private const string _personRead = "person.read";
+
+    // A person's private data, audited per read (S06 D21): those who run the tenant and the registrar.
+    private const string _personReadPrivate = "person.read_private";
+
     private static readonly string[] _tenantAdministration =
     [
+        _personRead, _personReadPrivate,
         _tenantSettingsRead, _tenantSettingsUpdate, _capabilitiesRead, _sportRead, _formatRead, _rulesetRead, _tenantSportRead,
         "tenant.sport.enable", "tenant.sport.disable", _membershipRead, "membership.suspend", "membership.restore", "membership.remove", "role.assign", "role.revoke",
         "membership.invite", "invitation.revoke", _subscriptionRead,
@@ -102,13 +110,13 @@ public static class IdentityRoles
             _tenantAdministration, [AssignmentScope.Tenant]),
         new(Registrar, RoleScope.Tenant,
             "People, organisations, teams and venues: create, update, duplicate review; no merges.",
-            _tenantContext, [AssignmentScope.Tenant]),
+            [.. _tenantContext, _personRead, _personReadPrivate], [AssignmentScope.Tenant]),
         new(CompetitionManager, RoleScope.Tenant,
             "Competitions, editions, registrations, roster approval, stages, fixtures, officials, contest admin, standings recalculation.",
-            _tenantContext, [AssignmentScope.Tenant, AssignmentScope.Competition]),
+            [.. _tenantContext, _personRead], [AssignmentScope.Tenant, AssignmentScope.Competition]),
         new(ResultsOfficer, RoleScope.Tenant,
             "Result approve, reject, reopen and correct; progression overrides with a reason.",
-            _tenantContext, [AssignmentScope.Tenant, AssignmentScope.Competition]),
+            [.. _tenantContext, _personRead], [AssignmentScope.Tenant, AssignmentScope.Competition]),
         new(Scorer, RoleScope.Tenant,
             "Contest check-in, start, periods and clock; timeline record and correct; result submit.",
             _tenantContext, [AssignmentScope.Tenant, AssignmentScope.Competition, AssignmentScope.Contest]),
@@ -120,9 +128,9 @@ public static class IdentityRoles
             [], [AssignmentScope.Team]),
         new(DataEntry, RoleScope.Tenant,
             "Historical results entry and import dry runs (running an import needs COMPETITION_MANAGER or TENANT_ADMIN).",
-            _tenantContext, [AssignmentScope.Tenant, AssignmentScope.Competition]),
+            [.. _tenantContext, _personRead], [AssignmentScope.Tenant, AssignmentScope.Competition]),
         new(Viewer, RoleScope.Tenant,
             "Read-only admin.",
-            [.. _tenantContext, _membershipRead, _subscriptionRead], [AssignmentScope.Tenant]),
+            [.. _tenantContext, _membershipRead, _subscriptionRead, _personRead], [AssignmentScope.Tenant]),
     ];
 }

@@ -91,6 +91,14 @@ Properties of DTOs and audit metadata records are classified with `[PersonalData
 masks `PRIVATE` and `SENSITIVE` values as `"[REDACTED]"` (`AuditMetadata`). Unclassified members are written as they
 are, so anything personal goes in a record with classified properties, never in an anonymous type or dictionary.
 
+As built (S06-T1b): `PublicDtoClassificationTests` walks the response types of every `.AllowPublic()` endpoint,
+nested types included, and fails on a property that isn't `[PersonalData(PersonalDataClass.Public)]`. A property
+nobody classified fails too, so every public response DTO classifies every property, also where nothing is personal
+(reference data, the site, health). The same test checks that the Registry's `person.read` responses classify every
+property and none above `INTERNAL`. `PeopleReadTests` holds the redaction test: after the private read, a person's
+date of birth is in no log event, span or audit entry. The directory's `q` is a name (`INTERNAL`) in the query
+string; request logs and traces carry the path only.
+
 ## Serializing changes: advisory locks
 
 When a rule spans rows that a single constraint can't check (the last owner of a tenant, non-overlapping subscription

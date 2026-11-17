@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using SportsPlatform.BuildingBlocks.Api;
+using SportsPlatform.BuildingBlocks.Privacy;
 
 namespace SportsPlatform.Host.Health;
 
@@ -58,5 +59,5 @@ public static class HealthEndpoints
         return path.Equals(LivePath, StringComparison.OrdinalIgnoreCase) || path.Equals(ReadyPath, StringComparison.OrdinalIgnoreCase);
     }
 
-    private sealed record HealthResponse(string Status);
+    private sealed record HealthResponse([property: PersonalData(PersonalDataClass.Public)] string Status);
 }

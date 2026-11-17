@@ -1,13 +1,17 @@
 using Microsoft.EntityFrameworkCore;
+using SportsPlatform.BuildingBlocks.Privacy;
 using SportsPlatform.Modules.Platform.Domain.Reference;
 using SportsPlatform.Modules.Platform.Infrastructure;
 
 namespace SportsPlatform.Modules.Platform.Features.Reference.ListLanguages;
 
 /// <summary>An ISO 639-1 language: two-letter <c>code</c> (<c>sw</c>) and English name.</summary>
-public sealed record LanguageResponse(string Code, string Name);
+public sealed record LanguageResponse(
+    [property: PersonalData(PersonalDataClass.Public)] string Code,
+    [property: PersonalData(PersonalDataClass.Public)] string Name);
 
-public sealed record ListLanguagesResponse(IReadOnlyList<LanguageResponse> Items);
+public sealed record ListLanguagesResponse(
+    [property: PersonalData(PersonalDataClass.Public)] IReadOnlyList<LanguageResponse> Items);
 
 /// <summary>Active languages, ordered by code.</summary>
 public sealed class ListLanguagesHandler(PlatformDbContext context)

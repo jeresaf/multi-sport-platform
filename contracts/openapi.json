@@ -2623,6 +2623,352 @@
         }
       }
     },
+    "/api/admin/v1/people": {
+      "get": {
+        "tags": [
+          "People"
+        ],
+        "summary": "List the tenant's people",
+        "description": "The people of the tenant named by `X-Tenant-Id`, sorted by last name, first name and ID. `q` matches a name or an alias by prefix or similarity (in any order: \"Ssekandi John\" finds John Ssekandi) and an external identifier's value exactly. Filter by `status` (without it, archived people are left out) and `ageStatus` (on the tenant's date; UNKNOWN: no date of birth). `limit` is 1–100 (25). Items carry the birth year, never the date of birth. `isMinor` is true unless the person is known to be an adult (`ageStatus` UNKNOWN: true).",
+        "operationId": "ListPeople",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "enum": [
+                "ACTIVE",
+                "INACTIVE",
+                "DECEASED",
+                "ARCHIVED"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "ageStatus",
+            "in": "query",
+            "schema": {
+              "enum": [
+                "ADULT",
+                "MINOR",
+                "UNKNOWN"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListPeopleResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_QUERY`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_QUERY"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING"
+            ]
+          }
+        }
+      }
+    },
+    "/api/admin/v1/people/{personId}": {
+      "get": {
+        "tags": [
+          "People"
+        ],
+        "summary": "Get a person",
+        "description": "A person of the tenant named by `X-Tenant-Id`, whatever their status: names, aliases, external identifiers, the birth year, `isMinor` and `ageStatus` on the tenant's date, and `version` (also the `ETag`). The date of birth is in the private read. `isMinor` is true unless the person is known to be an adult: without a date of birth, `ageStatus` is UNKNOWN and `isMinor` is true.",
+        "operationId": "GetPerson",
+        "parameters": [
+          {
+            "name": "personId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Problem Details; `code`: `PERSON_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "PERSON_NOT_FOUND"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING"
+            ]
+          }
+        }
+      }
+    },
+    "/api/admin/v1/people/{personId}/private": {
+      "get": {
+        "tags": [
+          "People"
+        ],
+        "summary": "Get a person's private data",
+        "description": "The person's full date of birth. Every read is audited, naming the person.",
+        "operationId": "GetPersonPrivate",
+        "parameters": [
+          {
+            "name": "personId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonPrivateResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Problem Details; `code`: `PERSON_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "PERSON_NOT_FOUND"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING"
+            ]
+          }
+        }
+      }
+    },
+    "/api/admin/v1/people/{personId}/status-changes": {
+      "get": {
+        "tags": [
+          "People"
+        ],
+        "summary": "List a person's status history",
+        "description": "Every status the person has had, newest first, with who changed it, when and why.",
+        "operationId": "ListPersonStatusChanges",
+        "parameters": [
+          {
+            "name": "personId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListPersonStatusChangesResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Problem Details; `code`: `PERSON_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "PERSON_NOT_FOUND"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING"
+            ]
+          }
+        }
+      }
+    },
     "/api/platform/v1/diagnostics/outbox": {
       "get": {
         "tags": [
@@ -6038,6 +6384,22 @@
         ],
         "description": "Whose side, relative to the event's side."
       },
+      "AgeStatus": {
+        "enum": [
+          "ADULT",
+          "MINOR",
+          "UNKNOWN"
+        ],
+        "description": "Whether a person is an adult on the tenant's date (S06 D13): computed from the date of birth on every read, never\nstored. AgeStatus.Unknown means no date of birth is recorded; such a person is treated as a minor wherever data\nis shown publicly."
+      },
+      "AliasKind": {
+        "enum": [
+          "FORMER_NAME",
+          "NICKNAME",
+          "SPELLING"
+        ],
+        "description": "What an alias is (S06 D10)."
+      },
       "AssignmentScope": {
         "enum": [
           "TENANT",
@@ -6836,6 +7198,43 @@
           "TECHNICAL"
         ]
       },
+      "ExternalIdentifierResponse": {
+        "required": [
+          "id",
+          "authority",
+          "value",
+          "validFrom",
+          "validTo"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "authority": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          },
+          "validFrom": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "validTo": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          }
+        },
+        "description": "An identifier another authority gave the person; one with `validTo` has ended (S06 D10)."
+      },
       "ForfeitScoreResponse": {
         "required": [
           "scored",
@@ -7031,6 +7430,13 @@
             "type": "string"
           }
         }
+      },
+      "Gender": {
+        "enum": [
+          "FEMALE",
+          "MALE",
+          null
+        ]
       },
       "GrantOverrideRequest": {
         "required": [
@@ -7330,6 +7736,38 @@
           },
           "page": {
             "$ref": "#/components/schemas/PageInfo"
+          }
+        }
+      },
+      "ListPeopleResponse": {
+        "required": [
+          "items",
+          "page"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PersonListItem"
+            }
+          },
+          "page": {
+            "$ref": "#/components/schemas/PageInfo"
+          }
+        }
+      },
+      "ListPersonStatusChangesResponse": {
+        "required": [
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PersonStatusChangeResponse"
+            }
           }
         }
       },
@@ -7814,6 +8252,291 @@
           "COUNT_DOWN",
           "NONE"
         ]
+      },
+      "PersonAliasResponse": {
+        "required": [
+          "id",
+          "name",
+          "kind"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/AliasKind"
+          }
+        }
+      },
+      "PersonListItem": {
+        "required": [
+          "id",
+          "displayName",
+          "firstName",
+          "lastName",
+          "status",
+          "birthYear",
+          "isMinor",
+          "ageStatus",
+          "nationality"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/PersonStatus"
+          },
+          "birthYear": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "isMinor": {
+            "type": "boolean"
+          },
+          "ageStatus": {
+            "$ref": "#/components/schemas/AgeStatus"
+          },
+          "nationality": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "A person in the directory (S06 D22). `person.read` answers `INTERNAL` and `PUBLIC` fields only: the\nbirth year, `isMinor` and `ageStatus` on the tenant's date, never the date of birth (S06 D3, D13).\n`isMinor` is true unless the person is known to be an adult: a person without a date of birth\n(`UNKNOWN`) is treated as a minor."
+      },
+      "PersonPrivateResponse": {
+        "required": [
+          "id",
+          "dateOfBirth"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "dateOfBirth": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          }
+        },
+        "description": "A person's `PRIVATE` data, for `person.read_private` (S06 D3): the full date of birth."
+      },
+      "PersonResponse": {
+        "required": [
+          "id",
+          "firstName",
+          "middleName",
+          "lastName",
+          "otherNames",
+          "displayName",
+          "gender",
+          "birthYear",
+          "isMinor",
+          "ageStatus",
+          "nationality",
+          "secondaryNationality",
+          "heightCm",
+          "weightKg",
+          "publicProfileEnabled",
+          "status",
+          "source",
+          "aliases",
+          "externalIdentifiers",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "middleName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "otherNames": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "gender": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Gender"
+              }
+            ]
+          },
+          "birthYear": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "isMinor": {
+            "type": "boolean"
+          },
+          "ageStatus": {
+            "$ref": "#/components/schemas/AgeStatus"
+          },
+          "nationality": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "secondaryNationality": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "heightCm": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "weightKg": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "publicProfileEnabled": {
+            "type": "boolean"
+          },
+          "status": {
+            "$ref": "#/components/schemas/PersonStatus"
+          },
+          "source": {
+            "$ref": "#/components/schemas/PersonSource"
+          },
+          "aliases": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PersonAliasResponse"
+            }
+          },
+          "externalIdentifiers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExternalIdentifierResponse"
+            }
+          },
+          "version": {
+            "type": "integer",
+            "format": "uint32"
+          }
+        },
+        "description": "A person's record as `person.read` shows it (S06 D3, D22): no `PRIVATE` field. Aliases are the ones not\nremoved. `version` is also the `ETag`; a change to an alias or an identifier changes it too (S06 D11)."
+      },
+      "PersonSource": {
+        "enum": [
+          "MANUAL",
+          "SEED"
+        ],
+        "description": "Where a record came from (AR-22). Imports add their own value with Data Exchange."
+      },
+      "PersonStatus": {
+        "enum": [
+          "ACTIVE",
+          "INACTIVE",
+          "DECEASED",
+          "ARCHIVED"
+        ],
+        "description": "A person's stored states in S06 (docs/domain/state-machines.md, Registry; `MERGED` comes with merges, S25)."
+      },
+      "PersonStatusChangeResponse": {
+        "required": [
+          "id",
+          "fromStatus",
+          "toStatus",
+          "reason",
+          "actorKind",
+          "actorId",
+          "occurredAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fromStatus": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PersonStatus"
+              }
+            ]
+          },
+          "toStatus": {
+            "$ref": "#/components/schemas/PersonStatus"
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "actorKind": {
+            "$ref": "#/components/schemas/ActorKind"
+          },
+          "actorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "One row of a person's status history (S06 D9): `fromStatus` is null for the row written at creation."
       },
       "PhaseKind": {
         "enum": [
@@ -10495,6 +11218,9 @@
     },
     {
       "name": "Ruleset templates"
+    },
+    {
+      "name": "People"
     },
     {
       "name": "Diagnostics"
