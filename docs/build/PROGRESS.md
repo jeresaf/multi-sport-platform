@@ -443,14 +443,6 @@ at the start of every review.
   `ADULT`, so `UNKNOWN` is treated as a minor, and the OpenAPI descriptions say so (N1); Q2 the audit entry of
   `person.read_private` stays written after the response for now (Tech debt, T6); Q3 a private read of an unknown ID
   is audited as a failure naming the ID sent: confirmed.
-- **S06-T2b (owner, plan 2026-11-17):** Q42 — the check stays unaudited and without a rate limit; a role may grant
-  `person.duplicate_check` only with `person.read_private` (startup rule). Q43 — a date of birth after the tenant's
-  date is refused (`PERSON_DATE_OF_BIRTH_IN_FUTURE`). Q44 — D5's "same nationality" is a nationality in common,
-  primary or secondary on either side. Builder's choices for the review: the check validates nationalities against
-  the reference data; create takes no aliases (T3's action); a reason sent with no candidates is audited and writes
-  nothing else; `person.create` declares `grantedWith: person.duplicate_check` (pre-review M2), so a role granting
-  create also grants the check and the private read.
-
 - **S06-T2a (owner, plan 2026-11-17):** three changes to D5. A sibling rule: the same date of birth and the same
   normalised last name is `POSSIBLE` (evidence `SAME_LAST_NAME`), because D5's thresholds found neither demo twin pair
   (0.33 and 0.27). The check has its own unaudited action, `person.duplicate_check`, instead of `person.create`
@@ -466,6 +458,18 @@ at the start of every review.
   confirms a date the caller sent, and D5's "safe without `person.read_private`" sentence waits for Q42 (to answer
   before T2b); N1 a comment at `AuthorityPattern`; N2 noted for S25. The reviewer's questions are Q44 (secondary
   nationality) and Q45 (decided pairs stay hidden).
+- **S06-T2b (owner, plan 2026-11-17):** Q42 — the check stays unaudited and without a rate limit; a role may grant
+  `person.duplicate_check` only with `person.read_private` (startup rule). Q43 — a date of birth after the tenant's
+  date is refused (`PERSON_DATE_OF_BIRTH_IN_FUTURE`). Q44 — D5's "same nationality" is a nationality in common,
+  primary or secondary on either side. Builder's choices for the review: the check validates nationalities against
+  the reference data; create takes no aliases (T3's action); a reason sent with no candidates is audited and writes
+  nothing else; `person.create` declares `grantedWith: person.duplicate_check, person.read` (pre-review M2, review
+  #98 R1), so a role granting create also grants the check, the private read and the read it answers with.
+  Review of #98 (subagent, approve with nits, 2026-11-17): R1 the above; R2 a test that create's logs carry neither
+  the date of birth nor the names; R3 a test that a reason with no candidates is audited and writes no decision; R4
+  modules.md as built; R5 the concurrency test's wait has a deadline and counts this database's waiters only; R6
+  this entry moved below T2a. The reviewer's questions for the owner: confirm the builder's choices above, and the
+  catalogue export without `grantedWith` (tech debt).
 
 ## Tech debt / follow-ups
 
