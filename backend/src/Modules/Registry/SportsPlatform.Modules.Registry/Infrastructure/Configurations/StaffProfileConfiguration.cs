@@ -38,12 +38,14 @@ internal sealed class StaffProfileConfiguration : IEntityTypeConfiguration<Staff
 
 /// <summary>
 /// <c>registry.staff_capabilities</c> (S06 D12): tenant-owned (RLS), each pointing at its tenant's staff profile, one row
-/// per variant and role (a unique index). A capability left out of an update is deleted: nothing points at it, and the
-/// audit trail keeps the change. Every column is <c>INTERNAL</c> (S06 D3 makes only an athlete's sport public).
+/// per variant and role (a unique index). A capability left out of an update is deleted: nothing points at it, and it
+/// is not kept anywhere (the audit entry names the variants sent, not the roles removed). Every column is
+/// <c>INTERNAL</c> (S06 D3 makes only an athlete's sport public).
 /// </summary>
 internal sealed class StaffCapabilityConfiguration : IEntityTypeConfiguration<StaffCapability>
 {
     public const string Table = "staff_capabilities";
+    public const string RoleIndex = "ux_staff_capabilities_tenant_id_staff_profile_id_variant_role";
 
     public void Configure(EntityTypeBuilder<StaffCapability> builder)
     {
@@ -54,7 +56,7 @@ internal sealed class StaffCapabilityConfiguration : IEntityTypeConfiguration<St
         builder.Property(c => c.Qualification).HasMaxLength(StaffCapability.QualificationMaxLength)
             .IsPersonalData(PersonalDataClass.Internal);
 
-        builder.HasIndex(c => new { c.TenantId, c.StaffProfileId, c.Variant, c.Role }).IsUnique();
+        builder.HasIndex(c => new { c.TenantId, c.StaffProfileId, c.Variant, c.Role }).IsUnique().HasDatabaseName(RoleIndex);
 
         // The directory's variant filter.
         builder.HasIndex(c => new { c.TenantId, c.Variant });

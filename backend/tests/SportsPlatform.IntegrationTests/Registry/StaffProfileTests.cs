@@ -134,21 +134,23 @@ public sealed class StaffProfileTests(PostgresFixture fixture) : DatabaseTest(fi
         }
 
         // The shape is checked first: 1–10 capabilities, codes as definitions write them, each pair once, a short qualification.
-        foreach (var body in new object[]
+        foreach (var (body, field) in new (object, string)[]
         {
-            new { },
-            new { capabilities = Array.Empty<object>() },
-            new { capabilities = new object?[] { null } },
-            Body([.. Enumerable.Range(0, 11).Select(i => (TestballFull, $"TB_ROLE_{i}"))]),
-            Body((TestballFull, "TB_COACH"), (TestballFull, "TB_COACH")),
-            Body(("testball_full", "TB_COACH")),
-            Body((TestballFull, "tb_coach")),
-            new { capabilities = new[] { new { variant = TestballFull } } },
-            new { capabilities = new[] { new { variant = TestballFull, role = "TB_COACH", qualification = new string('Q', 101) } } },
+            (new { }, "capabilities"),
+            (new { capabilities = Array.Empty<object>() }, "capabilities"),
+            (new { capabilities = new object?[] { null } }, "capabilities"),
+            (Body([.. Enumerable.Range(0, 11).Select(i => (TestballFull, $"TB_ROLE_{i}"))]), "capabilities"),
+            (Body((TestballFull, "TB_COACH"), (TestballFull, "TB_COACH")), "capabilities"),
+            (Body(("testball_full", "TB_COACH")), "capabilities[0].variant"),
+            (Body((TestballFull, "TB_COACH"), (TestballFull, "tb_coach")), "capabilities[1].role"),
+            (new { capabilities = new[] { new { variant = TestballFull } } }, "capabilities[0].role"),
+            (new { capabilities = new[] { new { variant = TestballFull, role = "TB_COACH", qualification = new string('Q', 101) } } },
+                "capabilities[0].qualification"),
         })
         {
             using var invalid = await registrar.PostAsJsonAsync(ProfilesPath(person), body, Ct);
-            await invalid.ShouldBeProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_INVALID_REQUEST");
+            var problem = await invalid.ShouldBeProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_INVALID_REQUEST");
+            Fields(problem).ShouldBe([(field, "VALIDATION_INVALID_REQUEST")]);
         }
 
         using var unknownMember = await registrar.PostAsJsonAsync(ProfilesPath(person), new
@@ -259,6 +261,46 @@ public sealed class StaffProfileTests(PostgresFixture fixture) : DatabaseTest(fi
 
         await using var scope = ScopeFor(App.Services, kmsa, out var context);
         (await context.Set<StaffProfile>().CountAsync(Ct)).ShouldBe(people.Count);
+    }
+
+    // Pre-review: two updates adding the same capability at once answer 409 (the version or the capability index), never 500.
+    [Fact]
+    public async Task Two_updates_adding_one_capability_at_once_leave_one_refused()
+    {
+        await using var app = AppWithTestSports(App);
+        var (kmsa, registrar) = await TenantAsync(app, "kmsa", IdentityRoles.Registrar);
+        await TenantTestData.EnableSportAsync(App.Services, kmsa, TestballFull, Ct);
+        var profiles = new List<(Guid Person, Guid Profile)>();
+        for (var i = 0; i < 10; i++)
+        {
+            var person = (await SavePersonAsync(App.Services, kmsa, IvanMukasa with { FirstName = $"Ivan{(char)('a' + i)}" }, Ct)).Id;
+            profiles.Add((person, await AddProfileAsync(registrar, person, (TestballFull, "TB_COACH"))));
+        }
+
+        var body = Body((TestballFull, "TB_COACH"), (TestballFull, "TB_PHYSIO"));
+        var pairs = await Task.WhenAll(profiles.Select(p => Task.WhenAll(
+            registrar.PutAsJsonAsync(ProfilePath(p.Person, p.Profile), body, Ct),
+            registrar.PutAsJsonAsync(ProfilePath(p.Person, p.Profile), body, Ct))));
+
+        foreach (var responses in pairs)
+        {
+            var codes = responses.Select(response => response.StatusCode).ToList();
+            codes.ShouldContain(HttpStatusCode.OK);
+            codes.ShouldAllBe(code => code == HttpStatusCode.OK || code == HttpStatusCode.Conflict);
+            foreach (var response in responses)
+            {
+                if (response.StatusCode == HttpStatusCode.Conflict)
+                {
+                    (await response.Content.ReadFromJsonAsync<JsonElement>(Ct)).GetProperty("code").GetString()
+                        .ShouldBe("PERSON_CONCURRENCY_CONFLICT");
+                }
+
+                response.Dispose();
+            }
+        }
+
+        await using var scope = ScopeFor(App.Services, kmsa, out var context);
+        (await context.Set<StaffCapability>().CountAsync(Ct)).ShouldBe(2 * profiles.Count);
     }
 
     // S05 D12 and the owner (S06-T4b plan): a disabled variant keeps the capabilities it has but takes no new one.

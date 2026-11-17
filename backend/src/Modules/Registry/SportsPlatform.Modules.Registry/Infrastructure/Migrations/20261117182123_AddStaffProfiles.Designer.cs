@@ -922,7 +922,7 @@ namespace SportsPlatform.Modules.Registry.Infrastructure.Migrations
 
                     b.HasIndex("TenantId", "StaffProfileId", "Variant", "Role")
                         .IsUnique()
-                        .HasDatabaseName("ix_staff_capabilities_tenant_id_staff_profile_id_variant_role");
+                        .HasDatabaseName("ux_staff_capabilities_tenant_id_staff_profile_id_variant_role");
 
                     b.ToTable("staff_capabilities", "registry");
                 });

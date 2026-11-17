@@ -101,8 +101,20 @@ public sealed class UpdateStaffProfileHandler(RegistryDbContext context, SportCo
             return new(updated.Error);
         }
 
-        var saved = await context.SaveChangesResultAsync(cancellationToken);
-        return saved.IsFailure ? new(saved.Error) : null;
+        try
+        {
+            var saved = await context.SaveChangesResultAsync(cancellationToken);
+            return saved.IsFailure ? new(saved.Error) : null;
+        }
+        catch (DbUpdateException exception) when (exception.InnerException is PostgresException
+        {
+            SqlState: PostgresErrorCodes.UniqueViolation, ConstraintName: StaffCapabilityConfiguration.RoleIndex,
+        })
+        {
+            // Two updates adding the same capability at once: the second's insert can reach the index before the
+            // person's version is checked. The person changed under it, as a version mismatch would say.
+            return new(RegistryErrors.ConcurrencyConflict);
+        }
     }
 }
 

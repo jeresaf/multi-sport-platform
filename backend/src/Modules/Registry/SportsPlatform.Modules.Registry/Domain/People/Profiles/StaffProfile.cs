@@ -4,7 +4,7 @@ namespace SportsPlatform.Modules.Registry.Domain.People.Profiles;
 
 /// <summary>
 /// One thing a staff member does in a sport variant (S06 D12): the variant's code, a <c>staff_roles</c> code of its
-/// definition (checked by the use case) and an optional qualification (free text, e.g. "CAF C licence").
+/// definition (checked by the use case) and an optional qualification (free text, e.g. "Level 2 coaching certificate").
 /// </summary>
 public sealed record StaffCapabilityDetails(string Variant, string Role, string? Qualification);
 

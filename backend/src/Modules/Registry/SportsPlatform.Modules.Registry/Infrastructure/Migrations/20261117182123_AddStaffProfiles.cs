@@ -80,7 +80,7 @@ namespace SportsPlatform.Modules.Registry.Infrastructure.Migrations
                 sql: "profile_kind IN ('ATHLETE', 'STAFF')");
 
             migrationBuilder.CreateIndex(
-                name: "ix_staff_capabilities_tenant_id_staff_profile_id_variant_role",
+                name: "ux_staff_capabilities_tenant_id_staff_profile_id_variant_role",
                 schema: "registry",
                 table: "staff_capabilities",
                 columns: new[] { "tenant_id", "staff_profile_id", "variant", "role" },
