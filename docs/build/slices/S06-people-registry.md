@@ -501,7 +501,7 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   alias, ending an identifier). As built: `PUT` replaces the whole biodata (a field left out is cleared) and needs a
   token only when `Person.ChangesIdentity` — the name key, the normalised last name, the date of birth or either
   nationality changed; a name written differently (case, accents, punctuation) keeps the keys and needs none. The
-  update holds `registry.people:<tenantId>` only when it runs the check. `person.deactivate`/`.reactivate` take no
-  reason; the others need one (1–500, `VALIDATION_REASON_REQUIRED`). The lifecycle endpoints follow Tenancy's (`If-Match`
+  update holds `registry.people:<tenantId>` only when it runs the check. `person.deactivate`/`.reactivate` take an
+  optional reason (owner, review #99 Q1); the others need one (1–500, `VALIDATION_REASON_REQUIRED`). The lifecycle endpoints follow Tenancy's (`If-Match`
   or `version`, answer the person with its `ETag`). `PersonBiodataValidator<T>` holds the display name, height and
   weight bounds for create and update; `DuplicateReviewAuditMetadata` replaces `CreatePersonAuditMetadata` (same JSON).

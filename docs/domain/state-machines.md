@@ -172,7 +172,7 @@ Merged persons accept no new relationships. Archive never deletes history.
 ### Person (stored, as built in S06-T3a)
 
 ```text
-ACTIVE ──deactivate──► INACTIVE ──reactivate──► ACTIVE
+ACTIVE ──deactivate (optional reason)──► INACTIVE ──reactivate (optional reason)──► ACTIVE
 ACTIVE | INACTIVE ──archive (reason)──► ARCHIVED ──unarchive (reason)──► ACTIVE
 ACTIVE | INACTIVE ──mark-deceased (reason)──► DECEASED   (final in S06)
 ```
