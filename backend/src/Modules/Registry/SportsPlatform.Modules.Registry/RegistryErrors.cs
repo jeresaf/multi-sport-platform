@@ -41,6 +41,31 @@ public static class RegistryErrors
 
     public static readonly Error ExternalIdExists = new(
         "PERSON_EXTERNAL_ID_EXISTS",
-        "Another person already has this external identifier (the same authority and value).",
+        "A person already has this external identifier (the same authority and value), or had it: a value is never reused.",
         ErrorKind.Conflict);
+
+    public static readonly Error PersonArchived = new(
+        "PERSON_ARCHIVED", "The person is archived: they take no new profile, alias, identifier, consent or photo.", ErrorKind.Conflict);
+
+    public static readonly Error PersonDeceased = new(
+        "PERSON_DECEASED", "The person is recorded as deceased: they take no new profile, alias, identifier, consent or photo.", ErrorKind.Conflict);
+
+    public static readonly Error AliasNotFound = new("PERSON_ALIAS_NOT_FOUND", "The person has no such alias.", ErrorKind.NotFound);
+
+    public static readonly Error AliasRemoved = new("PERSON_ALIAS_REMOVED", "The alias is already removed.", ErrorKind.Conflict);
+
+    public static readonly Error AliasExists = new(
+        "PERSON_ALIAS_EXISTS", "The person is already known by this name: their own name or a current alias gives the same name key.",
+        ErrorKind.Conflict);
+
+    public static readonly Error ExternalIdNotFound = new(
+        "PERSON_EXTERNAL_ID_NOT_FOUND", "The person has no such external identifier.", ErrorKind.NotFound);
+
+    public static readonly Error ExternalIdEnded = new(
+        "PERSON_EXTERNAL_ID_ENDED", "The external identifier has already ended.", ErrorKind.Conflict);
+
+    public static readonly Error ExternalIdValidityInvalid = new(
+        "PERSON_EXTERNAL_ID_VALIDITY_INVALID",
+        "An identifier's end date can't be before its start date or after today (the tenant's date).",
+        ErrorKind.Unprocessable);
 }

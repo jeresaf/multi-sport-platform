@@ -521,7 +521,7 @@ public sealed class DuplicateCheckTests(PostgresFixture fixture) : DatabaseTest(
         await using var scope = ScopeFor(App.Services, tenantId, out var context);
         var denis = NewPerson(DenisOpoka);
         denis.AddAlias("Deno Opoka", AliasKind.FormerName);
-        var removed = denis.AddAlias("Okot Junior", AliasKind.Nickname);
+        var removed = denis.AddAlias("Okot Junior", AliasKind.Nickname).Value;
         context.Add(denis);
         await context.SaveChangesAsync(Ct);
         (await context.Database.ExecuteSqlAsync(

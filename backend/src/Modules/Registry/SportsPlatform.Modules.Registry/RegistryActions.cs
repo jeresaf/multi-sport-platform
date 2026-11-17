@@ -82,7 +82,28 @@ public static class RegistryActions
         "Record that an active or inactive person has died, with a reason; final: the record and its history stay.",
         AuditRequirement.RequiredWithReason);
 
-    // The lifecycle actions answer the person as person.read does, so they are only granted with that read.
+    public static readonly ActionDefinition PersonAliasAdd = Lifecycle(
+        "person.alias.add",
+        "Add another name a person is known by (former name, nickname, spelling), so search and the duplicate check find them under it too; not for an archived or deceased person.",
+        AuditRequirement.Required);
+
+    public static readonly ActionDefinition PersonAliasRemove = Lifecycle(
+        "person.alias.remove",
+        "Remove a person's alias, with a reason; the alias is kept with who removed it, when and why.",
+        AuditRequirement.RequiredWithReason);
+
+    public static readonly ActionDefinition PersonExternalIdAdd = Lifecycle(
+        "person.external_id.add",
+        "Add an identifier another authority gave a person (e.g. a registration number); a value any person has or had is refused; not for an archived or deceased person.",
+        AuditRequirement.Required);
+
+    public static readonly ActionDefinition PersonExternalIdEnd = Lifecycle(
+        "person.external_id.end",
+        "End a person's external identifier; it is kept, and its value is never given to anyone else.",
+        AuditRequirement.Required);
+
+    // The lifecycle, alias and identifier actions answer the person as person.read does, so they are only granted with
+    // that read.
     private static ActionDefinition Lifecycle(string code, string description, AuditRequirement audit) => new(
         code,
         description,

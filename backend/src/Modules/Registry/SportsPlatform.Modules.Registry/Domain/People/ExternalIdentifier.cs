@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using SportsPlatform.BuildingBlocks.Domain;
+using SportsPlatform.BuildingBlocks.Results;
 
 namespace SportsPlatform.Modules.Registry.Domain.People;
 
@@ -9,7 +10,7 @@ namespace SportsPlatform.Modules.Registry.Domain.People;
 /// unique per tenant, authority and entity type, ended ones included, so it is never reused. The entity is named by
 /// type and ID without a foreign key, because one table serves every registry entity; a change to a person's
 /// identifiers must mark the person changed (<c>ModuleDbContext.MarkChanged</c>, S06 D11). It never changes the
-/// entity's own ID (AR-23). The commands come with S06-T3.
+/// entity's own ID (AR-23).
 /// </summary>
 public sealed partial class ExternalIdentifier : Entity, ITenantOwned
 {
@@ -80,6 +81,29 @@ public sealed partial class ExternalIdentifier : Entity, ITenantOwned
         }
 
         return new ExternalIdentifier(ExternalIdentifierEntityType.Person, personId, authority, trimmed, validFrom);
+    }
+
+    public bool IsEnded => ValidTo is not null;
+
+    /// <summary>
+    /// Ends the identifier on <paramref name="validTo"/> (S06 D10); the row stays, so the value is never reused. One
+    /// already ended is <c>PERSON_EXTERNAL_ID_ENDED</c>; a date before <see cref="ValidFrom"/> or after
+    /// <paramref name="today"/> (the tenant's date) is <c>PERSON_EXTERNAL_ID_VALIDITY_INVALID</c> (owner, S06-T3b plan).
+    /// </summary>
+    public Result End(DateOnly validTo, DateOnly today)
+    {
+        if (IsEnded)
+        {
+            return Result.Failure(RegistryErrors.ExternalIdEnded);
+        }
+
+        if (validTo > today || validTo < ValidFrom)
+        {
+            return Result.Failure(RegistryErrors.ExternalIdValidityInvalid);
+        }
+
+        ValidTo = validTo;
+        return Result.Success();
     }
 
     [GeneratedRegex(AuthorityPattern, RegexOptions.CultureInvariant)]

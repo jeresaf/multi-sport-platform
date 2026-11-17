@@ -307,7 +307,7 @@ public static class IsolationSamples
         {
             var person = RegistrySamples.NewPerson("Peter", "Ochieng");
             context.Add(person);
-            return person.AddAlias("Peter Okot", AliasKind.FormerName);
+            return person.AddAlias("Peter Okot", AliasKind.FormerName).Value;
         }
 
         public Entity? Referencing(IForeignKey foreignKey, Guid principalId) =>

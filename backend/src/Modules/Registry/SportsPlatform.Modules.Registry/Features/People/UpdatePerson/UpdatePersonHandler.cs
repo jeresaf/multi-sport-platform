@@ -85,8 +85,7 @@ public sealed class UpdatePersonHandler(
             return new(RegistryErrors.DuplicateCheckRequired, "checkToken");
         }
 
-        var key = $"registry.people:{tenantId}";
-        await context.Database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock(hashtextextended({key}, 0))", cancellationToken);
+        await PersonChanges.LockPeopleAsync(context, tenantId, cancellationToken);
 
         // Read after the lock: a new statement, so in READ COMMITTED it sees every person committed before it.
         var candidates = await finder.FindAsync(input, cancellationToken);
