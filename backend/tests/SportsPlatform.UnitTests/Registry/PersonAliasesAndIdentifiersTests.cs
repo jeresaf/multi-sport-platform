@@ -52,9 +52,9 @@ public sealed class PersonAliasesAndIdentifiersTests
         var alias = person.AddAlias("Kasa", AliasKind.Nickname).Value;
         var actor = new UserActor(Guid.CreateVersion7());
 
-        person.RemoveAlias(alias.Id, " Misspelt ", actor, _now).IsSuccess.ShouldBeTrue();
+        person.RemoveAlias(alias.Id, " Misspelt,  twice ", actor, _now).IsSuccess.ShouldBeTrue();
 
-        (alias.IsRemoved, alias.RemovedAt, alias.RemovedBy, alias.RemoveReason).ShouldBe((true, (DateTimeOffset?)_now, (Guid?)actor.ActorId, "Misspelt"));
+        (alias.IsRemoved, alias.RemovedAt, alias.RemovedBy, alias.RemoveReason).ShouldBe((true, (DateTimeOffset?)_now, (Guid?)actor.ActorId, "Misspelt,  twice"));
         person.RemoveAlias(alias.Id, "Misspelt", actor, _now).Error.ShouldBe(RegistryErrors.AliasRemoved);
         person.RemoveAlias(Guid.CreateVersion7(), "Misspelt", actor, _now).Error.ShouldBe(RegistryErrors.AliasNotFound);
         person.AddAlias("Kasa", AliasKind.Nickname).IsSuccess.ShouldBeTrue();

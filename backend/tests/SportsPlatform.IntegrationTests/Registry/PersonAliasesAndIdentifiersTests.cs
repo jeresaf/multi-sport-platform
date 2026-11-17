@@ -197,6 +197,8 @@ public sealed class PersonAliasesAndIdentifiersTests(PostgresFixture fixture) : 
         entry.Metadata!.ShouldNotContain("KM-2026-0201");
     }
 
+    // The outcome only: the people lock refuses the second add before its insert, and without the lock the unique index
+    // would refuse it on save with the same answer (review #100 N1), so this doesn't prove the lock is taken.
     [Fact]
     public async Task Two_people_given_one_value_at_once_leave_one_refused()
     {

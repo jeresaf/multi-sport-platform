@@ -66,7 +66,11 @@ public sealed class PersonAlias : Entity, ITenantOwned
             throw new InvalidOperationException("The alias is already removed.");
         }
 
-        RemoveReason = Person.Required(reason, ReasonMaxLength, nameof(reason));
+        // Trimmed as sent, like the status history and the audit entry (review #100 N2).
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+        var trimmed = reason.Trim();
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(trimmed.Length, ReasonMaxLength, nameof(reason));
+        RemoveReason = trimmed;
         RemovedBy = actor.ActorId;
         RemovedAt = now;
     }
