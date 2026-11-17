@@ -68,6 +68,8 @@ public static class IsolationSamples
         new DuplicateDecisionSample(),
         new AthleteProfileSample(),
         new ProfileStatusChangeSample(),
+        new StaffProfileSample(),
+        new StaffCapabilitySample(),
     ];
 
     public static IIsolationSample For(Type entityType) =>
@@ -376,6 +378,42 @@ public static class IsolationSamples
                 : null;
     }
 
+    /// <summary>Registry: a staff profile points at its person.</summary>
+    private sealed class StaffProfileSample : IIsolationSample
+    {
+        public Type EntityType => typeof(StaffProfile);
+
+        public Entity Add(DbContext context)
+        {
+            var person = RegistrySamples.NewPerson("Denis", "Opoka");
+            context.Add(person);
+            return person.AddStaffProfile([RegistrySamples.Coach], SystemActor.Instance, RegistrySamples.Now).Value;
+        }
+
+        public Entity? Referencing(IForeignKey foreignKey, Guid principalId) =>
+            foreignKey.PrincipalEntityType.ClrType == typeof(Person)
+                ? new StaffProfile(principalId, [RegistrySamples.Coach])
+                : null;
+    }
+
+    /// <summary>Registry: a staff capability points at its staff profile.</summary>
+    private sealed class StaffCapabilitySample : IIsolationSample
+    {
+        public Type EntityType => typeof(StaffCapability);
+
+        public Entity Add(DbContext context)
+        {
+            var person = RegistrySamples.NewPerson("Moses", "Kato");
+            context.Add(person);
+            return person.AddStaffProfile([RegistrySamples.Coach], SystemActor.Instance, RegistrySamples.Now).Value.Capabilities.Single();
+        }
+
+        public Entity? Referencing(IForeignKey foreignKey, Guid principalId) =>
+            foreignKey.PrincipalEntityType.ClrType == typeof(StaffProfile)
+                ? new StaffCapability(principalId, RegistrySamples.Coach)
+                : null;
+    }
+
     /// <summary>Registry: an identifier names its person by ID without a foreign key, so nothing tenant-owned is referenced.</summary>
     private sealed class ExternalIdentifierSample : IIsolationSample
     {
@@ -431,6 +469,8 @@ public static class IsolationSamples
             Person.Create(new PersonBiodata(firstName, lastName), PersonSource.Manual, SystemActor.Instance, Now);
 
         public static AthleteProfileDetails Midfielder { get; } = new("TB_MID", [], DominantSide.Left, null);
+
+        public static StaffCapabilityDetails Coach { get; } = new("TESTBALL_FULL", "TB_COACH", null);
     }
 
     private static class IdentitySamples

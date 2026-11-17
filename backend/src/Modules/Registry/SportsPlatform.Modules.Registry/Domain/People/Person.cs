@@ -17,6 +17,7 @@ public sealed class Person : AggregateRoot, ITenantOwned
     private readonly List<PersonAlias> _aliases = [];
     private readonly List<PersonStatusChange> _statusHistory = [];
     private readonly List<AthleteProfile> _athleteProfiles = [];
+    private readonly List<StaffProfile> _staffProfiles = [];
     private readonly List<ProfileStatusChange> _profileStatusHistory = [];
 
     private Person()
@@ -85,6 +86,9 @@ public sealed class Person : AggregateRoot, ITenantOwned
 
     /// <summary>Every athlete profile, archived ones included; load them before a profile command.</summary>
     public IReadOnlyList<AthleteProfile> AthleteProfiles => _athleteProfiles;
+
+    /// <summary>Every staff profile, archived ones included; load them (with their capabilities) before a profile command.</summary>
+    public IReadOnlyList<StaffProfile> StaffProfiles => _staffProfiles;
 
     /// <summary>The status history of every profile; commands only add to it, so it needn't be loaded.</summary>
     public IReadOnlyList<ProfileStatusChange> ProfileStatusHistory => _profileStatusHistory;
@@ -264,15 +268,79 @@ public sealed class Person : AggregateRoot, ITenantOwned
 
     /// <summary>
     /// Moves an athlete profile to <paramref name="to"/> with a reason and a history row (S06 D12,
+    /// <see cref="ProfileTransitions"/>); see <see cref="ChangeProfileStatus"/>.
+    /// </summary>
+    public Result ChangeAthleteProfileStatus(
+        Guid profileId, ProfileStatus to, string reason, ICurrentActor actor, DateTimeOffset now) =>
+        ChangeProfileStatus(
+            ProfileKind.Athlete, _athleteProfiles.SingleOrDefault(existing => existing.Id == profileId), to, reason, actor, now);
+
+    /// <summary>
+    /// Adds an <c>ACTIVE</c> staff profile with its capabilities and the first row of its history (S06 D12). Refused on
+    /// an archived or deceased person (D9) and when the person already holds an open staff profile
+    /// (<c>PERSON_STAFF_PROFILE_EXISTS</c>: a retired one is reactivated, not doubled). The use case has checked the
+    /// variants are enabled and the roles are the definitions'.
+    /// </summary>
+    public Result<StaffProfile> AddStaffProfile(
+        IReadOnlyList<StaffCapabilityDetails> capabilities, ICurrentActor actor, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(actor);
+        var accepts = EnsureAcceptsNewChildren();
+        if (accepts.IsFailure)
+        {
+            return accepts.Error;
+        }
+
+        if (_staffProfiles.Any(existing => ProfileTransitions.IsOpen(existing.Status)))
+        {
+            return RegistryErrors.StaffProfileExists;
+        }
+
+        var profile = new StaffProfile(Id, capabilities);
+        _staffProfiles.Add(profile);
+        _profileStatusHistory.Add(
+            new ProfileStatusChange(Id, ProfileKind.Staff, profile.Id, null, profile.Status, null, actor, now));
+        return Result.Success(profile);
+    }
+
+    /// <summary>
+    /// Replaces a staff profile's capabilities (S06 D12): allowed whatever the person's status (D9) but not on an
+    /// archived profile (<c>PERSON_PROFILE_ARCHIVED</c>). The use case has checked the codes, and that an added
+    /// capability's variant is enabled.
+    /// </summary>
+    public Result UpdateStaffProfile(Guid profileId, IReadOnlyList<StaffCapabilityDetails> capabilities)
+    {
+        var profile = _staffProfiles.SingleOrDefault(existing => existing.Id == profileId);
+        if (profile is null)
+        {
+            return Result.Failure(RegistryErrors.ProfileNotFound);
+        }
+
+        if (!ProfileTransitions.IsOpen(profile.Status))
+        {
+            return Result.Failure(RegistryErrors.ProfileArchived);
+        }
+
+        profile.Replace(capabilities);
+        return Result.Success();
+    }
+
+    /// <summary>Moves a staff profile; see <see cref="ChangeProfileStatus"/>.</summary>
+    public Result ChangeStaffProfileStatus(
+        Guid profileId, ProfileStatus to, string reason, ICurrentActor actor, DateTimeOffset now) =>
+        ChangeProfileStatus(
+            ProfileKind.Staff, _staffProfiles.SingleOrDefault(existing => existing.Id == profileId), to, reason, actor, now);
+
+    /// <summary>
+    /// Moves a profile to <paramref name="to"/> with a reason and a history row (S06 D12,
     /// <see cref="ProfileTransitions"/>). A move the current status doesn't allow is <c>PERSON_PROFILE_STATUS_INVALID</c>;
     /// a move to <c>ACTIVE</c> is refused on an archived or deceased person (D9), every other move is allowed.
     /// </summary>
-    public Result ChangeAthleteProfileStatus(
-        Guid profileId, ProfileStatus to, string reason, ICurrentActor actor, DateTimeOffset now)
+    private Result ChangeProfileStatus(
+        ProfileKind kind, IRoleProfile? profile, ProfileStatus to, string reason, ICurrentActor actor, DateTimeOffset now)
     {
         ArgumentNullException.ThrowIfNull(actor);
         ArgumentException.ThrowIfNullOrWhiteSpace(reason);
-        var profile = _athleteProfiles.SingleOrDefault(existing => existing.Id == profileId);
         if (profile is null)
         {
             return Result.Failure(RegistryErrors.ProfileNotFound);
@@ -290,8 +358,7 @@ public sealed class Person : AggregateRoot, ITenantOwned
 
         var from = profile.Status;
         profile.MoveTo(to);
-        _profileStatusHistory.Add(
-            new ProfileStatusChange(Id, ProfileKind.Athlete, profile.Id, from, to, reason.Trim(), actor, now));
+        _profileStatusHistory.Add(new ProfileStatusChange(Id, kind, profile.Id, from, to, reason.Trim(), actor, now));
         return Result.Success();
     }
 

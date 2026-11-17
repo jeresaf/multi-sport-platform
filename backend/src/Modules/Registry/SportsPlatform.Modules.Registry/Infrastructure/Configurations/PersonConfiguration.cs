@@ -76,6 +76,11 @@ internal sealed class PersonConfiguration : IEntityTypeConfiguration<Person>
             .HasPrincipalKey(p => new { p.TenantId, p.Id })
             .OnDelete(DeleteBehavior.Restrict);
         builder.Navigation(p => p.AthleteProfiles).HasField("_athleteProfiles").UsePropertyAccessMode(PropertyAccessMode.Field);
+        builder.HasMany(p => p.StaffProfiles).WithOne()
+            .HasForeignKey(s => new { s.TenantId, s.PersonId })
+            .HasPrincipalKey(p => new { p.TenantId, p.Id })
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.Navigation(p => p.StaffProfiles).HasField("_staffProfiles").UsePropertyAccessMode(PropertyAccessMode.Field);
         builder.HasMany(p => p.ProfileStatusHistory).WithOne()
             .HasForeignKey(c => new { c.TenantId, c.PersonId })
             .HasPrincipalKey(p => new { p.TenantId, p.Id })

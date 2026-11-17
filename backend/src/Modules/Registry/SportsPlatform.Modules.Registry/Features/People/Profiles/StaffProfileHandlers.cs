@@ -1,0 +1,161 @@
+using Microsoft.EntityFrameworkCore;
+using Npgsql;
+using SportsPlatform.BuildingBlocks.Actors;
+using SportsPlatform.BuildingBlocks.Api;
+using SportsPlatform.BuildingBlocks.Auditing;
+using SportsPlatform.BuildingBlocks.Privacy;
+using SportsPlatform.Modules.Registry.Domain.People.Profiles;
+using SportsPlatform.Modules.Registry.Infrastructure;
+using SportsPlatform.Modules.Registry.Infrastructure.Configurations;
+
+namespace SportsPlatform.Modules.Registry.Features.People.Profiles;
+
+/// <summary>
+/// Adds a staff profile (S06 D12): every capability's variant enabled for the tenant and its role the definition's
+/// (<see cref="SportCodes"/>), refused on an archived or deceased person and when the person already holds an open staff
+/// profile. The new rows move the person's version (D11), so a concurrent archive conflicts; a concurrent create is
+/// refused by the version or by the open-profile index.
+/// </summary>
+public sealed class CreateStaffProfileHandler(
+    RegistryDbContext context, SportCodes sportCodes, ICurrentActor actor, AuditScope audit, TimeProvider timeProvider)
+{
+    public async Task<FieldRefusal?> HandleAsync(
+        Guid personId, StaffProfileRequest request, IfMatch ifMatch, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        var capabilities = request.ToDetails();
+        audit.Describe(PeopleEndpoints.EntityType, personId, metadata: StaffProfileAuditMetadata.Of(null, capabilities));
+
+        var (person, refusal) = await PersonChanges.LoadAsync(
+            context, personId, request.Version, ifMatch, cancellationToken, withStaffProfiles: true);
+        if (person is null)
+        {
+            return refusal;
+        }
+
+        if (await sportCodes.CheckStaffAsync(capabilities, existing: null, cancellationToken) is { } unknown)
+        {
+            return unknown;
+        }
+
+        var added = person.AddStaffProfile(capabilities, actor, timeProvider.GetUtcNow());
+        if (added.IsFailure)
+        {
+            return new(added.Error);
+        }
+
+        audit.Describe(metadata: StaffProfileAuditMetadata.Of(added.Value.Id, capabilities));
+        try
+        {
+            var saved = await context.SaveChangesResultAsync(cancellationToken);
+            return saved.IsFailure ? new(saved.Error) : null;
+        }
+        catch (DbUpdateException exception) when (exception.InnerException is PostgresException
+        {
+            SqlState: PostgresErrorCodes.UniqueViolation, ConstraintName: StaffProfileConfiguration.OpenProfileIndex,
+        })
+        {
+            // Two creates for one person at once (as review #101 R1): the second's insert can reach the open-profile
+            // index before the person's version is checked.
+            return new(RegistryErrors.StaffProfileExists);
+        }
+    }
+}
+
+/// <summary>
+/// Replaces a staff profile's capabilities (S06 D12): allowed whatever the person's status. A capability the profile
+/// already holds may stay on a variant the tenant has since disabled; an added one needs its variant enabled. Every role
+/// must be the variant's latest definition's.
+/// </summary>
+public sealed class UpdateStaffProfileHandler(RegistryDbContext context, SportCodes sportCodes, AuditScope audit)
+{
+    public async Task<FieldRefusal?> HandleAsync(
+        Guid personId, Guid profileId, StaffProfileRequest request, IfMatch ifMatch, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        audit.Describe(PeopleEndpoints.EntityType, personId);
+
+        var (person, refusal) = await PersonChanges.LoadAsync(
+            context, personId, request.Version, ifMatch, cancellationToken, withStaffProfiles: true);
+        if (person is null)
+        {
+            return refusal;
+        }
+
+        if (person.StaffProfiles.SingleOrDefault(profile => profile.Id == profileId) is not { } profile)
+        {
+            return new(RegistryErrors.ProfileNotFound);
+        }
+
+        var capabilities = request.ToDetails();
+        audit.Describe(metadata: StaffProfileAuditMetadata.Of(profile.Id, capabilities));
+        if (ProfileTransitions.IsOpen(profile.Status)
+            && await sportCodes.CheckStaffAsync(capabilities, profile, cancellationToken) is { } unknown)
+        {
+            return unknown;
+        }
+
+        var updated = person.UpdateStaffProfile(profileId, capabilities);
+        if (updated.IsFailure)
+        {
+            return new(updated.Error);
+        }
+
+        var saved = await context.SaveChangesResultAsync(cancellationToken);
+        return saved.IsFailure ? new(saved.Error) : null;
+    }
+}
+
+/// <summary>Moves a staff profile along its state machine with a reason (S06 D12; <see cref="ProfileTransitions"/>).</summary>
+public sealed class ChangeStaffProfileStatusHandler(
+    RegistryDbContext context, ICurrentActor actor, AuditScope audit, TimeProvider timeProvider)
+{
+    public async Task<FieldRefusal?> HandleAsync(
+        Guid personId, Guid profileId, ChangeProfileStatusRequest request, IfMatch ifMatch, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        var reason = request.Reason!.Trim();
+        var status = request.Status!.Value;
+        audit.Describe(PeopleEndpoints.EntityType, personId, reason);
+
+        var (person, refusal) = await PersonChanges.LoadAsync(
+            context, personId, request.Version, ifMatch, cancellationToken, withStaffProfiles: true);
+        if (person is null)
+        {
+            return refusal;
+        }
+
+        if (person.StaffProfiles.SingleOrDefault(profile => profile.Id == profileId) is not { } profile)
+        {
+            return new(RegistryErrors.ProfileNotFound);
+        }
+
+        audit.Describe(metadata: new StaffProfileAuditMetadata(profile.Id, Variants(profile), profile.Status, status));
+        var changed = person.ChangeStaffProfileStatus(profileId, status, reason, actor, timeProvider.GetUtcNow());
+        if (changed.IsFailure)
+        {
+            return new(changed.Error);
+        }
+
+        var saved = await context.SaveChangesResultAsync(cancellationToken);
+        return saved.IsFailure ? new(saved.Error) : null;
+    }
+
+    private static IReadOnlyList<string> Variants(StaffProfile profile) =>
+        [.. profile.Capabilities.Select(c => c.Variant).Distinct().Order(StringComparer.Ordinal)];
+}
+
+/// <summary>
+/// The audit metadata of a staff profile change: the profile by ID (none yet when a create is refused), the variants of
+/// its capabilities (as sent, for a create or an update) and, for a status change, the move. Never a role or a
+/// qualification.
+/// </summary>
+public sealed record StaffProfileAuditMetadata(
+    [property: PersonalData(PersonalDataClass.Internal)] Guid? ProfileId,
+    [property: PersonalData(PersonalDataClass.Internal)] IReadOnlyList<string> Variants,
+    [property: PersonalData(PersonalDataClass.Internal)] ProfileStatus? FromStatus = null,
+    [property: PersonalData(PersonalDataClass.Internal)] ProfileStatus? ToStatus = null)
+{
+    public static StaffProfileAuditMetadata Of(Guid? profileId, IEnumerable<StaffCapabilityDetails> capabilities) =>
+        new(profileId, [.. capabilities.Select(c => c.Variant).Distinct().Order(StringComparer.Ordinal)]);
+}

@@ -160,6 +160,12 @@ moves the person's version, and `POST …/people/{id}/athlete-profiles`, `PUT �
 Tenancy's `IEnabledSports` and every position code through Sports Configuration's `ISportDefinitions` (the latest
 definition); the API carries codes, and labels come from `GET /sports/{variant}`. The directory filters by `profile`
 and `variant`; duplicate-check candidates carry their athlete variants.
+**As built (S06-T4b1):** staff profiles (`registry.staff_profiles`, one open per person) with their capabilities
+(`registry.staff_capabilities`: variant, a `staff_roles` code of its definition, optional qualification; 1–10, one per
+variant and role) are children of the person in the same way (`POST …/staff-profiles`, `PUT …/staff-profiles/{profileId}`
+replacing the capabilities as a whole, `POST …/staff-profiles/{profileId}/status`). `SportCodes` checks a capability's
+variant through `IEnabledSports` unless the profile already holds it, and its role through `ISportDefinitions`. The
+directory's `variant` matches an athlete profile's variant or a staff capability's.
 **First slice:** S06 (people), S07 (organisations, teams, venues).
 **As built (S06-T1a):** schema `registry`, every table tenant-owned (RLS): `persons` (classified columns, name keys),
 `person_aliases`, `person_status_changes` (append-only), `external_identifiers`. No endpoints or Contracts yet.

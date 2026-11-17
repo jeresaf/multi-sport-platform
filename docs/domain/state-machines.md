@@ -181,7 +181,7 @@ Every change writes a row to `registry.person_status_changes` (from, to, reason,
 `409 PERSON_STATUS_INVALID`. `MERGED` comes with merges (S25). An `ARCHIVED` or `DECEASED` person's biodata can still
 be corrected; it takes no new profile, alias, identifier, consent or photo (S06 D9; owner, S06-T3 plan).
 
-### Role profile (stored, as built in S06-T4a)
+### Role profile (stored, as built in S06-T4a, T4b1)
 
 ```text
 ACTIVE ──(reason)──► INACTIVE ──(reason)──► ACTIVE
@@ -189,10 +189,11 @@ ACTIVE | INACTIVE ──retire (reason)──► RETIRED ──(reason)──►
 ACTIVE | INACTIVE | RETIRED ──archive (reason)──► ARCHIVED   (final)
 ```
 
-One endpoint per profile kind (`POST …/athlete-profiles/{profileId}/status` with `{status, reason}`); any other move is
+One endpoint per profile kind (`POST …/athlete-profiles/{profileId}/status`, `POST …/staff-profiles/{profileId}/status`,
+with `{status, reason}`); any other move is
 `409 PERSON_PROFILE_STATUS_INVALID`. Every move writes a row to `registry.profile_status_changes` (kind, profile, from,
 to, reason, actor, time; the first row at creation). A profile is open until archived: a person holds one open athlete
-profile per variant (a retired one is reactivated, not doubled). An archived profile takes no change: an update is
+profile per variant and one open staff profile (a retired one is reactivated, not doubled). An archived profile takes no change: an update is
 `409 PERSON_PROFILE_ARCHIVED`, a move `409 PERSON_PROFILE_STATUS_INVALID`. On an archived or
 deceased person a profile can be corrected, deactivated, retired or archived, but not moved to `ACTIVE`, and no new
 profile starts (owner, S06-T4 plan). `SUSPENDED` comes with discipline (S13+).

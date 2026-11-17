@@ -853,12 +853,129 @@ namespace SportsPlatform.Modules.Registry.Infrastructure.Migrations
 
                             t.HasCheckConstraint("ck_profile_status_changes_from_status", "from_status IN ('ACTIVE', 'INACTIVE', 'RETIRED', 'ARCHIVED')");
 
-                            t.HasCheckConstraint("ck_profile_status_changes_profile_kind", "profile_kind IN ('ATHLETE')");
+                            t.HasCheckConstraint("ck_profile_status_changes_profile_kind", "profile_kind IN ('ATHLETE', 'STAFF')");
 
                             t.HasCheckConstraint("ck_profile_status_changes_to_status", "to_status IN ('ACTIVE', 'INACTIVE', 'RETIRED', 'ARCHIVED')");
                         });
 
                     b.HasAnnotation("SportsPlatform:AppendOnly", true);
+                });
+
+            modelBuilder.Entity("SportsPlatform.Modules.Registry.Domain.People.Profiles.StaffCapability", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("Qualification")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("qualification")
+                        .HasAnnotation("pii", "INTERNAL");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("role")
+                        .HasAnnotation("pii", "INTERNAL");
+
+                    b.Property<Guid>("StaffProfileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("staff_profile_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<string>("Variant")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("variant")
+                        .HasAnnotation("pii", "INTERNAL");
+
+                    b.HasKey("Id")
+                        .HasName("pk_staff_capabilities");
+
+                    b.HasIndex("TenantId", "Variant")
+                        .HasDatabaseName("ix_staff_capabilities_tenant_id_variant");
+
+                    b.HasIndex("TenantId", "StaffProfileId", "Variant", "Role")
+                        .IsUnique()
+                        .HasDatabaseName("ix_staff_capabilities_tenant_id_staff_profile_id_variant_role");
+
+                    b.ToTable("staff_capabilities", "registry");
+                });
+
+            modelBuilder.Entity("SportsPlatform.Modules.Registry.Domain.People.Profiles.StaffProfile", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<Guid>("PersonId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("person_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status")
+                        .HasAnnotation("pii", "INTERNAL");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_staff_profiles");
+
+                    b.HasAlternateKey("TenantId", "Id")
+                        .HasName("ak_staff_profiles_tenant_id_id");
+
+                    b.HasIndex("TenantId", "PersonId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_staff_profiles_tenant_id_person_id_open")
+                        .HasFilter("status <> 'ARCHIVED'");
+
+                    b.ToTable("staff_profiles", "registry", t =>
+                        {
+                            t.HasCheckConstraint("ck_staff_profiles_status", "status IN ('ACTIVE', 'INACTIVE', 'RETIRED', 'ARCHIVED')");
+                        });
                 });
 
             modelBuilder.Entity("SportsPlatform.Modules.Registry.Domain.People.Duplicates.DuplicateDecision", b =>
@@ -924,6 +1041,28 @@ namespace SportsPlatform.Modules.Registry.Infrastructure.Migrations
                         .HasConstraintName("fk_profile_status_changes_persons_tenant_id_person_id");
                 });
 
+            modelBuilder.Entity("SportsPlatform.Modules.Registry.Domain.People.Profiles.StaffCapability", b =>
+                {
+                    b.HasOne("SportsPlatform.Modules.Registry.Domain.People.Profiles.StaffProfile", null)
+                        .WithMany("Capabilities")
+                        .HasForeignKey("TenantId", "StaffProfileId")
+                        .HasPrincipalKey("TenantId", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_staff_capabilities_staff_profiles_tenant_id_staff_profile_id");
+                });
+
+            modelBuilder.Entity("SportsPlatform.Modules.Registry.Domain.People.Profiles.StaffProfile", b =>
+                {
+                    b.HasOne("SportsPlatform.Modules.Registry.Domain.People.Person", null)
+                        .WithMany("StaffProfiles")
+                        .HasForeignKey("TenantId", "PersonId")
+                        .HasPrincipalKey("TenantId", "Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_staff_profiles_persons_tenant_id_person_id");
+                });
+
             modelBuilder.Entity("SportsPlatform.Modules.Registry.Domain.People.Person", b =>
                 {
                     b.Navigation("Aliases");
@@ -932,7 +1071,14 @@ namespace SportsPlatform.Modules.Registry.Infrastructure.Migrations
 
                     b.Navigation("ProfileStatusHistory");
 
+                    b.Navigation("StaffProfiles");
+
                     b.Navigation("StatusHistory");
+                });
+
+            modelBuilder.Entity("SportsPlatform.Modules.Registry.Domain.People.Profiles.StaffProfile", b =>
+                {
+                    b.Navigation("Capabilities");
                 });
 #pragma warning restore 612, 618
         }

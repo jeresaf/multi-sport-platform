@@ -117,6 +117,21 @@ public static class RegistryActions
         "Make an athlete profile inactive, retired, active again or archived (final), with a reason; every change is kept.",
         AuditRequirement.RequiredWithReason);
 
+    public static readonly ActionDefinition StaffProfileCreate = Lifecycle(
+        "staff_profile.create",
+        "Record that a person works as staff (coach, physio…), with roles from the definitions of sport variants the tenant has enabled; one staff profile that isn't archived; not for an archived or deceased person.",
+        AuditRequirement.Required);
+
+    public static readonly ActionDefinition StaffProfileUpdate = Lifecycle(
+        "staff_profile.update",
+        "Change a staff profile's roles and qualifications.",
+        AuditRequirement.Required);
+
+    public static readonly ActionDefinition StaffProfileStatusChange = Lifecycle(
+        "staff_profile.status.change",
+        "Make a staff profile inactive, retired, active again or archived (final), with a reason; every change is kept.",
+        AuditRequirement.RequiredWithReason);
+
     // The lifecycle, alias, identifier and profile actions answer the person as person.read does, so they are only granted with
     // that read.
     private static ActionDefinition Lifecycle(string code, string description, AuditRequirement audit) => new(

@@ -1,9 +1,20 @@
 namespace SportsPlatform.Modules.Registry.Domain.People.Profiles;
 
-/// <summary>A person's role profile kinds (S06 D12; glossary). S06-T4b adds staff and official profiles.</summary>
+/// <summary>A person's role profile kinds (S06 D12; glossary). S06-T4b2 adds official profiles.</summary>
 public enum ProfileKind
 {
     Athlete,
+    Staff,
+}
+
+/// <summary>What the person's status moves need of every profile kind (<see cref="ProfileTransitions"/>).</summary>
+internal interface IRoleProfile
+{
+    Guid Id { get; }
+
+    ProfileStatus Status { get; }
+
+    void MoveTo(ProfileStatus status);
 }
 
 /// <summary>
