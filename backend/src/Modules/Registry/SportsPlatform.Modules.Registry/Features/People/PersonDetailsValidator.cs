@@ -78,7 +78,6 @@ public sealed class PersonBiodataValidator<T> : AbstractValidator<T>
     }
 }
 
-/// <summary>The validator's patterns (a generated regex can't be declared in a generic type).</summary>
 /// <summary>
 /// The shape of one external identifier (<see cref="IIdentifierDetails"/>), in a create, the check, or
 /// <c>person.external_id.add</c>: an UPPER_SNAKE authority and a value of 1–100 characters after trimming, without
@@ -105,6 +104,7 @@ internal static class IdentifierDetailsRules
     }
 }
 
+/// <summary>The validator's patterns (a generated regex can't be declared in a generic type).</summary>
 internal static partial class PersonDetailsPatterns
 {
     // \z, not $: .NET's $ also matches before a final line feed.

@@ -11,7 +11,8 @@ namespace SportsPlatform.Modules.Registry.Features.People.Aliases;
 internal static class PersonAliasEndpoints
 {
     private const string _versionNote =
-        "Send `version` or `If-Match` from the last read to get 409 PERSON_CONCURRENCY_CONFLICT if the person changed since. " +
+        "Send `version` or `If-Match` from the last read to get 409 PERSON_CONCURRENCY_CONFLICT if the person changed since; " +
+        "without them, a change to the same person saved at the same moment can still answer it. " +
         "Answers the person as GET /people/{personId} does; its version moves.";
 
     public static void Map(IEndpointRouteBuilder people)

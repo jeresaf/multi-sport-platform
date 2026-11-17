@@ -773,7 +773,7 @@ export interface paths {
         put?: never;
         /**
          * Add an alias to a person
-         * @description Adds another name the person is known by (`FORMER_NAME`, `NICKNAME` or `SPELLING`): the directory search and the duplicate check find the person under it too. No duplicate check runs. A name the person is already known by (the same name key as their own name or a current alias: word order, case, accents and punctuation aside) is PERSON_ALIAS_EXISTS; a name without a letter or a digit PERSON_NAME_INVALID. An archived or deceased person takes no new alias (PERSON_ARCHIVED, PERSON_DECEASED). Send `version` or `If-Match` from the last read to get 409 PERSON_CONCURRENCY_CONFLICT if the person changed since. Answers the person as GET /people/{personId} does; its version moves.
+         * @description Adds another name the person is known by (`FORMER_NAME`, `NICKNAME` or `SPELLING`): the directory search and the duplicate check find the person under it too. No duplicate check runs. A name the person is already known by (the same name key as their own name or a current alias: word order, case, accents and punctuation aside) is PERSON_ALIAS_EXISTS; a name without a letter or a digit PERSON_NAME_INVALID. An archived or deceased person takes no new alias (PERSON_ARCHIVED, PERSON_DECEASED). Send `version` or `If-Match` from the last read to get 409 PERSON_CONCURRENCY_CONFLICT if the person changed since; without them, a change to the same person saved at the same moment can still answer it. Answers the person as GET /people/{personId} does; its version moves.
          */
         post: operations["AddPersonAlias"];
         delete?: never;
@@ -793,7 +793,7 @@ export interface paths {
         put?: never;
         /**
          * Remove a person's alias
-         * @description Removes an alias, whatever the person's status, with a reason (body `{ "reason": … }`, required): the alias is kept with who removed it, when and why, and is no longer shown, searched or matched. The reason is kept permanently on the alias and in the audit trail: don't include personal data. An alias already removed is PERSON_ALIAS_REMOVED. Send `version` or `If-Match` from the last read to get 409 PERSON_CONCURRENCY_CONFLICT if the person changed since. Answers the person as GET /people/{personId} does; its version moves.
+         * @description Removes an alias, whatever the person's status, with a reason (body `{ "reason": … }`, required): the alias is kept with who removed it, when and why, and is no longer shown, searched or matched. The reason is kept permanently on the alias and in the audit trail: don't include personal data. An alias already removed is PERSON_ALIAS_REMOVED. Send `version` or `If-Match` from the last read to get 409 PERSON_CONCURRENCY_CONFLICT if the person changed since; without them, a change to the same person saved at the same moment can still answer it. Answers the person as GET /people/{personId} does; its version moves.
          */
         post: operations["RemovePersonAlias"];
         delete?: never;
@@ -813,7 +813,7 @@ export interface paths {
         put?: never;
         /**
          * Add an external identifier to a person
-         * @description Adds an identifier another authority gave the person: `authority` is a code the tenant chooses (e.g. `KMSA_REG_NO`), `value` is trimmed. A value with this authority that any person has or had, ended ones and this person's included, is PERSON_EXTERNAL_ID_EXISTS: a value is never reused. National identity documents (`NATIONAL_ID`, `NIN`, `PASSPORT`) are PERSON_EXTERNAL_ID_AUTHORITY_RESERVED. Names and dates aren't checked for duplicates. An archived or deceased person takes no new identifier (PERSON_ARCHIVED, PERSON_DECEASED). Send `version` or `If-Match` from the last read to get 409 PERSON_CONCURRENCY_CONFLICT if the person changed since. Answers the person as GET /people/{personId} does; its version moves.
+         * @description Adds an identifier another authority gave the person: `authority` is a code the tenant chooses (e.g. `KMSA_REG_NO`), `value` is trimmed. A value with this authority that any person has or had, ended ones and this person's included, is PERSON_EXTERNAL_ID_EXISTS: a value is never reused. National identity documents (`NATIONAL_ID`, `NIN`, `PASSPORT`) are PERSON_EXTERNAL_ID_AUTHORITY_RESERVED. Names and dates aren't checked for duplicates. An archived or deceased person takes no new identifier (PERSON_ARCHIVED, PERSON_DECEASED). Send `version` or `If-Match` from the last read to get 409 PERSON_CONCURRENCY_CONFLICT if the person changed since; without them, a change to the same person saved at the same moment can still answer it. Answers the person as GET /people/{personId} does; its version moves.
          */
         post: operations["AddPersonExternalIdentifier"];
         delete?: never;
@@ -833,7 +833,7 @@ export interface paths {
         put?: never;
         /**
          * End a person's external identifier
-         * @description Ends an identifier, whatever the person's status: it is kept with its `validTo`, and its value is never given to anyone else. The body is optional: `validTo` defaults to today (the tenant's date) and can't be after it or before `validFrom` (PERSON_EXTERNAL_ID_VALIDITY_INVALID); `reason` (1–500 characters) is kept permanently in the audit trail: don't include personal data. An identifier already ended is PERSON_EXTERNAL_ID_ENDED. Send `version` or `If-Match` from the last read to get 409 PERSON_CONCURRENCY_CONFLICT if the person changed since. Answers the person as GET /people/{personId} does; its version moves.
+         * @description Ends an identifier, whatever the person's status: it is kept with its `validTo`, and its value is never given to anyone else. The body is optional: `validTo` defaults to today (the tenant's date) and can't be after it or before `validFrom` (PERSON_EXTERNAL_ID_VALIDITY_INVALID); `reason` (1–500 characters) is kept permanently in the audit trail: don't include personal data. An identifier already ended is PERSON_EXTERNAL_ID_ENDED. Send `version` or `If-Match` from the last read to get 409 PERSON_CONCURRENCY_CONFLICT if the person changed since; without them, a change to the same person saved at the same moment can still answer it. Answers the person as GET /people/{personId} does; its version moves.
          */
         post: operations["EndPersonExternalIdentifier"];
         delete?: never;
