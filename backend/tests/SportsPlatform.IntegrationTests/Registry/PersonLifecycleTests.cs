@@ -206,9 +206,11 @@ public sealed class PersonLifecycleTests(PostgresFixture fixture) : DatabaseTest
         var member = await CreateMemberAsync(App.Services, kmsa, "brian.ssemakula@kmsa.example", Ct, TenantWide(IdentityRoles.Registrar));
         var registrar = App.ClientFor(member.UserId, kmsa);
 
-        using var response = await registrar.PostAsJsonAsync(StatusPath(person.Id, "archive"), new { reason = _reason }, Ct);
-
-        await response.ShouldBeProblemAsync(HttpStatusCode.Forbidden, "TENANT_READ_ONLY");
+        foreach (var path in _transitions.Values.Select(transition => transition.Path))
+        {
+            using var response = await registrar.PostAsJsonAsync(StatusPath(person.Id, path), new { reason = _reason }, Ct);
+            await response.ShouldBeProblemAsync(HttpStatusCode.Forbidden, "TENANT_READ_ONLY");
+        }
     }
 
     // A person created through the handlers and moved to a status through the domain.
