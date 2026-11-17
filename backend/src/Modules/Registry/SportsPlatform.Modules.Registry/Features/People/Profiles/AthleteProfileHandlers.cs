@@ -1,16 +1,20 @@
+using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.BuildingBlocks.Api;
 using SportsPlatform.BuildingBlocks.Auditing;
 using SportsPlatform.BuildingBlocks.Privacy;
 using SportsPlatform.Modules.Registry.Domain.People.Profiles;
 using SportsPlatform.Modules.Registry.Infrastructure;
+using SportsPlatform.Modules.Registry.Infrastructure.Configurations;
 
 namespace SportsPlatform.Modules.Registry.Features.People.Profiles;
 
 /// <summary>
 /// Adds an athlete profile (S06 D12): the variant enabled for the tenant and the positions the definition's
 /// (<see cref="SportCodes"/>), refused on an archived or deceased person and when the person already holds an open
-/// profile for the variant. The new row moves the person's version (D11), so a concurrent archive conflicts.
+/// profile for the variant. The new row moves the person's version (D11), so a concurrent archive conflicts; a
+/// concurrent create of the same variant is refused by the version or by the open-variant index.
 /// </summary>
 public sealed class CreateAthleteProfileHandler(
     RegistryDbContext context, SportCodes sportCodes, ICurrentActor actor, AuditScope audit, TimeProvider timeProvider)
@@ -42,8 +46,20 @@ public sealed class CreateAthleteProfileHandler(
         }
 
         audit.Describe(metadata: new AthleteProfileAuditMetadata(added.Value.Id, variant));
-        var saved = await context.SaveChangesResultAsync(cancellationToken);
-        return saved.IsFailure ? new(saved.Error) : null;
+        try
+        {
+            var saved = await context.SaveChangesResultAsync(cancellationToken);
+            return saved.IsFailure ? new(saved.Error) : null;
+        }
+        catch (DbUpdateException exception) when (exception.InnerException is PostgresException
+        {
+            SqlState: PostgresErrorCodes.UniqueViolation, ConstraintName: AthleteProfileConfiguration.OpenVariantIndex,
+        })
+        {
+            // Two creates for one person and variant at once (review #101 R1): the second's insert can reach the
+            // open-variant index before the person's version is checked.
+            return new(RegistryErrors.AthleteProfileExists, "variant");
+        }
     }
 }
 

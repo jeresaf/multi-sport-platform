@@ -227,6 +227,41 @@ public sealed class AthleteProfileTests(PostgresFixture fixture) : DatabaseTest(
         await back.ShouldBeProblemAsync(HttpStatusCode.Conflict, "PERSON_PROFILE_STATUS_INVALID");
     }
 
+    // Review #101 R1: a double submit without a version. Each pair races; whichever save comes second is refused by the
+    // person's version or, when its insert reaches the open-variant index first, by that index. Both answer 409, never
+    // 500. Ten pairs, because one pair doesn't always take the index's path.
+    [Fact]
+    public async Task Two_creates_for_one_variant_at_once_leave_one_refused()
+    {
+        await using var app = AppWithTestSports(App);
+        var (kmsa, registrar) = await TenantAsync(app, "kmsa", IdentityRoles.Registrar);
+        await TenantTestData.EnableSportAsync(App.Services, kmsa, TestballFull, Ct);
+        var people = new List<Guid>();
+        for (var i = 0; i < 10; i++)
+        {
+            people.Add((await SavePersonAsync(App.Services, kmsa, IvanMukasa with { FirstName = $"Ivan{(char)('a' + i)}" }, Ct)).Id);
+        }
+
+        var pairs = await Task.WhenAll(people.Select(person => Task.WhenAll(
+            registrar.PostAsJsonAsync(ProfilesPath(person), new { variant = TestballFull }, Ct),
+            registrar.PostAsJsonAsync(ProfilesPath(person), new { variant = TestballFull }, Ct))));
+
+        foreach (var responses in pairs)
+        {
+            responses.Select(response => response.StatusCode).ShouldBe([HttpStatusCode.OK, HttpStatusCode.Conflict], ignoreOrder: true);
+            var problem = await responses.Single(response => response.StatusCode == HttpStatusCode.Conflict).Content
+                .ReadFromJsonAsync<JsonElement>(Ct);
+            problem.GetProperty("code").GetString().ShouldBeOneOf("PERSON_ATHLETE_PROFILE_EXISTS", "PERSON_CONCURRENCY_CONFLICT");
+            foreach (var response in responses)
+            {
+                response.Dispose();
+            }
+        }
+
+        await using var scope = ScopeFor(App.Services, kmsa, out var context);
+        (await context.Set<AthleteProfile>().CountAsync(Ct)).ShouldBe(people.Count);
+    }
+
     // S05 D12: disabling a variant keeps its profiles (they can still be corrected) but takes no new one.
     [Fact]
     public async Task A_disabled_variant_keeps_its_profiles_but_takes_no_new_one()

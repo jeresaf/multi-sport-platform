@@ -532,7 +532,9 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   `PERSON_POSITION_UNKNOWN` (422, on `variant`, `primaryPosition` or `otherPositions[i]`), `PERSON_ATHLETE_PROFILE_EXISTS`
   (409, on `variant`), `PERSON_PROFILE_NOT_FOUND` (404), `PERSON_PROFILE_ARCHIVED`, `PERSON_PROFILE_STATUS_INVALID`
   (409). A correction (`PUT`) checks positions against the latest definition but not whether the variant is still
-  enabled (S05 D12). `publicName` is stored as sent, null meaning the display name. One partial unique index keeps one
+  enabled (S05 D12). `publicName` is stored trimmed with inner whitespace collapsed, null meaning the display name. Two creates for one
+  person and variant at once answer one `409` (the version or, when the insert reaches the open-variant index first,
+  `PERSON_ATHLETE_PROFILE_EXISTS`; review #101 R1). One partial unique index keeps one
   open profile per person and variant. The person read lists every athlete profile (archived ones included) by
   variant, with codes only (labels from `GET /sports/{variant}`, AR-29); there is no read of a profile's status
   history yet (T7 adds one if the Roles tab needs it). The directory's `profile` filter takes `ATHLETE` only until
