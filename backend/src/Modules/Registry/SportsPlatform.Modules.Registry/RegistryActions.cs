@@ -64,10 +64,10 @@ public static class RegistryActions
         grantedWith: ["person.duplicate_check", "person.read"]);
 
     public static readonly ActionDefinition PersonDeactivate = Lifecycle(
-        "person.deactivate", "Mark an active person inactive.", AuditRequirement.Required);
+        "person.deactivate", "Mark an active person inactive, with an optional reason.", AuditRequirement.Required);
 
     public static readonly ActionDefinition PersonReactivate = Lifecycle(
-        "person.reactivate", "Make an inactive person active again.", AuditRequirement.Required);
+        "person.reactivate", "Make an inactive person active again, with an optional reason.", AuditRequirement.Required);
 
     public static readonly ActionDefinition PersonArchive = Lifecycle(
         "person.archive",

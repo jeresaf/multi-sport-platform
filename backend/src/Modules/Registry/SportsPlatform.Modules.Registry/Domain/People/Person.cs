@@ -124,7 +124,8 @@ public sealed class Person : AggregateRoot, ITenantOwned
     /// <summary>
     /// Moves the person along the lifecycle (S06 D9; docs/domain/state-machines.md, Registry) and writes a history row.
     /// A transition the current status doesn't allow is <c>PERSON_STATUS_INVALID</c>. <paramref name="reason"/> is
-    /// required where <see cref="PersonTransitions.NeedsReason"/> says so (the endpoint has validated it).
+    /// required where <see cref="PersonTransitions.NeedsReason"/> says so and optional otherwise (the endpoint has
+    /// validated it; a blank one is none).
     /// </summary>
     public Result ChangeStatus(PersonTransition transition, string? reason, ICurrentActor actor, DateTimeOffset now)
     {

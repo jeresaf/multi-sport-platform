@@ -3189,7 +3189,7 @@
           "People"
         ],
         "summary": "Mark a person inactive",
-        "description": "ACTIVE → INACTIVE. The body is optional. Send `version` or `If-Match` from the last read to get 409 PERSON_CONCURRENCY_CONFLICT if the person changed since. Any other change of status is PERSON_STATUS_INVALID. Answers the person as GET /people/{personId} does.",
+        "description": "ACTIVE → INACTIVE. The body is optional; it may carry a `reason` (1–500 characters). The reason is kept permanently in the status history and the audit trail: don't include personal data. Send `version` or `If-Match` from the last read to get 409 PERSON_CONCURRENCY_CONFLICT if the person changed since. Any other change of status is PERSON_STATUS_INVALID. Answers the person as GET /people/{personId} does.",
         "operationId": "DeactivatePerson",
         "parameters": [
           {
@@ -3245,6 +3245,20 @@
               }
             }
           },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_REQUEST",
+              "VALIDATION_MALFORMED_REQUEST"
+            ]
+          },
           "404": {
             "description": "Problem Details; `code`: `PERSON_NOT_FOUND`",
             "content": {
@@ -3302,19 +3316,6 @@
               "TENANT_PROVISIONING",
               "TENANT_READ_ONLY"
             ]
-          },
-          "400": {
-            "description": "Problem Details; `code`: `VALIDATION_MALFORMED_REQUEST`",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "x-error-codes": [
-              "VALIDATION_MALFORMED_REQUEST"
-            ]
           }
         }
       }
@@ -3325,7 +3326,7 @@
           "People"
         ],
         "summary": "Make an inactive person active",
-        "description": "INACTIVE → ACTIVE. The body is optional. Send `version` or `If-Match` from the last read to get 409 PERSON_CONCURRENCY_CONFLICT if the person changed since. Any other change of status is PERSON_STATUS_INVALID. Answers the person as GET /people/{personId} does.",
+        "description": "INACTIVE → ACTIVE. The body is optional; it may carry a `reason` (1–500 characters). The reason is kept permanently in the status history and the audit trail: don't include personal data. Send `version` or `If-Match` from the last read to get 409 PERSON_CONCURRENCY_CONFLICT if the person changed since. Any other change of status is PERSON_STATUS_INVALID. Answers the person as GET /people/{personId} does.",
         "operationId": "ReactivatePerson",
         "parameters": [
           {
@@ -3381,6 +3382,20 @@
               }
             }
           },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_REQUEST",
+              "VALIDATION_MALFORMED_REQUEST"
+            ]
+          },
           "404": {
             "description": "Problem Details; `code`: `PERSON_NOT_FOUND`",
             "content": {
@@ -3437,19 +3452,6 @@
               "TENANT_BLOCKED",
               "TENANT_PROVISIONING",
               "TENANT_READ_ONLY"
-            ]
-          },
-          "400": {
-            "description": "Problem Details; `code`: `VALIDATION_MALFORMED_REQUEST`",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "x-error-codes": [
-              "VALIDATION_MALFORMED_REQUEST"
             ]
           }
         }
@@ -7848,6 +7850,12 @@
       "ChangePersonStatusRequest": {
         "type": "object",
         "properties": {
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
           "version": {
             "type": [
               "null",
@@ -7857,7 +7865,7 @@
           }
         },
         "additionalProperties": false,
-        "description": "The optional body of `deactivate` and `reactivate`: `version`, when sent, must be the person's current one."
+        "description": "The optional body of `deactivate` and `reactivate`: an optional reason (owner, review #99 Q1), kept in the\nstatus history and the audit trail and not redacted, so it must not contain personal data; `version`, when\nsent, must be the person's current one."
       },
       "ChangePersonStatusWithReasonRequest": {
         "required": [

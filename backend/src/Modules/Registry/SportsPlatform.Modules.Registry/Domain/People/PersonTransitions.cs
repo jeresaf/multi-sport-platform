@@ -13,7 +13,8 @@ public enum PersonTransition
 /// <summary>
 /// The person state machine as built (S06 D9; docs/domain/state-machines.md, Registry): <c>ACTIVE ⇄ INACTIVE</c>;
 /// <c>ACTIVE | INACTIVE → ARCHIVED</c> and back to <c>ACTIVE</c>; <c>ACTIVE | INACTIVE → DECEASED</c>, final in S06.
-/// Archiving, unarchiving and marking deceased need a reason.
+/// Archiving, unarchiving and marking deceased need a reason; deactivating and reactivating take an optional one
+/// (owner, review #99 Q1).
 /// </summary>
 public static class PersonTransitions
 {

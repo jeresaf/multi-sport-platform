@@ -673,7 +673,7 @@ export interface paths {
         put?: never;
         /**
          * Mark a person inactive
-         * @description ACTIVE → INACTIVE. The body is optional. Send `version` or `If-Match` from the last read to get 409 PERSON_CONCURRENCY_CONFLICT if the person changed since. Any other change of status is PERSON_STATUS_INVALID. Answers the person as GET /people/{personId} does.
+         * @description ACTIVE → INACTIVE. The body is optional; it may carry a `reason` (1–500 characters). The reason is kept permanently in the status history and the audit trail: don't include personal data. Send `version` or `If-Match` from the last read to get 409 PERSON_CONCURRENCY_CONFLICT if the person changed since. Any other change of status is PERSON_STATUS_INVALID. Answers the person as GET /people/{personId} does.
          */
         post: operations["DeactivatePerson"];
         delete?: never;
@@ -693,7 +693,7 @@ export interface paths {
         put?: never;
         /**
          * Make an inactive person active
-         * @description INACTIVE → ACTIVE. The body is optional. Send `version` or `If-Match` from the last read to get 409 PERSON_CONCURRENCY_CONFLICT if the person changed since. Any other change of status is PERSON_STATUS_INVALID. Answers the person as GET /people/{personId} does.
+         * @description INACTIVE → ACTIVE. The body is optional; it may carry a `reason` (1–500 characters). The reason is kept permanently in the status history and the audit trail: don't include personal data. Send `version` or `If-Match` from the last read to get 409 PERSON_CONCURRENCY_CONFLICT if the person changed since. Any other change of status is PERSON_STATUS_INVALID. Answers the person as GET /people/{personId} does.
          */
         post: operations["ReactivatePerson"];
         delete?: never;
@@ -1666,8 +1666,13 @@ export interface components {
             currentPassword: null | string;
             newPassword: null | string;
         };
-        /** @description The optional body of `deactivate` and `reactivate`: `version`, when sent, must be the person's current one. */
+        /**
+         * @description The optional body of `deactivate` and `reactivate`: an optional reason (owner, review #99 Q1), kept in the
+         *     status history and the audit trail and not redacted, so it must not contain personal data; `version`, when
+         *     sent, must be the person's current one.
+         */
         ChangePersonStatusRequest: {
+            reason?: null | string;
             /** Format: uint32 */
             version?: null | number;
         };
@@ -5173,7 +5178,7 @@ export interface operations {
                     "application/json": components["schemas"]["PersonResponse"];
                 };
             };
-            /** @description Problem Details; `code`: `VALIDATION_MALFORMED_REQUEST` */
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST` */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -5249,7 +5254,7 @@ export interface operations {
                     "application/json": components["schemas"]["PersonResponse"];
                 };
             };
-            /** @description Problem Details; `code`: `VALIDATION_MALFORMED_REQUEST` */
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST` */
             400: {
                 headers: {
                     [name: string]: unknown;

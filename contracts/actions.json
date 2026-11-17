@@ -287,7 +287,7 @@
     {
       "code": "person.deactivate",
       "module": "Registry",
-      "description": "Mark an active person inactive.",
+      "description": "Mark an active person inactive, with an optional reason.",
       "scope": "TENANT",
       "scopableBy": [
         "TENANT"
@@ -335,7 +335,7 @@
     {
       "code": "person.reactivate",
       "module": "Registry",
-      "description": "Make an inactive person active again.",
+      "description": "Make an inactive person active again, with an optional reason.",
       "scope": "TENANT",
       "scopableBy": [
         "TENANT"

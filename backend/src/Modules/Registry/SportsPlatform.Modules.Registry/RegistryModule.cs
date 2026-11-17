@@ -51,6 +51,7 @@ public sealed class RegistryModule : IModule
         services.AddScoped<IValidator<CheckDuplicatesRequest>, CheckDuplicatesRequestValidator>();
         services.AddScoped<IValidator<CreatePersonRequest>, CreatePersonRequestValidator>();
         services.AddScoped<IValidator<UpdatePersonRequest>, UpdatePersonRequestValidator>();
+        services.AddSingleton<IValidator<ChangePersonStatusRequest>, ChangePersonStatusRequestValidator>();
         services.AddSingleton<IValidator<ChangePersonStatusWithReasonRequest>, ChangePersonStatusWithReasonRequestValidator>();
     }
 

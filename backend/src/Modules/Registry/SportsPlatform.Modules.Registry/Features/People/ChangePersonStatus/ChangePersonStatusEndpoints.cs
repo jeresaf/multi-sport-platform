@@ -50,13 +50,14 @@ internal static class ChangePersonStatusEndpoints
                 HttpRequest httpRequest,
                 HttpResponse response,
                 CancellationToken cancellationToken) =>
-            HandleAsync(personId, transition, null, request?.Version, handler, read, httpRequest, response, cancellationToken))
+            HandleAsync(personId, transition, request?.Reason?.Trim(), request?.Version, handler, read, httpRequest, response, cancellationToken))
         .WithName(name)
         .WithSummary(summary)
-        .WithDescription($"{description} The body is optional. {_versionNote}")
+        .WithDescription($"{description} The body is optional; it may carry a `reason` (1–500 characters). {_reasonNote} {_versionNote}")
         .RequireAction(action)
         .AcceptsIfMatch()
         .ReturnsETag()
+        .ValidateRequest<ChangePersonStatusRequest>(CommonErrors.InvalidRequest)
         .ProducesErrors(RegistryErrors.PersonNotFound, RegistryErrors.StatusInvalid, RegistryErrors.ConcurrencyConflict);
 
     private static void MapWithReason(

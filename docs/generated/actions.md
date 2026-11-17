@@ -25,10 +25,10 @@ admin endpoint requires one of these; the code is stable and is what roles grant
 | `membership.suspend` | Identity | TENANT | TENANT | REQUIRED_WITH_REASON | — | no | no | no | no | S03 | Suspend a member, with a reason: they lose access to the tenant and keep their roles until restored. Only an owner suspends an owner; never the last one. |
 | `person.archive` | Registry | TENANT | TENANT | REQUIRED_WITH_REASON | — | no | no | no | no | S06 | Archive an active or inactive person, with a reason: the record and its history stay, and it takes no new profile, alias, identifier, consent or photo. |
 | `person.create` | Registry | TENANT | TENANT | REQUIRED | — | no | no | no | no | S06 | Add a person to the registry after a duplicate check; proceeding past possible duplicates needs a reason, and the pairs are remembered as not the same person. |
-| `person.deactivate` | Registry | TENANT | TENANT | REQUIRED | — | no | no | no | no | S06 | Mark an active person inactive. |
+| `person.deactivate` | Registry | TENANT | TENANT | REQUIRED | — | no | no | no | no | S06 | Mark an active person inactive, with an optional reason. |
 | `person.duplicate_check` | Registry | TENANT | TENANT | NONE | — | no | no | no | no | S06 | Check a new or changed person's names, date of birth, nationality and external identifiers against the people already in the registry. |
 | `person.mark_deceased` | Registry | TENANT | TENANT | REQUIRED_WITH_REASON | — | no | no | no | no | S06 | Record that an active or inactive person has died, with a reason; final: the record and its history stay. |
-| `person.reactivate` | Registry | TENANT | TENANT | REQUIRED | — | no | no | no | no | S06 | Make an inactive person active again. |
+| `person.reactivate` | Registry | TENANT | TENANT | REQUIRED | — | no | no | no | no | S06 | Make an inactive person active again, with an optional reason. |
 | `person.read` | Registry | TENANT | TENANT | NONE | — | no | no | no | yes | S06 | View the people directory and a person's record: names, aliases, external identifiers, status and its history, birth year and whether the person is a minor. |
 | `person.read_private` | Registry | TENANT | TENANT | REQUIRED | — | no | no | no | yes | S06 | View a person's private data: the full date of birth. Every read is audited. |
 | `person.unarchive` | Registry | TENANT | TENANT | REQUIRED_WITH_REASON | — | no | no | no | no | S06 | Make an archived person active again, with a reason. |
