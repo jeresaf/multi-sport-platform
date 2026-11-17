@@ -7,9 +7,10 @@ at the start of every review.
 
 - **Current slice:** S06 — People registry (docs/build/slices/S06-people-registry.md, written by the S05 slice review).
   S00–S05 are done
-- **Current task:** S06-T1a — Registry module, the person model, name keys, tables and D11 — in review (#95)
-- **Next:** S06-T1b — the reads, roles, classification and redaction tests; next is `/next-task` once #95 merges
-- **Blocked on:** the review of #95
+- **Current task:** S06-T1b — `person.read`, `person.read_private`, the reads, `IPeopleDirectory`, roles, classification
+  and redaction tests — in progress (plan approved 2026-11-17; T1a merged as #95)
+- **Next:** S06-T2 — Duplicate check and create
+- **Blocked on:** nothing
 
 ## Next up
 
