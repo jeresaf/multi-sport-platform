@@ -28,8 +28,8 @@ public sealed record PersonListItem(
 
 /// <summary>
 /// A person's record as <c>person.read</c> shows it (S06 D3, D22): no <c>PRIVATE</c> field. Aliases are the ones not
-/// removed; athlete profiles are all of them, archived ones included, by variant; staff profiles all of them, archived
-/// ones included, oldest first. <c>version</c> is also the <c>ETag</c>;
+/// removed; athlete profiles are all of them, archived ones included, by variant; staff and official profiles all of
+/// them, archived ones included, oldest first. <c>version</c> is also the <c>ETag</c>;
 /// a change to an alias, an identifier or a profile changes it too (S06 D11).
 /// </summary>
 public sealed record PersonResponse(
@@ -54,6 +54,7 @@ public sealed record PersonResponse(
     [property: PersonalData(PersonalDataClass.Internal)] IReadOnlyList<ExternalIdentifierResponse> ExternalIdentifiers,
     [property: PersonalData(PersonalDataClass.Internal)] IReadOnlyList<AthleteProfileResponse> AthleteProfiles,
     [property: PersonalData(PersonalDataClass.Internal)] IReadOnlyList<StaffProfileResponse> StaffProfiles,
+    [property: PersonalData(PersonalDataClass.Internal)] IReadOnlyList<OfficialProfileResponse> OfficialProfiles,
     [property: PersonalData(PersonalDataClass.Internal)] uint Version)
 {
     public void SetETag(HttpResponse response)
@@ -95,6 +96,28 @@ public sealed record StaffCapabilityResponse(
     [property: PersonalData(PersonalDataClass.Internal)] string Variant,
     [property: PersonalData(PersonalDataClass.Internal)] string Role,
     [property: PersonalData(PersonalDataClass.Internal)] string? Qualification);
+
+/// <summary>
+/// A person's work as an official (S06 D12): what they officiate as, by variant and role (codes of the variant's
+/// definition; labels from <c>GET /sports/{variant}</c>, AR-29).
+/// </summary>
+public sealed record OfficialProfileResponse(
+    [property: PersonalData(PersonalDataClass.Internal)] Guid Id,
+    [property: PersonalData(PersonalDataClass.Internal)] IReadOnlyList<OfficialCapabilityResponse> Capabilities,
+    [property: PersonalData(PersonalDataClass.Internal)] ProfileStatus Status);
+
+/// <summary>
+/// One thing an official does: a variant, an official role of its definition, the grade and licence recorded.
+/// <c>licenceExpired</c> is true when <c>licenceValidUntil</c> is before the tenant's today (a licence is valid through
+/// its last day; without a date it never expires). Nothing is refused for an expired licence in S06.
+/// </summary>
+public sealed record OfficialCapabilityResponse(
+    [property: PersonalData(PersonalDataClass.Internal)] string Variant,
+    [property: PersonalData(PersonalDataClass.Internal)] string Role,
+    [property: PersonalData(PersonalDataClass.Internal)] string? Grade,
+    [property: PersonalData(PersonalDataClass.Internal)] string? LicenceNumber,
+    [property: PersonalData(PersonalDataClass.Internal)] DateOnly? LicenceValidUntil,
+    [property: PersonalData(PersonalDataClass.Internal)] bool LicenceExpired);
 
 /// <summary>An identifier another authority gave the person; one with <c>validTo</c> has ended (S06 D10).</summary>
 public sealed record ExternalIdentifierResponse(

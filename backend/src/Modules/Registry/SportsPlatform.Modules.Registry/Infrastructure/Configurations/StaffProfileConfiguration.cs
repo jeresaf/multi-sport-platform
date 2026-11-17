@@ -38,8 +38,8 @@ internal sealed class StaffProfileConfiguration : IEntityTypeConfiguration<Staff
 
 /// <summary>
 /// <c>registry.staff_capabilities</c> (S06 D12): tenant-owned (RLS), each pointing at its tenant's staff profile, one row
-/// per variant and role (a unique index). A capability left out of an update is deleted: nothing points at it, and it
-/// is not kept anywhere (the audit entry names the variants sent, not the roles removed). Every column is
+/// per variant and role (a unique index). A capability left out of an update is deleted: nothing points at it, and the
+/// audit entry names the capabilities added and removed by variant and role (review #102 R1). Every column is
 /// <c>INTERNAL</c> (S06 D3 makes only an athlete's sport public).
 /// </summary>
 internal sealed class StaffCapabilityConfiguration : IEntityTypeConfiguration<StaffCapability>

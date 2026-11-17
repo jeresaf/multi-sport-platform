@@ -89,11 +89,13 @@ public static class TableAccessPolicies
         // Duplicate decisions (S06-T2a, RLS): written by a create or an update past candidates; undone with merges (S25).
         ["registry.duplicate_decisions"] = TableAccess.ReadWrite,
 
-        // Role profiles (S06-T4a, T4b1, RLS): profiles change status and are archived, never deleted (a staff capability left out of an update is); their history is kept for ever.
+        // Role profiles (S06-T4a, T4b1, T4b2, RLS): profiles change status and are archived, never deleted (a staff or official capability left out of an update is); their history is kept for ever.
         ["registry.athlete_profiles"] = TableAccess.ReadWrite,
         ["registry.profile_status_changes"] = TableAccess.AppendOnly,
         ["registry.staff_profiles"] = TableAccess.ReadWrite,
         ["registry.staff_capabilities"] = TableAccess.ReadWrite,
+        ["registry.official_profiles"] = TableAccess.ReadWrite,
+        ["registry.official_capabilities"] = TableAccess.ReadWrite,
 
         ["identity.outbox_messages"] = TableAccess.ReadWrite,
         ["registry.outbox_messages"] = TableAccess.ReadWrite,

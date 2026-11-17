@@ -132,6 +132,21 @@ public static class RegistryActions
         "Make a staff profile inactive, retired, active again or archived (final), with a reason; every change is kept.",
         AuditRequirement.RequiredWithReason);
 
+    public static readonly ActionDefinition OfficialProfileCreate = Lifecycle(
+        "official_profile.create",
+        "Record that a person works as an official (referee, judge…), with roles from the definitions of sport variants the tenant has enabled, grades and licences; one official profile that isn't archived; not for an archived or deceased person.",
+        AuditRequirement.Required);
+
+    public static readonly ActionDefinition OfficialProfileUpdate = Lifecycle(
+        "official_profile.update",
+        "Change an official profile's roles, grades and licences.",
+        AuditRequirement.Required);
+
+    public static readonly ActionDefinition OfficialProfileStatusChange = Lifecycle(
+        "official_profile.status.change",
+        "Make an official profile inactive, retired, active again or archived (final), with a reason; every change is kept.",
+        AuditRequirement.RequiredWithReason);
+
     // The lifecycle, alias, identifier and profile actions answer the person as person.read does, so they are only granted with
     // that read.
     private static ActionDefinition Lifecycle(string code, string description, AuditRequirement audit) => new(

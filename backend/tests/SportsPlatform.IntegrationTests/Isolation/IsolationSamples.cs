@@ -70,6 +70,8 @@ public static class IsolationSamples
         new ProfileStatusChangeSample(),
         new StaffProfileSample(),
         new StaffCapabilitySample(),
+        new OfficialProfileSample(),
+        new OfficialCapabilitySample(),
     ];
 
     public static IIsolationSample For(Type entityType) =>
@@ -414,6 +416,42 @@ public static class IsolationSamples
                 : null;
     }
 
+    /// <summary>Registry: an official profile points at its person.</summary>
+    private sealed class OfficialProfileSample : IIsolationSample
+    {
+        public Type EntityType => typeof(OfficialProfile);
+
+        public Entity Add(DbContext context)
+        {
+            var person = RegistrySamples.NewPerson("Denis", "Opoka");
+            context.Add(person);
+            return person.AddOfficialProfile([RegistrySamples.Referee], SystemActor.Instance, RegistrySamples.Now).Value;
+        }
+
+        public Entity? Referencing(IForeignKey foreignKey, Guid principalId) =>
+            foreignKey.PrincipalEntityType.ClrType == typeof(Person)
+                ? new OfficialProfile(principalId, [RegistrySamples.Referee])
+                : null;
+    }
+
+    /// <summary>Registry: an official capability points at its official profile.</summary>
+    private sealed class OfficialCapabilitySample : IIsolationSample
+    {
+        public Type EntityType => typeof(OfficialCapability);
+
+        public Entity Add(DbContext context)
+        {
+            var person = RegistrySamples.NewPerson("Moses", "Kato");
+            context.Add(person);
+            return person.AddOfficialProfile([RegistrySamples.Referee], SystemActor.Instance, RegistrySamples.Now).Value.Capabilities.Single();
+        }
+
+        public Entity? Referencing(IForeignKey foreignKey, Guid principalId) =>
+            foreignKey.PrincipalEntityType.ClrType == typeof(OfficialProfile)
+                ? new OfficialCapability(principalId, RegistrySamples.Referee)
+                : null;
+    }
+
     /// <summary>Registry: an identifier names its person by ID without a foreign key, so nothing tenant-owned is referenced.</summary>
     private sealed class ExternalIdentifierSample : IIsolationSample
     {
@@ -471,6 +509,8 @@ public static class IsolationSamples
         public static AthleteProfileDetails Midfielder { get; } = new("TB_MID", [], DominantSide.Left, null);
 
         public static StaffCapabilityDetails Coach { get; } = new("TESTBALL_FULL", "TB_COACH", null);
+
+        public static OfficialCapabilityDetails Referee { get; } = new("TESTBALL_FULL", "TB_REFEREE", "Class 1", "UG-REF-0147", new DateOnly(2027, 6, 30));
     }
 
     private static class IdentitySamples

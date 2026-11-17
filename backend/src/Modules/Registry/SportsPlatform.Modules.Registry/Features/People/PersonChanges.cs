@@ -18,13 +18,14 @@ internal static class PersonChanges
 {
     /// <summary>
     /// The person with its aliases (and its athlete profiles when <paramref name="withAthleteProfiles"/>, its staff
-    /// profiles with their capabilities when <paramref name="withStaffProfiles"/>), or
+    /// profiles with their capabilities when <paramref name="withStaffProfiles"/>, its official profiles with theirs when
+    /// <paramref name="withOfficialProfiles"/>), or
     /// <c>PERSON_NOT_FOUND</c>, or <c>PERSON_CONCURRENCY_CONFLICT</c> when <paramref name="version"/> or
     /// <paramref name="ifMatch"/> names another version.
     /// </summary>
     public static async Task<(Person? Person, FieldRefusal? Refusal)> LoadAsync(
         RegistryDbContext context, Guid personId, uint? version, IfMatch ifMatch, CancellationToken cancellationToken,
-        bool withAthleteProfiles = false, bool withStaffProfiles = false)
+        bool withAthleteProfiles = false, bool withStaffProfiles = false, bool withOfficialProfiles = false)
     {
         var people = context.Set<Person>().Include(p => p.Aliases).AsQueryable();
         if (withAthleteProfiles)
@@ -35,6 +36,11 @@ internal static class PersonChanges
         if (withStaffProfiles)
         {
             people = people.Include(p => p.StaffProfiles).ThenInclude(s => s.Capabilities).AsSplitQuery();
+        }
+
+        if (withOfficialProfiles)
+        {
+            people = people.Include(p => p.OfficialProfiles).ThenInclude(o => o.Capabilities).AsSplitQuery();
         }
 
         var person = await people.SingleOrDefaultAsync(p => p.Id == personId, cancellationToken);

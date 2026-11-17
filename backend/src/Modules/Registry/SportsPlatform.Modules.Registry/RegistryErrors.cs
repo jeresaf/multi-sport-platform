@@ -85,6 +85,11 @@ public static class RegistryErrors
         "The person already has a staff profile: change or reactivate it instead.",
         ErrorKind.Conflict);
 
+    public static readonly Error OfficialProfileExists = new(
+        "PERSON_OFFICIAL_PROFILE_EXISTS",
+        "The person already has an official profile: change or reactivate it instead.",
+        ErrorKind.Conflict);
+
     public static readonly Error RoleUnknown = new(
         "PERSON_ROLE_UNKNOWN", "The sport variant's definition has no such role.", ErrorKind.Unprocessable);
 
