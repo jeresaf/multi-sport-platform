@@ -12,6 +12,7 @@ using SportsPlatform.IntegrationTests.Tenancy;
 using SportsPlatform.Modules.Identity.Domain.Roles;
 using SportsPlatform.Modules.Registry.Domain.People;
 using SportsPlatform.Modules.Registry.Domain.People.Duplicates;
+using SportsPlatform.Modules.Registry.Infrastructure;
 using SportsPlatform.Modules.Tenancy.Contracts.Tenants;
 using static SportsPlatform.IntegrationTests.Identity.MembershipTestData;
 using static SportsPlatform.IntegrationTests.Registry.PeopleRequests;
@@ -210,8 +211,9 @@ public sealed class CreatePersonTests(PostgresFixture fixture) : DatabaseTest(fi
         (await context.Set<Person>().CountAsync(Ct)).ShouldBe(1);
     }
 
-    // T2 acceptance: two creates of the same person at once. The lock serialises them; the second finds the first's
-    // person, which its check didn't answer.
+    // T2 acceptance: two creates of the same person at once. The test holds the tenant's people lock until both creates
+    // wait on it, so they overlap for certain; released, the lock lets one through and the second finds the first's
+    // person, which its check didn't answer. Without the lock both would see nobody and both would be created.
     [Fact]
     public async Task Two_creates_of_the_same_person_at_once_make_one_person()
     {
@@ -221,8 +223,23 @@ public sealed class CreatePersonTests(PostgresFixture fixture) : DatabaseTest(fi
         var mine = With(brenda, "checkToken", await CheckTokenAsync(registrar, brenda));
         var theirs = With(brenda, "checkToken", await CheckTokenAsync(colleague, brenda));
 
-        var responses = await Task.WhenAll(
-            registrar.PostAsJsonAsync(PeoplePath, mine, Ct), colleague.PostAsJsonAsync(PeoplePath, theirs, Ct));
+        HttpResponseMessage[] responses;
+        await using (var holder = ScopeFor(App.Services, kmsa, out var holding))
+        {
+            await using var held = await holding.Database.BeginTransactionAsync(Ct);
+            var key = $"registry.people:{kmsa}";
+            await holding.Database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock(hashtextextended({key}, 0))", Ct);
+            var creates = new[] { registrar.PostAsJsonAsync(PeoplePath, mine, Ct), colleague.PostAsJsonAsync(PeoplePath, theirs, Ct) };
+
+            while (await WaitingOnAdvisoryLocksAsync(holding) < 2)
+            {
+                creates.ShouldAllBe(create => !create.IsCompleted, "A create finished without waiting for the people lock.");
+                await Task.Delay(TimeSpan.FromMilliseconds(20), Ct);
+            }
+
+            await held.CommitAsync(Ct);
+            responses = await Task.WhenAll(creates);
+        }
 
         try
         {
@@ -339,6 +356,11 @@ public sealed class CreatePersonTests(PostgresFixture fixture) : DatabaseTest(fi
 
         await response.ShouldBeProblemAsync(HttpStatusCode.Forbidden, "TENANT_READ_ONLY");
     }
+
+    private static Task<int> WaitingOnAdvisoryLocksAsync(RegistryDbContext context) =>
+        context.Database
+            .SqlQuery<int>($"SELECT count(*)::int AS \"Value\" FROM pg_locks WHERE locktype = 'advisory' AND NOT granted")
+            .SingleAsync(Ct);
 
     private static async Task<JsonElement> CheckAsync(HttpClient client, object body)
     {
