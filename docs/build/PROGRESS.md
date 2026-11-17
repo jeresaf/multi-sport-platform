@@ -482,7 +482,7 @@ tasks; two stale triggers moved. Each item names where it gets done.
 **S06 — people registry** (carried over by the S05 slice review, 2026-11-16; docs/build/slices/S06-people-registry.md)
 - S06-T2b pre-review (N4, N5): the action catalogue export (`docs/generated/actions.md`, `contracts/actions.json`)
   doesn't show an action's `grantedWith` (`person.duplicate_check` → `person.read_private`, `person.create` →
-  `person.duplicate_check`); add the column with the next catalogue change. An identifier's `validFrom` has no bound
+  `person.duplicate_check`, `person.read`); add the column with the next catalogue change. An identifier's `validFrom` has no bound
   (a date far in the future is accepted); decide with T3's `person.external_id.add`.
 - e2e on a reused local database (S04-T4b1; owner 2026-11-16, review #93 R3): every run adds owners to KMSA
   (`admin-shell`, `admin-screenshots`), so after enough runs KMSA passes STANDARD's 100 staff users and `inviteMember`

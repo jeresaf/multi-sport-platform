@@ -491,5 +491,6 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   (T2a: format only). The check takes only what it compares (no gender, height, weight, display name or `validFrom`).
   Create takes no aliases (T3's `person.alias.add`); identifiers may carry `validFrom`. `PERSON_EXTERNAL_ID_EXISTS`
   wins over a reason and names the first taken identifier's field. Refusals after the check runs again are audited
-  with the candidates' IDs and confidence. `RegistryTestData.CreatePersonAsync` creates through the handlers. Review of #98 (owner, 2026-11-17): these
-  choices are accepted; `person.create` is granted only with `person.duplicate_check` and `person.read`.
+  with the candidates' IDs and confidence. `RegistryTestData.CreatePersonAsync` creates through the handlers.
+  Review of #98 (owner, 2026-11-17): these choices are accepted; `person.create` is granted only with
+  `person.duplicate_check` and `person.read`.
