@@ -468,8 +468,8 @@ at the start of every review.
   Review of #98 (subagent, approve with nits, 2026-11-17): R1 the above; R2 a test that create's logs carry neither
   the date of birth nor the names; R3 a test that a reason with no candidates is audited and writes no decision; R4
   modules.md as built; R5 the concurrency test's wait has a deadline and counts this database's waiters only; R6
-  this entry moved below T2a. The reviewer's questions for the owner: confirm the builder's choices above, and the
-  catalogue export without `grantedWith` (tech debt).
+  this entry moved below T2a. Owner's answers (2026-11-17): the builder's choices above are accepted; the catalogue
+  export's `grantedWith` column can wait (tech debt).
 
 ## Tech debt / follow-ups
 
