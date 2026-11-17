@@ -7,9 +7,9 @@ at the start of every review.
 
 - **Current slice:** S06 — People registry (docs/build/slices/S06-people-registry.md, written by the S05 slice review).
   S00–S05 are done
-- **Current task:** S06-T4b1 — staff profiles — in review (#102)
-- **Next:** S06-T4b2 — official profiles; `/next-task` once T4b1 merges
-- **Blocked on:** the review of T4b1
+- **Current task:** S06-T4b2 — official profiles — in progress (plan approved 2026-11-17)
+- **Next:** S06-T5a — Platform media (starts with the SkiaSharp ADR, Q35)
+- **Blocked on:** nothing
 
 ## Next up
 
