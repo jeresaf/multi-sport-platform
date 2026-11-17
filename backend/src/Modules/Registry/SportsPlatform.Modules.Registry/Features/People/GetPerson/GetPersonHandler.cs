@@ -41,6 +41,12 @@ public sealed class GetPersonHandler(RegistryDbContext context, TenantToday tena
             .OrderBy(a => a.Variant).ThenBy(a => a.Id)
             .ToListAsync(cancellationToken);
 
+        var staffProfiles = await context.Set<StaffProfile>().AsNoTracking()
+            .Include(s => s.Capabilities)
+            .Where(s => s.PersonId == personId)
+            .OrderBy(s => s.Id)
+            .ToListAsync(cancellationToken);
+
         var p = person.Person;
         var ageStatus = Age.StatusOn(p.DateOfBirth, await tenantToday.GetAsync(cancellationToken));
         return Result.Success(new PersonResponse(
@@ -49,6 +55,11 @@ public sealed class GetPersonHandler(RegistryDbContext context, TenantToday tena
             p.PublicProfileEnabled, p.Status, p.Source, person.Aliases, identifiers,
             [.. profiles.Select(a => new AthleteProfileResponse(
                 a.Id, a.Variant, a.PrimaryPosition, a.OtherPositions, a.DominantSide, a.PublicName, a.Status))],
+            [.. staffProfiles.Select(s => new StaffProfileResponse(
+                s.Id,
+                [.. s.Capabilities.OrderBy(c => c.Variant, StringComparer.Ordinal).ThenBy(c => c.Role, StringComparer.Ordinal)
+                    .Select(c => new StaffCapabilityResponse(c.Variant, c.Role, c.Qualification))],
+                s.Status))],
             person.Version));
     }
 }

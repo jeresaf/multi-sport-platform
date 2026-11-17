@@ -9,8 +9,8 @@ namespace SportsPlatform.IntegrationTests.Tenancy;
 /// <summary>
 /// S05 D18: the sport quota can't be shown with football alone, so a test app lists three test-only variants beside the
 /// seeded ones: two of one sport (<see cref="TestballFull"/>, <see cref="TestballShort"/>) and one of another
-/// (<see cref="Testhoop"/>). Each has a definition made from the seeded football one with test positions of its own
-/// (S06-T4: profiles check their codes against the definition), so tests never depend on a real sport's codes.
+/// (<see cref="Testhoop"/>). Each has a definition made from the seeded football one with test positions and staff roles
+/// of its own (S06-T4: profiles check their codes against the definition), so tests never depend on a real sport's codes.
 /// </summary>
 internal sealed class TestSportDefinitions(ISportDefinitions seeded) : ISportDefinitions
 {
@@ -34,6 +34,12 @@ internal sealed class TestSportDefinitions(ISportDefinitions seeded) : ISportDef
     /// <summary>The positions of Testhoop.</summary>
     public static IReadOnlyList<string> TesthoopPositions { get; } = ["TH_GUARD", "TH_FORWARD", "TH_CENTRE"];
 
+    /// <summary>The staff roles of the two Testball variants.</summary>
+    public static IReadOnlyList<string> TestballStaffRoles { get; } = ["TB_COACH", "TB_PHYSIO", "TB_KIT_MANAGER"];
+
+    /// <summary>The staff roles of Testhoop.</summary>
+    public static IReadOnlyList<string> TesthoopStaffRoles { get; } = ["TH_COACH", "TH_STATISTICIAN"];
+
     public async Task<SportDefinition?> GetAsync(string variant, int? version, CancellationToken cancellationToken)
     {
         if (_testVariants.SingleOrDefault(test => test.Variant == variant) is not { } test)
@@ -48,7 +54,9 @@ internal sealed class TestSportDefinitions(ISportDefinitions seeded) : ISportDef
 
         var template = await seeded.GetAsync(TenantSportRequests.Football, version: null, cancellationToken)
             ?? throw new InvalidOperationException("The seeded football definition is missing.");
-        var positions = test.Sport == "TESTHOOP" ? TesthoopPositions : TestballPositions;
+        var hoop = test.Sport == "TESTHOOP";
+        var positions = hoop ? TesthoopPositions : TestballPositions;
+        var staffRoles = hoop ? TesthoopStaffRoles : TestballStaffRoles;
         return template with
         {
             Variant = test.Variant,
@@ -56,6 +64,7 @@ internal sealed class TestSportDefinitions(ISportDefinitions seeded) : ISportDef
             Version = 1,
             Name = test.Name,
             Positions = [.. positions.Select(code => new PositionDefinition(code, $"Position {code}", "TEST"))],
+            StaffRoles = [.. staffRoles.Select(code => new StaffRoleDefinition(code, $"Staff role {code}"))],
         };
     }
 

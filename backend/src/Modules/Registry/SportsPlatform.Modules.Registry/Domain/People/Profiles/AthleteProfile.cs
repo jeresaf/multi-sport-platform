@@ -15,7 +15,7 @@ public sealed record AthleteProfileDetails(
 /// so a change to it moves the person's version (S06 D11). Codes are the definition's (AR-11): generic code never reads
 /// them. A person holds at most one open profile per variant (<see cref="ProfileTransitions.IsOpen"/>).
 /// </summary>
-public sealed class AthleteProfile : Entity, ITenantOwned
+public sealed class AthleteProfile : Entity, ITenantOwned, IRoleProfile
 {
     public const int VariantMaxLength = 50;
     public const int PositionMaxLength = 50;
@@ -66,7 +66,7 @@ public sealed class AthleteProfile : Entity, ITenantOwned
 
     internal void Update(AthleteProfileDetails details) => Apply(details);
 
-    internal void MoveTo(ProfileStatus status) => Status = status;
+    void IRoleProfile.MoveTo(ProfileStatus status) => Status = status;
 
     private void Apply(AthleteProfileDetails details)
     {

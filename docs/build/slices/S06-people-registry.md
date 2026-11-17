@@ -540,3 +540,24 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   history yet (T7 adds one if the Roles tab needs it). The directory's `profile` filter takes `ATHLETE` only until
   T4b. `TestSportDefinitions` now gives its test variants definitions with test positions. The T4 acceptance boxes are
   ticked with T4b (role codes, all three profiles on one person).
+- **T4b1:** staff profiles (T4b split in two: T4b1 staff, T4b2 official; owner, plan 2026-11-17). Owner decisions
+  (plan): a staff profile holds 1–10 capabilities, one per variant and role; a new profile's variants must be enabled,
+  and on an update a capability the profile already holds may stay on a variant since disabled while an added one needs
+  its variant enabled; role codes are always checked against the latest definition; the directory's `variant` matches
+  an open athlete profile's variant or an open staff profile's capability. As built: `POST …/people/{id}/staff-profiles`
+  and `PUT …/staff-profiles/{profileId}` take `{capabilities: [{variant, role, qualification}], version}` (the `PUT`
+  replaces the capabilities as a whole: one held, same variant and role, is kept with the qualification sent, one left
+  out is deleted, a new one is added), `POST …/staff-profiles/{profileId}/status` as the athlete one. Tables
+  `registry.staff_profiles` (one open per person, partial unique index) and `registry.staff_capabilities` (unique per
+  profile, variant and role; deleted when left out: nothing points at a capability, and the audit entry of a create or
+  update names the capabilities added and removed by variant and role, owner on review #102 R1), both RLS; the history's `profile_kind` takes `STAFF`. New codes `PERSON_STAFF_PROFILE_EXISTS` (409) and
+  `PERSON_ROLE_UNKNOWN` (422, on `capabilities[i].role`); `PERSON_SPORT_NOT_ENABLED` names `capabilities[i].variant`. The
+  plan's `PERSON_CAPABILITY_DUPLICATE` was not added: a repeated variant and role is a shape error
+  (`VALIDATION_INVALID_REQUEST`), as repeated positions are in T4a. Every staff column is `INTERNAL` (D3 makes only an
+  athlete's sport public). Audit metadata names the profile, its capabilities' variants and the capabilities added and
+  removed (variant and role codes), never a qualification. On an archived or deceased person an update may keep,
+  remove or re-qualify held capabilities but not add one (`409 PERSON_ARCHIVED`/`PERSON_DECEASED`; owner, review #102
+  R2; T4b2's official capabilities follow). S08's staff assignments must not point at capability rows, which can be
+  deleted. Two updates adding the same capability at once answer `409 PERSON_CONCURRENCY_CONFLICT` (the version or
+  the capability index). The person read lists every staff profile (archived ones included, oldest first) with its
+  capabilities by variant and role. `TestSportDefinitions` gives its test variants test staff roles.

@@ -687,6 +687,54 @@
       "since": "S05"
     },
     {
+      "code": "staff_profile.create",
+      "module": "Registry",
+      "description": "Record that a person works as staff (coach, physio…), with roles from the definitions of sport variants the tenant has enabled; one staff profile that isn't archived; not for an archived or deceased person.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S06"
+    },
+    {
+      "code": "staff_profile.status.change",
+      "module": "Registry",
+      "description": "Make a staff profile inactive, retired, active again or archived (final), with a reason; every change is kept.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED_WITH_REASON",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S06"
+    },
+    {
+      "code": "staff_profile.update",
+      "module": "Registry",
+      "description": "Change a staff profile's roles and qualifications.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S06"
+    },
+    {
       "code": "subscription.assign",
       "module": "Tenancy",
       "description": "Give a tenant a subscription period: a plan from one date to another, which must not overlap another period.",

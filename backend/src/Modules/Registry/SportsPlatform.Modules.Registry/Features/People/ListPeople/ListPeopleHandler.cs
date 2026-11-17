@@ -17,8 +17,9 @@ public sealed record ListPeopleResponse(
 /// The directory of the request's tenant (query filter and RLS), sorted by normalised last name, normalised first name
 /// and ID (S06 D22). <c>q</c> matches a name or an alias (not a removed one) by prefix or trigram similarity, and an
 /// external identifier's value exactly. Without a status, archived people are left out. <c>profile</c> and
-/// <c>variant</c> keep people holding an open (not archived) profile of that kind and variant. The date of birth is read to
-/// compute the birth year and the age status on the tenant's date, and goes no further.
+/// <c>variant</c> keep people holding an open (not archived) profile of that kind and variant (an athlete profile's
+/// variant or a staff capability's). The date of birth is read to compute the birth year and the age status on the
+/// tenant's date, and goes no further.
 /// </summary>
 public sealed class ListPeopleHandler(RegistryDbContext context, TenantToday tenantToday)
 {
@@ -44,12 +45,19 @@ public sealed class ListPeopleHandler(RegistryDbContext context, TenantToday ten
             _ => people,
         };
 
-        // Only athlete profiles exist yet (S06-T4a): either filter reads them; T4b adds staff and official profiles.
+        // An open profile of the kind asked (any kind without one); with a variant, an athlete profile in it or a staff
+        // capability in it (owner, S06-T4b plan).
         if (query.Profile is not null || query.Variant is not null)
         {
             var variant = query.Variant;
-            people = people.Where(p => context.Set<AthleteProfile>().Any(a =>
-                a.PersonId == p.Id && a.Status != ProfileStatus.Archived && (variant == null || a.Variant == variant)));
+            var athletes = query.Profile is null or ProfileKind.Athlete;
+            var staff = query.Profile is null or ProfileKind.Staff;
+            people = people.Where(p =>
+                (athletes && context.Set<AthleteProfile>().Any(a =>
+                    a.PersonId == p.Id && a.Status != ProfileStatus.Archived && (variant == null || a.Variant == variant)))
+                || (staff && context.Set<StaffProfile>().Any(s =>
+                    s.PersonId == p.Id && s.Status != ProfileStatus.Archived
+                    && (variant == null || s.Capabilities.Any(c => c.Variant == variant)))));
         }
 
         if (query.Search is { } search)

@@ -28,7 +28,8 @@ public sealed record PersonListItem(
 
 /// <summary>
 /// A person's record as <c>person.read</c> shows it (S06 D3, D22): no <c>PRIVATE</c> field. Aliases are the ones not
-/// removed; athlete profiles are all of them, archived ones included, by variant. <c>version</c> is also the <c>ETag</c>;
+/// removed; athlete profiles are all of them, archived ones included, by variant; staff profiles all of them, archived
+/// ones included, oldest first. <c>version</c> is also the <c>ETag</c>;
 /// a change to an alias, an identifier or a profile changes it too (S06 D11).
 /// </summary>
 public sealed record PersonResponse(
@@ -52,6 +53,7 @@ public sealed record PersonResponse(
     [property: PersonalData(PersonalDataClass.Internal)] IReadOnlyList<PersonAliasResponse> Aliases,
     [property: PersonalData(PersonalDataClass.Internal)] IReadOnlyList<ExternalIdentifierResponse> ExternalIdentifiers,
     [property: PersonalData(PersonalDataClass.Internal)] IReadOnlyList<AthleteProfileResponse> AthleteProfiles,
+    [property: PersonalData(PersonalDataClass.Internal)] IReadOnlyList<StaffProfileResponse> StaffProfiles,
     [property: PersonalData(PersonalDataClass.Internal)] uint Version)
 {
     public void SetETag(HttpResponse response)
@@ -78,6 +80,21 @@ public sealed record AthleteProfileResponse(
     [property: PersonalData(PersonalDataClass.Internal)] DominantSide? DominantSide,
     [property: PersonalData(PersonalDataClass.Public)] string? PublicName,
     [property: PersonalData(PersonalDataClass.Internal)] ProfileStatus Status);
+
+/// <summary>
+/// A person's work as staff (S06 D12): what they do, by variant and role (codes of the variant's definition; labels from
+/// <c>GET /sports/{variant}</c>, AR-29).
+/// </summary>
+public sealed record StaffProfileResponse(
+    [property: PersonalData(PersonalDataClass.Internal)] Guid Id,
+    [property: PersonalData(PersonalDataClass.Internal)] IReadOnlyList<StaffCapabilityResponse> Capabilities,
+    [property: PersonalData(PersonalDataClass.Internal)] ProfileStatus Status);
+
+/// <summary>One thing a staff member does: a variant, a staff role of its definition and the qualification recorded.</summary>
+public sealed record StaffCapabilityResponse(
+    [property: PersonalData(PersonalDataClass.Internal)] string Variant,
+    [property: PersonalData(PersonalDataClass.Internal)] string Role,
+    [property: PersonalData(PersonalDataClass.Internal)] string? Qualification);
 
 /// <summary>An identifier another authority gave the person; one with <c>validTo</c> has ended (S06 D10).</summary>
 public sealed record ExternalIdentifierResponse(

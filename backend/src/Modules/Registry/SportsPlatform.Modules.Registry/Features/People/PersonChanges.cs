@@ -17,18 +17,24 @@ namespace SportsPlatform.Modules.Registry.Features.People;
 internal static class PersonChanges
 {
     /// <summary>
-    /// The person with its aliases (and its athlete profiles when <paramref name="withAthleteProfiles"/>), or
+    /// The person with its aliases (and its athlete profiles when <paramref name="withAthleteProfiles"/>, its staff
+    /// profiles with their capabilities when <paramref name="withStaffProfiles"/>), or
     /// <c>PERSON_NOT_FOUND</c>, or <c>PERSON_CONCURRENCY_CONFLICT</c> when <paramref name="version"/> or
     /// <paramref name="ifMatch"/> names another version.
     /// </summary>
     public static async Task<(Person? Person, FieldRefusal? Refusal)> LoadAsync(
         RegistryDbContext context, Guid personId, uint? version, IfMatch ifMatch, CancellationToken cancellationToken,
-        bool withAthleteProfiles = false)
+        bool withAthleteProfiles = false, bool withStaffProfiles = false)
     {
         var people = context.Set<Person>().Include(p => p.Aliases).AsQueryable();
         if (withAthleteProfiles)
         {
             people = people.Include(p => p.AthleteProfiles).AsSplitQuery();
+        }
+
+        if (withStaffProfiles)
+        {
+            people = people.Include(p => p.StaffProfiles).ThenInclude(s => s.Capabilities).AsSplitQuery();
         }
 
         var person = await people.SingleOrDefaultAsync(p => p.Id == personId, cancellationToken);

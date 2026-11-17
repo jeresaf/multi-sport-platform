@@ -325,9 +325,21 @@
       "owner": "Registry"
     },
     {
+      "code": "PERSON_ROLE_UNKNOWN",
+      "status": 422,
+      "message": "The sport variant's definition has no such role.",
+      "owner": "Registry"
+    },
+    {
       "code": "PERSON_SPORT_NOT_ENABLED",
       "status": 422,
       "message": "The tenant hasn't enabled this sport variant: enable it first.",
+      "owner": "Registry"
+    },
+    {
+      "code": "PERSON_STAFF_PROFILE_EXISTS",
+      "status": 409,
+      "message": "The person already has a staff profile: change or reactivate it instead.",
       "owner": "Registry"
     },
     {
