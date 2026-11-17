@@ -22,4 +22,16 @@ public static class RegistryActions
         since: "S06",
         scopableBy: [AssignmentScope.Tenant],
         availableWhenReadOnly: true);
+
+    /// <summary>
+    /// Its own action, not <c>person.create</c>: the check saves nothing and is not audited, and the pipeline audits
+    /// every request of an audited action (owner, S06-T2a plan).
+    /// </summary>
+    public static readonly ActionDefinition PersonDuplicateCheck = new(
+        "person.duplicate_check",
+        "Check a new or changed person's names, date of birth, nationality and external identifiers against the people already in the registry.",
+        ActionScope.Tenant,
+        AuditRequirement.None,
+        since: "S06",
+        scopableBy: [AssignmentScope.Tenant]);
 }

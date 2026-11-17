@@ -61,6 +61,7 @@
         "membership.remove",
         "membership.restore",
         "membership.suspend",
+        "person.duplicate_check",
         "person.read",
         "person.read_private",
         "role.assign",
@@ -92,6 +93,7 @@
         "membership.remove",
         "membership.restore",
         "membership.suspend",
+        "person.duplicate_check",
         "person.read",
         "person.read_private",
         "role.assign",
@@ -116,6 +118,7 @@
       ],
       "actions": [
         "format.read",
+        "person.duplicate_check",
         "person.read",
         "person.read_private",
         "ruleset.read",

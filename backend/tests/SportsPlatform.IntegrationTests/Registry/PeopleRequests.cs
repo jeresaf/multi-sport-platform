@@ -9,6 +9,8 @@ internal static class PeopleRequests
 {
     public const string PeoplePath = "/api/admin/v1/people";
 
+    public const string DuplicateCheckPath = PeoplePath + "/duplicate-check";
+
     public static string PersonPath(Guid personId) => $"{PeoplePath}/{personId}";
 
     public static string PrivatePath(Guid personId) => $"{PeoplePath}/{personId}/private";

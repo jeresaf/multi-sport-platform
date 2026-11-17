@@ -105,7 +105,7 @@ public sealed class RoleCatalogueTests
         owner.GetProperty("actions").EnumerateArray().Select(action => action.GetString()).ShouldBe(
         [
             "format.read", "invitation.revoke", "membership.invite", "membership.read", "membership.remove", "membership.restore",
-            "membership.suspend", "person.read", "person.read_private", "role.assign", "role.revoke", "ruleset.read", "sport.read", "tenant.access.read", "tenant.capabilities.read",
+            "membership.suspend", "person.duplicate_check", "person.read", "person.read_private", "role.assign", "role.revoke", "ruleset.read", "sport.read", "tenant.access.read", "tenant.capabilities.read",
             "tenant.settings.read", "tenant.settings.update", "tenant.sport.disable", "tenant.sport.enable", "tenant.sport.read",
             "tenant.subscription.read",
         ]);
