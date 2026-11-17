@@ -133,6 +133,11 @@ registers.
 **Provides:** summaries for other modules (`IPeopleDirectory`, `ITeamDirectory`, `IVenueDirectory`), duplicate
 check, approved commands for imports (`IRegistryCommands`), external-ID lookup.
 **Does not own:** who plays for whom (Team Operations), who is entered in a competition (Competitions).
+**As built (S06-T1b):** the people reads under `/api/admin/v1/people` (the directory, a person's record, the private
+read, the status history) and `IPeopleDirectory.GetSummariesAsync(ids)` in Contracts: id, display name, status and age
+status of the scope's tenant's people, with no name parts and no date of birth. The directory checks no action; the
+calling module checks its own. Whether a person is a minor is computed on the tenant's date on every read
+(`AgeStatus`: `ADULT`, `MINOR`, `UNKNOWN` without a date of birth).
 **First slice:** S06 (people), S07 (organisations, teams, venues).
 **As built (S06-T1a):** schema `registry`, every table tenant-owned (RLS): `persons` (classified columns, name keys),
 `person_aliases`, `person_status_changes` (append-only), `external_identifiers`. No endpoints or Contracts yet.

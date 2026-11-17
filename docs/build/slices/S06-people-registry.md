@@ -308,11 +308,11 @@ Deliver:
   catalogues, OpenAPI, client).
 
 Acceptance:
-- [ ] Every tenant table of the module has RLS and an isolation sample; `RlsCoverageTests`' exception list is
+- [x] Every tenant table of the module has RLS and an isolation sample; `RlsCoverageTests`' exception list is
       unchanged.
-- [ ] "Ssekandi John" and "John Ssekandi" have one name key; "Nansubuga" and "Nänsubuga" normalise alike (unit tests).
-- [ ] A change to only a child row of an aggregate conflicts with a concurrent change to another child (test).
-- [ ] `person.read` answers no `PRIVATE` field; `person.read_private` is audited per read; a viewer gets `403` on the
+- [x] "Ssekandi John" and "John Ssekandi" have one name key; "Nansubuga" and "Nänsubuga" normalise alike (unit tests).
+- [x] A change to only a child row of an aggregate conflicts with a concurrent change to another child (test).
+- [x] `person.read` answers no `PRIVATE` field; `person.read_private` is audited per read; a viewer gets `403` on the
       private read (tests).
 
 ### T2 — Duplicate check and create (~2 PRs, about 1,000 lines)
@@ -452,3 +452,14 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   invisible character doesn't change a key. Review of #95 (owner's answers, 2026-11-16): T2's plan tests "Okello-Owino"
   against "Okello Owino" at the thresholds (hyphens stay removed, not turned into spaces); T2's validation refuses a
   name whose key is empty with a 422.
+- **T1b:** the reads, the two actions, the roles and `IPeopleDirectory`. Owner decisions (plan, 2026-11-17): the
+  directory's `profile` and `variant` filters come with T4 (the profile tables don't exist yet); the public-DTO test is
+  strict (an unclassified property fails), so the site, reference and health responses are classified `PUBLIC`; `q`
+  uses trigram similarity ≥ 0.3 (`ListPeopleHandler.SearchSimilarity`); one PR. As built: `q` matches a prefix of the
+  normalised first name, last name, name key or an alias key, or similarity of the name key or an alias key, or an
+  external identifier's value exactly; removed aliases don't match; results stay sorted by name, not by relevance.
+  `isMinor` is true only for `MINOR`; a person without a date of birth is `UNKNOWN` with `isMinor` false. The detail
+  has no `photo` property until T5 and no profiles or consent scopes until T4 and T6; `/private` answers the date of
+  birth only until T6 adds consents, with `Cache-Control: no-store`. The status history is not paged. The cursor
+  holds the last person's normalised names and ID (base64url). Tests move a person to `ARCHIVED` in the table until
+  T3's commands exist.
