@@ -7,13 +7,13 @@ at the start of every review.
 
 - **Current slice:** S06 — People registry (docs/build/slices/S06-people-registry.md, written by the S05 slice review).
   S00–S05 are done
-- **Current task:** S06-T4a — athlete profiles — in review (#101)
-- **Next:** S06-T4b — staff and official profiles; `/next-task` once T4a merges
-- **Blocked on:** the review of #101
+- **Current task:** S06-T4b1 — staff profiles (T4b split in two: T4b1 staff, T4b2 official; owner, plan 2026-11-17)
+- **Next:** S06-T4b2 — official profiles
+- **Blocked on:** —
 
 ## Next up
 
-1. S06-T4b — Staff and official profiles (capabilities through the profile update; the directory's `profile` filter gains `STAFF` and `OFFICIAL`; the T4 acceptance boxes)
+1. S06-T4b2 — Official profiles (grade, licence, `licenceExpired` on the tenant's date; the `OFFICIAL` filter; the T4 acceptance boxes)
 2. S06-T5 — Media and photos (likely T5a, T5b; T5a starts with the SkiaSharp ADR, Q35)
 3. S06-T6 — Minors, consent and the public read (likely T6a, T6b)
 4. S06-T7 — Screens, demo data and slice close (likely T7a–T7d)
