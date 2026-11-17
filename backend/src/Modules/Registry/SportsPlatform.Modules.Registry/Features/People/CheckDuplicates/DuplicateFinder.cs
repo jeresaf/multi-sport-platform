@@ -31,7 +31,7 @@ public sealed record DuplicateCandidate(
 public sealed class DuplicateFinder(RegistryDbContext context)
 {
     // Rows read before classifying, in the query's order. Far above what one name finds.
-    private const int _maxRows = 200;
+    public const int MaxRows = 200;
 
     public async Task<IReadOnlyList<DuplicateCandidate>> FindAsync(DuplicateCheckInput input, CancellationToken cancellationToken)
     {
@@ -62,7 +62,7 @@ public sealed class DuplicateFinder(RegistryDbContext context)
                 EF.Functions.TrigramsSimilarity(p.NameKey, key),
                 p.Aliases.Where(a => a.RemovedAt == null).Max(a => (double?)EF.Functions.TrigramsSimilarity(a.NameKey, key)) ?? 0))
             .ThenBy(p => p.Id)
-            .Take(_maxRows)
+            .Take(MaxRows)
             .Select(p => new Row(
                 p.Id,
                 p.DisplayName,

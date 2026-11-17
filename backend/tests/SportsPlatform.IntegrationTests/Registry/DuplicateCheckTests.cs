@@ -11,6 +11,7 @@ using SportsPlatform.IntegrationTests.Tenancy;
 using SportsPlatform.Modules.Identity.Domain.Roles;
 using SportsPlatform.Modules.Registry.Domain.People;
 using SportsPlatform.Modules.Registry.Domain.People.Duplicates;
+using SportsPlatform.Modules.Registry.Features.People.CheckDuplicates;
 using SportsPlatform.Modules.Tenancy.Contracts.Tenants;
 using static SportsPlatform.IntegrationTests.Identity.MembershipTestData;
 using static SportsPlatform.IntegrationTests.Registry.PeopleRequests;
@@ -262,6 +263,42 @@ public sealed class DuplicateCheckTests(PostgresFixture fixture) : DatabaseTest(
         summaries.Count.ShouldBe(20);
         summaries[0].ShouldBe("Sarah Nabirye|EXACT_IDENTIFIER|ACTIVE|SAME_EXTERNAL_ID:KMSA_REG_NO");
         summaries[1].ShouldBe("Grace A.|LIKELY|ACTIVE|SAME_DATE_OF_BIRTH,SAME_NAME_KEY");
+        summaries.Skip(2).ShouldAllBe(summary => summary == "Grace Atim|POSSIBLE|ACTIVE|SAME_NAME_KEY");
+    }
+
+    // Review #97 R1: more rows match than the finder reads. The ones that matter are kept: the identifier's owner and a
+    // person whose alias has the same key and who has the same birth date, both saved last and both unlike by own name.
+    [Fact]
+    public async Task With_more_matches_than_are_read_the_strongest_are_still_answered_first()
+    {
+        var (kmsa, registrar) = await TenantAsync("kmsa", IdentityRoles.Registrar);
+        var born = new DateOnly(2003, 3, 3);
+        await using (var scope = ScopeFor(App.Services, kmsa, out var context))
+        {
+            for (var i = 0; i < DuplicateFinder.MaxRows + 5; i++)
+            {
+                context.Add(NewPerson(new PersonBiodata("Grace", "Atim")));
+            }
+
+            var sarah = NewPerson(new PersonBiodata("Sarah", "Nabirye", DateOfBirth: born));
+            sarah.AddAlias("Grace Atim", AliasKind.FormerName);
+            var esther = NewPerson(new PersonBiodata("Esther", "Auma"));
+            context.AddRange(sarah, esther, ExternalIdentifier.ForPerson(esther.Id, _regNo, "KMSA-00902"));
+            await context.SaveChangesAsync(Ct);
+        }
+
+        var answer = await CheckAsync(registrar, new
+        {
+            firstName = "Grace",
+            lastName = "Atim",
+            dateOfBirth = "2003-03-03",
+            externalIdentifiers = new[] { new { authority = _regNo, value = "KMSA-00902" } },
+        });
+
+        var summaries = Summaries(answer);
+        summaries.Count.ShouldBe(20);
+        summaries[0].ShouldBe("Esther Auma|EXACT_IDENTIFIER|ACTIVE|SAME_EXTERNAL_ID:KMSA_REG_NO");
+        summaries[1].ShouldBe("Sarah Nabirye|LIKELY|ACTIVE|SAME_DATE_OF_BIRTH,SAME_NAME_KEY,ALIAS_MATCH");
         summaries.Skip(2).ShouldAllBe(summary => summary == "Grace Atim|POSSIBLE|ACTIVE|SAME_NAME_KEY");
     }
 

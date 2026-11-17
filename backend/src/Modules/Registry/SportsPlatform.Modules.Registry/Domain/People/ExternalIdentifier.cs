@@ -13,6 +13,10 @@ namespace SportsPlatform.Modules.Registry.Domain.People;
 /// </summary>
 public sealed partial class ExternalIdentifier : Entity, ITenantOwned
 {
+    /// <summary>
+    /// Also the table's check constraint, so it keeps <c>$</c>. In .NET <c>$</c> matches before a final line feed too:
+    /// a caller that validates input with it must refuse control characters as well.
+    /// </summary>
     public const string AuthorityPattern = "^[A-Z][A-Z0-9_]{1,39}$";
     public const int AuthorityMaxLength = 40;
     public const int ValueMaxLength = 100;

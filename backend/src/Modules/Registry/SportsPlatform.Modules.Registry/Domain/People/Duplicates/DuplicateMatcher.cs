@@ -12,7 +12,11 @@ public enum DuplicateConfidence
     ExactIdentifier,
 }
 
-/// <summary>Why a person matched. None of them carries a <c>PRIVATE</c> value of the existing person (S06 D5).</summary>
+/// <summary>
+/// Why a person matched (S06 D5). The answer never carries the other person's date of birth, but
+/// <see cref="SameDateOfBirth"/> confirms a date the caller already sent: the check discloses that much to whoever may
+/// run it (open question Q42).
+/// </summary>
 public enum DuplicateEvidenceCode
 {
     /// <summary>Value: the identifier's authority.</summary>

@@ -10,7 +10,7 @@ at the start of every review.
 - **Current task:** S06-T2a — the duplicate check: matching, thresholds, `duplicate_decisions`, the check endpoint —
   in review (#97)
 - **Next:** S06-T2b — the check token, create, decisions written, the concurrency test; next is `/next-task` once
-  #97 merges (Q42 and Q43 are for its plan)
+  #97 merges (Q42–Q44 are for its plan; Q42 before it starts)
 - **Blocked on:** the review of #97
 
 ## Next up
@@ -452,6 +452,12 @@ at the start of every review.
   as them); `PERSON_NAME_INVALID` and `PERSON_EXTERNAL_ID_AUTHORITY_RESERVED` (422) at the check; the nationality's
   format only; the similarity percentage rounded down; `Cache-Control: no-store`; no athlete sports on candidates
   until T4.
+  Review of #97 (subagent, approve with nits, 2026-11-17): R1 the 200-row cut and its order have a test
+  (`DuplicateFinder.MaxRows`); R2 no new test: `TenantAccessModeTests.Under_read_only_every_admin_endpoint_is_refused…`
+  already posts to every admin endpoint, the check included; R3 the evidence comment says `SAME_DATE_OF_BIRTH`
+  confirms a date the caller sent, and D5's "safe without `person.read_private`" sentence waits for Q42 (to answer
+  before T2b); N1 a comment at `AuthorityPattern`; N2 noted for S25. The reviewer's questions are Q44 (secondary
+  nationality) and Q45 (decided pairs stay hidden).
 
 ## Tech debt / follow-ups
 
