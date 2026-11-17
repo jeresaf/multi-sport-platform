@@ -7,14 +7,14 @@ at the start of every review.
 
 - **Current slice:** S06 — People registry (docs/build/slices/S06-people-registry.md, written by the S05 slice review).
   S00–S05 are done
-- **Current task:** S06-T1b — `person.read`, `person.read_private`, the reads, `IPeopleDirectory`, roles, classification
-  and redaction tests — in review (#96)
-- **Next:** S06-T2 — Duplicate check and create; next is `/next-task` once #96 merges
-- **Blocked on:** the review of #96
+- **Current task:** S06-T2a — the duplicate check: matching, thresholds, `duplicate_decisions`, the check endpoint —
+  in progress (plan approved 2026-11-17)
+- **Next:** S06-T2b — the check token, create, decisions written, the concurrency test
+- **Blocked on:** nothing
 
 ## Next up
 
-1. S06-T2 — Duplicate check and create (likely T2a, T2b)
+1. S06-T2b — The check token, create with its four refusals, decisions written, the concurrency test
 2. S06-T3 — Changing a person: biodata, lifecycle, aliases, identifiers
 3. S06-T4 — Role profiles (likely T4a, T4b; T4 adds the directory's `profile` and `variant` filters)
 4. S06-T5 — Media and photos (likely T5a, T5b; T5a starts with the SkiaSharp ADR, Q35)
