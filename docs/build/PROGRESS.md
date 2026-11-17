@@ -7,11 +7,10 @@ at the start of every review.
 
 - **Current slice:** S06 — People registry (docs/build/slices/S06-people-registry.md, written by the S05 slice review).
   S00–S05 are done
-- **Current task:** S06-T2a — the duplicate check: matching, thresholds, `duplicate_decisions`, the check endpoint —
-  in review (#97)
-- **Next:** S06-T2b — the check token, create, decisions written, the concurrency test; next is `/next-task` once
-  #97 merges (Q42–Q44 are for its plan; Q42 before it starts)
-- **Blocked on:** the review of #97
+- **Current task:** S06-T2b — the check token, create with its four refusals, decisions written, the concurrency
+  test (plan approved 2026-11-17; Q42–Q44 answered with the builder's suggestions)
+- **Next:** S06-T3 — changing a person
+- **Blocked on:** nothing
 
 ## Next up
 
