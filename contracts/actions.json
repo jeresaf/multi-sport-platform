@@ -253,6 +253,22 @@
       "since": "S03"
     },
     {
+      "code": "person.create",
+      "module": "Registry",
+      "description": "Add a person to the registry after a duplicate check; proceeding past possible duplicates needs a reason, and the pairs are remembered as not the same person.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S06"
+    },
+    {
       "code": "person.duplicate_check",
       "module": "Registry",
       "description": "Check a new or changed person's names, date of birth, nationality and external identifiers against the people already in the registry.",

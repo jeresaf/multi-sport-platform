@@ -7,13 +7,15 @@ namespace SportsPlatform.Modules.Registry.Features.People.CheckDuplicates;
 
 /// <summary>
 /// What the duplicate check compares (S06 D5), normalised: the name key of every name part, the normalised last name,
-/// and the identifiers with trimmed values. <paramref name="PersonId"/> is the person being changed, if any.
+/// both nationalities and the identifiers with trimmed values. <paramref name="PersonId"/> is the person being changed,
+/// if any.
 /// </summary>
 public sealed record DuplicateCheckInput(
     string NameKey,
     string LastNameKey,
     DateOnly? DateOfBirth,
     string? Nationality,
+    string? SecondaryNationality,
     IReadOnlyList<(string Authority, string Value)> Identifiers,
     Guid? PersonId);
 
@@ -26,7 +28,8 @@ public sealed record DuplicateCandidate(
 /// <see cref="DuplicateCheckInput"/> (S06 D5), strongest first, at most <see cref="DuplicateThresholds.MaxCandidates"/>.
 /// People of every status are read (<c>MERGED</c> comes with merges, S25). Names are compared on the person's name key
 /// and every alias that isn't removed; the best counts. Identifiers match on authority and value, ended ones included.
-/// The existing person's date of birth is read to compare and goes no further than its year.
+/// The existing person's date of birth is read to compare and goes no further than its year. Nationalities match when
+/// the two people share one, primary or secondary on either side (owner, Q44).
 /// </summary>
 public sealed class DuplicateFinder(RegistryDbContext context)
 {
@@ -69,6 +72,7 @@ public sealed class DuplicateFinder(RegistryDbContext context)
                 p.DateOfBirth,
                 p.Status,
                 p.Nationality,
+                p.SecondaryNationality,
                 p.NameKey == key,
                 p.LastNameKey == lastNameKey,
                 EF.Functions.TrigramsSimilarity(p.NameKey, key),
@@ -77,6 +81,7 @@ public sealed class DuplicateFinder(RegistryDbContext context)
                 identifierOwners.Contains(p.Id)))
             .ToListAsync(cancellationToken);
 
+        string?[] nationalities = [input.Nationality, input.SecondaryNationality];
         var decided = await DecidedAsync(self, cancellationToken);
         var candidates = new List<DuplicateCandidate>();
         foreach (var row in rows)
@@ -93,7 +98,7 @@ public sealed class DuplicateFinder(RegistryDbContext context)
                 row.SameLastName,
                 input.DateOfBirth,
                 row.DateOfBirth,
-                input.Nationality is not null && input.Nationality == row.Nationality,
+                nationalities.Any(code => code is not null && (code == row.Nationality || code == row.SecondaryNationality)),
                 authoritiesByPerson.GetValueOrDefault(row.Id) ?? []));
             // A "not the same person" decision is about names and dates: it never waives a shared identifier.
             if (match is not null && (match.Confidence == DuplicateConfidence.ExactIdentifier || !decided.Contains(row.Id)))
@@ -151,6 +156,7 @@ public sealed class DuplicateFinder(RegistryDbContext context)
     }
 
     private sealed record Row(
-        Guid Id, string DisplayName, DateOnly? DateOfBirth, PersonStatus Status, string? Nationality, bool SameNameKey,
+        Guid Id, string DisplayName, DateOnly? DateOfBirth, PersonStatus Status, string? Nationality, string? SecondaryNationality,
+        bool SameNameKey,
         bool SameLastName, double NameSimilarity, bool AliasSameNameKey, double? AliasSimilarity, bool OwnsIdentifier);
 }

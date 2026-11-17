@@ -3,13 +3,17 @@ using Microsoft.Extensions.DependencyInjection;
 using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.BuildingBlocks.Tenancy;
 using SportsPlatform.Modules.Registry.Domain.People;
+using SportsPlatform.Modules.Registry.Features.People.CheckDuplicates;
+using SportsPlatform.Modules.Registry.Features.People.CreatePerson;
 using SportsPlatform.Modules.Registry.Infrastructure;
 
 namespace SportsPlatform.IntegrationTests.Registry;
 
 /// <summary>
 /// People for the Registry tests, from docs/product/pilot-customer.md's kind of names (all invented). Saved through the
-/// domain until the create handler exists (S06-T2).
+/// domain (<see cref="SavePersonAsync(IServiceProvider, Guid, PersonBiodata, CancellationToken)"/>) where a test needs
+/// rows the commands can't make yet (aliases, archived people), else through the check and create handlers
+/// (<see cref="CreatePersonAsync"/>, S06 D23).
 /// </summary>
 internal static class RegistryTestData
 {
@@ -73,6 +77,33 @@ internal static class RegistryTestData
         context.Add(ExternalIdentifier.ForPerson(person.Id, identifier.Authority, identifier.Value));
         await context.SaveChangesAsync(cancellationToken);
         return person;
+    }
+
+    /// <summary>
+    /// Creates a person as <paramref name="actor"/> the way the API does: the duplicate check, then create with its token
+    /// and <paramref name="overrideReason"/>. Throws when either refuses.
+    /// </summary>
+    public static async Task<Guid> CreatePersonAsync(
+        IServiceProvider services, Guid tenantId, ICurrentActor actor, PersonBiodata biodata, string? overrideReason,
+        CancellationToken cancellationToken)
+    {
+        await using var scope = ScopeFor(services, tenantId, out _);
+        scope.ServiceProvider.GetRequiredService<ActorContext>().Set(actor);
+        var (answer, refused) = await scope.ServiceProvider.GetRequiredService<CheckDuplicatesHandler>().HandleAsync(
+            new CheckDuplicatesRequest(
+                biodata.FirstName, biodata.LastName, biodata.MiddleName, biodata.OtherNames, biodata.DateOfBirth,
+                biodata.Nationality, biodata.SecondaryNationality),
+            cancellationToken);
+        answer.ShouldNotBeNull(refused?.Error.Code);
+
+        var (personId, refusal) = await scope.ServiceProvider.GetRequiredService<CreatePersonHandler>().HandleAsync(
+            new CreatePersonRequest(
+                biodata.FirstName, biodata.LastName, biodata.MiddleName, biodata.OtherNames, biodata.DisplayName,
+                biodata.Gender, biodata.DateOfBirth, biodata.Nationality, biodata.SecondaryNationality, biodata.HeightCm,
+                biodata.WeightKg, CheckToken: answer.CheckToken, OverrideReason: overrideReason),
+            cancellationToken);
+        refusal.ShouldBeNull(refusal?.Error.Code);
+        return personId!.Value;
     }
 
     /// <summary>

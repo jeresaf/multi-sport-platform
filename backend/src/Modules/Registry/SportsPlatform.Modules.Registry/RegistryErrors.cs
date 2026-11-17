@@ -17,4 +17,27 @@ public static class RegistryErrors
         "PERSON_EXTERNAL_ID_AUTHORITY_RESERVED",
         "National identity documents (NATIONAL_ID, NIN, PASSPORT) are not collected as external identifiers.",
         ErrorKind.Unprocessable);
+
+    public static readonly Error DateOfBirthInFuture = new(
+        "PERSON_DATE_OF_BIRTH_IN_FUTURE", "A date of birth can't be after today (the tenant's date).", ErrorKind.Unprocessable);
+
+    public static readonly Error DuplicateCheckRequired = new(
+        "PERSON_DUPLICATE_CHECK_REQUIRED",
+        "Run the duplicate check for these details first: the check token is missing, expired, or for other details or another user.",
+        ErrorKind.Unprocessable);
+
+    public static readonly Error DuplicateCheckStale = new(
+        "PERSON_DUPLICATE_CHECK_STALE",
+        "The registry changed since the duplicate check: run it again and review the people it finds.",
+        ErrorKind.Conflict);
+
+    public static readonly Error DuplicateOverrideRequired = new(
+        "PERSON_DUPLICATE_OVERRIDE_REQUIRED",
+        "The duplicate check found people who may be the same person: give a reason to proceed.",
+        ErrorKind.Unprocessable);
+
+    public static readonly Error ExternalIdExists = new(
+        "PERSON_EXTERNAL_ID_EXISTS",
+        "Another person already has this external identifier (the same authority and value).",
+        ErrorKind.Conflict);
 }
