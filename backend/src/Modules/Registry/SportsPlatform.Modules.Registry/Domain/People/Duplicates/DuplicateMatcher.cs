@@ -121,7 +121,8 @@ public static class DuplicateMatcher
             var percent = (int)Math.Floor((similarity * 100) + 1e-9);
             evidence.Add(new(DuplicateEvidenceCode.NameSimilarity, percent.ToString(CultureInfo.InvariantCulture)));
         }
-        else if (siblingRule)
+
+        if (siblingRule && !facts.SameNameKey)
         {
             evidence.Add(new(DuplicateEvidenceCode.SameLastName));
         }

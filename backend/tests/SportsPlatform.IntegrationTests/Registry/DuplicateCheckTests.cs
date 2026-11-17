@@ -116,7 +116,7 @@ public sealed class DuplicateCheckTests(PostgresFixture fixture) : DatabaseTest(
         {
             "a second name more is POSSIBLE with the same birth date (0.78, 14/18)",
             new { firstName = "Peter", lastName = "Ochieng", dateOfBirth = "1998-02-10" },
-            ["Peter Ochieng|POSSIBLE|ACTIVE|SAME_DATE_OF_BIRTH,NAME_SIMILARITY:77"]
+            ["Peter Ochieng|POSSIBLE|ACTIVE|SAME_DATE_OF_BIRTH,NAME_SIMILARITY:77,SAME_LAST_NAME"]
         },
         {
             // #95 Q2: hyphens are removed, not turned into spaces: "okelloowino patrick" against "okello owino patrick".
@@ -138,6 +138,12 @@ public sealed class DuplicateCheckTests(PostgresFixture fixture) : DatabaseTest(
             "an external identifier with the same authority and value is EXACT_IDENTIFIER, whoever the names say",
             new { firstName = "Moses", lastName = "Kato", externalIdentifiers = new[] { new { authority = _regNo, value = " KMSA-00417 " } } },
             ["John Ssekandi|EXACT_IDENTIFIER|ACTIVE|SAME_EXTERNAL_ID:KMSA_REG_NO"]
+        },
+        {
+            // D10: a value is never reused, so an ended identifier still matches.
+            "an ended identifier still matches",
+            new { firstName = "Moses", lastName = "Kato", externalIdentifiers = new[] { new { authority = "SCHOOL_ADMISSION_NO", value = "EL/2019/044" } } },
+            ["Mariam Nankya|EXACT_IDENTIFIER|ACTIVE|SAME_EXTERNAL_ID:SCHOOL_ADMISSION_NO"]
         },
         {
             "the same value from another authority is no match",
@@ -190,6 +196,18 @@ public sealed class DuplicateCheckTests(PostgresFixture fixture) : DatabaseTest(
         Summaries(before).ShouldBe(["Mariam Nankya|POSSIBLE|ACTIVE|SAME_DATE_OF_BIRTH,SAME_LAST_NAME"]);
         Summaries(await CheckAsync(registrar, Merge(shamimsData, shamim.Id))).ShouldBeEmpty();
         Summaries(await CheckAsync(registrar, Merge(mariamsData, mariam.Id))).ShouldBeEmpty();
+
+        // The decision is about names and dates: Mariam's registration number typed on Shamim still blocks.
+        await using (var scope = ScopeFor(App.Services, kmsa, out var context))
+        {
+            context.Add(ExternalIdentifier.ForPerson(mariam.Id, _regNo, "KMSA-00388"));
+            await context.SaveChangesAsync(Ct);
+        }
+
+        var withMariamsNumber = Merge(shamimsData, shamim.Id);
+        withMariamsNumber["externalIdentifiers"] = new[] { new { authority = _regNo, value = "KMSA-00388" } };
+        Summaries(await CheckAsync(registrar, withMariamsNumber)).ShouldBe(
+            ["Mariam Nankya|EXACT_IDENTIFIER|ACTIVE|SAME_EXTERNAL_ID:KMSA_REG_NO,SAME_DATE_OF_BIRTH,SAME_LAST_NAME"]);
 
         // Somebody new with Shamim's data still meets both sisters.
         Summaries(await CheckAsync(registrar, shamimsData)).ShouldBe(
@@ -311,6 +329,11 @@ public sealed class DuplicateCheckTests(PostgresFixture fixture) : DatabaseTest(
             """{"firstName":"John","lastName":"Ssekandi","externalIdentifiers":[{"authority":"KMSA_REG_NO","value":"K\u0000-1"}]}""",
             "VALIDATION_INVALID_REQUEST", "externalIdentifiers[0].value"
         },
+        {
+            """{"firstName":"John","lastName":"Ssekandi","externalIdentifiers":[{"authority":"NIN\n","value":"K-1"}]}""",
+            "VALIDATION_INVALID_REQUEST", "externalIdentifiers[0].authority"
+        },
+        { """{"firstName":"John","lastName":"Ssekandi","nationality":"UG\n"}""", "VALIDATION_INVALID_REQUEST", "nationality" },
         { """{"firstName":"John","lastName":"Ssekandi","externalIdentifiers":[null]}""", "VALIDATION_INVALID_REQUEST", "externalIdentifiers" },
         {
             $$"""{"firstName":"John","lastName":"Ssekandi","externalIdentifiers":[{{string.Join(',', Enumerable.Range(0, 11).Select(i => $$"""{"authority":"KMSA_REG_NO","value":"K-{{i}}"}"""))}}]}""",
@@ -413,7 +436,8 @@ public sealed class DuplicateCheckTests(PostgresFixture fixture) : DatabaseTest(
     private async Task SeedRegistryAsync(Guid tenantId)
     {
         await SavePersonAsync(App.Services, tenantId, JohnSsekandi, ("Johnny", AliasKind.Nickname), (_regNo, "KMSA-00417"), Ct);
-        await SavePersonAsync(App.Services, tenantId, MariamNankya, Ct);
+        await SavePersonAsync(
+            App.Services, tenantId, MariamNankya, ("Mariam N", AliasKind.Nickname), ("SCHOOL_ADMISSION_NO", "EL/2019/044"), Ct);
         await SavePersonAsync(App.Services, tenantId, _ivanMukasaBorn, Ct);
         await SavePersonAsync(App.Services, tenantId, new PersonBiodata("Brenda", "Akello"), Ct);
         await SavePersonAsync(App.Services, tenantId, _peterOchiengOkot with { DisplayName = "Peter Ochieng" }, Ct);
@@ -435,6 +459,8 @@ public sealed class DuplicateCheckTests(PostgresFixture fixture) : DatabaseTest(
             SET removed_at = now(), removed_by = {SystemActor.Instance.ActorId}, remove_reason = 'Entered twice'
             WHERE id = {removed.Id}
             """, Ct)).ShouldBe(1);
+        (await context.Database.ExecuteSqlAsync(
+            $"UPDATE registry.external_identifiers SET valid_to = DATE '2024-12-06' WHERE value = 'EL/2019/044'", Ct)).ShouldBe(1);
     }
 
     private static async Task<JsonElement> CheckAsync(HttpClient client, object body)

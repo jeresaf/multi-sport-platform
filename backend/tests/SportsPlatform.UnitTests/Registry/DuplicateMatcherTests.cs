@@ -66,6 +66,8 @@ public sealed class DuplicateMatcherTests
             .ShouldBe([new(BirthYearWithinOne), new(NameSimilarity, "68"), new(AliasMatch)]);
         Evidence(Facts(similarity: 0.33, existing: _born, sameLastName: true))
             .ShouldBe([new(SameDateOfBirth), new(SameLastName)]);
+        Evidence(Facts(similarity: 0.7, existing: _born, sameLastName: true))
+            .ShouldBe([new(SameDateOfBirth), new(NameSimilarity, "70"), new(SameLastName)]);
         Evidence(Facts(similarity: 0.7, candidateBorn: false, existing: _born))
             .ShouldBe([new(NameSimilarity, "70")]);
         Evidence(Facts(similarity: 0.2, existing: new(1980, 1, 1), authorities: ["SCHOOL_ADMISSION_NO", "KMSA_REG_NO"]))

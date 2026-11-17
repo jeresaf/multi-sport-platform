@@ -31,7 +31,7 @@ public sealed partial class CheckDuplicatesRequestValidator : AbstractValidator<
             .ChildRules(identifier =>
             {
                 identifier.RuleFor(i => i.Authority)
-                    .Must(authority => authority is not null && Authority().IsMatch(authority))
+                    .Must(authority => authority is not null && !authority.Any(char.IsControl) && Authority().IsMatch(authority))
                     .WithMessage("'authority' must be an UPPER_SNAKE code of 2 to 40 characters.");
                 identifier.RuleFor(i => i.Value)
                     .Cascade(CascadeMode.Stop)
@@ -55,7 +55,8 @@ public sealed partial class CheckDuplicatesRequestValidator : AbstractValidator<
         .Must(name => name is null || name.Trim().Length <= maxLength)
         .WithMessage($"'{field}' must be at most {maxLength} characters.");
 
-    [GeneratedRegex("^[A-Z]{2}$", RegexOptions.CultureInvariant)]
+    // \z, not $: .NET's $ also matches before a final line feed.
+    [GeneratedRegex(@"^[A-Z]{2}\z", RegexOptions.CultureInvariant)]
     private static partial Regex CountryCode();
 
     [GeneratedRegex(ExternalIdentifier.AuthorityPattern, RegexOptions.CultureInvariant)]

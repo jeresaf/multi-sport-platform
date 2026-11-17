@@ -30,7 +30,7 @@ public sealed record DuplicateCandidate(
 /// </summary>
 public sealed class DuplicateFinder(RegistryDbContext context)
 {
-    // Rows read before classifying; identifier matches first, then the closest names. Far above what one name finds.
+    // Rows read before classifying, in the query's order. Far above what one name finds.
     private const int _maxRows = 200;
 
     public async Task<IReadOnlyList<DuplicateCandidate>> FindAsync(DuplicateCheckInput input, CancellationToken cancellationToken)
@@ -53,9 +53,14 @@ public sealed class DuplicateFinder(RegistryDbContext context)
                     && (a.NameKey == key || EF.Functions.TrigramsSimilarity(a.NameKey, key) >= DuplicateThresholds.Possible))
                 || (dateOfBirth != null && p.DateOfBirth == dateOfBirth && p.LastNameKey == lastNameKey)
                 || identifierOwners.Contains(p.Id))
+            // What the cut keeps first: identifier matches, the same name key (an alias's too), the same date of birth
+            // (LIKELY and the sibling rule need it), then the closest name or alias.
             .OrderByDescending(p => identifierOwners.Contains(p.Id))
-            .ThenByDescending(p => p.NameKey == key)
-            .ThenByDescending(p => EF.Functions.TrigramsSimilarity(p.NameKey, key))
+            .ThenByDescending(p => p.NameKey == key || p.Aliases.Any(a => a.RemovedAt == null && a.NameKey == key))
+            .ThenByDescending(p => dateOfBirth != null && p.DateOfBirth == dateOfBirth)
+            .ThenByDescending(p => Math.Max(
+                EF.Functions.TrigramsSimilarity(p.NameKey, key),
+                p.Aliases.Where(a => a.RemovedAt == null).Max(a => (double?)EF.Functions.TrigramsSimilarity(a.NameKey, key)) ?? 0))
             .ThenBy(p => p.Id)
             .Take(_maxRows)
             .Select(p => new Row(
@@ -74,7 +79,7 @@ public sealed class DuplicateFinder(RegistryDbContext context)
 
         var decided = await DecidedAsync(self, cancellationToken);
         var candidates = new List<DuplicateCandidate>();
-        foreach (var row in rows.Where(row => !decided.Contains(row.Id)))
+        foreach (var row in rows)
         {
             // pg_trgm answers a 4-byte float: 0.8 arrives as 0.800000011920929.
             var own = Math.Round(row.NameSimilarity, 4);
@@ -90,7 +95,8 @@ public sealed class DuplicateFinder(RegistryDbContext context)
                 row.DateOfBirth,
                 input.Nationality is not null && input.Nationality == row.Nationality,
                 authoritiesByPerson.GetValueOrDefault(row.Id) ?? []));
-            if (match is not null)
+            // A "not the same person" decision is about names and dates: it never waives a shared identifier.
+            if (match is not null && (match.Confidence == DuplicateConfidence.ExactIdentifier || !decided.Contains(row.Id)))
             {
                 candidates.Add(new DuplicateCandidate(row.Id, row.DisplayName, row.DateOfBirth?.Year, row.Status, match, similarity));
             }
