@@ -60,7 +60,9 @@ the message is the default title and may change.
 | `PERSON_PROFILE_ARCHIVED` | 409 | The profile is archived: it takes no more changes. | Registry |
 | `PERSON_PROFILE_NOT_FOUND` | 404 | The person has no such profile. | Registry |
 | `PERSON_PROFILE_STATUS_INVALID` | 409 | The profile's current status doesn't allow this change. | Registry |
+| `PERSON_ROLE_UNKNOWN` | 422 | The sport variant's definition has no such role. | Registry |
 | `PERSON_SPORT_NOT_ENABLED` | 422 | The tenant hasn't enabled this sport variant: enable it first. | Registry |
+| `PERSON_STAFF_PROFILE_EXISTS` | 409 | The person already has a staff profile: change or reactivate it instead. | Registry |
 | `PERSON_STATUS_INVALID` | 409 | The person's current status doesn't allow this change. | Registry |
 | `PLATFORM_CONCURRENCY_CONFLICT` | 409 | The record was changed by someone else. Reload and try again. | Platform |
 | `PLATFORM_METHOD_NOT_ALLOWED` | 405 | This endpoint does not support the HTTP method. | BuildingBlocks |
