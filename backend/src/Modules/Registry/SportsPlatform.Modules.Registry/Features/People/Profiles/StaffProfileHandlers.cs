@@ -88,7 +88,7 @@ public sealed class UpdateStaffProfileHandler(RegistryDbContext context, SportCo
         }
 
         var capabilities = request.ToDetails();
-        audit.Describe(metadata: StaffProfileAuditMetadata.Of(profile.Id, capabilities));
+        audit.Describe(metadata: StaffProfileAuditMetadata.Of(profile.Id, capabilities, profile));
         if (ProfileTransitions.IsOpen(profile.Status)
             && await sportCodes.CheckStaffAsync(capabilities, profile, cancellationToken) is { } unknown)
         {
@@ -159,15 +159,42 @@ public sealed class ChangeStaffProfileStatusHandler(
 
 /// <summary>
 /// The audit metadata of a staff profile change: the profile by ID (none yet when a create is refused), the variants of
-/// its capabilities (as sent, for a create or an update) and, for a status change, the move. Never a role or a
-/// qualification.
+/// its capabilities (as sent, for a create or an update), the capabilities added and removed by variant and role (owner,
+/// review #102 R1: a removed capability is deleted, so this is its only trace) and, for a status change, the move. Never
+/// a qualification.
 /// </summary>
 public sealed record StaffProfileAuditMetadata(
     [property: PersonalData(PersonalDataClass.Internal)] Guid? ProfileId,
     [property: PersonalData(PersonalDataClass.Internal)] IReadOnlyList<string> Variants,
     [property: PersonalData(PersonalDataClass.Internal)] ProfileStatus? FromStatus = null,
-    [property: PersonalData(PersonalDataClass.Internal)] ProfileStatus? ToStatus = null)
+    [property: PersonalData(PersonalDataClass.Internal)] ProfileStatus? ToStatus = null,
+    [property: PersonalData(PersonalDataClass.Internal)] IReadOnlyList<StaffCapabilityAuditEntry>? Added = null,
+    [property: PersonalData(PersonalDataClass.Internal)] IReadOnlyList<StaffCapabilityAuditEntry>? Removed = null)
 {
-    public static StaffProfileAuditMetadata Of(Guid? profileId, IEnumerable<StaffCapabilityDetails> capabilities) =>
-        new(profileId, [.. capabilities.Select(c => c.Variant).Distinct().Order(StringComparer.Ordinal)]);
+    /// <summary>
+    /// The metadata of a create (<paramref name="existing"/> null: every capability is added) or of an update of
+    /// <paramref name="existing"/> to <paramref name="capabilities"/>.
+    /// </summary>
+    public static StaffProfileAuditMetadata Of(
+        Guid? profileId, IReadOnlyList<StaffCapabilityDetails> capabilities, StaffProfile? existing = null) =>
+        new(
+            profileId,
+            [.. capabilities.Select(c => c.Variant).Distinct().Order(StringComparer.Ordinal)],
+            Added: Sorted(capabilities.Where(c => existing is null || !existing.Holds(c.Variant, c.Role)).Select(c => (c.Variant, c.Role))),
+            Removed: existing is null
+                ? []
+                : Sorted(existing.Capabilities
+                    .Where(held => !capabilities.Any(c => c.Variant == held.Variant && c.Role == held.Role))
+                    .Select(held => (held.Variant, held.Role))));
+
+    private static IReadOnlyList<StaffCapabilityAuditEntry> Sorted(IEnumerable<(string Variant, string Role)> capabilities) =>
+    [
+        .. capabilities.OrderBy(c => c.Variant, StringComparer.Ordinal).ThenBy(c => c.Role, StringComparer.Ordinal)
+            .Select(c => new StaffCapabilityAuditEntry(c.Variant, c.Role)),
+    ];
 }
+
+/// <summary>A capability named in a staff profile's audit entry: its variant and role codes (definition data).</summary>
+public sealed record StaffCapabilityAuditEntry(
+    [property: PersonalData(PersonalDataClass.Internal)] string Variant,
+    [property: PersonalData(PersonalDataClass.Internal)] string Role);

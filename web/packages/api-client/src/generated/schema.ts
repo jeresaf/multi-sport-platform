@@ -932,7 +932,7 @@ export interface paths {
         get?: never;
         /**
          * Change a staff profile
-         * @description Replaces the profile's capabilities as a whole: one left out is removed, one the profile already holds (same variant and role) keeps going with the qualification sent, a new one is added. Allowed whatever the person's status, but not on an archived profile (PERSON_PROFILE_ARCHIVED). A capability the profile already holds may stay on a variant the tenant has since disabled; an added one needs its variant enabled (PERSON_SPORT_NOT_ENABLED). Every role sent is checked against the variant's latest definition, so one a newer definition dropped must be replaced or left out. `capabilities` holds 1–10 things the person does, each a sport variant and a staff role of that variant's latest definition (GET /sports/{variant} gives the codes and labels; PERSON_ROLE_UNKNOWN on `capabilities[i].role`), at most once each pair, with an optional `qualification` (free text, up to 100 characters). Send `version` or `If-Match` from the last read of the person to get 409 PERSON_CONCURRENCY_CONFLICT if the person or any of their profiles changed since; without them, a change to the same person saved at the same moment can still answer it. Answers the person as GET /people/{personId} does; its version moves.
+         * @description Replaces the profile's capabilities as a whole: one left out is removed, one the profile already holds (same variant and role) keeps going with the qualification sent, a new one is added. Not on an archived profile (PERSON_PROFILE_ARCHIVED). On an archived or deceased person, held capabilities may be kept, removed or re-qualified, but a new one is refused (PERSON_ARCHIVED, PERSON_DECEASED). A capability the profile already holds may stay on a variant the tenant has since disabled; an added one needs its variant enabled (PERSON_SPORT_NOT_ENABLED). Every role sent is checked against the variant's latest definition, so one a newer definition dropped must be replaced or left out. `capabilities` holds 1–10 things the person does, each a sport variant and a staff role of that variant's latest definition (GET /sports/{variant} gives the codes and labels; PERSON_ROLE_UNKNOWN on `capabilities[i].role`), at most once each pair, with an optional `qualification` (free text, up to 100 characters). Send `version` or `If-Match` from the last read of the person to get 409 PERSON_CONCURRENCY_CONFLICT if the person or any of their profiles changed since; without them, a change to the same person saved at the same moment can still answer it. Answers the person as GET /people/{personId} does; its version moves.
          */
         put: operations["UpdateStaffProfile"];
         post?: never;
@@ -6599,7 +6599,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description Problem Details; `code`: `PERSON_CONCURRENCY_CONFLICT`, `PERSON_PROFILE_ARCHIVED` */
+            /** @description Problem Details; `code`: `PERSON_ARCHIVED`, `PERSON_CONCURRENCY_CONFLICT`, `PERSON_DECEASED`, `PERSON_PROFILE_ARCHIVED` */
             409: {
                 headers: {
                     [name: string]: unknown;

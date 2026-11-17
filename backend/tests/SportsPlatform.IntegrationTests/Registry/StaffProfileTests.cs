@@ -93,9 +93,15 @@ public sealed class StaffProfileTests(PostgresFixture fixture) : DatabaseTest(fi
         var metadata = JsonDocument.Parse(create.Metadata!).RootElement;
         metadata.GetProperty("profileId").GetGuid().ShouldBe(profileId);
         metadata.GetProperty("variants").EnumerateArray().Select(v => v.GetString()).ShouldBe([TestballFull, Testhoop]);
-        create.Metadata!.ShouldNotContain("TB_COACH");
+        Entries(metadata.GetProperty("added")).ShouldBe([(TestballFull, "TB_COACH"), (Testhoop, "TH_COACH")]);
         create.Metadata!.ShouldNotContain("coaching");
-        entries.Single(e => e.ActionCode == "staff_profile.update").Outcome.ShouldBe(AuditOutcome.Success);
+        var update = entries.Single(e => e.ActionCode == "staff_profile.update");
+        update.Outcome.ShouldBe(AuditOutcome.Success);
+        // Review #102 R1: a removed capability is deleted, so the update's entry names what was added and removed.
+        var changes = JsonDocument.Parse(update.Metadata!).RootElement;
+        Entries(changes.GetProperty("added")).ShouldBe([(TestballFull, "TB_PHYSIO")]);
+        Entries(changes.GetProperty("removed")).ShouldBe([(Testhoop, "TH_COACH")]);
+        update.Metadata!.ShouldNotContain("physiotherapy");
         var moves = entries.Where(e => e.ActionCode == "staff_profile.status.change").ToList();
         moves.Select(e => e.Reason).ShouldBe(["Stepped down after the season", "Came back"], ignoreOrder: true);
         moves.Select(e => JsonDocument.Parse(e.Metadata!).RootElement.GetProperty("toStatus").GetString())
@@ -171,7 +177,7 @@ public sealed class StaffProfileTests(PostgresFixture fixture) : DatabaseTest(fi
         await TenantTestData.EnableSportAsync(App.Services, kmsa, TestballFull, Ct);
         var ivan = await CreatePersonAsync(App.Services, kmsa, SystemActor.Instance, IvanMukasa, overrideReason: null, Ct);
         var denis = await CreatePersonAsync(App.Services, kmsa, SystemActor.Instance, DenisOpoka, overrideReason: null, Ct);
-        var profileId = await AddProfileAsync(registrar, denis, (TestballFull, "TB_COACH"));
+        var profileId = await AddProfileAsync(registrar, denis, (TestballFull, "TB_COACH"), (TestballFull, "TB_KIT_MANAGER"));
         await OkAsync(await registrar.PostAsJsonAsync(StatusPath(denis, profileId), new { status = "INACTIVE", reason = "On leave" }, Ct));
         await ChangeStatusAsync(App.Services, kmsa, ivan, transition, Ct);
         await ChangeStatusAsync(App.Services, kmsa, denis, transition, Ct);
@@ -186,8 +192,17 @@ public sealed class StaffProfileTests(PostgresFixture fixture) : DatabaseTest(fi
             await reactivated.ShouldBeProblemAsync(HttpStatusCode.Conflict, code);
         }
 
-        // Corrections and closing moves stay allowed.
-        await OkAsync(await registrar.PutAsJsonAsync(ProfilePath(denis, profileId), Body((TestballFull, "TB_PHYSIO")), Ct));
+        // Review #102 R2: a new role is refused; keeping, removing and re-qualifying held ones stay allowed, as do closing moves.
+        using (var newRole = await registrar.PutAsJsonAsync(ProfilePath(denis, profileId), Body((TestballFull, "TB_COACH"), (TestballFull, "TB_PHYSIO")), Ct))
+        {
+            await newRole.ShouldBeProblemAsync(HttpStatusCode.Conflict, code);
+        }
+
+        var kept = await OkAsync(await registrar.PutAsJsonAsync(ProfilePath(denis, profileId), new
+        {
+            capabilities = new[] { new { variant = TestballFull, role = "TB_COACH", qualification = "Level 3" } },
+        }, Ct));
+        Capabilities(kept.GetProperty("staffProfiles")[0]).ShouldBe([(TestballFull, "TB_COACH", "Level 3")]);
         var closed = await OkAsync(await registrar.PostAsJsonAsync(StatusPath(denis, profileId), new { status = "RETIRED", reason = "Retired" }, Ct));
         closed.GetProperty("staffProfiles").EnumerateArray().ShouldHaveSingleItem().GetProperty("status").GetString().ShouldBe("RETIRED");
     }
@@ -517,6 +532,9 @@ public sealed class StaffProfileTests(PostgresFixture fixture) : DatabaseTest(fi
         .. profile.GetProperty("capabilities").EnumerateArray().Select(c => (
             c.GetProperty("variant").GetString(), c.GetProperty("role").GetString(), c.GetProperty("qualification").GetString())),
     ];
+
+    private static (string?, string?)[] Entries(JsonElement capabilities) =>
+        [.. capabilities.EnumerateArray().Select(c => (c.GetProperty("variant").GetString(), c.GetProperty("role").GetString()))];
 
     private static string ProfilesPath(Guid personId) => $"{PersonPath(personId)}/staff-profiles";
 

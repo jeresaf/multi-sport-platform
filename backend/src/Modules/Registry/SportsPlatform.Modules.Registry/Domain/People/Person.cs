@@ -304,9 +304,10 @@ public sealed class Person : AggregateRoot, ITenantOwned
     }
 
     /// <summary>
-    /// Replaces a staff profile's capabilities (S06 D12): allowed whatever the person's status (D9) but not on an
-    /// archived profile (<c>PERSON_PROFILE_ARCHIVED</c>). The use case has checked the codes, and that an added
-    /// capability's variant is enabled.
+    /// Replaces a staff profile's capabilities (S06 D12), but not on an archived profile (<c>PERSON_PROFILE_ARCHIVED</c>).
+    /// On an archived or deceased person (D9) held capabilities may be kept, removed or re-qualified, but a role the
+    /// profile doesn't hold is new data and refused (owner, review #102 R2). The use case has checked the codes, and that
+    /// an added capability's variant is enabled.
     /// </summary>
     public Result UpdateStaffProfile(Guid profileId, IReadOnlyList<StaffCapabilityDetails> capabilities)
     {
@@ -319,6 +320,11 @@ public sealed class Person : AggregateRoot, ITenantOwned
         if (!ProfileTransitions.IsOpen(profile.Status))
         {
             return Result.Failure(RegistryErrors.ProfileArchived);
+        }
+
+        if (capabilities.Any(c => !profile.Holds(c.Variant, c.Role)) && EnsureAcceptsNewChildren() is { IsFailure: true } refused)
+        {
+            return refused;
         }
 
         profile.Replace(capabilities);

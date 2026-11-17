@@ -49,7 +49,7 @@ public sealed class StaffProfile : Entity, ITenantOwned, IRoleProfile
     public IReadOnlyList<StaffCapability> Capabilities => _capabilities;
 
     /// <summary>
-    /// Whether <paramref name="capabilities"/> is a valid set: 1–<see cref="MaxCapabilities"/>, one per variant and role.
+    /// Whether <paramref name="capabilities"/> holds each variant and role at most once.
     /// </summary>
     public static bool AreDistinct(IReadOnlyCollection<StaffCapabilityDetails> capabilities)
     {

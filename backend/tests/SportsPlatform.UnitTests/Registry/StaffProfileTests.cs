@@ -73,15 +73,17 @@ public sealed class StaffProfileTests
     public void An_archived_or_deceased_person_gets_no_profile_and_none_back_to_active(PersonTransition transition, string code)
     {
         var person = NewPerson();
-        var profile = person.AddStaffProfile([_coach], SystemActor.Instance, _now).Value;
+        var profile = person.AddStaffProfile([_coach, _hoopCoach], SystemActor.Instance, _now).Value;
         person.ChangeStaffProfileStatus(profile.Id, ProfileStatus.Inactive, "On leave", SystemActor.Instance, _now).IsSuccess.ShouldBeTrue();
         person.ChangeStatus(transition, "Left the association", SystemActor.Instance, _now).IsSuccess.ShouldBeTrue();
 
         person.AddStaffProfile([_physio], SystemActor.Instance, _now).Error.ShouldNotBeNull().Code.ShouldBe(code);
         person.ChangeStaffProfileStatus(profile.Id, ProfileStatus.Active, "Back", SystemActor.Instance, _now).Error.ShouldNotBeNull().Code.ShouldBe(code);
 
-        // Corrections and closing moves stay allowed.
-        person.UpdateStaffProfile(profile.Id, [_physio]).IsSuccess.ShouldBeTrue();
+        // A new role is refused (review #102 R2); keeping, removing and re-qualifying held ones stay allowed, as do closing moves.
+        person.UpdateStaffProfile(profile.Id, [_coach, _physio]).Error.ShouldNotBeNull().Code.ShouldBe(code);
+        person.UpdateStaffProfile(profile.Id, [_coach with { Qualification = "Level 3" }]).IsSuccess.ShouldBeTrue(); // removes the hoop coach
+        profile.Capabilities.ShouldHaveSingleItem().Qualification.ShouldBe("Level 3");
         person.ChangeStaffProfileStatus(profile.Id, ProfileStatus.Retired, "Retired", SystemActor.Instance, _now).IsSuccess.ShouldBeTrue();
     }
 

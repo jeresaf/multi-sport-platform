@@ -69,8 +69,9 @@ internal static class StaffProfileEndpoints
             .WithSummary("Change a staff profile")
             .WithDescription(
                 "Replaces the profile's capabilities as a whole: one left out is removed, one the profile already holds (same " +
-                "variant and role) keeps going with the qualification sent, a new one is added. Allowed whatever the person's " +
-                "status, but not on an archived profile (PERSON_PROFILE_ARCHIVED). A capability the profile already holds may " +
+                "variant and role) keeps going with the qualification sent, a new one is added. Not on an archived profile " +
+                "(PERSON_PROFILE_ARCHIVED). On an archived or deceased person, held capabilities may be kept, removed or " +
+                "re-qualified, but a new one is refused (PERSON_ARCHIVED, PERSON_DECEASED). A capability the profile already holds may " +
                 "stay on a variant the tenant has since disabled; an added one needs its variant enabled " +
                 "(PERSON_SPORT_NOT_ENABLED). Every role sent is checked against the variant's latest definition, so one a newer " +
                 $"definition dropped must be replaced or left out. {_capabilitiesNote} {_versionNote}")
@@ -80,7 +81,8 @@ internal static class StaffProfileEndpoints
             .ValidateRequest<StaffProfileRequest>(CommonErrors.InvalidRequest)
             .ProducesErrors(
                 RegistryErrors.PersonNotFound, RegistryErrors.ConcurrencyConflict, RegistryErrors.ProfileNotFound,
-                RegistryErrors.ProfileArchived, RegistryErrors.SportNotEnabled, RegistryErrors.RoleUnknown);
+                RegistryErrors.ProfileArchived, RegistryErrors.SportNotEnabled, RegistryErrors.RoleUnknown,
+                RegistryErrors.PersonArchived, RegistryErrors.PersonDeceased);
 
         people
             .MapPost("/{personId:guid}/staff-profiles/{profileId:guid}/status", (

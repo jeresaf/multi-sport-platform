@@ -196,7 +196,8 @@ to, reason, actor, time; the first row at creation). A profile is open until arc
 profile per variant and one open staff profile (a retired one is reactivated, not doubled). An archived profile takes no change: an update is
 `409 PERSON_PROFILE_ARCHIVED`, a move `409 PERSON_PROFILE_STATUS_INVALID`. On an archived or
 deceased person a profile can be corrected, deactivated, retired or archived, but not moved to `ACTIVE`, and no new
-profile starts (owner, S06-T4 plan). `SUSPENDED` comes with discipline (S13+).
+profile starts (owner, S06-T4 plan); a staff profile's correction there may keep, remove or re-qualify its roles but
+not add one (owner, review #102). `SUSPENDED` comes with discipline (S13+).
 
 ---
 
