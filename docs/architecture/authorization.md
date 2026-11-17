@@ -179,7 +179,8 @@ audit `REQUIRED`, one entry per read naming the person by ID, no metadata) for `
 audit entry (`person.create` is audited). Its evidence can confirm a date of birth the caller guessed, so it declares
 `grantedWith: person.read_private`: a startup rule (`RoleRules`) refuses a role that grants it without the private
 read (Q42). `person.create` (`POST …/people`, S06-T2b; audit `REQUIRED`, with the override reason; not available while
-read-only) for `TENANT_OWNER`, `TENANT_ADMIN` and `REGISTRAR`.
+read-only) for `TENANT_OWNER`, `TENANT_ADMIN` and `REGISTRAR`; it needs the check's token, so it declares
+`grantedWith: person.duplicate_check` (a role granting create also grants the check, and so the private read).
 
 | Role | Typical scope | Includes (summary) |
 |---|---|---|

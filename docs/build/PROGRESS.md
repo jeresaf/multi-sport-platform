@@ -448,7 +448,8 @@ at the start of every review.
   date is refused (`PERSON_DATE_OF_BIRTH_IN_FUTURE`). Q44 — D5's "same nationality" is a nationality in common,
   primary or secondary on either side. Builder's choices for the review: the check validates nationalities against
   the reference data; create takes no aliases (T3's action); a reason sent with no candidates is audited and writes
-  nothing else.
+  nothing else; `person.create` declares `grantedWith: person.duplicate_check` (pre-review M2), so a role granting
+  create also grants the check and the private read.
 
 - **S06-T2a (owner, plan 2026-11-17):** three changes to D5. A sibling rule: the same date of birth and the same
   normalised last name is `POSSIBLE` (evidence `SAME_LAST_NAME`), because D5's thresholds found neither demo twin pair
@@ -475,6 +476,10 @@ S05-T5a (done in S05-T5a1, #87). Regrouped by the S05 slice review (2026-11-16):
 tasks; two stale triggers moved. Each item names where it gets done.
 
 **S06 — people registry** (carried over by the S05 slice review, 2026-11-16; docs/build/slices/S06-people-registry.md)
+- S06-T2b pre-review (N4, N5): the action catalogue export (`docs/generated/actions.md`, `contracts/actions.json`)
+  doesn't show an action's `grantedWith` (`person.duplicate_check` → `person.read_private`, `person.create` →
+  `person.duplicate_check`); add the column with the next catalogue change. An identifier's `validFrom` has no bound
+  (a date far in the future is accepted); decide with T3's `person.external_id.add`.
 - e2e on a reused local database (S04-T4b1; owner 2026-11-16, review #93 R3): every run adds owners to KMSA
   (`admin-shell`, `admin-screenshots`), so after enough runs KMSA passes STANDARD's 100 staff users and `inviteMember`
   on KMSA answers `403 ENTITLEMENT_QUOTA_EXCEEDED` (CI starts empty; `seed --reset` fixes it locally; hit again closing

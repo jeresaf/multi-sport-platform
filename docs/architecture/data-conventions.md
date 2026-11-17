@@ -108,7 +108,7 @@ transaction. Concurrent commands on the same key queue on the lock, and each rea
 - Key: `<schema>.<purpose>:<id>`, hashed with `pg_advisory_xact_lock(hashtextextended(<key>, 0))`, e.g.
   `identity.tenant_owners:<tenantId>` (S03), `tenancy.subscription:<tenantId>`,
   `tenancy.entitlement_override:<tenantId>` and `identity.staff_users:<tenantId>` (S04), `tenancy.tenant_sports:<tenantId>`
-  (S05: enable and disable).
+  (S05: enable and disable), `registry.people:<tenantId>` (S06: create, and the update in S06-T3).
 - Take the lock inside an explicit transaction (`BeginTransactionAsync`), before the reads the rule depends on; commit
   with `CancellationToken.None` after the save, so a client hanging up can't roll back an audited change.
 - One key per rule and owner (usually the tenant); never hold two keys at once.
