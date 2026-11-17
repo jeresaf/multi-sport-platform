@@ -7865,7 +7865,7 @@
           }
         },
         "additionalProperties": false,
-        "description": "The optional body of `deactivate` and `reactivate`: an optional reason (owner, review #99 Q1), kept in the\nstatus history and the audit trail and not redacted, so it must not contain personal data; `version`, when\nsent, must be the person's current one."
+        "description": "The optional body of `deactivate` and `reactivate`: an optional reason, kept in the status history and the\naudit trail and not redacted, so it must not contain personal data; `version`, when sent, must be the person's\ncurrent one."
       },
       "ChangePersonStatusWithReasonRequest": {
         "required": [
@@ -12573,7 +12573,7 @@
           }
         },
         "additionalProperties": false,
-        "description": "A person's whole biodata, replacing what is stored (S06 D8): a field left out is cleared. External identifiers and\naliases change through their own actions (owner, S06-T3 plan). `checkToken` and `overrideReason` are\nneeded only when the names, date of birth or nationalities change; `version`, when sent, must be the person's\ncurrent one."
+        "description": "A person's whole biodata, replacing what is stored (S06 D8): a field left out is cleared. External identifiers and\naliases change through their own actions. `checkToken` and `overrideReason` are\nneeded only when the names, date of birth or nationalities change; `version`, when sent, must be the person's\ncurrent one."
       },
       "UpdateTenantProfileRequest": {
         "type": "object",

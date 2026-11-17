@@ -4,9 +4,11 @@ using SportsPlatform.Modules.Registry.Domain.People;
 
 namespace SportsPlatform.Modules.Registry.Features.People.UpdatePerson;
 
+// No external identifiers here: the owner's S06-T3 plan decision.
+
 /// <summary>
 /// A person's whole biodata, replacing what is stored (S06 D8): a field left out is cleared. External identifiers and
-/// aliases change through their own actions (owner, S06-T3 plan). <c>checkToken</c> and <c>overrideReason</c> are
+/// aliases change through their own actions. <c>checkToken</c> and <c>overrideReason</c> are
 /// needed only when the names, date of birth or nationalities change; <c>version</c>, when sent, must be the person's
 /// current one.
 /// </summary>

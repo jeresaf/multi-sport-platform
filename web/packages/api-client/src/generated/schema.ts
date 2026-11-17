@@ -1667,9 +1667,9 @@ export interface components {
             newPassword: null | string;
         };
         /**
-         * @description The optional body of `deactivate` and `reactivate`: an optional reason (owner, review #99 Q1), kept in the
-         *     status history and the audit trail and not redacted, so it must not contain personal data; `version`, when
-         *     sent, must be the person's current one.
+         * @description The optional body of `deactivate` and `reactivate`: an optional reason, kept in the status history and the
+         *     audit trail and not redacted, so it must not contain personal data; `version`, when sent, must be the person's
+         *     current one.
          */
         ChangePersonStatusRequest: {
             reason?: null | string;
@@ -3107,7 +3107,7 @@ export interface components {
         };
         /**
          * @description A person's whole biodata, replacing what is stored (S06 D8): a field left out is cleared. External identifiers and
-         *     aliases change through their own actions (owner, S06-T3 plan). `checkToken` and `overrideReason` are
+         *     aliases change through their own actions. `checkToken` and `overrideReason` are
          *     needed only when the names, date of birth or nationalities change; `version`, when sent, must be the person's
          *     current one.
          */

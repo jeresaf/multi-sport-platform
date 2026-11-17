@@ -2,10 +2,12 @@ using System.Text.Json.Serialization;
 
 namespace SportsPlatform.Modules.Registry.Features.People.ChangePersonStatus;
 
+// The optional reason is the owner's (review #99 Q1).
+
 /// <summary>
-/// The optional body of <c>deactivate</c> and <c>reactivate</c>: an optional reason (owner, review #99 Q1), kept in the
-/// status history and the audit trail and not redacted, so it must not contain personal data; <c>version</c>, when
-/// sent, must be the person's current one.
+/// The optional body of <c>deactivate</c> and <c>reactivate</c>: an optional reason, kept in the status history and the
+/// audit trail and not redacted, so it must not contain personal data; <c>version</c>, when sent, must be the person's
+/// current one.
 /// </summary>
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record ChangePersonStatusRequest(string? Reason = null, uint? Version = null);
