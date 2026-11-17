@@ -15,7 +15,8 @@ internal static class GetPersonEndpoint
         .WithDescription(
             "A person of the tenant named by `X-Tenant-Id`, whatever their status: names, aliases, external identifiers, " +
             "the birth year, `isMinor` and `ageStatus` on the tenant's date, and `version` (also the `ETag`). The date of " +
-            "birth is in the private read.")
+            "birth is in the private read. `isMinor` is true unless the person is known to be an adult: without a date of " +
+            "birth, `ageStatus` is UNKNOWN and `isMinor` is true.")
         .RequireAction(RegistryActions.PersonRead)
         .ReturnsETag()
         .ProducesErrors(RegistryErrors.PersonNotFound);

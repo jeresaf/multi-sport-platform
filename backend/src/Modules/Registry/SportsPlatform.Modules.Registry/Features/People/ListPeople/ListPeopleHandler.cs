@@ -70,7 +70,7 @@ public sealed class ListPeopleHandler(RegistryDbContext context, TenantToday ten
             var ageStatus = Age.StatusOn(row.DateOfBirth, today);
             return new PersonListItem(
                 row.Id, row.DisplayName, row.FirstName, row.LastName, row.Status, row.DateOfBirth?.Year,
-                ageStatus == AgeStatus.Minor, ageStatus, row.Nationality);
+                Age.IsTreatedAsMinor(ageStatus), ageStatus, row.Nationality);
         }).ToList();
         var next = hasMore ? new PersonCursor(page[^1].LastNameKey, page[^1].FirstNameKey, page[^1].Id).Encode() : null;
         return new ListPeopleResponse(items, new PageInfo(next, hasMore));

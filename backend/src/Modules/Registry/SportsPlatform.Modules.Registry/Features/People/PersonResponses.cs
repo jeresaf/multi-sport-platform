@@ -11,7 +11,8 @@ namespace SportsPlatform.Modules.Registry.Features.People;
 /// <summary>
 /// A person in the directory (S06 D22). <c>person.read</c> answers <c>INTERNAL</c> and <c>PUBLIC</c> fields only: the
 /// birth year, <c>isMinor</c> and <c>ageStatus</c> on the tenant's date, never the date of birth (S06 D3, D13).
-/// <c>isMinor</c> is true only for a known minor; a person without a date of birth is <c>UNKNOWN</c>.
+/// <c>isMinor</c> is true unless the person is known to be an adult: a person without a date of birth
+/// (<c>UNKNOWN</c>) is treated as a minor.
 /// </summary>
 public sealed record PersonListItem(
     [property: PersonalData(PersonalDataClass.Public)] Guid Id,

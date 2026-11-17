@@ -24,4 +24,12 @@ public sealed class AgeTests
     [Fact]
     public void A_person_without_a_date_of_birth_has_an_unknown_age() =>
         Age.StatusOn(null, new DateOnly(2026, 10, 17)).ShouldBe(AgeStatus.Unknown);
+
+    // D13: fail-closed. Only a known adult is not treated as a minor.
+    [Theory]
+    [InlineData(AgeStatus.Adult, false)]
+    [InlineData(AgeStatus.Minor, true)]
+    [InlineData(AgeStatus.Unknown, true)]
+    public void Everyone_not_known_to_be_an_adult_is_treated_as_a_minor(AgeStatus status, bool expected) =>
+        Age.IsTreatedAsMinor(status).ShouldBe(expected);
 }

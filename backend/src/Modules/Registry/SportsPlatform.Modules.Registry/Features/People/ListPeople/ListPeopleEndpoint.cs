@@ -18,7 +18,7 @@ internal static class ListPeopleEndpoint
             "or an alias by prefix or similarity (in any order: \"Ssekandi John\" finds John Ssekandi) and an external " +
             "identifier's value exactly. Filter by `status` (without it, archived people are left out) and `ageStatus` " +
             "(on the tenant's date; UNKNOWN: no date of birth). `limit` is 1–100 (25). Items carry the birth year, never " +
-            "the date of birth.")
+            "the date of birth. `isMinor` is true unless the person is known to be an adult (`ageStatus` UNKNOWN: true).")
         .RequireAction(RegistryActions.PersonRead)
         .ValidateRequest<ListPeopleRequest>(CommonErrors.InvalidQuery)
         .DocumentsQueryValues("status", ListPeopleRequest.Statuses)

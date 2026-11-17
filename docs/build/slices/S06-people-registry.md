@@ -458,7 +458,8 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   uses trigram similarity ≥ 0.3 (`ListPeopleHandler.SearchSimilarity`); one PR. As built: `q` matches a prefix of the
   normalised first name, last name, name key or an alias key, or similarity of the name key or an alias key, or an
   external identifier's value exactly; removed aliases don't match; results stay sorted by name, not by relevance.
-  `isMinor` is true only for `MINOR`; a person without a date of birth is `UNKNOWN` with `isMinor` false. The detail
+  `isMinor` is true unless the age status is `ADULT`, so a person without a date of birth (`UNKNOWN`) is treated as a
+  minor (owner, review #96 Q1). The detail
   has no `photo` property until T5 and no profiles or consent scopes until T4 and T6; `/private` answers the date of
   birth only until T6 adds consents, with `Cache-Control: no-store`. The status history is not paged. The cursor
   holds the last person's normalised names and ID (base64url). Tests move a person to `ARCHIVED` in the table until

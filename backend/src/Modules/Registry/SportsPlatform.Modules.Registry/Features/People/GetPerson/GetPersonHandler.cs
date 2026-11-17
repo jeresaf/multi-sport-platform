@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Results;
-using SportsPlatform.Modules.Registry.Contracts.People;
 using SportsPlatform.Modules.Registry.Domain.People;
 using SportsPlatform.Modules.Registry.Infrastructure;
 
@@ -40,7 +39,7 @@ public sealed class GetPersonHandler(RegistryDbContext context, TenantToday tena
         var ageStatus = Age.StatusOn(p.DateOfBirth, await tenantToday.GetAsync(cancellationToken));
         return Result.Success(new PersonResponse(
             p.Id, p.FirstName, p.MiddleName, p.LastName, p.OtherNames, p.DisplayName, p.Gender, p.DateOfBirth?.Year,
-            ageStatus == AgeStatus.Minor, ageStatus, p.Nationality, p.SecondaryNationality, p.HeightCm, p.WeightKg,
+            Age.IsTreatedAsMinor(ageStatus), ageStatus, p.Nationality, p.SecondaryNationality, p.HeightCm, p.WeightKg,
             p.PublicProfileEnabled, p.Status, p.Source, person.Aliases, identifiers, person.Version));
     }
 }

@@ -211,7 +211,7 @@ public sealed class PeopleReadTests(PostgresFixture fixture) : DatabaseTest(fixt
     }
 
     [Fact]
-    public async Task A_person_without_a_date_of_birth_has_no_birth_year_and_an_unknown_age()
+    public async Task A_person_without_a_date_of_birth_has_no_birth_year_and_is_treated_as_a_minor()
     {
         var (kmsa, registrar) = await TenantAsync("kmsa", IdentityRoles.Registrar);
         var ivan = await SavePersonAsync(App.Services, kmsa, IvanMukasa, Ct);
@@ -219,7 +219,7 @@ public sealed class PeopleReadTests(PostgresFixture fixture) : DatabaseTest(fixt
         var person = await registrar.ReadJsonAsync(PersonPath(ivan.Id), Ct);
 
         person.GetProperty("birthYear").ValueKind.ShouldBe(JsonValueKind.Null);
-        (person.GetProperty("ageStatus").GetString(), person.GetProperty("isMinor").GetBoolean()).ShouldBe(("UNKNOWN", false));
+        (person.GetProperty("ageStatus").GetString(), person.GetProperty("isMinor").GetBoolean()).ShouldBe(("UNKNOWN", true));
         (await registrar.ReadJsonAsync(PrivatePath(ivan.Id), Ct)).GetProperty("dateOfBirth").ValueKind.ShouldBe(JsonValueKind.Null);
     }
 

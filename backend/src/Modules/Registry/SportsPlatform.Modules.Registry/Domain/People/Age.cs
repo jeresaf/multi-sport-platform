@@ -13,6 +13,12 @@ public static class Age
     /// <summary>The latest date of birth of someone who is an adult on <paramref name="today"/>.</summary>
     public static DateOnly LatestAdultBirthDate(DateOnly today) => today.AddYears(-AdultYears);
 
+    /// <summary>
+    /// Whether to treat the person as a minor: everyone not known to be an adult, so a person without a date of birth
+    /// too (S06 D13, fail-closed).
+    /// </summary>
+    public static bool IsTreatedAsMinor(AgeStatus status) => status != AgeStatus.Adult;
+
     public static AgeStatus StatusOn(DateOnly? dateOfBirth, DateOnly today) => dateOfBirth switch
     {
         null => AgeStatus.Unknown,

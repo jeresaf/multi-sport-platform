@@ -603,7 +603,7 @@ export interface paths {
         };
         /**
          * List the tenant's people
-         * @description The people of the tenant named by `X-Tenant-Id`, sorted by last name, first name and ID. `q` matches a name or an alias by prefix or similarity (in any order: "Ssekandi John" finds John Ssekandi) and an external identifier's value exactly. Filter by `status` (without it, archived people are left out) and `ageStatus` (on the tenant's date; UNKNOWN: no date of birth). `limit` is 1–100 (25). Items carry the birth year, never the date of birth.
+         * @description The people of the tenant named by `X-Tenant-Id`, sorted by last name, first name and ID. `q` matches a name or an alias by prefix or similarity (in any order: "Ssekandi John" finds John Ssekandi) and an external identifier's value exactly. Filter by `status` (without it, archived people are left out) and `ageStatus` (on the tenant's date; UNKNOWN: no date of birth). `limit` is 1–100 (25). Items carry the birth year, never the date of birth. `isMinor` is true unless the person is known to be an adult (`ageStatus` UNKNOWN: true).
          */
         get: operations["ListPeople"];
         put?: never;
@@ -623,7 +623,7 @@ export interface paths {
         };
         /**
          * Get a person
-         * @description A person of the tenant named by `X-Tenant-Id`, whatever their status: names, aliases, external identifiers, the birth year, `isMinor` and `ageStatus` on the tenant's date, and `version` (also the `ETag`). The date of birth is in the private read.
+         * @description A person of the tenant named by `X-Tenant-Id`, whatever their status: names, aliases, external identifiers, the birth year, `isMinor` and `ageStatus` on the tenant's date, and `version` (also the `ETag`). The date of birth is in the private read. `isMinor` is true unless the person is known to be an adult: without a date of birth, `ageStatus` is UNKNOWN and `isMinor` is true.
          */
         get: operations["GetPerson"];
         put?: never;
@@ -1998,7 +1998,8 @@ export interface components {
         /**
          * @description A person in the directory (S06 D22). `person.read` answers `INTERNAL` and `PUBLIC` fields only: the
          *     birth year, `isMinor` and `ageStatus` on the tenant's date, never the date of birth (S06 D3, D13).
-         *     `isMinor` is true only for a known minor; a person without a date of birth is `UNKNOWN`.
+         *     `isMinor` is true unless the person is known to be an adult: a person without a date of birth
+         *     (`UNKNOWN`) is treated as a minor.
          */
         PersonListItem: {
             /** Format: uuid */

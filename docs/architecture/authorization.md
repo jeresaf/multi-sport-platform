@@ -170,7 +170,7 @@ rules, and so do the ruleset templates (S05-T4a): `ruleset.read` (`GET /api/admi
 
 People (S06-T1b, D21): `person.read` (`GET /api/admin/v1/people`, `…/people/{id}`, `…/people/{id}/status-changes`;
 available while read-only; audit `NONE`) for `TENANT_OWNER`, `TENANT_ADMIN`, `REGISTRAR`, `COMPETITION_MANAGER`,
-`RESULTS_OFFICER`, `DATA_ENTRY` and `VIEWER`. It answers `INTERNAL` and `PUBLIC` fields: the birth year, `isMinor` and
+`RESULTS_OFFICER`, `DATA_ENTRY` and `VIEWER`. It answers `INTERNAL` and `PUBLIC` fields: the birth year, `isMinor` (true unless the person is known to be an adult) and
 `ageStatus`, never the date of birth. `person.read_private` (`GET …/people/{id}/private`; available while read-only;
 audit `REQUIRED`, one entry per read naming the person by ID, no metadata) for `TENANT_OWNER`, `TENANT_ADMIN` and
 `REGISTRAR`. `SCORER` and `TEAM_MANAGER` hold neither in S06.

@@ -430,18 +430,17 @@ at the start of every review.
 - **S06-T1b (owner, plan 2026-11-17):** the directory's `profile` and `variant` filters (D22) move to T4, which adds
   the profile tables; the public-DTO classification test is strict (an unclassified property fails), so existing
   public DTOs are classified; `q`'s similarity threshold is 0.3; one PR (about 1,600 changed lines without generated
-  files). Builder's choices for the review: `isMinor` is true only for a known minor (`UNKNOWN` has `isMinor` false);
-  no `photo`, profiles or consent scopes in the detail until their tasks; the status history is not paged; `/private`
-  is `no-store`; search results are sorted by name, not relevance; tests set `ARCHIVED` in the table until T3.
+  files). Builder's choices for the review: no `photo`, profiles or consent scopes in the detail until their tasks;
+  the status history is not paged; `/private` is `no-store`; search results are sorted by name, not relevance; tests set `ARCHIVED` in the table until T3.
   Pre-review (ready; no blocker or major): the cursor's length cap fits the longest keys in a three-byte script; the
   classification test also fails a public API endpoint without a typed response and an untyped property, and takes the
   `person.read` responses from the endpoints; the redaction test waits for the last request and covers the search
   text; search follow-ups in Tech debt. A private read of an unknown ID is audited as a failure naming that ID.
   Review of #96 (subagent, request changes, 2026-11-17): R1 a control character in `q` (a NUL made PostgreSQL refuse
-  the parameter: 500) is now `VALIDATION_INVALID_QUERY`. Open for the owner: Q1 `isMinor` for `UNKNOWN` (the reviewer
-  prefers true unless `ADULT`; N1 follows from it); Q2 the audit entry of `person.read_private` is written after the
-  response and is lost if that write fails (accept with a tech-debt line for T6, or write it before answering); Q3 a
-  private read of an unknown ID is audited as a failure naming the ID sent.
+  the parameter: 500) is now `VALIDATION_INVALID_QUERY`. Owner's answers (2026-11-17): Q1 `isMinor` is true unless
+  `ADULT`, so `UNKNOWN` is treated as a minor, and the OpenAPI descriptions say so (N1); Q2 the audit entry of
+  `person.read_private` stays written after the response for now (Tech debt, T6); Q3 a private read of an unknown ID
+  is audited as a failure naming the ID sent: confirmed.
 
 ## Tech debt / follow-ups
 
@@ -461,6 +460,10 @@ tasks; two stale triggers moved. Each item names where it gets done.
   guard for now; owner, #95 Q4). Revisit with the first child of two aggregates (S08 memberships) or the first bulk
   save in one context (imports). A change below a loaded append-only root throws, untested, and so would a row that
   only references one: revisit with the first append-only aggregate root (timeline events, S12; #95 N3).
+- The audit entry of `person.read_private` is written after the response (a read saves nothing; events-and-jobs.md,
+  "Audit as built"), so a failed write loses the entry of a disclosed date of birth. Accepted for now (owner, review
+  #96 Q2): decide whether private reads write the entry before answering when consents and evidence join `/private`.
+  (S06-T6)
 - People directory search (S06-T1b pre-review): `similarity(name_key, q) >= 0.3` can't use the trigram GIN indexes
   (only the `%` operator and `LIKE` can), so a search filters every person of the tenant, and the cursor's OR
   predicate walks the directory index from the tenant's start. Fine at pilot size. Two partial tokens in the other
