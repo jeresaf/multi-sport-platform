@@ -3850,6 +3850,599 @@
         }
       }
     },
+    "/api/admin/v1/people/{personId}/aliases": {
+      "post": {
+        "tags": [
+          "People"
+        ],
+        "summary": "Add an alias to a person",
+        "description": "Adds another name the person is known by (`FORMER_NAME`, `NICKNAME` or `SPELLING`): the directory search and the duplicate check find the person under it too. No duplicate check runs. A name the person is already known by (the same name key as their own name or a current alias: word order, case, accents and punctuation aside) is PERSON_ALIAS_EXISTS; a name without a letter or a digit PERSON_NAME_INVALID. An archived or deceased person takes no new alias (PERSON_ARCHIVED, PERSON_DECEASED). Send `version` or `If-Match` from the last read to get 409 PERSON_CONCURRENCY_CONFLICT if the person changed since. Answers the person as GET /people/{personId} does; its version moves.",
+        "operationId": "AddPersonAlias",
+        "parameters": [
+          {
+            "name": "personId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddPersonAliasRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_REQUEST",
+              "VALIDATION_MALFORMED_REQUEST"
+            ]
+          },
+          "404": {
+            "description": "Problem Details; `code`: `PERSON_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "PERSON_NOT_FOUND"
+            ]
+          },
+          "409": {
+            "description": "Problem Details; `code`: `PERSON_ALIAS_EXISTS`, `PERSON_ARCHIVED`, `PERSON_CONCURRENCY_CONFLICT`, `PERSON_DECEASED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "PERSON_ALIAS_EXISTS",
+              "PERSON_ARCHIVED",
+              "PERSON_CONCURRENCY_CONFLICT",
+              "PERSON_DECEASED"
+            ]
+          },
+          "422": {
+            "description": "Problem Details; `code`: `PERSON_NAME_INVALID`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "PERSON_NAME_INVALID"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING",
+              "TENANT_READ_ONLY"
+            ]
+          }
+        }
+      }
+    },
+    "/api/admin/v1/people/{personId}/aliases/{aliasId}/remove": {
+      "post": {
+        "tags": [
+          "People"
+        ],
+        "summary": "Remove a person's alias",
+        "description": "Removes an alias, whatever the person's status, with a reason (body `{ \"reason\": … }`, required): the alias is kept with who removed it, when and why, and is no longer shown, searched or matched. The reason is kept permanently on the alias and in the audit trail: don't include personal data. An alias already removed is PERSON_ALIAS_REMOVED. Send `version` or `If-Match` from the last read to get 409 PERSON_CONCURRENCY_CONFLICT if the person changed since. Answers the person as GET /people/{personId} does; its version moves.",
+        "operationId": "RemovePersonAlias",
+        "parameters": [
+          {
+            "name": "personId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "aliasId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemovePersonAliasRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_MALFORMED_REQUEST`, `VALIDATION_REASON_REQUIRED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_MALFORMED_REQUEST",
+              "VALIDATION_REASON_REQUIRED"
+            ]
+          },
+          "404": {
+            "description": "Problem Details; `code`: `PERSON_ALIAS_NOT_FOUND`, `PERSON_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "PERSON_ALIAS_NOT_FOUND",
+              "PERSON_NOT_FOUND"
+            ]
+          },
+          "409": {
+            "description": "Problem Details; `code`: `PERSON_ALIAS_REMOVED`, `PERSON_CONCURRENCY_CONFLICT`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "PERSON_ALIAS_REMOVED",
+              "PERSON_CONCURRENCY_CONFLICT"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING",
+              "TENANT_READ_ONLY"
+            ]
+          }
+        }
+      }
+    },
+    "/api/admin/v1/people/{personId}/external-identifiers": {
+      "post": {
+        "tags": [
+          "People"
+        ],
+        "summary": "Add an external identifier to a person",
+        "description": "Adds an identifier another authority gave the person: `authority` is a code the tenant chooses (e.g. `KMSA_REG_NO`), `value` is trimmed. A value with this authority that any person has or had, ended ones and this person's included, is PERSON_EXTERNAL_ID_EXISTS: a value is never reused. National identity documents (`NATIONAL_ID`, `NIN`, `PASSPORT`) are PERSON_EXTERNAL_ID_AUTHORITY_RESERVED. Names and dates aren't checked for duplicates. An archived or deceased person takes no new identifier (PERSON_ARCHIVED, PERSON_DECEASED). Send `version` or `If-Match` from the last read to get 409 PERSON_CONCURRENCY_CONFLICT if the person changed since. Answers the person as GET /people/{personId} does; its version moves.",
+        "operationId": "AddPersonExternalIdentifier",
+        "parameters": [
+          {
+            "name": "personId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddExternalIdentifierRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_REQUEST",
+              "VALIDATION_MALFORMED_REQUEST"
+            ]
+          },
+          "404": {
+            "description": "Problem Details; `code`: `PERSON_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "PERSON_NOT_FOUND"
+            ]
+          },
+          "409": {
+            "description": "Problem Details; `code`: `PERSON_ARCHIVED`, `PERSON_CONCURRENCY_CONFLICT`, `PERSON_DECEASED`, `PERSON_EXTERNAL_ID_EXISTS`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "PERSON_ARCHIVED",
+              "PERSON_CONCURRENCY_CONFLICT",
+              "PERSON_DECEASED",
+              "PERSON_EXTERNAL_ID_EXISTS"
+            ]
+          },
+          "422": {
+            "description": "Problem Details; `code`: `PERSON_EXTERNAL_ID_AUTHORITY_RESERVED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "PERSON_EXTERNAL_ID_AUTHORITY_RESERVED"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING",
+              "TENANT_READ_ONLY"
+            ]
+          }
+        }
+      }
+    },
+    "/api/admin/v1/people/{personId}/external-identifiers/{identifierId}/end": {
+      "post": {
+        "tags": [
+          "People"
+        ],
+        "summary": "End a person's external identifier",
+        "description": "Ends an identifier, whatever the person's status: it is kept with its `validTo`, and its value is never given to anyone else. The body is optional: `validTo` defaults to today (the tenant's date) and can't be after it or before `validFrom` (PERSON_EXTERNAL_ID_VALIDITY_INVALID); `reason` (1–500 characters) is kept permanently in the audit trail: don't include personal data. An identifier already ended is PERSON_EXTERNAL_ID_ENDED. Send `version` or `If-Match` from the last read to get 409 PERSON_CONCURRENCY_CONFLICT if the person changed since. Answers the person as GET /people/{personId} does; its version moves.",
+        "operationId": "EndPersonExternalIdentifier",
+        "parameters": [
+          {
+            "name": "personId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "identifierId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/EndExternalIdentifierRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_REQUEST",
+              "VALIDATION_MALFORMED_REQUEST"
+            ]
+          },
+          "404": {
+            "description": "Problem Details; `code`: `PERSON_EXTERNAL_ID_NOT_FOUND`, `PERSON_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "PERSON_EXTERNAL_ID_NOT_FOUND",
+              "PERSON_NOT_FOUND"
+            ]
+          },
+          "409": {
+            "description": "Problem Details; `code`: `PERSON_CONCURRENCY_CONFLICT`, `PERSON_EXTERNAL_ID_ENDED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "PERSON_CONCURRENCY_CONFLICT",
+              "PERSON_EXTERNAL_ID_ENDED"
+            ]
+          },
+          "422": {
+            "description": "Problem Details; `code`: `PERSON_EXTERNAL_ID_VALIDITY_INVALID`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "PERSON_EXTERNAL_ID_VALIDITY_INVALID"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING",
+              "TENANT_READ_ONLY"
+            ]
+          }
+        }
+      }
+    },
     "/api/admin/v1/people/{personId}/private": {
       "get": {
         "tags": [
@@ -7415,6 +8008,77 @@
         ],
         "description": "Whose side, relative to the event's side."
       },
+      "AddExternalIdentifierRequest": {
+        "required": [
+          "authority",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "authority": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "value": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "validFrom": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "version": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "uint32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A new external identifier of a person (S06 D10): the authority's code, its value, and since when it is valid;\n`version`, when sent, must be the person's current one."
+      },
+      "AddPersonAliasRequest": {
+        "required": [
+          "name",
+          "kind"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "kind": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AliasKind"
+              }
+            ]
+          },
+          "version": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "uint32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A new alias (S06 D10): the name as the person is known by it and its kind; `version`, when sent, must be the\nperson's current one."
+      },
       "AgeStatus": {
         "enum": [
           "ADULT",
@@ -8397,6 +9061,33 @@
           }
         },
         "description": "A tenant's value of one entitlement today and where it comes from: `DEFAULT`, `PLAN` (the current period's\nplan) or `OVERRIDE` (an unremoved override in effect)."
+      },
+      "EndExternalIdentifierRequest": {
+        "type": "object",
+        "properties": {
+          "validTo": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "version": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "uint32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "The end of an external identifier: `validTo` defaults to the tenant's today. The optional reason is kept in the\naudit trail and is not redacted: it must not contain personal data."
       },
       "EntitlementOverrideResponse": {
         "required": [
@@ -10257,6 +10948,29 @@
         },
         "additionalProperties": false,
         "description": "The body of `entitlement.override.remove` (audit `REQUIRED_WITH_REASON`). The reason is kept permanently on\nthe override and in the audit trail and is not redacted: it must not contain personal data."
+      },
+      "RemovePersonAliasRequest": {
+        "required": [
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "version": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "uint32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "The removal of an alias (audit `REQUIRED_WITH_REASON`). The reason is kept permanently on the alias and in the\naudit trail and is not redacted: it must not contain personal data."
       },
       "RenewSubscriptionRequest": {
         "required": [

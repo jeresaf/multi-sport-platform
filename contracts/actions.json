@@ -253,6 +253,38 @@
       "since": "S03"
     },
     {
+      "code": "person.alias.add",
+      "module": "Registry",
+      "description": "Add another name a person is known by (former name, nickname, spelling), so search and the duplicate check find them under it too; not for an archived or deceased person.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S06"
+    },
+    {
+      "code": "person.alias.remove",
+      "module": "Registry",
+      "description": "Remove a person's alias, with a reason; the alias is kept with who removed it, when and why.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED_WITH_REASON",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S06"
+    },
+    {
       "code": "person.archive",
       "module": "Registry",
       "description": "Archive an active or inactive person, with a reason: the record and its history stay, and it takes no new profile, alias, identifier, consent or photo.",
@@ -309,6 +341,38 @@
         "TENANT"
       ],
       "audit": "NONE",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S06"
+    },
+    {
+      "code": "person.external_id.add",
+      "module": "Registry",
+      "description": "Add an identifier another authority gave a person (e.g. a registration number); a value any person has or had is refused; not for an archived or deceased person.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S06"
+    },
+    {
+      "code": "person.external_id.end",
+      "module": "Registry",
+      "description": "End a person's external identifier; it is kept, and its value is never given to anyone else.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED",
       "entitlement": null,
       "idempotent": false,
       "allowsAnonymous": false,

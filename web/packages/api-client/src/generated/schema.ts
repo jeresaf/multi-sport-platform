@@ -762,6 +762,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/v1/people/{personId}/aliases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add an alias to a person
+         * @description Adds another name the person is known by (`FORMER_NAME`, `NICKNAME` or `SPELLING`): the directory search and the duplicate check find the person under it too. No duplicate check runs. A name the person is already known by (the same name key as their own name or a current alias: word order, case, accents and punctuation aside) is PERSON_ALIAS_EXISTS; a name without a letter or a digit PERSON_NAME_INVALID. An archived or deceased person takes no new alias (PERSON_ARCHIVED, PERSON_DECEASED). Send `version` or `If-Match` from the last read to get 409 PERSON_CONCURRENCY_CONFLICT if the person changed since. Answers the person as GET /people/{personId} does; its version moves.
+         */
+        post: operations["AddPersonAlias"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/people/{personId}/aliases/{aliasId}/remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Remove a person's alias
+         * @description Removes an alias, whatever the person's status, with a reason (body `{ "reason": … }`, required): the alias is kept with who removed it, when and why, and is no longer shown, searched or matched. The reason is kept permanently on the alias and in the audit trail: don't include personal data. An alias already removed is PERSON_ALIAS_REMOVED. Send `version` or `If-Match` from the last read to get 409 PERSON_CONCURRENCY_CONFLICT if the person changed since. Answers the person as GET /people/{personId} does; its version moves.
+         */
+        post: operations["RemovePersonAlias"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/people/{personId}/external-identifiers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add an external identifier to a person
+         * @description Adds an identifier another authority gave the person: `authority` is a code the tenant chooses (e.g. `KMSA_REG_NO`), `value` is trimmed. A value with this authority that any person has or had, ended ones and this person's included, is PERSON_EXTERNAL_ID_EXISTS: a value is never reused. National identity documents (`NATIONAL_ID`, `NIN`, `PASSPORT`) are PERSON_EXTERNAL_ID_AUTHORITY_RESERVED. Names and dates aren't checked for duplicates. An archived or deceased person takes no new identifier (PERSON_ARCHIVED, PERSON_DECEASED). Send `version` or `If-Match` from the last read to get 409 PERSON_CONCURRENCY_CONFLICT if the person changed since. Answers the person as GET /people/{personId} does; its version moves.
+         */
+        post: operations["AddPersonExternalIdentifier"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/people/{personId}/external-identifiers/{identifierId}/end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * End a person's external identifier
+         * @description Ends an identifier, whatever the person's status: it is kept with its `validTo`, and its value is never given to anyone else. The body is optional: `validTo` defaults to today (the tenant's date) and can't be after it or before `validFrom` (PERSON_EXTERNAL_ID_VALIDITY_INVALID); `reason` (1–500 characters) is kept permanently in the audit trail: don't include personal data. An identifier already ended is PERSON_EXTERNAL_ID_ENDED. Send `version` or `If-Match` from the last read to get 409 PERSON_CONCURRENCY_CONFLICT if the person changed since. Answers the person as GET /people/{personId} does; its version moves.
+         */
+        post: operations["EndPersonExternalIdentifier"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/v1/people/{personId}/private": {
         parameters: {
             query?: never;
@@ -1522,6 +1602,28 @@ export interface components {
          */
         ActorSide: "OWN" | "OPPONENT";
         /**
+         * @description A new external identifier of a person (S06 D10): the authority's code, its value, and since when it is valid;
+         *     `version`, when sent, must be the person's current one.
+         */
+        AddExternalIdentifierRequest: {
+            authority: null | string;
+            value: null | string;
+            /** Format: date */
+            validFrom?: null | string;
+            /** Format: uint32 */
+            version?: null | number;
+        };
+        /**
+         * @description A new alias (S06 D10): the name as the person is known by it and its kind; `version`, when sent, must be the
+         *     person's current one.
+         */
+        AddPersonAliasRequest: {
+            name: null | string;
+            kind: null | components["schemas"]["AliasKind"];
+            /** Format: uint32 */
+            version?: null | number;
+        };
+        /**
          * @description Whether a person is an adult on the tenant's date (S06 D13): computed from the date of birth on every read, never
          *     stored. AgeStatus.Unknown means no date of birth is recorded; such a person is treated as a minor wherever data
          *     is shown publicly.
@@ -1842,6 +1944,17 @@ export interface components {
             code: string;
             value: components["schemas"]["EntitlementValue"];
             source: components["schemas"]["EntitlementSource"];
+        };
+        /**
+         * @description The end of an external identifier: `validTo` defaults to the tenant's today. The optional reason is kept in the
+         *     audit trail and is not redacted: it must not contain personal data.
+         */
+        EndExternalIdentifierRequest: {
+            /** Format: date */
+            validTo?: null | string;
+            reason?: null | string;
+            /** Format: uint32 */
+            version?: null | number;
         };
         /**
          * @description One entitlement override: `value` in place of the plan's for `entitlementCode`, until `effectiveUntil`
@@ -2408,6 +2521,15 @@ export interface components {
          */
         RemoveOverrideRequest: {
             reason: null | string;
+        };
+        /**
+         * @description The removal of an alias (audit `REQUIRED_WITH_REASON`). The reason is kept permanently on the alias and in the
+         *     audit trail and is not redacted: it must not contain personal data.
+         */
+        RemovePersonAliasRequest: {
+            reason: null | string;
+            /** Format: uint32 */
+            version?: null | number;
         };
         /**
          * @description A renewal up to `endsOn` (included). The plan, kind and windows not sent are the latest period's; a lower plan
@@ -5520,6 +5642,339 @@ export interface operations {
             };
             /** @description Problem Details; `code`: `PERSON_CONCURRENCY_CONFLICT`, `PERSON_STATUS_INVALID` */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    AddPersonAlias: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too. */
+                "If-Match"?: string;
+            };
+            path: {
+                personId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddPersonAliasRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `PERSON_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `PERSON_ALIAS_EXISTS`, `PERSON_ARCHIVED`, `PERSON_CONCURRENCY_CONFLICT`, `PERSON_DECEASED` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `PERSON_NAME_INVALID` */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    RemovePersonAlias: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too. */
+                "If-Match"?: string;
+            };
+            path: {
+                personId: string;
+                aliasId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RemovePersonAliasRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_MALFORMED_REQUEST`, `VALIDATION_REASON_REQUIRED` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `PERSON_ALIAS_NOT_FOUND`, `PERSON_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `PERSON_ALIAS_REMOVED`, `PERSON_CONCURRENCY_CONFLICT` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    AddPersonExternalIdentifier: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too. */
+                "If-Match"?: string;
+            };
+            path: {
+                personId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddExternalIdentifierRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `PERSON_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `PERSON_ARCHIVED`, `PERSON_CONCURRENCY_CONFLICT`, `PERSON_DECEASED`, `PERSON_EXTERNAL_ID_EXISTS` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `PERSON_EXTERNAL_ID_AUTHORITY_RESERVED` */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    EndPersonExternalIdentifier: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too. */
+                "If-Match"?: string;
+            };
+            path: {
+                personId: string;
+                identifierId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["EndExternalIdentifierRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `PERSON_EXTERNAL_ID_NOT_FOUND`, `PERSON_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `PERSON_CONCURRENCY_CONFLICT`, `PERSON_EXTERNAL_ID_ENDED` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `PERSON_EXTERNAL_ID_VALIDITY_INVALID` */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
