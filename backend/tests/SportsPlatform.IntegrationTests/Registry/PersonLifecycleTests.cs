@@ -122,6 +122,45 @@ public sealed class PersonLifecycleTests(PostgresFixture fixture) : DatabaseTest
         (await registrar.ReadJsonAsync(PersonPath(person), Ct)).GetProperty("status").GetString().ShouldBe("ACTIVE");
     }
 
+    // Review #99 Q1 (owner): deactivating and reactivating take an optional reason, kept in the history and the audit.
+    [Fact]
+    public async Task Deactivating_and_reactivating_keep_an_optional_reason()
+    {
+        var (kmsa, registrar) = await TenantAsync("kmsa", IdentityRoles.Registrar);
+        var person = await PersonInAsync(kmsa, PersonStatus.Active);
+
+        using (var blank = await registrar.PostAsJsonAsync(StatusPath(person, "deactivate"), new { reason = " " }, Ct))
+        {
+            var problem = await blank.ShouldBeProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_INVALID_REQUEST");
+            Fields(problem).Select(error => error.Item1).ShouldBe(["reason"]);
+        }
+
+        using (var tooLong = await registrar.PostAsJsonAsync(StatusPath(person, "deactivate"), new { reason = new string('x', 501) }, Ct))
+        {
+            await tooLong.ShouldBeProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_INVALID_REQUEST");
+        }
+
+        using (var deactivated = await registrar.PostAsJsonAsync(StatusPath(person, "deactivate"), new { reason = " Injured for the season " }, Ct))
+        {
+            deactivated.StatusCode.ShouldBe(HttpStatusCode.OK, await deactivated.Content.ReadAsStringAsync(Ct));
+        }
+
+        using (var reactivated = await registrar.PostAsJsonAsync(StatusPath(person, "reactivate"), new { }, Ct))
+        {
+            reactivated.StatusCode.ShouldBe(HttpStatusCode.OK, await reactivated.Content.ReadAsStringAsync(Ct));
+        }
+
+        var history = (await registrar.ReadJsonAsync(StatusChangesPath(person), Ct)).GetProperty("items").EnumerateArray()
+            .Select(row => (row.GetProperty("toStatus").GetString(), row.GetProperty("reason").ValueKind == JsonValueKind.Null ? null : row.GetProperty("reason").GetString()))
+            .ToList();
+        history.ShouldContain(("INACTIVE", "Injured for the season"));
+        history.ShouldContain(("ACTIVE", (string?)null));
+        await AccountTestData.DeliverOutboxAsync(App.Services, Ct);
+        var entries = await AuditTestData.EntriesAsync(App.Services, Ct);
+        entries.Where(e => e.Outcome == AuditOutcome.Success).Select(e => (e.ActionCode, e.Reason)).ShouldBe(
+            [("person.deactivate", "Injured for the season"), ("person.reactivate", (string?)null)], ignoreOrder: true);
+    }
+
     [Fact]
     public async Task Deactivating_needs_no_body_and_a_stale_version_conflicts()
     {

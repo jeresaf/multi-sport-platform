@@ -12,7 +12,6 @@ using SportsPlatform.IntegrationTests.Tenancy;
 using SportsPlatform.Modules.Identity.Domain.Roles;
 using SportsPlatform.Modules.Registry.Domain.People;
 using SportsPlatform.Modules.Registry.Domain.People.Duplicates;
-using SportsPlatform.Modules.Registry.Infrastructure;
 using SportsPlatform.Modules.Tenancy.Contracts.Tenants;
 using static SportsPlatform.IntegrationTests.Identity.MembershipTestData;
 using static SportsPlatform.IntegrationTests.Registry.PeopleRequests;
@@ -377,11 +376,6 @@ public sealed class CreatePersonTests(PostgresFixture fixture) : DatabaseTest(fi
 
         await response.ShouldBeProblemAsync(HttpStatusCode.Forbidden, "TENANT_READ_ONLY");
     }
-
-    private static Task<int> WaitingOnAdvisoryLocksAsync(RegistryDbContext context) =>
-        context.Database
-            .SqlQuery<int>($"SELECT count(*)::int AS \"Value\" FROM pg_locks WHERE locktype = 'advisory' AND NOT granted AND database = (SELECT oid FROM pg_database WHERE datname = current_database())")
-            .SingleAsync(Ct);
 
     private static async Task ShouldNeedACheckAsync(HttpClient client, object body)
     {

@@ -173,6 +173,59 @@ public sealed class UpdatePersonTests(PostgresFixture fixture) : DatabaseTest(fi
         (await registrar.ReadJsonAsync(PersonPath(moses), Ct)).GetProperty("firstName").GetString().ShouldBe("Moses");
     }
 
+    // Review #99 R1: the update's check runs again holding the people lock, so an update and a create that would make
+    // each other a duplicate can't both pass (D6 as D8 runs it).
+    [Fact]
+    public async Task An_update_and_a_create_that_match_each_other_at_once_leave_one_of_them_stale()
+    {
+        var (kmsa, registrar) = await TenantAsync("kmsa", IdentityRoles.Registrar);
+        var colleague = await MemberAsync(kmsa, "brian.ssemakula@kmsa.example", IdentityRoles.Registrar);
+        var moses = await CreatePersonAsync(App.Services, kmsa, SystemActor.Instance, _moses, overrideReason: null, Ct);
+        var john = new { firstName = "John", lastName = "Ssekandi", dateOfBirth = "2001-04-12" };
+        // Moses renamed John Ssekandi, and a new John Ssekandi born the same day: each check finds nobody.
+        var update = With(With(With(_mosesBody, "firstName", "John"), "lastName", "Ssekandi"), "checkToken",
+            await CheckTokenAsync(registrar, With(john, "personId", moses)));
+        var create = With(john, "checkToken", await CheckTokenAsync(colleague, john));
+
+        HttpResponseMessage[] responses;
+        await using (var holder = ScopeFor(App.Services, kmsa, out var holding))
+        {
+            await using var held = await holding.Database.BeginTransactionAsync(Ct);
+            var key = $"registry.people:{kmsa}";
+            await holding.Database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock(hashtextextended({key}, 0))", Ct);
+            var requests = new[] { registrar.PutAsJsonAsync(PersonPath(moses), update, Ct), colleague.PostAsJsonAsync(PeoplePath, create, Ct) };
+
+            var deadline = DateTimeOffset.UtcNow.AddSeconds(30);
+            while (await WaitingOnAdvisoryLocksAsync(holding) < 2)
+            {
+                requests.ShouldAllBe(request => !request.IsCompleted, "A request finished without waiting for the people lock.");
+                DateTimeOffset.UtcNow.ShouldBeLessThan(deadline, "The update and the create never both waited on the people lock.");
+                await Task.Delay(TimeSpan.FromMilliseconds(20), Ct);
+            }
+
+            await held.CommitAsync(Ct);
+            responses = await Task.WhenAll(requests);
+        }
+
+        try
+        {
+            responses.Count(response => response.IsSuccessStatusCode).ShouldBe(1);
+            await responses.Single(response => !response.IsSuccessStatusCode)
+                .ShouldBeProblemAsync(HttpStatusCode.Conflict, "PERSON_DUPLICATE_CHECK_STALE");
+        }
+        finally
+        {
+            foreach (var response in responses)
+            {
+                response.Dispose();
+            }
+        }
+
+        // Never two John Ssekandis born the same day without a decision.
+        await using var scope = ScopeFor(App.Services, kmsa, out var context);
+        (await context.Set<Person>().CountAsync(p => p.NameKey == "john ssekandi", Ct)).ShouldBe(1);
+    }
+
     [Fact]
     public async Task A_stale_version_conflicts_and_the_current_one_is_accepted()
     {

@@ -1,6 +1,8 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
+using SportsPlatform.Modules.Registry.Infrastructure;
 
 namespace SportsPlatform.IntegrationTests.Registry;
 
@@ -53,4 +55,10 @@ internal static class PeopleRequests
         merged[name] = value;
         return merged;
     }
+
+    /// <summary>How many requests of this database wait on an advisory lock (the people lock, S06 D6).</summary>
+    public static Task<int> WaitingOnAdvisoryLocksAsync(RegistryDbContext context) =>
+        context.Database
+            .SqlQuery<int>($"SELECT count(*)::int AS \"Value\" FROM pg_locks WHERE locktype = 'advisory' AND NOT granted AND database = (SELECT oid FROM pg_database WHERE datname = current_database())")
+            .SingleAsync(TestContext.Current.CancellationToken);
 }
