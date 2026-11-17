@@ -258,8 +258,6 @@ public sealed class CreatePersonTests(PostgresFixture fixture) : DatabaseTest(fi
         },
         { """{"firstName":"--","lastName":"Kato"}""", "PERSON_NAME_INVALID", "firstName" },
 
-        // Q43: the test clock is 2026-10-17 in Kampala.
-        { """{"firstName":"Moses","lastName":"Kato","dateOfBirth":"2026-10-18"}""", "PERSON_DATE_OF_BIRTH_IN_FUTURE", "dateOfBirth" },
         {
             """{"firstName":"Moses","lastName":"Kato","externalIdentifiers":[{"authority":"NATIONAL_ID","value":"CM0000000000XX"}]}""",
             "PERSON_EXTERNAL_ID_AUTHORITY_RESERVED", "externalIdentifiers[0].authority"
@@ -279,19 +277,25 @@ public sealed class CreatePersonTests(PostgresFixture fixture) : DatabaseTest(fi
         Fields(await response.ShouldBeProblemAsync(status, code)).ShouldBe([(field, code)]);
     }
 
+    // Q43, on the tenant's date (Kampala). The test clock is shared by the run's tests, so the dates follow it.
     [Fact]
-    public async Task A_date_of_birth_of_today_is_accepted_and_unknown_members_are_refused()
+    public async Task A_date_of_birth_of_today_is_accepted_tomorrow_is_refused_and_unknown_members_are_refused()
     {
         var (_, registrar) = await TenantAsync("kmsa", IdentityRoles.Registrar);
-        var newborn = new { firstName = "Moses", lastName = "Kato", dateOfBirth = "2026-10-17" };
+        var today = DateOnly.FromDateTime(App.Clock.GetUtcNow().ToOffset(TimeSpan.FromHours(3)).DateTime);
+        var newborn = new { firstName = "Moses", lastName = "Kato", dateOfBirth = today };
+        var unborn = new { firstName = "Moses", lastName = "Kato", dateOfBirth = today.AddDays(1) };
 
         using var created = await registrar.PostAsJsonAsync(PeoplePath, With(newborn, "checkToken", await CheckTokenAsync(registrar, newborn)), Ct);
+        using var refused = await registrar.PostAsJsonAsync(PeoplePath, unborn, Ct);
         using var unknownMember = await registrar.PostAsync(
             PeoplePath,
             new StringContent("""{"firstName":"Moses","lastName":"Kato","status":"ARCHIVED"}""", System.Text.Encoding.UTF8, "application/json"),
             Ct);
 
         created.StatusCode.ShouldBe(HttpStatusCode.Created);
+        Fields(await refused.ShouldBeProblemAsync(HttpStatusCode.UnprocessableEntity, "PERSON_DATE_OF_BIRTH_IN_FUTURE"))
+            .ShouldBe([("dateOfBirth", "PERSON_DATE_OF_BIRTH_IN_FUTURE")]);
         await unknownMember.ShouldBeProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_MALFORMED_REQUEST");
     }
 

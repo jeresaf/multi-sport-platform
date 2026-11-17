@@ -386,8 +386,6 @@ public sealed class DuplicateCheckTests(PostgresFixture fixture) : DatabaseTest(
         { """{"firstName":"John","lastName":"Ssekandi","nationality":"XX"}""", "VALIDATION_INVALID_REQUEST", "nationality" },
         { """{"firstName":"John","lastName":"Ssekandi","secondaryNationality":"ke"}""", "VALIDATION_INVALID_REQUEST", "secondaryNationality" },
 
-        // Q43: the test clock is 2026-10-17 in Kampala.
-        { """{"firstName":"John","lastName":"Ssekandi","dateOfBirth":"2026-10-18"}""", "PERSON_DATE_OF_BIRTH_IN_FUTURE", "dateOfBirth" },
         { """{"firstName":"John","lastName":"Ssekandi","externalIdentifiers":[null]}""", "VALIDATION_INVALID_REQUEST", "externalIdentifiers" },
         {
             $$"""{"firstName":"John","lastName":"Ssekandi","externalIdentifiers":[{{string.Join(',', Enumerable.Range(0, 11).Select(i => $$"""{"authority":"KMSA_REG_NO","value":"K-{{i}}"}"""))}}]}""",
@@ -423,6 +421,25 @@ public sealed class DuplicateCheckTests(PostgresFixture fixture) : DatabaseTest(
             .Select(error => (error.GetProperty("field").GetString(), error.GetProperty("code").GetString()))
             .ShouldBe([(field, code)]);
         problem.GetRawText().ShouldNotContain("CM0000000000XX");
+    }
+
+    // Q43, on the tenant's date (Kampala). The test clock is shared by the run's tests, so the dates follow it.
+    [Fact]
+    public async Task A_date_of_birth_of_today_is_checked_and_tomorrow_is_refused()
+    {
+        var (_, registrar) = await TenantAsync("kmsa", IdentityRoles.Registrar);
+        var today = DateOnly.FromDateTime(App.Clock.GetUtcNow().ToOffset(TimeSpan.FromHours(3)).DateTime);
+
+        using var checkedToday = await registrar.PostAsJsonAsync(
+            DuplicateCheckPath, new { firstName = "John", lastName = "Ssekandi", dateOfBirth = today }, Ct);
+        using var tomorrow = await registrar.PostAsJsonAsync(
+            DuplicateCheckPath, new { firstName = "John", lastName = "Ssekandi", dateOfBirth = today.AddDays(1) }, Ct);
+
+        checkedToday.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var problem = await tomorrow.ShouldBeProblemAsync(HttpStatusCode.UnprocessableEntity, "PERSON_DATE_OF_BIRTH_IN_FUTURE");
+        problem.GetProperty("errors").EnumerateArray()
+            .Select(error => (error.GetProperty("field").GetString(), error.GetProperty("code").GetString()))
+            .ShouldBe([("dateOfBirth", "PERSON_DATE_OF_BIRTH_IN_FUTURE")]);
     }
 
     [Fact]
