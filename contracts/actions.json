@@ -253,6 +253,38 @@
       "since": "S03"
     },
     {
+      "code": "person.read",
+      "module": "Registry",
+      "description": "View the people directory and a person's record: names, aliases, external identifiers, status and its history, birth year and whether the person is a minor.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "NONE",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": true,
+      "since": "S06"
+    },
+    {
+      "code": "person.read_private",
+      "module": "Registry",
+      "description": "View a person's private data: the full date of birth. Every read is audited.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": true,
+      "since": "S06"
+    },
+    {
       "code": "plan.read",
       "module": "Tenancy",
       "description": "View the plans and each entitlement's value on them.",

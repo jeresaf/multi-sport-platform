@@ -61,6 +61,8 @@
         "membership.remove",
         "membership.restore",
         "membership.suspend",
+        "person.read",
+        "person.read_private",
         "role.assign",
         "role.revoke",
         "ruleset.read",
@@ -90,6 +92,8 @@
         "membership.remove",
         "membership.restore",
         "membership.suspend",
+        "person.read",
+        "person.read_private",
         "role.assign",
         "role.revoke",
         "ruleset.read",
@@ -112,6 +116,8 @@
       ],
       "actions": [
         "format.read",
+        "person.read",
+        "person.read_private",
         "ruleset.read",
         "sport.read",
         "tenant.capabilities.read",
@@ -129,6 +135,7 @@
       ],
       "actions": [
         "format.read",
+        "person.read",
         "ruleset.read",
         "sport.read",
         "tenant.capabilities.read",
@@ -146,6 +153,7 @@
       ],
       "actions": [
         "format.read",
+        "person.read",
         "ruleset.read",
         "sport.read",
         "tenant.capabilities.read",
@@ -190,6 +198,7 @@
       ],
       "actions": [
         "format.read",
+        "person.read",
         "ruleset.read",
         "sport.read",
         "tenant.capabilities.read",
@@ -207,6 +216,7 @@
       "actions": [
         "format.read",
         "membership.read",
+        "person.read",
         "ruleset.read",
         "sport.read",
         "tenant.capabilities.read",

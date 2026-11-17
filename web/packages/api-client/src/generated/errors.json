@@ -199,6 +199,12 @@
       "owner": "Registry"
     },
     {
+      "code": "PERSON_NOT_FOUND",
+      "status": 404,
+      "message": "The person was not found.",
+      "owner": "Registry"
+    },
+    {
       "code": "PLATFORM_CONCURRENCY_CONFLICT",
       "status": 409,
       "message": "The record was changed by someone else. Reload and try again.",
