@@ -12,10 +12,11 @@ public enum DuplicateConfidence
     ExactIdentifier,
 }
 
+// This summary is the schema's description in OpenAPI. SAME_DATE_OF_BIRTH discloses that much to whoever may run the
+// check (open question Q42).
 /// <summary>
-/// Why a person matched (S06 D5). The answer never carries the other person's date of birth, but
-/// <see cref="SameDateOfBirth"/> confirms a date the caller already sent: the check discloses that much to whoever may
-/// run it (open question Q42).
+/// Why a person matched. The answer never carries the other person's date of birth; <c>SAME_DATE_OF_BIRTH</c> confirms
+/// a date the caller already sent.
 /// </summary>
 public enum DuplicateEvidenceCode
 {

@@ -1669,7 +1669,8 @@ export interface components {
          */
         DuplicateConfidence: "POSSIBLE" | "LIKELY" | "EXACT_IDENTIFIER";
         /**
-         * @description Why a person matched. None of them carries a `PRIVATE` value of the existing person (S06 D5).
+         * @description Why a person matched. The answer never carries the other person's date of birth; `SAME_DATE_OF_BIRTH` confirms
+         *     a date the caller already sent.
          * @enum {unknown}
          */
         DuplicateEvidenceCode: "SAME_EXTERNAL_ID" | "SAME_DATE_OF_BIRTH" | "BIRTH_YEAR_WITHIN_ONE" | "SAME_NAME_KEY" | "NAME_SIMILARITY" | "SAME_LAST_NAME" | "SAME_NATIONALITY" | "ALIAS_MATCH";

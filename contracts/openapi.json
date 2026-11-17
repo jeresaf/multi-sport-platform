@@ -7272,7 +7272,7 @@
           "SAME_NATIONALITY",
           "ALIAS_MATCH"
         ],
-        "description": "Why a person matched. None of them carries a `PRIVATE` value of the existing person (S06 D5)."
+        "description": "Why a person matched. The answer never carries the other person's date of birth; `SAME_DATE_OF_BIRTH` confirms\na date the caller already sent."
       },
       "DuplicateEvidenceResponse": {
         "required": [
