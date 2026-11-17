@@ -217,6 +217,12 @@
       "owner": "Registry"
     },
     {
+      "code": "PERSON_ATHLETE_PROFILE_EXISTS",
+      "status": 409,
+      "message": "The person already has an athlete profile for this sport variant: change or reactivate it instead.",
+      "owner": "Registry"
+    },
+    {
       "code": "PERSON_CONCURRENCY_CONFLICT",
       "status": 409,
       "message": "The record was changed by someone else. Reload and try again.",
@@ -292,6 +298,36 @@
       "code": "PERSON_NOT_FOUND",
       "status": 404,
       "message": "The person was not found.",
+      "owner": "Registry"
+    },
+    {
+      "code": "PERSON_POSITION_UNKNOWN",
+      "status": 422,
+      "message": "The sport variant's definition has no such position.",
+      "owner": "Registry"
+    },
+    {
+      "code": "PERSON_PROFILE_ARCHIVED",
+      "status": 409,
+      "message": "The profile is archived: it takes no more changes.",
+      "owner": "Registry"
+    },
+    {
+      "code": "PERSON_PROFILE_NOT_FOUND",
+      "status": 404,
+      "message": "The person has no such profile.",
+      "owner": "Registry"
+    },
+    {
+      "code": "PERSON_PROFILE_STATUS_INVALID",
+      "status": 409,
+      "message": "The profile's current status doesn't allow this change.",
+      "owner": "Registry"
+    },
+    {
+      "code": "PERSON_SPORT_NOT_ENABLED",
+      "status": 422,
+      "message": "The tenant hasn't enabled this sport variant: enable it first.",
       "owner": "Registry"
     },
     {
