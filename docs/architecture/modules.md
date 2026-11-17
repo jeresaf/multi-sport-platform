@@ -153,6 +153,13 @@ needs a check run with `personId` and runs it again under the same lock. The lif
 takes no new alias or identifier (`Person.EnsureAcceptsNewChildren`, which T4–T6 reuse for profiles, consents and
 photos); removing and ending stay allowed. A new identifier is checked exactly (authority and value, ended ones
 included) under `registry.people:<tenantId>`.
+**As built (S06-T4a):** athlete profiles (`registry.athlete_profiles`) and the profiles' status history
+(`registry.profile_status_changes`, append-only, one table for every kind) are children of the person: each change
+moves the person's version, and `POST …/people/{id}/athlete-profiles`, `PUT …/athlete-profiles/{profileId}` and `POST
+…/athlete-profiles/{profileId}/status` answer the person. `SportCodes` checks a new profile's variant through
+Tenancy's `IEnabledSports` and every position code through Sports Configuration's `ISportDefinitions` (the latest
+definition); the API carries codes, and labels come from `GET /sports/{variant}`. The directory filters by `profile`
+and `variant`; duplicate-check candidates carry their athlete variants.
 **First slice:** S06 (people), S07 (organisations, teams, venues).
 **As built (S06-T1a):** schema `registry`, every table tenant-owned (RLS): `persons` (classified columns, name keys),
 `person_aliases`, `person_status_changes` (append-only), `external_identifiers`. No endpoints or Contracts yet.

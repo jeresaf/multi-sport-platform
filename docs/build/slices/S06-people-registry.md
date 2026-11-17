@@ -519,3 +519,22 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   included (`PERSON_EXTERNAL_ID_EXISTS` on `value`; its message no longer says "another"). Other new codes:
   `PERSON_ALIAS_NOT_FOUND`, `PERSON_EXTERNAL_ID_NOT_FOUND` (404), `PERSON_ALIAS_REMOVED`, `PERSON_EXTERNAL_ID_ENDED`
   (409). `Person.AddAlias` returns a `Result`. No migration (T1a made both tables).
+- **T4a:** athlete profiles. Owner decisions (plan, 2026-11-17): profiles are **children of the person** (each change
+  takes the person's `If-Match`/`version` and answers the person, so an archive racing a new profile conflicts);
+  profile moves are `ACTIVE ⇄ INACTIVE`, `ACTIVE | INACTIVE → RETIRED`, `RETIRED → ACTIVE`, any but `ARCHIVED` →
+  `ARCHIVED` (final), every one with a reason; "open" means not archived; on an archived or deceased person no new
+  profile and no move to `ACTIVE`, corrections and closing moves allowed; staff and official capabilities (T4b) change
+  through the profile's update; Q46 stays open for T7. Defaults confirmed with the plan: a primary position is
+  optional; other positions are distinct, at most five, never the primary one. As built: `POST
+  …/people/{id}/athlete-profiles` (`{variant, primaryPosition, otherPositions, dominantSide, publicName}`), `PUT
+  …/athlete-profiles/{profileId}` (the same without `variant`, a whole replacement), `POST
+  …/athlete-profiles/{profileId}/status` (`{status, reason}`). New codes: `PERSON_SPORT_NOT_ENABLED`,
+  `PERSON_POSITION_UNKNOWN` (422, on `variant`, `primaryPosition` or `otherPositions[i]`), `PERSON_ATHLETE_PROFILE_EXISTS`
+  (409, on `variant`), `PERSON_PROFILE_NOT_FOUND` (404), `PERSON_PROFILE_ARCHIVED`, `PERSON_PROFILE_STATUS_INVALID`
+  (409). A correction (`PUT`) checks positions against the latest definition but not whether the variant is still
+  enabled (S05 D12). `publicName` is stored as sent, null meaning the display name. One partial unique index keeps one
+  open profile per person and variant. The person read lists every athlete profile (archived ones included) by
+  variant, with codes only (labels from `GET /sports/{variant}`, AR-29); there is no read of a profile's status
+  history yet (T7 adds one if the Roles tab needs it). The directory's `profile` filter takes `ATHLETE` only until
+  T4b. `TestSportDefinitions` now gives its test variants definitions with test positions. The T4 acceptance boxes are
+  ticked with T4b (role codes, all three profiles on one person).
