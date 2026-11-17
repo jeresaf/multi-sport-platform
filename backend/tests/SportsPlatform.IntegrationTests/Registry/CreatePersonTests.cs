@@ -81,6 +81,9 @@ public sealed class CreatePersonTests(PostgresFixture fixture) : DatabaseTest(fi
             ["heightCm"] = 181,
             ["weightKg"] = 74.5,
             ["externalIdentifiers"] = new[] { new { authority = _regNo, value = " KMSA-00512 ", validFrom = "2024-02-01" } },
+
+            // Nobody matched: the reason is audited and nothing else is written (review #98 R3).
+            ["overrideReason"] = "Registered at the Ntinda trial day",
         };
         // The check takes only what it compares: no gender, height, weight or validFrom.
         var token = await CheckTokenAsync(registrar, new
@@ -93,6 +96,7 @@ public sealed class CreatePersonTests(PostgresFixture fixture) : DatabaseTest(fi
             externalIdentifiers = new[] { new { authority = _regNo, value = "KMSA-00512" } },
         });
         App.Clock.Advance(TimeSpan.FromMinutes(29));
+        App.Telemetry.Clear();
 
         using var response = await registrar.PostAsJsonAsync(PeoplePath, With(moses, "checkToken", token), Ct);
 
@@ -114,8 +118,23 @@ public sealed class CreatePersonTests(PostgresFixture fixture) : DatabaseTest(fi
 
         await AccountTestData.DeliverOutboxAsync(App.Services, Ct);
         var entry = (await AuditTestData.EntriesAsync(App.Services, Ct)).Single(e => e.ActionCode == "person.create");
-        (entry.Outcome, entry.EntityType, entry.EntityId, entry.Reason).ShouldBe((AuditOutcome.Success, "Person", id, null));
+        (entry.Outcome, entry.EntityType, entry.EntityId, entry.Reason)
+            .ShouldBe((AuditOutcome.Success, "Person", id, "Registered at the Ntinda trial day"));
         JsonDocument.Parse(entry.Metadata!).RootElement.GetProperty("candidates").GetArrayLength().ShouldBe(0);
+        entry.Metadata!.ShouldNotContain("2003-05-17");
+        await using (var scope = ScopeFor(App.Services, kmsa, out var context))
+        {
+            (await context.Set<DuplicateDecision>().CountAsync(Ct)).ShouldBe(0);
+        }
+
+        // D3: the date of birth and the names never reach the logs (review #98 R2).
+        await App.Telemetry.WaitForRequestLogAsync(PeoplePath);
+        foreach (var value in new[] { "2003-05-17", "Moses", "Kato" })
+        {
+            App.Telemetry.Events.ShouldAllBe(e =>
+                !e.RenderMessage(null).Contains(value, StringComparison.Ordinal)
+                && e.Properties.Values.All(property => !property.ToString().Contains(value, StringComparison.Ordinal)));
+        }
     }
 
     // T2 acceptance: past candidates without a reason is refused; with one it succeeds, the audit entry keeps the reason
@@ -231,9 +250,11 @@ public sealed class CreatePersonTests(PostgresFixture fixture) : DatabaseTest(fi
             await holding.Database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock(hashtextextended({key}, 0))", Ct);
             var creates = new[] { registrar.PostAsJsonAsync(PeoplePath, mine, Ct), colleague.PostAsJsonAsync(PeoplePath, theirs, Ct) };
 
+            var deadline = DateTimeOffset.UtcNow.AddSeconds(30);
             while (await WaitingOnAdvisoryLocksAsync(holding) < 2)
             {
                 creates.ShouldAllBe(create => !create.IsCompleted, "A create finished without waiting for the people lock.");
+                DateTimeOffset.UtcNow.ShouldBeLessThan(deadline, "The two creates never both waited on the people lock.");
                 await Task.Delay(TimeSpan.FromMilliseconds(20), Ct);
             }
 
@@ -359,7 +380,7 @@ public sealed class CreatePersonTests(PostgresFixture fixture) : DatabaseTest(fi
 
     private static Task<int> WaitingOnAdvisoryLocksAsync(RegistryDbContext context) =>
         context.Database
-            .SqlQuery<int>($"SELECT count(*)::int AS \"Value\" FROM pg_locks WHERE locktype = 'advisory' AND NOT granted")
+            .SqlQuery<int>($"SELECT count(*)::int AS \"Value\" FROM pg_locks WHERE locktype = 'advisory' AND NOT granted AND database = (SELECT oid FROM pg_database WHERE datname = current_database())")
             .SingleAsync(Ct);
 
     private static async Task<JsonElement> CheckAsync(HttpClient client, object body)
