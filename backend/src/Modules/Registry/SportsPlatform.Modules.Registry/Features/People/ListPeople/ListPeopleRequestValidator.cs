@@ -19,6 +19,12 @@ public sealed class ListPeopleRequestValidator : AbstractValidator<ListPeopleReq
         RuleFor(request => request.AgeStatus)
             .Must(status => status is null || ListPeopleRequest.TryParseAgeStatus(status, out _))
             .WithMessage($"'ageStatus' must be one of: {string.Join(", ", ListPeopleRequest.AgeStatuses)}.");
+        RuleFor(request => request.Profile)
+            .Must(profile => profile is null || ListPeopleRequest.TryParseProfile(profile, out _))
+            .WithMessage($"'profile' must be one of: {string.Join(", ", ListPeopleRequest.Profiles)}.");
+        RuleFor(request => request.Variant)
+            .Must(variant => variant is null || Profiles.AthleteProfileDetailsRules.IsCode(variant, ListPeopleRequest.VariantMaxLength))
+            .WithMessage($"'variant' must be a sport variant code of at most {ListPeopleRequest.VariantMaxLength} characters.");
         RuleFor(request => request.Limit)
             .Must(limit => limit is null || ListPeopleRequest.TryParseLimit(limit, out _))
             .WithMessage($"'limit' must be a whole number between 1 and {ListPeopleRequest.MaxLimit}.");

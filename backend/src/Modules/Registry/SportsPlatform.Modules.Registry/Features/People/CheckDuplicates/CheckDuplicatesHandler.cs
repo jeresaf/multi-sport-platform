@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using SportsPlatform.BuildingBlocks.Privacy;
 using SportsPlatform.Modules.Registry.Domain.People;
 using SportsPlatform.Modules.Registry.Domain.People.Duplicates;
+using SportsPlatform.Modules.Registry.Domain.People.Profiles;
 using SportsPlatform.Modules.Registry.Infrastructure;
 using PersonStatus = SportsPlatform.Modules.Registry.Domain.People.PersonStatus;
 
@@ -17,7 +18,8 @@ public sealed record CheckDuplicatesResponse(
 
 /// <summary>
 /// A person who matched. <c>EXACT_IDENTIFIER</c> blocks creation; <c>LIKELY</c> and <c>POSSIBLE</c> need a reason to
-/// proceed. <c>status</c> marks an archived, inactive or deceased person.
+/// proceed. <c>status</c> marks an archived, inactive or deceased person. <c>athleteVariants</c>: the sport variants of
+/// their athlete profiles that aren't archived, by code (S06 D5).
 /// </summary>
 public sealed record DuplicateCandidateResponse(
     [property: PersonalData(PersonalDataClass.Public)] Guid PersonId,
@@ -25,7 +27,8 @@ public sealed record DuplicateCandidateResponse(
     [property: PersonalData(PersonalDataClass.Internal)] int? BirthYear,
     [property: PersonalData(PersonalDataClass.Internal)] PersonStatus Status,
     [property: PersonalData(PersonalDataClass.Internal)] DuplicateConfidence Confidence,
-    [property: PersonalData(PersonalDataClass.Internal)] IReadOnlyList<DuplicateEvidenceResponse> Evidence);
+    [property: PersonalData(PersonalDataClass.Internal)] IReadOnlyList<DuplicateEvidenceResponse> Evidence,
+    [property: PersonalData(PersonalDataClass.Public)] IReadOnlyList<string> AthleteVariants);
 
 /// <summary>
 /// Why the person matched. <c>value</c>: the authority for <c>SAME_EXTERNAL_ID</c>, the whole percentage for
@@ -60,6 +63,12 @@ public sealed class CheckDuplicatesHandler(
 
         var input = PersonDetailsRules.ToCheckInput(request, request.PersonId);
         var candidates = await finder.FindAsync(input, cancellationToken);
+        var ids = candidates.Select(candidate => candidate.PersonId).ToList();
+        var variants = (await context.Set<AthleteProfile>().AsNoTracking()
+                .Where(a => ids.Contains(a.PersonId) && a.Status != ProfileStatus.Archived)
+                .Select(a => new { a.PersonId, a.Variant })
+                .ToListAsync(cancellationToken))
+            .ToLookup(a => a.PersonId, a => a.Variant);
         return (new CheckDuplicatesResponse(
             [
                 .. candidates.Select(candidate => new DuplicateCandidateResponse(
@@ -68,7 +77,8 @@ public sealed class CheckDuplicatesHandler(
                     candidate.BirthYear,
                     candidate.Status,
                     candidate.Match.Confidence,
-                    [.. candidate.Match.Evidence.Select(evidence => new DuplicateEvidenceResponse(evidence.Code, evidence.Value))])),
+                    [.. candidate.Match.Evidence.Select(evidence => new DuplicateEvidenceResponse(evidence.Code, evidence.Value))],
+                    [.. variants[candidate.PersonId].Distinct().Order(StringComparer.Ordinal)])),
             ],
             tokens.Issue(input, candidates.Select(candidate => candidate.PersonId))), null);
     }

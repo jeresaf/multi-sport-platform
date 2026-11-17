@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Results;
 using SportsPlatform.Modules.Registry.Domain.People;
+using SportsPlatform.Modules.Registry.Domain.People.Profiles;
 using SportsPlatform.Modules.Registry.Infrastructure;
 
 namespace SportsPlatform.Modules.Registry.Features.People.GetPerson;
@@ -35,11 +36,19 @@ public sealed class GetPersonHandler(RegistryDbContext context, TenantToday tena
             .Select(i => new ExternalIdentifierResponse(i.Id, i.Authority, i.Value, i.ValidFrom, i.ValidTo))
             .ToListAsync(cancellationToken);
 
+        var profiles = await context.Set<AthleteProfile>().AsNoTracking()
+            .Where(a => a.PersonId == personId)
+            .OrderBy(a => a.Variant).ThenBy(a => a.Id)
+            .ToListAsync(cancellationToken);
+
         var p = person.Person;
         var ageStatus = Age.StatusOn(p.DateOfBirth, await tenantToday.GetAsync(cancellationToken));
         return Result.Success(new PersonResponse(
             p.Id, p.FirstName, p.MiddleName, p.LastName, p.OtherNames, p.DisplayName, p.Gender, p.DateOfBirth?.Year,
             Age.IsTreatedAsMinor(ageStatus), ageStatus, p.Nationality, p.SecondaryNationality, p.HeightCm, p.WeightKg,
-            p.PublicProfileEnabled, p.Status, p.Source, person.Aliases, identifiers, person.Version));
+            p.PublicProfileEnabled, p.Status, p.Source, person.Aliases, identifiers,
+            [.. profiles.Select(a => new AthleteProfileResponse(
+                a.Id, a.Variant, a.PrimaryPosition, a.OtherPositions, a.DominantSide, a.PublicName, a.Status))],
+            person.Version));
     }
 }
