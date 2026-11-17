@@ -148,6 +148,11 @@ candidates records "not the same person" decisions (data-conventions.md, Duplica
 needs a check run with `personId` and runs it again under the same lock. The lifecycle actions (`deactivate`,
 `reactivate`, `archive`, `unarchive`, `mark-deceased`) move the person along docs/domain/state-machines.md and write
 `person_status_changes`.
+**As built (S06-T3b):** `POST …/people/{id}/aliases` and `…/aliases/{aliasId}/remove`, `POST
+…/people/{id}/external-identifiers` and `…/external-identifiers/{identifierId}/end`. An archived or deceased person
+takes no new alias or identifier (`Person.EnsureAcceptsNewChildren`, which T4–T6 reuse for profiles, consents and
+photos); removing and ending stay allowed. A new identifier is checked exactly (authority and value, ended ones
+included) under `registry.people:<tenantId>`.
 **First slice:** S06 (people), S07 (organisations, teams, venues).
 **As built (S06-T1a):** schema `registry`, every table tenant-owned (RLS): `persons` (classified columns, name keys),
 `person_aliases`, `person_status_changes` (append-only), `external_identifiers`. No endpoints or Contracts yet.

@@ -343,7 +343,7 @@ Deliver:
 Acceptance:
 - [x] Every transition in D9 is allowed, every other refused (`409 PERSON_STATUS_INVALID`), each with its history row
       and audit reason (table-driven).
-- [ ] An identifier already used by another person, even ended, is refused with `PERSON_EXTERNAL_ID_EXISTS` (test).
+- [x] An identifier already used by another person, even ended, is refused with `PERSON_EXTERNAL_ID_EXISTS` (test).
 - [x] A name change that creates a `LIKELY` match needs a check and a reason (test).
 
 ### T4 — Role profiles (~2 PRs, about 1,000 lines)
@@ -505,3 +505,17 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   optional reason (owner, review #99 Q1); the others need one (1–500, `VALIDATION_REASON_REQUIRED`). The lifecycle endpoints follow Tenancy's (`If-Match`
   or `version`, answer the person with its `ETag`). `PersonBiodataValidator<T>` holds the display name, height and
   weight bounds for create and update; `DuplicateReviewAuditMetadata` replaces `CreatePersonAuditMetadata` (same JSON).
+- **T3b:** aliases and external identifiers. Owner decisions (plan, 2026-11-17): an alias whose name key is the
+  person's own or a current alias's is `409 PERSON_ALIAS_EXISTS` (on `name`); a person may hold two open identifiers
+  of one authority; `validTo` is optional (the tenant's today), not after today and not before `validFrom` (`422
+  PERSON_EXTERNAL_ID_VALIDITY_INVALID`). As built: `POST …/aliases` (`{name, kind}`, no duplicate check, Q45), `POST
+  …/aliases/{aliasId}/remove` (reason required, 1–500), `POST …/external-identifiers` (`{authority, value,
+  validFrom}`), `POST …/external-identifiers/{identifierId}/end` (optional body `{validTo, reason}`); each takes
+  `If-Match` or `version` and answers the person with its `ETag`, like the lifecycle actions. `person.alias.remove`
+  is `REQUIRED_WITH_REASON`, the other three `REQUIRED`; audit metadata names the alias or identifier by ID (and the
+  identifier's authority), never a name or a value. `PERSON_ARCHIVED`/`PERSON_DECEASED` (409) come from
+  `Person.EnsureAcceptsNewChildren`, for T4–T6 to reuse; removing an alias and ending an identifier stay allowed in
+  every status. The add holds `registry.people:<tenantId>` and refuses a value any person has or had, this one
+  included (`PERSON_EXTERNAL_ID_EXISTS` on `value`; its message no longer says "another"). Other new codes:
+  `PERSON_ALIAS_NOT_FOUND`, `PERSON_EXTERNAL_ID_NOT_FOUND` (404), `PERSON_ALIAS_REMOVED`, `PERSON_EXTERNAL_ID_ENDED`
+  (409). `Person.AddAlias` returns a `Result`. No migration (T1a made both tables).

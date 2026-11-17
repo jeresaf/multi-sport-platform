@@ -1,10 +1,11 @@
+using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.BuildingBlocks.Domain;
 
 namespace SportsPlatform.Modules.Registry.Domain.People;
 
 /// <summary>
 /// Another name a person is known by (<c>registry.person_aliases</c>, tenant-owned, S06 D10), with its own name key.
-/// Removing one stamps who, when and why, so the history stays; the commands come with S06-T3.
+/// Removing one stamps who, when and why, so the history stays (<see cref="Person.RemoveAlias"/>).
 /// </summary>
 public sealed class PersonAlias : Entity, ITenantOwned
 {
@@ -55,4 +56,22 @@ public sealed class PersonAlias : Entity, ITenantOwned
     public string? RemoveReason { get; private set; }
 
     public bool IsRemoved => RemovedAt is not null;
+
+    /// <summary>Stamps the removal; the person has checked the alias isn't removed already.</summary>
+    internal void Remove(string reason, ICurrentActor actor, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(actor);
+        if (IsRemoved)
+        {
+            throw new InvalidOperationException("The alias is already removed.");
+        }
+
+        // Trimmed as sent, like the status history and the audit entry (review #100 N2).
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+        var trimmed = reason.Trim();
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(trimmed.Length, ReasonMaxLength, nameof(reason));
+        RemoveReason = trimmed;
+        RemovedBy = actor.ActorId;
+        RemovedAt = now;
+    }
 }

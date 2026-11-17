@@ -32,21 +32,7 @@ public sealed class PersonDetailsValidator<T> : AbstractValidator<T>
             .Must(identifiers => identifiers is null || identifiers.All(identifier => identifier is not null))
             .WithMessage("An entry of 'externalIdentifiers' must be an object.");
         RuleForEach(request => request.ExternalIdentifiers)
-            .ChildRules(identifier =>
-            {
-                identifier.RuleFor(i => i!.Authority)
-                    .Must(authority => authority is not null && !authority.Any(char.IsControl) && PersonDetailsPatterns.Authority().IsMatch(authority))
-                    .WithMessage("'authority' must be an UPPER_SNAKE code of 2 to 40 characters.");
-                identifier.RuleFor(i => i!.Value)
-                    .Cascade(CascadeMode.Stop)
-                    .Must(value => !string.IsNullOrWhiteSpace(value))
-                    .WithMessage("'value' must not be empty.")
-                    .Must(value => value!.Trim().Length <= ExternalIdentifier.ValueMaxLength)
-                    .WithMessage($"'value' must be at most {ExternalIdentifier.ValueMaxLength} characters.")
-                    // PostgreSQL refuses a NUL in text, and no identifier holds a control character.
-                    .Must(value => !value!.Any(char.IsControl))
-                    .WithMessage("'value' can't contain control characters.");
-            })
+            .ChildRules(identifier => IdentifierDetailsRules.Apply(identifier))
             .When(request => request.ExternalIdentifiers is not null
                 && request.ExternalIdentifiers.All(identifier => identifier is not null));
     }
@@ -89,6 +75,32 @@ public sealed class PersonBiodataValidator<T> : AbstractValidator<T>
                 && decimal.Round(weight!.Value, 1) == weight)
             .WithMessage($"'weightKg' must be {PersonBiodata.MinWeightKg}–{PersonBiodata.MaxWeightKg} with at most one decimal.")
             .When(request => request.WeightKg is not null);
+    }
+}
+
+/// <summary>
+/// The shape of one external identifier (<see cref="IIdentifierDetails"/>), in a create, the check, or
+/// <c>person.external_id.add</c>: an UPPER_SNAKE authority and a value of 1–100 characters after trimming, without
+/// control characters. Whether the authority is reserved is a rule with its own code (422).
+/// </summary>
+internal static class IdentifierDetailsRules
+{
+    public static void Apply<TIdentifier>(AbstractValidator<TIdentifier> validator)
+        where TIdentifier : IIdentifierDetails?
+    {
+        ArgumentNullException.ThrowIfNull(validator);
+        validator.RuleFor(i => i!.Authority)
+            .Must(authority => authority is not null && !authority.Any(char.IsControl) && PersonDetailsPatterns.Authority().IsMatch(authority))
+            .WithMessage("'authority' must be an UPPER_SNAKE code of 2 to 40 characters.");
+        validator.RuleFor(i => i!.Value)
+            .Cascade(CascadeMode.Stop)
+            .Must(value => !string.IsNullOrWhiteSpace(value))
+            .WithMessage("'value' must not be empty.")
+            .Must(value => value!.Trim().Length <= ExternalIdentifier.ValueMaxLength)
+            .WithMessage($"'value' must be at most {ExternalIdentifier.ValueMaxLength} characters.")
+            // PostgreSQL refuses a NUL in text, and no identifier holds a control character.
+            .Must(value => !value!.Any(char.IsControl))
+            .WithMessage("'value' can't contain control characters.");
     }
 }
 

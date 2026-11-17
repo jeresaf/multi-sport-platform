@@ -108,7 +108,7 @@ transaction. Concurrent commands on the same key queue on the lock, and each rea
 - Key: `<schema>.<purpose>:<id>`, hashed with `pg_advisory_xact_lock(hashtextextended(<key>, 0))`, e.g.
   `identity.tenant_owners:<tenantId>` (S03), `tenancy.subscription:<tenantId>`,
   `tenancy.entitlement_override:<tenantId>` and `identity.staff_users:<tenantId>` (S04), `tenancy.tenant_sports:<tenantId>`
-  (S05: enable and disable), `registry.people:<tenantId>` (S06: create, and the update in S06-T3).
+  (S05: enable and disable), `registry.people:<tenantId>` (S06: create, an update that runs the check, and every new external identifier).
 - Take the lock inside an explicit transaction (`BeginTransactionAsync`), before the reads the rule depends on; commit
   with `CancellationToken.None` after the save, so a client hanging up can't roll back an audited change.
 - One key per rule and owner (usually the tenant); never hold two keys at once.
@@ -151,7 +151,11 @@ As built for people (S06-T1a):
   indexes don't start with `tenant_id` (GIN can't without `btree_gin`); RLS and the query filter still apply.
 - **External identifiers:** `registry.external_identifiers` has no foreign key to its entity (one table for every
   registry entity type; `entity_type` is `PERSON` until S07) and a unique index on `(tenant_id, authority,
-  entity_type, value)` that includes ended rows.
+  entity_type, value)` that includes ended rows. As built (S06-T3b): `person.external_id.add` refuses a value with the
+  same authority that any person has or had, this one included (`PERSON_EXTERNAL_ID_EXISTS`); one person may hold two
+  open identifiers of one authority. `person.external_id.end` sets `valid_to` (default the tenant's today; not after
+  it, not before `valid_from`). Aliases are removed with a reason, never deleted; an alias whose name key is already
+  the person's own or a current alias's is refused (`PERSON_ALIAS_EXISTS`).
 
 As built for people (S06-T2a), the duplicate check (`DuplicateMatcher`, Registry Domain; `DuplicateFinder`):
 

@@ -193,6 +193,30 @@
       "owner": "SportsConfiguration"
     },
     {
+      "code": "PERSON_ALIAS_EXISTS",
+      "status": 409,
+      "message": "The person is already known by this name: their own name or a current alias gives the same name key.",
+      "owner": "Registry"
+    },
+    {
+      "code": "PERSON_ALIAS_NOT_FOUND",
+      "status": 404,
+      "message": "The person has no such alias.",
+      "owner": "Registry"
+    },
+    {
+      "code": "PERSON_ALIAS_REMOVED",
+      "status": 409,
+      "message": "The alias is already removed.",
+      "owner": "Registry"
+    },
+    {
+      "code": "PERSON_ARCHIVED",
+      "status": 409,
+      "message": "The person is archived: they take no new profile, alias, identifier, consent or photo.",
+      "owner": "Registry"
+    },
+    {
       "code": "PERSON_CONCURRENCY_CONFLICT",
       "status": 409,
       "message": "The record was changed by someone else. Reload and try again.",
@@ -202,6 +226,12 @@
       "code": "PERSON_DATE_OF_BIRTH_IN_FUTURE",
       "status": 422,
       "message": "A date of birth can't be after today (the tenant's date).",
+      "owner": "Registry"
+    },
+    {
+      "code": "PERSON_DECEASED",
+      "status": 409,
+      "message": "The person is recorded as deceased: they take no new profile, alias, identifier, consent or photo.",
       "owner": "Registry"
     },
     {
@@ -229,9 +259,27 @@
       "owner": "Registry"
     },
     {
+      "code": "PERSON_EXTERNAL_ID_ENDED",
+      "status": 409,
+      "message": "The external identifier has already ended.",
+      "owner": "Registry"
+    },
+    {
       "code": "PERSON_EXTERNAL_ID_EXISTS",
       "status": 409,
-      "message": "Another person already has this external identifier (the same authority and value).",
+      "message": "A person already has this external identifier (the same authority and value), or had it: a value is never reused.",
+      "owner": "Registry"
+    },
+    {
+      "code": "PERSON_EXTERNAL_ID_NOT_FOUND",
+      "status": 404,
+      "message": "The person has no such external identifier.",
+      "owner": "Registry"
+    },
+    {
+      "code": "PERSON_EXTERNAL_ID_VALIDITY_INVALID",
+      "status": 422,
+      "message": "An identifier's end date can't be before its start date or after today (the tenant's date).",
       "owner": "Registry"
     },
     {

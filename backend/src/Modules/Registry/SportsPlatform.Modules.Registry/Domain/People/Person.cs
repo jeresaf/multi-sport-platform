@@ -147,12 +147,61 @@ public sealed class Person : AggregateRoot, ITenantOwned
         return Result.Success();
     }
 
-    /// <summary>Adds an alias with its own name key, so the person is found and matched under that name too (S06 D10).</summary>
-    public PersonAlias AddAlias(string name, AliasKind kind)
+    /// <summary>
+    /// Whether the person takes a new profile, alias, identifier, consent or photo (S06 D9): not when <c>ARCHIVED</c>
+    /// (<c>PERSON_ARCHIVED</c>) or <c>DECEASED</c> (<c>PERSON_DECEASED</c>). Corrections (biodata, removing an alias,
+    /// ending an identifier) stay allowed in every status (owner, Q45).
+    /// </summary>
+    public Result EnsureAcceptsNewChildren() => Status switch
     {
+        PersonStatus.Archived => Result.Failure(RegistryErrors.PersonArchived),
+        PersonStatus.Deceased => Result.Failure(RegistryErrors.PersonDeceased),
+        _ => Result.Success(),
+    };
+
+    /// <summary>
+    /// Adds an alias with its own name key, so the person is found and matched under that name too (S06 D10). Refused
+    /// on an archived or deceased person, and when the alias's key is already the person's own or a current alias's
+    /// (<c>PERSON_ALIAS_EXISTS</c>, owner, S06-T3b plan): such an alias would find nothing new. The use case has checked
+    /// that the name has a letter or a digit.
+    /// </summary>
+    public Result<PersonAlias> AddAlias(string name, AliasKind kind)
+    {
+        var accepts = EnsureAcceptsNewChildren();
+        if (accepts.IsFailure)
+        {
+            return accepts.Error;
+        }
+
         var alias = new PersonAlias(Id, name, kind);
+        if (alias.NameKey == NameKey || _aliases.Any(existing => !existing.IsRemoved && existing.NameKey == alias.NameKey))
+        {
+            return RegistryErrors.AliasExists;
+        }
+
         _aliases.Add(alias);
-        return alias;
+        return Result.Success(alias);
+    }
+
+    /// <summary>
+    /// Removes an alias, keeping it with who, when and why (S06 D10); allowed in every status (Q45). An alias of
+    /// another person is <c>PERSON_ALIAS_NOT_FOUND</c>, one already removed <c>PERSON_ALIAS_REMOVED</c>.
+    /// </summary>
+    public Result RemoveAlias(Guid aliasId, string reason, ICurrentActor actor, DateTimeOffset now)
+    {
+        var alias = _aliases.SingleOrDefault(existing => existing.Id == aliasId);
+        if (alias is null)
+        {
+            return Result.Failure(RegistryErrors.AliasNotFound);
+        }
+
+        if (alias.IsRemoved)
+        {
+            return Result.Failure(RegistryErrors.AliasRemoved);
+        }
+
+        alias.Remove(reason, actor, now);
+        return Result.Success();
     }
 
     private void Apply(PersonBiodata biodata)

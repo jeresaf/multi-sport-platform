@@ -97,7 +97,7 @@ public sealed class PersonTests
     {
         var person = Create(new PersonBiodata("Peter", "Ochieng"));
 
-        var alias = person.AddAlias("Okot  Peter", AliasKind.FormerName);
+        var alias = person.AddAlias("Okot  Peter", AliasKind.FormerName).Value;
 
         person.Aliases.ShouldHaveSingleItem().ShouldBeSameAs(alias);
         alias.PersonId.ShouldBe(person.Id);

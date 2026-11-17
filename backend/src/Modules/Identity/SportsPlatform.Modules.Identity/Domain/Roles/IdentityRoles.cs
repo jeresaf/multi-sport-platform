@@ -62,7 +62,8 @@ public static class IdentityRoles
     private static readonly string[] _personChanges =
     [
         _personDuplicateCheck, _personCreate, "person.update", "person.deactivate", "person.reactivate", "person.archive",
-        "person.unarchive", "person.mark_deceased",
+        "person.unarchive", "person.mark_deceased", "person.alias.add", "person.alias.remove", "person.external_id.add",
+        "person.external_id.end",
     ];
 
     private static readonly string[] _tenantAdministration =
