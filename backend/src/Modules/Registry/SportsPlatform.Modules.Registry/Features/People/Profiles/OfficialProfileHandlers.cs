@@ -63,9 +63,10 @@ public sealed class CreateOfficialProfileHandler(
 }
 
 /// <summary>
-/// Replaces an official profile's capabilities (S06 D12): allowed whatever the person's status. A capability the profile
-/// already holds may stay on a variant the tenant has since disabled; an added one needs its variant enabled. Every role
-/// must be the variant's latest definition's.
+/// Replaces an official profile's capabilities (S06 D12), a correction: held capabilities may be kept, removed or re-licensed
+/// whatever the person's status, but adding one needs a person who is neither archived nor deceased (review #102 R2). A
+/// capability the profile already holds may stay on a variant the tenant has since disabled; an added one needs its
+/// variant enabled. Every role must be the variant's latest definition's.
 /// </summary>
 public sealed class UpdateOfficialProfileHandler(RegistryDbContext context, SportCodes sportCodes, AuditScope audit)
 {
