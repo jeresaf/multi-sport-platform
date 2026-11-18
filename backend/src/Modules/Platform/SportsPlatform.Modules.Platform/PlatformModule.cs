@@ -10,9 +10,12 @@ using SportsPlatform.BuildingBlocks.Persistence.Messaging;
 using SportsPlatform.BuildingBlocks.Persistence.Seeding;
 using SportsPlatform.Modules.Platform.Contracts.Audit;
 using SportsPlatform.Modules.Platform.Contracts.Email;
+using SportsPlatform.Modules.Platform.Contracts.Media;
 using SportsPlatform.Modules.Platform.Contracts.Reference;
 using SportsPlatform.Modules.Platform.Features.Audit.AppendAuditEntry;
 using SportsPlatform.Modules.Platform.Features.Audit.ListAuditEntries;
+using SportsPlatform.Modules.Platform.Features.Media;
+using SportsPlatform.Modules.Platform.Features.Media.ServeMedia;
 using SportsPlatform.Modules.Platform.Features.Outbox.ListOutboxMessages;
 using SportsPlatform.Modules.Platform.Features.Outbox.RedriveOutboxMessage;
 using SportsPlatform.Modules.Platform.Features.Reference;
@@ -23,14 +26,15 @@ using SportsPlatform.Modules.Platform.Features.Reference.ListTimeZones;
 using SportsPlatform.Modules.Platform.Features.Seeding;
 using SportsPlatform.Modules.Platform.Infrastructure;
 using SportsPlatform.Modules.Platform.Infrastructure.Email;
+using SportsPlatform.Modules.Platform.Infrastructure.Media;
 using SportsPlatform.Modules.Platform.Infrastructure.Messaging;
 using SportsPlatform.Modules.Platform.Seed.Reference;
 
 namespace SportsPlatform.Modules.Platform;
 
 /// <summary>
-/// Cross-cutting foundations: reference data, audit, seed bookkeeping, transactional email transport, and the host
-/// of the outbox processor that delivers every module's integration events (docs/architecture/modules.md).
+/// Cross-cutting foundations: reference data, audit, seed bookkeeping, transactional email transport, media storage,
+/// and the host of the outbox processor that delivers every module's integration events (docs/architecture/modules.md).
 /// </summary>
 public sealed class PlatformModule : IModule
 {
@@ -82,6 +86,14 @@ public sealed class PlatformModule : IModule
         services.AddOptions<EmailOptions>().Bind(configuration.GetSection(EmailOptions.SectionName)).ValidateOnStart();
         services.AddSingleton<IValidateOptions<EmailOptions>, EmailOptionsValidator>();
         services.AddSingleton<IEmailSender, SmtpEmailSender>();
+
+        // Media (ADR-0014, S06 D16, D17): the local-disk adapter only until the first deployment (Q41). Data Protection
+        // signs the URL tokens: AddDataProtection adds only what is missing; Identity configures the key ring.
+        services.AddDataProtection();
+        services.AddOptions<MediaOptions>().Bind(configuration.GetSection(MediaOptions.SectionName));
+        services.AddSingleton<MediaUrlTokens>();
+        services.AddSingleton<IFileStorage, LocalDiskFileStorage>();
+        services.AddScoped<IMediaAssets, MediaAssets>();
     }
 
     public void MapEndpoints(ApiEndpointGroups groups)
@@ -90,6 +102,7 @@ public sealed class PlatformModule : IModule
         ListOutboxMessagesEndpoint.Map(groups.Platform);
         RedriveOutboxMessageEndpoint.Map(groups.Platform);
         ListAuditEntriesEndpoint.Map(groups.Platform);
+        ServeMediaEndpoint.Map(groups.Public);
 
         var reference = ReferenceEndpoints.Group(groups.Public);
         ListCountriesEndpoint.Map(reference);

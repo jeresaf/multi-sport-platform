@@ -13,4 +13,9 @@
     <ProjectReference Include="..\..\src\SportsPlatform.Host\SportsPlatform.Host.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Generated test images, shared with the unit tests. -->
+    <Compile Include="..\SportsPlatform.UnitTests\Platform\Media\TestImages.cs" Link="Platform\Media\TestImages.cs" />
+  </ItemGroup>
+
 </Project>

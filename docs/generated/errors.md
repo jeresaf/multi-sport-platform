@@ -38,6 +38,10 @@ the message is the default title and may change.
 | `FORMAT_ENTRANTS_INVALID` | 422 | The entrants can't be drawn: one is blank or repeated, or the byes are misplaced. | SportsConfiguration |
 | `FORMAT_PARAMETER_INVALID` | 422 | A format parameter is unknown, of the wrong type or out of its range. | SportsConfiguration |
 | `FORMAT_PARTICIPANT_COUNT_INVALID` | 422 | The format can't be drawn for this number of participants. | SportsConfiguration |
+| `MEDIA_IMAGE_UNREADABLE` | 422 | The image can't be read, or it is larger than 40 megapixels. | Platform |
+| `MEDIA_NOT_FOUND` | 404 | The file doesn't exist, was removed, or its link has expired. | Platform |
+| `MEDIA_TOO_LARGE` | 413 | The file is too large. Photos: up to 5 MB. Documents: up to 10 MB. | Platform |
+| `MEDIA_TYPE_NOT_ALLOWED` | 422 | The file's type isn't accepted here. Photos: JPEG, PNG or WebP. Documents: PDF, JPEG or PNG. | Platform |
 | `PERSON_ALIAS_EXISTS` | 409 | The person is already known by this name: their own name or a current alias gives the same name key. | Registry |
 | `PERSON_ALIAS_NOT_FOUND` | 404 | The person has no such alias. | Registry |
 | `PERSON_ALIAS_REMOVED` | 409 | The alias is already removed. | Registry |

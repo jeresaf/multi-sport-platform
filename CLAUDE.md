@@ -65,7 +65,7 @@ prototype-v0:<path>`). What was kept: `docs/reference/first-attempt/README.md`. 
 dotnet build backend -warnaserror               # backend/SportsPlatform.slnx
 dotnet test --solution backend                  # xUnit v3 on MTP; integration tests need Docker (Testcontainers)
 dotnet format backend --verify-no-changes       # drop --verify-no-changes to fix formatting
-dotnet run --project backend/src/SportsPlatform.Host     # API on http://localhost:5080 (GET /health/live)
+dotnet run --project backend/src/SportsPlatform.Host     # API on http://localhost:5080 (GET /health/live); media files in .media/ (Media:LocalRoot, from the working directory)
 dotnet run --project backend/tools/SportsPlatform.Cli   # lists CLI commands; runs as Development (launch profile)
 DOTNET_ENVIRONMENT=Staging dotnet run --no-launch-profile --project backend/tools/SportsPlatform.Cli -- migrate   # another environment needs --no-launch-profile
 dotnet run --project backend/tools/SportsPlatform.Cli -- migrate   # all module migrations, as sp_migrator

@@ -104,7 +104,7 @@ public sealed class MessagingInterceptor(
         }
 
         var records = module.TakePendingAudits();
-        var fromScope = audit.IsPending && _inFlight is null;
+        var fromScope = audit.IsPending && _inFlight is null && !module.SkipsScopeAudit;
         if (fromScope)
         {
             records.Add(audit.CreateRecord(audit.SaveOutcome));

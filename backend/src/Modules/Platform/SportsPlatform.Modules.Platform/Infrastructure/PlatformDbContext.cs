@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Results;
 using SportsPlatform.BuildingBlocks.Tenancy;
+using SportsPlatform.Modules.Platform.Domain.Media;
 
 namespace SportsPlatform.Modules.Platform.Infrastructure;
 
@@ -11,6 +12,10 @@ public sealed class PlatformDbContext(DbContextOptions<PlatformDbContext> option
 {
     protected override Error ConcurrencyConflictError => PlatformErrors.ConcurrencyConflict;
 
-    protected override void ConfigureModel(ModelBuilder modelBuilder) =>
+    protected override void ConfigureModel(ModelBuilder modelBuilder)
+    {
+        // A media asset's files are a jsonb value (MediaAssetConfiguration), not an entity.
+        modelBuilder.Ignore<MediaAssetFile>();
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(PlatformDbContext).Assembly);
+    }
 }

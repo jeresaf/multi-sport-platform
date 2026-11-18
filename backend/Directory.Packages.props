@@ -13,6 +13,12 @@
     <PackageVersion Include="Scalar.AspNetCore" Version="2.17.13" />
   </ItemGroup>
 
+  <ItemGroup Label="Media">
+    <!-- Photo variants (ADR-0017): both packages on the same version. Windows and macOS assets come with SkiaSharp. -->
+    <PackageVersion Include="SkiaSharp" Version="4.154.0" />
+    <PackageVersion Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="4.154.0" />
+  </ItemGroup>
+
   <ItemGroup Label="Configuration files">
     <!-- Sport, format and ruleset files: YAML read into JSON and checked against JSON Schema (ADR-0006, S05 D2). -->
     <PackageVersion Include="YamlDotNet" Version="18.1.0" />

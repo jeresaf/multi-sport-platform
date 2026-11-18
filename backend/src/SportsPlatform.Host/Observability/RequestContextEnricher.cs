@@ -1,6 +1,7 @@
 using Serilog.Core;
 using Serilog.Events;
 using SportsPlatform.BuildingBlocks.Actors;
+using SportsPlatform.BuildingBlocks.Api;
 using SportsPlatform.BuildingBlocks.Tenancy;
 
 namespace SportsPlatform.Host.Observability;
@@ -9,7 +10,8 @@ namespace SportsPlatform.Host.Observability;
 /// Adds the request's <c>CorrelationId</c>, <c>TenantId</c>, <c>ActorKind</c> and <c>ActorId</c> to every event logged
 /// during a request. Values are read when the event is written, so a tenant or actor resolved later in the pipeline
 /// (S02, S03) appears from that point on. <c>TenantId</c> is left out when the request has no tenant. ASP.NET Core's
-/// <c>RequestId</c> (Kestrel's connection-based ID) is removed: the correlation ID is the one request ID to quote.
+/// <c>RequestId</c> (Kestrel's connection-based ID) is removed: the correlation ID is the one request ID to quote. A
+/// <c>RequestPath</c> that carries a secret (<see cref="RedactedPathMetadata"/>) is replaced by its route template.
 /// </summary>
 /// <remarks>
 /// An <see cref="ITenantContext"/> or <see cref="ICurrentActor"/> that logs while it is being built would make the
@@ -28,6 +30,8 @@ public sealed class RequestContextEnricher(IHttpContextAccessor httpContextAcces
 
     private const string _frameworkRequestId = "RequestId";
 
+    private const string _requestPath = "RequestPath";
+
     public void Enrich(LogEvent logEvent, ILogEventPropertyFactory propertyFactory)
     {
         ArgumentNullException.ThrowIfNull(logEvent);
@@ -40,6 +44,12 @@ public sealed class RequestContextEnricher(IHttpContextAccessor httpContextAcces
 
         logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty(CorrelationId, context.TraceIdentifier));
         logEvent.RemovePropertyIfPresent(_frameworkRequestId);
+
+        // ASP.NET Core's scope adds the path to every event of the request; a secret path becomes its route template.
+        if (logEvent.Properties.ContainsKey(_requestPath) && RedactedPath.Of(context) is { } template)
+        {
+            logEvent.AddOrUpdateProperty(propertyFactory.CreateProperty(_requestPath, template));
+        }
 
         // Null once the request's scope is gone (events logged as the request finishes).
         if (_resolving || context.RequestServices is not IServiceProvider services)

@@ -48,3 +48,6 @@ CLAUDE.local.md
 # Logs
 *.log
 logs/
+
+# Local media storage (Media:LocalRoot in Development, S06 D16)
+.media/

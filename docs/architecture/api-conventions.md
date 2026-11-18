@@ -142,6 +142,21 @@ Modules call each other in-process through Contracts, never over HTTP.
   when the database answers on the `App` connection, else `503 {"status":"unavailable"}`. Health bodies never
   contain versions, host names or error text; the reason is logged as a Warning.
 
+## Media files and signed URLs (S06 D17, as built in S06-T5a)
+
+- Private files (person photos, consent evidence) are never public URLs. A module's read checks its own action, then
+  asks Platform's `IMediaAssets.GetSignedUrlAsync` for `{ url, expiresAt }` (10 minutes); clients ask again after
+  `expiresAt` and never store the URL.
+- The local storage's URL is `GET /api/public/v1/media/{token}` (relative to the API's origin; the admin app's `/api/*`
+  rewrite carries it). The token is Data Protection (purpose `platform.media`) naming the tenant, the asset and the
+  variant; the endpoint sets the request's tenant from it before reading, so RLS applies. Every refusal (bad,
+  expired, another tenant's, removed) is `404 MEDIA_NOT_FOUND`. Responses carry `Cache-Control: private, no-store`
+  and `X-Content-Type-Options: nosniff`; photo variants are inline, documents (the original, a photographed form
+  included) a download named `{assetId}.{ext}`. Azure's SAS URLs come with the
+  first deployment.
+- The token is a credential for its lifetime: the endpoint is marked `.RedactPathInTelemetry()`, so the request log,
+  the events logged during the request once it is routed and the trace record `/api/public/v1/media/{token}`.
+
 ## Pagination, filtering, sorting
 
 ```json

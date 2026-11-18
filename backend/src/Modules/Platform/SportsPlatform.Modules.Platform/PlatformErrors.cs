@@ -13,4 +13,16 @@ public static class PlatformErrors
 
     public static readonly Error OutboxMessageNotFailed = new(
         "PLATFORM_OUTBOX_MESSAGE_NOT_FAILED", "Only a FAILED outbox message can be re-driven.", ErrorKind.Conflict);
+
+    public static readonly Error MediaTypeNotAllowed = new(
+        "MEDIA_TYPE_NOT_ALLOWED", "The file's type isn't accepted here. Photos: JPEG, PNG or WebP. Documents: PDF, JPEG or PNG.", ErrorKind.Unprocessable);
+
+    public static readonly Error MediaTooLarge = new(
+        "MEDIA_TOO_LARGE", "The file is too large. Photos: up to 5 MB. Documents: up to 10 MB.", ErrorKind.PayloadTooLarge);
+
+    public static readonly Error MediaImageUnreadable = new(
+        "MEDIA_IMAGE_UNREADABLE", "The image can't be read, or it is larger than 40 megapixels.", ErrorKind.Unprocessable);
+
+    public static readonly Error MediaNotFound = new(
+        "MEDIA_NOT_FOUND", "The file doesn't exist, was removed, or its link has expired.", ErrorKind.NotFound);
 }

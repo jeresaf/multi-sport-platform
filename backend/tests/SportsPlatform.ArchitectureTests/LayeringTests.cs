@@ -65,4 +65,22 @@ public sealed class LayeringTests
 
         violations.ShouldBeEmpty();
     }
+
+    // ADR-0017: images are decoded and encoded only by Platform's media infrastructure.
+    [Fact]
+    public void Only_Platform_media_infrastructure_uses_SkiaSharp()
+    {
+        var outsidePlatform = SolutionAssemblies.All
+            .Where(assembly => SolutionAssemblies.Name(assembly) != "SportsPlatform.Modules.Platform")
+            .Where(assembly => assembly.GetReferencedAssemblies().Any(reference => reference.Name == "SkiaSharp"))
+            .Select(SolutionAssemblies.Name)
+            .ToList();
+        var platform = Types.InAssembly(SolutionAssemblies.All.Single(a => SolutionAssemblies.Name(a) == "SportsPlatform.Modules.Platform"))
+            .That().DoNotResideInNamespace("SportsPlatform.Modules.Platform.Infrastructure.Media")
+            .ShouldNot().HaveDependencyOn("SkiaSharp")
+            .GetResult();
+
+        outsidePlatform.ShouldBeEmpty();
+        (platform.FailingTypeNames ?? []).ShouldBeEmpty();
+    }
 }
