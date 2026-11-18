@@ -6,6 +6,117 @@
     "version": "v1"
   },
   "paths": {
+    "/api/public/v1/media/{token}": {
+      "get": {
+        "tags": [
+          "Media"
+        ],
+        "summary": "Get a media file by its signed URL",
+        "description": "Serves one stored file of a media asset while its signed URL is valid (10 minutes). Only signed URLs from an admin read lead here; the token names the tenant, the asset and the variant. Images are served inline, documents as a download. `Cache-Control: private, no-store`.",
+        "operationId": "GetMediaFile",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "image/webp": {
+                "schema": {
+                  "$ref": "#/components/schemas/Stream"
+                }
+              },
+              "image/jpeg": {
+                "schema": {
+                  "$ref": "#/components/schemas/Stream"
+                }
+              },
+              "image/png": {
+                "schema": {
+                  "$ref": "#/components/schemas/Stream"
+                }
+              },
+              "application/pdf": {
+                "schema": {
+                  "$ref": "#/components/schemas/Stream"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Problem Details; `code`: `MEDIA_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "MEDIA_NOT_FOUND"
+            ]
+          }
+        }
+      }
+    },
+    "/api/public/v1/site": {
+      "get": {
+        "tags": [
+          "Site"
+        ],
+        "summary": "Get the public site",
+        "description": "The tenant whose site this host serves: slug, display name and primary domain. The tenant comes from the request host (`X-Forwarded-Host` from a trusted proxy). Responses differ per host. Cacheable for a minute; send the `ETag` back as `If-None-Match` to get 304.",
+        "operationId": "GetSite",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SiteResponse"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Not Modified"
+          },
+          "404": {
+            "description": "Problem Details; `code`: `TENANT_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "TENANT_NOT_FOUND"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `TENANT_UNAVAILABLE`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "TENANT_UNAVAILABLE"
+            ]
+          }
+        }
+      }
+    },
     "/api/public/v1/reference/countries": {
       "get": {
         "tags": [
@@ -123,57 +234,6 @@
             },
             "x-error-codes": [
               "VALIDATION_INVALID_QUERY"
-            ]
-          }
-        }
-      }
-    },
-    "/api/public/v1/site": {
-      "get": {
-        "tags": [
-          "Site"
-        ],
-        "summary": "Get the public site",
-        "description": "The tenant whose site this host serves: slug, display name and primary domain. The tenant comes from the request host (`X-Forwarded-Host` from a trusted proxy). Responses differ per host. Cacheable for a minute; send the `ETag` back as `If-None-Match` to get 304.",
-        "operationId": "GetSite",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SiteResponse"
-                }
-              }
-            }
-          },
-          "304": {
-            "description": "Not Modified"
-          },
-          "404": {
-            "description": "Problem Details; `code`: `TENANT_NOT_FOUND`",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "x-error-codes": [
-              "TENANT_NOT_FOUND"
-            ]
-          },
-          "403": {
-            "description": "Problem Details; `code`: `TENANT_UNAVAILABLE`",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "x-error-codes": [
-              "TENANT_UNAVAILABLE"
             ]
           }
         }
@@ -14239,6 +14299,10 @@
           "BUILTIN"
         ]
       },
+      "Stream": {
+        "type": "string",
+        "format": "binary"
+      },
       "SubscriptionKind": {
         "enum": [
           "PAID",
@@ -15229,10 +15293,13 @@
   },
   "tags": [
     {
-      "name": "Reference"
+      "name": "Media"
     },
     {
       "name": "Site"
+    },
+    {
+      "name": "Reference"
     },
     {
       "name": "Tenant settings"

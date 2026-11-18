@@ -4,6 +4,46 @@
  */
 
 export interface paths {
+    "/api/public/v1/media/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a media file by its signed URL
+         * @description Serves one stored file of a media asset while its signed URL is valid (10 minutes). Only signed URLs from an admin read lead here; the token names the tenant, the asset and the variant. Images are served inline, documents as a download. `Cache-Control: private, no-store`.
+         */
+        get: operations["GetMediaFile"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/public/v1/site": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the public site
+         * @description The tenant whose site this host serves: slug, display name and primary domain. The tenant comes from the request host (`X-Forwarded-Host` from a trusted proxy). Responses differ per host. Cacheable for a minute; send the `ETag` back as `If-None-Match` to get 304.
+         */
+        get: operations["GetSite"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/public/v1/reference/countries": {
         parameters: {
             query?: never;
@@ -76,26 +116,6 @@ export interface paths {
          * @description Active IANA time zones, ordered by ID. `country` (ISO 3166-1 alpha-2, upper case) keeps only that country's zones; a country without zones gives an empty list. Cacheable for an hour; send the `ETag` back as `If-None-Match` to get 304.
          */
         get: operations["ListTimeZones"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/public/v1/site": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get the public site
-         * @description The tenant whose site this host serves: slug, display name and primary domain. The tenant comes from the request host (`X-Forwarded-Host` from a trusted proxy). Responses differ per host. Cacheable for a minute; send the `ETag` back as `If-None-Match` to get 304.
-         */
-        get: operations["GetSite"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3259,6 +3279,8 @@ export interface components {
         };
         /** @enum {unknown} */
         StatisticAggregation: "SUM" | "MAX" | "MIN" | "RATIO" | "BUILTIN";
+        /** Format: binary */
+        Stream: string;
         /**
          * @description How a period was granted; for reporting only, never affects its status or access (state-machines.md).
          * @enum {unknown}
@@ -3613,6 +3635,85 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    GetMediaFile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/webp": components["schemas"]["Stream"];
+                    "image/jpeg": components["schemas"]["Stream"];
+                    "image/png": components["schemas"]["Stream"];
+                    "application/pdf": components["schemas"]["Stream"];
+                };
+            };
+            /** @description Problem Details; `code`: `MEDIA_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetSite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SiteResponse"];
+                };
+            };
+            /** @description Not Modified */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Problem Details; `code`: `TENANT_UNAVAILABLE` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TENANT_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     ListCountries: {
         parameters: {
             query?: never;
@@ -3723,51 +3824,6 @@ export interface operations {
             };
             /** @description Problem Details; `code`: `VALIDATION_INVALID_QUERY` */
             400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    GetSite: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SiteResponse"];
-                };
-            };
-            /** @description Not Modified */
-            304: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Problem Details; `code`: `TENANT_UNAVAILABLE` */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description Problem Details; `code`: `TENANT_NOT_FOUND` */
-            404: {
                 headers: {
                     [name: string]: unknown;
                 };
