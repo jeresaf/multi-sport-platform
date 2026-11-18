@@ -30,3 +30,4 @@ an **Accepted** ADR, the ADR wins until a new ADR supersedes it.
 | [0014](0014-media-storage.md) | Media storage abstraction (Azure Blob Storage in production) | Accepted |
 | [0015](0015-personal-data-protection.md) | Personal data protection by design | Accepted |
 | [0016](0016-hosting-azure-south-africa-north.md) | Hosting: Azure South Africa North behind Cloudflare; data stays in South Africa | Accepted |
+| [0017](0017-image-processing-skiasharp.md) | Image processing with SkiaSharp (WebP variants, EXIF dropped) | Accepted |

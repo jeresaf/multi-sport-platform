@@ -7,13 +7,14 @@ at the start of every review.
 
 - **Current slice:** S06 — People registry (docs/build/slices/S06-people-registry.md, written by the S05 slice review).
   S00–S05 are done
-- **Current task:** S06-T4b2 — official profiles — in review (#103)
-- **Next:** S06-T5a — Platform media (starts with the SkiaSharp ADR, Q35); `/next-task` once T4b2 merges
-- **Blocked on:** the review of T4b2
+- **Current task:** S06-T5a — Platform media (ADR-0017 SkiaSharp, accepted 2026-11-18; local-disk storage, variants,
+  signed URLs, `STORAGE_GB` counter) — in progress
+- **Next:** S06-T5b — person photo endpoints and the quota check
+- **Blocked on:** nothing
 
 ## Next up
 
-1. S06-T5 — Media and photos (likely T5a, T5b; T5a starts with the SkiaSharp ADR, Q35)
+1. S06-T5b — person photo endpoints, photo URLs in the admin reads, the `STORAGE_GB` check
 2. S06-T6 — Minors, consent and the public read (likely T6a, T6b)
 3. S06-T7 — Screens, demo data and slice close (likely T7a–T7d)
 
