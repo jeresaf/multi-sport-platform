@@ -375,6 +375,18 @@ transitions; the re-drive is a platform action and is audited (docs/architecture
 
 ---
 
+### Media asset (stored, `platform.media_assets`, S06-T5a; Q39)
+
+```text
+ACTIVE ──remove (by the owning module's action)──► REMOVED
+```
+
+`REMOVED` is final: no URL or read serves the asset and it no longer counts toward `STORAGE_GB`. Removing a removed
+asset changes nothing. Who and when are on the row (`removed_by_*`, `removed_at`); the owning module's action is
+audited. Files stay on storage until a retention job (Later).
+
+---
+
 ## Match-day flow (how the machines meet)
 
 ```text

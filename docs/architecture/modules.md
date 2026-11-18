@@ -41,12 +41,23 @@ directly.
 
 **Purpose:** cross-cutting foundations that are not business domains.
 **Owns:** reference data (countries, currencies, languages, IANA time zones, units); `audit.audit_entries`
-(append-only, tenant RLS; written and read across tenants by `PlatformAuditDbContext` on `sp_platform`); media asset metadata (ADR-0014); product analytics events; seed runner bookkeeping; transactional email transport (`IEmailSender` and its adapter).
+(append-only, tenant RLS; written and read across tenants by `PlatformAuditDbContext` on `sp_platform`); media assets (`platform.media_assets`, tenant RLS; files through `IFileStorage`; ADR-0014, ADR-0017); product analytics events; seed runner bookkeeping; transactional email transport (`IEmailSender` and its adapter).
 **Provides (Contracts):** `IReferenceData`, `IAuditLog` (also used automatically by AuditScope and the audit middleware),
-`IEmailSender` (from integration event consumers only, S03 D13), `IMediaAssets` (URLs, upload validation), analytics recording.
+`IEmailSender` (from integration event consumers only, S03 D13), `IMediaAssets` (store, remove, open, signed URLs,
+stored bytes), analytics recording.
 **Also lives here (code, not data):** action catalogue export, error catalogue export, outbox processor host,
 seed framework.
 **Does not own:** domain statuses, rules, permissions — those stay in their modules (no "constants" bucket).
+**Media as built (S06-T5a).** `IMediaAssets` works under the scope's tenant: `StoreAsync(stream, purpose)` reads at most
+the purpose's limit (photos 5 MB, evidence 10 MB; `MEDIA_TOO_LARGE`), judges the type by the first bytes
+(`MEDIA_TYPE_NOT_ALLOWED`), re-encodes a photo into WebP `THUMBNAIL`/`MEDIUM`/`LARGE` (160/640/1600 px, never
+upscaled, EXIF orientation applied and metadata dropped; over 40 megapixels or undecodable: `MEDIA_IMAGE_UNREADABLE`)
+or keeps a document as uploaded (`ORIGINAL`), writes the files under `{tenantId}/{assetId}/` and saves the row without
+the request's audit entry (the owning module's save records it). If the owning module's save then fails, the asset
+stays `ACTIVE` and unreferenced (owner, T5a plan). `RemoveAsync` marks it `REMOVED`; files stay until a retention job.
+`GetSignedUrlAsync` answers a 10-minute URL; `GetStoredBytesAsync` sums active assets. The only `IFileStorage` adapter
+is `LocalDiskFileStorage` (`Media:LocalRoot`; Azure Blob with the first deployment, Q41). SkiaSharp is used only in
+`Infrastructure/Media` (architecture test). The owning module checks its permission and `STORAGE_GB` before calling.
 **First slice:** S01.
 **Absorbs:** pack specs 40 (Audit), 41 (Analytics), 42 (Seed), 43 (Data Governance → enforced as
 conventions/tests), Reference Data. Owner's managers: **Constant, Seed, Audit, Data Integrity, Analytics**.

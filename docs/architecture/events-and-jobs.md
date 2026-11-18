@@ -119,7 +119,10 @@ OutboxProcessor (hosted service, polls ~500 ms, batches, FOR UPDATE SKIP LOCKED)
   that throws or is cancelled detaches the audit message again, and the entry stays pending. Saves within one scope
   run one after another (the interceptor tracks one save at a time). Work that saves in a scope of its own (the
   outbox re-drive) gets `audit.CreateRecord(SUCCESS)` and calls `context.RecordAudit(record)`, then the handler calls
-  `audit.MarkRecorded()` once that work has committed. Rule: one unit of work per command. A handler that saves
+  `audit.MarkRecorded()` once that work has committed. A service another module calls inside its own audited command
+  and that saves first (Platform's `IMediaAssets`, S06-T5a) saves with `SaveChangesWithoutScopeAuditAsync`: its save
+  adds no entry, so the calling module's save records it, or the middleware records a `FAILURE` if that save never
+  happens. Rule: one unit of work per command. A handler that saves
   inside an explicit transaction and then rolls it back loses the entry (owner, 2026-10-18). Platform's consumer
   `platform.audit` appends the entry; the entry ID is the record's UUIDv7, taken when the action happened.
 - **Directly.** After the response, `AuditMiddleware` writes an entry no save recorded, through `IAuditLog`
