@@ -116,4 +116,4 @@ the message is the default title and may change.
 | `VALIDATION_MALFORMED_REQUEST` | 400 | The request could not be read. | BuildingBlocks |
 | `VALIDATION_REASON_REQUIRED` | 400 | This action needs a reason. | BuildingBlocks |
 | `VALIDATION_REQUEST_TOO_LARGE` | 413 | The request body is too large. | BuildingBlocks |
-| `VALIDATION_UNSUPPORTED_MEDIA_TYPE` | 415 | The request body must be JSON. | BuildingBlocks |
+| `VALIDATION_UNSUPPORTED_MEDIA_TYPE` | 415 | The request body's content type isn't accepted by this endpoint. | BuildingBlocks |
