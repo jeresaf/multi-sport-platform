@@ -50,6 +50,9 @@ public static class RegistryErrors
     public static readonly Error PersonDeceased = new(
         "PERSON_DECEASED", "The person is recorded as deceased: they take no new profile, alias, identifier, consent or photo.", ErrorKind.Conflict);
 
+    /// <summary>Removing the photo of a person who has none (owner, S06-T5b plan).</summary>
+    public static readonly Error PhotoNotFound = new("PERSON_PHOTO_NOT_FOUND", "The person has no photo.", ErrorKind.NotFound);
+
     public static readonly Error AliasNotFound = new("PERSON_ALIAS_NOT_FOUND", "The person has no such alias.", ErrorKind.NotFound);
 
     public static readonly Error AliasRemoved = new("PERSON_ALIAS_REMOVED", "The alias is already removed.", ErrorKind.Conflict);

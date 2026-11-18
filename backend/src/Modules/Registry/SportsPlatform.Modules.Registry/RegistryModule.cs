@@ -14,6 +14,7 @@ using SportsPlatform.Modules.Registry.Features.People.GetPerson;
 using SportsPlatform.Modules.Registry.Features.People.GetPersonPrivate;
 using SportsPlatform.Modules.Registry.Features.People.ListPeople;
 using SportsPlatform.Modules.Registry.Features.People.ListPersonStatusChanges;
+using SportsPlatform.Modules.Registry.Features.People.Photo;
 using SportsPlatform.Modules.Registry.Features.People.Profiles;
 using SportsPlatform.Modules.Registry.Features.People.UpdatePerson;
 using SportsPlatform.Modules.Registry.Infrastructure;
@@ -53,6 +54,8 @@ public sealed class RegistryModule : IModule
         services.AddScoped<ChangePersonStatusHandler>();
         services.AddScoped<AddPersonAliasHandler>();
         services.AddScoped<RemovePersonAliasHandler>();
+        services.AddScoped<SetPersonPhotoHandler>();
+        services.AddScoped<RemovePersonPhotoHandler>();
         services.AddScoped<AddExternalIdentifierHandler>();
         services.AddScoped<EndExternalIdentifierHandler>();
         services.AddScoped<SportCodes>();
@@ -94,6 +97,7 @@ public sealed class RegistryModule : IModule
         UpdatePersonEndpoint.Map(people);
         ChangePersonStatusEndpoints.Map(people);
         PersonAliasEndpoints.Map(people);
+        PersonPhotoEndpoints.Map(people);
         ExternalIdentifierEndpoints.Map(people);
         AthleteProfileEndpoints.Map(people);
         StaffProfileEndpoints.Map(people);

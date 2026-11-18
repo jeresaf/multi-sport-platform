@@ -177,6 +177,38 @@ public sealed class Person : AggregateRoot, ITenantOwned
     };
 
     /// <summary>
+    /// Points the person at a newly stored photo asset (S06 D19) and returns the one it replaces, which the use case marks
+    /// <c>REMOVED</c> after its save. Refused on an archived or deceased person (S06 D9).
+    /// </summary>
+    public Result<Guid?> SetPhoto(Guid assetId)
+    {
+        var accepts = EnsureAcceptsNewChildren();
+        if (accepts.IsFailure)
+        {
+            return accepts.Error;
+        }
+
+        var previous = PhotoAssetId;
+        PhotoAssetId = assetId;
+        return Result.Success(previous);
+    }
+
+    /// <summary>
+    /// Clears the photo in any status (a correction, as removing an alias) and returns the asset it named:
+    /// <c>PERSON_PHOTO_NOT_FOUND</c> when there is none.
+    /// </summary>
+    public Result<Guid> RemovePhoto()
+    {
+        if (PhotoAssetId is not { } assetId)
+        {
+            return RegistryErrors.PhotoNotFound;
+        }
+
+        PhotoAssetId = null;
+        return Result.Success(assetId);
+    }
+
+    /// <summary>
     /// Adds an alias with its own name key, so the person is found and matched under that name too (S06 D10). Refused
     /// on an archived or deceased person, and when the alias's key is already the person's own or a current alias's
     /// (<c>PERSON_ALIAS_EXISTS</c>, owner, S06-T3b plan): such an alias would find nothing new. The use case has checked

@@ -63,9 +63,9 @@ public static class IdentityRoles
     [
         _personDuplicateCheck, _personCreate, "person.update", "person.deactivate", "person.reactivate", "person.archive",
         "person.unarchive", "person.mark_deceased", "person.alias.add", "person.alias.remove", "person.external_id.add",
-        "person.external_id.end", "athlete_profile.create", "athlete_profile.update", "athlete_profile.status.change",
-        "staff_profile.create", "staff_profile.update", "staff_profile.status.change", "official_profile.create",
-        "official_profile.update", "official_profile.status.change",
+        "person.external_id.end", "person.photo.set", "person.photo.remove", "athlete_profile.create", "athlete_profile.update",
+        "athlete_profile.status.change", "staff_profile.create", "staff_profile.update", "staff_profile.status.change",
+        "official_profile.create", "official_profile.update", "official_profile.status.change",
     ];
 
     private static readonly string[] _tenantAdministration =

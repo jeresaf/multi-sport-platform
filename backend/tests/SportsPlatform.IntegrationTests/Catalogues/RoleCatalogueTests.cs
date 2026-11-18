@@ -106,7 +106,7 @@ public sealed class RoleCatalogueTests
         [
             "athlete_profile.create", "athlete_profile.status.change", "athlete_profile.update", "format.read", "invitation.revoke", "membership.invite", "membership.read", "membership.remove", "membership.restore",
             "membership.suspend", "official_profile.create", "official_profile.status.change", "official_profile.update", "person.alias.add", "person.alias.remove", "person.archive", "person.create", "person.deactivate", "person.duplicate_check", "person.external_id.add",
-            "person.external_id.end", "person.mark_deceased", "person.reactivate", "person.read", "person.read_private", "person.unarchive", "person.update", "role.assign", "role.revoke", "ruleset.read", "sport.read", "staff_profile.create", "staff_profile.status.change",
+            "person.external_id.end", "person.mark_deceased", "person.photo.remove", "person.photo.set", "person.reactivate", "person.read", "person.read_private", "person.unarchive", "person.update", "role.assign", "role.revoke", "ruleset.read", "sport.read", "staff_profile.create", "staff_profile.status.change",
             "staff_profile.update", "tenant.access.read", "tenant.capabilities.read", "tenant.settings.read", "tenant.settings.update", "tenant.sport.disable", "tenant.sport.enable", "tenant.sport.read",
             "tenant.subscription.read",
         ]);

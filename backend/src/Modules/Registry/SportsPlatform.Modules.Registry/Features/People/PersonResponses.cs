@@ -29,7 +29,8 @@ public sealed record PersonListItem(
 /// <summary>
 /// A person's record as <c>person.read</c> shows it (S06 D3, D22): no <c>PRIVATE</c> field. Aliases are the ones not
 /// removed; athlete profiles are all of them, archived ones included, by variant; staff and official profiles all of
-/// them, archived ones included, oldest first. <c>version</c> is also the <c>ETag</c>;
+/// them, archived ones included, oldest first. <c>photo</c> holds short-lived URLs (S06 D17), null without a photo.
+/// <c>version</c> is also the <c>ETag</c>;
 /// a change to an alias, an identifier or a profile changes it too (S06 D11).
 /// </summary>
 public sealed record PersonResponse(
@@ -55,6 +56,7 @@ public sealed record PersonResponse(
     [property: PersonalData(PersonalDataClass.Internal)] IReadOnlyList<AthleteProfileResponse> AthleteProfiles,
     [property: PersonalData(PersonalDataClass.Internal)] IReadOnlyList<StaffProfileResponse> StaffProfiles,
     [property: PersonalData(PersonalDataClass.Internal)] IReadOnlyList<OfficialProfileResponse> OfficialProfiles,
+    [property: PersonalData(PersonalDataClass.Internal)] PersonPhotoResponse? Photo,
     [property: PersonalData(PersonalDataClass.Internal)] uint Version)
 {
     public void SetETag(HttpResponse response)
@@ -63,6 +65,16 @@ public sealed record PersonResponse(
         response.Headers.ETag = RowVersion.EntityTag(Version).ToString();
     }
 }
+
+/// <summary>
+/// A person's photo as signed URLs, one per size (S06 D17): 160, 640 and 1600 px on the longest side, WebP. They work
+/// until <c>expiresAt</c> (ten minutes with the local storage); read the person again for new ones. Never cache them.
+/// </summary>
+public sealed record PersonPhotoResponse(
+    [property: PersonalData(PersonalDataClass.Internal)] string ThumbnailUrl,
+    [property: PersonalData(PersonalDataClass.Internal)] string MediumUrl,
+    [property: PersonalData(PersonalDataClass.Internal)] string LargeUrl,
+    [property: PersonalData(PersonalDataClass.Internal)] DateTimeOffset ExpiresAt);
 
 public sealed record PersonAliasResponse(
     [property: PersonalData(PersonalDataClass.Internal)] Guid Id,
