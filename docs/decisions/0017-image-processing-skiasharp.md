@@ -1,6 +1,7 @@
 # ADR-0017 — Image processing with SkiaSharp
 
-**Status:** Accepted (owner, 2026-11-18)
+**Status:** Accepted (owner, 2026-11-18; amended before it reached main, owner, 2026-11-18: document images are
+re-encoded, review #104 Q1)
 **Date:** 2026-11-18
 **Deciders:** Owner (human), Reviewer (Claude), Builder (Claude Code)
 
@@ -27,7 +28,10 @@ an ADR (ADR-0013). The owner chose SkiaSharp when answering Q35 (2026-11-16).
 - Images are checked before decoding: the type comes from the file's first bytes (JPEG, PNG, WebP), the file size
   from the purpose's limit, and the dimensions from the header (at most 40 megapixels), so a small file can't
   expand into a huge bitmap. A file that doesn't decode is refused (`MEDIA_IMAGE_UNREADABLE`).
-- Documents (consent evidence: PDF, JPEG, PNG) are stored as uploaded; SkiaSharp doesn't touch them.
+- Documents (consent evidence): a PDF is stored as uploaded; SkiaSharp doesn't touch it. A JPEG or PNG (a
+  photographed form) is checked like a photo (type, size, at most 40 megapixels, decodes completely), oriented and
+  re-encoded once at its own size and in its own type (JPEG quality 92, PNG lossless), so no metadata (a GPS position,
+  often a minor's home; the device) is kept.
 
 ## Alternatives considered
 

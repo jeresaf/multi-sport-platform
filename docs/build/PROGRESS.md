@@ -505,7 +505,8 @@ at the start of every review.
   depends on no module; a suspended tenant's links work until they expire, 10 minutes at most, and the owning module
   issues no new ones); evidence is served as `attachment`. Review #104 Q1 (owner, 2026-11-18): D16's "evidence is
   stored as uploaded" holds for PDFs only; JPEG and PNG evidence is re-encoded once at its own size and type, without
-  its metadata (a GPS position, the device). Beyond the plan, for the reviewer:
+  its metadata (a GPS position, the device). ADR-0017's Decision was amended to match, before it reached `main` (owner's
+  one-time permission to edit the accepted ADR, 2026-11-18). Beyond the plan, for the reviewer:
   `ModuleDbContext.SaveChangesWithoutScopeAuditAsync` (BuildingBlocks) and `.RedactPathInTelemetry()` (BuildingBlocks
   Api, used by the Host's request log, enricher and trace).
 - **S06-T4b2 (owner, plan 2026-11-17):** D12 leaves the licence fields' rules open: grade, licence number and licence
