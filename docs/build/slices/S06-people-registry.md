@@ -367,10 +367,10 @@ Deliver:
 - Likely T5a (Platform media, adapter, variants, URL endpoint, counter) and T5b (person photo, quota check).
 
 Acceptance:
-- [ ] A file whose bytes aren't an allowed type is refused whatever its content type; a 5 MB + 1 byte photo is `413`
-      (tests).
-- [ ] Variants have no EXIF data (test with a JPEG carrying a GPS tag).
-- [ ] A signed URL works until it expires and never for another tenant's asset; the token endpoint never caches
+- [x] A file whose bytes aren't an allowed type is refused whatever its content type; a 5 MB + 1 byte photo is `413`
+      (tests). (T5a through `IMediaAssets`; T5b repeats both over the photo endpoint.)
+- [x] Variants have no EXIF data (test with a JPEG carrying a GPS tag).
+- [x] A signed URL works until it expires and never for another tenant's asset; the token endpoint never caches
       (tests with the fake clock).
 - [ ] At the `STORAGE_GB` limit the upload is `403 ENTITLEMENT_QUOTA_EXCEEDED`; the usage reads count the stored
       bytes in whole GB (tests, with an override of 0 and a counter test over a known total).
@@ -580,3 +580,14 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   and role and `licenceExpired`; the directory takes `profile=OFFICIAL`, and `variant` matches an official capability.
   `TestSportDefinitions` gives its test variants test official roles. The T4 acceptance boxes are ticked
   (`OfficialProfileTests`: all three profiles on one person, an archived person refused each kind).
+- **T5a:** Platform media. Owner decisions (plan, 2026-11-18): ADR-0017 accepted (SkiaSharp 4.154.0, WebP quality 80,
+  40 megapixels at most); an asset stored before the owning module's save fails stays `ACTIVE` and unreferenced
+  (retention job); new code `MEDIA_IMAGE_UNREADABLE` (422: no decode, truncated, or over 40 MP); every refusal of the
+  token endpoint is `404 MEDIA_NOT_FOUND`; the token endpoint doesn't check the tenant's status (tokens live 10
+  minutes); evidence is served as a download. As built: `IMediaAssets.StoreAsync` saves with
+  `ModuleDbContext.SaveChangesWithoutScopeAuditAsync`, so the owning module's save records the audit entry (an
+  architecture test keeps the method to Platform's media service); the token endpoint is `.RedactPathInTelemetry()`, so
+  logs and traces record `/api/public/v1/media/{token}`; storage keys are `{tenantId}/{assetId}/{variant}.{ext}`;
+  `Media:LocalRoot` is relative to the working directory (`.media/` in Development); evidence images keep their EXIF
+  (stored as uploaded, D16). `STORAGE_GB` is counted by Tenancy's `MediaStorageUsage`; its check and `enforcedBy` come
+  with T5b.
