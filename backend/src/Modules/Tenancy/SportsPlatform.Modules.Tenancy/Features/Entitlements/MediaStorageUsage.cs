@@ -11,7 +11,7 @@ namespace SportsPlatform.Modules.Tenancy.Features.Entitlements;
 /// </summary>
 public sealed class MediaStorageUsage(IMediaAssets media) : IQuotaUsage
 {
-    public const string Code = "STORAGE_GB";
+    public static readonly string Code = TenancyEntitlements.StorageGb.Code;
 
     public const long BytesPerGigabyte = 1L << 30;
 

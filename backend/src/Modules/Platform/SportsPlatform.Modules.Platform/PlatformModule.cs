@@ -88,7 +88,8 @@ public sealed class PlatformModule : IModule
         services.AddSingleton<IEmailSender, SmtpEmailSender>();
 
         // Media (ADR-0014, S06 D16, D17): the local-disk adapter only until the first deployment (Q41). Data Protection
-        // (the signed-URL tokens) is registered once, by Identity.
+        // signs the URL tokens: AddDataProtection adds only what is missing; Identity configures the key ring.
+        services.AddDataProtection();
         services.AddOptions<MediaOptions>().Bind(configuration.GetSection(MediaOptions.SectionName));
         services.AddSingleton<MediaUrlTokens>();
         services.AddSingleton<IFileStorage, LocalDiskFileStorage>();

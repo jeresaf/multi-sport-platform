@@ -25,6 +25,25 @@ public sealed partial class TenantIsolationRulesTests
             .ShouldBeEmpty();
     }
 
+    // A save without the request's audit entry is for a service another module calls inside its own audited command
+    // (S06-T5a): anywhere else it would leave an action unaudited until the middleware's FAILURE fallback.
+    [Fact]
+    public void Only_Platforms_media_service_saves_without_the_requests_audit_entry()
+    {
+        var source = Path.Combine(SolutionAssemblies.BackendDirectory, "src");
+        var callers = Directory.GetFiles(source, "*.cs", SearchOption.AllDirectories)
+            .Where(path => !IsBuildOutput(path) && File.ReadAllText(path).Contains("SaveChangesWithoutScopeAuditAsync(", StringComparison.Ordinal))
+            .Select(path => Path.GetRelativePath(source, path).Replace('\\', '/'))
+            .ToList();
+
+        callers.ShouldBe(
+            [
+                "SportsPlatform.BuildingBlocks.Persistence/ModuleDbContext.cs",
+                "Modules/Platform/SportsPlatform.Modules.Platform/Features/Media/MediaAssets.cs",
+            ],
+            ignoreOrder: true);
+    }
+
     // RoleAssignment.Grant is public for the isolation harness; production code assigns roles through the membership,
     // which refuses removed members and duplicates (#46 N4).
     [Fact]

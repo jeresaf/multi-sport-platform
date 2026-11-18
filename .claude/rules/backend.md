@@ -32,7 +32,9 @@ paths:
    aggregateType, aggregateId)`, usually from an `IDomainEventSubscriber<T>` (docs/architecture/events-and-jobs.md).
 5. Map entities → DTOs with explicit code (no AutoMapper). Never return entities.
 6. Audited actions (`REQUIRED`/`REQUIRED_WITH_REASON`) are audited automatically: inject `AuditScope` and call
-   `Describe(entityType, entityId, reason, metadata)` before saving. Save once per command, never two saves at once. Work that saves in its own
+   `Describe(entityType, entityId, reason, metadata)` before saving. Save once per command, never two saves at once
+   (one exception: Platform's `IMediaAssets` saves first with `SaveChangesWithoutScopeAuditAsync`, so the caller's save
+   records the entry; an architecture test keeps that method to it). Work that saves in its own
    scope takes `audit.CreateRecord(...)` and calls `context.RecordAudit(record)`, then the handler calls
    `audit.MarkRecorded()` (docs/architecture/events-and-jobs.md, "Audit as built").
    Reasons are free text, kept permanently and not redacted: every reason field (endpoint description, admin UI)

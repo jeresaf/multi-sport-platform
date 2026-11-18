@@ -10,7 +10,7 @@ public sealed record EncodedImage(MediaVariant Variant, byte[] Bytes, int Width,
 
 /// <summary>
 /// A photo's variants (ADR-0017): the header is read first and an image over <see cref="MaxPixels"/> is refused before
-/// it is decoded; the EXIF orientation is applied; each size in <see cref="MediaRules.ImageVariantSizes"/> is scaled
+/// it is decoded; a file that doesn't decode completely (truncated) is refused; the EXIF orientation is applied; each size in <see cref="MediaRules.ImageVariantSizes"/> is scaled
 /// down (never up) and encoded as WebP. Encoding writes pixels only, so no EXIF, GPS or XMP data reaches a variant.
 /// </summary>
 public static class ImageVariants
@@ -31,15 +31,12 @@ public static class ImageVariants
             return PlatformErrors.MediaImageUnreadable;
         }
 
-        var info = codec.Info.WithColorType(SKColorType.Rgba8888).WithAlphaType(SKAlphaType.Premul);
-        using var decoded = new SKBitmap(info);
-        var decodeResult = codec.GetPixels(info, decoded.GetPixels());
-        if (decodeResult is not (SKCodecResult.Success or SKCodecResult.IncompleteInput))
+        using var oriented = DecodeOriented(codec);
+        if (oriented is null)
         {
             return PlatformErrors.MediaImageUnreadable;
         }
 
-        using var oriented = Orient(decoded, codec.EncodedOrigin);
         var variants = new List<EncodedImage>();
         foreach (var (variant, longestSide) in MediaRules.ImageVariantSizes)
         {
@@ -68,6 +65,48 @@ public static class ImageVariants
     {
         var scale = Math.Min(1d, (double)longestSide / Math.Max(width, height));
         return (Math.Max(1, (int)Math.Round(width * scale)), Math.Max(1, (int)Math.Round(height * scale)));
+    }
+
+    /// <summary>
+    /// The pixels, oriented, at the smallest size the codec can decode that still covers the largest variant (JPEG
+    /// decodes at 1/2, 1/4 or 1/8 directly), so a large photo never needs its full bitmap more than once. A truncated or
+    /// broken file gives null.
+    /// </summary>
+    private static SKBitmap? DecodeOriented(SKCodec codec)
+    {
+        var largest = MediaRules.ImageVariantSizes.Max(size => size.LongestSide);
+        var full = codec.Info.Size;
+        var scale = Math.Min(1f, (float)largest / Math.Max(full.Width, full.Height));
+        var scaled = codec.GetScaledDimensions(scale);
+        if (Math.Max(scaled.Width, scaled.Height) < Math.Min(largest, Math.Max(full.Width, full.Height)))
+        {
+            scaled = full;
+        }
+
+        var bitmap = Decode(codec, scaled) ?? (scaled == full ? null : Decode(codec, full));
+        if (bitmap is null)
+        {
+            return null;
+        }
+
+        using (bitmap)
+        {
+            return Orient(bitmap, codec.EncodedOrigin);
+        }
+    }
+
+    private static SKBitmap? Decode(SKCodec codec, SKSizeI size)
+    {
+        var info = new SKImageInfo(size.Width, size.Height, SKColorType.Rgba8888, SKAlphaType.Premul);
+        var bitmap = new SKBitmap(info);
+        if (codec.GetPixels(info, bitmap.GetPixels()) == SKCodecResult.Success)
+        {
+            bitmap.SetImmutable();
+            return bitmap;
+        }
+
+        bitmap.Dispose();
+        return null;
     }
 
     /// <summary>The pixels as they should be shown: the EXIF orientation applied (a copy in every case).</summary>

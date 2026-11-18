@@ -163,7 +163,7 @@ public sealed class MediaAssets(
             {
                 await storage.DeleteAsync(key, CancellationToken.None);
             }
-            catch (IOException)
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
             {
                 // Best effort: an unreferenced file costs disk space only, never a wrong read.
             }

@@ -76,6 +76,25 @@ public sealed class ImageVariantsTests
         ImageVariants.Create(broken).Error!.Code.ShouldBe(PlatformErrors.MediaImageUnreadable.Code);
     }
 
+    [Fact]
+    public void A_truncated_image_is_refused()
+    {
+        var jpeg = TestImages.Jpeg(800, 600);
+
+        ImageVariants.Create(jpeg[..(jpeg.Length * 2 / 3)]).Error!.Code.ShouldBe(PlatformErrors.MediaImageUnreadable.Code);
+    }
+
+    [Fact]
+    public void A_photo_much_larger_than_the_largest_variant_still_gets_its_full_sizes()
+    {
+        // 4000×2000: a JPEG decodes at half size (2000×1000), which still covers the 1600 px variant.
+        var variants = ImageVariants.Create(TestImages.Jpeg(4000, 2000)).Value;
+
+        variants.Select(v => (v.Width, v.Height)).ShouldBe([(160, 80), (640, 320), (1600, 800)]);
+        TestImages.ColourName(TestImages.PixelAt(variants[^1].Bytes, 10, 10)).ShouldBe("red");
+        TestImages.ColourName(TestImages.PixelAt(variants[^1].Bytes, 1590, 790)).ShouldBe("yellow");
+    }
+
     [Theory]
     [InlineData(2000, 1000, 160, 160, 80)]
     [InlineData(1000, 2000, 160, 80, 160)]
