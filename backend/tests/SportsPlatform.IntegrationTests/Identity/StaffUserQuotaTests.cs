@@ -159,7 +159,8 @@ public sealed class StaffUserQuotaTests(PostgresFixture fixture) : DatabaseTest(
             .ShouldBe(("Staff users", "QUOTA", "users"));
         (staff.GetProperty("value").GetProperty("limit").GetInt32(), staff.GetProperty("source").GetString()).ShouldBe((5, "OVERRIDE"));
         UsageOf(body.GetProperty("usage"), "MAX_STAFF_USERS").ShouldBe(new QuotaUsageResponse("MAX_STAFF_USERS", true, 2, 5, Warning: false));
-        UsageOf(body.GetProperty("usage"), "STORAGE_GB").Measured.ShouldBeFalse();
+        UsageOf(body.GetProperty("usage"), "STORAGE_GB").ShouldBe(new QuotaUsageResponse("STORAGE_GB", true, 0, 10, Warning: false));
+        UsageOf(body.GetProperty("usage"), "MAX_TEAMS").Measured.ShouldBeFalse();
     }
 
     // Reads go on while read-only (S04 D8): the page says why, and an invitation is refused by step 1 first.

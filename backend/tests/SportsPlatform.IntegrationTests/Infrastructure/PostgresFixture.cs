@@ -48,6 +48,9 @@ public sealed class PostgresFixture : IAsyncLifetime
     /// <summary>The app's configuration: the container's role connections.</summary>
     public IReadOnlyDictionary<string, string?> AppSettings { get; private set; } = null!;
 
+    /// <summary>The local media storage of this run (<c>Media:LocalRoot</c>), a temporary folder deleted at the end.</summary>
+    public string MediaRoot { get; } = Path.Combine(Path.GetTempPath(), $"msp-media-tests-{Guid.NewGuid():N}");
+
     public async ValueTask InitializeAsync()
     {
         _container = new PostgreSqlBuilder(ImageFromCompose)
@@ -75,6 +78,7 @@ public sealed class PostgresFixture : IAsyncLifetime
             [$"ConnectionStrings:{ConnectionStringNames.App}"] = ConnectionString("sp_app"),
             [$"ConnectionStrings:{ConnectionStringNames.Migrator}"] = ConnectionString("sp_migrator"),
             [$"ConnectionStrings:{ConnectionStringNames.Platform}"] = ConnectionString("sp_platform"),
+            ["Media:LocalRoot"] = MediaRoot,
             // Few attempts keep the poison-message tests short.
             [$"{OutboxOptions.SectionName}:{nameof(OutboxOptions.MaxAttempts)}"] = "3",
         };
@@ -168,6 +172,11 @@ public sealed class PostgresFixture : IAsyncLifetime
         if (_container is not null)
         {
             await _container.DisposeAsync();
+        }
+
+        if (Directory.Exists(MediaRoot))
+        {
+            Directory.Delete(MediaRoot, recursive: true);
         }
     }
 

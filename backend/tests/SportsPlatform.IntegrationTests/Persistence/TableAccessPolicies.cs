@@ -39,6 +39,7 @@ public static class TableAccessPolicies
         ["platform.currencies"] = TableAccess.ReadOnly,
         ["platform.languages"] = TableAccess.ReadOnly,
         ["platform.time_zones"] = TableAccess.ReadOnly,
+        ["platform.media_assets"] = TableAccess.ReadWrite,
 
         // Tenants (S02-T1): platform-managed; the status history is kept for ever.
         ["tenancy.tenants"] = TableAccess.ReadWrite,

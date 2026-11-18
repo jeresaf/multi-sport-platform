@@ -7,6 +7,7 @@ using Serilog.Core;
 using Serilog.Events;
 using Serilog.Formatting;
 using Serilog.Formatting.Compact;
+using SportsPlatform.BuildingBlocks.Api;
 using SportsPlatform.Host.Health;
 
 namespace SportsPlatform.Host.Observability;
@@ -52,7 +53,19 @@ public static class ObservabilitySetup
             {
                 // Probes would drown real traffic; a filtered request's database spans are dropped with it.
                 tracing
-                    .AddAspNetCoreInstrumentation(options => options.Filter = context => !HealthEndpoints.IsHealthRequest(context))
+                    .AddAspNetCoreInstrumentation(options =>
+                    {
+                        options.Filter = context => !HealthEndpoints.IsHealthRequest(context);
+
+                        // A path that carries a secret (signed media URLs) is recorded as its route template.
+                        options.EnrichWithHttpResponse = (activity, response) =>
+                        {
+                            if (RedactedPath.Of(response.HttpContext) is { } template)
+                            {
+                                activity.SetTag("url.path", template);
+                            }
+                        };
+                    })
                     .AddHttpClientInstrumentation()
                     .AddNpgsql();
                 if (exportOtlp)
@@ -89,6 +102,15 @@ public static class ObservabilitySetup
         {
             options.Logger = logger; // the default is the static Log.Logger, which AddObservability leaves silent
             options.GetLevel = (context, _, exception) => RequestLogLevel(context, exception);
+
+            // The default properties, with the route template for a path that carries a secret (signed media URLs).
+            options.GetMessageTemplateProperties = (context, path, elapsed, status) =>
+            [
+                new LogEventProperty("RequestMethod", new ScalarValue(context.Request.Method)),
+                new LogEventProperty("RequestPath", new ScalarValue(RedactedPath.Of(context) ?? path)),
+                new LogEventProperty("StatusCode", new ScalarValue(status)),
+                new LogEventProperty("Elapsed", new ScalarValue(elapsed)),
+            ];
         });
     }
 

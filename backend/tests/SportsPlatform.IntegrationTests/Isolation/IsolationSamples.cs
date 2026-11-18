@@ -10,6 +10,8 @@ using SportsPlatform.Modules.Identity.Domain.Invitations;
 using SportsPlatform.Modules.Identity.Domain.Memberships;
 using SportsPlatform.Modules.Identity.Domain.Roles;
 using SportsPlatform.Modules.Identity.Infrastructure.Users;
+using SportsPlatform.Modules.Platform.Contracts.Media;
+using SportsPlatform.Modules.Platform.Domain.Media;
 using SportsPlatform.Modules.Registry.Domain.People;
 using SportsPlatform.Modules.Registry.Domain.People.Duplicates;
 using SportsPlatform.Modules.Registry.Domain.People.Profiles;
@@ -72,6 +74,7 @@ public static class IsolationSamples
         new StaffCapabilitySample(),
         new OfficialProfileSample(),
         new OfficialCapabilitySample(),
+        new MediaAssetSample(),
     ];
 
     public static IIsolationSample For(Type entityType) =>
@@ -526,5 +529,24 @@ public static class IsolationSamples
             context.AddRange(user, membership);
             return membership;
         }
+    }
+
+    /// <summary>Platform: an uploaded photo's row (its files aren't needed to prove isolation).</summary>
+    private sealed class MediaAssetSample : IIsolationSample
+    {
+        public Type EntityType => typeof(MediaAsset);
+
+        public Entity Add(DbContext context)
+        {
+            var id = MediaAsset.NewAssetId();
+            var asset = MediaAsset.Create(
+                id, MediaPurpose.PersonPhoto, "image/webp", $"isolation/{id:N}",
+                [new MediaAssetFile(MediaVariant.Thumbnail, $"isolation/{id:N}/thumbnail.webp", "image/webp", 160, 120, 4_096)],
+                SystemActor.Instance, RegistrySamples.Now);
+            context.Add(asset);
+            return asset;
+        }
+
+        public Entity? Referencing(IForeignKey foreignKey, Guid principalId) => null;
     }
 }
