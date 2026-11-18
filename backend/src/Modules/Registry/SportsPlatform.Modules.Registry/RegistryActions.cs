@@ -147,8 +147,26 @@ public static class RegistryActions
         "Make an official profile inactive, retired, active again or archived (final), with a reason; every change is kept.",
         AuditRequirement.RequiredWithReason);
 
-    // The lifecycle, alias, identifier and profile actions answer the person as person.read does, so they are only granted with
-    // that read.
+    /// <summary>
+    /// Stores a new file, so it names <c>STORAGE_GB</c>: the handler checks the quota before storing (S06 D20).
+    /// </summary>
+    public static readonly ActionDefinition PersonPhotoSet = new(
+        "person.photo.set",
+        "Upload a person's photo (JPEG, PNG or WebP up to 5 MB), replacing the one they had; not for an archived or deceased person.",
+        ActionScope.Tenant,
+        AuditRequirement.Required,
+        since: "S06",
+        scopableBy: [AssignmentScope.Tenant],
+        entitlement: "STORAGE_GB",
+        grantedWith: ["person.read"]);
+
+    public static readonly ActionDefinition PersonPhotoRemove = Lifecycle(
+        "person.photo.remove",
+        "Remove a person's photo, whatever the person's status.",
+        AuditRequirement.Required);
+
+    // The lifecycle, alias, identifier, profile and photo actions answer the person as person.read does, so they are only
+    // granted with that read.
     private static ActionDefinition Lifecycle(string code, string description, AuditRequirement audit) => new(
         code,
         description,

@@ -50,7 +50,7 @@ public static class TenancyEntitlements
         "Media storage",
         "Storage for uploaded media.",
         EntitlementType.Quota,
-        enforcedBy: "Platform",
+        enforcedBy: "Registry",
         since: "S04",
         unit: "GB");
 

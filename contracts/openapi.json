@@ -3040,7 +3040,7 @@
           "People"
         ],
         "summary": "Get a person",
-        "description": "A person of the tenant named by `X-Tenant-Id`, whatever their status: names, aliases, external identifiers, the birth year, `isMinor` and `ageStatus` on the tenant's date, and `version` (also the `ETag`). The date of birth is in the private read. `isMinor` is true unless the person is known to be an adult: without a date of birth, `ageStatus` is UNKNOWN and `isMinor` is true.",
+        "description": "A person of the tenant named by `X-Tenant-Id`, whatever their status: names, aliases, external identifiers, the birth year, `isMinor` and `ageStatus` on the tenant's date, and `version` (also the `ETag`). The date of birth is in the private read. `isMinor` is true unless the person is known to be an adult: without a date of birth, `ageStatus` is UNKNOWN and `isMinor` is true. `photo` holds signed URLs of the photo's three sizes, working until `expiresAt` (read the person again for new ones; never cache them), or is null.",
         "operationId": "GetPerson",
         "parameters": [
           {
@@ -4211,6 +4211,289 @@
               "TENANT_BLOCKED",
               "TENANT_PROVISIONING",
               "TENANT_READ_ONLY"
+            ]
+          }
+        }
+      }
+    },
+    "/api/admin/v1/people/{personId}/photo": {
+      "put": {
+        "tags": [
+          "People"
+        ],
+        "summary": "Set a person's photo",
+        "description": "Uploads a photo as `multipart/form-data` with one file in the field `file` and nothing else (VALIDATION_INVALID_REQUEST otherwise). The file's bytes decide its type, not the content type sent: JPEG, PNG or WebP up to 5 MB (MEDIA_TYPE_NOT_ALLOWED, MEDIA_TOO_LARGE; an image that can't be decoded or is over 40 megapixels is MEDIA_IMAGE_UNREADABLE). It is stored as WebP at 160, 640 and 1600 px on the longest side, without its metadata (a GPS position, the camera), and replaces the photo the person had. At the plan's storage limit the upload is ENTITLEMENT_QUOTA_EXCEEDED (\"Your plan allows N GB of storage.\"). An archived or deceased person takes no new photo (PERSON_ARCHIVED, PERSON_DECEASED). Send `If-Match` from the last read to get 409 PERSON_CONCURRENCY_CONFLICT if the person changed since. Answers the person as GET /people/{personId} does; its version moves.",
+        "operationId": "SetPersonPhoto",
+        "parameters": [
+          {
+            "name": "personId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "$ref": "#/components/schemas/IFormFile"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Problem Details; `code`: `PERSON_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "PERSON_NOT_FOUND"
+            ]
+          },
+          "409": {
+            "description": "Problem Details; `code`: `PERSON_ARCHIVED`, `PERSON_CONCURRENCY_CONFLICT`, `PERSON_DECEASED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "PERSON_ARCHIVED",
+              "PERSON_CONCURRENCY_CONFLICT",
+              "PERSON_DECEASED"
+            ]
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_REQUEST",
+              "VALIDATION_MALFORMED_REQUEST"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `ENTITLEMENT_QUOTA_EXCEEDED`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "ENTITLEMENT_QUOTA_EXCEEDED",
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING",
+              "TENANT_READ_ONLY"
+            ]
+          },
+          "422": {
+            "description": "Problem Details; `code`: `MEDIA_IMAGE_UNREADABLE`, `MEDIA_TYPE_NOT_ALLOWED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "MEDIA_IMAGE_UNREADABLE",
+              "MEDIA_TYPE_NOT_ALLOWED"
+            ]
+          },
+          "413": {
+            "description": "Problem Details; `code`: `MEDIA_TOO_LARGE`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "MEDIA_TOO_LARGE"
+            ]
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "People"
+        ],
+        "summary": "Remove a person's photo",
+        "description": "Removes the person's photo, whatever the person's status; a person without one is PERSON_PHOTO_NOT_FOUND. Send `If-Match` from the last read to get 409 PERSON_CONCURRENCY_CONFLICT if the person changed since. Answers the person as GET /people/{personId} does; its version moves.",
+        "operationId": "RemovePersonPhoto",
+        "parameters": [
+          {
+            "name": "personId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Problem Details; `code`: `PERSON_NOT_FOUND`, `PERSON_PHOTO_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "PERSON_NOT_FOUND",
+              "PERSON_PHOTO_NOT_FOUND"
+            ]
+          },
+          "409": {
+            "description": "Problem Details; `code`: `PERSON_CONCURRENCY_CONFLICT`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "PERSON_CONCURRENCY_CONFLICT"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING",
+              "TENANT_READ_ONLY"
+            ]
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_MALFORMED_REQUEST`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_MALFORMED_REQUEST"
             ]
           }
         }
@@ -11117,6 +11400,10 @@
         "additionalProperties": false,
         "description": "The body of `entitlement.override` (audit `REQUIRED_WITH_REASON`): `value` in place of the plan's for\n`entitlementCode`, until `effectiveUntil` (the tenant's date, included; none = until removed). The reason\nis kept permanently in the override and the audit trail and is not redacted: it must not contain personal data."
       },
+      "IFormFile": {
+        "type": "string",
+        "format": "binary"
+      },
       "InvitationResponse": {
         "required": [
           "invitationId",
@@ -12127,6 +12414,31 @@
         },
         "description": "A person in the directory (S06 D22). `person.read` answers `INTERNAL` and `PUBLIC` fields only: the\nbirth year, `isMinor` and `ageStatus` on the tenant's date, never the date of birth (S06 D3, D13).\n`isMinor` is true unless the person is known to be an adult: a person without a date of birth\n(`UNKNOWN`) is treated as a minor."
       },
+      "PersonPhotoResponse": {
+        "required": [
+          "thumbnailUrl",
+          "mediumUrl",
+          "largeUrl",
+          "expiresAt"
+        ],
+        "type": "object",
+        "properties": {
+          "thumbnailUrl": {
+            "type": "string"
+          },
+          "mediumUrl": {
+            "type": "string"
+          },
+          "largeUrl": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "A person's photo as signed URLs, one per size (S06 D17): 160, 640 and 1600 px on the longest side, WebP. They work\nuntil `expiresAt` (ten minutes with the local storage); read the person again for new ones. Never cache them."
+      },
       "PersonPrivateResponse": {
         "required": [
           "id",
@@ -12172,6 +12484,7 @@
           "athleteProfiles",
           "staffProfiles",
           "officialProfiles",
+          "photo",
           "version"
         ],
         "type": "object",
@@ -12289,12 +12602,22 @@
               "$ref": "#/components/schemas/OfficialProfileResponse"
             }
           },
+          "photo": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PersonPhotoResponse"
+              }
+            ]
+          },
           "version": {
             "type": "integer",
             "format": "uint32"
           }
         },
-        "description": "A person's record as `person.read` shows it (S06 D3, D22): no `PRIVATE` field. Aliases are the ones not\nremoved; athlete profiles are all of them, archived ones included, by variant; staff and official profiles all of\nthem, archived ones included, oldest first. `version` is also the `ETag`;\na change to an alias, an identifier or a profile changes it too (S06 D11)."
+        "description": "A person's record as `person.read` shows it (S06 D3, D22): no `PRIVATE` field. Aliases are the ones not\nremoved; athlete profiles are all of them, archived ones included, by variant; staff and official profiles all of\nthem, archived ones included, oldest first. `photo` holds short-lived URLs (S06 D17), null without a photo.\n`version` is also the `ETag`;\na change to an alias, an identifier or a profile changes it too (S06 D11)."
       },
       "PersonSource": {
         "enum": [

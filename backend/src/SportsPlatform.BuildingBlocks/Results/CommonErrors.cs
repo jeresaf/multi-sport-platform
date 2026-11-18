@@ -13,7 +13,7 @@ public static class CommonErrors
         "VALIDATION_REQUEST_TOO_LARGE", "The request body is too large.", ErrorKind.PayloadTooLarge);
 
     public static readonly Error UnsupportedMediaType = new(
-        "VALIDATION_UNSUPPORTED_MEDIA_TYPE", "The request body must be JSON.", ErrorKind.UnsupportedMediaType);
+        "VALIDATION_UNSUPPORTED_MEDIA_TYPE", "The request body's content type isn't accepted by this endpoint.", ErrorKind.UnsupportedMediaType);
 
     /// <summary>A query parameter has a value the endpoint doesn't accept; the detail names the parameter.</summary>
     public static readonly Error InvalidQuery = new(

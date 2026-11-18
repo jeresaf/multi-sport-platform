@@ -367,12 +367,12 @@ Deliver:
 - Likely T5a (Platform media, adapter, variants, URL endpoint, counter) and T5b (person photo, quota check).
 
 Acceptance:
-- [ ] A file whose bytes aren't an allowed type is refused whatever its content type; a 5 MB + 1 byte photo is `413`
+- [x] A file whose bytes aren't an allowed type is refused whatever its content type; a 5 MB + 1 byte photo is `413`
       (tests).
 - [x] Variants have no EXIF data (test with a JPEG carrying a GPS tag).
 - [x] A signed URL works until it expires and never for another tenant's asset; the token endpoint never caches
       (tests with the fake clock).
-- [ ] At the `STORAGE_GB` limit the upload is `403 ENTITLEMENT_QUOTA_EXCEEDED`; the usage reads count the stored
+- [x] At the `STORAGE_GB` limit the upload is `403 ENTITLEMENT_QUOTA_EXCEEDED`; the usage reads count the stored
       bytes in whole GB (tests, with an override of 0 and a counter test over a known total).
 
 ### T6 — Minors, consent and the public read (~2 PRs, about 1,000 lines)
@@ -595,3 +595,19 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   every document (the `ORIGINAL` variant, a JPEG or PNG form included) is served as a download (R1); the storage key is
   unique per tenant, `(tenant_id, storage_key)` (R2). `STORAGE_GB` is counted by Tenancy's `MediaStorageUsage`; its check and `enforcedBy` come
   with T5b.
+- **T5b:** person photos. Owner decisions (plan, 2026-11-18): only the person read and the change answers carry the
+  photo's URLs (the directory gets a thumbnail with T7's screens if they need one, with a batch URL method then);
+  removing a photo the person doesn't have is `404 PERSON_PHOTO_NOT_FOUND` (new code). As built: `PUT
+  /api/admin/v1/people/{id}/photo` (`person.photo.set`, audit `REQUIRED`, names `STORAGE_GB`) takes `multipart/form-data`
+  with one file in the field `file` and nothing else (otherwise `400 VALIDATION_INVALID_REQUEST` on `file`; a JSON body
+  is `415`), `.DisableAntiforgery()` with the `X-CSRF` check kept, and `If-Match` only (a form has no `version`). The
+  handler loads the person, refuses an archived or deceased one (D9), counts `STORAGE_GB` as Tenancy does
+  (`StorageQuota.WholeGigabytes` in Tenancy Contracts, shared with `MediaStorageUsage`) and checks
+  `IEntitlements.CheckQuotaAsync` (at the limit `403 ENTITLEMENT_QUOTA_EXCEEDED`, "Your plan allows N GB of storage."),
+  then stores the file (`MEDIA_*` refusals carry the field `file`), points the person at the new asset, saves (the audit
+  entry names `assetId` and `replacedAssetId`) and only then marks the old asset `REMOVED`; a failure there is logged,
+  not answered (the person is saved). `DELETE …/photo` (`person.photo.remove`) works in any status (a correction).
+  Both answer the person with its `ETag`. `PersonResponse.photo` is `{thumbnailUrl, mediumUrl, largeUrl, expiresAt}`
+  or null (`INTERNAL`), three signed-URL lookups per read. The endpoint carries Platform Contracts' `StoresMediaMetadata`, so the
+  Host documents Platform's media refusals on it (the errors stay declared in `PlatformErrors`). `STORAGE_GB`'s
+  `enforcedBy` is Registry. T5 is done.

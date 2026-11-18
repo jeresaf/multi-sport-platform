@@ -1,7 +1,7 @@
 using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.Modules.Platform.Contracts.Media;
 using SportsPlatform.Modules.Platform.Domain.Media;
-using SportsPlatform.Modules.Tenancy.Features.Entitlements;
+using SportsPlatform.Modules.Tenancy.Contracts.Entitlements;
 
 namespace SportsPlatform.UnitTests.Platform.Media;
 
@@ -46,7 +46,7 @@ public sealed class MediaAssetTests
     [InlineData(1L << 30, 1)]
     [InlineData((10L << 30) + 5, 10)]
     public void Storage_counts_whole_gigabytes_rounded_down(long bytes, int gigabytes) =>
-        MediaStorageUsage.ToWholeGigabytes(bytes).ShouldBe(gigabytes);
+        StorageQuota.WholeGigabytes(bytes).ShouldBe(gigabytes);
 
     private static MediaAsset Photo() => MediaAsset.Create(
         MediaAsset.NewAssetId(), MediaPurpose.PersonPhoto, "image/webp", "t/a",

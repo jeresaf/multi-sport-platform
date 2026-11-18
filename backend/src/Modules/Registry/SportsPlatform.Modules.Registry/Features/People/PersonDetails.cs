@@ -48,13 +48,16 @@ public interface IIdentifierDetails
     string? Value { get; }
 }
 
-/// <summary>A refusal that belongs to one field of the request (<paramref name="Field"/>, camelCase), or to none.</summary>
-public sealed record FieldRefusal(Error Error, string? Field = null)
+/// <summary>
+/// A refusal that belongs to one field of the request (<paramref name="Field"/>, camelCase), or to none, with a
+/// <paramref name="Detail"/> when the refusal has more to say than the error's message (a quota's limit).
+/// </summary>
+public sealed record FieldRefusal(Error Error, string? Field = null, string? Detail = null)
 {
     /// <summary>Problem Details with the error's code, and the field in <c>errors</c> when there is one.</summary>
     public ProblemHttpResult ToProblem()
     {
-        var problem = Error.ToProblem();
+        var problem = Error.ToProblem(Detail);
         if (Field is { } field)
         {
             problem.ProblemDetails.Extensions[ProblemFields.Errors] = new List<FieldError> { new(field, Error.Code) };

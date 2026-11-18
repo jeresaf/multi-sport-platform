@@ -331,6 +331,12 @@
       "owner": "Registry"
     },
     {
+      "code": "PERSON_PHOTO_NOT_FOUND",
+      "status": 404,
+      "message": "The person has no photo.",
+      "owner": "Registry"
+    },
+    {
       "code": "PERSON_POSITION_UNKNOWN",
       "status": 422,
       "message": "The sport variant's definition has no such position.",
@@ -657,7 +663,7 @@
     {
       "code": "VALIDATION_UNSUPPORTED_MEDIA_TYPE",
       "status": 415,
-      "message": "The request body must be JSON.",
+      "message": "The request body's content type isn't accepted by this endpoint.",
       "owner": "BuildingBlocks"
     }
   ]

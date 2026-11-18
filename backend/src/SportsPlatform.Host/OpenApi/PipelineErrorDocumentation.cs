@@ -5,6 +5,8 @@ using SportsPlatform.BuildingBlocks.Api;
 using SportsPlatform.BuildingBlocks.Entitlements;
 using SportsPlatform.BuildingBlocks.Results;
 using SportsPlatform.Host.Authorization;
+using SportsPlatform.Modules.Platform;
+using SportsPlatform.Modules.Platform.Contracts.Media;
 using SportsPlatform.Modules.Tenancy;
 
 namespace SportsPlatform.Host.OpenApi;
@@ -18,7 +20,9 @@ namespace SportsPlatform.Host.OpenApi;
 /// <c>TENANT_READ_ONLY</c> (S04 D8) and, when it names a boolean or level entitlement, <c>ENTITLEMENT_REQUIRED</c> (step 2,
 /// S04 D10); when it names a quota, <c>ENTITLEMENT_QUOTA_EXCEEDED</c> (the handler counts, D12). An endpoint that runs under its route's
 /// tenant can be <c>TENANT_NOT_FOUND</c> (tenant resolution), whichever module maps it. An endpoint that reads a body or
-/// <c>If-Match</c> can be <c>VALIDATION_MALFORMED_REQUEST</c> (binding, or a header that doesn't parse).
+/// <c>If-Match</c> can be <c>VALIDATION_MALFORMED_REQUEST</c> (binding, or a header that doesn't parse). An endpoint that
+/// stores an upload (<see cref="StoresMediaMetadata"/>) can be Platform's <c>MEDIA_TYPE_NOT_ALLOWED</c>,
+/// <c>MEDIA_TOO_LARGE</c> and <c>MEDIA_IMAGE_UNREADABLE</c> (S06-T5b).
 /// </summary>
 internal static class PipelineErrorDocumentation
 {
@@ -44,6 +48,11 @@ internal static class PipelineErrorDocumentation
             if (endpoint.Metadata.OfType<IAcceptsMetadata>().Any() || endpoint.Metadata.OfType<AcceptsIfMatchMetadata>().Any())
             {
                 errors.Add(CommonErrors.MalformedRequest);
+            }
+
+            if (endpoint.Metadata.OfType<StoresMediaMetadata>().Any())
+            {
+                errors.AddRange([PlatformErrors.MediaTypeNotAllowed, PlatformErrors.MediaTooLarge, PlatformErrors.MediaImageUnreadable]);
             }
 
             if (endpoint.Metadata.OfType<RunsUnderRouteTenantMetadata>().Any())

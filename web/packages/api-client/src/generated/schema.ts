@@ -667,7 +667,7 @@ export interface paths {
         };
         /**
          * Get a person
-         * @description A person of the tenant named by `X-Tenant-Id`, whatever their status: names, aliases, external identifiers, the birth year, `isMinor` and `ageStatus` on the tenant's date, and `version` (also the `ETag`). The date of birth is in the private read. `isMinor` is true unless the person is known to be an adult: without a date of birth, `ageStatus` is UNKNOWN and `isMinor` is true.
+         * @description A person of the tenant named by `X-Tenant-Id`, whatever their status: names, aliases, external identifiers, the birth year, `isMinor` and `ageStatus` on the tenant's date, and `version` (also the `ETag`). The date of birth is in the private read. `isMinor` is true unless the person is known to be an adult: without a date of birth, `ageStatus` is UNKNOWN and `isMinor` is true. `photo` holds signed URLs of the photo's three sizes, working until `expiresAt` (read the person again for new ones; never cache them), or is null.
          */
         get: operations["GetPerson"];
         /**
@@ -817,6 +817,30 @@ export interface paths {
          */
         post: operations["RemovePersonAlias"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/people/{personId}/photo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set a person's photo
+         * @description Uploads a photo as `multipart/form-data` with one file in the field `file` and nothing else (VALIDATION_INVALID_REQUEST otherwise). The file's bytes decide its type, not the content type sent: JPEG, PNG or WebP up to 5 MB (MEDIA_TYPE_NOT_ALLOWED, MEDIA_TOO_LARGE; an image that can't be decoded or is over 40 megapixels is MEDIA_IMAGE_UNREADABLE). It is stored as WebP at 160, 640 and 1600 px on the longest side, without its metadata (a GPS position, the camera), and replaces the photo the person had. At the plan's storage limit the upload is ENTITLEMENT_QUOTA_EXCEEDED ("Your plan allows N GB of storage."). An archived or deceased person takes no new photo (PERSON_ARCHIVED, PERSON_DECEASED). Send `If-Match` from the last read to get 409 PERSON_CONCURRENCY_CONFLICT if the person changed since. Answers the person as GET /people/{personId} does; its version moves.
+         */
+        put: operations["SetPersonPhoto"];
+        post?: never;
+        /**
+         * Remove a person's photo
+         * @description Removes the person's photo, whatever the person's status; a person without one is PERSON_PHOTO_NOT_FOUND. Send `If-Match` from the last read to get 409 PERSON_CONCURRENCY_CONFLICT if the person changed since. Answers the person as GET /people/{personId} does; its version moves.
+         */
+        delete: operations["RemovePersonPhoto"];
         options?: never;
         head?: never;
         patch?: never;
@@ -2338,6 +2362,8 @@ export interface components {
             /** Format: date */
             effectiveUntil?: null | string;
         };
+        /** Format: binary */
+        IFormFile: string;
         /**
          * @description An invitation as the admin API shows it. `status` is `EXPIRED` for a pending one past `expiresAt`. The
          *     email is shown to every holder of `membership.read`, like a member's (owner, S03-T4b), and never logged or
@@ -2654,6 +2680,17 @@ export interface components {
             ageStatus: components["schemas"]["AgeStatus"];
             nationality: null | string;
         };
+        /**
+         * @description A person's photo as signed URLs, one per size (S06 D17): 160, 640 and 1600 px on the longest side, WebP. They work
+         *     until `expiresAt` (ten minutes with the local storage); read the person again for new ones. Never cache them.
+         */
+        PersonPhotoResponse: {
+            thumbnailUrl: string;
+            mediumUrl: string;
+            largeUrl: string;
+            /** Format: date-time */
+            expiresAt: string;
+        };
         /** @description A person's `PRIVATE` data, for `person.read_private` (S06 D3): the full date of birth. */
         PersonPrivateResponse: {
             /** Format: uuid */
@@ -2664,7 +2701,8 @@ export interface components {
         /**
          * @description A person's record as `person.read` shows it (S06 D3, D22): no `PRIVATE` field. Aliases are the ones not
          *     removed; athlete profiles are all of them, archived ones included, by variant; staff and official profiles all of
-         *     them, archived ones included, oldest first. `version` is also the `ETag`;
+         *     them, archived ones included, oldest first. `photo` holds short-lived URLs (S06 D17), null without a photo.
+         *     `version` is also the `ETag`;
          *     a change to an alias, an identifier or a profile changes it too (S06 D11).
          */
         PersonResponse: {
@@ -2694,6 +2732,7 @@ export interface components {
             athleteProfiles: components["schemas"]["AthleteProfileResponse"][];
             staffProfiles: components["schemas"]["StaffProfileResponse"][];
             officialProfiles: components["schemas"]["OfficialProfileResponse"][];
+            photo: null | components["schemas"]["PersonPhotoResponse"];
             /** Format: uint32 */
             version: number;
         };
@@ -6181,6 +6220,174 @@ export interface operations {
                 };
             };
             /** @description Problem Details; `code`: `PERSON_ALIAS_REMOVED`, `PERSON_CONCURRENCY_CONFLICT` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    SetPersonPhoto: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too. */
+                "If-Match"?: string;
+            };
+            path: {
+                personId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    file?: components["schemas"]["IFormFile"];
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `ENTITLEMENT_QUOTA_EXCEEDED`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `PERSON_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `PERSON_ARCHIVED`, `PERSON_CONCURRENCY_CONFLICT`, `PERSON_DECEASED` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `MEDIA_TOO_LARGE` */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `MEDIA_IMAGE_UNREADABLE`, `MEDIA_TYPE_NOT_ALLOWED` */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    RemovePersonPhoto: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too. */
+                "If-Match"?: string;
+            };
+            path: {
+                personId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_MALFORMED_REQUEST` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `PERSON_NOT_FOUND`, `PERSON_PHOTO_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `PERSON_CONCURRENCY_CONFLICT` */
             409: {
                 headers: {
                     [name: string]: unknown;

@@ -61,6 +61,7 @@ the message is the default title and may change.
 | `PERSON_NAME_INVALID` | 422 | A first and a last name each need at least one letter or digit. | Registry |
 | `PERSON_NOT_FOUND` | 404 | The person was not found. | Registry |
 | `PERSON_OFFICIAL_PROFILE_EXISTS` | 409 | The person already has an official profile: change or reactivate it instead. | Registry |
+| `PERSON_PHOTO_NOT_FOUND` | 404 | The person has no photo. | Registry |
 | `PERSON_POSITION_UNKNOWN` | 422 | The sport variant's definition has no such position. | Registry |
 | `PERSON_PROFILE_ARCHIVED` | 409 | The profile is archived: it takes no more changes. | Registry |
 | `PERSON_PROFILE_NOT_FOUND` | 404 | The person has no such profile. | Registry |
@@ -115,4 +116,4 @@ the message is the default title and may change.
 | `VALIDATION_MALFORMED_REQUEST` | 400 | The request could not be read. | BuildingBlocks |
 | `VALIDATION_REASON_REQUIRED` | 400 | This action needs a reason. | BuildingBlocks |
 | `VALIDATION_REQUEST_TOO_LARGE` | 413 | The request body is too large. | BuildingBlocks |
-| `VALIDATION_UNSUPPORTED_MEDIA_TYPE` | 415 | The request body must be JSON. | BuildingBlocks |
+| `VALIDATION_UNSUPPORTED_MEDIA_TYPE` | 415 | The request body's content type isn't accepted by this endpoint. | BuildingBlocks |
