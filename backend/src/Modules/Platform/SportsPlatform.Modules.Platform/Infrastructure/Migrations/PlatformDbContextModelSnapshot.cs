@@ -280,6 +280,134 @@ namespace SportsPlatform.Modules.Platform.Infrastructure.Migrations
                     b.HasAnnotation("SportsPlatform:AppendOnly", true);
                 });
 
+            modelBuilder.Entity("SportsPlatform.Modules.Platform.Domain.Media.MediaAsset", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("content_type");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("Files")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("variants");
+
+                    b.Property<string>("Purpose")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("purpose");
+
+                    b.Property<DateTimeOffset?>("RemovedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("removed_at");
+
+                    b.Property<Guid?>("RemovedById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("removed_by_id");
+
+                    b.Property<string>("RemovedByKind")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("removed_by_kind");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint")
+                        .HasColumnName("size_bytes");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<string>("StorageKey")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("storage_key");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<DateTimeOffset>("UploadedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("uploaded_at");
+
+                    b.Property<Guid>("UploadedById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("uploaded_by_id");
+
+                    b.Property<string>("UploadedByKind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("uploaded_by_kind");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.Property<string>("Visibility")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("visibility");
+
+                    b.HasKey("Id")
+                        .HasName("pk_media_assets");
+
+                    b.HasIndex("StorageKey")
+                        .IsUnique()
+                        .HasDatabaseName("ux_media_assets_storage_key");
+
+                    b.HasIndex("TenantId", "Status")
+                        .HasDatabaseName("ix_media_assets_tenant_id_status");
+
+                    b.ToTable("media_assets", "platform", t =>
+                        {
+                            t.HasCheckConstraint("ck_media_assets_purpose", "purpose IN ('PERSON_PHOTO', 'CONSENT_EVIDENCE')");
+
+                            t.HasCheckConstraint("ck_media_assets_removed", "(status = 'REMOVED') = (removed_at IS NOT NULL AND removed_by_kind IS NOT NULL AND removed_by_id IS NOT NULL)");
+
+                            t.HasCheckConstraint("ck_media_assets_removed_by_kind", "removed_by_kind IN ('USER', 'SYSTEM', 'ANONYMOUS')");
+
+                            t.HasCheckConstraint("ck_media_assets_size_bytes", "size_bytes > 0");
+
+                            t.HasCheckConstraint("ck_media_assets_status", "status IN ('ACTIVE', 'REMOVED')");
+
+                            t.HasCheckConstraint("ck_media_assets_uploaded_by_kind", "uploaded_by_kind IN ('USER', 'SYSTEM', 'ANONYMOUS')");
+
+                            t.HasCheckConstraint("ck_media_assets_variants", "jsonb_typeof(variants) = 'array' AND jsonb_array_length(variants) > 0");
+
+                            t.HasCheckConstraint("ck_media_assets_visibility", "visibility IN ('PRIVATE', 'PUBLIC')");
+                        });
+                });
+
             modelBuilder.Entity("SportsPlatform.Modules.Platform.Domain.Reference.Country", b =>
                 {
                     b.Property<Guid>("Id")

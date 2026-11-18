@@ -59,6 +59,28 @@ public abstract class ModuleDbContext : DbContext
     }
 
     /// <summary>
+    /// Saves like <see cref="SaveChangesResultAsync"/>, but without the request's audit entry: for a service another
+    /// module calls inside its own audited command (Platform's media store, S06 D16), so the entry goes with that
+    /// module's save, or is recorded as a failure if that save never happens. Entries queued with
+    /// <see cref="RecordAudit"/> are still written.
+    /// </summary>
+    public async Task<Result> SaveChangesWithoutScopeAuditAsync(CancellationToken cancellationToken = default)
+    {
+        SkipsScopeAudit = true;
+        try
+        {
+            return await SaveChangesResultAsync(cancellationToken);
+        }
+        finally
+        {
+            SkipsScopeAudit = false;
+        }
+    }
+
+    /// <summary>Whether the save under way leaves the request's audit entry to a later save.</summary>
+    internal bool SkipsScopeAudit { get; private set; }
+
+    /// <summary>
     /// Queues an integration event in this module's outbox; it is saved with the rest of the unit of work and
     /// delivered after commit. Call it from a use-case handler or a domain event subscriber, never after saving.
     /// </summary>

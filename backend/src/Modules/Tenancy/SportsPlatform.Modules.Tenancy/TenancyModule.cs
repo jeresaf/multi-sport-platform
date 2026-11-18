@@ -123,6 +123,7 @@ public sealed class TenancyModule : IModule
         services.AddScoped<EnabledSports>();
         services.AddScoped<IEnabledSports>(provider => provider.GetRequiredService<EnabledSports>());
         services.AddQuotaUsage<EnabledSports>(EnabledSports.Code);
+        services.AddQuotaUsage<MediaStorageUsage>(MediaStorageUsage.Code);
         services.AddScoped<TenantSportChanges>();
         services.AddScoped<ListTenantSportsHandler>();
         services.AddScoped<EnableSportHandler>();
