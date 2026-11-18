@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Results;
 using SportsPlatform.Modules.Platform.Contracts.Media;
@@ -13,7 +14,8 @@ namespace SportsPlatform.Modules.Registry.Features.People.GetPerson;
 /// birth is read to compute the birth year and the age status on the tenant's date, and goes no further (S06 D3, D13).
 /// The photo is answered as signed URLs from Platform's media (S06 D17).
 /// </summary>
-public sealed class GetPersonHandler(RegistryDbContext context, TenantToday tenantToday, IMediaAssets media)
+public sealed partial class GetPersonHandler(
+    RegistryDbContext context, TenantToday tenantToday, IMediaAssets media, ILogger<GetPersonHandler> logger)
 {
     public async Task<Result<PersonResponse>> HandleAsync(Guid personId, CancellationToken cancellationToken)
     {
@@ -56,7 +58,7 @@ public sealed class GetPersonHandler(RegistryDbContext context, TenantToday tena
             .ToListAsync(cancellationToken);
 
         var p = person.Person;
-        var photo = p.PhotoAssetId is { } photoAssetId ? await PhotoAsync(photoAssetId, cancellationToken) : null;
+        var photo = p.PhotoAssetId is { } photoAssetId ? await PhotoAsync(p.Id, photoAssetId, cancellationToken) : null;
         var today = await tenantToday.GetAsync(cancellationToken);
         var ageStatus = Age.StatusOn(p.DateOfBirth, today);
         return Result.Success(new PersonResponse(
@@ -81,20 +83,25 @@ public sealed class GetPersonHandler(RegistryDbContext context, TenantToday tena
     }
 
     /// <summary>
-    /// The photo's URLs, or null when Platform doesn't serve them all. A person names only an active asset, so that
-    /// would be a bug; the read still answers.
+    /// The photo's URLs, or null when Platform doesn't serve them all: logged, since a person names only an active asset
+    /// (a read racing a photo's replacement can also see the old one removed). The read still answers.
     /// </summary>
-    private async Task<PersonPhotoResponse?> PhotoAsync(Guid assetId, CancellationToken cancellationToken)
+    private async Task<PersonPhotoResponse?> PhotoAsync(Guid personId, Guid assetId, CancellationToken cancellationToken)
     {
         var thumbnail = await media.GetSignedUrlAsync(assetId, MediaVariant.Thumbnail, cancellationToken);
         var medium = await media.GetSignedUrlAsync(assetId, MediaVariant.Medium, cancellationToken);
         var large = await media.GetSignedUrlAsync(assetId, MediaVariant.Large, cancellationToken);
         if (thumbnail.IsFailure || medium.IsFailure || large.IsFailure)
         {
+            var error = new[] { thumbnail.Error, medium.Error, large.Error }.First(e => e is not null)!;
+            LogPhotoNotServed(personId, assetId, error.Code);
             return null;
         }
 
         var expiresAt = new[] { thumbnail.Value.ExpiresAt, medium.Value.ExpiresAt, large.Value.ExpiresAt }.Min();
         return new(thumbnail.Value.Url, medium.Value.Url, large.Value.Url, expiresAt);
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Person {PersonId} names photo asset {AssetId}, which Platform doesn't serve: {ErrorCode}")]
+    private partial void LogPhotoNotServed(Guid personId, Guid assetId, string errorCode);
 }
