@@ -258,7 +258,9 @@ seed); "today" and the statuses are derived on every call. Other API instances c
 `AddQuotaUsage<TCounter>(code)`, a singleton `QuotaUsageRegistration` that the Host checks at startup (a declared
 `QUOTA` entitlement, at most one counter per code) without creating a counter. Tenancy's `MediaStorageUsage` counts
 `STORAGE_GB` from Platform's `IMediaAssets.GetStoredBytesAsync` (every variant of active assets) in whole gigabytes of
-2³⁰ bytes, rounded down (S06 D20; the uploading module checks it, from S06-T5b). Identity's `StaffUsers` counts
+2³⁰ bytes, rounded down (S06 D20; `StorageQuota.WholeGigabytes` in Tenancy Contracts). The uploading module checks
+it before storing: Registry's `person.photo.set` (S06-T5b) is `403 ENTITLEMENT_QUOTA_EXCEEDED` at the limit with the
+`detail` "Your plan allows N GB of storage.", without a lock (two uploads at the limit may both pass). Identity's `StaffUsers` counts
 `MAX_STAFF_USERS`: memberships that aren't removed (`ACTIVE`, `SUSPENDED`) plus pending, unexpired invitations to
 emails that aren't members. `membership.invite` holds `identity.staff_users:<tenantId>` while it counts (leaving out a
 pending invitation to the same email, which the new one replaces), checks `CheckQuotaAsync` and saves; at the limit it
