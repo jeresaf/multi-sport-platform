@@ -54,6 +54,6 @@ internal sealed class MediaAssetConfiguration : IEntityTypeConfiguration<MediaAs
                     files => files.ToList()));
 
         builder.HasIndex(a => new { a.TenantId, a.Status });
-        builder.HasIndex(a => a.StorageKey).IsUnique().HasDatabaseName("ux_media_assets_storage_key");
+        builder.HasIndex(a => new { a.TenantId, a.StorageKey }).IsUnique().HasDatabaseName("ux_media_assets_tenant_id_storage_key");
     }
 }

@@ -63,6 +63,11 @@ public static class MediaRules
         _ => throw new ArgumentOutOfRangeException(nameof(type)),
     };
 
+    /// <summary>The file extension of a stored content type.</summary>
+    public static string Extension(string contentType) =>
+        Enum.GetValues<MediaFileType>().Where(type => ContentType(type) == contentType).Select(Extension).FirstOrDefault()
+        ?? throw new ArgumentOutOfRangeException(nameof(contentType), "Not a stored media type.");
+
     /// <summary>The type the file's first bytes show, if Platform knows it.</summary>
     public static MediaFileType? Detect(ReadOnlySpan<byte> bytes)
     {

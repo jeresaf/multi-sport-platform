@@ -58,10 +58,10 @@ namespace SportsPlatform.Modules.Platform.Infrastructure.Migrations
                 columns: new[] { "tenant_id", "status" });
 
             migrationBuilder.CreateIndex(
-                name: "ux_media_assets_storage_key",
+                name: "ux_media_assets_tenant_id_storage_key",
                 schema: "platform",
                 table: "media_assets",
-                column: "storage_key",
+                columns: new[] { "tenant_id", "storage_key" },
                 unique: true);
 
             migrationBuilder.EnableTenantRls("platform", "media_assets");

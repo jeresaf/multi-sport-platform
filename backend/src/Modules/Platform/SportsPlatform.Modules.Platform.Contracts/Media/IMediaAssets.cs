@@ -20,8 +20,10 @@ public interface IMediaAssets
 
     /// <summary>
     /// Marks the asset <c>REMOVED</c> (<c>ACTIVE → REMOVED</c>, Q39): no URL or read serves it, and it no longer counts
-    /// toward storage. Its files stay until a retention job (Later). Saved like <see cref="StoreAsync"/>. Removing a
-    /// removed asset is a no-op; an unknown one is <c>MEDIA_NOT_FOUND</c>.
+    /// toward storage. Its files stay until a retention job (Later). Saved at once, like <see cref="StoreAsync"/>, so a
+    /// caller that replaces an asset removes the old one only after its own save succeeded: a failure then leaves an
+    /// unreferenced active asset, never a reference to a removed one. Removing a removed asset is a no-op; an unknown one
+    /// is <c>MEDIA_NOT_FOUND</c>.
     /// </summary>
     Task<Result> RemoveAsync(Guid assetId, CancellationToken cancellationToken);
 

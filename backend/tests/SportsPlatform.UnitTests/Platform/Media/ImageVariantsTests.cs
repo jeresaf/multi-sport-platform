@@ -51,8 +51,12 @@ public sealed class ImageVariantsTests
 
     [Theory]
     [InlineData(1, "red", 400, 200)]
+    [InlineData(2, "green", 400, 200)]
     [InlineData(3, "yellow", 400, 200)]
+    [InlineData(4, "blue", 400, 200)]
+    [InlineData(5, "red", 200, 400)]
     [InlineData(6, "blue", 200, 400)]
+    [InlineData(7, "yellow", 200, 400)]
     [InlineData(8, "green", 200, 400)]
     public void The_EXIF_orientation_is_applied(ushort orientation, string topLeft, int width, int height)
     {
@@ -74,6 +78,17 @@ public sealed class ImageVariantsTests
         var broken = TestImages.Jpeg(64, 64)[..12];
 
         ImageVariants.Create(broken).Error!.Code.ShouldBe(PlatformErrors.MediaImageUnreadable.Code);
+    }
+
+    [Fact]
+    public void A_large_PNG_is_shrunk_before_it_is_oriented()
+    {
+        // 3200×2400: PNG can't decode scaled, so the full bitmap is shrunk to 1600×1200 first.
+        var png = ImageVariants.Create(TestImages.Png(3200, 2400)).Value;
+
+        png.Select(v => (v.Width, v.Height)).ShouldBe([(160, 120), (640, 480), (1600, 1200)]);
+        TestImages.ColourName(TestImages.PixelAt(png[^1].Bytes, 10, 10)).ShouldBe("red");
+        TestImages.ColourName(TestImages.PixelAt(png[^1].Bytes, 1590, 1190)).ShouldBe("yellow");
     }
 
     [Fact]

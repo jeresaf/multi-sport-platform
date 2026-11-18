@@ -381,12 +381,12 @@ namespace SportsPlatform.Modules.Platform.Infrastructure.Migrations
                     b.HasKey("Id")
                         .HasName("pk_media_assets");
 
-                    b.HasIndex("StorageKey")
-                        .IsUnique()
-                        .HasDatabaseName("ux_media_assets_storage_key");
-
                     b.HasIndex("TenantId", "Status")
                         .HasDatabaseName("ix_media_assets_tenant_id_status");
+
+                    b.HasIndex("TenantId", "StorageKey")
+                        .IsUnique()
+                        .HasDatabaseName("ux_media_assets_tenant_id_storage_key");
 
                     b.ToTable("media_assets", "platform", t =>
                         {

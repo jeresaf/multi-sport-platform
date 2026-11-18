@@ -12,10 +12,12 @@ using SportsPlatform.BuildingBlocks.Results;
 using SportsPlatform.BuildingBlocks.Tenancy;
 using SportsPlatform.IntegrationTests.Api;
 using SportsPlatform.IntegrationTests.Infrastructure;
+using SportsPlatform.IntegrationTests.Registry;
 using SportsPlatform.Modules.Platform.Contracts.Media;
 using SportsPlatform.Modules.Platform.Domain.Media;
 using SportsPlatform.Modules.Platform.Infrastructure;
 using SportsPlatform.Modules.Platform.Infrastructure.Media;
+using SportsPlatform.Modules.Registry.Infrastructure;
 using SportsPlatform.Modules.Tenancy.Features.Entitlements;
 using SportsPlatform.UnitTests.Platform.Media;
 
@@ -104,11 +106,13 @@ public sealed class MediaAssetsTests(PostgresFixture fixture) : DatabaseTest(fix
     }
 
     [Fact]
-    public async Task An_image_that_does_not_decode_is_refused()
+    public async Task A_truncated_image_is_refused()
     {
         // A tenant of its own: the media folder outlives the database reset.
         var tenant = Guid.CreateVersion7();
-        var result = await TryStoreAsync(tenant, TestImages.PngClaiming(10_000, 10_000), MediaPurpose.PersonPhoto);
+        var jpeg = TestImages.Jpeg(800, 600);
+
+        var result = await TryStoreAsync(tenant, jpeg[..(jpeg.Length * 2 / 3)], MediaPurpose.PersonPhoto);
 
         result.Error!.Code.ShouldBe("MEDIA_IMAGE_UNREADABLE");
         await ShouldHaveNoAssetsAsync(tenant);
@@ -167,19 +171,36 @@ public sealed class MediaAssetsTests(PostgresFixture fixture) : DatabaseTest(fix
             && s.TagObjects.All(tag => !(tag.Value ?? "").ToString()!.Contains(token, StringComparison.Ordinal)));
     }
 
-    [Fact]
-    public async Task Evidence_is_served_as_a_download()
+    [Theory]
+    [InlineData("pdf", "application/pdf")]
+    [InlineData("jpeg", "image/jpeg")]
+    public async Task Evidence_is_served_as_a_download_whatever_its_type(string kind, string contentType)
     {
-        var id = await StoreAsync(_kmsa, TestImages.Pdf(), MediaPurpose.ConsentEvidence);
+        var bytes = kind == "pdf" ? TestImages.Pdf() : TestImages.Jpeg(300, 400);
+        var id = await StoreAsync(_kmsa, bytes, MediaPurpose.ConsentEvidence);
         var url = (await SignedUrlAsync(_kmsa, id, MediaVariant.Original)).Value;
         using var client = App.CreateClient();
 
         using var response = await client.GetAsync(url.Url, Ct);
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
-        response.Content.Headers.ContentType!.MediaType.ShouldBe("application/pdf");
+        response.Content.Headers.ContentType!.MediaType.ShouldBe(contentType);
         response.Content.Headers.ContentDisposition!.DispositionType.ShouldBe("attachment");
-        (await response.Content.ReadAsByteArrayAsync(Ct)).ShouldBe(TestImages.Pdf());
+        response.Content.Headers.ContentDisposition.FileName.ShouldBe($"{id:N}.{(kind == "pdf" ? "pdf" : "jpg")}");
+        (await response.Content.ReadAsByteArrayAsync(Ct)).ShouldBe(bytes);
+    }
+
+    [Fact]
+    public async Task A_photo_variant_is_shown_inline()
+    {
+        var id = await StoreAsync(_kmsa, TestImages.Jpeg(300, 400), MediaPurpose.PersonPhoto);
+        var url = (await SignedUrlAsync(_kmsa, id, MediaVariant.Thumbnail)).Value;
+        using var client = App.CreateClient();
+
+        using var response = await client.GetAsync(url.Url, Ct);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        response.Content.Headers.ContentDisposition.ShouldBeNull();
     }
 
     [Fact]
@@ -254,8 +275,17 @@ public sealed class MediaAssetsTests(PostgresFixture fixture) : DatabaseTest(fix
 
         stored.IsSuccess.ShouldBeTrue();
         audit.IsPending.ShouldBeTrue();
-        (await QueryAsync(DatabaseRoles.Platform, "SELECT count(*) FROM platform.outbox_messages", reader => reader.GetInt64(0)))
-            .ShouldBe([0L]);
+        (await OutboxCountAsync("platform")).ShouldBe(0);
+
+        // The caller's own save (Registry's, as T5b's photo endpoint) then records the one entry.
+        audit.Describe("Person", Guid.CreateVersion7());
+        var registry = scope.ServiceProvider.GetRequiredService<RegistryDbContext>();
+        registry.Add(RegistryTestData.NewPerson(RegistryTestData.JohnSsekandi));
+        await registry.SaveChangesAsync(Ct);
+
+        audit.IsPending.ShouldBeFalse();
+        (await OutboxCountAsync("registry")).ShouldBe(1);
+        (await OutboxCountAsync("platform")).ShouldBe(0);
     }
 
     [Fact]
@@ -327,6 +357,9 @@ public sealed class MediaAssetsTests(PostgresFixture fixture) : DatabaseTest(fix
         await context.SaveChangesAsync(Ct);
         return id;
     }
+
+    private async Task<long> OutboxCountAsync(string schema) =>
+        (await QueryAsync(DatabaseRoles.Platform, $"SELECT count(*) FROM {schema}.outbox_messages", reader => reader.GetInt64(0))).Single();
 
     private async Task ShouldHaveNoAssetsAsync(Guid tenantId)
     {

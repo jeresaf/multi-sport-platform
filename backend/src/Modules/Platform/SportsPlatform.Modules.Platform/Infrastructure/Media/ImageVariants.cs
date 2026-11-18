@@ -68,9 +68,9 @@ public static class ImageVariants
     }
 
     /// <summary>
-    /// The pixels, oriented, at the smallest size the codec can decode that still covers the largest variant (JPEG
-    /// decodes at 1/2, 1/4 or 1/8 directly), so a large photo never needs its full bitmap more than once. A truncated or
-    /// broken file gives null.
+    /// The pixels, oriented, at most the largest variant's size: JPEG decodes at 1/2, 1/4 or 1/8 directly when that
+    /// still covers the largest variant; anything larger is shrunk before it is oriented, so a large photo needs its
+    /// full bitmap once at most, and a photo the right way up isn't copied. A truncated or broken file gives null.
     /// </summary>
     private static SKBitmap? DecodeOriented(SKCodec codec)
     {
@@ -87,6 +87,26 @@ public static class ImageVariants
         if (bitmap is null)
         {
             return null;
+        }
+
+        // Shrink to the largest variant first (PNG and WebP can't decode scaled), so orienting copies a small bitmap.
+        var (width, height) = ScaledSize(bitmap.Width, bitmap.Height, largest);
+        if (width != bitmap.Width || height != bitmap.Height)
+        {
+            using var large = bitmap;
+            bitmap = new SKBitmap(new SKImageInfo(width, height, SKColorType.Rgba8888, SKAlphaType.Premul));
+            if (!large.ScalePixels(bitmap, new SKSamplingOptions(SKCubicResampler.Mitchell)))
+            {
+                bitmap.Dispose();
+                return null;
+            }
+
+            bitmap.SetImmutable();
+        }
+
+        if (codec.EncodedOrigin is SKEncodedOrigin.TopLeft)
+        {
+            return bitmap;
         }
 
         using (bitmap)
@@ -109,7 +129,7 @@ public static class ImageVariants
         return null;
     }
 
-    /// <summary>The pixels as they should be shown: the EXIF orientation applied (a copy in every case).</summary>
+    /// <summary>The pixels as they should be shown: the EXIF orientation applied (a copy).</summary>
     private static SKBitmap Orient(SKBitmap source, SKEncodedOrigin origin)
     {
         float w = source.Width;
