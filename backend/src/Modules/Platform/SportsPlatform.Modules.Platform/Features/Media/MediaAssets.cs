@@ -129,7 +129,9 @@ public sealed class MediaAssets(
         return asset?.FileOf(variant);
     }
 
-    /// <summary>The asset's content type and files: a photo's WebP variants, or the document as uploaded.</summary>
+    /// <summary>
+    /// The asset's content type and files: a photo's WebP variants, a PDF as uploaded, or a document image re-encoded.
+    /// </summary>
     private static Result<(string ContentType, IReadOnlyList<(MediaAssetFile File, byte[] Bytes)> Files)> Prepare(
         byte[] bytes, MediaFileType type, MediaPurpose purpose, string storageKey)
     {
@@ -137,8 +139,22 @@ public sealed class MediaAssets(
         {
             var contentType = MediaRules.ContentType(type);
             var key = $"{storageKey}/original.{MediaRules.Extension(type)}";
+            if (type == MediaFileType.Pdf)
+            {
+                return Result.Success<(string, IReadOnlyList<(MediaAssetFile, byte[])>)>(
+                    (contentType, [(new MediaAssetFile(MediaVariant.Original, key, contentType, null, null, bytes.LongLength), bytes)]));
+            }
+
+            // A photographed document: re-encoded once, so no GPS position or device data is kept (review #104 Q1).
+            var reencoded = ImageVariants.Reencode(bytes, type);
+            if (reencoded.IsFailure)
+            {
+                return reencoded.Error;
+            }
+
+            var image = reencoded.Value;
             return Result.Success<(string, IReadOnlyList<(MediaAssetFile, byte[])>)>(
-                (contentType, [(new MediaAssetFile(MediaVariant.Original, key, contentType, null, null, bytes.LongLength), bytes)]));
+                (contentType, [(new MediaAssetFile(MediaVariant.Original, key, contentType, image.Width, image.Height, image.Bytes.LongLength), image.Bytes)]));
         }
 
         var variants = ImageVariants.Create(bytes);

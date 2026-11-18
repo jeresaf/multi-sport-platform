@@ -151,7 +151,7 @@ Modules call each other in-process through Contracts, never over HTTP.
   rewrite carries it). The token is Data Protection (purpose `platform.media`) naming the tenant, the asset and the
   variant; the endpoint sets the request's tenant from it before reading, so RLS applies. Every refusal (bad,
   expired, another tenant's, removed) is `404 MEDIA_NOT_FOUND`. Responses carry `Cache-Control: private, no-store`
-  and `X-Content-Type-Options: nosniff`; photo variants are inline, documents (the original as uploaded, a photographed form
+  and `X-Content-Type-Options: nosniff`; photo variants are inline, documents (the original, a photographed form
   included) a download named `{assetId}.{ext}`. Azure's SAS URLs come with the
   first deployment.
 - The token is a credential for its lifetime: the endpoint is marked `.RedactPathInTelemetry()`, so the request log,

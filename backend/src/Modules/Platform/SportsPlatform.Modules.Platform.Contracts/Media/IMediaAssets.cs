@@ -11,7 +11,8 @@ public interface IMediaAssets
 {
     /// <summary>
     /// Checks the file by its bytes (type and size for <paramref name="purpose"/>), stores it (a photo as its resized
-    /// variants, a document as uploaded) and returns the new asset's ID. Refusals: <c>MEDIA_TYPE_NOT_ALLOWED</c>,
+    /// variants, a PDF as uploaded, a JPEG or PNG document re-encoded without its metadata) and returns the new asset's
+    /// ID. Refusals: <c>MEDIA_TYPE_NOT_ALLOWED</c>,
     /// <c>MEDIA_TOO_LARGE</c>, <c>MEDIA_IMAGE_UNREADABLE</c>. The asset is saved at once, in Platform's own unit of work,
     /// without the request's audit entry: the calling module's save records that (so a refused save still audits as a
     /// failure). If the caller's save then fails, the asset stays <c>ACTIVE</c> and unreferenced.
@@ -49,14 +50,19 @@ public enum MediaPurpose
     /// <summary>A person's photo: JPEG, PNG or WebP up to 5 MB, stored as WebP thumbnail, medium and large.</summary>
     PersonPhoto,
 
-    /// <summary>A guardian consent's evidence: PDF, JPEG or PNG up to 10 MB, stored as uploaded.</summary>
+    /// <summary>
+    /// A guardian consent's evidence: PDF, JPEG or PNG up to 10 MB. A PDF is stored as uploaded; an image is re-encoded
+    /// at its own size and type without its metadata (a GPS position, the device).
+    /// </summary>
     ConsentEvidence,
 }
 
 /// <summary>A stored form of an asset.</summary>
 public enum MediaVariant
 {
-    /// <summary>The file as uploaded (documents only; a photo's original isn't kept).</summary>
+    /// <summary>
+    /// A document: the PDF as uploaded, or the image re-encoded at its own size (a photo's original isn't kept).
+    /// </summary>
     Original,
 
     /// <summary>A photo at most 160 px on its longest side.</summary>

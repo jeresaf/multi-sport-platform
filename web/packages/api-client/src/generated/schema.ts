@@ -13,7 +13,7 @@ export interface paths {
         };
         /**
          * Get a media file by its signed URL
-         * @description Serves one stored file of a media asset while its signed URL is valid (10 minutes). Only signed URLs from an admin read lead here; the token names the tenant, the asset and the variant. Photo variants are served inline; documents (the original as uploaded, whatever its type) as a download. `Cache-Control: private, no-store`.
+         * @description Serves one stored file of a media asset while its signed URL is valid (10 minutes). Only signed URLs from an admin read lead here; the token names the tenant, the asset and the variant. Photo variants are served inline; documents (the original, whatever its type) as a download. `Cache-Control: private, no-store`.
          */
         get: operations["GetMediaFile"];
         put?: never;

@@ -25,7 +25,7 @@ internal static class ServeMediaEndpoint
         .RedactPathInTelemetry()
         .WithName("GetMediaFile")
         .WithSummary("Get a media file by its signed URL")
-        .WithDescription("Serves one stored file of a media asset while its signed URL is valid (10 minutes). Only signed URLs from an admin read lead here; the token names the tenant, the asset and the variant. Photo variants are served inline; documents (the original as uploaded, whatever its type) as a download. `Cache-Control: private, no-store`.")
+        .WithDescription("Serves one stored file of a media asset while its signed URL is valid (10 minutes). Only signed URLs from an admin read lead here; the token names the tenant, the asset and the variant. Photo variants are served inline; documents (the original, whatever its type) as a download. `Cache-Control: private, no-store`.")
         .Produces<Stream>(StatusCodes.Status200OK, "image/webp", "image/jpeg", "image/png", "application/pdf")
         .ProducesErrors(PlatformErrors.MediaNotFound);
 
@@ -54,7 +54,7 @@ internal static class ServeMediaEndpoint
         var content = opened.Value;
         httpContext.Response.Headers[HeaderNames.XContentTypeOptions] = "nosniff";
         httpContext.Response.RegisterForDisposeAsync(content);
-        // A document (the original as uploaded: consent evidence, a PDF or a photographed form) is a download; a photo's
+        // A document (the original: consent evidence, a PDF or a photographed form) is a download; a photo's
         // variants are shown inline.
         return file.Variant == MediaVariant.Original
             ? Results.Stream(content.Content, content.ContentType, fileDownloadName: $"{file.AssetId:N}.{MediaRules.Extension(content.ContentType)}")

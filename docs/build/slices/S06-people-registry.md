@@ -588,8 +588,9 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   `ModuleDbContext.SaveChangesWithoutScopeAuditAsync`, so the owning module's save records the audit entry (an
   architecture test keeps the method to Platform's media service); the token endpoint is `.RedactPathInTelemetry()`, so
   logs and traces record `/api/public/v1/media/{token}`; storage keys are `{tenantId}/{assetId}/{variant}.{ext}`;
-  `Media:LocalRoot` is relative to the working directory (`.media/` in Development); evidence images keep their EXIF
-  (stored as uploaded, D16). The first acceptance box waits for T5b: T5a proves both refusals through `IMediaAssets`
+  `Media:LocalRoot` is relative to the working directory (`.media/` in Development); evidence
+  images are re-encoded once at their own size and type, so a photographed form keeps no GPS position or device
+  data, while a PDF is stored as uploaded (review #104 Q1, owner: a change to D16's "stored as uploaded"). The first acceptance box waits for T5b: T5a proves both refusals through `IMediaAssets`
   (`MEDIA_TYPE_NOT_ALLOWED`, `MEDIA_TOO_LARGE` with status 413); T5b proves them over the photo endpoint. Review #104:
   every document (the `ORIGINAL` variant, a JPEG or PNG form included) is served as a download (R1); the storage key is
   unique per tenant, `(tenant_id, storage_key)` (R2). `STORAGE_GB` is counted by Tenancy's `MediaStorageUsage`; its check and `enforcedBy` come

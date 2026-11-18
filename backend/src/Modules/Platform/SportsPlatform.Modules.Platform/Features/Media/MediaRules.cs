@@ -14,7 +14,8 @@ public enum MediaFileType
 
 /// <summary>
 /// What each purpose accepts (S06 D16): the types, judged by the file's first bytes and never by the client's content
-/// type or file name, and the size limit. A photo is re-encoded into variants; a document is stored as uploaded.
+/// type or file name, and the size limit. A photo is re-encoded into variants; a PDF is stored as uploaded and a
+/// document image re-encoded once, without its metadata.
 /// </summary>
 public static class MediaRules
 {

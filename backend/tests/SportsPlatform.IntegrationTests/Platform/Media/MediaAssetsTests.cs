@@ -176,7 +176,7 @@ public sealed class MediaAssetsTests(PostgresFixture fixture) : DatabaseTest(fix
     [InlineData("jpeg", "image/jpeg")]
     public async Task Evidence_is_served_as_a_download_whatever_its_type(string kind, string contentType)
     {
-        var bytes = kind == "pdf" ? TestImages.Pdf() : TestImages.Jpeg(300, 400);
+        var bytes = kind == "pdf" ? TestImages.Pdf() : TestImages.WithExif(TestImages.Jpeg(300, 400), orientation: 1);
         var id = await StoreAsync(_kmsa, bytes, MediaPurpose.ConsentEvidence);
         var url = (await SignedUrlAsync(_kmsa, id, MediaVariant.Original)).Value;
         using var client = App.CreateClient();
@@ -187,7 +187,17 @@ public sealed class MediaAssetsTests(PostgresFixture fixture) : DatabaseTest(fix
         response.Content.Headers.ContentType!.MediaType.ShouldBe(contentType);
         response.Content.Headers.ContentDisposition!.DispositionType.ShouldBe("attachment");
         response.Content.Headers.ContentDisposition.FileName.ShouldBe($"{id:N}.{(kind == "pdf" ? "pdf" : "jpg")}");
-        (await response.Content.ReadAsByteArrayAsync(Ct)).ShouldBe(bytes);
+        var served = await response.Content.ReadAsByteArrayAsync(Ct);
+        if (kind == "pdf")
+        {
+            served.ShouldBe(bytes);
+        }
+        else
+        {
+            // A photographed form is re-encoded: same size and type, no EXIF (GPS) data (review #104 Q1).
+            TestImages.SizeOf(served).ShouldBe((300, 400));
+            served.AsSpan().IndexOf("Exif"u8).ShouldBe(-1);
+        }
     }
 
     [Fact]

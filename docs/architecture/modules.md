@@ -52,7 +52,8 @@ seed framework.
 the purpose's limit (photos 5 MB, evidence 10 MB; `MEDIA_TOO_LARGE`), judges the type by the first bytes
 (`MEDIA_TYPE_NOT_ALLOWED`), re-encodes a photo into WebP `THUMBNAIL`/`MEDIUM`/`LARGE` (160/640/1600 px, never
 upscaled, EXIF orientation applied and metadata dropped; over 40 megapixels or undecodable: `MEDIA_IMAGE_UNREADABLE`)
-or keeps a document as uploaded (`ORIGINAL`), writes the files under `{tenantId}/{assetId}/` and saves the row without
+or keeps a document as `ORIGINAL` (a PDF as uploaded; a JPEG or PNG re-encoded once at its own size, without its
+metadata: review #104 Q1, owner), writes the files under `{tenantId}/{assetId}/` and saves the row without
 the request's audit entry (the owning module's save records it). If the owning module's save then fails, the asset
 stays `ACTIVE` and unreferenced (owner, T5a plan). `RemoveAsync` marks it `REMOVED`; files stay until a retention job.
 `GetSignedUrlAsync` answers a 10-minute URL; `GetStoredBytesAsync` sums active assets. The only `IFileStorage` adapter

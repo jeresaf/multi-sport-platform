@@ -1,6 +1,7 @@
 using System.Text;
 using SportsPlatform.Modules.Platform;
 using SportsPlatform.Modules.Platform.Contracts.Media;
+using SportsPlatform.Modules.Platform.Features.Media;
 using SportsPlatform.Modules.Platform.Infrastructure.Media;
 
 namespace SportsPlatform.UnitTests.Platform.Media;
@@ -89,6 +90,43 @@ public sealed class ImageVariantsTests
         png.Select(v => (v.Width, v.Height)).ShouldBe([(160, 120), (640, 480), (1600, 1200)]);
         TestImages.ColourName(TestImages.PixelAt(png[^1].Bytes, 10, 10)).ShouldBe("red");
         TestImages.ColourName(TestImages.PixelAt(png[^1].Bytes, 1590, 1190)).ShouldBe("yellow");
+    }
+
+    [Theory]
+    [InlineData(MediaFileType.Jpeg, 6, 300, 400)]
+    [InlineData(MediaFileType.Jpeg, 1, 400, 300)]
+    public void A_document_JPEG_keeps_its_size_and_type_but_loses_its_EXIF_data(
+        MediaFileType type, ushort orientation, int width, int height)
+    {
+        // A photographed consent form, 400×300 with a GPS position; orientation 6 means it was taken turned.
+        var upload = TestImages.WithExif(TestImages.Jpeg(400, 300), orientation);
+
+        var document = ImageVariants.Reencode(upload, type).Value;
+
+        document.Variant.ShouldBe(MediaVariant.Original);
+        (document.Width, document.Height).ShouldBe((width, height));
+        MediaRules.Detect(document.Bytes).ShouldBe(MediaFileType.Jpeg);
+        TestImages.SizeOf(document.Bytes).ShouldBe((width, height));
+        document.Bytes.AsSpan().IndexOf("Exif"u8).ShouldBe(-1);
+    }
+
+    [Fact]
+    public void A_document_PNG_stays_a_PNG_at_its_size()
+    {
+        var document = ImageVariants.Reencode(TestImages.Png(1200, 1600), MediaFileType.Png).Value;
+
+        MediaRules.Detect(document.Bytes).ShouldBe(MediaFileType.Png);
+        TestImages.SizeOf(document.Bytes).ShouldBe((1200, 1600));
+        TestImages.ColourName(TestImages.PixelAt(document.Bytes, 1190, 1590)).ShouldBe("yellow");
+    }
+
+    [Fact]
+    public void A_broken_document_image_is_refused()
+    {
+        var jpeg = TestImages.Jpeg(400, 300);
+
+        ImageVariants.Reencode(jpeg[..(jpeg.Length / 2)], MediaFileType.Jpeg).Error!.Code.ShouldBe(PlatformErrors.MediaImageUnreadable.Code);
+        ImageVariants.Reencode(TestImages.PngClaiming(8000, 6000), MediaFileType.Png).Error!.Code.ShouldBe(PlatformErrors.MediaImageUnreadable.Code);
     }
 
     [Fact]

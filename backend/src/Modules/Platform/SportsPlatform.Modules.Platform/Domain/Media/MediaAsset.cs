@@ -23,7 +23,7 @@ public sealed record MediaAssetFile(MediaVariant Variant, string Key, string Con
 
 /// <summary>
 /// An uploaded file of a tenant (<c>platform.media_assets</c>, tenant-owned, ADR-0014, S06 D16): what it is for, its
-/// stored files (a photo's variants or a document as uploaded) and their total size, who uploaded it and when, and its
+/// stored files (a photo's variants or a document) and their total size, who uploaded it and when, and its
 /// status. Files are written before the row is saved; nothing changes them afterwards. Other modules hold its ID.
 /// </summary>
 public sealed class MediaAsset : AggregateRoot, ITenantOwned
