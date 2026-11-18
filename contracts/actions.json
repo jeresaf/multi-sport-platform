@@ -493,6 +493,38 @@
       "since": "S06"
     },
     {
+      "code": "person.photo.remove",
+      "module": "Registry",
+      "description": "Remove a person's photo, whatever the person's status.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S06"
+    },
+    {
+      "code": "person.photo.set",
+      "module": "Registry",
+      "description": "Upload a person's photo (JPEG, PNG or WebP up to 5 MB), replacing the one they had; not for an archived or deceased person.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED",
+      "entitlement": "STORAGE_GB",
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S06"
+    },
+    {
       "code": "person.reactivate",
       "module": "Registry",
       "description": "Make an inactive person active again, with an optional reason.",

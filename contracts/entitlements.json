@@ -392,8 +392,10 @@
           "limit": 100
         }
       },
-      "enforcedBy": "Platform",
-      "actions": [],
+      "enforcedBy": "Registry",
+      "actions": [
+        "person.photo.set"
+      ],
       "since": "S04"
     },
     {

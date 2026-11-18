@@ -331,6 +331,12 @@
       "owner": "Registry"
     },
     {
+      "code": "PERSON_PHOTO_NOT_FOUND",
+      "status": 404,
+      "message": "The person has no photo.",
+      "owner": "Registry"
+    },
+    {
       "code": "PERSON_POSITION_UNKNOWN",
       "status": 422,
       "message": "The sport variant's definition has no such position.",

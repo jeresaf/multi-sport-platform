@@ -38,6 +38,8 @@ admin endpoint requires one of these; the code is stable and is what roles grant
 | `person.external_id.add` | Registry | TENANT | TENANT | REQUIRED | — | no | no | no | no | S06 | Add an identifier another authority gave a person (e.g. a registration number); a value any person has or had is refused; not for an archived or deceased person. |
 | `person.external_id.end` | Registry | TENANT | TENANT | REQUIRED | — | no | no | no | no | S06 | End a person's external identifier; it is kept, and its value is never given to anyone else. |
 | `person.mark_deceased` | Registry | TENANT | TENANT | REQUIRED_WITH_REASON | — | no | no | no | no | S06 | Record that an active or inactive person has died, with a reason; final: the record and its history stay. |
+| `person.photo.remove` | Registry | TENANT | TENANT | REQUIRED | — | no | no | no | no | S06 | Remove a person's photo, whatever the person's status. |
+| `person.photo.set` | Registry | TENANT | TENANT | REQUIRED | `STORAGE_GB` | no | no | no | no | S06 | Upload a person's photo (JPEG, PNG or WebP up to 5 MB), replacing the one they had; not for an archived or deceased person. |
 | `person.reactivate` | Registry | TENANT | TENANT | REQUIRED | — | no | no | no | no | S06 | Make an inactive person active again, with an optional reason. |
 | `person.read` | Registry | TENANT | TENANT | NONE | — | no | no | no | yes | S06 | View the people directory and a person's record: names, aliases, external identifiers, status and its history, birth year and whether the person is a minor. |
 | `person.read_private` | Registry | TENANT | TENANT | REQUIRED | — | no | no | no | yes | S06 | View a person's private data: the full date of birth. Every read is audited. |
