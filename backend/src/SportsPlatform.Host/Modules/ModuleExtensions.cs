@@ -26,13 +26,14 @@ public static class ModuleExtensions
     /// <summary>
     /// Maps each module's endpoints into the four API families. Public endpoints are <c>.AllowPublic()</c> as a group, so
     /// one that also requires an action is rejected at startup. Admin, platform and account endpoints document the
-    /// pipeline's 401s and 403s; account responses are never stored by a cache (S03 D1).
+    /// pipeline's 401s and 403s, public ones under the host's tenant its tenant refusals; account responses are never
+    /// stored by a cache (S03 D1).
     /// </summary>
     public static IEndpointRouteBuilder MapModules(this IEndpointRouteBuilder endpoints, IEnumerable<IModule> modules)
     {
         var entitlements = endpoints.ServiceProvider.GetRequiredService<IEntitlementCatalogue>();
         var groups = new ApiEndpointGroups(
-            Public: endpoints.MapGroup(PublicPrefix).AllowPublic(),
+            Public: endpoints.MapGroup(PublicPrefix).AllowPublic().DocumentPipelineErrors(entitlements),
             Admin: endpoints.MapGroup(AdminPrefix).DocumentPipelineErrors(entitlements),
             Platform: endpoints.MapGroup(PlatformPrefix).DocumentPipelineErrors(entitlements),
             Account: endpoints.MapGroup(AccountPrefix).DocumentPipelineErrors(entitlements).AddEndpointFilter(static (context, next) =>

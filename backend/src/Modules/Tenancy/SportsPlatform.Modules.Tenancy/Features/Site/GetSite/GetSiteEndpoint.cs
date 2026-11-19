@@ -19,8 +19,7 @@ internal static class GetSiteEndpoint
             "The tenant whose site this host serves: slug, display name and primary domain. The tenant comes from the " +
             "request host (`X-Forwarded-Host` from a trusted proxy). Responses differ per host. Cacheable for a minute; " +
             "send the `ETag` back as `If-None-Match` to get 304.")
-        .RequirePublicTenant()
-        .ProducesErrors(TenancyErrors.NotFound, TenancyErrors.Unavailable);
+        .RequirePublicTenant();
 
     private static async Task<CacheableJson<SiteResponse>> HandleAsync(GetSiteHandler handler, CancellationToken cancellationToken) =>
         CacheableJson.Ok(await handler.HandleAsync(cancellationToken), MaxAge);
