@@ -13,7 +13,9 @@ at the start of every review.
 
 ## Next up
 
-1. S06-T6b — The public profile actions, the public person read and its photo route
+1. S06-T6b — The public profile actions, the public person read and its photo route (the enable and the public
+   reads load the person's consents before `GuardianConsent.ActiveScopes`, with a test that a minor with
+   `PUBLIC_PROFILE` consent passes: review #106 N1)
 2. S06-T7 — Screens, demo data and slice close (likely T7a–T7d)
 
 ## Log
@@ -536,11 +538,8 @@ tasks; two stale triggers moved. Each item names where it gets done.
 **S06 — people registry** (carried over by the S05 slice review, 2026-11-16; docs/build/slices/S06-people-registry.md)
 - Consent's `givenOn` has no lower bound when the date of birth is unknown (S06-T6a pre-review N3; as T4b2's
   `licenceValidUntil`). Add a floor (e.g. 100 years before the tenant's date) with the next validation pass.
-- An upload whose person save fails after Platform stored the file (a race without `If-Match`) leaves the asset
-  `ACTIVE`, unreferenced and counted toward `STORAGE_GB` (photo and evidence; S06-T6a pre-review N5); the retention job
-  (Later) or a removal on the failed save would clear it.
 - Media (S06-T5a): an asset stored before the owning module's save fails stays `ACTIVE`, unreferenced and counted
-  toward `STORAGE_GB`, and removed assets' files stay on disk: both for the retention job (Later, with the first
+  toward `STORAGE_GB` (photo and consent evidence alike, e.g. a race without `If-Match`; S06-T6a pre-review N5), and removed assets' files stay on disk: both for the retention job (Later, with the first
   scheduled jobs). So does a replaced or removed photo whose `REMOVED` mark failed after the person's save (S06-T5b,
   logged as a warning with the asset ID). Events logged before routing would still carry a signed media path (none is
   at the configured levels). `Media:LocalRoot` is relative to the working directory, so `pnpm e2e` (`start-api.sh` runs

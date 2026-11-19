@@ -631,5 +631,7 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   `/private` gains each consent's guardian and the evidence as a signed URL (`ORIGINAL`, a download). Audit metadata
   carries the consent, its scopes and the successor or assets by ID; the guardian's relationship is `PRIVATE` (D3), so
   it stays out too (the plan said "the relationship code"). The photo handlers' quota check, one-file form check and
-  removal of a replaced asset moved to `PersonMedia`, shared with the evidence upload. The T6 acceptance boxes wait for
+  removal of a replaced asset moved to `PersonMedia`, shared with the evidence upload. The active scopes are
+  `GuardianConsent.ActiveScopes` over loaded consents; `Person` has no property for them (review #106 N1): T6b's
+  callers load the consents first. The T6 acceptance boxes wait for
   T6b.
