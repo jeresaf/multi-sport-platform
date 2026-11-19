@@ -100,11 +100,11 @@ public sealed class Person : AggregateRoot, ITenantOwned
     /// <summary>The status history of every profile; commands only add to it, so it needn't be loaded.</summary>
     public IReadOnlyList<ProfileStatusChange> ProfileStatusHistory => _profileStatusHistory;
 
-    /// <summary>Every guardian consent, withdrawn ones included; load them before a consent command.</summary>
+    /// <summary>
+    /// Every guardian consent, withdrawn ones included; load them before a consent command. Their active scopes are
+    /// <see cref="GuardianConsent.ActiveScopes"/> over them, which reads as none when they weren't loaded.
+    /// </summary>
     public IReadOnlyList<GuardianConsent> Consents => _consents;
-
-    /// <summary>The scopes of the active consents together (S06 D14): what the public read checks (D15, D18).</summary>
-    public IReadOnlyList<ConsentScope> ActiveConsentScopes => GuardianConsent.ActiveScopes(_consents);
 
     /// <summary>
     /// A new <c>ACTIVE</c> person in the scope's tenant (stamped on save), with the first row of its status history.

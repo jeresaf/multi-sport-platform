@@ -28,7 +28,7 @@ public sealed class GuardianConsentTests
         consent.Contact.ShouldBe("+256 772 410 233");
         consent.GivenOn.ShouldBe(new DateOnly(2026, 11, 2));
         consent.RecordedAt.ShouldBe(_now);
-        person.ActiveConsentScopes.ShouldBe(_all, ignoreOrder: true);
+        GuardianConsent.ActiveScopes(person.Consents).ShouldBe(_all);
     }
 
     [Fact]
@@ -41,7 +41,7 @@ public sealed class GuardianConsentTests
 
         person.RecordConsent(father, AgeStatus.Minor, SystemActor.Instance, _now).IsSuccess.ShouldBeTrue();
 
-        person.ActiveConsentScopes.ShouldBe([ConsentScope.DataProcessing, ConsentScope.Photo], ignoreOrder: true);
+        GuardianConsent.ActiveScopes(person.Consents).ShouldBe([ConsentScope.DataProcessing, ConsentScope.Photo]);
     }
 
     [Theory]
@@ -98,7 +98,7 @@ public sealed class GuardianConsentTests
             .ShouldBe((consent.GuardianName, consent.Relationship, consent.Contact, consent.GivenOn, evidence));
         successor.RecordedAt.ShouldBe(later);
         person.Consents.Count.ShouldBe(2);
-        person.ActiveConsentScopes.ShouldBe([ConsentScope.DataProcessing, ConsentScope.PublicProfile], ignoreOrder: true);
+        GuardianConsent.ActiveScopes(person.Consents).ShouldBe([ConsentScope.DataProcessing, ConsentScope.PublicProfile]);
     }
 
     [Fact]
@@ -110,7 +110,7 @@ public sealed class GuardianConsentTests
         person.WithdrawConsent(consent.Id, _all, "Guardian asked", SystemActor.Instance, _now).Value.ShouldBeNull();
 
         person.Consents.ShouldHaveSingleItem().Status.ShouldBe(ConsentStatus.Withdrawn);
-        person.ActiveConsentScopes.ShouldBeEmpty();
+        GuardianConsent.ActiveScopes(person.Consents).ShouldBeEmpty();
     }
 
     [Fact]
