@@ -190,8 +190,12 @@ read-only) for `TENANT_OWNER`, `TENANT_ADMIN` and `REGISTRAR`; it needs the chec
 D12): `athlete_profile.create`, `athlete_profile.update` (audit `REQUIRED`) and `athlete_profile.status.change`
 (`REQUIRED_WITH_REASON`); staff profiles (S06-T4b1) the same: `staff_profile.create`, `staff_profile.update` and
 `staff_profile.status.change`; official profiles (S06-T4b2) too: `official_profile.create`, `official_profile.update` and
-`official_profile.status.change`. All of these declare `grantedWith: person.read` (they answer the person) and are held by
-`TENANT_OWNER`, `TENANT_ADMIN` and `REGISTRAR`; none is available while read-only.
+`official_profile.status.change`. Photos (S06-T5b): `person.photo.set` (names `STORAGE_GB`) and `person.photo.remove`.
+Guardian consents (S06-T6a, D14): `person.consent.record` (audit `REQUIRED`), `person.consent.withdraw`
+(`REQUIRED_WITH_REASON`) and `person.consent_evidence.upload` (audit `REQUIRED`, names `STORAGE_GB`; D14's
+`person.consent.evidence.upload` has four parts, which action codes don't allow: owner, S06-T6a). All of these declare
+`grantedWith: person.read` (they answer the person) and are held by `TENANT_OWNER`, `TENANT_ADMIN` and `REGISTRAR`;
+none is available while read-only. The guardians' details and the evidence are read with `person.read_private`.
 
 | Role | Typical scope | Includes (summary) |
 |---|---|---|
@@ -259,7 +263,7 @@ seed); "today" and the statuses are derived on every call. Other API instances c
 `QUOTA` entitlement, at most one counter per code) without creating a counter. Tenancy's `MediaStorageUsage` counts
 `STORAGE_GB` from Platform's `IMediaAssets.GetStoredBytesAsync` (every variant of active assets) in whole gigabytes of
 2³⁰ bytes, rounded down (S06 D20; `StorageQuota.WholeGigabytes` in Tenancy Contracts). The uploading module checks
-it before storing: Registry's `person.photo.set` (S06-T5b) is `403 ENTITLEMENT_QUOTA_EXCEEDED` at the limit with the
+it before storing: Registry's `person.photo.set` (S06-T5b) and `person.consent_evidence.upload` (S06-T6a) are `403 ENTITLEMENT_QUOTA_EXCEEDED` at the limit with the
 `detail` "Your plan allows N GB of storage.", without a lock (two uploads at the limit may both pass). Identity's `StaffUsers` counts
 `MAX_STAFF_USERS`: memberships that aren't removed (`ACTIVE`, `SUSPENDED`) plus pending, unexpired invitations to
 emails that aren't members. `membership.invite` holds `identity.staff_users:<tenantId>` while it counts (leaving out a

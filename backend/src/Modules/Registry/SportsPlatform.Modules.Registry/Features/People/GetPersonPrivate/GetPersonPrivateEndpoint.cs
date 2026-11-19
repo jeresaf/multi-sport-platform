@@ -12,7 +12,10 @@ internal static class GetPersonPrivateEndpoint
         .MapGet("/{personId:guid}/private", HandleAsync)
         .WithName("GetPersonPrivate")
         .WithSummary("Get a person's private data")
-        .WithDescription("The person's full date of birth. Every read is audited, naming the person.")
+        .WithDescription(
+            "The person's full date of birth, and every consent's guardian (name, relationship, contact) and evidence: a " +
+            "signed URL that downloads the file until `expiresAt`. Consents are matched to `consents` of GET " +
+            "/people/{personId} by ID. Every read is audited, naming the person.")
         .RequireAction(RegistryActions.PersonReadPrivate)
         .ProducesErrors(RegistryErrors.PersonNotFound);
 

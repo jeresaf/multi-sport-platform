@@ -154,6 +154,12 @@ Modules call each other in-process through Contracts, never over HTTP.
   and `X-Content-Type-Options: nosniff`; photo variants are inline, documents (the original, a photographed form
   included) a download named `{assetId}.{ext}`. Azure's SAS URLs come with the
   first deployment.
+- Uploads (S06 D19; `PUT …/people/{id}/photo`, `PUT …/people/{id}/consents/{consentId}/evidence`) take
+  `multipart/form-data` with one file in the field `file` and nothing else (`400 VALIDATION_INVALID_REQUEST` on
+  `file` otherwise; a JSON body is `415`), and `If-Match` for the version (a form has no `version`). They turn off
+  ASP.NET Core's antiforgery for the form (`.DisableAntiforgery()`) and keep the `X-CSRF: 1` check. JSON bodies stay
+  JSON: a record that needs a file is created first and its file uploaded next. The uploading module checks
+  `STORAGE_GB` before storing; Platform checks the type and size by the file's bytes (`MEDIA_*`, on `file`).
 - The token is a credential for its lifetime: the endpoint is marked `.RedactPathInTelemetry()`, so the request log,
   the events logged during the request once it is routed and the trace record `/api/public/v1/media/{token}`.
 

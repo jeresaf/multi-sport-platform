@@ -1,6 +1,8 @@
 using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.BuildingBlocks.Domain;
 using SportsPlatform.BuildingBlocks.Results;
+using SportsPlatform.Modules.Registry.Contracts.People;
+using SportsPlatform.Modules.Registry.Domain.People.Consents;
 using SportsPlatform.Modules.Registry.Domain.People.Profiles;
 
 namespace SportsPlatform.Modules.Registry.Domain.People;
@@ -20,6 +22,7 @@ public sealed class Person : AggregateRoot, ITenantOwned
     private readonly List<StaffProfile> _staffProfiles = [];
     private readonly List<OfficialProfile> _officialProfiles = [];
     private readonly List<ProfileStatusChange> _profileStatusHistory = [];
+    private readonly List<GuardianConsent> _consents = [];
 
     private Person()
     {
@@ -96,6 +99,12 @@ public sealed class Person : AggregateRoot, ITenantOwned
 
     /// <summary>The status history of every profile; commands only add to it, so it needn't be loaded.</summary>
     public IReadOnlyList<ProfileStatusChange> ProfileStatusHistory => _profileStatusHistory;
+
+    /// <summary>
+    /// Every guardian consent, withdrawn ones included; load them before a consent command. Their active scopes are
+    /// <see cref="GuardianConsent.ActiveScopes"/> over them, which reads as none when they weren't loaded.
+    /// </summary>
+    public IReadOnlyList<GuardianConsent> Consents => _consents;
 
     /// <summary>
     /// A new <c>ACTIVE</c> person in the scope's tenant (stamped on save), with the first row of its status history.
@@ -251,6 +260,94 @@ public sealed class Person : AggregateRoot, ITenantOwned
 
         alias.Remove(reason, actor, now);
         return Result.Success();
+    }
+
+    /// <summary>
+    /// Records a guardian's consent (S06 D14) for a person whose age status on the tenant's date isn't <c>ADULT</c>
+    /// (<c>PERSON_CONSENT_NOT_NEEDED</c> otherwise; owner, S06-T6a plan). Several may be active at once (one per guardian, say); nothing refuses a second from the same guardian.
+    /// Refused on an archived or deceased person (D9). The use case has validated the details and checked that the date
+    /// given is neither after the tenant's date nor before the date of birth.
+    /// </summary>
+    public Result<GuardianConsent> RecordConsent(
+        GuardianConsentDetails details, AgeStatus ageStatus, ICurrentActor actor, DateTimeOffset now)
+    {
+        var accepts = EnsureAcceptsNewChildren();
+        if (accepts.IsFailure)
+        {
+            return accepts.Error;
+        }
+
+        if (ageStatus == AgeStatus.Adult)
+        {
+            return RegistryErrors.ConsentNotNeeded;
+        }
+
+        var consent = new GuardianConsent(Id, details, evidenceAssetId: null, replacesConsentId: null, actor, now);
+        _consents.Add(consent);
+        return Result.Success(consent);
+    }
+
+    /// <summary>
+    /// Withdraws <paramref name="scopes"/> of an active consent with a reason (S06 D14): the record is closed and, when
+    /// scopes remain, a successor with them is recorded (the same guardian, date and evidence) and returned. Allowed in
+    /// every status and at every age (a correction, as removing an alias). <c>PERSON_CONSENT_NOT_FOUND</c>,
+    /// <c>PERSON_CONSENT_WITHDRAWN</c>; the use case has checked the scopes are the record's.
+    /// </summary>
+    public Result<GuardianConsent?> WithdrawConsent(
+        Guid consentId, IReadOnlyCollection<ConsentScope> scopes, string reason, ICurrentActor actor, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(scopes);
+        var found = FindActiveConsent(consentId);
+        if (found.IsFailure)
+        {
+            return found.Error;
+        }
+
+        var consent = found.Value;
+        if (scopes.Count == 0 || scopes.Any(scope => !consent.Scopes.Contains(scope)))
+        {
+            throw new ArgumentException("Withdraw one or more of the consent's own scopes.", nameof(scopes));
+        }
+
+        consent.Withdraw(reason, actor, now);
+        var remaining = consent.Scopes.Except(scopes).ToList();
+        if (remaining.Count == 0)
+        {
+            return Result.Success<GuardianConsent?>(null);
+        }
+
+        var successor = new GuardianConsent(Id, consent.DetailsWith(remaining), consent.EvidenceAssetId, consent.Id, actor, now);
+        _consents.Add(successor);
+        return Result.Success<GuardianConsent?>(successor);
+    }
+
+    /// <summary>
+    /// Points an active consent at a newly stored evidence asset (S06 D19) and returns the one it replaces, which the use
+    /// case marks <c>REMOVED</c> after its save unless another record still names it (owner, S06-T6a plan). Refused on an
+    /// archived or deceased person (D9).
+    /// </summary>
+    public Result<Guid?> AttachConsentEvidence(Guid consentId, Guid assetId)
+    {
+        var accepts = EnsureAcceptsNewChildren();
+        if (accepts.IsFailure)
+        {
+            return accepts.Error;
+        }
+
+        var found = FindActiveConsent(consentId);
+        return found.IsFailure ? found.Error : Result.Success(found.Value.AttachEvidence(assetId));
+    }
+
+    /// <summary>An active consent of the person: <c>PERSON_CONSENT_NOT_FOUND</c> or <c>PERSON_CONSENT_WITHDRAWN</c>.</summary>
+    public Result<GuardianConsent> FindActiveConsent(Guid consentId)
+    {
+        var consent = _consents.SingleOrDefault(existing => existing.Id == consentId);
+        if (consent is null)
+        {
+            return RegistryErrors.ConsentNotFound;
+        }
+
+        return consent.IsActive ? Result.Success(consent) : RegistryErrors.ConsentWithdrawn;
     }
 
     /// <summary>

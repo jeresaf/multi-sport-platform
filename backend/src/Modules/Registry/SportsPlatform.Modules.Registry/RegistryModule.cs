@@ -8,6 +8,7 @@ using SportsPlatform.Modules.Registry.Features.People;
 using SportsPlatform.Modules.Registry.Features.People.Aliases;
 using SportsPlatform.Modules.Registry.Features.People.ChangePersonStatus;
 using SportsPlatform.Modules.Registry.Features.People.CheckDuplicates;
+using SportsPlatform.Modules.Registry.Features.People.Consents;
 using SportsPlatform.Modules.Registry.Features.People.CreatePerson;
 using SportsPlatform.Modules.Registry.Features.People.ExternalIdentifiers;
 using SportsPlatform.Modules.Registry.Features.People.GetPerson;
@@ -27,6 +28,7 @@ namespace SportsPlatform.Modules.Registry;
 /// <see cref="IPeopleDirectory"/>. S06-T2a: the duplicate check. S06-T2b: its token and create. S06-T3a: the
 /// update and the lifecycle. S06-T3b: aliases and external identifiers. S06-T4a: athlete profiles. S06-T4b1: staff profiles.
 /// S06-T4b2: official profiles.
+/// S06-T5b: photos. S06-T6a: guardian consents and their evidence.
 /// </summary>
 public sealed class RegistryModule : IModule
 {
@@ -56,6 +58,9 @@ public sealed class RegistryModule : IModule
         services.AddScoped<RemovePersonAliasHandler>();
         services.AddScoped<SetPersonPhotoHandler>();
         services.AddScoped<RemovePersonPhotoHandler>();
+        services.AddScoped<RecordConsentHandler>();
+        services.AddScoped<WithdrawConsentHandler>();
+        services.AddScoped<UploadConsentEvidenceHandler>();
         services.AddScoped<AddExternalIdentifierHandler>();
         services.AddScoped<EndExternalIdentifierHandler>();
         services.AddScoped<SportCodes>();
@@ -83,6 +88,8 @@ public sealed class RegistryModule : IModule
         services.AddSingleton<IValidator<StaffProfileRequest>, StaffProfileRequestValidator>();
         services.AddSingleton<IValidator<OfficialProfileRequest>, OfficialProfileRequestValidator>();
         services.AddSingleton<IValidator<ChangeProfileStatusRequest>, ChangeProfileStatusRequestValidator>();
+        services.AddSingleton<IValidator<RecordConsentRequest>, RecordConsentRequestValidator>();
+        services.AddSingleton<IValidator<WithdrawConsentRequest>, WithdrawConsentRequestValidator>();
     }
 
     public void MapEndpoints(ApiEndpointGroups groups)
@@ -98,6 +105,7 @@ public sealed class RegistryModule : IModule
         ChangePersonStatusEndpoints.Map(people);
         PersonAliasEndpoints.Map(people);
         PersonPhotoEndpoints.Map(people);
+        ConsentEndpoints.Map(people);
         ExternalIdentifierEndpoints.Map(people);
         AthleteProfileEndpoints.Map(people);
         StaffProfileEndpoints.Map(people);

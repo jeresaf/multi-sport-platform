@@ -13,6 +13,7 @@ using SportsPlatform.Modules.Identity.Infrastructure.Users;
 using SportsPlatform.Modules.Platform.Contracts.Media;
 using SportsPlatform.Modules.Platform.Domain.Media;
 using SportsPlatform.Modules.Registry.Domain.People;
+using SportsPlatform.Modules.Registry.Domain.People.Consents;
 using SportsPlatform.Modules.Registry.Domain.People.Duplicates;
 using SportsPlatform.Modules.Registry.Domain.People.Profiles;
 using SportsPlatform.Modules.Tenancy.Contracts.Subscriptions;
@@ -21,6 +22,7 @@ using SportsPlatform.Modules.Tenancy.Domain.Settings;
 using SportsPlatform.Modules.Tenancy.Domain.Sports;
 using SportsPlatform.Modules.Tenancy.Domain.Subscriptions;
 using SportsPlatform.Modules.Tenancy.Domain.Tenants;
+using AgeStatus = SportsPlatform.Modules.Registry.Contracts.People.AgeStatus;
 
 namespace SportsPlatform.IntegrationTests.Isolation;
 
@@ -74,6 +76,7 @@ public static class IsolationSamples
         new StaffCapabilitySample(),
         new OfficialProfileSample(),
         new OfficialCapabilitySample(),
+        new GuardianConsentSample(),
         new MediaAssetSample(),
     ];
 
@@ -455,6 +458,33 @@ public static class IsolationSamples
                 : null;
     }
 
+    /// <summary>Registry: a guardian's consent points at its person, and at the consent it replaced.</summary>
+    private sealed class GuardianConsentSample : IIsolationSample
+    {
+        public Type EntityType => typeof(GuardianConsent);
+
+        public Entity Add(DbContext context)
+        {
+            var person = RegistrySamples.NewPerson("Brenda", "Akello");
+            context.Add(person);
+            return person.RecordConsent(RegistrySamples.MotherConsent, AgeStatus.Unknown, SystemActor.Instance, RegistrySamples.Now).Value;
+        }
+
+        // A key onto the replaced consent: the person is made up, as for a duplicate decision (the harness adds one row,
+        // and each key is checked).
+        public Entity? Referencing(IForeignKey foreignKey, Guid principalId)
+        {
+            if (foreignKey.PrincipalEntityType.ClrType == typeof(Person))
+            {
+                return new GuardianConsent(principalId, RegistrySamples.MotherConsent, null, null, SystemActor.Instance, RegistrySamples.Now);
+            }
+
+            return foreignKey.PrincipalEntityType.ClrType == typeof(GuardianConsent)
+                ? new GuardianConsent(Guid.CreateVersion7(), RegistrySamples.MotherConsent, null, principalId, SystemActor.Instance, RegistrySamples.Now)
+                : null;
+        }
+    }
+
     /// <summary>Registry: an identifier names its person by ID without a foreign key, so nothing tenant-owned is referenced.</summary>
     private sealed class ExternalIdentifierSample : IIsolationSample
     {
@@ -512,6 +542,9 @@ public static class IsolationSamples
         public static AthleteProfileDetails Midfielder { get; } = new("TB_MID", [], DominantSide.Left, null);
 
         public static StaffCapabilityDetails Coach { get; } = new("TESTBALL_FULL", "TB_COACH", null);
+
+        public static GuardianConsentDetails MotherConsent { get; } =
+            new("Grace Akello", GuardianRelationship.Mother, "+256 772 410 233", [ConsentScope.DataProcessing], new DateOnly(2026, 11, 2));
 
         public static OfficialCapabilityDetails Referee { get; } = new("TESTBALL_FULL", "TB_REFEREE", "Class 1", "UG-REF-0147", new DateOnly(2027, 6, 30));
     }

@@ -170,6 +170,132 @@ namespace SportsPlatform.Modules.Registry.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("SportsPlatform.Modules.Registry.Domain.People.Consents.GuardianConsent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Contact")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("contact")
+                        .HasAnnotation("pii", "PRIVATE");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<Guid?>("EvidenceAssetId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("evidence_asset_id")
+                        .HasAnnotation("pii", "PRIVATE");
+
+                    b.Property<DateOnly>("GivenOn")
+                        .HasColumnType("date")
+                        .HasColumnName("given_on")
+                        .HasAnnotation("pii", "INTERNAL");
+
+                    b.Property<string>("GuardianName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("guardian_name")
+                        .HasAnnotation("pii", "PRIVATE");
+
+                    b.Property<Guid>("PersonId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("person_id");
+
+                    b.Property<DateTimeOffset>("RecordedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("recorded_at")
+                        .HasAnnotation("pii", "INTERNAL");
+
+                    b.Property<Guid>("RecordedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("recorded_by");
+
+                    b.Property<string>("Relationship")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("relationship")
+                        .HasAnnotation("pii", "PRIVATE");
+
+                    b.Property<Guid?>("ReplacesConsentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("replaces_consent_id");
+
+                    b.PrimitiveCollection<string[]>("Scopes")
+                        .IsRequired()
+                        .HasColumnType("character varying(20)[]")
+                        .HasColumnName("scopes")
+                        .HasAnnotation("pii", "INTERNAL");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status")
+                        .HasAnnotation("pii", "INTERNAL");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<string>("WithdrawalReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("withdrawal_reason")
+                        .HasAnnotation("pii", "INTERNAL");
+
+                    b.Property<DateTimeOffset?>("WithdrawnAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("withdrawn_at")
+                        .HasAnnotation("pii", "INTERNAL");
+
+                    b.Property<Guid?>("WithdrawnBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("withdrawn_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_guardian_consents");
+
+                    b.HasAlternateKey("TenantId", "Id")
+                        .HasName("ak_guardian_consents_tenant_id_id");
+
+                    b.HasIndex("TenantId", "PersonId")
+                        .HasDatabaseName("ix_guardian_consents_tenant_id_person_id");
+
+                    b.HasIndex("TenantId", "ReplacesConsentId")
+                        .HasDatabaseName("ix_guardian_consents_tenant_id_replaces_consent_id");
+
+                    b.ToTable("guardian_consents", "registry", t =>
+                        {
+                            t.HasCheckConstraint("ck_guardian_consents_relationship", "relationship IN ('MOTHER', 'FATHER', 'GUARDIAN', 'OTHER')");
+
+                            t.HasCheckConstraint("ck_guardian_consents_scopes", "cardinality(scopes) BETWEEN 1 AND 3 AND scopes <@ ARRAY['DATA_PROCESSING', 'PUBLIC_PROFILE', 'PHOTO']::character varying(20)[]");
+
+                            t.HasCheckConstraint("ck_guardian_consents_status", "status IN ('ACTIVE', 'WITHDRAWN')");
+
+                            t.HasCheckConstraint("ck_guardian_consents_withdrawn", "(status = 'ACTIVE' AND withdrawn_at IS NULL AND withdrawn_by IS NULL AND withdrawal_reason IS NULL) OR (status = 'WITHDRAWN' AND withdrawn_at IS NOT NULL AND withdrawn_by IS NOT NULL AND withdrawal_reason IS NOT NULL)");
+                        });
+                });
+
             modelBuilder.Entity("SportsPlatform.Modules.Registry.Domain.People.Duplicates.DuplicateDecision", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1106,6 +1232,24 @@ namespace SportsPlatform.Modules.Registry.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("SportsPlatform.Modules.Registry.Domain.People.Consents.GuardianConsent", b =>
+                {
+                    b.HasOne("SportsPlatform.Modules.Registry.Domain.People.Person", null)
+                        .WithMany("Consents")
+                        .HasForeignKey("TenantId", "PersonId")
+                        .HasPrincipalKey("TenantId", "Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_guardian_consents_persons_tenant_id_person_id");
+
+                    b.HasOne("SportsPlatform.Modules.Registry.Domain.People.Consents.GuardianConsent", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId", "ReplacesConsentId")
+                        .HasPrincipalKey("TenantId", "Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_guardian_consents_replaces_consent_id");
+                });
+
             modelBuilder.Entity("SportsPlatform.Modules.Registry.Domain.People.Duplicates.DuplicateDecision", b =>
                 {
                     b.HasOne("SportsPlatform.Modules.Registry.Domain.People.Person", null)
@@ -1218,6 +1362,8 @@ namespace SportsPlatform.Modules.Registry.Infrastructure.Migrations
                     b.Navigation("Aliases");
 
                     b.Navigation("AthleteProfiles");
+
+                    b.Navigation("Consents");
 
                     b.Navigation("OfficialProfiles");
 

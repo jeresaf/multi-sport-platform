@@ -16,7 +16,7 @@ namespace SportsPlatform.Modules.Registry.Features.People.Photo;
 internal static class PersonPhotoEndpoints
 {
     /// <summary>The form field that carries the photo.</summary>
-    public const string FileField = "file";
+    public const string FileField = PersonMedia.FileField;
 
     private const string _versionNote =
         "Send `If-Match` from the last read to get 409 PERSON_CONCURRENCY_CONFLICT if the person changed since. Answers the " +
@@ -68,19 +68,14 @@ internal static class PersonPhotoEndpoints
         HttpResponse response,
         CancellationToken cancellationToken)
     {
-        // Optional, so a missing or misnamed file is refused here with the field, not by the binder; IFormFile binds the
-        // first file of the field, so anything else in the form is refused too, not ignored.
-        var form = httpRequest.Form;
-        if (file is null || form.Files.Count != 1 || form.Count != 0)
+        if (PersonMedia.RefuseUnlessOneFile(file, httpRequest) is { } malformed)
         {
-            return new FieldRefusal(
-                CommonErrors.InvalidRequest, FileField, $"Send one file in the form field '{FileField}' and nothing else.")
-                .ToProblem();
+            return malformed.ToProblem();
         }
 
         return await PersonChanges.AnswerAsync(personId, read, httpRequest, response, async ifMatch =>
         {
-            await using var content = file.OpenReadStream();
+            await using var content = file!.OpenReadStream();
             return await handler.HandleAsync(personId, content, ifMatch, cancellationToken);
         });
     }

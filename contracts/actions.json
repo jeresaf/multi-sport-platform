@@ -397,6 +397,54 @@
       "since": "S06"
     },
     {
+      "code": "person.consent.record",
+      "module": "Registry",
+      "description": "Record a guardian's consent (data processing, public profile, photo) for a person who is a minor or whose age is unknown; not for an archived or deceased person.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S06"
+    },
+    {
+      "code": "person.consent.withdraw",
+      "module": "Registry",
+      "description": "Withdraw some or all scopes of a guardian's consent, with a reason; the record is kept and the remaining scopes stay in force.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED_WITH_REASON",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S06"
+    },
+    {
+      "code": "person.consent_evidence.upload",
+      "module": "Registry",
+      "description": "Upload the evidence of a guardian's consent (a PDF, JPEG or PNG up to 10 MB, such as a signed form), replacing the one it had; not for a withdrawn consent or an archived or deceased person.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED",
+      "entitlement": "STORAGE_GB",
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S06"
+    },
+    {
       "code": "person.create",
       "module": "Registry",
       "description": "Add a person to the registry after a duplicate check; proceeding past possible duplicates needs a reason, and the pairs are remembered as not the same person.",
@@ -559,7 +607,7 @@
     {
       "code": "person.read_private",
       "module": "Registry",
-      "description": "View a person's private data: the full date of birth. Every read is audited.",
+      "description": "View a person's private data: the full date of birth, and the guardians' names, relationships and contacts and the evidence of their consents. Every read is audited.",
       "scope": "TENANT",
       "scopableBy": [
         "TENANT"

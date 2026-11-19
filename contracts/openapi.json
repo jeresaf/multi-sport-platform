@@ -4499,6 +4499,469 @@
         }
       }
     },
+    "/api/admin/v1/people/{personId}/consents": {
+      "post": {
+        "tags": [
+          "People"
+        ],
+        "summary": "Record a guardian's consent",
+        "description": "Records a guardian's consent for a person who is a minor or whose age is unknown on the tenant's date: the guardian's name, relationship and contact (a phone number or an email address), the scopes (`DATA_PROCESSING`, `PUBLIC_PROFILE`, `PHOTO`) and the date given, neither after today nor before the date of birth. Several consents may be active at once (one per guardian, say); the person's `activeConsentScopes` are theirs together. The guardian's details are private: only GET /people/{personId}/private shows them. An adult is PERSON_CONSENT_NOT_NEEDED; an archived or deceased person takes no new consent (PERSON_ARCHIVED, PERSON_DECEASED). Upload the evidence next. Send `version` or `If-Match` from the last read to get 409 PERSON_CONCURRENCY_CONFLICT if the person changed since; without them, a change to the same person saved at the same moment can still answer it. Answers the person as GET /people/{personId} does; its version moves.",
+        "operationId": "RecordPersonConsent",
+        "parameters": [
+          {
+            "name": "personId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordConsentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_REQUEST",
+              "VALIDATION_MALFORMED_REQUEST"
+            ]
+          },
+          "404": {
+            "description": "Problem Details; `code`: `PERSON_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "PERSON_NOT_FOUND"
+            ]
+          },
+          "409": {
+            "description": "Problem Details; `code`: `PERSON_ARCHIVED`, `PERSON_CONCURRENCY_CONFLICT`, `PERSON_DECEASED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "PERSON_ARCHIVED",
+              "PERSON_CONCURRENCY_CONFLICT",
+              "PERSON_DECEASED"
+            ]
+          },
+          "422": {
+            "description": "Problem Details; `code`: `PERSON_CONSENT_NOT_NEEDED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "PERSON_CONSENT_NOT_NEEDED"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING",
+              "TENANT_READ_ONLY"
+            ]
+          }
+        }
+      }
+    },
+    "/api/admin/v1/people/{personId}/consents/{consentId}/withdraw": {
+      "post": {
+        "tags": [
+          "People"
+        ],
+        "summary": "Withdraw scopes of a guardian's consent",
+        "description": "Withdraws some or all of an active consent's scopes with a reason (body `{ \"scopes\": […], \"reason\": … }`, both required), whatever the person's status or age. The consent is kept as `WITHDRAWN` with who withdrew it, when and why; when scopes remain, a new active consent with them is recorded (the same guardian, date and evidence, naming the one it replaces). A scope the consent doesn't give is VALIDATION_INVALID_REQUEST on `scopes`; a consent already withdrawn is PERSON_CONSENT_WITHDRAWN. The reason is kept permanently and in the audit trail: don't include personal data. Send `version` or `If-Match` from the last read to get 409 PERSON_CONCURRENCY_CONFLICT if the person changed since; without them, a change to the same person saved at the same moment can still answer it. Answers the person as GET /people/{personId} does; its version moves.",
+        "operationId": "WithdrawPersonConsent",
+        "parameters": [
+          {
+            "name": "personId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "consentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WithdrawConsentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST`, `VALIDATION_REASON_REQUIRED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_REQUEST",
+              "VALIDATION_MALFORMED_REQUEST",
+              "VALIDATION_REASON_REQUIRED"
+            ]
+          },
+          "404": {
+            "description": "Problem Details; `code`: `PERSON_CONSENT_NOT_FOUND`, `PERSON_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "PERSON_CONSENT_NOT_FOUND",
+              "PERSON_NOT_FOUND"
+            ]
+          },
+          "409": {
+            "description": "Problem Details; `code`: `PERSON_CONCURRENCY_CONFLICT`, `PERSON_CONSENT_WITHDRAWN`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "PERSON_CONCURRENCY_CONFLICT",
+              "PERSON_CONSENT_WITHDRAWN"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING",
+              "TENANT_READ_ONLY"
+            ]
+          }
+        }
+      }
+    },
+    "/api/admin/v1/people/{personId}/consents/{consentId}/evidence": {
+      "put": {
+        "tags": [
+          "People"
+        ],
+        "summary": "Upload the evidence of a guardian's consent",
+        "description": "Uploads the evidence of an active consent (a signed form, say) as `multipart/form-data` with one file in the field `file` and nothing else (VALIDATION_INVALID_REQUEST otherwise). The file's bytes decide its type, not the content type sent: PDF, JPEG or PNG up to 10 MB (MEDIA_TYPE_NOT_ALLOWED, MEDIA_TOO_LARGE, MEDIA_IMAGE_UNREADABLE). A PDF is stored as uploaded; an image is re-encoded without its metadata (a GPS position, the device). It replaces the evidence the consent had. At the plan's storage limit the upload is ENTITLEMENT_QUOTA_EXCEEDED (\"Your plan allows N GB of storage.\"). A withdrawn consent is PERSON_CONSENT_WITHDRAWN; an archived or deceased person takes no new evidence (PERSON_ARCHIVED, PERSON_DECEASED). The evidence is private: only GET /people/{personId}/private links it. Send `If-Match` from the last read to get 409 PERSON_CONCURRENCY_CONFLICT if the person changed since. Answers the person as GET /people/{personId} does; its version moves.",
+        "operationId": "UploadPersonConsentEvidence",
+        "parameters": [
+          {
+            "name": "personId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "consentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "$ref": "#/components/schemas/IFormFile"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Problem Details; `code`: `PERSON_CONSENT_NOT_FOUND`, `PERSON_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "PERSON_CONSENT_NOT_FOUND",
+              "PERSON_NOT_FOUND"
+            ]
+          },
+          "409": {
+            "description": "Problem Details; `code`: `PERSON_ARCHIVED`, `PERSON_CONCURRENCY_CONFLICT`, `PERSON_CONSENT_WITHDRAWN`, `PERSON_DECEASED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "PERSON_ARCHIVED",
+              "PERSON_CONCURRENCY_CONFLICT",
+              "PERSON_CONSENT_WITHDRAWN",
+              "PERSON_DECEASED"
+            ]
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_REQUEST",
+              "VALIDATION_MALFORMED_REQUEST"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `ENTITLEMENT_QUOTA_EXCEEDED`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "ENTITLEMENT_QUOTA_EXCEEDED",
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING",
+              "TENANT_READ_ONLY"
+            ]
+          },
+          "422": {
+            "description": "Problem Details; `code`: `MEDIA_IMAGE_UNREADABLE`, `MEDIA_TYPE_NOT_ALLOWED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "MEDIA_IMAGE_UNREADABLE",
+              "MEDIA_TYPE_NOT_ALLOWED"
+            ]
+          },
+          "413": {
+            "description": "Problem Details; `code`: `MEDIA_TOO_LARGE`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "MEDIA_TOO_LARGE"
+            ]
+          }
+        }
+      }
+    },
     "/api/admin/v1/people/{personId}/external-identifiers": {
       "post": {
         "tags": [
@@ -6152,7 +6615,7 @@
           "People"
         ],
         "summary": "Get a person's private data",
-        "description": "The person's full date of birth. Every read is audited, naming the person.",
+        "description": "The person's full date of birth, and every consent's guardian (name, relationship, contact) and evidence: a signed URL that downloads the file until `expiresAt`. Consents are matched to `consents` of GET /people/{personId} by ID. Every read is audited, naming the person.",
         "operationId": "GetPersonPrivate",
         "parameters": [
           {
@@ -10486,6 +10949,135 @@
         },
         "description": "The duplicate check's answer (S06 D5): the existing people who may be the same person, strongest first, at most 20,\nand the token a create needs (S06 D6). It carries no `PRIVATE` value: a birth year, never a date of birth."
       },
+      "ConsentEvidenceResponse": {
+        "required": [
+          "url",
+          "expiresAt"
+        ],
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "The evidence's signed URL (S06 D17): it downloads the file until `expiresAt` (ten minutes with the local\nstorage); read again for a new one. Never cache it."
+      },
+      "ConsentPrivateResponse": {
+        "required": [
+          "id",
+          "guardianName",
+          "relationship",
+          "contact",
+          "evidence"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "guardianName": {
+            "type": "string"
+          },
+          "relationship": {
+            "$ref": "#/components/schemas/GuardianRelationship"
+          },
+          "contact": {
+            "type": "string"
+          },
+          "evidence": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ConsentEvidenceResponse"
+              }
+            ]
+          }
+        },
+        "description": "A consent's guardian and evidence (S06 D14)."
+      },
+      "ConsentResponse": {
+        "required": [
+          "id",
+          "scopes",
+          "givenOn",
+          "status",
+          "hasEvidence",
+          "recordedAt",
+          "withdrawnAt",
+          "withdrawalReason",
+          "replacesConsentId"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConsentScope"
+            }
+          },
+          "givenOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ConsentStatus"
+          },
+          "hasEvidence": {
+            "type": "boolean"
+          },
+          "recordedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "withdrawnAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "withdrawalReason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "replacesConsentId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        },
+        "description": "A guardian's consent as `person.read` shows it (S06 D3, D14): its scopes and dates, never the guardian's\ndetails or the evidence (those are in the private read). A withdrawn consent stays, with when and why;\n`replacesConsentId` names the consent a partial withdrawal closed to record this one."
+      },
+      "ConsentScope": {
+        "enum": [
+          "DATA_PROCESSING",
+          "PUBLIC_PROFILE",
+          "PHOTO"
+        ],
+        "description": "What a guardian consents to (S06 D14, ADR-0015)."
+      },
+      "ConsentStatus": {
+        "enum": [
+          "ACTIVE",
+          "WITHDRAWN"
+        ],
+        "description": "A consent record's states (S06 D14, Q39; docs/domain/state-machines.md, Registry)."
+      },
       "ContestShape": {
         "enum": [
           "HEAD_TO_HEAD",
@@ -11399,6 +11991,15 @@
         },
         "additionalProperties": false,
         "description": "The body of `entitlement.override` (audit `REQUIRED_WITH_REASON`): `value` in place of the plan's for\n`entitlementCode`, until `effectiveUntil` (the tenant's date, included; none = until removed). The reason\nis kept permanently in the override and the audit trail and is not redacted: it must not contain personal data."
+      },
+      "GuardianRelationship": {
+        "enum": [
+          "MOTHER",
+          "FATHER",
+          "GUARDIAN",
+          "OTHER",
+          null
+        ]
       },
       "IFormFile": {
         "type": "string",
@@ -12442,7 +13043,8 @@
       "PersonPrivateResponse": {
         "required": [
           "id",
-          "dateOfBirth"
+          "dateOfBirth",
+          "consents"
         ],
         "type": "object",
         "properties": {
@@ -12456,9 +13058,15 @@
               "string"
             ],
             "format": "date"
+          },
+          "consents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConsentPrivateResponse"
+            }
           }
         },
-        "description": "A person's `PRIVATE` data, for `person.read_private` (S06 D3): the full date of birth."
+        "description": "A person's `PRIVATE` data, for `person.read_private` (S06 D3): the full date of birth, and the guardian\nand the evidence of every consent, withdrawn ones included (matched to `consents` of the person read by ID)."
       },
       "PersonResponse": {
         "required": [
@@ -12485,6 +13093,8 @@
           "staffProfiles",
           "officialProfiles",
           "photo",
+          "activeConsentScopes",
+          "consents",
           "version"
         ],
         "type": "object",
@@ -12611,6 +13221,18 @@
                 "$ref": "#/components/schemas/PersonPhotoResponse"
               }
             ]
+          },
+          "activeConsentScopes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConsentScope"
+            }
+          },
+          "consents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConsentResponse"
+            }
           },
           "version": {
             "type": "integer",
@@ -12980,6 +13602,65 @@
           "VENUE_SET"
         ],
         "description": "What must hold before a contest may start (S11 builds the checks; it adds others with a schema change)."
+      },
+      "RecordConsentRequest": {
+        "required": [
+          "guardianName",
+          "relationship",
+          "contact",
+          "scopes",
+          "givenOn"
+        ],
+        "type": "object",
+        "properties": {
+          "guardianName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "relationship": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/GuardianRelationship"
+              }
+            ]
+          },
+          "contact": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "scopes": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/ConsentScope"
+            }
+          },
+          "givenOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "version": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "uint32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A guardian's consent (S06 D14): who gave it, to what, and on which date; `version`, when sent, must be the\nperson's current one. The guardian's name and contact are `PRIVATE`: kept on the record, never in the audit\ntrail or logs."
       },
       "RedriveOutboxMessageRequest": {
         "required": [
@@ -15611,6 +16292,39 @@
         },
         "additionalProperties": false,
         "description": "The settings to change; a missing or null key stays as it is. Only these keys exist: any other key, or a value of\nthe wrong type, is named in `errors`. `version`, when sent, must be the settings' current version."
+      },
+      "WithdrawConsentRequest": {
+        "required": [
+          "scopes",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "scopes": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/ConsentScope"
+            }
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "version": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "uint32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Withdrawing scopes of a consent (audit `REQUIRED_WITH_REASON`). The reason is kept permanently on the record and\nin the audit trail and is not redacted: it must not contain personal data."
       }
     }
   },

@@ -394,6 +394,7 @@
       },
       "enforcedBy": "Registry",
       "actions": [
+        "person.consent_evidence.upload",
         "person.photo.set"
       ],
       "since": "S04"
