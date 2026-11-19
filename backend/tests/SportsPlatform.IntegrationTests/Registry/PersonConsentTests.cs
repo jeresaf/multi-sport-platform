@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -44,6 +45,9 @@ public sealed class PersonConsentTests(PostgresFixture fixture) : DatabaseTest(f
         scopes = new[] { "DATA_PROCESSING", "PUBLIC_PROFILE", "PHOTO" },
         givenOn = "2026-10-10",
     };
+
+    // The day after the tenant's today on the test clock (the clock's date depends on the tests run before).
+    private const string _tomorrow = "tomorrow";
 
     private static readonly string[] _dataProcessingOnly = ["DATA_PROCESSING"];
 
@@ -104,7 +108,7 @@ public sealed class PersonConsentTests(PostgresFixture fixture) : DatabaseTest(f
     }
 
     [Theory]
-    [InlineData("givenOn", "2026-12-01")] // After the tenant's today.
+    [InlineData("givenOn", _tomorrow)] // After the tenant's today.
     [InlineData("givenOn", "2011-03-01")] // Before Brenda's date of birth.
     [InlineData("givenOn", null)]
     [InlineData("guardianName", " ")]
@@ -114,6 +118,12 @@ public sealed class PersonConsentTests(PostgresFixture fixture) : DatabaseTest(f
     {
         var (kmsa, registrar) = await TenantAsync("kmsa", IdentityRoles.Registrar);
         var brenda = await CreatePersonAsync(App.Services, kmsa, SystemActor.Instance, BrendaAkello, overrideReason: null, Ct);
+
+        if (value == _tomorrow)
+        {
+            var kampala = TimeZoneInfo.FindSystemTimeZoneById("Africa/Kampala");
+            value = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(App.Clock.GetUtcNow(), kampala).DateTime).AddDays(1).ToString("O", CultureInfo.InvariantCulture);
+        }
 
         using var response = await registrar.PostAsJsonAsync(ConsentsPath(brenda), With(_mother, field, value), Ct);
 
