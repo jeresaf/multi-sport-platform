@@ -193,7 +193,8 @@ D12): `athlete_profile.create`, `athlete_profile.update` (audit `REQUIRED`) and 
 `official_profile.status.change`. Photos (S06-T5b): `person.photo.set` (names `STORAGE_GB`) and `person.photo.remove`.
 Guardian consents (S06-T6a, D14): `person.consent.record` (audit `REQUIRED`), `person.consent.withdraw`
 (`REQUIRED_WITH_REASON`) and `person.consent_evidence.upload` (audit `REQUIRED`, names `STORAGE_GB`; D14's
-`person.consent.evidence.upload` has four parts, which action codes don't allow: owner, S06-T6a). All of these declare
+`person.consent.evidence.upload` has four parts, which action codes don't allow: owner, S06-T6a). The public profile
+(S06-T6b, D15): `person.public_profile.enable` and `person.public_profile.disable` (audit `REQUIRED`). All of these declare
 `grantedWith: person.read` (they answer the person) and are held by `TENANT_OWNER`, `TENANT_ADMIN` and `REGISTRAR`;
 none is available while read-only. The guardians' details and the evidence are read with `person.read_private`.
 
