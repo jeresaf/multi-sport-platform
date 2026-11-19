@@ -99,6 +99,11 @@ property and none above `INTERNAL`. `PeopleReadTests` holds the redaction test: 
 date of birth is in no log event, span or audit entry. The directory's `q` is a name (`INTERNAL`) in the query
 string; request logs and traces carry the path only.
 
+As built (S06-T6a): `registry.guardian_consents` keeps the guardian's name, relationship and contact and the evidence
+asset as `PRIVATE`, and the scopes, dates, status and withdrawal as `INTERNAL`. `person.read` shows each consent's
+scopes, dates, status and whether it has evidence; `GET …/people/{id}/private` adds the guardian and a signed URL to
+the evidence. Audit metadata names the consent, its scopes and the assets by ID, never the guardian.
+
 ## Serializing changes: advisory locks
 
 When a rule spans rows that a single constraint can't check (the last owner of a tenant, non-overlapping subscription

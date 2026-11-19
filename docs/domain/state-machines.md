@@ -375,6 +375,21 @@ transitions; the re-drive is a platform action and is audited (docs/architecture
 
 ---
 
+### Guardian consent (stored, `registry.guardian_consents`, S06-T6a; Q39)
+
+```text
+ACTIVE ──withdraw scopes (reason)──► WITHDRAWN   (final; scopes that remain go to a new ACTIVE consent)
+```
+
+A consent is recorded `ACTIVE` for a person whose age status on the tenant's date isn't `ADULT`
+(`422 PERSON_CONSENT_NOT_NEEDED` otherwise), and not for an archived or deceased person (D9). Withdrawing some or all
+of its scopes closes it with who, when and why; when scopes remain, a new `ACTIVE` consent with them is recorded (the
+same guardian, date and evidence) and names the closed one (`replaces_consent_id`). A withdrawn consent takes no
+change (`409 PERSON_CONSENT_WITHDRAWN`); withdrawing is allowed whatever the person's status or age. Several consents
+can be active at once (one per guardian); the person's active scopes are theirs together (owner, S06-T6a plan).
+
+---
+
 ### Media asset (stored, `platform.media_assets`, S06-T5a; Q39)
 
 ```text

@@ -611,3 +611,23 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   or null (`INTERNAL`), three signed-URL lookups per read. The endpoint carries Platform Contracts' `StoresMediaMetadata`, so the
   Host documents Platform's media refusals on it (the errors stay declared in `PlatformErrors`). `STORAGE_GB`'s
   `enforcedBy` is Registry. T5 is done.
+- **T6a:** guardian consent. Owner decisions (plan, 2026-11-19): T6 in two PRs (T6a consent and evidence, T6b the
+  public profile, the public read and its photo route); several consents may be active at once (one per guardian) and
+  the active scopes are theirs together; evidence can be replaced on an active consent, and the old file is marked
+  `REMOVED` only when no other record names it (a partial withdrawal's successor shares it); recording consent for an
+  adult is `422 PERSON_CONSENT_NOT_NEEDED` (new code), withdrawing stays allowed at any age; `withdrawalReason` is
+  `INTERNAL` and shown with `person.read`. The upload action is `person.consent_evidence.upload`, not D14's
+  `person.consent.evidence.upload` (action codes have at most three parts; owner, 2026-11-19). As built:
+  `registry.guardian_consents` is a child of the person (D11 moves its version); `POST …/people/{id}/consents`
+  checks `givenOn` against the tenant's date and the date of birth (`400` on `givenOn`); `POST
+  …/consents/{consentId}/withdraw` takes `{scopes, reason}` (a scope the consent doesn't give is `400` on `scopes`;
+  `PERSON_CONSENT_NOT_FOUND`, `PERSON_CONSENT_WITHDRAWN`, new codes) and records a successor with the remaining scopes,
+  the same guardian, date and evidence, naming the closed one (`replacesConsentId`); `PUT
+  …/consents/{consentId}/evidence` follows the photo upload (D19, D20) and is refused on a withdrawn consent or an
+  archived or deceased person before anything is stored. All three answer the person with its `ETag`.
+  `PersonResponse` gains `activeConsentScopes` and `consents` (scopes, dates, status, `hasEvidence`, the withdrawal);
+  `/private` gains each consent's guardian and the evidence as a signed URL (`ORIGINAL`, a download). Audit metadata
+  carries the consent, its scopes and the successor or assets by ID; the guardian's relationship is `PRIVATE` (D3), so
+  it stays out too (the plan said "the relationship code"). The photo handlers' quota check, one-file form check and
+  removal of a replaced asset moved to `PersonMedia`, shared with the evidence upload. The T6 acceptance boxes wait for
+  T6b.
