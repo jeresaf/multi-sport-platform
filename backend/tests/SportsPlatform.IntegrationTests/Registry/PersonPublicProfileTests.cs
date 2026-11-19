@@ -47,6 +47,7 @@ public sealed class PersonPublicProfileTests(PostgresFixture fixture) : Database
         var (kmsa, registrar) = await TenantAsync("kmsa", IdentityRoles.Registrar);
         var brenda = await CreatePersonAsync(App.Services, kmsa, SystemActor.Instance, BrendaAkello, overrideReason: null, Ct);
         await OkAsync(await registrar.PutAsync(PhotoPath(brenda), Form(TestImages.Jpeg(800, 600)), Ct));
+        await SaveAthleteProfilesAsync(kmsa, brenda); // an active profile the public read still leaves out for a minor
 
         using var refused = await registrar.PostAsync(EnablePath(brenda), null, Ct);
         await refused.ShouldBeProblemAsync(HttpStatusCode.UnprocessableEntity, "PERSON_CONSENT_REQUIRED");
@@ -220,6 +221,7 @@ public sealed class PersonPublicProfileTests(PostgresFixture fixture) : Database
             App.Services, kmsa, SystemActor.Instance, DenisOpoka with { DateOfBirth = birthday.AddYears(-18) }, overrideReason: null, Ct);
         await OkAsync(await registrar.PutAsync(PhotoPath(withConsent), Form(TestImages.Jpeg(800, 600)), Ct));
         await SaveConsentAsync(kmsa, withConsent, ConsentScope.PublicProfile);
+        await SaveAthleteProfilesAsync(kmsa, withConsent);
 
         // 23:59 in Kampala on the eve of the 18th birthday: a minor.
         App.Clock.GetUtcNow().ShouldBe(new DateTimeOffset(midnight.Date.AddDays(-1).AddHours(20).AddMinutes(59), TimeSpan.Zero));
@@ -232,6 +234,7 @@ public sealed class PersonPublicProfileTests(PostgresFixture fixture) : Database
         var before = (await PublicAsync(PublicPath(withConsent))).Json;
         before.GetProperty("nationality").ValueKind.ShouldBe(JsonValueKind.Null);
         before.GetProperty("photo").ValueKind.ShouldBe(JsonValueKind.Null);
+        before.GetProperty("athleteProfiles").GetArrayLength().ShouldBe(0);
         (await registrar.ReadJsonAsync(PersonPath(withConsent), Ct)).GetProperty("ageStatus").GetString().ShouldBe("MINOR");
 
         // 00:00 in Kampala (21:00 UTC): an adult.
@@ -239,6 +242,7 @@ public sealed class PersonPublicProfileTests(PostgresFixture fixture) : Database
         var after = (await PublicAsync(PublicPath(withConsent))).Json;
         after.GetProperty("nationality").GetString().ShouldBe("UG");
         after.GetProperty("photo").ValueKind.ShouldBe(JsonValueKind.Object);
+        after.GetProperty("athleteProfiles").GetArrayLength().ShouldBe(1);
         (await PublicBytesAsync(PhotoRoute(withConsent, "THUMBNAIL"))).Status.ShouldBe(StatusCodes.Status200OK);
         (await registrar.ReadJsonAsync(PersonPath(withConsent), Ct)).GetProperty("ageStatus").GetString().ShouldBe("ADULT");
         await OkAsync(await registrar.PostAsync(EnablePath(withoutConsent), null, Ct));
@@ -289,6 +293,7 @@ public sealed class PersonPublicProfileTests(PostgresFixture fixture) : Database
 
         await SaveConsentAsync(kmsa, brenda, ConsentScope.PublicProfile);
         await OkAsync(await registrar.PostAsync(EnablePath(brenda), null, Ct));
+        await OkAsync(await registrar.PostAsync(EnablePath(brenda), null, Ct)); // a repeat changes nothing but is audited
         await OkAsync(await registrar.PostAsync(DisablePath(brenda), null, Ct));
 
         await AccountTestData.DeliverOutboxAsync(App.Services, Ct);
@@ -299,6 +304,7 @@ public sealed class PersonPublicProfileTests(PostgresFixture fixture) : Database
         entries.ShouldBe(
         [
             ("person.public_profile.enable", AuditOutcome.Failure, "Person", brenda),
+            ("person.public_profile.enable", AuditOutcome.Success, "Person", brenda),
             ("person.public_profile.enable", AuditOutcome.Success, "Person", brenda),
             ("person.public_profile.disable", AuditOutcome.Success, "Person", brenda),
         ], ignoreOrder: true);
