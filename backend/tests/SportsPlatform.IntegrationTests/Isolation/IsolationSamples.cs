@@ -14,7 +14,6 @@ using SportsPlatform.Modules.Platform.Contracts.Media;
 using SportsPlatform.Modules.Platform.Domain.Media;
 using SportsPlatform.Modules.Registry.Domain.People;
 using SportsPlatform.Modules.Registry.Domain.People.Consents;
-using AgeStatus = SportsPlatform.Modules.Registry.Contracts.People.AgeStatus;
 using SportsPlatform.Modules.Registry.Domain.People.Duplicates;
 using SportsPlatform.Modules.Registry.Domain.People.Profiles;
 using SportsPlatform.Modules.Tenancy.Contracts.Subscriptions;
@@ -23,6 +22,7 @@ using SportsPlatform.Modules.Tenancy.Domain.Settings;
 using SportsPlatform.Modules.Tenancy.Domain.Sports;
 using SportsPlatform.Modules.Tenancy.Domain.Subscriptions;
 using SportsPlatform.Modules.Tenancy.Domain.Tenants;
+using AgeStatus = SportsPlatform.Modules.Registry.Contracts.People.AgeStatus;
 
 namespace SportsPlatform.IntegrationTests.Isolation;
 

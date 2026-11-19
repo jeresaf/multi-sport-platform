@@ -18,13 +18,13 @@ using SportsPlatform.Modules.Platform.Domain.Media;
 using SportsPlatform.Modules.Platform.Infrastructure;
 using SportsPlatform.Modules.Registry.Domain.People;
 using SportsPlatform.Modules.Registry.Domain.People.Consents;
-using AgeStatus = SportsPlatform.Modules.Registry.Contracts.People.AgeStatus;
 using SportsPlatform.Modules.Tenancy.Contracts.Tenants;
 using SportsPlatform.Modules.Tenancy.Features.Access;
 using SportsPlatform.UnitTests.Platform.Media;
 using static SportsPlatform.IntegrationTests.Identity.MembershipTestData;
 using static SportsPlatform.IntegrationTests.Registry.PeopleRequests;
 using static SportsPlatform.IntegrationTests.Registry.RegistryTestData;
+using AgeStatus = SportsPlatform.Modules.Registry.Contracts.People.AgeStatus;
 
 namespace SportsPlatform.IntegrationTests.Registry;
 
