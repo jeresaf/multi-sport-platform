@@ -48,6 +48,9 @@ the message is the default title and may change.
 | `PERSON_ARCHIVED` | 409 | The person is archived: they take no new profile, alias, identifier, consent or photo. | Registry |
 | `PERSON_ATHLETE_PROFILE_EXISTS` | 409 | The person already has an athlete profile for this sport variant: change or reactivate it instead. | Registry |
 | `PERSON_CONCURRENCY_CONFLICT` | 409 | The record was changed by someone else. Reload and try again. | Registry |
+| `PERSON_CONSENT_NOT_FOUND` | 404 | The person has no such consent. | Registry |
+| `PERSON_CONSENT_NOT_NEEDED` | 422 | The person is an adult: a guardian's consent is recorded only for minors and people of unknown age. | Registry |
+| `PERSON_CONSENT_WITHDRAWN` | 409 | The consent is withdrawn: it takes no more changes. | Registry |
 | `PERSON_DATE_OF_BIRTH_IN_FUTURE` | 422 | A date of birth can't be after today (the tenant's date). | Registry |
 | `PERSON_DECEASED` | 409 | The person is recorded as deceased: they take no new profile, alias, identifier, consent or photo. | Registry |
 | `PERSON_DUPLICATE_CHECK_REQUIRED` | 422 | Run the duplicate check for these details first: the check token is missing, expired, or for other details or another user. | Registry |

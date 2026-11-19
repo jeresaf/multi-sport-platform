@@ -253,6 +253,24 @@
       "owner": "Registry"
     },
     {
+      "code": "PERSON_CONSENT_NOT_FOUND",
+      "status": 404,
+      "message": "The person has no such consent.",
+      "owner": "Registry"
+    },
+    {
+      "code": "PERSON_CONSENT_NOT_NEEDED",
+      "status": 422,
+      "message": "The person is an adult: a guardian's consent is recorded only for minors and people of unknown age.",
+      "owner": "Registry"
+    },
+    {
+      "code": "PERSON_CONSENT_WITHDRAWN",
+      "status": 409,
+      "message": "The consent is withdrawn: it takes no more changes.",
+      "owner": "Registry"
+    },
+    {
       "code": "PERSON_DATE_OF_BIRTH_IN_FUTURE",
       "status": 422,
       "message": "A date of birth can't be after today (the tenant's date).",

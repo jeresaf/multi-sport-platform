@@ -846,6 +846,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/v1/people/{personId}/consents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record a guardian's consent
+         * @description Records a guardian's consent for a person who is a minor or whose age is unknown on the tenant's date: the guardian's name, relationship and contact (a phone number or an email address), the scopes (`DATA_PROCESSING`, `PUBLIC_PROFILE`, `PHOTO`) and the date given, neither after today nor before the date of birth. Several consents may be active at once (one per guardian); the person's `activeConsentScopes` are theirs together. The guardian's details are private: only GET /people/{personId}/private shows them. An adult is PERSON_CONSENT_NOT_NEEDED; an archived or deceased person takes no new consent (PERSON_ARCHIVED, PERSON_DECEASED). Upload the evidence next. Send `version` or `If-Match` from the last read to get 409 PERSON_CONCURRENCY_CONFLICT if the person changed since; without them, a change to the same person saved at the same moment can still answer it. Answers the person as GET /people/{personId} does; its version moves.
+         */
+        post: operations["RecordPersonConsent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/people/{personId}/consents/{consentId}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Withdraw scopes of a guardian's consent
+         * @description Withdraws some or all of an active consent's scopes with a reason (body `{ "scopes": […], "reason": … }`, both required), whatever the person's status or age. The consent is kept as `WITHDRAWN` with who withdrew it, when and why; when scopes remain, a new active consent with them is recorded (the same guardian, date and evidence, naming the one it replaces). A scope the consent doesn't give is VALIDATION_INVALID_REQUEST on `scopes`; a consent already withdrawn is PERSON_CONSENT_WITHDRAWN. The reason is kept permanently and in the audit trail: don't include personal data. Send `version` or `If-Match` from the last read to get 409 PERSON_CONCURRENCY_CONFLICT if the person changed since; without them, a change to the same person saved at the same moment can still answer it. Answers the person as GET /people/{personId} does; its version moves.
+         */
+        post: operations["WithdrawPersonConsent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/people/{personId}/consents/{consentId}/evidence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Upload the evidence of a guardian's consent
+         * @description Uploads the evidence of an active consent (a signed form, say) as `multipart/form-data` with one file in the field `file` and nothing else (VALIDATION_INVALID_REQUEST otherwise). The file's bytes decide its type, not the content type sent: PDF, JPEG or PNG up to 10 MB (MEDIA_TYPE_NOT_ALLOWED, MEDIA_TOO_LARGE, MEDIA_IMAGE_UNREADABLE). A PDF is stored as uploaded; an image is re-encoded without its metadata (a GPS position, the device). It replaces the evidence the consent had. At the plan's storage limit the upload is ENTITLEMENT_QUOTA_EXCEEDED ("Your plan allows N GB of storage."). A withdrawn consent is PERSON_CONSENT_WITHDRAWN; an archived or deceased person takes no new evidence (PERSON_ARCHIVED, PERSON_DECEASED). The evidence is private: only GET /people/{personId}/private links it. Send `If-Match` from the last read to get 409 PERSON_CONCURRENCY_CONFLICT if the person changed since. Answers the person as GET /people/{personId} does; its version moves.
+         */
+        put: operations["UploadPersonConsentEvidence"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/v1/people/{personId}/external-identifiers": {
         parameters: {
             query?: never;
@@ -1075,7 +1135,7 @@ export interface paths {
         };
         /**
          * Get a person's private data
-         * @description The person's full date of birth. Every read is audited, naming the person.
+         * @description The person's full date of birth, and every consent's guardian (name, relationship, contact) and evidence: a signed URL that downloads the file until `expiresAt`. Consents are matched to `consents` of GET /people/{personId} by ID. Every read is audited, naming the person.
          */
         get: operations["GetPersonPrivate"];
         put?: never;
@@ -2079,6 +2139,55 @@ export interface components {
             candidates: components["schemas"]["DuplicateCandidateResponse"][];
             checkToken: string;
         };
+        /**
+         * @description The evidence's signed URL (S06 D17): it downloads the file until `expiresAt` (ten minutes with the local
+         *     storage); read again for a new one. Never cache it.
+         */
+        ConsentEvidenceResponse: {
+            url: string;
+            /** Format: date-time */
+            expiresAt: string;
+        };
+        /** @description A consent's guardian and evidence (S06 D14). */
+        ConsentPrivateResponse: {
+            /** Format: uuid */
+            id: string;
+            guardianName: string;
+            relationship: components["schemas"]["GuardianRelationship"];
+            contact: string;
+            evidence: null | components["schemas"]["ConsentEvidenceResponse"];
+        };
+        /**
+         * @description A guardian's consent as `person.read` shows it (S06 D3, D14): its scopes and dates, never the guardian's
+         *     details or the evidence (those are in the private read). A withdrawn consent stays, with when and why;
+         *     `replacesConsentId` names the consent a partial withdrawal closed to record this one.
+         */
+        ConsentResponse: {
+            /** Format: uuid */
+            id: string;
+            scopes: components["schemas"]["ConsentScope"][];
+            /** Format: date */
+            givenOn: string;
+            status: components["schemas"]["ConsentStatus"];
+            hasEvidence: boolean;
+            /** Format: date-time */
+            recordedAt: string;
+            /** Format: date-time */
+            withdrawnAt: null | string;
+            withdrawalReason: null | string;
+            /** Format: uuid */
+            replacesConsentId: null | string;
+        };
+        /**
+         * @description What a guardian consents to (S06 D14, ADR-0015).
+         * @enum {unknown}
+         */
+        ConsentScope: "DATA_PROCESSING" | "PUBLIC_PROFILE" | "PHOTO";
+        /**
+         * @description A consent record's states (S06 D14, Q39; docs/domain/state-machines.md, Registry).
+         * @enum {unknown}
+         */
+        ConsentStatus: "ACTIVE" | "WITHDRAWN";
         /** @enum {unknown} */
         ContestShape: "HEAD_TO_HEAD" | "FIELD";
         CountRangeResponse: {
@@ -2362,6 +2471,8 @@ export interface components {
             /** Format: date */
             effectiveUntil?: null | string;
         };
+        /** @enum {unknown} */
+        GuardianRelationship: "MOTHER" | "FATHER" | "GUARDIAN" | "OTHER" | null;
         /** Format: binary */
         IFormFile: string;
         /**
@@ -2691,12 +2802,16 @@ export interface components {
             /** Format: date-time */
             expiresAt: string;
         };
-        /** @description A person's `PRIVATE` data, for `person.read_private` (S06 D3): the full date of birth. */
+        /**
+         * @description A person's `PRIVATE` data, for `person.read_private` (S06 D3): the full date of birth, and the guardian
+         *     and the evidence of every consent, withdrawn ones included (matched to `consents` of the person read by ID).
+         */
         PersonPrivateResponse: {
             /** Format: uuid */
             id: string;
             /** Format: date */
             dateOfBirth: null | string;
+            consents: components["schemas"]["ConsentPrivateResponse"][];
         };
         /**
          * @description A person's record as `person.read` shows it (S06 D3, D22): no `PRIVATE` field. Aliases are the ones not
@@ -2733,6 +2848,8 @@ export interface components {
             staffProfiles: components["schemas"]["StaffProfileResponse"][];
             officialProfiles: components["schemas"]["OfficialProfileResponse"][];
             photo: null | components["schemas"]["PersonPhotoResponse"];
+            activeConsentScopes: components["schemas"]["ConsentScope"][];
+            consents: components["schemas"]["ConsentResponse"][];
             /** Format: uint32 */
             version: number;
         };
@@ -2844,6 +2961,21 @@ export interface components {
          * @enum {unknown}
          */
         ReadinessCheck: "LINEUPS_APPROVED" | "OFFICIALS_MINIMUM" | "VENUE_SET";
+        /**
+         * @description A guardian's consent (S06 D14): who gave it, to what, and on which date; `version`, when sent, must be the
+         *     person's current one. The guardian's name and contact are `PRIVATE`: kept on the record, never in the audit
+         *     trail or logs.
+         */
+        RecordConsentRequest: {
+            guardianName: null | string;
+            relationship: null | components["schemas"]["GuardianRelationship"];
+            contact: null | string;
+            scopes: null | components["schemas"]["ConsentScope"][];
+            /** Format: date */
+            givenOn: null | string;
+            /** Format: uint32 */
+            version?: null | number;
+        };
         /**
          * @description Why the message is re-driven; the audit entry records it (action audit `REQUIRED_WITH_REASON`). Kept permanently
          *     and not redacted, so it must not contain personal data.
@@ -3662,6 +3794,16 @@ export interface components {
             startingSoonMinutes?: null | number;
             /** @enum {unknown} */
             minorRegistrationConsent?: "REQUIRED" | "RECOMMENDED" | "OFF" | null;
+            /** Format: uint32 */
+            version?: null | number;
+        };
+        /**
+         * @description Withdrawing scopes of a consent (audit `REQUIRED_WITH_REASON`). The reason is kept permanently on the record and
+         *     in the audit trail and is not redacted: it must not contain personal data.
+         */
+        WithdrawConsentRequest: {
+            scopes: null | components["schemas"]["ConsentScope"][];
+            reason: null | string;
             /** Format: uint32 */
             version?: null | number;
         };
@@ -6389,6 +6531,265 @@ export interface operations {
             };
             /** @description Problem Details; `code`: `PERSON_CONCURRENCY_CONFLICT` */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    RecordPersonConsent: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too. */
+                "If-Match"?: string;
+            };
+            path: {
+                personId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordConsentRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `PERSON_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `PERSON_ARCHIVED`, `PERSON_CONCURRENCY_CONFLICT`, `PERSON_DECEASED` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `PERSON_CONSENT_NOT_NEEDED` */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    WithdrawPersonConsent: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too. */
+                "If-Match"?: string;
+            };
+            path: {
+                personId: string;
+                consentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WithdrawConsentRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST`, `VALIDATION_REASON_REQUIRED` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `PERSON_CONSENT_NOT_FOUND`, `PERSON_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `PERSON_CONCURRENCY_CONFLICT`, `PERSON_CONSENT_WITHDRAWN` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    UploadPersonConsentEvidence: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too. */
+                "If-Match"?: string;
+            };
+            path: {
+                personId: string;
+                consentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    file?: components["schemas"]["IFormFile"];
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `ENTITLEMENT_QUOTA_EXCEEDED`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `PERSON_CONSENT_NOT_FOUND`, `PERSON_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `PERSON_ARCHIVED`, `PERSON_CONCURRENCY_CONFLICT`, `PERSON_CONSENT_WITHDRAWN`, `PERSON_DECEASED` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `MEDIA_TOO_LARGE` */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `MEDIA_IMAGE_UNREADABLE`, `MEDIA_TYPE_NOT_ALLOWED` */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
