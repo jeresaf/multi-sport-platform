@@ -7,9 +7,10 @@ at the start of every review.
 
 - **Current slice:** S06 — People registry (docs/build/slices/S06-people-registry.md, written by the S05 slice review).
   S00–S05 are done
-- **Current task:** S06-T6a — guardian consent: record, withdraw, evidence upload; consents in the person reads — in review (#106)
-- **Next:** S06-T6b — the public profile actions, the public person read and its photo route
-- **Blocked on:** the review of T6a
+- **Current task:** S06-T6b — the public profile actions, the public person read and its photo route (plan approved
+  2026-11-19, defaults 1–5, one PR)
+- **Next:** S06-T7 — screens, demo data and slice close
+- **Blocked on:** nothing
 
 ## Next up
 
