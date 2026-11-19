@@ -4,6 +4,7 @@ using SportsPlatform.BuildingBlocks.Api;
 using SportsPlatform.BuildingBlocks.Privacy;
 using SportsPlatform.Modules.Registry.Contracts.People;
 using SportsPlatform.Modules.Registry.Domain.People;
+using SportsPlatform.Modules.Registry.Domain.People.Consents;
 using SportsPlatform.Modules.Registry.Domain.People.Profiles;
 using PersonStatus = SportsPlatform.Modules.Registry.Domain.People.PersonStatus;
 
@@ -57,6 +58,8 @@ public sealed record PersonResponse(
     [property: PersonalData(PersonalDataClass.Internal)] IReadOnlyList<StaffProfileResponse> StaffProfiles,
     [property: PersonalData(PersonalDataClass.Internal)] IReadOnlyList<OfficialProfileResponse> OfficialProfiles,
     [property: PersonalData(PersonalDataClass.Internal)] PersonPhotoResponse? Photo,
+    [property: PersonalData(PersonalDataClass.Internal)] IReadOnlyList<ConsentScope> ActiveConsentScopes,
+    [property: PersonalData(PersonalDataClass.Internal)] IReadOnlyList<ConsentResponse> Consents,
     [property: PersonalData(PersonalDataClass.Internal)] uint Version)
 {
     public void SetETag(HttpResponse response)
@@ -139,10 +142,46 @@ public sealed record ExternalIdentifierResponse(
     [property: PersonalData(PersonalDataClass.Internal)] DateOnly? ValidFrom,
     [property: PersonalData(PersonalDataClass.Internal)] DateOnly? ValidTo);
 
-/// <summary>A person's <c>PRIVATE</c> data, for <c>person.read_private</c> (S06 D3): the full date of birth.</summary>
+/// <summary>
+/// A guardian's consent as <c>person.read</c> shows it (S06 D3, D14): its scopes and dates, never the guardian's
+/// details or the evidence (those are in the private read). A withdrawn consent stays, with when and why;
+/// <c>replacesConsentId</c> names the consent a partial withdrawal closed to record this one.
+/// </summary>
+public sealed record ConsentResponse(
+    [property: PersonalData(PersonalDataClass.Internal)] Guid Id,
+    [property: PersonalData(PersonalDataClass.Internal)] IReadOnlyList<ConsentScope> Scopes,
+    [property: PersonalData(PersonalDataClass.Internal)] DateOnly GivenOn,
+    [property: PersonalData(PersonalDataClass.Internal)] ConsentStatus Status,
+    [property: PersonalData(PersonalDataClass.Internal)] bool HasEvidence,
+    [property: PersonalData(PersonalDataClass.Internal)] DateTimeOffset RecordedAt,
+    [property: PersonalData(PersonalDataClass.Internal)] DateTimeOffset? WithdrawnAt,
+    [property: PersonalData(PersonalDataClass.Internal)] string? WithdrawalReason,
+    [property: PersonalData(PersonalDataClass.Internal)] Guid? ReplacesConsentId);
+
+/// <summary>
+/// A person's <c>PRIVATE</c> data, for <c>person.read_private</c> (S06 D3): the full date of birth, and the guardian
+/// and the evidence of every consent, withdrawn ones included (matched to <c>consents</c> of the person read by ID).
+/// </summary>
 public sealed record PersonPrivateResponse(
     [property: PersonalData(PersonalDataClass.Public)] Guid Id,
-    [property: PersonalData(PersonalDataClass.Private)] DateOnly? DateOfBirth);
+    [property: PersonalData(PersonalDataClass.Private)] DateOnly? DateOfBirth,
+    [property: PersonalData(PersonalDataClass.Internal)] IReadOnlyList<ConsentPrivateResponse> Consents);
+
+/// <summary>A consent's guardian and evidence (S06 D14).</summary>
+public sealed record ConsentPrivateResponse(
+    [property: PersonalData(PersonalDataClass.Internal)] Guid Id,
+    [property: PersonalData(PersonalDataClass.Private)] string GuardianName,
+    [property: PersonalData(PersonalDataClass.Private)] GuardianRelationship Relationship,
+    [property: PersonalData(PersonalDataClass.Private)] string Contact,
+    [property: PersonalData(PersonalDataClass.Private)] ConsentEvidenceResponse? Evidence);
+
+/// <summary>
+/// The evidence's signed URL (S06 D17): it downloads the file until <c>expiresAt</c> (ten minutes with the local
+/// storage); read again for a new one. Never cache it.
+/// </summary>
+public sealed record ConsentEvidenceResponse(
+    [property: PersonalData(PersonalDataClass.Private)] string Url,
+    [property: PersonalData(PersonalDataClass.Private)] DateTimeOffset ExpiresAt);
 
 /// <summary>One row of a person's status history (S06 D9): <c>fromStatus</c> is null for the row written at creation.</summary>
 public sealed record PersonStatusChangeResponse(

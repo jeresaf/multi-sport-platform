@@ -38,12 +38,9 @@ public sealed class SetPersonPhotoHandler(
             return new(accepts.Error);
         }
 
-        var used = StorageQuota.WholeGigabytes(await media.GetStoredBytesAsync(cancellationToken));
-        var quota = await entitlements.CheckQuotaAsync(StorageQuota.Code, used, cancellationToken);
-        if (quota.IsFailure)
+        if (await PersonMedia.CheckStorageAsync(media, entitlements, cancellationToken) is { } overQuota)
         {
-            var limit = await entitlements.GetLimitAsync(StorageQuota.Code, cancellationToken);
-            return new(quota.Error, Detail: $"Your plan allows {limit} GB of storage.");
+            return overQuota;
         }
 
         var stored = await media.StoreAsync(file, MediaPurpose.PersonPhoto, cancellationToken);
@@ -67,7 +64,7 @@ public sealed class SetPersonPhotoHandler(
 
         if (set.Value is { } previous)
         {
-            await PersonPhotoAssets.RemoveAsync(media, logger, previous);
+            await PersonMedia.RemoveUnreferencedAsync(media, logger, previous);
         }
 
         return null;
@@ -104,7 +101,7 @@ public sealed class RemovePersonPhotoHandler(
             return new(saved.Error);
         }
 
-        await PersonPhotoAssets.RemoveAsync(media, logger, removed.Value);
+        await PersonMedia.RemoveUnreferencedAsync(media, logger, removed.Value);
         return null;
     }
 }
@@ -113,35 +110,3 @@ public sealed class RemovePersonPhotoHandler(
 public sealed record PersonPhotoAuditMetadata(
     [property: PersonalData(PersonalDataClass.Internal)] Guid? AssetId,
     [property: PersonalData(PersonalDataClass.Internal)] Guid? ReplacedAssetId);
-
-internal static partial class PersonPhotoAssets
-{
-    /// <summary>
-    /// Marks the asset the person no longer names <c>REMOVED</c>. The person is saved already, so a failure doesn't fail
-    /// the request: the asset stays active and unreferenced (still counted toward storage) and is logged for the
-    /// retention job (Later). Not cancelled with the request, for the same reason.
-    /// </summary>
-    public static async Task RemoveAsync(IMediaAssets media, ILogger logger, Guid assetId)
-    {
-        try
-        {
-            var removed = await media.RemoveAsync(assetId, CancellationToken.None);
-            if (removed.IsFailure)
-            {
-                LogNotRemoved(logger, assetId, removed.Error.Code);
-            }
-        }
-#pragma warning disable CA1031 // The person's change is saved: any failure here is logged, not answered.
-        catch (Exception exception)
-#pragma warning restore CA1031
-        {
-            LogRemoveFailed(logger, exception, assetId);
-        }
-    }
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Photo asset {AssetId}, no longer named by its person, was not removed: {ErrorCode}")]
-    private static partial void LogNotRemoved(ILogger logger, Guid assetId, string errorCode);
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Removing photo asset {AssetId}, no longer named by its person, failed")]
-    private static partial void LogRemoveFailed(ILogger logger, Exception exception, Guid assetId);
-}

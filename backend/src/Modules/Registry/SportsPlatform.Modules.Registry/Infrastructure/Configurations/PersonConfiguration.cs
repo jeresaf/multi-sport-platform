@@ -92,6 +92,12 @@ internal sealed class PersonConfiguration : IEntityTypeConfiguration<Person>
             .OnDelete(DeleteBehavior.Restrict);
         builder.Navigation(p => p.ProfileStatusHistory).HasField("_profileStatusHistory")
             .UsePropertyAccessMode(PropertyAccessMode.Field);
+        builder.HasMany(p => p.Consents).WithOne()
+            .HasForeignKey(c => new { c.TenantId, c.PersonId })
+            .HasPrincipalKey(p => new { p.TenantId, p.Id })
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.Navigation(p => p.Consents).HasField("_consents").UsePropertyAccessMode(PropertyAccessMode.Field);
+        builder.Ignore(p => p.ActiveConsentScopes);
 
         builder.HasIndex(p => p.NameKey).HasMethod("gin").HasOperators("gin_trgm_ops").HasDatabaseName(NameKeyIndex);
         builder.HasIndex(p => new { p.TenantId, p.LastNameKey, p.FirstNameKey, p.Id }).HasDatabaseName(DirectoryIndex);

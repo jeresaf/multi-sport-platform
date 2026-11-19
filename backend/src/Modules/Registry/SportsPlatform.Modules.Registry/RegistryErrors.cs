@@ -103,4 +103,13 @@ public static class RegistryErrors
 
     public static readonly Error ProfileStatusInvalid = new(
         "PERSON_PROFILE_STATUS_INVALID", "The profile's current status doesn't allow this change.", ErrorKind.Conflict);
+
+    public static readonly Error ConsentNotFound = new("PERSON_CONSENT_NOT_FOUND", "The person has no such consent.", ErrorKind.NotFound);
+
+    public static readonly Error ConsentWithdrawn = new(
+        "PERSON_CONSENT_WITHDRAWN", "The consent is withdrawn: it takes no more changes.", ErrorKind.Conflict);
+
+    /// <summary>Recording consent for an adult on the tenant's date (owner, S06-T6a plan).</summary>
+    public static readonly Error ConsentNotNeeded = new(
+        "PERSON_CONSENT_NOT_NEEDED", "The person is an adult: a guardian's consent is recorded only for minors and people of unknown age.", ErrorKind.Unprocessable);
 }

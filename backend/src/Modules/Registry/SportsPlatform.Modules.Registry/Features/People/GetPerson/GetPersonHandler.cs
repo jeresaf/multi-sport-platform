@@ -4,6 +4,7 @@ using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Results;
 using SportsPlatform.Modules.Platform.Contracts.Media;
 using SportsPlatform.Modules.Registry.Domain.People;
+using SportsPlatform.Modules.Registry.Domain.People.Consents;
 using SportsPlatform.Modules.Registry.Domain.People.Profiles;
 using SportsPlatform.Modules.Registry.Infrastructure;
 
@@ -57,6 +58,11 @@ public sealed partial class GetPersonHandler(
             .OrderBy(o => o.Id)
             .ToListAsync(cancellationToken);
 
+        var consents = await context.Set<GuardianConsent>().AsNoTracking()
+            .Where(c => c.PersonId == personId)
+            .OrderBy(c => c.Id)
+            .ToListAsync(cancellationToken);
+
         var p = person.Person;
         var photo = p.PhotoAssetId is { } photoAssetId ? await PhotoAsync(p.Id, photoAssetId, cancellationToken) : null;
         var today = await tenantToday.GetAsync(cancellationToken);
@@ -79,6 +85,10 @@ public sealed partial class GetPersonHandler(
                         c.Variant, c.Role, c.Grade, c.LicenceNumber, c.LicenceValidUntil, c.LicenceExpiredOn(today)))],
                 o.Status))],
             photo,
+            [.. consents.Where(c => c.IsActive).SelectMany(c => c.Scopes).Distinct().Order()],
+            [.. consents.Select(c => new ConsentResponse(
+                c.Id, c.Scopes, c.GivenOn, c.Status, c.EvidenceAssetId is not null, c.RecordedAt, c.WithdrawnAt,
+                c.WithdrawalReason, c.ReplacesConsentId))],
             person.Version));
     }
 

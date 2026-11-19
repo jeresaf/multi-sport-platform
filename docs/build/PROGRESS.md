@@ -7,9 +7,9 @@ at the start of every review.
 
 - **Current slice:** S06 — People registry (docs/build/slices/S06-people-registry.md, written by the S05 slice review).
   S00–S05 are done
-- **Current task:** S06-T5b — person photo endpoints, photo URLs in the person read, the `STORAGE_GB` check — in review (#105)
-- **Next:** S06-T6 — minors, consent and the public read; `/next-task` once T5b merges
-- **Blocked on:** the review of T5b
+- **Current task:** S06-T6a — guardian consent: record, withdraw, evidence upload; consents in the person reads — in progress
+- **Next:** S06-T6b — the public profile actions, the public person read and its photo route
+- **Blocked on:** nothing
 
 ## Next up
 

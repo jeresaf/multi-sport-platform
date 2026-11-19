@@ -16,7 +16,7 @@ public static class RegistryActions
 
     public static readonly ActionDefinition PersonReadPrivate = new(
         "person.read_private",
-        "View a person's private data: the full date of birth. Every read is audited.",
+        "View a person's private data: the full date of birth, and the guardians' names, relationships and contacts and the evidence of their consents. Every read is audited.",
         ActionScope.Tenant,
         AuditRequirement.Required,
         since: "S06",
@@ -165,7 +165,30 @@ public static class RegistryActions
         "Remove a person's photo, whatever the person's status.",
         AuditRequirement.Required);
 
-    // The lifecycle, alias, identifier, profile and photo actions answer the person as person.read does, so they are only
+    public static readonly ActionDefinition PersonConsentRecord = Lifecycle(
+        "person.consent.record",
+        "Record a guardian's consent (data processing, public profile, photo) for a person who is a minor or whose age is unknown; not for an archived or deceased person.",
+        AuditRequirement.Required);
+
+    public static readonly ActionDefinition PersonConsentWithdraw = Lifecycle(
+        "person.consent.withdraw",
+        "Withdraw some or all scopes of a guardian's consent, with a reason; the record is kept and the remaining scopes stay in force.",
+        AuditRequirement.RequiredWithReason);
+
+    /// <summary>
+    /// Stores a new file, so it names <c>STORAGE_GB</c>: the handler checks the quota before storing (S06 D20).
+    /// </summary>
+    public static readonly ActionDefinition PersonConsentEvidenceUpload = new(
+        "person.consent_evidence.upload",
+        "Upload the evidence of a guardian's consent (a PDF, JPEG or PNG up to 10 MB, such as a signed form), replacing the one it had; not for a withdrawn consent or an archived or deceased person.",
+        ActionScope.Tenant,
+        AuditRequirement.Required,
+        since: "S06",
+        scopableBy: [AssignmentScope.Tenant],
+        entitlement: "STORAGE_GB",
+        grantedWith: ["person.read"]);
+
+    // The lifecycle, alias, identifier, profile, photo and consent actions answer the person as person.read does, so they are only
     // granted with that read.
     private static ActionDefinition Lifecycle(string code, string description, AuditRequirement audit) => new(
         code,

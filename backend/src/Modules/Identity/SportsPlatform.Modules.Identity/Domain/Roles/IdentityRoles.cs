@@ -55,7 +55,7 @@ public static class IdentityRoles
     // A person's private data, audited per read (S06 D21): those who run the tenant and the registrar.
     private const string _personReadPrivate = "person.read_private";
 
-    // Changing the registry's people and their role profiles (S06 D12, D21): those who run the tenant and the registrar. The duplicate check is its
+    // Changing the registry's people, their role profiles and their guardians' consents (S06 D12, D14, D21): those who run the tenant and the registrar. The duplicate check is its
     // own unaudited action (S06-T2a).
     private const string _personDuplicateCheck = "person.duplicate_check";
     private const string _personCreate = "person.create";
@@ -65,7 +65,8 @@ public static class IdentityRoles
         "person.unarchive", "person.mark_deceased", "person.alias.add", "person.alias.remove", "person.external_id.add",
         "person.external_id.end", "person.photo.set", "person.photo.remove", "athlete_profile.create", "athlete_profile.update",
         "athlete_profile.status.change", "staff_profile.create", "staff_profile.update", "staff_profile.status.change",
-        "official_profile.create", "official_profile.update", "official_profile.status.change",
+        "official_profile.create", "official_profile.update", "official_profile.status.change", "person.consent.record",
+        "person.consent.withdraw", "person.consent_evidence.upload",
     ];
 
     private static readonly string[] _tenantAdministration =
