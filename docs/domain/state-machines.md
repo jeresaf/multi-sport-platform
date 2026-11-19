@@ -385,8 +385,10 @@ A consent is recorded `ACTIVE` for a person whose age status on the tenant's dat
 (`422 PERSON_CONSENT_NOT_NEEDED` otherwise), and not for an archived or deceased person (D9). Withdrawing some or all
 of its scopes closes it with who, when and why; when scopes remain, a new `ACTIVE` consent with them is recorded (the
 same guardian, date and evidence) and names the closed one (`replaces_consent_id`). A withdrawn consent takes no
-change (`409 PERSON_CONSENT_WITHDRAWN`); withdrawing is allowed whatever the person's status or age. Several consents
-can be active at once (one per guardian); the person's active scopes are theirs together (owner, S06-T6a plan).
+change (`409 PERSON_CONSENT_WITHDRAWN`); withdrawing is allowed whatever the person's status or age, and the new
+consent it records for the remaining scopes is not a "new consent" in D9's sense (it narrows what was given). Several
+consents can be active at once (one per guardian, say; nothing refuses a second from the same guardian); the person's
+active scopes are theirs together (owner, S06-T6a plan).
 
 ---
 

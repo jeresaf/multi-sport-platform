@@ -624,7 +624,9 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   `PERSON_CONSENT_NOT_FOUND`, `PERSON_CONSENT_WITHDRAWN`, new codes) and records a successor with the remaining scopes,
   the same guardian, date and evidence, naming the closed one (`replacesConsentId`); `PUT
   …/consents/{consentId}/evidence` follows the photo upload (D19, D20) and is refused on a withdrawn consent or an
-  archived or deceased person before anything is stored. All three answer the person with its `ETag`.
+  archived or deceased person before anything is stored. All three answer the person with its `ETag`. A partial
+  withdrawal on an archived or deceased person still records the successor: it narrows what was given, so it isn't a
+  new consent in D9's sense.
   `PersonResponse` gains `activeConsentScopes` and `consents` (scopes, dates, status, `hasEvidence`, the withdrawal);
   `/private` gains each consent's guardian and the evidence as a signed URL (`ORIGINAL`, a download). Audit metadata
   carries the consent, its scopes and the successor or assets by ID; the guardian's relationship is `PRIVATE` (D3), so
