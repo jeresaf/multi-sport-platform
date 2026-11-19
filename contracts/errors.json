@@ -265,6 +265,12 @@
       "owner": "Registry"
     },
     {
+      "code": "PERSON_CONSENT_REQUIRED",
+      "status": 422,
+      "message": "The person isn't known to be an adult: a guardian's consent with the public profile scope is needed first.",
+      "owner": "Registry"
+    },
+    {
       "code": "PERSON_CONSENT_WITHDRAWN",
       "status": 409,
       "message": "The consent is withdrawn: it takes no more changes.",
