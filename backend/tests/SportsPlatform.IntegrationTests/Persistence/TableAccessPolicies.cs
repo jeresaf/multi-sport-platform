@@ -97,6 +97,7 @@ public static class TableAccessPolicies
         ["registry.staff_capabilities"] = TableAccess.ReadWrite,
         ["registry.official_profiles"] = TableAccess.ReadWrite,
         ["registry.official_capabilities"] = TableAccess.ReadWrite,
+        ["registry.guardian_consents"] = TableAccess.ReadWrite,
 
         ["identity.outbox_messages"] = TableAccess.ReadWrite,
         ["registry.outbox_messages"] = TableAccess.ReadWrite,

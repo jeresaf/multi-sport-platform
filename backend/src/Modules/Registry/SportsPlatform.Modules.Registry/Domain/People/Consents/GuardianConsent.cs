@@ -18,7 +18,11 @@ public sealed class GuardianConsent : Entity, ITenantOwned
 
     private readonly List<ConsentScope> _scopes = [];
 
-    internal GuardianConsent(
+    /// <summary>
+    /// A consent of a person; commands record one through <see cref="Person.RecordConsent"/> or
+    /// <see cref="Person.WithdrawConsent"/>.
+    /// </summary>
+    public GuardianConsent(
         Guid personId, GuardianConsentDetails details, Guid? evidenceAssetId, Guid? replacesConsentId, ICurrentActor actor, DateTimeOffset now)
         : base(NewId())
     {

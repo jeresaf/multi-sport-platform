@@ -92,10 +92,19 @@ public sealed class PublicDtoClassificationTests
         responses.SelectMany(response => NotClassified(response, PersonalDataClass.Internal, InRegistry)).ShouldBeEmpty();
     }
 
+    // T6a: the guardian and the evidence of a consent are PRIVATE too, and only the private read answers them.
     [Fact]
     public void The_private_read_is_the_one_that_answers_a_private_field() =>
-        NotClassified(typeof(PersonPrivateResponse), PersonalDataClass.Internal, InRegistry)
-            .ShouldBe([$"{typeof(PersonPrivateResponse).FullName}.DateOfBirth (PRIVATE)"]);
+        NotClassified(typeof(PersonPrivateResponse), PersonalDataClass.Internal, InRegistry).ShouldBe(
+        [
+            $"{typeof(PersonPrivateResponse).FullName}.DateOfBirth (PRIVATE)",
+            $"{typeof(ConsentPrivateResponse).FullName}.GuardianName (PRIVATE)",
+            $"{typeof(ConsentPrivateResponse).FullName}.Relationship (PRIVATE)",
+            $"{typeof(ConsentPrivateResponse).FullName}.Contact (PRIVATE)",
+            $"{typeof(ConsentPrivateResponse).FullName}.Evidence (PRIVATE)",
+            $"{typeof(ConsentEvidenceResponse).FullName}.Url (PRIVATE)",
+            $"{typeof(ConsentEvidenceResponse).FullName}.ExpiresAt (PRIVATE)",
+        ], ignoreOrder: true);
 
     private static bool InRegistry(Type type) =>
         type.Namespace!.StartsWith("SportsPlatform.Modules.Registry.", StringComparison.Ordinal);
