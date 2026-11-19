@@ -94,6 +94,13 @@ public sealed class GuardianConsent : Entity, ITenantOwned
 
     public bool IsActive => Status == ConsentStatus.Active;
 
+    /// <summary>
+    /// The scopes of the active consents among <paramref name="consents"/> together, each once, in their declared order
+    /// (S06 D14): what the person read shows and the public read checks (D15, D18).
+    /// </summary>
+    public static IReadOnlyList<ConsentScope> ActiveScopes(IEnumerable<GuardianConsent> consents) =>
+        [.. consents.Where(c => c.IsActive).SelectMany(c => c.Scopes).Distinct().Order()];
+
     /// <summary>What a successor of this record carries over: the guardian and the date, with <paramref name="scopes"/>.</summary>
     internal GuardianConsentDetails DetailsWith(IReadOnlyCollection<ConsentScope> scopes) =>
         new(GuardianName, Relationship, Contact, scopes, GivenOn);

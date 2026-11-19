@@ -40,7 +40,7 @@ internal static class ConsentEndpoints
                 "Records a guardian's consent for a person who is a minor or whose age is unknown on the tenant's date: the " +
                 "guardian's name, relationship and contact (a phone number or an email address), the scopes " +
                 "(`DATA_PROCESSING`, `PUBLIC_PROFILE`, `PHOTO`) and the date given, neither after today nor before the " +
-                "date of birth. Several consents may be active at once (one per guardian); the person's " +
+                "date of birth. Several consents may be active at once (one per guardian, say); the person's " +
                 "`activeConsentScopes` are theirs together. The guardian's details are private: only GET " +
                 "/people/{personId}/private shows them. An adult is PERSON_CONSENT_NOT_NEEDED; an archived or deceased " +
                 $"person takes no new consent (PERSON_ARCHIVED, PERSON_DECEASED). Upload the evidence next. {_versionNote}")

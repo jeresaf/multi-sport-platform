@@ -93,6 +93,41 @@ public sealed class PersonConsentTests(PostgresFixture fixture) : DatabaseTest(f
         entry.Metadata.ShouldNotContain("MOTHER");
     }
 
+    // S06 D3: the guardian's details (PRIVATE) reach no log event, span or audit entry: recording, uploading the
+    // evidence, withdrawing, the reads and a refusal.
+    [Fact]
+    public async Task The_guardians_details_reach_neither_the_logs_nor_the_audit_trail()
+    {
+        var (kmsa, registrar) = await TenantAsync("kmsa", IdentityRoles.Registrar);
+        var brenda = await CreatePersonAsync(App.Services, kmsa, SystemActor.Instance, BrendaAkello, overrideReason: null, Ct);
+        App.Telemetry.Clear();
+
+        var consent = ConsentId(await OkAsync(await registrar.PostAsJsonAsync(ConsentsPath(brenda), _mother, Ct)));
+        await OkAsync(await registrar.PutAsync(EvidencePath(brenda, consent), Form(TestImages.Pdf(), "application/pdf"), Ct));
+        await registrar.ReadJsonAsync(PrivatePath(brenda), Ct);
+        await OkAsync(await registrar.PostAsJsonAsync(WithdrawPath(brenda, consent), Withdrawal("Guardian asked", "PHOTO"), Ct));
+        using var refused = await registrar.PostAsJsonAsync(ConsentsPath(brenda), With(_mother, "givenOn", "2011-03-01"), Ct);
+
+        await refused.ShouldBeProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_INVALID_REQUEST");
+        var lastPath = refused.RequestMessage!.RequestUri!.AbsolutePath;
+        await App.Telemetry.WaitForRequestLogAsync(lastPath);
+        await App.Telemetry.WaitForServerSpanAsync(lastPath);
+        await AccountTestData.DeliverOutboxAsync(App.Services, Ct);
+        var entries = await AuditTestData.EntriesAsync(App.Services, Ct);
+        entries.Count(e => e.ActionCode.StartsWith("person.consent", StringComparison.Ordinal)).ShouldBe(4);
+
+        foreach (var value in new[] { "Grace Akello", "Grace", "772 410 233", "MOTHER", "Mother" })
+        {
+            App.Telemetry.Events.ShouldAllBe(e =>
+                !e.RenderMessage(null).Contains(value, StringComparison.Ordinal)
+                && e.Properties.Values.All(property => !property.ToString().Contains(value, StringComparison.Ordinal))
+                && (e.Exception == null || !e.Exception.ToString().Contains(value, StringComparison.Ordinal)));
+            App.Telemetry.Spans.ShouldAllBe(span =>
+                span.TagObjects.All(tag => !(tag.Value ?? "").ToString()!.Contains(value, StringComparison.Ordinal)));
+            entries.ShouldAllBe(e => !JsonSerializer.Serialize(e, JsonSerializerOptions.Web).Contains(value, StringComparison.Ordinal));
+        }
+    }
+
     [Fact]
     public async Task Consent_is_recorded_for_unknown_age_and_refused_for_an_adult()
     {

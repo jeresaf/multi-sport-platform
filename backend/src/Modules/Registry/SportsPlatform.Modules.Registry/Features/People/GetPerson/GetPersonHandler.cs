@@ -85,7 +85,7 @@ public sealed partial class GetPersonHandler(
                         c.Variant, c.Role, c.Grade, c.LicenceNumber, c.LicenceValidUntil, c.LicenceExpiredOn(today)))],
                 o.Status))],
             photo,
-            [.. consents.Where(c => c.IsActive).SelectMany(c => c.Scopes).Distinct().Order()],
+            GuardianConsent.ActiveScopes(consents),
             [.. consents.Select(c => new ConsentResponse(
                 c.Id, c.Scopes, c.GivenOn, c.Status, c.EvidenceAssetId is not null, c.RecordedAt, c.WithdrawnAt,
                 c.WithdrawalReason, c.ReplacesConsentId))],

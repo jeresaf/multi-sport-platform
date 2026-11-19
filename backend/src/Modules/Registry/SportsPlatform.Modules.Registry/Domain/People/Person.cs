@@ -104,8 +104,7 @@ public sealed class Person : AggregateRoot, ITenantOwned
     public IReadOnlyList<GuardianConsent> Consents => _consents;
 
     /// <summary>The scopes of the active consents together (S06 D14): what the public read checks (D15, D18).</summary>
-    public IReadOnlySet<ConsentScope> ActiveConsentScopes =>
-        _consents.Where(c => c.IsActive).SelectMany(c => c.Scopes).ToHashSet();
+    public IReadOnlyList<ConsentScope> ActiveConsentScopes => GuardianConsent.ActiveScopes(_consents);
 
     /// <summary>
     /// A new <c>ACTIVE</c> person in the scope's tenant (stamped on save), with the first row of its status history.
@@ -265,7 +264,7 @@ public sealed class Person : AggregateRoot, ITenantOwned
 
     /// <summary>
     /// Records a guardian's consent (S06 D14) for a person whose age status on the tenant's date isn't <c>ADULT</c>
-    /// (<c>PERSON_CONSENT_NOT_NEEDED</c> otherwise; owner, S06-T6a plan). Several may be active at once, one per guardian.
+    /// (<c>PERSON_CONSENT_NOT_NEEDED</c> otherwise; owner, S06-T6a plan). Several may be active at once (one per guardian, say); nothing refuses a second from the same guardian.
     /// Refused on an archived or deceased person (D9). The use case has validated the details and checked that the date
     /// given is neither after the tenant's date nor before the date of birth.
     /// </summary>
