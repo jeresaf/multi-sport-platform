@@ -7,16 +7,17 @@ at the start of every review.
 
 - **Current slice:** S06 — People registry (docs/build/slices/S06-people-registry.md, written by the S05 slice review).
   S00–S05 are done
-- **Current task:** S06-T7a — People directory and the read-only person page; e2e specs on tenants of their own — in
-  review (#108)
-- **Next:** S06-T7b — search-first create and the duplicate review
-- **Blocked on:** the review of T7a
+- **Current task:** S06-T7b — search-first create and the duplicate review (web only; plan approved 2026-11-20:
+  external identifiers on Add person, a Playwright spec of its own, Q48 answered — T7c split in two)
+- **Next:** S06-T7c-1 — roles (profiles) and consent
+- **Blocked on:** nothing
 
 ## Next up
 
 1. S06-T7b — Search-first create and the duplicate review
-2. S06-T7c — Profiles, consent, photo, identifiers, lifecycle
-3. S06-T7d — Seeds, demo e2e, screenshots, slice close
+2. S06-T7c-1 — Roles (profiles) and consent
+3. S06-T7c-2 — Photo, identifiers and aliases, lifecycle, editing the biodata (D8's check with T7b's review)
+4. S06-T7d — Seeds, demo e2e, screenshots, slice close
 
 ## Log
 
