@@ -88,6 +88,7 @@ const fields: Readonly<Record<string, FieldPath<Values>>> = {
 };
 
 const kindWords = { STAFF: "staff", OFFICIAL: "official" } as const;
+const withArticle = { STAFF: "a staff", OFFICIAL: "an official" } as const;
 
 export function CapabilityDialog({
   kind,
@@ -164,7 +165,7 @@ export function CapabilityDialog({
           }));
     save.mutate(body, {
       onSuccess: (saved) =>
-        onSaved(profile ? `The ${words} profile is saved.` : `${person.displayName} now has a ${words} profile.`, saved),
+        onSaved(profile ? `The ${words} profile is saved.` : `${person.displayName} now has ${withArticle[kind]} profile.`, saved),
       onError: (error) => applyFieldErrors(error, fields, form.setError),
     });
   });
@@ -173,7 +174,7 @@ export function CapabilityDialog({
 
   return (
     <CommandDialog
-      title={profile ? `Change the ${words} profile` : `Add a ${words} profile for ${person.displayName}`}
+      title={profile ? `Change the ${words} profile` : `Add ${withArticle[kind]} profile for ${person.displayName}`}
       description={
         closed
           ? `${person.displayName} is ${person.status === "DECEASED" ? "deceased" : "archived"}: the roles held can be kept, changed in their details or removed, but none added.`
@@ -254,7 +255,7 @@ export function CapabilityDialog({
                   {...form.register(`capabilities.${index}.qualification`)}
                 />
               ) : (
-                <div className="grid gap-3 tablet:grid-cols-3">
+                <div className="grid gap-3 tablet:grid-cols-2">
                   <FormField
                     id={`capability-${index}-grade`}
                     label="Grade (optional)"

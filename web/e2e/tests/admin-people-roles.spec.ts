@@ -49,7 +49,7 @@ test("a registrar adds, changes and retires role profiles", async ({ page, reque
   await officialDialog.getByRole("button", { name: "Add profile" }).click();
   await expect(officialDialog).toBeHidden();
   const official = page.getByRole("article", { name: "Official profile" });
-  await expect(official.getByText("HK-REF-0031, valid until 30 Jun 2027").first()).toBeVisible();
+  await expect(official.getByRole("cell", { name: "HK-REF-0031, valid until 30 Jun 2027" })).toBeVisible();
 
   // Retiring the athlete profile needs a reason; it can then only be made active again or archived.
   const athlete = page.getByRole("article").filter({ hasText: "S. Nankya" });

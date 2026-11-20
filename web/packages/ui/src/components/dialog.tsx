@@ -125,7 +125,9 @@ function DialogTitle({
   return (
     <DialogPrimitive.Title
       data-slot="dialog-title"
-      className={cn("text-lg leading-none font-semibold", className)}
+      // Clear of the close button (top right, 44 px): a long title wraps instead of running under it; centred on a
+      // phone, so both sides keep the space there.
+      className={cn("px-7 text-lg leading-tight font-semibold tablet:pl-0", className)}
       {...props}
     />
   )
