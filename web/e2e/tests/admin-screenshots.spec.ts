@@ -303,6 +303,7 @@ test("screenshots of the people screens", async ({ page, request }) => {
     middleName: "Irene",
     otherNames: "Nalubega",
     lastName: "Namaganda",
+    displayName: "Nakato Irene Nalubega Namaganda",
     gender: "FEMALE",
   });
   await createPerson(request, member, { firstName: "John", lastName: "Ssekandi", gender: "MALE", dateOfBirth: "1998-08-21" });
@@ -335,7 +336,7 @@ test("screenshots of the people screens", async ({ page, request }) => {
   await expect(loading(page)).toHaveCount(0);
   await shoot(page, "person", [phone, ...widths]);
   await page.getByRole("tab", { name: "Roles" }).click();
-  await expect(page.getByText("Level 1 coaching certificate").first()).toBeVisible();
+  await expect(page.getByRole("heading", { level: 4, name: "Staff profile" })).toBeVisible();
   await shoot(page, "person-roles", [phone, ...widths]);
   await page.getByRole("tab", { name: "External IDs & aliases" }).click();
   await expect(page.getByText("Opoka Denis Okumu").first()).toBeVisible();
