@@ -34,7 +34,7 @@ import {
 } from "../../new/person-form";
 import { personPrivateQueryKey, personQueryKey, usePerson, usePersonPrivate, type Person } from "../../people-data";
 import { useSportLabels } from "../sport-labels";
-import { editDetailsActions } from "./edit-access";
+import { editDetailsAccess } from "./edit-access";
 
 const dateFormat = new Intl.DateTimeFormat("en-GB", { dateStyle: "long", timeZone: "UTC" });
 
@@ -47,10 +47,25 @@ const dateFormat = new Intl.DateTimeFormat("en-GB", { dateStyle: "long", timeZon
 export default function EditPersonPage() {
   const { personId } = useParams<{ personId: string }>();
   const { tenant, can, unavailable } = useTenantWorkspace();
-  const allowed = editDetailsActions.every((action) => can(action));
+  const { allowed, reason } = editDetailsAccess(can, unavailable);
+  const queryClient = useQueryClient();
   const person = usePerson(personId);
   const privateRead = usePersonPrivate(personId, allowed, false);
   const countries = useCountries();
+  // After a conflict the form starts over once both reads are fresh; a background read of the person (its photo's URLs
+  // expire) never resets what is being typed (pre-review m1).
+  const [reloading, setReloading] = useState(false);
+  const reload = async () => {
+    setReloading(true);
+    try {
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: personQueryKey(tenant.tenantId, personId) }),
+        queryClient.refetchQueries({ queryKey: personPrivateQueryKey(tenant.tenantId, personId) }),
+      ]);
+    } finally {
+      setReloading(false);
+    }
+  };
 
   if (!can("person.read")) {
     return <ForbiddenView />;
@@ -61,7 +76,6 @@ export default function EditPersonPage() {
   const personHref = `${tenantPath(tenant.slug)}/people/${personId}`;
   const back = <BackLink href={personHref}>{person.data?.displayName ?? "Back"}</BackLink>;
   if (!allowed) {
-    const reason = unavailable("person.update");
     return reason ? (
       <section className="grid gap-4">
         {back}
@@ -72,9 +86,8 @@ export default function EditPersonPage() {
       <ForbiddenView />
     );
   }
-  // Read again after a conflict: the form waits for the new date of birth.
   // The countries too: a nationality select without its options would show, and save, none.
-  if (!person.data || !privateRead.data || privateRead.isFetching || !countries.data) {
+  if (!person.data || !privateRead.data || reloading || !countries.data) {
     const error = person.error ?? privateRead.error ?? countries.error;
     return (
       <section className="grid gap-4">
@@ -83,14 +96,22 @@ export default function EditPersonPage() {
       </section>
     );
   }
-  return <EditDetails key={person.data.version} person={person.data} dateOfBirth={privateRead.data.dateOfBirth} personHref={personHref} />;
+  return (
+    <EditDetails
+      person={person.data}
+      dateOfBirth={privateRead.data.dateOfBirth}
+      personHref={personHref}
+      onReload={() => void reload()}
+    />
+  );
 }
 
 function EditDetails({
   person,
   dateOfBirth,
   personHref,
-}: Readonly<{ person: Person; dateOfBirth: string | null; personHref: string }>) {
+  onReload,
+}: Readonly<{ person: Person; dateOfBirth: string | null; personHref: string; onReload: () => void }>) {
   const { tenant, client } = useTenantWorkspace();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -139,26 +160,25 @@ function EditDetails({
         return;
       }
       queryClient.setQueryData(personQueryKey(tenant.tenantId, person.id), outcome.person);
-      // The date of birth may have changed: the person page reads the private details again.
-      queryClient.removeQueries({ queryKey: personPrivateQueryKey(tenant.tenantId, person.id) });
+      // The date of birth may have changed: the person page reads the private details again (marked stale, not read
+      // here: each read is audited, pre-review m2).
+      void queryClient.invalidateQueries({
+        queryKey: personPrivateQueryKey(tenant.tenantId, person.id),
+        refetchType: "none",
+      });
       void queryClient.invalidateQueries({ queryKey: ["people", tenant.tenantId] });
       router.push(personHref);
     },
     onError: (error) => {
       applyFieldErrors(error, biodataApiFields, form.setError);
-      // A refused field is shown under it, on the form.
-      if (isApiProblem(error) && (error.problem.errors ?? []).length > 0) {
+      // A refused field of the form is shown under it, on the form (a refused reason stays on the review).
+      const fields = isApiProblem(error) ? (error.problem.errors ?? []).map((failure) => failure.field) : [];
+      if (fields.some((field) => Object.hasOwn(biodataApiFields, field))) {
         setReview(null);
       }
     },
   });
 
-  // After a conflict: the person and the date of birth are read again, and the form starts over from them (its key is
-  // the version).
-  const reload = () => {
-    void queryClient.invalidateQueries({ queryKey: personQueryKey(tenant.tenantId, person.id) });
-    void queryClient.invalidateQueries({ queryKey: personPrivateQueryKey(tenant.tenantId, person.id) });
-  };
   const countryName = (code: string) =>
     code ? (countries.data?.items.find((country) => country.code === code)?.name ?? code) : "Not recorded";
 
@@ -173,7 +193,7 @@ function EditDetails({
       </header>
 
       {isConcurrencyConflict(save.error) ? (
-        <ConflictAlert onReload={reload} />
+        <ConflictAlert onReload={onReload} />
       ) : save.isError && needsAlert(save.error, biodataApiFields) ? (
         <ProblemAlert error={save.error} />
       ) : null}

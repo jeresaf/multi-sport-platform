@@ -15,7 +15,7 @@ import { ifMatch } from "@/lib/concurrency";
 import { useTenantWorkspace } from "@/lib/tenant-workspace";
 import { tenantPath } from "@/lib/workspace";
 import { personStatusChangesQueryKey, type Person, type PersonStatus } from "../people-data";
-import { editDetailsActions } from "./edit/edit-access";
+import { editDetailsAccess } from "./edit/edit-access";
 import { useKeepPerson, useReloadPerson, type OpenedPerson } from "./profile-data";
 
 export type PersonMove = "deactivate" | "reactivate" | "archive" | "unarchive" | "mark-deceased";
@@ -124,8 +124,7 @@ export function PersonActions({ person }: Readonly<{ person: Person }>) {
   const [announcement, setAnnouncement] = useState("");
   const moved = useRef(false);
 
-  const editAllowed = editDetailsActions.every((action) => can(action));
-  const editReason = editAllowed ? null : unavailable("person.update");
+  const { allowed: editAllowed, reason: editReason } = editDetailsAccess(can, unavailable);
   const moves = personMovesFrom(person.status).filter(
     (move) => can(personMoves[move].action) || unavailable(personMoves[move].action) !== null,
   );

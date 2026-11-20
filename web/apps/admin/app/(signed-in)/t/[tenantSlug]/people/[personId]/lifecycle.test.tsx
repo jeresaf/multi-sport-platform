@@ -93,6 +93,13 @@ describe("Person header actions", () => {
     expect(moveButtons()).toEqual(["Deactivate", "Archive", "Mark as deceased"]);
   });
 
+  it("on a read-only tenant, doesn't show Edit details to a user who couldn't use it once writable", async () => {
+    open(john, readOnlyCapabilities(reads, ["person.update", "person.duplicate_check", ...moveActions]));
+    await loaded();
+    expect(screen.queryByRole("button", { name: "Edit details" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Archive" }).hasAttribute("disabled")).toBe(true);
+  });
+
   it("on a read-only tenant, shows them disabled with one reason", async () => {
     open(john, readOnlyCapabilities([...reads, "person.read_private"], ["person.update", "person.duplicate_check", ...moveActions]));
     await loaded();

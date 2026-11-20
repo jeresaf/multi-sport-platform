@@ -6,9 +6,10 @@ import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { readOnlyCapabilities } from "@/test/capabilities";
 import { john, person } from "@/test/people";
-import { personPageAnswers } from "@/test/person-page";
+import { personPageAnswers, tenantId } from "@/test/person-page";
 import { fakeApi, problem, renderWithQuery, type Answer, type Answers, type RecordedRequest } from "@/test/render";
 import TenantWorkspaceLayout from "../../../layout";
+import { personPrivateQueryKey, personQueryKey } from "../../people-data";
 import EditPersonPage from "./page";
 
 const navigation = vi.hoisted(() => ({ personId: "", push: vi.fn() }));
@@ -41,6 +42,8 @@ const candidate = {
 };
 const checked = (candidates: unknown[], checkToken = "token-1"): Answer => ({ status: 200, body: { candidates, checkToken } });
 
+let rendered: ReturnType<typeof renderWithQuery>;
+
 function open(capabilities: Parameters<typeof personPageAnswers>[1] = registrar, answers: Answers = {}, shown = john) {
   navigation.personId = shown.id;
   const requests = fakeApi({
@@ -53,7 +56,7 @@ function open(capabilities: Parameters<typeof personPageAnswers>[1] = registrar,
     }),
     ...answers,
   });
-  renderWithQuery(
+  rendered = renderWithQuery(
     <TenantWorkspaceLayout>
       <EditPersonPage />
     </TenantWorkspaceLayout>,
@@ -276,6 +279,54 @@ describe("Edit details", () => {
     save();
     await saved();
     expect(updates(requests)[0]?.body).toMatchObject({ firstName: "Jonathan", displayName: "Johnny Ssekandi" });
+  });
+
+  it("keeps what is typed when the person is read again in the background (their photo's URLs expire)", async () => {
+    let version = 7;
+    const requests = open(registrar, {
+      [`GET /api/admin/v1/people/${john.id}`]: () => ({ status: 200, body: person({ version }) }),
+    });
+    await loaded();
+    type("Weight in kg (optional)", "74");
+    version = 8;
+    await rendered.queryClient.refetchQueries({ queryKey: personQueryKey(tenantId, john.id) });
+    expect(screen.getByLabelText<HTMLInputElement>("Weight in kg (optional)").value).toBe("74");
+    save();
+    await saved();
+    // The change is based on the version the page opened on: someone else's change since is a conflict, not lost.
+    expect(updates(requests)[0]?.headers.get("If-Match")).toBe('"7"');
+  });
+
+  it("reads the private details once: a save marks them stale for the person's page without reading them here", async () => {
+    const requests = open();
+    await loaded();
+    type("First name", "Jonathan");
+    save();
+    await saved();
+    expect(sent(requests, "GET", `/api/admin/v1/people/${john.id}/private`)).toHaveLength(1);
+    expect(rendered.queryClient.getQueryState(personPrivateQueryKey(tenantId, john.id))?.isInvalidated).toBe(true);
+  });
+
+  it("stays on the review when only the reason is refused", async () => {
+    const requests = open(registrar, {
+      "POST /api/admin/v1/people/duplicate-check": checked([candidate]),
+      [`PUT /api/admin/v1/people/${john.id}`]: {
+        status: 422,
+        body: problem("VALIDATION_INVALID_REQUEST", 422, {
+          errors: [{ field: "overrideReason", code: "VALIDATION_MAX_LENGTH", message: "Too long." }],
+        }),
+      },
+    });
+    await loaded();
+    type("First name", "Jon");
+    save();
+    await screen.findByRole("heading", { name: "Check for duplicates" });
+    type("Why is Jon Ssekandi a different person?", "Cousins.");
+    fireEvent.click(screen.getByRole("button", { name: "Save the changes" }));
+    await waitFor(() => expect(updates(requests)).toHaveLength(1));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Save the changes" }).hasAttribute("disabled")).toBe(false));
+    expect(screen.getByRole("heading", { name: "Check for duplicates" })).toBeTruthy();
+    expect(screen.getByLabelText<HTMLTextAreaElement>("Why is Jon Ssekandi a different person?").value).toBe("Cousins.");
   });
 
   it("renders a long four-part name", async () => {
