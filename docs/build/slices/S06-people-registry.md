@@ -733,3 +733,7 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   form isn't reset by a background read of the person (only Reload starts it over, m1); a save marks the private read
   stale without reading it on the edit page (one audited read per visit, m2); Edit details is hidden, not disabled,
   for a user who couldn't use it on a writable tenant (`editDetailsAccess`, m3); a refused reason keeps the review (n4).
+  Review #113: Edit details reads the person and the private details afresh on opening (`refetchOnMount: "always"`,
+  the form waits for both), so a kept date of birth older than the person's version is never saved back under it (R1,
+  BLOCKER); a test that a status move sends the version its dialog opened on after a newer read (R2). Q49 (the private
+  read carrying the person's version) is the owner's.

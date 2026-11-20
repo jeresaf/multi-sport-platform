@@ -418,7 +418,9 @@ Members & roles (invite, assign roles with scopes) · Sports (enable within enti
   `/t/{slug}/people/{id}/edit`, a page of its own, in any status (an archived or deceased person can be corrected):
   Add person's names and details, filled from the person and the private read (a default display name, "first last",
   is left empty so it follows the names), without identifiers or aliases (their own tab). The page waits for the list
-  of countries, so a nationality is never shown, and saved, empty.
+  of countries, so a nationality is never shown, and saved, empty. It reads the person and the private details afresh
+  on opening (one audited read per visit), so a date of birth kept from an earlier read never goes back under a newer
+  version (review #113 R1).
 - **Save**: a change to the names, the date of birth or a nationality, as typed, runs the duplicate check with the
   person left out (`personId`, no identifiers); anything else saves at once. The people the check finds are reviewed
   as on Add person, next to "With your changes", and **Save the changes** needs a reason. A check that went stale or
