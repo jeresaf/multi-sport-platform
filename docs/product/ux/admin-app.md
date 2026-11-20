@@ -280,7 +280,8 @@ Members & roles (invite, assign roles with scopes) · Sports (enable within enti
   Minor, Age unknown), **Role** (Athlete, Staff, Official) and **Sport** (the tenant's enabled variants, shown when there
   are any). The search and filters are in the address, so going back from a person keeps them. Columns: name (with a
   **Minor** or **Age unknown** badge), born (the year), nationality, status; on a phone the three are stacked under the
-  name. No photos in the directory (its list carries no URLs; owner, T7a plan). Empty: "No people yet", or "No one
+  name. A search or filter changed elsewhere (the navigation's People entry, going back) is shown, not overwritten.
+  No photos in the directory (its list carries no URLs; owner, T7a plan). Empty: "No people yet", or "No one
   matches" with a search or filter.
 - **A person** (`/t/{slug}/people/{id}`): a back link to People; the header with the photo (the medium variant, or the
   initials in a circle), the display name in full (it wraps), the status, the Minor or Age unknown badge and "Public
@@ -292,8 +293,9 @@ Members & roles (invite, assign roles with scopes) · Sports (enable within enti
   `ADULT` or a consent exists: the scopes agreed now, then each record, active first, with its scopes, dates, status
   and any withdrawal; the guardian's name, relationship and contact and a download of the signed form only with
   `person.read_private`, otherwise "On file" for evidence), **External IDs & aliases** (identifiers with their
-  authority and validity, ended ones included; current aliases with their kind). The private read is asked only with
-  `person.read_private` and is never cached; the photo and evidence URLs are read again a minute before they expire.
+  authority and validity, ended ones included; current aliases with their kind). The private read (audited) is asked
+  only with `person.read_private`, only on Overview and Consent, and is never cached; the photo's URLs are read again a
+  minute before they expire, the evidence's only while Consent is open.
   Changes come with T7b (Add person) and T7c.
 - **Organisations** — directory, create, detail with teams and relationships.
 - **Teams** — follows the owner's flow: **create team → add staff → add players → rosters**. Detail tabs:
