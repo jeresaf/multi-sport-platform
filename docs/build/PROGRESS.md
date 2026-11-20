@@ -7,14 +7,14 @@ at the start of every review.
 
 - **Current slice:** S06 — People registry (docs/build/slices/S06-people-registry.md, written by the S05 slice review).
   S00–S05 are done
-- **Current task:** S06-T7c-2b — Edit details (D8's check with T7b's review) and the lifecycle dialogs — in review (#113)
-  (web only; plan approved 2026-11-20 with the builder's defaults)
-- **Next:** S06-T7d — Seeds, demo e2e, screenshots, slice close
-- **Blocked on:** the review of T7c-2b
+- **Current task:** S06-T7d-1 — Demo seeds: `tenancy.demo.sports` and `registry.demo.people` (backend only; plan
+  approved 2026-11-20: two PRs, birth dates relative to the seed date, the demo e2e on test tenants of its own)
+- **Next:** S06-T7d-2 — Slice demo e2e, screenshots, slice close
+- **Blocked on:** nothing
 
 ## Next up
 
-1. S06-T7d — Seeds, demo e2e, screenshots, slice close
+1. S06-T7d-2 — Slice demo e2e (Coucal Sports Club, Francolin Schools), screenshots, slice close
 
 ## Log
 
@@ -600,8 +600,6 @@ tasks; two stale triggers moved. Each item names where it gets done.
   indexes, so each check filters the tenant's people, and it reads at most 200 matching rows before classifying
   (identifier matches, the same name key, the same date of birth, then the closest name or alias). Fine at pilot size; revisit with imports (Data Exchange) or the
   first tenant above a few ten thousand people. (Later)
-- `tenancy.demo.sports` (S05 D19: "the first slice whose demo data needs a sport"): S06's demo people have athlete
-  profiles. (S06-T7d, D23)
 
 **From S05** (each names its trigger)
 - The next version of the `KNOCKOUT` or `ROUND_ROBIN` format (published files never change): the `seeding` parameter's

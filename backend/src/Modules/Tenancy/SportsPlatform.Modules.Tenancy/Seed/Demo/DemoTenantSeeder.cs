@@ -160,6 +160,14 @@ public sealed class DemoTenantSeeder : ISeeder
         }
     }
 
+    internal static void Succeed(Result result, string what)
+    {
+        if (result.IsFailure)
+        {
+            throw new InvalidOperationException($"Seeding demo tenant {what} failed: {result.Error.Code} {result.Error.Message}");
+        }
+    }
+
     internal static void Succeed<T>(Result<T> result, string what)
     {
         if (result.IsFailure)
