@@ -64,29 +64,29 @@ function inRange(value: string, min: number, max: number, decimals: number): boo
 /** The form's checks; `today` is the tenant's date, or empty until it is known. */
 export const personSchema = (today: string) =>
   z.object({
-  firstName: required(limits.name, "first name"),
-  middleName: text(limits.name, "the middle name"),
-  lastName: required(limits.name, "last name"),
-  otherNames: text(limits.otherNames, "other names"),
-  displayName: text(limits.displayName, "the display name"),
-  gender: z.enum(["", "FEMALE", "MALE"]),
-  dateOfBirth: z.string(),
-  nationality: z.string(),
-  secondaryNationality: z.string(),
-  heightCm: z
-    .string()
-    .refine(
-      (value) => !value.trim() || inRange(value, limits.height.min, limits.height.max, 0),
-      `Enter whole centimetres from ${limits.height.min} to ${limits.height.max}.`,
-    ),
-  weightKg: z
-    .string()
-    .refine(
-      (value) => !value.trim() || inRange(value, limits.weight.min, limits.weight.max, 1),
-      `Enter kilograms from ${limits.weight.min} to ${limits.weight.max}, with at most one decimal.`,
-    ),
-  externalIdentifiers: z.array(identifier(today)).max(limits.identifiers),
-});
+    firstName: required(limits.name, "first name"),
+    middleName: text(limits.name, "the middle name"),
+    lastName: required(limits.name, "last name"),
+    otherNames: text(limits.otherNames, "other names"),
+    displayName: text(limits.displayName, "the display name"),
+    gender: z.enum(["", "FEMALE", "MALE"]),
+    dateOfBirth: z.string(),
+    nationality: z.string(),
+    secondaryNationality: z.string(),
+    heightCm: z
+      .string()
+      .refine(
+        (value) => !value.trim() || inRange(value, limits.height.min, limits.height.max, 0),
+        `Enter whole centimetres from ${limits.height.min} to ${limits.height.max}.`,
+      ),
+    weightKg: z
+      .string()
+      .refine(
+        (value) => !value.trim() || inRange(value, limits.weight.min, limits.weight.max, 1),
+        `Enter kilograms from ${limits.weight.min} to ${limits.weight.max}, with at most one decimal.`,
+      ),
+    externalIdentifiers: z.array(identifier(today)).max(limits.identifiers),
+  });
 export type Values = z.infer<ReturnType<typeof personSchema>>;
 
 export const emptyIdentifier = { authority: "", value: "", validFrom: "" };

@@ -5,6 +5,7 @@ import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { readOnlyCapabilities, tenantCapabilities } from "@/test/capabilities";
 import { denis, john, listItem, person } from "@/test/people";
+import { todayIn } from "@/lib/tenant-settings";
 import { fakeApi, problem, renderWithQuery, type Answer, type Answers, type RecordedRequest } from "@/test/render";
 import TenantWorkspaceLayout from "../../layout";
 import AddPersonPage from "./page";
@@ -197,6 +198,25 @@ describe("add person: no one matches", () => {
     expect(screen.getByText("Enter kilograms from 10 to 300, with at most one decimal.")).toBeTruthy();
     expect(screen.getByText(/Use 2 to 40 capital letters/)).toBeTruthy();
     expect(screen.getByText("Enter the identifier.")).toBeTruthy();
+    expect(checks(requests)).toEqual([]);
+  });
+
+  it("doesn't let an identifier start later than the tenant's today (Q46)", async () => {
+    const today = todayIn("Africa/Kampala");
+    const day = new Date(`${today}T00:00:00Z`);
+    day.setUTCDate(day.getUTCDate() + 1);
+    const requests = open(actions, {
+      "GET /api/admin/v1/tenant/settings": { status: 200, body: { timeZone: "Africa/Kampala", version: "1" } },
+    });
+    await submitDetails(() => {
+      fireEvent.click(screen.getByRole("button", { name: "Add an identifier" }));
+      type("Issued by (code)", "KMSA_REG_NO");
+      type("Identifier", "KM-2026-0201");
+      type("Valid from (optional)", day.toISOString().slice(0, 10));
+    });
+
+    expect(await screen.findByText("An identifier can't start later than today.")).toBeTruthy();
+    expect(screen.getByLabelText("Valid from (optional)").getAttribute("max")).toBe(today);
     expect(checks(requests)).toEqual([]);
   });
 });
