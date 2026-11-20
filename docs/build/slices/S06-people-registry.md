@@ -410,7 +410,7 @@ Acceptance:
 - [x] The duplicate review shows evidence, never another person's full birth date (Vitest).
 - [x] A user without `person.read_private` sees the birth year, not the date, and the consent scopes without the
       guardian's details or the evidence (Vitest).
-- [ ] Missing photos, long names (four name parts) and a person with no profile render at phone width (Vitest,
+- [x] Missing photos, long names (four name parts) and a person with no profile render at phone width (Vitest,
       screenshots).
 - [ ] The slice demo runs end to end against the real API (Playwright).
 
@@ -717,3 +717,16 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   `identifier-dialog`, `alias-dialog`. Review #112: a refused file (or its storage) is cleared, a conflict or server
   failure keeps it, in the photo and both consent dialogs (R4); the quota's refusal shows in the alert (R1); owner,
   Q1: the size accepted; Q2: Bulbul.
+- **T7c-2b:** Edit details and the status moves. Owner decisions (plan, 2026-11-20, the builder's defaults): Edit details
+  needs `person.update`, `person.read_private` and `person.duplicate_check` (the `PUT` replaces the whole biodata, the
+  date of birth included); the check runs when the names, the date of birth or a nationality differ as typed (a few
+  edits the API would take without a check, case or accents, are checked anyway); the actions are buttons in the
+  header; one PR. As built: no backend change; `/t/{slug}/people/{id}/edit`, in any status; Add person's check-and-save
+  (`people/checked-save.ts`), fields (`new/biodata-fields.tsx`) and review (`mode="edit"`, "With your changes", **Save
+  the changes**) are shared; `biodataSchema`, `fromPerson`, `changesIdentity`, `toUpdateCheckRequest` and
+  `toUpdateRequest` in `person-form.ts`; a default display name ("first last") starts empty so it follows the names
+  (otherwise a renamed person kept the old one); the page waits for the countries (a select without its options showed,
+  and would have saved, no nationality); a conflict's Reload reads the person again and starts the form over (keyed on
+  the version). The header's moves (`person-actions.tsx`) follow D9; `ActionDialog` takes `withReason="optional"` for
+  deactivate and reactivate. e2e `admin-people-edit` on Barbet Sports Club (added to pilot-customer.md's test tenants);
+  screenshots `edit-person`, `edit-person-review`, `person-status-dialog`.

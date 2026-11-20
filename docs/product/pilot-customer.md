@@ -133,8 +133,8 @@ Club** (`pelican-football`), **Mango Grove Sports Club** (`mango-grove`), **Hero
 Rugby Club** (`ibis-rugby`), **Lark Basketball Club** (`lark-basketball`), **Egret Hockey Club** (`egret-hockey`),
 **Musizi Athletics Club** (`musizi-athletics`), **Cassia Community Games** (`cassia-games`), **Bee-eater Sports
 Club** (`bee-eater-sports`), **Crane Netball Club** (`crane-netball`), **Hammerkop Sports Club**
-(`hammerkop-sports`), **Wagtail Junior Sports Club** (`wagtail-juniors`) and **Bulbul Sports Club**
-(`bulbul-sports`). They are never seeded; e2e runs make each slug and name run-unique.
+(`hammerkop-sports`), **Wagtail Junior Sports Club** (`wagtail-juniors`), **Bulbul Sports Club**
+(`bulbul-sports`) and **Barbet Sports Club** (`barbet-sports`). They are never seeded; e2e runs make each slug and name run-unique.
 
 ## Privacy notes for this persona
 
