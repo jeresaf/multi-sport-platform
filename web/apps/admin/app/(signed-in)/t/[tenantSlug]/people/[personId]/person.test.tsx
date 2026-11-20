@@ -160,6 +160,16 @@ describe("person page", () => {
     expect(privateRequests(consentRequests)).toHaveLength(1);
   });
 
+  it("asks the audited private read only for Overview and Consent, the tabs that show it", async () => {
+    for (const tab of ["roles", "identifiers"]) {
+      const requests = open(brenda, registrar, {}, `tab=${tab}`);
+      // The private read would be asked with the person's, before the page shows a tab.
+      expect(await screen.findByRole("tab", { selected: true })).toBeTruthy();
+      expect(privateRequests(requests)).toEqual([]);
+      cleanup();
+    }
+  });
+
   it("names positions and roles in the definition's words, with every profile's status", async () => {
     open(denis, viewer, {}, "tab=roles");
 

@@ -42,7 +42,9 @@ export default function PersonPage() {
   const router = useRouter();
   const { tenant, can } = useTenantWorkspace();
   const person = usePerson(personId);
-  const privateRead = usePersonPrivate(personId);
+  // The tab asked for; one the page doesn't offer (Consent for an adult without consent) opens Overview.
+  const asked = searchParams.get("tab");
+  const privateRead = usePersonPrivate(personId, asked !== "roles" && asked !== "identifiers", asked === "consent");
 
   if (!can("person.read")) {
     return <ForbiddenView />;

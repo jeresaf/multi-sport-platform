@@ -6,7 +6,7 @@ import { Label } from "@msp/ui/components/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@msp/ui/components/table";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { EmptyState } from "@/components/empty-state";
 import { Loading } from "@/components/loading";
 import { AgeBadge } from "@/components/people/person-badges";
@@ -42,10 +42,15 @@ export default function PeoplePage() {
   const sports = useTenantSports();
   const countries = useCountries();
   const [search, setSearch] = useState(filters.q ?? "");
+  // The search the page last put in the address: a different one came from elsewhere (the navigation's People entry,
+  // going back), so the box shows it rather than writing its own text back.
+  const written = useRef(filters.q);
 
   const change = (next: PeopleFilters) => {
+    const merged = { ...filters, ...next };
+    written.current = merged.q;
     const params = new URLSearchParams();
-    for (const [key, value] of Object.entries({ ...filters, ...next })) {
+    for (const [key, value] of Object.entries(merged)) {
       if (value) {
         params.set(key, value);
       }
@@ -54,7 +59,15 @@ export default function PeoplePage() {
     router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
   };
 
-  // The search follows the typing once it pauses; the filters change at once.
+  useEffect(() => {
+    if (filters.q !== written.current) {
+      written.current = filters.q;
+      setSearch(filters.q ?? "");
+    }
+  }, [filters.q]);
+
+  // The search follows the typing once it pauses; the filters change at once. A filter changed during the pause
+  // starts the wait again, so the search is written with the filters as they are then.
   const typed = search.trim();
   useEffect(() => {
     if (typed === (filters.q ?? "")) {
@@ -62,9 +75,9 @@ export default function PeoplePage() {
     }
     const timer = setTimeout(() => change({ q: typed || undefined }), searchDelay);
     return () => clearTimeout(timer);
-    // `change` is rebuilt each render from the same filters; the typed text is what starts the wait.
+    // `change` is rebuilt each render from these same filters.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [typed, filters.q]);
+  }, [typed, filters]);
 
   if (!can("person.read")) {
     return <ForbiddenView />;

@@ -1,6 +1,7 @@
 // Registry → People (S06 T7): the directory, searched and filtered through the address, paged by cursor, with the
 // status and Minor or Age unknown badges; only for whoever holds `person.read`.
 import { act, cleanup, fireEvent, screen, within } from "@testing-library/react";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { tenantCapabilities } from "@/test/capabilities";
 import { brenda, denis, john, listItem, nakato } from "@/test/people";
@@ -31,7 +32,7 @@ const me: Answer = {
 };
 
 const reads = ["person.read", "tenant.sport.read"];
-const page = (items: unknown[], nextCursor: string | null = null) => ({
+const listPage = (items: unknown[], nextCursor: string | null = null) => ({
   status: 200,
   body: { items, page: { nextCursor, hasMore: nextCursor !== null } },
 });
@@ -49,7 +50,7 @@ function open(actions = reads, answers: Answers = {}) {
   const requests = fakeApi({
     "GET /api/account/v1/me": me,
     "GET /api/admin/v1/me/capabilities": { status: 200, body: tenantCapabilities(actions) },
-    "GET /api/public/v1/reference/countries": page([{ code: "UG", alpha3Code: "UGA", numericCode: "800", name: "Uganda" }]),
+    "GET /api/public/v1/reference/countries": listPage([{ code: "UG", alpha3Code: "UGA", numericCode: "800", name: "Uganda" }]),
     "GET /api/admin/v1/tenant/sports": {
       status: 200,
       body: {
@@ -57,16 +58,23 @@ function open(actions = reads, answers: Answers = {}) {
         sportQuota: null,
       },
     },
-    "GET /api/admin/v1/people": page([john, brenda, nakato].map(listItem)),
+    "GET /api/admin/v1/people": listPage([john, brenda, nakato].map(listItem)),
     ...answers,
   });
-  renderWithQuery(
-    <TenantWorkspaceLayout>
-      <PeoplePage />
-    </TenantWorkspaceLayout>,
-  );
+  rendered = renderWithQuery(page());
   return requests;
 }
+
+const page = () => (
+  <TenantWorkspaceLayout>
+    <PeoplePage />
+  </TenantWorkspaceLayout>
+);
+
+// The last render, so a test can render again after the address changes (the mocked `useSearchParams` reads it).
+let rendered: ReturnType<typeof renderWithQuery>;
+const rerender = () =>
+  rendered.rerender(<QueryClientProvider client={rendered.queryClient}>{page()}</QueryClientProvider>);
 
 const peopleRequests = (requests: ReturnType<typeof open>) =>
   requests.filter((request) => request.path === "/api/admin/v1/people");
@@ -148,6 +156,36 @@ describe("people directory", () => {
     expect(navigation.replace).toHaveBeenLastCalledWith("/t/kmsa/people?q=Ssekandi+John", { scroll: false });
   });
 
+  it("writes the search with a filter changed during the pause", async () => {
+    open();
+    await screen.findByRole("link", { name: "John Ssekandi" });
+
+    vi.useFakeTimers();
+    fireEvent.change(screen.getByLabelText("Search"), { target: { value: "Akello" } });
+    act(() => vi.advanceTimersByTime(200));
+    fireEvent.change(screen.getByLabelText("Age"), { target: { value: "MINOR" } });
+    // The filter is in the address at once; the mocked address doesn't change, so the search still carries it.
+    navigation.search = "ageStatus=MINOR";
+    rerender();
+    navigation.replace.mockClear();
+    act(() => vi.advanceTimersByTime(300));
+    expect(navigation.replace).toHaveBeenLastCalledWith("/t/kmsa/people?q=Akello&ageStatus=MINOR", { scroll: false });
+  });
+
+  it("shows a search the address loses elsewhere (the navigation's entry) and doesn't write it back", async () => {
+    navigation.search = "q=Akello";
+    open();
+    await screen.findByRole("link", { name: "John Ssekandi" });
+    expect((screen.getByLabelText("Search") as HTMLInputElement).value).toBe("Akello");
+
+    vi.useFakeTimers();
+    navigation.search = "";
+    rerender();
+    act(() => vi.advanceTimersByTime(1000));
+    expect((screen.getByLabelText("Search") as HTMLInputElement).value).toBe("");
+    expect(navigation.replace).not.toHaveBeenCalled();
+  });
+
   it("offers the tenant's enabled sports only", async () => {
     open();
     await screen.findByRole("link", { name: "John Ssekandi" });
@@ -159,7 +197,7 @@ describe("people directory", () => {
   it("shows more with the next page's cursor", async () => {
     const requests = open(reads, {
       "GET /api/admin/v1/people": (request) =>
-        request.search.includes("cursor=next-page") ? page([listItem(denis)]) : page([john, brenda].map(listItem), "next-page"),
+        request.search.includes("cursor=next-page") ? listPage([listItem(denis)]) : listPage([john, brenda].map(listItem), "next-page"),
     });
 
     fireEvent.click(await screen.findByRole("button", { name: "Show more" }));
@@ -170,12 +208,12 @@ describe("people directory", () => {
   });
 
   it("says when there is no one yet, or no one matches", async () => {
-    open(reads, { "GET /api/admin/v1/people": page([]) });
+    open(reads, { "GET /api/admin/v1/people": listPage([]) });
     expect(await screen.findByText("No people yet")).toBeTruthy();
     cleanup();
 
     navigation.search = "q=Nobody";
-    open(reads, { "GET /api/admin/v1/people": page([]) });
+    open(reads, { "GET /api/admin/v1/people": listPage([]) });
     expect(await screen.findByText("No one matches")).toBeTruthy();
   });
 

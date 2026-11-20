@@ -51,6 +51,7 @@ export function OverviewTab({ person, privateDetails }: Readonly<{ person: Perso
       <ViewerSection title="Status history">
         {history.isPending ? <Loading /> : null}
         {history.isError ? <ProblemAlert error={history.error} /> : null}
+        {history.isSuccess && changes.length === 0 ? <p className="text-muted-foreground">No changes recorded.</p> : null}
         {changes.length > 0 ? (
           <Table>
             <TableHeader>

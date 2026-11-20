@@ -81,17 +81,21 @@ export function usePerson(personId: string) {
   });
 }
 
-/** The date of birth, the guardians and the evidence: only with `person.read_private`, each read audited. */
-export function usePersonPrivate(personId: string) {
+/**
+ * The date of birth, the guardians and the evidence: only with `person.read_private`, and each read is audited, so it
+ * is asked only for a tab that shows them (`shown`: Overview and Consent) and the evidence's URLs are kept fresh only
+ * while Consent is open (`consentOpen`).
+ */
+export function usePersonPrivate(personId: string, shown: boolean, consentOpen: boolean) {
   const { tenant, client, can } = useTenantWorkspace();
   return useQuery({
     queryKey: ["person-private", tenant.tenantId, personId],
     queryFn: () => call(client.GET("/api/admin/v1/people/{personId}/private", { params: { path: { personId } } })),
-    enabled: can("person.read_private"),
+    enabled: can("person.read_private") && shown,
     gcTime: 0,
     refetchOnWindowFocus: false,
     refetchInterval: (query) =>
-      untilExpiry(query.state.data?.consents.map((consent) => consent.evidence?.expiresAt) ?? []),
+      consentOpen ? untilExpiry(query.state.data?.consents.map((consent) => consent.evidence?.expiresAt) ?? []) : false,
   });
 }
 
