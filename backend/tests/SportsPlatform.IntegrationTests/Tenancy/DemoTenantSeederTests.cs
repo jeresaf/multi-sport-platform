@@ -160,7 +160,9 @@ public sealed class DemoTenantSeederTests(PostgresFixture fixture) : DatabaseTes
         var processor = App.Services.GetRequiredService<OutboxProcessor>();
         await processor.ProcessOnceAsync(Ct);
         await processor.ProcessOnceAsync(Ct);
-        return [.. (await AuditTestData.EntriesAsync(App.Services, Ct)).Where(e => e.ActionCode.StartsWith("tenant.", StringComparison.Ordinal))];
+        // tenancy.demo.sports' enablements (tenant.sport.*) are DemoSportSeederTests' to check.
+        return [.. (await AuditTestData.EntriesAsync(App.Services, Ct)).Where(e => e.ActionCode.StartsWith("tenant.", StringComparison.Ordinal)
+            && !e.ActionCode.StartsWith("tenant.sport.", StringComparison.Ordinal))];
     }
 
     private sealed class RerunDemoTenantSeeder : ISeeder
