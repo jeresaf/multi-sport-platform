@@ -29,6 +29,9 @@ const reasonSchema = z.object({
     .min(1, "Give a reason: it is kept in the audit trail.")
     .max(reasonMaxLength, `Keep the reason under ${reasonMaxLength} characters.`),
 });
+const optionalReasonSchema = z.object({
+  reason: z.string().trim().max(reasonMaxLength, `Keep the reason under ${reasonMaxLength} characters.`),
+});
 const noReasonSchema = z.object({ reason: z.string() });
 type ReasonValues = { reason: string };
 const fields = { reason: "reason" } as const;
@@ -41,8 +44,11 @@ type ActionDialogProps = {
   confirmLabel: string;
   /** A change that takes something away (suspend, remove, revoke) is shown in the danger colour. */
   destructive?: boolean;
-  /** The action is audited with a reason (`REQUIRED_WITH_REASON`): the dialog asks for one (admin-app.md). */
-  withReason?: boolean;
+  /**
+   * The action is audited with a reason (`REQUIRED_WITH_REASON`): the dialog asks for one (admin-app.md). "optional":
+   * the dialog offers the box, and an empty one sends no reason.
+   */
+  withReason?: boolean | "optional";
   pending: boolean;
   error: unknown;
   onConfirm: (reason: string | undefined) => void;
@@ -74,7 +80,9 @@ export function ActionDialog({
   reasonHint = "Kept in the audit trail with your name. Don't include personal details.",
 }: Readonly<ActionDialogProps>) {
   const form = useForm<ReasonValues>({
-    resolver: zodResolver(withReason ? reasonSchema : noReasonSchema),
+    resolver: zodResolver(
+      withReason === "optional" ? optionalReasonSchema : withReason ? reasonSchema : noReasonSchema,
+    ),
     defaultValues: { reason: "" },
   });
   const { reset, setError } = form;
@@ -97,7 +105,7 @@ export function ActionDialog({
         <form
           className="grid gap-4"
           noValidate
-          onSubmit={form.handleSubmit(({ reason }) => onConfirm(withReason ? reason.trim() : undefined))}
+          onSubmit={form.handleSubmit(({ reason }) => onConfirm(withReason ? reason.trim() || undefined : undefined))}
         >
           <DialogHeader>
             <DialogTitle>{title}</DialogTitle>
@@ -110,7 +118,7 @@ export function ActionDialog({
           ) : null}
           {withReason ? (
             <div className="grid gap-2">
-              <Label htmlFor="action-reason">Reason</Label>
+              <Label htmlFor="action-reason">{withReason === "optional" ? "Reason (optional)" : "Reason"}</Label>
               <Textarea
                 id="action-reason"
                 maxLength={reasonMaxLength}

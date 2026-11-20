@@ -101,9 +101,9 @@ describe("Edit details", () => {
     await saved();
     expect(checks(requests)).toEqual([]);
     const [update] = updates(requests);
-    expect(update.headers.get("If-Match")).toBe('"7"');
+    expect(update?.headers.get("If-Match")).toBe('"7"');
     // The whole biodata: a field left out would be cleared, the date of birth included.
-    expect(update.body).toEqual({
+    expect(update?.body).toEqual({
       firstName: "John",
       middleName: null,
       lastName: "Ssekandi",
@@ -139,7 +139,7 @@ describe("Edit details", () => {
         personId: john.id,
       },
     ]);
-    expect(updates(requests)[0].body).toMatchObject({
+    expect(updates(requests)[0]?.body).toMatchObject({
       firstName: "Jonathan",
       displayName: null,
       checkToken: "token-1",
@@ -181,7 +181,7 @@ describe("Edit details", () => {
     type("Why is Jon Ssekandi a different person?", "Cousins; checked with the club.");
     fireEvent.click(screen.getByRole("button", { name: "Save the changes" }));
     await saved();
-    expect(updates(requests)[0].body).toMatchObject({
+    expect(updates(requests)[0]?.body).toMatchObject({
       firstName: "Jon",
       checkToken: "token-1",
       overrideReason: "Cousins; checked with the club.",
@@ -265,7 +265,7 @@ describe("Edit details", () => {
       expect(screen.getByLabelText<HTMLInputElement>("Display name (optional)").value).toBe("J. Ssekandi"),
     );
     expect(screen.queryByText("This record changed since you opened it")).toBeNull();
-    expect(updates(requests)[0].headers.get("If-Match")).toBe('"7"');
+    expect(updates(requests)[0]?.headers.get("If-Match")).toBe('"7"');
   });
 
   it("keeps a display name that isn't the default", async () => {
@@ -275,7 +275,7 @@ describe("Edit details", () => {
     type("First name", "Jonathan");
     save();
     await saved();
-    expect(updates(requests)[0].body).toMatchObject({ firstName: "Jonathan", displayName: "Johnny Ssekandi" });
+    expect(updates(requests)[0]?.body).toMatchObject({ firstName: "Jonathan", displayName: "Johnny Ssekandi" });
   });
 
   it("renders a long four-part name", async () => {
