@@ -295,6 +295,7 @@ public sealed class PersonPublicProfileTests(PostgresFixture fixture) : Database
         await OkAsync(await registrar.PostAsync(EnablePath(brenda), null, Ct));
         await OkAsync(await registrar.PostAsync(EnablePath(brenda), null, Ct)); // a repeat changes nothing but is audited
         await OkAsync(await registrar.PostAsync(DisablePath(brenda), null, Ct));
+        await OkAsync(await registrar.PostAsync(DisablePath(brenda), null, Ct)); // so is a repeated disable
 
         await AccountTestData.DeliverOutboxAsync(App.Services, Ct);
         var entries = (await AuditTestData.EntriesAsync(App.Services, Ct))
@@ -307,7 +308,27 @@ public sealed class PersonPublicProfileTests(PostgresFixture fixture) : Database
             ("person.public_profile.enable", AuditOutcome.Success, "Person", brenda),
             ("person.public_profile.enable", AuditOutcome.Success, "Person", brenda),
             ("person.public_profile.disable", AuditOutcome.Success, "Person", brenda),
+            ("person.public_profile.disable", AuditOutcome.Success, "Person", brenda),
         ], ignoreOrder: true);
+    }
+
+    // D21: neither action is available while the tenant is read-only (review of #107, R1).
+    [Fact]
+    public async Task A_read_only_tenant_changes_no_public_profile()
+    {
+        App.Authorization.UseIdentityRoles();
+        var kmsa = await TenantTestData.SaveTenantAsync(
+            App.Services, "kmsa", TenantStatus.Active, publicEnabled: true, withDomain: true, withSubscription: false, Ct);
+        await TenantTestData.SavePeriodAsync(App.Services, kmsa, new DateOnly(2025, 1, 1), new DateOnly(2025, 12, 31), Ct, cancelReason: "Pilot paused");
+        var john = await SavePersonAsync(App.Services, kmsa, JohnSsekandi, Ct);
+        var member = await CreateMemberAsync(App.Services, kmsa, "brian.ssemakula@kmsa.example", Ct, TenantWide(IdentityRoles.Registrar));
+        using var registrar = App.ClientFor(member.UserId, kmsa);
+
+        using var enable = await registrar.PostAsync(EnablePath(john.Id), null, Ct);
+        using var disable = await registrar.PostAsync(DisablePath(john.Id), null, Ct);
+
+        await enable.ShouldBeProblemAsync(HttpStatusCode.Forbidden, "TENANT_READ_ONLY");
+        await disable.ShouldBeProblemAsync(HttpStatusCode.Forbidden, "TENANT_READ_ONLY");
     }
 
     // D21: the public profile is changed by the owner, the admin and the registrar.
