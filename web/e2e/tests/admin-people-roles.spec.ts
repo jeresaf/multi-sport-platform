@@ -43,7 +43,7 @@ test("a registrar adds, changes and retires role profiles", async ({ page, reque
   // An official profile with a licence.
   await page.getByRole("button", { name: "Add official profile" }).click();
   const officialDialog = page.getByRole("dialog");
-  await officialDialog.getByLabel("Role").selectOption(sport.officialRole);
+  await officialDialog.getByLabel("Role", { exact: true }).selectOption(sport.officialRole);
   await officialDialog.getByLabel("Licence number (optional)").fill("HK-REF-0031");
   await officialDialog.getByLabel("Licence valid until (optional)").fill("2027-06-30");
   await officialDialog.getByRole("button", { name: "Add profile" }).click();

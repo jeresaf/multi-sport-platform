@@ -280,8 +280,8 @@ describe("roles", () => {
     const moves = (name: string) =>
       within(card(name))
         .getAllByRole("button")
-        .map((button) => button.textContent)
-        .filter((text) => !text?.startsWith("Edit"));
+        .map((button) => button.getAttribute("aria-label"))
+        .filter((name) => !name?.startsWith("Edit"));
     expect(moves("Ringball sevens")).toEqual([
       "Make inactive: Ringball sevens athlete profile",
       "Retire: Ringball sevens athlete profile",

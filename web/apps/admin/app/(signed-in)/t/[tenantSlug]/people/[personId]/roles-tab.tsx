@@ -155,9 +155,16 @@ export function RolesTab({ person }: Readonly<{ person: Person }>) {
       unavailable(action) !== null ? { disabled: true, "aria-describedby": unavailableId } : {};
     if (offered(actions.update)) {
       buttons.push(
-        <Button key="edit" variant="outline" onClick={() => setDialog(edit)} {...disabled(actions.update)}>
+        // The name says which profile; it starts with the visible word (WCAG 2.5.3).
+        <Button
+          key="edit"
+          variant="outline"
+          aria-label={`Edit: ${title}`}
+          onClick={() => setDialog(edit)}
+          {...disabled(actions.update)}
+        >
           <Pencil aria-hidden="true" />
-          Edit<span className="sr-only">: {title}</span>
+          Edit
         </Button>,
       );
     }
@@ -167,11 +174,11 @@ export function RolesTab({ person }: Readonly<{ person: Person }>) {
           <Button
             key={target}
             variant="outline"
+            aria-label={`${moveLabels[target]}: ${title}`}
             onClick={() => setDialog({ type: "status", kind, profileId, title, target })}
             {...disabled(actions.status)}
           >
             {moveLabels[target]}
-            <span className="sr-only">: {title}</span>
           </Button>,
         );
       }
