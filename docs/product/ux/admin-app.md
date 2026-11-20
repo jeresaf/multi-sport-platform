@@ -410,6 +410,29 @@ Members & roles (invite, assign roles with scopes) · Sports (enable within enti
   offers **Reload**; each dialog sends the version it opened on.
 - Add person's identifier rows cap "valid from" at the tenant's today too.
 
+#### As built (S06-T7c-2b, Edit details and the status)
+
+- The header gains **Edit details** for whoever holds `person.update`, `person.read_private` and
+  `person.duplicate_check` (owner, T7c-2b plan: the update replaces the whole biodata, the date of birth included,
+  which only the private read gives; every role with `person.update` holds the other two). It opens
+  `/t/{slug}/people/{id}/edit`, a page of its own, in any status (an archived or deceased person can be corrected):
+  Add person's names and details, filled from the person and the private read (a default display name, "first last",
+  is left empty so it follows the names), without identifiers or aliases (their own tab). The page waits for the list
+  of countries, so a nationality is never shown, and saved, empty. It reads the person and the private details afresh
+  on opening (one audited read per visit), so a date of birth kept from an earlier read never goes back under a newer
+  version (review #113 R1); if either read fails, the error shows and the form doesn't open (R3).
+- **Save**: a change to the names, the date of birth or a nationality, as typed, runs the duplicate check with the
+  person left out (`personId`, no identifiers); anything else saves at once. The people the check finds are reviewed
+  as on Add person, next to "With your changes", and **Save the changes** needs a reason. A check that went stale or
+  expired runs again once. A refused field shows under it; a concurrency conflict offers **Reload**, which reads the
+  person again and starts the form over. After the save the person's page opens and reads the private details again.
+- The header's status moves, each with its action and only from the statuses D9 allows: **Deactivate** (active) and
+  **Reactivate** (inactive), with an optional reason; **Archive** (active or inactive) and **Unarchive** (archived),
+  with a reason; **Mark as deceased** (active or inactive), with a reason, in the danger colour, the dialog saying it is
+  final. A deceased person is offered none. Each dialog sends the version it opened on; after a move it closes, the
+  move is announced, the status history is read again and focus goes to the status. On a read-only tenant Edit
+  details and the moves are disabled with one reason.
+
 ### Competitions
 - **Competition list** and **competition detail** (Overview · Editions · History).
 - **New competition wizard** — short, because operating happens in the edition dashboard:

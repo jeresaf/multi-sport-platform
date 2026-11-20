@@ -13,7 +13,6 @@ import { FormField } from "@/components/form-field";
 import { Loading } from "@/components/loading";
 import { AgeBadge } from "@/components/people/person-badges";
 import { ProblemAlert } from "@/components/problem-alert";
-import { SelectField } from "@/components/select-field";
 import { StatusBadge } from "@/components/status-badge";
 import { ForbiddenView } from "@/components/status-page";
 import { UnavailableNote } from "@/components/unavailable-note";
@@ -29,9 +28,10 @@ import {
   personQueryKey,
   useNameMatches,
   type CheckDuplicatesResponse,
-  type DuplicateCandidate,
   type Person,
 } from "../people-data";
+import { checkedSave, type Attempt, type Review } from "../checked-save";
+import { DetailFields, NameFields } from "./biodata-fields";
 import { DuplicateReview } from "./duplicate-review";
 import {
   apiFields,
@@ -47,9 +47,6 @@ import {
 } from "./person-form";
 
 type Step = "name" | "details" | "review";
-type Review = { values: Values; checkToken: string; candidates: DuplicateCandidate[]; notice: string | null };
-type Attempt = { values: Values; reviewed: Review | null; reason: string | null };
-type Outcome = { kind: "created"; person: Person } | { kind: "review"; review: Review };
 
 const steps: Readonly<Record<Step, { number: number; title: string }>> = {
   name: { number: 1, title: "Who are you adding?" },
@@ -59,21 +56,6 @@ const steps: Readonly<Record<Step, { number: number; title: string }>> = {
 
 /** How long the name search waits after the last key, as the directory's search does. */
 const searchDelay = 300;
-
-const staleNotice =
-  "Someone added a person who may match while you were reviewing, so the check ran again. Review the list again.";
-const checkedAgainNotice = "The check had to run again before the save. Review the list.";
-const staleBeforeReviewNotice =
-  "Someone added a person who may match just before the save, so the check ran again. Review the list.";
-const expiredNotice =
-  "The check had to run again (it expires after 30 minutes) and the list has changed. Review it again.";
-
-// The same people with the same confidence: a stronger match than the one reviewed is shown again (pre-review m3).
-const sameCandidates = (a: readonly DuplicateCandidate[], b: readonly DuplicateCandidate[]) =>
-  a.length === b.length &&
-  a.every((candidate) =>
-    b.some((other) => other.personId === candidate.personId && other.confidence === candidate.confidence),
-  );
 
 const dateFormat = new Intl.DateTimeFormat("en-GB", { dateStyle: "long", timeZone: "UTC" });
 
@@ -88,7 +70,7 @@ export default function AddPersonPage() {
   const queryClient = useQueryClient();
   const countries = useCountries();
   const [step, setStep] = useState<Step>("name");
-  const [review, setReview] = useState<Review | null>(null);
+  const [review, setReview] = useState<Review<Values> | null>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   const firstRender = useRef(true);
 
@@ -124,50 +106,11 @@ export default function AddPersonPage() {
 
   const check = (values: Values): Promise<CheckDuplicatesResponse> =>
     call(client.POST("/api/admin/v1/people/duplicate-check", { body: toCheckRequest(values) }));
-  const create = (values: Values, checkToken: string, reason: string | null): Promise<Person> =>
+  const create = (values: Values, checkToken: string | null, reason: string | null): Promise<Person> =>
     call(client.POST("/api/admin/v1/people", { body: toCreateRequest(values, checkToken, reason) }));
 
   const save = useMutation({
-    mutationFn: async ({ values, reviewed, reason }: Attempt): Promise<Outcome> => {
-      let checkToken: string;
-      if (reviewed) {
-        checkToken = reviewed.checkToken;
-      } else {
-        const checked = await check(values);
-        if (checked.candidates.length > 0) {
-          return { kind: "review", review: { values, ...checked, notice: null } };
-        }
-        checkToken = checked.checkToken;
-      }
-
-      try {
-        return { kind: "created", person: await create(values, checkToken, reason) };
-      } catch (error) {
-        const stale = isApiProblem(error, "PERSON_DUPLICATE_CHECK_STALE");
-        if (!stale && !isApiProblem(error, "PERSON_DUPLICATE_CHECK_REQUIRED")) {
-          throw error;
-        }
-        // Checked again once: with no one to review, or (an expired token) the same people already reviewed with a
-        // reason, the save goes ahead; otherwise the registrar reviews the new list.
-        const again = await check(values);
-        const confirmed = !stale && reason !== null && sameCandidates(again.candidates, reviewed?.candidates ?? []);
-        if (again.candidates.length === 0 || confirmed) {
-          return {
-            kind: "created",
-            person: await create(values, again.checkToken, again.candidates.length > 0 ? reason : null),
-          };
-        }
-        // The notice says "again" only to a registrar who already saw a review (review #109 R5).
-        const notice = reviewed
-          ? stale
-            ? staleNotice
-            : expiredNotice
-          : stale
-            ? staleBeforeReviewNotice
-            : checkedAgainNotice;
-        return { kind: "review", review: { values, ...again, notice } };
-      }
-    },
+    mutationFn: (attempt: Attempt<Values>) => checkedSave(attempt, { check, save: create }),
     onSuccess: (outcome) => {
       if (outcome.kind === "review") {
         setReview(outcome.review);
@@ -264,37 +207,7 @@ export default function AddPersonPage() {
           <p className="text-muted-foreground">
             Start with their name: if they are already registered, open their record instead of adding them again.
           </p>
-          <div className="grid items-start gap-4 tablet:grid-cols-2">
-            <FormField
-              id="firstName"
-              label="First name"
-              autoComplete="off"
-              error={errors.firstName?.message}
-              {...form.register("firstName")}
-            />
-            <FormField
-              id="lastName"
-              label="Last name"
-              autoComplete="off"
-              error={errors.lastName?.message}
-              {...form.register("lastName")}
-            />
-            <FormField
-              id="middleName"
-              label="Middle name (optional)"
-              autoComplete="off"
-              error={errors.middleName?.message}
-              {...form.register("middleName")}
-            />
-            <FormField
-              id="otherNames"
-              label="Other names (optional)"
-              hint="A clan name, say."
-              autoComplete="off"
-              error={errors.otherNames?.message}
-              {...form.register("otherNames")}
-            />
-          </div>
+          <NameFields form={form} />
 
           {can("person.read") ? (
             <section className="grid gap-3" aria-labelledby="matches-heading">
@@ -359,69 +272,11 @@ export default function AddPersonPage() {
           {countries.isError ? (
             <ProblemAlert error={countries.error} title="The list of countries didn't load" />
           ) : null}
-          <div className="grid items-start gap-4 tablet:grid-cols-2">
-            <FormField
-              id="displayName"
-              label="Display name (optional)"
-              hint={`How they are named on screens and team sheets. Without one: ${typed}.`}
-              autoComplete="off"
-              error={errors.displayName?.message}
-              {...form.register("displayName")}
-            />
-            <SelectField id="gender" label="Gender" error={errors.gender?.message} {...form.register("gender")}>
-              <option value="">Not recorded</option>
-              <option value="FEMALE">Female</option>
-              <option value="MALE">Male</option>
-            </SelectField>
-            <FormField
-              id="dateOfBirth"
-              label="Date of birth (optional)"
-              type="date"
-              hint="Under 18s are kept private until a guardian agrees."
-              error={errors.dateOfBirth?.message}
-              {...form.register("dateOfBirth")}
-            />
-            <SelectField
-              id="nationality"
-              label="Nationality"
-              error={errors.nationality?.message}
-              {...form.register("nationality")}
-            >
-              <option value="">Not recorded</option>
-              {(countries.data?.items ?? []).map((country) => (
-                <option key={country.code} value={country.code}>
-                  {country.name}
-                </option>
-              ))}
-            </SelectField>
-            <SelectField
-              id="secondaryNationality"
-              label="Second nationality"
-              error={errors.secondaryNationality?.message}
-              {...form.register("secondaryNationality")}
-            >
-              <option value="">None</option>
-              {(countries.data?.items ?? []).map((country) => (
-                <option key={country.code} value={country.code}>
-                  {country.name}
-                </option>
-              ))}
-            </SelectField>
-            <FormField
-              id="heightCm"
-              label="Height in cm (optional)"
-              inputMode="numeric"
-              error={errors.heightCm?.message}
-              {...form.register("heightCm")}
-            />
-            <FormField
-              id="weightKg"
-              label="Weight in kg (optional)"
-              inputMode="decimal"
-              error={errors.weightKg?.message}
-              {...form.register("weightKg")}
-            />
-          </div>
+          <DetailFields
+            form={form}
+            countries={countries.data?.items ?? []}
+            displayNameHint={`How they are named on screens and team sheets. Without one: ${typed}.`}
+          />
 
           <fieldset className="grid gap-3">
             <legend className="text-lg font-semibold">External identifiers</legend>

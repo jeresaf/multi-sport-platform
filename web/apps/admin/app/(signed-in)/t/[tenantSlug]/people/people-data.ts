@@ -71,12 +71,14 @@ export function personQueryKey(tenantId: string, personId: string) {
   return ["person", tenantId, personId] as const;
 }
 
-export function usePerson(personId: string) {
+/** `fresh`: read again on mount even when cached (Edit details starts from a fresh read, review #113 R1). */
+export function usePerson(personId: string, fresh = false) {
   const { tenant, client, can } = useTenantWorkspace();
   return useQuery({
     queryKey: personQueryKey(tenant.tenantId, personId),
     queryFn: () => call(client.GET("/api/admin/v1/people/{personId}", { params: { path: { personId } } })),
     refetchInterval: (query) => untilExpiry([query.state.data?.photo?.expiresAt]),
+    refetchOnMount: fresh ? "always" : true,
     enabled: can("person.read"),
   });
 }
@@ -86,10 +88,14 @@ export function usePerson(personId: string) {
  * is asked only for a tab that shows them (`shown`: Overview and Consent) and the evidence's URLs are kept fresh only
  * while Consent is open (`consentOpen`).
  */
-export function usePersonPrivate(personId: string, shown: boolean, consentOpen: boolean) {
+export function personPrivateQueryKey(tenantId: string, personId: string) {
+  return ["person-private", tenantId, personId] as const;
+}
+
+export function usePersonPrivate(personId: string, shown: boolean, consentOpen: boolean, fresh = false) {
   const { tenant, client, can } = useTenantWorkspace();
   return useQuery({
-    queryKey: ["person-private", tenant.tenantId, personId],
+    queryKey: personPrivateQueryKey(tenant.tenantId, personId),
     queryFn: () => call(client.GET("/api/admin/v1/people/{personId}/private", { params: { path: { personId } } })),
     enabled: can("person.read_private") && shown,
     // Read once per visit: going to Roles and back keeps it (a re-enabled stale query would be read, and audited,
@@ -97,15 +103,21 @@ export function usePersonPrivate(personId: string, shown: boolean, consentOpen: 
     staleTime: Infinity,
     gcTime: 0,
     refetchOnWindowFocus: false,
+    // Edit details reads it once more on opening: a kept read may be older than the person's version (review #113 R1).
+    refetchOnMount: fresh ? "always" : true,
     refetchInterval: (query) =>
       consentOpen ? untilExpiry(query.state.data?.consents.map((consent) => consent.evidence?.expiresAt) ?? []) : false,
   });
 }
 
+export function personStatusChangesQueryKey(tenantId: string, personId: string) {
+  return ["person-status-changes", tenantId, personId] as const;
+}
+
 export function usePersonStatusChanges(personId: string) {
   const { tenant, client, can } = useTenantWorkspace();
   return useQuery({
-    queryKey: ["person-status-changes", tenant.tenantId, personId],
+    queryKey: personStatusChangesQueryKey(tenant.tenantId, personId),
     queryFn: () =>
       call(client.GET("/api/admin/v1/people/{personId}/status-changes", { params: { path: { personId } } })),
     enabled: can("person.read"),
@@ -116,6 +128,7 @@ export type CheckDuplicatesRequest = Schemas["CheckDuplicatesRequest"];
 export type CheckDuplicatesResponse = Schemas["CheckDuplicatesResponse"];
 export type DuplicateCandidate = Schemas["DuplicateCandidateResponse"];
 export type CreatePersonRequest = Schemas["CreatePersonRequest"];
+export type UpdatePersonRequest = Schemas["UpdatePersonRequest"];
 
 /** How many existing people Add person's first step lists while a name is typed. */
 export const nameMatchLimit = 10;

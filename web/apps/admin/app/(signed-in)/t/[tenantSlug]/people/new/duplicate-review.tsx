@@ -36,14 +36,20 @@ function Column({ title, children }: Readonly<{ title: ReactNode; children: Reac
   );
 }
 
+const modes = {
+  add: { column: "New person", intro: "", proceed: "Add as a new person", busy: "Adding…" },
+  edit: { column: "With your changes", intro: ", with your changes", proceed: "Save the changes", busy: "Saving…" },
+} as const;
+
 /**
- * The duplicate review (S06 D5, D6; admin-app.md): each person the check found, next to the new person, with how sure
+ * The duplicate review (S06 D5, D6, D8; admin-app.md): each person the check found, next to the new person, with how sure
  * the check is and why. A candidate shows only what `person.read` may see: the birth year, never a date of birth. A
  * shared identifier blocks the save (open the existing person or change the identifier); otherwise the registrar opens
  * an existing person or adds the new one with a reason, which is kept with a "not the same person" decision per
- * candidate.
+ * candidate. Edit details shows it for the person as changed (`mode` "edit").
  */
 export function DuplicateReview({
+  mode = "add",
   newPerson,
   candidates,
   notice,
@@ -54,6 +60,8 @@ export function DuplicateReview({
   onProceed,
   onChangeDetails,
 }: Readonly<{
+  /** Add person's review, or Edit details' (the person with the changes). */
+  mode?: keyof typeof modes;
   newPerson: NewPersonSummary;
   candidates: readonly DuplicateCandidate[];
   /** Why the review is shown again (the check ran again before the save). */
@@ -72,6 +80,7 @@ export function DuplicateReview({
   const reasonBox = useRef<HTMLTextAreaElement>(null);
   const blocked = candidates.filter((candidate) => candidate.confidence === "EXACT_IDENTIFIER");
   const count = candidates.length === 1 ? "1 person" : `${candidates.length} people`;
+  const words = modes[mode];
 
   const proceed = () => {
     const trimmed = reason.trim();
@@ -97,7 +106,8 @@ export function DuplicateReview({
           Is this someone you already have?
         </h2>
         <p className="text-muted-foreground">
-          {count} may be {newPerson.displayName}. Open the existing record if it is the same person.
+          {count} may be {newPerson.displayName}
+          {words.intro}. Open the existing record if it is the same person.
         </p>
       </header>
       {notice ? (
@@ -116,7 +126,7 @@ export function DuplicateReview({
               </Badge>
             </div>
             <div className="grid gap-3 tablet:grid-cols-2">
-              <Column title="New person">
+              <Column title={words.column}>
                 <Fact term="Name">{newPerson.displayName}</Fact>
                 <Fact term="Born">{newPerson.born}</Fact>
                 <Fact term="Nationality">{newPerson.nationality}</Fact>
@@ -198,7 +208,7 @@ export function DuplicateReview({
           </div>
           <div className="flex flex-wrap gap-3">
             <Button type="submit" disabled={busy}>
-              {busy ? "Adding…" : "Add as a new person"}
+              {busy ? words.busy : words.proceed}
             </Button>
             <Button type="button" variant="outline" onClick={onChangeDetails}>
               Change the details

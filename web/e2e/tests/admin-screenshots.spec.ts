@@ -306,7 +306,7 @@ test("screenshots of the people screens", async ({ page, request }) => {
     displayName: "Nakato Irene Nalubega Namaganda",
     gender: "FEMALE",
   });
-  await createPerson(request, member, { firstName: "John", lastName: "Ssekandi", gender: "MALE", dateOfBirth: "1998-08-21" });
+  const john = await createPerson(request, member, { firstName: "John", lastName: "Ssekandi", gender: "MALE", dateOfBirth: "1998-08-21" });
 
   await signIn(page, owner.email, owner.password);
   await expect(page.getByRole("heading", { level: 1, name: tenant.name })).toBeVisible();
@@ -415,4 +415,23 @@ test("screenshots of the people screens", async ({ page, request }) => {
   await page.getByRole("button", { name: "Add alias" }).click();
   await expect(page.getByRole("dialog").getByLabel("Kind")).toBeVisible();
   await shoot(page, "alias-dialog", [phone, ...widths]);
+  await page.getByRole("dialog").getByRole("button", { name: "Cancel" }).click();
+
+  // Edit details and the status moves (T7c-2b): the long name's form, a change that the check finds Denis for, and
+  // the archive dialog's reason.
+  await page.goto(`/t/${tenant.slug}/people/${nakato.id}/edit`);
+  await expect(page.getByLabel("Other names (optional)")).toHaveValue("Nalubega");
+  await expect(loading(page)).toHaveCount(0);
+  await shoot(page, "edit-person", [phone, ...widths]);
+  await page.goto(`/t/${tenant.slug}/people/${john.id}/edit`);
+  await page.getByLabel("First name").fill("Denis");
+  await page.getByLabel("Last name").fill("Opoka");
+  await page.getByLabel("Date of birth (optional)").fill("1991-05-02");
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(page.getByRole("list", { name: "People who may match" }).getByText("Same date of birth")).toBeVisible();
+  await shoot(page, "edit-person-review", [phone, ...widths]);
+  await page.goto(`/t/${tenant.slug}/people/${nakato.id}`);
+  await page.getByRole("button", { name: "Archive", exact: true }).click();
+  await expect(page.getByRole("dialog").getByLabel("Reason")).toBeVisible();
+  await shoot(page, "person-status-dialog", [phone, ...widths]);
 });

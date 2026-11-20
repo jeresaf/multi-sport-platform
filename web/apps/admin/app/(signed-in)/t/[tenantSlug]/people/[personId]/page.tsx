@@ -17,6 +17,7 @@ import { usePerson, usePersonPrivate, type Person, type PersonPrivate } from "..
 import { ConsentTab, showsConsent } from "./consent-tab";
 import { IdentifiersTab } from "./identifiers-tab";
 import { OverviewTab } from "./overview-tab";
+import { PersonActions, personStatusId } from "./person-actions";
 import { PhotoControl } from "./photo-control";
 import { PublicProfileSwitch } from "./public-profile-switch";
 import { RolesTab } from "./roles-tab";
@@ -35,7 +36,7 @@ type PersonTab = (typeof personTabs)[number]["value"];
 /**
  * Registry → People → a person (S06 T7, admin-app.md): the header (photo, display name, status, Minor or Age unknown),
  * then the tabs Overview, Roles, Consent (only when it applies) and External IDs & aliases. The tab is in the address
- * (`?tab=`). The header changes the photo and turns the public profile on and off; Roles, Consent and External IDs &
+ * (`?tab=`). The header opens Edit details, moves the status, changes the photo and turns the public profile on and off; Roles, Consent and External IDs &
  * aliases carry their changes (T7c).
  */
 export default function PersonPage() {
@@ -86,11 +87,14 @@ export default function PersonPage() {
           <div className="grid min-w-0 gap-2">
             <h1 className="text-2xl font-semibold break-words">{data.displayName}</h1>
             <div className="flex flex-wrap items-center gap-2">
-              <StatusBadge status={data.status} />
+              <span id={personStatusId} tabIndex={-1} className="rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <StatusBadge status={data.status} />
+              </span>
               <AgeBadge ageStatus={data.ageStatus} />
             </div>
           </div>
         </div>
+        <PersonActions person={data} />
         <PhotoControl person={data} />
         <PublicProfileSwitch person={data} />
       </header>
