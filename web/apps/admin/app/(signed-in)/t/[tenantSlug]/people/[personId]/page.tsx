@@ -17,6 +17,7 @@ import { usePerson, usePersonPrivate, type Person, type PersonPrivate } from "..
 import { ConsentTab, showsConsent } from "./consent-tab";
 import { IdentifiersTab } from "./identifiers-tab";
 import { OverviewTab } from "./overview-tab";
+import { PublicProfileSwitch } from "./public-profile-switch";
 import { RolesTab } from "./roles-tab";
 
 type TabProps = { person: Person; privateDetails: PersonPrivate | undefined };
@@ -33,7 +34,7 @@ type PersonTab = (typeof personTabs)[number]["value"];
 /**
  * Registry → People → a person (S06 T7, admin-app.md): the header (photo, display name, status, Minor or Age unknown),
  * then the tabs Overview, Roles, Consent (only when it applies) and External IDs & aliases. The tab is in the address
- * (`?tab=`). Read-only until T7c's changes.
+ * (`?tab=`). The header turns the public profile on and off; Roles and Consent carry their changes (T7c).
  */
 export default function PersonPage() {
   const { personId } = useParams<{ personId: string }>();
@@ -85,12 +86,10 @@ export default function PersonPage() {
             <div className="flex flex-wrap items-center gap-2">
               <StatusBadge status={data.status} />
               <AgeBadge ageStatus={data.ageStatus} />
-              <span className="text-sm text-muted-foreground">
-                Public profile {data.publicProfileEnabled ? "on" : "off"}
-              </span>
             </div>
           </div>
         </div>
+        <PublicProfileSwitch person={data} />
       </header>
 
       {/* Without the private read the page still shows what `person.read` does: the birth year, no guardians. */}

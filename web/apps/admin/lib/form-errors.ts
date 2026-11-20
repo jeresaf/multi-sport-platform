@@ -27,14 +27,23 @@ export function applyFieldErrors<T extends FieldValues>(
   for (const failure of failures(error)) {
     const field = Object.hasOwn(fields, failure.field) ? fields[failure.field] : undefined;
     if (field) {
-      // The problem's own code carries its detail (e.g. the password rules); a finer code has its catalogue message.
-      const message =
-        failure.code === problem.code && problem.detail
-          ? problem.detail
-          : (errorMessage(failure.code) ?? invalidValueMessage);
-      setError(field, { type: "server", message });
+      setError(field, { type: "server", message: failureMessage(problem, failure.code) });
     }
   }
+}
+
+// The problem's own code carries its detail (e.g. the password rules); a finer code has its catalogue message.
+function failureMessage(problem: { code: string; detail?: string | null }, code: string): string {
+  return code === problem.code && problem.detail ? problem.detail : (errorMessage(code) ?? invalidValueMessage);
+}
+
+/** The API's refusal of one field kept outside a form library (a file input), or undefined. */
+export function fieldError(error: unknown, field: string): string | undefined {
+  if (!isApiProblem(error)) {
+    return undefined;
+  }
+  const failure = failures(error).find((item) => item.field === field);
+  return failure ? failureMessage(error.problem, failure.code) : undefined;
 }
 
 /** False when every failure is shown under one of the form's fields, so the alert would only repeat them. */
