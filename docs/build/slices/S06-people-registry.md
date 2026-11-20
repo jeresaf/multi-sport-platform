@@ -672,3 +672,18 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   `PERSON_DUPLICATE_CHECK_REQUIRED` run the check again once (an expired check with the same people and confidence
   already reviewed saves with the same reason; anything else is reviewed again); refused fields open their step. Screenshots
   `add-person-name`, `-details`, `-review` in `admin-screenshots`.
+- **T7c-1a:** the Roles tab's changes. Owner decisions (plan, 2026-11-20): T7c-1 split in two (T7c-1a roles, T7c-1b
+  consent, evidence upload and the public-profile switch, which goes with consent because D15 depends on it). As built:
+  no backend change; Add athlete, staff and official profile, Edit and the status moves on the Roles tab; the dialogs
+  read the tenant's enabled sports (`tenant.sport.read`) and their definitions ahead, only for a user who may add a
+  profile; a position or role a profile holds that the latest definition dropped is shown marked "(no longer in the
+  sport's definition)" and the page asks for another before saving (the `PUT`s refuse it, T4a, T4b); duplicate sport
+  and role rows are refused on the page; a sport since disabled is offered only on the row that holds it; on an
+  archived or deceased person held capabilities show by name (sport and role locked, a refusal shown under the row)
+  and none can be added, no move goes back to `ACTIVE`. Pre-review: those two cases (MAJOR), per-row sport and role
+  choices, the tenant's sports not read without a profile action, the no-sports note referenced by the disabled
+  buttons, the five other positions counted without the primary. `CommandDialog` moved
+  from the platform's subscription dialogs to `components/` and offers Reload on a concurrency conflict. The person
+  page's tests share their API answers (`test/person-page.tsx`). e2e `admin-people-roles` on Hammerkop Sports Club
+  (added to pilot-customer.md's test tenants); screenshots `athlete-profile-dialog`, `official-profile-dialog`,
+  `staff-profile-dialog`, `profile-status-dialog`.

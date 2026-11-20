@@ -271,6 +271,12 @@ Members & roles (invite, assign roles with scopes) · Sports (enable within enti
   continue → biodata → duplicate review (side-by-side, evidence, override reason if proceeding) → save.
   Detail tabs: Overview · Roles (athlete/staff/official profiles) · Teams & history · Competitions · Matches ·
   Statistics · Consent (minors) · External IDs · Audit.
+- **Organisations** — directory, create, detail with teams and relationships.
+- **Teams** — follows the owner's flow: **create team → add staff → add players → rosters**. Detail tabs:
+  Overview · Players (memberships, add existing person or quick-create with duplicate check) · Staff ·
+  Competitions & Rosters (entries and rosters per edition; build roster from current players) · Fixtures ·
+  Results · Statistics · History.
+- **Venues** — directory, create, detail.
 
 #### As built (S06-T7a, read-only)
 
@@ -296,7 +302,7 @@ Members & roles (invite, assign roles with scopes) · Sports (enable within enti
   authority and validity, ended ones included; current aliases with their kind). The private read (audited) is asked
   only with `person.read_private`, only on Overview and Consent, once per visit, and isn't kept after it; the photo's URLs are read again a
   minute before they expire, the evidence's only while Consent is open.
-  Changes come with T7c.
+  Changes come with T7c (Roles: T7c-1a).
 
 #### As built (S06-T7b, Add person)
 
@@ -318,12 +324,39 @@ Members & roles (invite, assign roles with scopes) · Sports (enable within enti
   expired one (30 minutes) runs again and saves at once if it finds the same people with the same confidence,
   otherwise it is reviewed again. Empty identifier rows are dropped before the check.
   A refused field opens its step with the error under it; an identifier taken meanwhile goes back to the details.
-- **Organisations** — directory, create, detail with teams and relationships.
-- **Teams** — follows the owner's flow: **create team → add staff → add players → rosters**. Detail tabs:
-  Overview · Players (memberships, add existing person or quick-create with duplicate check) · Staff ·
-  Competitions & Rosters (entries and rosters per edition; build roster from current players) · Fixtures ·
-  Results · Statistics · History.
-- **Venues** — directory, create, detail.
+
+#### As built (S06-T7c-1a, Roles)
+
+- **Roles** gains its changes, each shown only with its action (`athlete_profile.*`, `staff_profile.*`,
+  `official_profile.*`: owner, administrator, registrar) and disabled with the reason on a read-only tenant (one note
+  above the profiles). **Add athlete profile** is offered while an enabled sport has no open profile of the person's;
+  **Add staff profile** and **Add official profile** while the person has no open one of that kind ("open": not
+  archived). Without an enabled sport they are disabled with "No sport is enabled for your organisation yet…" (and
+  an error if the tenant's sports can't be read). An
+  archived or deceased person is offered none ("… no new role can be added").
+- **Athlete profile** dialog: the sport (enabled ones only; only when adding, it never changes), primary position,
+  other positions (checkboxes, up to five, never the primary one), dominant side, public name (empty: the display
+  name). Positions are the sport's latest definition's, named in its words. One the profile holds that the latest
+  definition dropped is shown "(no longer in the sport's definition)" and must be replaced before saving: the API
+  refuses it (T4a), so the page says so first.
+- **Staff** and **official profile** dialogs: 1–10 roles, each a sport and a role of its definition; a staff role adds a
+  qualification, an official one a grade, a licence number and the licence's last day. The same sport and role twice is
+  refused on the page. The roles are replaced as a whole. A role held on a sport since disabled may stay (that sport is
+  offered only on its own row); a role the latest definition dropped is marked and must be replaced or removed. On an
+  archived or deceased person the roles held are shown by name and can be removed or changed in their details, none
+  added; a refusal of one shows under it.
+- Each open profile has **Edit** and its status moves, each with a reason (`ActionDialog`): **Make inactive**,
+  **Retire**, **Archive** from active; **Make active**, **Retire**, **Archive** from inactive; **Make active**,
+  **Archive** from retired; none for an archived profile (final). An archived or deceased person's profiles are never
+  made active again. After a change the dialog closes, the change is announced, and focus goes to the profile's heading.
+- A refused field is shown under it (`otherPositions[i]`, `capabilities[i].role`); a concurrency conflict offers
+  **Reload** in the dialog (the shared `CommandDialog`). A change is based on the person as the dialog opened: a
+  later read while it is open (the photo's URLs are read again before they expire) doesn't move its `If-Match`, so
+  someone else's change in between is a conflict, not overwritten (review #110 R1).
+- Until a sport's definition is read, the positions and roles a profile holds are still shown; if it can't be read
+  the dialog says so. The Add buttons appear together once the tenant's sports are read. An archived or deceased
+  person's only role, if its sport's definition dropped it, can't be corrected: the dialog says to retire or archive
+  the profile instead (review #110 R2; owner, Q1: no backend change for it).
 
 ### Competitions
 - **Competition list** and **competition detail** (Overview · Editions · History).
