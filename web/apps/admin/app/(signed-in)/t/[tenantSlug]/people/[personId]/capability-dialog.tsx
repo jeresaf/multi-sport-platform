@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@msp/ui/components/button";
 import { Plus, Trash2 } from "lucide-react";
 import { useFieldArray, useForm, useWatch, type FieldPath } from "react-hook-form";
+import { useState } from "react";
 import { z } from "zod";
 import { CommandDialog } from "@/components/command-dialog";
 import { FormField } from "@/components/form-field";
@@ -21,6 +22,7 @@ import {
   useReloadPerson,
   useSaveCapabilities,
   type CapabilityKind,
+  type OpenedPerson,
 } from "./profile-data";
 import type { SportLabels } from "./sport-labels";
 
@@ -139,7 +141,9 @@ export function CapabilityDialog({
   const rows = useFieldArray({ control: form.control, name: "capabilities" });
   const values = useWatch({ control: form.control, name: "capabilities" });
   const reload = useReloadPerson(person.id);
-  const save = useSaveCapabilities(person, kind, profile?.id);
+  // The version the dialog opened on (R1): a newer read while it is open must not become the change's basis.
+  const [opened] = useState<OpenedPerson>(() => ({ id: person.id, version: person.version }));
+  const save = useSaveCapabilities(opened, kind, profile?.id);
   const errors = form.formState.errors;
   const words = kindWords[kind];
 
@@ -159,14 +163,29 @@ export function CapabilityDialog({
     return role !== "" && roles !== undefined && !roles.some((item) => item.code === role);
   };
   // The role held stays visible under its own sport, marked, so it can be replaced.
+  // Until the definition is read (or if it can't be), the held role is still a choice, so the row shows it (#110 R3).
   const roleOptions = (variant: string, row: Row) => {
-    const roles = definitionRoles(variant) ?? [];
-    return variant === row.heldVariant && isDropped(variant, row.heldRole)
+    const roles = definitionRoles(variant);
+    if (variant !== row.heldVariant || row.heldRole === "") {
+      return roles ?? [];
+    }
+    if (roles === undefined) {
+      return [{ code: row.heldRole, label: codeLabel(row.heldRole) }];
+    }
+    return isDropped(variant, row.heldRole)
       ? [...roles, { code: row.heldRole, label: `${codeLabel(row.heldRole)} (no longer in the sport's definition)` }]
       : roles;
   };
   const roleLabel = (variant: string, role: string) =>
     kind === "STAFF" ? labels.staffRole(variant, role) : labels.officialRole(variant, role);
+
+  // On a closed person a held role can't be changed, only removed; the profile's only role can't be removed (#110 R2).
+  const droppedAdvice = (row: Row) =>
+    !(closed && row.held)
+      ? "choose another role or remove it"
+      : rows.fields.length > 1
+        ? "remove it"
+        : "this profile can't be corrected; retire or archive it instead";
 
   const submit = form.handleSubmit(({ capabilities }) => {
     const dropped = capabilities
@@ -175,7 +194,7 @@ export function CapabilityDialog({
     for (const { row, index } of dropped) {
       form.setError(`capabilities.${index}.role`, {
         type: "dropped",
-        message: `${codeLabel(row.role)} is no longer in the sport's definition: ${closed && row.held ? "remove it" : "choose another role or remove it"}.`,
+        message: `${codeLabel(row.role)} is no longer in the sport's definition: ${droppedAdvice(row)}.`,
       });
     }
     if (dropped.length > 0) {
@@ -220,6 +239,11 @@ export function CapabilityDialog({
         onOpenChange(false);
       }}
     >
+      {values.some((row) => labels.definitionFailed(row.variant)) ? (
+        <p role="alert" className="text-sm text-destructive">
+          A sport&apos;s roles couldn&apos;t be read. Close this and try again.
+        </p>
+      ) : null}
       <ol className="grid gap-4" aria-label="Roles">
         {rows.fields.map((row, index) => {
           const current = values[index] ?? row;
@@ -247,7 +271,8 @@ export function CapabilityDialog({
                 </Button>
               </div>
               {lockedError ? (
-                <p id={lockedErrorId} className="text-sm text-destructive">
+                // Announced when it appears: on a profile's only role nothing focusable points to it (#110 R2).
+                <p id={lockedErrorId} role="alert" className="text-sm text-destructive">
                   {lockedError}
                 </p>
               ) : null}

@@ -1,15 +1,15 @@
 // Registry → People → a person → Roles (S06 D12, T7c): adding, changing and moving role profiles. Each control shows
 // only with its action; a profile's sport, positions and roles come from the tenant's enabled sports and the test
 // definition (no sport word is ours); every change sends the person's version and shows the person the API answers.
-import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readOnlyCapabilities } from "@/test/capabilities";
 import { denis, john, person } from "@/test/people";
-import { personPageAnswers } from "@/test/person-page";
+import { personPageAnswers, tenantId } from "@/test/person-page";
 import { ringball } from "@/test/sport-definitions";
 import { fakeApi, problem, renderWithQuery, type Answer, type Answers, type RecordedRequest } from "@/test/render";
 import TenantWorkspaceLayout from "../../layout";
-import type { Person } from "../people-data";
+import { personQueryKey, type Person } from "../people-data";
 import PersonPage from "./page";
 
 const navigation = vi.hoisted(() => ({ personId: "" }));
@@ -66,6 +66,8 @@ const ivan = person({
   officialProfiles: denis.officialProfiles,
 });
 
+let rendered: ReturnType<typeof renderWithQuery>;
+
 function open(shown: Person, capabilities: Parameters<typeof personPageAnswers>[1] = registrar, answers: Answers = {}) {
   navigation.personId = shown.id;
   const requests = fakeApi({
@@ -73,7 +75,7 @@ function open(shown: Person, capabilities: Parameters<typeof personPageAnswers>[
     "GET /api/admin/v1/tenant/sports": enabledSports,
     ...answers,
   });
-  renderWithQuery(
+  rendered = renderWithQuery(
     <TenantWorkspaceLayout>
       <PersonPage />
     </TenantWorkspaceLayout>,
@@ -364,7 +366,11 @@ describe("roles", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: "Edit: Official profile" }));
     fireEvent.click(within(dialog()).getByRole("button", { name: "Save profile" }));
-    const message = await within(dialog()).findByText("Ring judge is no longer in the sport's definition: remove it.");
+    // The profile's only role can't be removed, so the page says what can be done instead.
+    const message = await within(dialog()).findByText(
+      "Ring judge is no longer in the sport's definition: this profile can't be corrected; retire or archive it instead.",
+    );
+    expect(message.getAttribute("role")).toBe("alert");
     expect(within(dialog()).getByRole("button", { name: "Remove role 1" }).getAttribute("aria-describedby")).toBe(message.id);
     expect(requests.some((request) => request.method === "PUT")).toBe(false);
     cleanup();
@@ -395,6 +401,38 @@ describe("roles", () => {
     const names = (select: HTMLElement) => within(select).getAllByRole("option").map((option) => option.textContent);
     expect(names(held!)).toEqual(["Ringball sevens", "Ringball fives", "Ringball tens"]);
     expect(names(added!)).toEqual(["Ringball sevens", "Ringball fives"]);
+  });
+
+  it("sends the version the dialog opened on, though the person is read again while it is open", async () => {
+    const official = denis.officialProfiles[0]!;
+    const requests = open(denis, registrar, {
+      [`PUT /api/admin/v1/people/${denis.id}/official-profiles/${official.id}`]: { status: 200, body: { ...denis, version: 9 } },
+    });
+
+    fireEvent.click(await screen.findByRole("button", { name: "Edit: Official profile" }));
+    // Someone else's change arrives with a later read (the photo's URLs are read again before they expire).
+    await act(async () => {
+      rendered.queryClient.setQueryData(personQueryKey(tenantId, denis.id), { ...denis, version: 8 });
+      // The cache tells its observers on the next tick.
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    fireEvent.click(within(dialog()).getByRole("button", { name: "Save profile" }));
+
+    const request = await sent(requests, "PUT", `/api/admin/v1/people/${denis.id}/official-profiles/${official.id}`);
+    expect(request.headers.get("If-Match")).toBe('"7"');
+  });
+
+  it("keeps a held position as a choice when the sport's definition can't be read, and says so", async () => {
+    open(denis, registrar, {
+      "GET /api/admin/v1/sports/RINGBALL_SEVENS": { status: 500, body: problem("PLATFORM_UNEXPECTED_ERROR", 500) },
+    });
+
+    fireEvent.click(await screen.findByRole("button", { name: "Edit: Ringball sevens athlete profile" }));
+    expect(await within(dialog()).findByText("The sport's positions couldn't be read. Close this and try again.")).toBeTruthy();
+    const primary = within(dialog()).getByLabelText("Primary position (optional)") as HTMLSelectElement;
+    expect(primary.value).toBe("WING_RINGER");
+    expect(within(primary).getByRole("option", { name: "Wing ringer" })).toBeTruthy();
+    expect(within(dialog()).getByRole("checkbox", { name: "Hoop guard", checked: true })).toBeTruthy();
   });
 
   it("on a read-only tenant, shows the controls disabled with the reason", async () => {

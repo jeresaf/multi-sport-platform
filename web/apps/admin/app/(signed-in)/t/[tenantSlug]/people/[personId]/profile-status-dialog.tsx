@@ -2,9 +2,10 @@
 
 // `*_profile.status.change` (S06 D12, T4a): a profile's move to another status, always with a reason (audit
 // `REQUIRED_WITH_REASON`). Archiving is final.
+import { useState } from "react";
 import { ActionDialog } from "@/components/action-dialog";
 import type { Person, ProfileKind } from "../people-data";
-import { useChangeProfileStatus, useReloadPerson, type ProfileStatus } from "./profile-data";
+import { useChangeProfileStatus, useReloadPerson, type OpenedPerson, type ProfileStatus } from "./profile-data";
 
 /** The button's and the dialog's words for a move to each status. */
 export const moveLabels: Readonly<Record<ProfileStatus, string>> = {
@@ -48,7 +49,9 @@ export function ProfileStatusDialog({
   onSaved: (announcement: string, saved: Person) => void;
   onCloseAutoFocus?: (event: Event) => void;
 }>) {
-  const change = useChangeProfileStatus(person, kind, profileId);
+  // The version the dialog opened on (R1): a newer read while it is open must not become the change's basis.
+  const [opened] = useState<OpenedPerson>(() => ({ id: person.id, version: person.version }));
+  const change = useChangeProfileStatus(opened, kind, profileId);
   const reload = useReloadPerson(person.id);
   return (
     <ActionDialog

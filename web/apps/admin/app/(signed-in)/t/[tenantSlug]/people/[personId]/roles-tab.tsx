@@ -129,7 +129,8 @@ export function RolesTab({ person }: Readonly<{ person: Person }>) {
       shown: !officialProfiles.some(isOpen),
     },
   ];
-  const shownAdds = closed ? [] : adds.filter((add) => add.shown && offered(add.action));
+  // Shown once the tenant's sports are read, all together, so the row doesn't shift as they arrive (#110 R4).
+  const shownAdds = closed || !tenantSports.isSuccess ? [] : adds.filter((add) => add.shown && offered(add.action));
 
   const saved = (message: string, answer: Person, profileId?: string) => {
     focusAfter.current = profileId ?? profileIds(answer).find((id) => !profileIds(person).includes(id)) ?? null;

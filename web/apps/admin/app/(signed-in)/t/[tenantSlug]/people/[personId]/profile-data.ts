@@ -1,7 +1,9 @@
 "use client";
 
 // Changing a person's role profiles (S06 D12): profiles are children of the person, so every change sends the
-// person's version (`If-Match`) and answers the person, which replaces the one the page shows.
+// person's version (`If-Match`) and answers the person, which replaces the one the page shows. The version is the one
+// the dialog opened on (`OpenedPerson`), not the latest read: the page reads the person again while a dialog is open
+// (the photo's URLs expire), and sending that newer version would overwrite a change the user never saw (#110 R1).
 import type { components } from "@msp/api-client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { call } from "@/lib/api";
@@ -55,6 +57,9 @@ export const profileActions = {
   },
 } as const satisfies Record<ProfileKind, { create: string; update: string; status: string }>;
 
+/** The person as a dialog first showed them: what a change is based on. */
+export type OpenedPerson = Pick<Person, "id" | "version">;
+
 /** Keeps the person a change answered, and marks the directory stale (its role and sport filters may change). */
 function useKeepPerson() {
   const { tenant } = useTenantWorkspace();
@@ -73,7 +78,7 @@ export function useReloadPerson(personId: string) {
 }
 
 /** Creates an athlete profile (`variant` set) or replaces an existing one's details (`profileId` set). */
-export function useSaveAthleteProfile(person: Person, profileId: string | undefined) {
+export function useSaveAthleteProfile(person: OpenedPerson, profileId: string | undefined) {
   const { client } = useTenantWorkspace();
   const keep = useKeepPerson();
   return useMutation({
@@ -96,7 +101,7 @@ export function useSaveAthleteProfile(person: Person, profileId: string | undefi
 }
 
 /** Creates a staff or official profile, or replaces its capabilities as a whole (`profileId` set). */
-export function useSaveCapabilities(person: Person, kind: CapabilityKind, profileId: string | undefined) {
+export function useSaveCapabilities(person: OpenedPerson, kind: CapabilityKind, profileId: string | undefined) {
   const { client } = useTenantWorkspace();
   const keep = useKeepPerson();
   return useMutation({
@@ -134,7 +139,7 @@ export function useSaveCapabilities(person: Person, kind: CapabilityKind, profil
 }
 
 /** Moves a profile to another status, with the reason the audit trail keeps. */
-export function useChangeProfileStatus(person: Person, kind: ProfileKind, profileId: string) {
+export function useChangeProfileStatus(person: OpenedPerson, kind: ProfileKind, profileId: string) {
   const { client } = useTenantWorkspace();
   const keep = useKeepPerson();
   return useMutation({

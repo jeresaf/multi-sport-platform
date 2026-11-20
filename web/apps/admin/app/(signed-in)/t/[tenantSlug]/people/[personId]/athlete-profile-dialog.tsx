@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Checkbox } from "@msp/ui/components/checkbox";
 import { Label } from "@msp/ui/components/label";
 import { Controller, useForm, useWatch } from "react-hook-form";
+import { useState } from "react";
 import { z } from "zod";
 import { CommandDialog } from "@/components/command-dialog";
 import { FormField } from "@/components/form-field";
@@ -21,6 +22,7 @@ import {
   useReloadPerson,
   useSaveAthleteProfile,
   type DominantSide,
+  type OpenedPerson,
 } from "./profile-data";
 import type { SportLabels } from "./sport-labels";
 
@@ -97,7 +99,9 @@ export function AthleteProfileDialog({
   const variant = useWatch({ control: form.control, name: "variant" });
   const primary = useWatch({ control: form.control, name: "primaryPosition" });
   const reload = useReloadPerson(person.id);
-  const save = useSaveAthleteProfile(person, profile?.id);
+  // The version the dialog opened on (R1): a newer read while it is open must not become the change's basis.
+  const [opened] = useState<OpenedPerson>(() => ({ id: person.id, version: person.version }));
+  const save = useSaveAthleteProfile(opened, profile?.id);
   const errors = form.formState.errors;
 
   // The definition's positions, and any the profile holds that the latest definition no longer has: shown, marked, so
@@ -106,10 +110,16 @@ export function AthleteProfileDialog({
   const definitionPositions = definition?.positions ?? [];
   const isDropped = (code: string) =>
     definition !== undefined && !definitionPositions.some((position) => position.code === code);
+  // Until the definition is read (or if it can't be), the held positions are still choices, so the form shows what it
+  // holds (#110 R3).
   const held = [profile?.primaryPosition, ...(profile?.otherPositions ?? [])].filter(
-    (code): code is string => typeof code === "string" && code !== "" && isDropped(code),
+    (code): code is string =>
+      typeof code === "string" && code !== "" && !definitionPositions.some((position) => position.code === code),
   );
-  const positions = [...definitionPositions, ...held.map((code) => ({ code, label: `${codeLabel(code)}${noLonger}` }))];
+  const positions = [
+    ...definitionPositions,
+    ...[...new Set(held)].map((code) => ({ code, label: definition ? `${codeLabel(code)}${noLonger}` : codeLabel(code) })),
+  ];
   const sportName = profile ? labels.variant(profile.variant) : undefined;
 
   const submit = form.handleSubmit((values) => {
@@ -200,7 +210,11 @@ export function AthleteProfileDialog({
 
       <fieldset className="grid gap-2" aria-describedby={errors.otherPositions ? "athlete-other-positions-error" : undefined}>
         <legend className="mb-1 text-sm font-medium">Other positions (optional, up to {maxOtherPositions})</legend>
-        {positions.length === 0 ? (
+        {labels.definitionFailed(variant) ? (
+          <p role="alert" className="text-sm text-destructive">
+            The sport&apos;s positions couldn&apos;t be read. Close this and try again.
+          </p>
+        ) : positions.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             {definition ? "The sport names no positions." : "Reading the sport's positions…"}
           </p>
