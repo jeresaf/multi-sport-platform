@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { currentItem, platformNavigation, tenantNavigation, visibleNavigation } from "./navigation";
+import { currentItem, navigationSections, platformNavigation, tenantNavigation, visibleNavigation } from "./navigation";
 
 const labels = (items: { label: string }[]) => items.map((item) => item.label);
 
@@ -17,9 +17,11 @@ describe("tenant navigation", () => {
       "format.read",
       "ruleset.read",
       "tenant.sport.read",
+      "person.read",
     ];
     expect(labels(visibleNavigation(items, owner))).toEqual([
       "Overview",
+      "People",
       "Sports",
       "Formats",
       "Rules templates",
@@ -37,7 +39,23 @@ describe("tenant navigation", () => {
     expect(labels(visibleNavigation(items, ["format.read"]))).toEqual(["Overview", "Formats"]);
     expect(labels(visibleNavigation(items, ["ruleset.read"]))).toEqual(["Overview", "Rules templates"]);
     expect(labels(visibleNavigation(items, ["tenant.sport.read"]))).toEqual(["Overview", "Enabled sports"]);
+    expect(labels(visibleNavigation(items, ["person.read"]))).toEqual(["Overview", "People"]);
     expect(labels(visibleNavigation(items, []))).toEqual(["Overview"]);
+  });
+
+  it("groups the entries: Registry, Sports configuration, Settings; a group with nothing visible isn't listed", () => {
+    const groups = (actions: string[]) =>
+      navigationSections(visibleNavigation(items, actions)).map(({ group, items: list }) => [group, labels(list)]);
+    expect(groups(["person.read", "sport.read", "format.read", "tenant.settings.read", "membership.read"])).toEqual([
+      [undefined, ["Overview"]],
+      ["Registry", ["People"]],
+      ["Sports configuration", ["Sports", "Formats"]],
+      ["Settings", ["Organisation", "Members & roles"]],
+    ]);
+    expect(groups(["tenant.settings.read"])).toEqual([
+      [undefined, ["Overview"]],
+      ["Settings", ["Organisation"]],
+    ]);
   });
 
   it("finds the entry a path belongs to; the overview only on its own path", () => {
@@ -45,6 +63,7 @@ describe("tenant navigation", () => {
     expect(currentItem(items, "/t/kmsa/settings/members")?.label).toBe("Members & roles");
     expect(currentItem(items, "/t/kmsa/settings/members/0199a3f0")?.label).toBe("Members & roles");
     expect(currentItem(items, "/t/kmsa/sports/A_VARIANT")?.label).toBe("Sports");
+    expect(currentItem(items, "/t/kmsa/people/0199a3f0")?.label).toBe("People");
     expect(currentItem(items, "/t/kmsa/settings/sports")?.label).toBe("Enabled sports");
     expect(currentItem(items, "/t/kmsa/formats/A_FORMAT")?.label).toBe("Formats");
     expect(currentItem(items, "/t/kmsa/rules-templates/A_TEMPLATE")?.label).toBe("Rules templates");
@@ -54,6 +73,10 @@ describe("tenant navigation", () => {
 });
 
 describe("platform navigation", () => {
+  it("has no groups", () => {
+    expect(navigationSections(platformNavigation()).map(({ group }) => group)).toEqual([undefined]);
+  });
+
   it("shows support staff the read screens they hold", () => {
     const support = ["tenant.read", "plan.read", "platform.audit.read"];
     expect(labels(visibleNavigation(platformNavigation(), support))).toEqual(["Overview", "Tenants", "Plans", "Audit"]);

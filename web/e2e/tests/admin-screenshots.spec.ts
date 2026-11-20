@@ -2,9 +2,9 @@ import { expect, test, type Page } from "@playwright/test";
 import {
   acceptByApi,
   createTenant,
-  inviteOwner,
   inviteOwnerOf,
   newPassword,
+  ownTenant,
   personEmail,
   platformAdmin,
   signIn,
@@ -12,6 +12,7 @@ import {
   suspendTenant,
   tenantId,
 } from "./support/accounts";
+import { changePerson, createPerson, enableFirstSport, setPhoto } from "./support/people";
 import { open } from "./support/pages";
 import { phone, shoot, widths } from "./support/screenshots";
 
@@ -28,7 +29,9 @@ test("screenshots of the signed-out pages", async ({ page, request }) => {
   await expect(page.getByRole("heading", { level: 1, name: "Forgot your password?" })).toBeVisible();
   await shoot(page, "forgot-password", [phone, ...widths]);
 
-  await page.goto(await inviteOwner(request, "elssc", personEmail("daniel.kato", "elssc")));
+  // A tenant of this run's own (S06-T7a): a pending invitation takes a staff seat.
+  const tenant = await ownTenant(request, "musizi-athletics", "Musizi Athletics Club");
+  await page.goto(await inviteOwnerOf(request, tenant.id, personEmail("daniel.kato", tenant.slug)));
   await expect(page.getByLabel("Choose a password")).toBeVisible();
   await shoot(page, "accept-invitation", [phone, ...widths]);
 });
@@ -146,14 +149,16 @@ test("screenshots of the platform console's tenants", async ({ page, request }) 
 });
 
 test("screenshots of a tenant workspace", async ({ page, request }) => {
-  const email = personEmail("grace.nakato", "kmsa");
+  // A tenant of this run's own (S06-T7a), so the owner added doesn't count against KMSA's staff limit.
+  const tenant = await ownTenant(request, "cassia-games", "Cassia Community Games");
+  const email = personEmail("grace.nakato", tenant.slug);
   const password = newPassword();
-  await acceptByApi(request, await inviteOwner(request, "kmsa", email), password);
+  await acceptByApi(request, await inviteOwnerOf(request, tenant.id, email), password);
   await signIn(page, email, password);
-  await expect(page.getByRole("heading", { level: 1, name: "Kampala Metro Sports Association" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: tenant.name })).toBeVisible();
   await shoot(page, "tenant-workspace", [phone, ...widths]);
 
-  await page.getByRole("button", { name: "Workspace: Kampala Metro Sports Association" }).click();
+  await page.getByRole("button", { name: `Workspace: ${tenant.name}` }).click();
   await expect(page.getByRole("menu")).toBeVisible();
   await shoot(page, "workspace-switcher", widths);
   await page.keyboard.press("Escape");
@@ -164,20 +169,19 @@ test("screenshots of a tenant workspace", async ({ page, request }) => {
   await shoot(page, "navigation-sheet", [phone]);
   await page.keyboard.press("Escape");
 
-  await page.goto("/t/kmsa/settings/organisation");
+  await page.goto(`/t/${tenant.slug}/settings/organisation`);
   await expect(page.getByRole("heading", { level: 1, name: "Organisation" })).toBeVisible();
   await expect(page.getByLabel("Time zone")).toHaveValue("Africa/Kampala");
   await expect(loading(page)).toHaveCount(0);
   await shoot(page, "organisation", [phone, ...widths]);
 
-  await page.goto("/t/kmsa/settings/members");
+  await page.goto(`/t/${tenant.slug}/settings/members`);
   await expect(page.getByRole("heading", { level: 1, name: "Members & roles" })).toBeVisible();
-  // Oldest first, 25 a page: on a database that earlier runs used, this run's owner may be on a later page.
-  await expect(page.getByRole("row").filter({ hasText: "Tenant owner" }).first()).toBeVisible();
+  await expect(page.getByRole("row").filter({ hasText: email })).toBeVisible();
   await expect(loading(page)).toHaveCount(0);
   await shoot(page, "members", [phone, ...widths]);
 
-  await page.goto("/t/kmsa/sports");
+  await page.goto(`/t/${tenant.slug}/sports`);
   await expect(page.getByRole("heading", { level: 1, name: "Sports" })).toBeVisible();
   await expect(loading(page)).toHaveCount(0);
   await shoot(page, "sports", [phone, ...widths]);
@@ -197,7 +201,7 @@ test("screenshots of a tenant workspace", async ({ page, request }) => {
     await shoot(page, name, [phone, ...widths]);
   }
 
-  await page.goto("/t/kmsa/formats");
+  await page.goto(`/t/${tenant.slug}/formats`);
   await expect(page.getByRole("heading", { level: 1, name: "Formats" })).toBeVisible();
   await expect(loading(page)).toHaveCount(0);
   await shoot(page, "formats", [phone, ...widths]);
@@ -206,7 +210,7 @@ test("screenshots of a tenant workspace", async ({ page, request }) => {
   await expect(page.getByRole("heading", { level: 2, name: "Parameters" })).toBeVisible();
   await shoot(page, "format", [phone, ...widths]);
 
-  await page.goto("/t/kmsa/rules-templates");
+  await page.goto(`/t/${tenant.slug}/rules-templates`);
   await expect(page.getByRole("heading", { level: 1, name: "Rules templates" })).toBeVisible();
   await expect(loading(page)).toHaveCount(0);
   await shoot(page, "rules-templates", [phone, ...widths]);
@@ -237,4 +241,109 @@ test("screenshots of a suspended tenant", async ({ page, request }) => {
   await signIn(page, email, password);
   await expect(page.getByText("Subscription unpaid since September")).toBeVisible();
   await shoot(page, "tenant-suspended", [phone, ...widths]);
+});
+
+test("screenshots of the people screens", async ({ page, request }) => {
+  // Four people made through the API on a tenant of this run's own (the demo data is T7d's): one with a photo and
+  // all three profiles, a minor with her mother's consent, four name parts without a date of birth or a photo, and
+  // an adult with nothing more.
+  test.slow();
+  const tenant = await ownTenant(request, "bee-eater-sports", "Bee-eater Sports Club");
+  const owner = { email: personEmail("brian.ssemakula", tenant.slug), password: newPassword() };
+  await acceptByApi(request, await inviteOwnerOf(request, tenant.id, owner.email), owner.password);
+  await signInByApi(request, owner.email, owner.password);
+  const member = { tenantId: tenant.id };
+  const sport = await enableFirstSport(request, member);
+
+  let denis = await createPerson(request, member, {
+    firstName: "Denis",
+    lastName: "Opoka",
+    gender: "MALE",
+    dateOfBirth: "1991-05-02",
+    nationality: "UG",
+  });
+  denis = await changePerson(request, member, denis, "athlete-profiles", {
+    variant: sport.variant,
+    primaryPosition: sport.positions[0] ?? null,
+    otherPositions: sport.positions.slice(1, 2),
+    dominantSide: "RIGHT",
+  });
+  denis = await changePerson(request, member, denis, "staff-profiles", {
+    capabilities: [{ variant: sport.variant, role: sport.staffRole, qualification: "Level 1 coaching certificate" }],
+  });
+  denis = await changePerson(request, member, denis, "official-profiles", {
+    capabilities: [
+      { variant: sport.variant, role: sport.officialRole, grade: "Class 2", licenceNumber: "BSC-R-0193", licenceValidUntil: "2027-06-30" },
+    ],
+  });
+  denis = await changePerson(request, member, denis, "external-identifiers", {
+    authority: "BEE_EATER_REGISTRATION",
+    value: `KM-${process.env.MSP_E2E_RUN}-0147`,
+    validFrom: "2026-01-15",
+  });
+  denis = await changePerson(request, member, denis, "aliases", { name: "Opoka Denis Okumu", kind: "FORMER_NAME" });
+  await setPhoto(request, member, denis);
+
+  const brenda = await createPerson(request, member, {
+    firstName: "Brenda",
+    lastName: "Akello",
+    gender: "FEMALE",
+    dateOfBirth: "2011-03-14",
+    nationality: "UG",
+  });
+  await changePerson(request, member, brenda, "consents", {
+    guardianName: "Grace Akello",
+    relationship: "MOTHER",
+    contact: "+256 772 000 147",
+    scopes: ["DATA_PROCESSING", "PUBLIC_PROFILE", "PHOTO"],
+    givenOn: "2026-11-02",
+  });
+  const nakato = await createPerson(request, member, {
+    firstName: "Nakato",
+    middleName: "Irene",
+    otherNames: "Nalubega",
+    lastName: "Namaganda",
+    displayName: "Nakato Irene Nalubega Namaganda",
+    gender: "FEMALE",
+  });
+  await createPerson(request, member, { firstName: "John", lastName: "Ssekandi", gender: "MALE", dateOfBirth: "1998-08-21" });
+
+  await signIn(page, owner.email, owner.password);
+  await expect(page.getByRole("heading", { level: 1, name: tenant.name })).toBeVisible();
+  await page.getByRole("navigation", { name: "Workspace" }).getByRole("link", { name: "People" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "People" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Nakato Irene Nalubega Namaganda" })).toBeVisible();
+  await expect(loading(page)).toHaveCount(0);
+  await shoot(page, "people", [phone, ...widths]);
+
+  await page.getByLabel("Search").fill("Akello");
+  await expect(page).toHaveURL(/\?q=Akello$/);
+  await expect(page.getByRole("link", { name: "John Ssekandi" })).toHaveCount(0);
+  await shoot(page, "people-search", [phone]);
+
+  await page.getByRole("link", { name: "Brenda Akello" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Brenda Akello" })).toBeVisible();
+  // The owner holds person.read_private: the date of birth, not the year.
+  await expect(page.getByText("14 Mar 2011")).toBeVisible();
+  await expect(loading(page)).toHaveCount(0);
+  await shoot(page, "person-minor", [phone, ...widths]);
+  await page.getByRole("tab", { name: "Consent" }).click();
+  await expect(page.getByText("Grace Akello")).toBeVisible();
+  await shoot(page, "person-consent", [phone, ...widths]);
+
+  await page.goto(`/t/${tenant.slug}/people/${denis.id}`);
+  await expect(page.getByRole("img", { name: "Photo of Denis Opoka" })).toBeVisible();
+  await expect(loading(page)).toHaveCount(0);
+  await shoot(page, "person", [phone, ...widths]);
+  await page.getByRole("tab", { name: "Roles" }).click();
+  await expect(page.getByRole("heading", { level: 4, name: "Staff profile" })).toBeVisible();
+  await shoot(page, "person-roles", [phone, ...widths]);
+  await page.getByRole("tab", { name: "External IDs & aliases" }).click();
+  await expect(page.getByText("Opoka Denis Okumu").first()).toBeVisible();
+  await shoot(page, "person-identifiers", [phone, ...widths]);
+
+  await page.goto(`/t/${tenant.slug}/people/${nakato.id}?tab=roles`);
+  await expect(page.getByText("No roles yet")).toBeVisible();
+  await expect(page.getByRole("img", { name: "No photo of Nakato Irene Nalubega Namaganda" })).toBeVisible();
+  await shoot(page, "person-no-roles", [phone, ...widths]);
 });

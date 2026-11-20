@@ -20,13 +20,17 @@ user's capabilities (docs/architecture/authorization.md); the server still enfor
   /api/account/v1/me`); the platform console is `/platform` (platform staff only). `/` opens the last workspace used
   in this browser, else the first active tenant, else the console; someone with neither is told they belong to no
   organisation yet.
-- **Navigation follows the capabilities.** Each entry names the action its screen needs (tenant workspace: Organisation
-  `tenant.settings.read`, Members & roles `membership.read`, Enabled sports `tenant.sport.read`, Subscription
-  `tenant.subscription.read`; console: Tenants `tenant.read`, Plans `plan.read`, Sports, Formats and Rules templates
-  `platform.sport.read`, Diagnostics `platform.outbox.read`, Audit `platform.audit.read`); entries the user's capabilities
-  (`GET /api/admin/v1/me/capabilities`, `GET /api/platform/v1/me/capabilities`) don't allow are hidden, and their
-  addresses answer "You can't open this page". Entries whose screens don't exist yet open "This screen isn't available
-  yet" (never a made-up screen).
+- **Navigation follows the capabilities.** Each entry names the action its screen needs (tenant workspace: People
+  `person.read`, Organisation `tenant.settings.read`, Members & roles `membership.read`, Enabled sports
+  `tenant.sport.read`, Subscription `tenant.subscription.read`; console: Tenants `tenant.read`, Plans `plan.read`,
+  Sports, Formats and Rules templates `platform.sport.read`, Diagnostics `platform.outbox.read`, Audit
+  `platform.audit.read`); entries the user's capabilities (`GET /api/admin/v1/me/capabilities`, `GET
+  /api/platform/v1/me/capabilities`) don't allow are hidden, and their addresses answer "You can't open this page".
+  Entries whose screens don't exist yet open "This screen isn't available yet" (never a made-up screen). A tenant
+  workspace's entries are grouped (S06-T7a): Overview, then **Registry** (People), **Sports configuration** (Sports,
+  Formats, Rules templates) and **Settings** (Organisation, Members & roles, Enabled sports, Subscription); a group with
+  no entry the user may open isn't shown. On the tablet rail a group starts after a rule and its heading is for screen
+  readers only. The console's entries aren't grouped.
 - **Widths.** Desktop (≥ 1200 px): a sidebar with labels. Tablet: an icon rail (the label is the tooltip and the
   accessible name). Phone: the navigation is a sheet behind the menu button. The switcher and the user menu stay in
   the top bar at every width.
@@ -267,6 +271,32 @@ Members & roles (invite, assign roles with scopes) · Sports (enable within enti
   continue → biodata → duplicate review (side-by-side, evidence, override reason if proceeding) → save.
   Detail tabs: Overview · Roles (athlete/staff/official profiles) · Teams & history · Competitions · Matches ·
   Statistics · Consent (minors) · External IDs · Audit.
+
+#### As built (S06-T7a, read-only)
+
+- **People** (`/t/{slug}/people`, `person.read`: every tenant role but Scorer and Team manager): the directory, sorted
+  by last name, 25 a page with **Show more**. **Search** (name, alias by prefix or similarity, an external identifier
+  exactly) follows the typing after a 300 ms pause; filters **Status** (default "All but archived"), **Age** (Adult,
+  Minor, Age unknown), **Role** (Athlete, Staff, Official) and **Sport** (the tenant's enabled variants, shown when there
+  are any). The search and filters are in the address, so going back from a person keeps them. Columns: name (with a
+  **Minor** or **Age unknown** badge), born (the year), nationality, status; on a phone the three are stacked under the
+  name. A search or filter changed elsewhere (the navigation's People entry, going back) is shown, not overwritten.
+  No photos in the directory (its list carries no URLs; owner, T7a plan). Empty: "No people yet", or "No one
+  matches" with a search or filter.
+- **A person** (`/t/{slug}/people/{id}`): a back link to People; the header with the photo (the medium variant, or the
+  initials in a circle), the display name in full (it wraps), the status, the Minor or Age unknown badge and "Public
+  profile on/off". Tabs, in the address (`?tab=`): **Overview** (biodata; the date of birth only with
+  `person.read_private`, otherwise "Born" with the year; then the status history with each change's time in the
+  tenant's zone and its reason), **Roles** (athlete profiles by sport, the staff and official profiles with their
+  capabilities, archived ones included, each with its status; sports, positions and roles named by the definitions,
+  AR-29; an expired licence is marked; "No roles yet" without any), **Consent** (shown when the age status isn't
+  `ADULT` or a consent exists: the scopes agreed now, then each record, active first, with its scopes, dates, status
+  and any withdrawal; the guardian's name, relationship and contact and a download of the signed form only with
+  `person.read_private`, otherwise "On file" for evidence), **External IDs & aliases** (identifiers with their
+  authority and validity, ended ones included; current aliases with their kind). The private read (audited) is asked
+  only with `person.read_private`, only on Overview and Consent, once per visit, and isn't kept after it; the photo's URLs are read again a
+  minute before they expire, the evidence's only while Consent is open.
+  Changes come with T7b (Add person) and T7c.
 - **Organisations** — directory, create, detail with teams and relationships.
 - **Teams** — follows the owner's flow: **create team → add staff → add players → rosters**. Detail tabs:
   Overview · Players (memberships, add existing person or quick-create with duplicate check) · Staff ·

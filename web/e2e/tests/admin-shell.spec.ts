@@ -3,10 +3,9 @@ import {
   acceptByApi,
   createTenant,
   inviteMember,
-  inviteOwner,
   inviteOwnerOf,
-  myTenantId,
   newPassword,
+  ownTenant,
   personEmail,
   platformAdmin,
   signIn,
@@ -14,7 +13,8 @@ import {
   suspendTenant,
 } from "./support/accounts";
 
-const kmsa = "Kampala Metro Sports Association";
+// Each test that adds members has a tenant of its own (S06-T7a): KMSA and ELSSC stay the manual demo, and members
+// added there on every run would pass STANDARD's staff limit on a reused database.
 const workspaceNav = (page: import("@playwright/test").Page) => page.getByRole("navigation", { name: "Workspace" });
 
 test("the platform administrator works in the console, with its navigation", async ({ page }) => {
@@ -41,26 +41,30 @@ test("the platform administrator works in the console, with its navigation", asy
 });
 
 test("a tenant owner opens their workspace; the console and unknown tenants are refused", async ({ page, request }) => {
-  const email = personEmail("moses.okello", "kmsa");
+  const tenant = await ownTenant(request, "turaco-sports", "Turaco Sports Club");
+  const email = personEmail("moses.okello", tenant.slug);
   const password = newPassword();
-  await acceptByApi(request, await inviteOwner(request, "kmsa", email), password);
+  await acceptByApi(request, await inviteOwnerOf(request, tenant.id, email), password);
 
   // A signed-out deep link comes back to the page asked for after signing in.
-  await page.goto("/t/kmsa/settings/members");
-  await expect(page).toHaveURL("/sign-in?returnTo=%2Ft%2Fkmsa%2Fsettings%2Fmembers");
+  await page.goto(`/t/${tenant.slug}/settings/members`);
+  await expect(page).toHaveURL(`/sign-in?returnTo=%2Ft%2F${tenant.slug}%2Fsettings%2Fmembers`);
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page).toHaveURL("/t/kmsa/settings/members");
+  await expect(page).toHaveURL(`/t/${tenant.slug}/settings/members`);
   await expect(page.getByRole("heading", { level: 1, name: "Members & roles" })).toBeVisible();
 
   await workspaceNav(page).getByRole("link", { name: "Overview" }).click();
-  await expect(page.getByRole("heading", { level: 1, name: kmsa })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: tenant.name })).toBeVisible();
   await expect(workspaceNav(page).getByRole("link", { name: "Organisation" })).toBeVisible();
   await expect(workspaceNav(page).getByRole("link", { name: "Members & roles" })).toBeVisible();
+  // The entries under their groups (S06-T7a).
+  await expect(workspaceNav(page).getByRole("list", { name: "Registry" }).getByRole("link", { name: "People" })).toBeVisible();
+  await expect(workspaceNav(page).getByRole("list", { name: "Settings" }).getByRole("link", { name: "Organisation" })).toBeVisible();
 
-  await page.getByRole("button", { name: `Workspace: ${kmsa}` }).click();
-  await expect(page.getByRole("menuitem", { name: kmsa })).toBeVisible();
+  await page.getByRole("button", { name: `Workspace: ${tenant.name}` }).click();
+  await expect(page.getByRole("menuitem", { name: tenant.name })).toBeVisible();
   await expect(page.getByRole("menuitem", { name: "Platform console" })).toHaveCount(0);
   await page.keyboard.press("Escape");
 
@@ -73,48 +77,51 @@ test("a tenant owner opens their workspace; the console and unknown tenants are 
 });
 
 test("`/` opens the last workspace used in this browser, else the first active tenant", async ({ page, request }) => {
-  // Owner of both DEMO tenants: ELSSC ("Eastern Lakes…") comes first by name.
-  const email = personEmail("isaac.mugisha", "elssc");
+  // Owner of two tenants: Marabou comes first by name.
+  const marabou = await ownTenant(request, "marabou-sports", "Marabou Sports Club");
+  const papyrus = await ownTenant(request, "papyrus-lakeside", "Papyrus Lakeside Sports Club");
+  const email = personEmail("isaac.mugisha", marabou.slug);
   const password = newPassword();
-  await acceptByApi(request, await inviteOwner(request, "elssc", email), password);
-  const kmsaLink = await inviteOwner(request, "kmsa", email);
+  await acceptByApi(request, await inviteOwnerOf(request, marabou.id, email), password);
+  const papyrusLink = await inviteOwnerOf(request, papyrus.id, email);
   // An existing account accepts while signed in as itself (S03 D12).
   await signInByApi(request, email, password);
-  await acceptByApi(request, kmsaLink, password);
+  await acceptByApi(request, papyrusLink, password);
 
   await signIn(page, email, password);
-  await expect(page).toHaveURL("/t/elssc");
+  await expect(page).toHaveURL(`/t/${marabou.slug}`);
 
   await page.getByRole("button", { name: /^Workspace: / }).click();
-  await page.getByRole("menuitem", { name: kmsa }).click();
-  await expect(page.getByRole("heading", { level: 1, name: kmsa })).toBeVisible();
+  await page.getByRole("menuitem", { name: papyrus.name }).click();
+  await expect(page.getByRole("heading", { level: 1, name: papyrus.name })).toBeVisible();
   // Remembered after the workspace opens (an effect): wait for it rather than racing it.
-  await expect.poll(() => page.evaluate(() => localStorage.getItem("msp.admin.lastWorkspace"))).toBe("/t/kmsa");
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("msp.admin.lastWorkspace"))).toBe(`/t/${papyrus.slug}`);
 
   await page.goto("/");
-  await expect(page).toHaveURL("/t/kmsa");
+  await expect(page).toHaveURL(`/t/${papyrus.slug}`);
 });
 
 test("a registrar sees only what their role allows, and the server refuses the rest", async ({ page, request }) => {
-  const owner = { email: personEmail("isaac.mugisha", "kmsa"), password: newPassword() };
-  await acceptByApi(request, await inviteOwner(request, "kmsa", owner.email), owner.password);
-  await signInByApi(request, owner.email, owner.password);
-  const tenantId = await myTenantId(request, "kmsa");
+  const tenant = await ownTenant(request, "pelican-football", "Pelican Football Club");
+  const tenantId = tenant.id;
+  const owner = { email: personEmail("isaac.mugisha", tenant.slug), password: newPassword() };
+  await acceptByApi(request, await inviteOwnerOf(request, tenantId, owner.email), owner.password);
 
-  const registrar = { email: personEmail("joan.nansubuga", "kmsa"), password: newPassword() };
+  const registrar = { email: personEmail("joan.nansubuga", tenant.slug), password: newPassword() };
   const link = await inviteMember(request, { ...owner, tenantId }, registrar.email, ["REGISTRAR"]);
   await acceptByApi(request, link, registrar.password);
 
   await signIn(page, registrar.email, registrar.password);
-  await expect(page).toHaveURL("/t/kmsa");
+  await expect(page).toHaveURL(`/t/${tenant.slug}`);
   await expect(workspaceNav(page).getByRole("link", { name: "Organisation" })).toBeVisible();
   await expect(workspaceNav(page).getByRole("link", { name: "Members & roles" })).toHaveCount(0);
+  await expect(workspaceNav(page).getByRole("link", { name: "People" })).toBeVisible();
 
   // The hidden screen's address answers 403 in the app, and its action 403 from the API (with the registrar's cookie).
-  await page.goto("/t/kmsa/settings/members");
+  await page.goto(`/t/${tenant.slug}/settings/members`);
   await expect(page.getByRole("heading", { level: 1, name: "You can't open this page" })).toBeVisible();
   const invited = await page.request.post("/api/admin/v1/invitations", {
-    data: { email: personEmail("esther.nabirye", "kmsa"), roleCodes: ["RESULTS_OFFICER"] },
+    data: { email: personEmail("esther.nabirye", tenant.slug), roleCodes: ["RESULTS_OFFICER"] },
     headers: { "X-CSRF": "1", "X-Tenant-Id": tenantId },
   });
   expect(invited.status()).toBe(403);

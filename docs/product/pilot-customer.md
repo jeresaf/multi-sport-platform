@@ -125,8 +125,14 @@ named after trees and birds so they don't read as a real district, council or le
 Circle** (`acacia-schools`), **Jacaranda Corporate Games** (`jacaranda-games`), **Mvule Youth Football League**
 (`mvule-youth`), **Sunbird Junior Sports Club** (`sunbird-juniors`), **Acacia Road Runners** (`acacia-runners`),
 **Weaver Bird Athletics Club** (`weaver-athletics`), **Kingfisher Masters Hockey Club** (`kingfisher-masters`),
-**Hornbill Volleyball Club** (`hornbill-volleyball`), **Shoebill Community Sports Club** (`shoebill-sports`). They are
-never seeded.
+**Hornbill Volleyball Club** (`hornbill-volleyball`), **Shoebill Community Sports Club** (`shoebill-sports`). Specs
+that add members use one of their own rather than KMSA or ELSSC (S06-T7a): **Turaco Sports Club** (`turaco-sports`),
+**Marabou Sports Club** (`marabou-sports`), **Papyrus Lakeside Sports Club** (`papyrus-lakeside`), **Pelican Football
+Club** (`pelican-football`), **Mango Grove Sports Club** (`mango-grove`), **Heron Netball Club** (`heron-netball`),
+**Fig Tree Schools Sports Circle** (`fig-tree-schools`), **Tamarind Junior Sports Club** (`tamarind-juniors`), **Ibis
+Rugby Club** (`ibis-rugby`), **Lark Basketball Club** (`lark-basketball`), **Egret Hockey Club** (`egret-hockey`),
+**Musizi Athletics Club** (`musizi-athletics`), **Cassia Community Games** (`cassia-games`) and **Bee-eater Sports
+Club** (`bee-eater-sports`). They are never seeded; e2e runs make each slug and name run-unique.
 
 ## Privacy notes for this persona
 

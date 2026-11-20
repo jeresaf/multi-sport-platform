@@ -1,12 +1,13 @@
 import { expect, test } from "@playwright/test";
-import { acceptByApi, inviteOwner, newPassword, personEmail, signIn } from "./support/accounts";
+import { acceptByApi, inviteOwnerOf, newPassword, ownTenant, personEmail, signIn } from "./support/accounts";
 import { linkFromEmail } from "./support/mailpit";
 import { open } from "./support/pages";
 import { phone, shoot, widths } from "./support/screenshots";
 
 test("a member who forgot their password resets it from the email", async ({ page, request }) => {
-  const email = personEmail("agnes.namutebi", "elssc");
-  await acceptByApi(request, await inviteOwner(request, "elssc", email), newPassword());
+  const tenant = await ownTenant(request, "fig-tree-schools", "Fig Tree Schools Sports Circle");
+  const email = personEmail("agnes.namutebi", tenant.slug);
+  await acceptByApi(request, await inviteOwnerOf(request, tenant.id, email), newPassword());
 
   await open(page, "/sign-in");
   await page.getByRole("link", { name: "Forgot your password?" }).click();
@@ -27,7 +28,7 @@ test("a member who forgot their password resets it from the email", async ({ pag
   await expect(page.getByRole("heading", { level: 1, name: "Password changed" })).toBeVisible();
 
   await signIn(page, email, password);
-  await expect(page).toHaveURL("/t/elssc");
+  await expect(page).toHaveURL(`/t/${tenant.slug}`);
 });
 
 test("a too-short password is refused before it is sent", async ({ page }) => {
@@ -54,12 +55,13 @@ test("a signed-in member changes their password, stays signed in, and signs in w
   page,
   request,
 }) => {
-  const email = personEmail("ruth.atim", "elssc");
+  const tenant = await ownTenant(request, "tamarind-juniors", "Tamarind Junior Sports Club");
+  const email = personEmail("ruth.atim", tenant.slug);
   const password = newPassword();
-  await acceptByApi(request, await inviteOwner(request, "elssc", email), password);
+  await acceptByApi(request, await inviteOwnerOf(request, tenant.id, email), password);
 
   await signIn(page, email, password);
-  await expect(page).toHaveURL("/t/elssc");
+  await expect(page).toHaveURL(`/t/${tenant.slug}`);
   await page.getByRole("button", { name: /^Account menu: / }).click();
   await page.getByRole("menuitem", { name: "Change password" }).click();
   await expect(page).toHaveURL("/account/password");
@@ -80,7 +82,7 @@ test("a signed-in member changes their password, stays signed in, and signs in w
 
   // This session stays signed in (the response renews its cookie through the rewrite).
   await open(page, "/");
-  await expect(page).toHaveURL("/t/elssc");
+  await expect(page).toHaveURL(`/t/${tenant.slug}`);
   // `/` sends the user on once `me` is read: the menu opened before the workspace has rendered is lost.
   await expect(page.getByText("Your roles: Tenant owner")).toBeVisible();
 
@@ -88,5 +90,5 @@ test("a signed-in member changes their password, stays signed in, and signs in w
   await page.getByRole("menuitem", { name: "Sign out" }).click();
   await expect(page).toHaveURL("/sign-in");
   await signIn(page, email, changed);
-  await expect(page).toHaveURL("/t/elssc");
+  await expect(page).toHaveURL(`/t/${tenant.slug}`);
 });
