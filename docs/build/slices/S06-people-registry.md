@@ -659,7 +659,7 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   members to KMSA or ELSSC, not only `admin-shell` and `admin-screenshots`: `admin-sports`, `admin-invitation` and
   `admin-password` too (`ownTenant` in e2e's `support/accounts.ts`; the names are in pilot-customer.md). The screenshot
   spec creates its people through the API (`support/people.ts`, a generated placeholder PNG) until T7d's seeds. The private read
-  is asked only on Overview and Consent (each read is audited), its evidence URLs refreshed only while Consent is open
-  (pre-review m2). The acceptance box "Missing photos, long names… at phone width" has its read-only evidence
+  is asked only on Overview and Consent (each read is audited), once per visit of the page (review #108 R1), its
+  evidence URLs refreshed only while Consent is open (pre-review m2). The acceptance box "Missing photos, long names… at phone width" has its read-only evidence
   (`person.test.tsx`, the `person-no-roles` phone screenshots) and is ticked with T7c, whose photo upload and editing
   screens it also covers.

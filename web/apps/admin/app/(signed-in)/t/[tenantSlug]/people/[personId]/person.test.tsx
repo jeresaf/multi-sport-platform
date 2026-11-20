@@ -3,6 +3,7 @@
 // private read; positions and roles are named by the definition (the test-only one, so no sport word is ours). The tab
 // is the address's (`?tab=`): the tests open the page on it.
 import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { tenantCapabilities } from "@/test/capabilities";
 import { brenda, brendaPrivate, denis, john, nakato, person } from "@/test/people";
@@ -82,13 +83,22 @@ function open(shown: ReturnType<typeof person>, actions = viewer, answers: Answe
     [`GET /api/admin/v1/people/${brenda.id}/private`]: { status: 200, body: brendaPrivate },
     ...answers,
   });
-  renderWithQuery(
-    <TenantWorkspaceLayout>
-      <PersonPage />
-    </TenantWorkspaceLayout>,
-  );
+  rendered = renderWithQuery(page());
   return requests;
 }
+
+const page = () => (
+  <TenantWorkspaceLayout>
+    <PersonPage />
+  </TenantWorkspaceLayout>
+);
+
+// The last render, so a test can render again on another tab (the mocked `useSearchParams` reads the address).
+let rendered: ReturnType<typeof renderWithQuery>;
+const showTab = (tab: string) => {
+  navigation.search = `tab=${tab}`;
+  rendered.rerender(<QueryClientProvider client={rendered.queryClient}>{page()}</QueryClientProvider>);
+};
 
 const openTab = (name: string) => fireEvent.mouseDown(screen.getByRole("tab", { name }));
 const fact = (label: string) => screen.getByText(label, { selector: "dt" }).nextElementSibling?.textContent;
@@ -168,6 +178,19 @@ describe("person page", () => {
       expect(privateRequests(requests)).toEqual([]);
       cleanup();
     }
+  });
+
+  it("reads the private details once per visit, however often the tabs change", async () => {
+    const requests = open(brenda, registrar, {}, "tab=overview");
+    expect(await screen.findByText("14 Mar 2011")).toBeTruthy();
+
+    showTab("roles");
+    expect(await screen.findByRole("tab", { name: "Roles", selected: true })).toBeTruthy();
+    showTab("overview");
+    expect(await screen.findByText("14 Mar 2011")).toBeTruthy();
+    showTab("consent");
+    expect((await screen.findAllByText("Grace Akello")).length).toBe(2);
+    expect(privateRequests(requests)).toHaveLength(1);
   });
 
   it("names positions and roles in the definition's words, with every profile's status", async () => {

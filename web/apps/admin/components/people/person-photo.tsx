@@ -11,12 +11,8 @@ export function initials(displayName: string): string {
  * A person's photo (a signed URL from the person read, S06 D17), or their initials in a circle when they have none.
  * The image is the person's likeness, so its text alternative names them.
  */
-export function PersonPhoto({
-  displayName,
-  url,
-  size = "large",
-}: Readonly<{ displayName: string; url: string | null | undefined; size?: "large" | "small" }>) {
-  const box = size === "large" ? "size-24 text-2xl" : "size-10 text-sm";
+export function PersonPhoto({ displayName, url }: Readonly<{ displayName: string; url: string | null | undefined }>) {
+  const box = "size-24 text-2xl";
   if (url) {
     // A signed URL on the API's host, changing as it expires: not something Next's image optimiser can cache.
     // eslint-disable-next-line @next/next/no-img-element

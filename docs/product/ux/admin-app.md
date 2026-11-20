@@ -294,7 +294,7 @@ Members & roles (invite, assign roles with scopes) · Sports (enable within enti
   and any withdrawal; the guardian's name, relationship and contact and a download of the signed form only with
   `person.read_private`, otherwise "On file" for evidence), **External IDs & aliases** (identifiers with their
   authority and validity, ended ones included; current aliases with their kind). The private read (audited) is asked
-  only with `person.read_private`, only on Overview and Consent, and is never cached; the photo's URLs are read again a
+  only with `person.read_private`, only on Overview and Consent, once per visit, and isn't kept after it; the photo's URLs are read again a
   minute before they expire, the evidence's only while Consent is open.
   Changes come with T7b (Add person) and T7c.
 - **Organisations** — directory, create, detail with teams and relationships.

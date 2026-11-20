@@ -92,6 +92,9 @@ export function usePersonPrivate(personId: string, shown: boolean, consentOpen: 
     queryKey: ["person-private", tenant.tenantId, personId],
     queryFn: () => call(client.GET("/api/admin/v1/people/{personId}/private", { params: { path: { personId } } })),
     enabled: can("person.read_private") && shown,
+    // Read once per visit: going to Roles and back keeps it (a re-enabled stale query would be read, and audited,
+    // again); leaving the page drops it.
+    staleTime: Infinity,
     gcTime: 0,
     refetchOnWindowFocus: false,
     refetchInterval: (query) =>
