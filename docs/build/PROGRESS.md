@@ -7,10 +7,10 @@ at the start of every review.
 
 - **Current slice:** S06 — People registry (docs/build/slices/S06-people-registry.md, written by the S05 slice review).
   S00–S05 are done
-- **Current task:** S06-T7c-1b — consent, evidence upload and the public-profile switch (web only; plan approved
-  2026-11-20: the switch in the person header; e2e on Wagtail Junior Sports Club; one PR)
+- **Current task:** S06-T7c-1b — consent, evidence upload and the public-profile switch — in review (#111) (web only;
+  plan approved 2026-11-20: the switch in the person header; e2e on Wagtail Junior Sports Club; one PR)
 - **Next:** S06-T7c-2 — photo, identifiers and aliases, lifecycle, editing the biodata
-- **Blocked on:** —
+- **Blocked on:** the review of T7c-1b
 
 ## Next up
 
@@ -21,6 +21,7 @@ at the start of every review.
 
 | Date | Task | PR | Summary | Notes / deviations |
 |---|---|---|---|---|
+| 2026-11-20 | S06-T7c-1b | #111 | Person page: header **Turn on/off public profile** (disabled with the reason: no consent to the public profile, archived, deceased, read-only; a note when on but not shown, D18); Consent tab **Record consent** for anyone not `ADULT` with the evidence in the same dialog (record, then upload on the answered version; a refused upload keeps the consent and offers the upload again), **Upload/Replace evidence** and **Withdraw** (scopes, reason; the successor focused); Data processing wording a marked placeholder (D14, Q13); private read asked again once after a consent change; `fieldError`, `todayIn`; fake API records multipart; e2e `admin-people-consent` (Wagtail Junior Sports Club); screenshots `consent-dialog`, `withdraw-consent-dialog` | Owner (plan 2026-11-20): switch in the header, one PR. No backend change. ~1,050 production lines (plan ~700): the two-step save and shared form pieces. Pre-review (ready, no blocker or major): four minors (announce a refused upload, wording waits for the refusal, focus after the switch, Reload keeps the announcement) and three nits fixed |
 | 2026-10-17 | — | — | Kit added: CLAUDE.md, .claude/, docs/ | Handoff from reviewer |
 | 2026-10-17 | — | — | Kit v2: owner answers Q1, Q2, Q4, Q5; ADR-0016 (hosting); plans and pricing; fictional pilot customer; roadmap Phase 5 reordered (rugby, basketball, cricket); prototype review and selected prototype docs | Restart in the existing repo; prototype at tag `prototype-v0` |
 | 2026-10-17 | S00-T1 | #7 | Root conventions (editorconfig, gitattributes, gitignore, global.json, README); `backend/SportsPlatform.slnx` with Host (`GET /health/live`), BuildingBlocks, Unit/Integration/Architecture tests, CLI; central package management; CLAUDE.md commands | xUnit v3 on Microsoft.Testing.Platform → test command is `dotnet test --solution backend` (agreed) |
