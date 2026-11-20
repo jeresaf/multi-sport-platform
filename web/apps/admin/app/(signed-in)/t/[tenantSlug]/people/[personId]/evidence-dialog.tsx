@@ -52,7 +52,17 @@ export function EvidenceDialog({
         if (file && !sizeError) {
           upload.mutate(
             { consentId: consent.id, version, file },
-            { onSuccess: () => onSaved(replacing ? "Evidence replaced." : "Evidence uploaded.") },
+            {
+              onSuccess: () => onSaved(replacing ? "Evidence replaced." : "Evidence uploaded."),
+              // The refused file isn't sent again: another is chosen (#111 R4).
+              onError: () => {
+                setFile(undefined);
+                const input = document.getElementById("evidence-file") as HTMLInputElement | null;
+                if (input) {
+                  input.value = "";
+                }
+              },
+            },
           );
         }
       }}

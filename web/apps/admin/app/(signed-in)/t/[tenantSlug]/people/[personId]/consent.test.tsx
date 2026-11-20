@@ -2,15 +2,15 @@
 // consent with its evidence, replacing the evidence, withdrawing scopes, and turning the public profile on and off.
 // Each control shows only with its action; every change sends the version the dialog opened on and shows the person
 // the API answers.
-import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readOnlyCapabilities } from "@/test/capabilities";
 import { brenda, brendaPrivate, john, nakato, person } from "@/test/people";
-import { personPageAnswers } from "@/test/person-page";
+import { personPageAnswers, tenantId } from "@/test/person-page";
 import { fakeApi, problem, renderWithQuery, type Answers, type RecordedRequest } from "@/test/render";
 import { todayIn } from "@/lib/tenant-settings";
 import TenantWorkspaceLayout from "../../layout";
-import type { Person } from "../people-data";
+import { personQueryKey, type Person } from "../people-data";
 import PersonPage from "./page";
 
 const navigation = vi.hoisted(() => ({ personId: "", search: "tab=consent" }));
@@ -56,6 +56,8 @@ const nakatoWithConsent = (hasEvidence: boolean, version: number) =>
     version,
   });
 
+let rendered: ReturnType<typeof renderWithQuery>;
+
 function open(shown: Person, capabilities: Parameters<typeof personPageAnswers>[1] = registrar, answers: Answers = {}) {
   navigation.personId = shown.id;
   const requests = fakeApi({
@@ -66,7 +68,7 @@ function open(shown: Person, capabilities: Parameters<typeof personPageAnswers>[
     },
     ...answers,
   });
-  renderWithQuery(
+  rendered = renderWithQuery(
     <TenantWorkspaceLayout>
       <PersonPage />
     </TenantWorkspaceLayout>,
@@ -157,6 +159,7 @@ describe("consent", () => {
     const appended = formAppends();
     await fillConsent();
     // The date given starts at the tenant's today and can't be later.
+    // (fillConsent typed 2026-11-18; a fresh dialog's default is checked in "starts the date given at the tenant's today".)
     expect(within(dialog()).getByLabelText("Given on").getAttribute("max")).toBe(todayIn("Africa/Kampala"));
     expect(within(dialog()).getByText(/Placeholder wording, to be replaced by the approved text/)).toBeTruthy();
     const chosen = signedForm();
@@ -214,6 +217,8 @@ describe("consent", () => {
     const fileInput = within(dialog()).getByLabelText("Evidence");
     await waitFor(() => expect(fileInput.getAttribute("aria-invalid")).toBe("true"));
     expect(document.activeElement).toBe(fileInput);
+    // The refused file isn't sent again: Upload evidence waits for another (#111 R4).
+    expect(within(dialog()).getByRole("button", { name: "Upload evidence" })).toHaveProperty("disabled", true);
     expect(within(dialog()).getByLabelText("Guardian's name")).toHaveProperty("disabled", true);
 
     chooseFile("Evidence", signedForm());
@@ -372,6 +377,80 @@ describe("consent", () => {
 
     expect(await screen.findByRole("button", { name: /^Withdraw: / })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Record consent" })).toBeNull();
+  });
+});
+
+describe("versions", () => {
+  it("starts the date given at the tenant's today", async () => {
+    open(nakato);
+    fireEvent.click(await screen.findByRole("button", { name: "Record consent" }));
+    await waitFor(() =>
+      expect(within(dialog()).getByLabelText<HTMLInputElement>("Given on").value).toBe(todayIn("Africa/Kampala")),
+    );
+  });
+
+  // Every consent dialog keeps the version it opened on (#110 R1, #111 R2): a later read while it is open (the
+  // signed URLs are read again before they expire) doesn't become the change's basis.
+  const [active] = brenda.consents;
+  it.each([
+    {
+      dialogName: "Record consent",
+      shown: nakato,
+      answer: nakatoWithConsent(false, 9),
+      method: "POST",
+      path: `/api/admin/v1/people/${nakato.id}/consents`,
+      act: async () => {
+        await fillConsent();
+      },
+      submit: () => fireEvent.click(within(dialog()).getByRole("button", { name: "Record consent" })),
+    },
+    {
+      dialogName: "Replace evidence",
+      shown: brenda,
+      method: "PUT",
+      path: `/api/admin/v1/people/${brenda.id}/consents/${active!.id}/evidence`,
+      act: async () => {
+        fireEvent.click(await screen.findByRole("button", { name: /^Replace evidence: / }));
+        chooseFile("Evidence", signedForm());
+      },
+      submit: () => fireEvent.click(within(dialog()).getByRole("button", { name: "Replace evidence" })),
+    },
+    {
+      dialogName: "Withdraw",
+      shown: brenda,
+      method: "POST",
+      path: `/api/admin/v1/people/${brenda.id}/consents/${active!.id}/withdraw`,
+      act: async () => {
+        fireEvent.click(await screen.findByRole("button", { name: /^Withdraw: / }));
+        check("Public profile");
+        type("Reason", "The guardian asked by phone");
+      },
+      submit: () => fireEvent.click(within(dialog()).getByRole("button", { name: "Withdraw" })),
+    },
+    {
+      dialogName: "Turn on public profile",
+      shown: brenda,
+      method: "POST",
+      path: `/api/admin/v1/people/${brenda.id}/public-profile/enable`,
+      act: async () => {
+        fireEvent.click(await screen.findByRole("button", { name: "Turn on public profile" }));
+      },
+      submit: () => fireEvent.click(within(dialog()).getByRole("button", { name: "Turn on" })),
+    },
+  ])("$dialogName sends the version it opened on, though the person is read again", async (row) => {
+    const requests = open(row.shown, registrar, {
+      [`${row.method} ${row.path}`]: { status: 200, body: "answer" in row ? row.answer : { ...row.shown, version: 9 } },
+    });
+    await row.act();
+    await act(async () => {
+      rendered.queryClient.setQueryData(personQueryKey(tenantId, row.shown.id), { ...row.shown, version: 8 });
+      // The cache tells its observers on the next tick.
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    row.submit();
+
+    const request = await sent(requests, row.method, row.path, !row.path.endsWith("/enable"));
+    expect(request.headers.get("If-Match")).toBe('"7"');
   });
 });
 

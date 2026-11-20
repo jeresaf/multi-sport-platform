@@ -371,11 +371,11 @@ Members & roles (invite, assign roles with scopes) · Sports (enable within enti
 - **Consent** gains **Record consent** (`person.consent.record`) for anyone whose age status isn't `ADULT`; an archived
   or deceased person gets a note instead. The dialog: guardian's name, relationship, contact (a phone number or email
   address), what the guardian agrees to (Data processing, Public profile, Photo, each explained), the date given (the
-  tenant's today by default, no later) and the evidence (optional). Data processing's wording is a placeholder marked
+  tenant's today by default, no later; offered once the tenant's time zone is read) and the evidence (optional). Data processing's wording is a placeholder marked
   "Placeholder wording, to be replaced by the approved text" (D14, Q13). With a file, the consent is recorded first and
   the file uploaded next, on the version that answered (D19). If the upload is refused, the consent stays recorded:
-  the dialog says so (announced, and the focus goes to the file), locks the consent's fields and offers **Upload
-  evidence** again; closing it announces "Consent recorded without its evidence." The private read is asked again once
+  the dialog says so (announced, and the focus goes to the file), locks the consent's fields, clears the refused file
+  and offers **Upload evidence** once another is chosen; closing it announces "Consent recorded without its evidence." The private read is asked again once
   for the two calls, at their end.
 - Each active consent has **Upload evidence** or **Replace evidence** (`person.consent_evidence.upload`; not on an
   archived or deceased person) and **Withdraw** (`person.consent.withdraw`, at any age and in any status): the

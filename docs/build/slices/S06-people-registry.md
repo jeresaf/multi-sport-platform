@@ -699,4 +699,7 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   `consent-dialog`, `withdraw-consent-dialog`. Pre-review (ready, no blocker or major): a refused upload is announced
   and focuses the file; the refusal wording waits for the refusal (not shown during the first upload); after the
   switch, focus goes to the profile's state; Reload after a partial success still announces it; one private read for
-  the record and its evidence; the switch's direction frozen at opening.
+  the record and its evidence; the switch's direction frozen at opening. Review #111: the fake API keeps multipart
+  bodies raw (Node 24's fetch can't read jsdom's File; R1); every consent dialog and the Roles athlete and status
+  dialogs are tested for the version they opened on (R2, #110 R7); the date given waits for the tenant's time zone
+  (R3); a refused file is cleared (R4). Owner, Q1: the CI E2E screenshots artifact is enough.

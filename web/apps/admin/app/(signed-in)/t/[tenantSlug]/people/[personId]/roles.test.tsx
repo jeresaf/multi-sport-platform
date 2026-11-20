@@ -403,22 +403,47 @@ describe("roles", () => {
     expect(names(added!)).toEqual(["Ringball sevens", "Ringball fives"]);
   });
 
-  it("sends the version the dialog opened on, though the person is read again while it is open", async () => {
-    const official = denis.officialProfiles[0]!;
-    const requests = open(denis, registrar, {
-      [`PUT /api/admin/v1/people/${denis.id}/official-profiles/${official.id}`]: { status: 200, body: { ...denis, version: 9 } },
-    });
+  // Every dialog keeps the version it opened on (#110 R1, R7): the official and athlete editors and a status move.
+  const official = denis.officialProfiles[0]!;
+  const athlete = denis.athleteProfiles[0]!;
+  it.each([
+    {
+      dialogName: "the official profile editor",
+      opener: "Edit: Official profile",
+      method: "PUT",
+      path: `/api/admin/v1/people/${denis.id}/official-profiles/${official.id}`,
+      submit: () => fireEvent.click(within(dialog()).getByRole("button", { name: "Save profile" })),
+    },
+    {
+      dialogName: "the athlete profile editor",
+      opener: "Edit: Ringball sevens athlete profile",
+      method: "PUT",
+      path: `/api/admin/v1/people/${denis.id}/athlete-profiles/${athlete.id}`,
+      submit: () => fireEvent.click(within(dialog()).getByRole("button", { name: "Save profile" })),
+    },
+    {
+      dialogName: "a status move",
+      opener: "Retire: Ringball sevens athlete profile",
+      method: "POST",
+      path: `/api/admin/v1/people/${denis.id}/athlete-profiles/${athlete.id}/status`,
+      submit: () => {
+        fireEvent.change(within(dialog()).getByLabelText("Reason"), { target: { value: "Stopped playing this season" } });
+        fireEvent.click(within(dialog()).getByRole("button", { name: "Retire" }));
+      },
+    },
+  ])("$dialogName sends the version it opened on, though the person is read again while it is open", async ({ opener, method, path, submit }) => {
+    const requests = open(denis, registrar, { [`${method} ${path}`]: { status: 200, body: { ...denis, version: 9 } } });
 
-    fireEvent.click(await screen.findByRole("button", { name: "Edit: Official profile" }));
+    fireEvent.click(await screen.findByRole("button", { name: opener }));
     // Someone else's change arrives with a later read (the photo's URLs are read again before they expire).
     await act(async () => {
       rendered.queryClient.setQueryData(personQueryKey(tenantId, denis.id), { ...denis, version: 8 });
       // The cache tells its observers on the next tick.
       await new Promise((resolve) => setTimeout(resolve, 0));
     });
-    fireEvent.click(within(dialog()).getByRole("button", { name: "Save profile" }));
+    submit();
 
-    const request = await sent(requests, "PUT", `/api/admin/v1/people/${denis.id}/official-profiles/${official.id}`);
+    const request = await sent(requests, method, path);
     expect(request.headers.get("If-Match")).toBe('"7"');
   });
 

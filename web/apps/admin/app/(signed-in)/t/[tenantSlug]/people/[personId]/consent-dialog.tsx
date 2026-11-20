@@ -4,7 +4,7 @@
 // recorded first (JSON), then its evidence is uploaded (multipart) on the version that answered. If the upload fails,
 // the consent stays recorded: the dialog says so and offers the upload again.
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { CommandDialog } from "@/components/command-dialog";
@@ -12,7 +12,7 @@ import { FormField } from "@/components/form-field";
 import { SelectField } from "@/components/select-field";
 import { humanizeCode } from "@/lib/codes";
 import { applyFieldErrors, fieldError, needsAlert } from "@/lib/form-errors";
-import { todayIn, useTenantTimeZone } from "@/lib/tenant-settings";
+import { todayIn, useTenantTimeZoneOnceRead } from "@/lib/tenant-settings";
 import type { Person } from "../people-data";
 import {
   consentScopes,
@@ -89,12 +89,20 @@ export function ConsentDialog({
   onSaved: (announcement: string, consentId: string) => void;
   onCloseAutoFocus?: (event: Event) => void;
 }>) {
-  const timeZone = useTenantTimeZone();
-  const today = todayIn(timeZone);
+  // The tenant's date (D13): until its time zone is read, the date isn't offered (UTC can be another day, #111 R3).
+  const zone = useTenantTimeZoneOnceRead();
+  const today = zone.isLoading ? "" : todayIn(zone.timeZone);
   const form = useForm<Values>({
     resolver: zodResolver(schema),
     defaultValues: { guardianName: "", relationship: "", contact: "", scopes: [], givenOn: today },
   });
+  const { getFieldState, setValue } = form;
+  useEffect(() => {
+    // Once the zone is read, the date starts at its today, unless someone has already typed one.
+    if (today && !getFieldState("givenOn").isDirty) {
+      setValue("givenOn", today);
+    }
+  }, [today, getFieldState, setValue]);
   const [file, setFile] = useState<File | undefined>();
   const [fileError, setFileError] = useState<string | undefined>();
   // The version the dialog opened on (#110 R1).
@@ -116,8 +124,13 @@ export function ConsentDialog({
         onSuccess: () => onSaved("Consent recorded with its evidence.", consentId),
         onError: () => {
           setUploadRefused(true);
-          // The file is what to change: its refusal is under it.
-          document.getElementById("consent-evidence")?.focus();
+          // The refused file isn't sent again: another is chosen (#111 R4). Its refusal stays under the field.
+          setFile(undefined);
+          const input = document.getElementById("consent-evidence") as HTMLInputElement | null;
+          if (input) {
+            input.value = "";
+            input.focus();
+          }
         },
       },
     );
@@ -257,8 +270,8 @@ export function ConsentDialog({
         id="consent-given-on"
         label="Given on"
         type="date"
-        max={today}
-        disabled={recorded !== undefined}
+        max={today || undefined}
+        disabled={recorded !== undefined || zone.isLoading}
         error={errors.givenOn?.message}
         {...form.register("givenOn")}
       />
