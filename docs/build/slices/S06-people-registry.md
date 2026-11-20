@@ -726,7 +726,10 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   the changes**) are shared; `biodataSchema`, `fromPerson`, `changesIdentity`, `toUpdateCheckRequest` and
   `toUpdateRequest` in `person-form.ts`; a default display name ("first last") starts empty so it follows the names
   (otherwise a renamed person kept the old one); the page waits for the countries (a select without its options showed,
-  and would have saved, no nationality); a conflict's Reload reads the person again and starts the form over (keyed on
-  the version). The header's moves (`person-actions.tsx`) follow D9; `ActionDialog` takes `withReason="optional"` for
+  and would have saved, no nationality); a conflict's Reload reads the person and the date of birth again and starts the form
+  over. The header's moves (`person-actions.tsx`) follow D9; `ActionDialog` takes `withReason="optional"` for
   deactivate and reactivate. e2e `admin-people-edit` on Barbet Sports Club (added to pilot-customer.md's test tenants);
-  screenshots `edit-person`, `edit-person-review`, `person-status-dialog`.
+  screenshots `edit-person`, `edit-person-review`, `person-status-dialog`. Pre-review (ready, no blocker or major): the
+  form isn't reset by a background read of the person (only Reload starts it over, m1); a save marks the private read
+  stale without reading it on the edit page (one audited read per visit, m2); Edit details is hidden, not disabled,
+  for a user who couldn't use it on a writable tenant (`editDetailsAccess`, m3); a refused reason keeps the review (n4).
