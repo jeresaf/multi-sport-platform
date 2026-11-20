@@ -113,7 +113,8 @@ in `Seed/Demo/Data/demo-sports.json` (Tenancy), not in code.
 **Demo people (S06 D23).** The DEMO seed (`registry.demo.people`, from `Seed/Demo/Data/demo-people.json` in Registry)
 creates each person through the duplicate check and `person.create` as the system, then their profiles, consents and
 evidence, photos and lifecycle through the Registry's commands. Birth dates are ages on the seed date, so minors stay
-minors whenever the demo is seeded. Photos and consent forms are generated placeholder images, never photos of anyone;
+minors whenever the demo is seeded; a twin, or the second of a decided pair, gets the first one's date. A tenant that
+isn't `ACTIVE` when the seed runs is skipped until the next `seed --reset` (or a change to the data). Photos and consent forms are generated placeholder images, never photos of anyone;
 guardians' contacts are `example.com` addresses. Clubs are noted in the file for S08's teams; no team exists yet.
 
 - **KMSA (40):** 26 players of the Metro Football League clubs and the Ntinda Swifts women, among them

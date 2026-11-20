@@ -752,4 +752,6 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   Platform media's alone). KMSA 40 people (36 athletes, 10 minors of whom 4 with consent, 2 decided pairs, Denis
   Opoka's three profiles, Ivan Mukasa archived, 10 photos), ELSSC 10 pupils (7 with consent, 3 photos); no public
   profile on. No backend action, error, event, migration or package. `DemoTenantSeeder.Succeed` takes a plain
-  `Result` too.
+  `Result` too. Review #114: the second of a pair on one birth date names the first (`sameBirthDateAs`) and takes
+  their stored date, so a run resumed on another day keeps them on one date (R1); a tenant that isn't `ACTIVE` is
+  seeded only at the seeder's next run, and neither seeder deactivates (R2, R3, docs).

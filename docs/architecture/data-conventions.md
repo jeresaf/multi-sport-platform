@@ -313,7 +313,12 @@ creates (never TRUNCATE). Each table gets one policy, set in the migration that 
   data files are embedded JSON (`Seed/Demo/Data` in each module), not C#, because they name sport variants (AR-11,
   `SportLiteralTests`). People get no deterministic IDs (`person.create` makes its own): a person is found again by
   name key, and each step runs only when what it adds is missing. Birth and consent dates are relative to the
-  tenant's date, so the demo's minors stay minors. Photos and consent forms are generated placeholder PNGs
+  tenant's date when the person is created, so the demo's minors stay minors; the second of a pair on one birth date
+  (twins, the demo's decided pairs) takes the first's stored date (`sameBirthDateAs`), so a run that stopped between
+  them and resumes another day still gives them one date. Unlike the upserting seeders, neither deactivates: a person or
+  variant dropped from its file is left as it is (`seed --reset` to remove it). A tenant that isn't `ACTIVE` is
+  skipped, as for the invitations, but the run is recorded, so it is seeded only when the seeder next runs (changed
+  data or `seed --reset`). Photos and consent forms are generated placeholder PNGs
   (`PlaceholderPng`; SkiaSharp stays in Platform media).
 
 ## CI checks (automate as they become relevant)
