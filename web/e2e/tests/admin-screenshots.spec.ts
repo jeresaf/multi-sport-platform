@@ -382,4 +382,16 @@ test("screenshots of the people screens", async ({ page, request }) => {
   await page.getByRole("button", { name: /^Retire: .* athlete profile$/ }).click();
   await expect(page.getByRole("dialog").getByLabel("Reason")).toBeVisible();
   await shoot(page, "profile-status-dialog", [phone, ...widths]);
+  await page.getByRole("dialog").getByRole("button", { name: "Cancel" }).click();
+
+  // Consent (T7c-1b): recording a guardian's consent (Nakato's age is unknown), withdrawing part of Brenda's.
+  await page.goto(`/t/${tenant.slug}/people/${nakato.id}?tab=consent`);
+  await page.getByRole("button", { name: "Record consent" }).click();
+  await expect(page.getByRole("dialog").getByText(/Placeholder wording/)).toBeVisible();
+  await shoot(page, "consent-dialog", [phone, ...widths]);
+  await page.getByRole("dialog").getByRole("button", { name: "Cancel" }).click();
+  await page.goto(`/t/${tenant.slug}/people/${brenda.id}?tab=consent`);
+  await page.getByRole("button", { name: /^Withdraw: / }).click();
+  await expect(page.getByRole("dialog").getByLabel("Reason")).toBeVisible();
+  await shoot(page, "withdraw-consent-dialog", [phone, ...widths]);
 });

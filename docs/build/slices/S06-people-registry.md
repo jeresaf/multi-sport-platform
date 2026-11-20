@@ -687,3 +687,13 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   page's tests share their API answers (`test/person-page.tsx`). e2e `admin-people-roles` on Hammerkop Sports Club
   (added to pilot-customer.md's test tenants); screenshots `athlete-profile-dialog`, `official-profile-dialog`,
   `staff-profile-dialog`, `profile-status-dialog`.
+- **T7c-1b:** consent, evidence upload and the public-profile switch. Owner decisions (plan, 2026-11-20): one PR, web
+  only; the switch in the person header (it applies to adults too, whose Consent tab may be hidden); e2e
+  `admin-people-consent` on Wagtail Junior Sports Club (added to pilot-customer.md's test tenants). As built: the
+  header's switch, disabled with the reason when D15 or T6b would refuse it, and a note when a profile that is on isn't
+  shown (D18); Record consent for anyone not `ADULT`, with the evidence in the same dialog (record, then upload on the
+  answered version; a refused upload keeps the consent and offers the upload again); Upload or Replace evidence and
+  Withdraw (scopes and a reason) on an active consent; D14's Data processing wording a marked placeholder until Q13's
+  text. The private read is asked again after a consent change (its records changed). `fieldError` (form-errors.ts)
+  puts the API's `file` refusal under the file input; the test fake API records multipart bodies. Screenshots
+  `consent-dialog`, `withdraw-consent-dialog`.

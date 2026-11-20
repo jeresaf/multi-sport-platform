@@ -302,7 +302,7 @@ Members & roles (invite, assign roles with scopes) · Sports (enable within enti
   authority and validity, ended ones included; current aliases with their kind). The private read (audited) is asked
   only with `person.read_private`, only on Overview and Consent, once per visit, and isn't kept after it; the photo's URLs are read again a
   minute before they expire, the evidence's only while Consent is open.
-  Changes come with T7c (Roles: T7c-1a).
+  Changes come with T7c (Roles: T7c-1a; Consent and the public profile: T7c-1b).
 
 #### As built (S06-T7b, Add person)
 
@@ -357,6 +357,33 @@ Members & roles (invite, assign roles with scopes) · Sports (enable within enti
   the dialog says so. The Add buttons appear together once the tenant's sports are read. An archived or deceased
   person's only role, if its sport's definition dropped it, can't be corrected: the dialog says to retire or archive
   the profile instead (review #110 R2; owner, Q1: no backend change for it).
+
+#### As built (S06-T7c-1b, Consent and the public profile)
+
+- The header's **Public profile on/off** gains **Turn on public profile** or **Turn off public profile**
+  (`person.public_profile.enable`, `.disable`: owner, administrator, registrar), confirmed in an `ActionDialog`
+  without a reason. The dialog says what the public site shows: an adult's display name, nationality, photo and
+  athlete profiles; for anyone else the display name only, and the photo with consent to it. Turning on is disabled,
+  with the reason under it, for an archived or deceased person and for anyone not known to be an adult without an
+  active consent to the public profile ("… record it on the Consent tab"); turning off works in any status. A profile
+  that is on but not shown says why: "(not shown while the person isn't active)" or "(not shown without a guardian's
+  consent to the public profile)".
+- **Consent** gains **Record consent** (`person.consent.record`) for anyone whose age status isn't `ADULT`; an archived
+  or deceased person gets a note instead. The dialog: guardian's name, relationship, contact (a phone number or email
+  address), what the guardian agrees to (Data processing, Public profile, Photo, each explained), the date given (the
+  tenant's today by default, no later) and the evidence (optional). Data processing's wording is a placeholder marked
+  "Placeholder wording, to be replaced by the approved text" (D14, Q13). With a file, the consent is recorded first and
+  the file uploaded next, on the version that answered (D19). If the upload is refused, the consent stays recorded:
+  the dialog says so, locks the consent's fields and offers **Upload evidence** again; closing it announces "Consent
+  recorded without its evidence."
+- Each active consent has **Upload evidence** or **Replace evidence** (`person.consent_evidence.upload`; not on an
+  archived or deceased person) and **Withdraw** (`person.consent.withdraw`, at any age and in any status): the
+  consent's own scopes as checkboxes (at least one) and a reason. What is left goes on in a new record, which takes
+  the focus. The evidence is a PDF, JPEG or PNG up to 10 MB: the picker offers those, a larger file is refused before
+  it is sent, and the API's refusal (`MEDIA_*`) shows under the file.
+- Every control shows only with its action and is disabled with the reason on a read-only tenant. After a change the
+  dialog closes, the change is announced, and focus goes to the consent's heading. A concurrency conflict offers
+  **Reload**. The private read (guardians, evidence) is asked again after a consent change.
 
 ### Competitions
 - **Competition list** and **competition detail** (Overview · Editions · History).
