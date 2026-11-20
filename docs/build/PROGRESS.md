@@ -536,6 +536,10 @@ at the start of every review.
   valid-until are each optional and independent; a past valid-until is accepted; `licenceExpired` is true when
   valid-until is before the tenant's today (valid through its last day), false without a date, and blocks nothing in
   S06; licence numbers are not unique. Held official capabilities follow staff's rule on an archived or deceased person.
+- **S06-T7b (owner, review #109 Q1, 2026-11-20):** when the duplicate check expired before the save
+  (`PERSON_DUPLICATE_CHECK_REQUIRED`) and the check run again finds the same people with the same confidence, Add person
+  saves with the reason already given instead of showing the review again (D6 doesn't say). Any other change to the
+  list shows the review again.
 
 ## Tech debt / follow-ups
 
