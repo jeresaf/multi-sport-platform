@@ -91,7 +91,8 @@ export function RolesTab({ person }: Readonly<{ person: Person }>) {
     ...athleteProfiles.map((profile) => profile.variant),
     ...staffProfiles.flatMap((profile) => profile.capabilities.map((capability) => capability.variant)),
     ...officialProfiles.flatMap((profile) => profile.capabilities.map((capability) => capability.variant)),
-    ...(dialog ? sports.map((sport) => sport.variant) : []),
+    // Read ahead for the forms, so their positions and roles are there when one opens.
+    ...sports.map((sport) => sport.variant),
   ]);
 
   // One note for every profile action the tenant can't use now (read-only): the disabled controls point to it.

@@ -84,7 +84,8 @@ export function AthleteProfileDialog({
   const errors = form.formState.errors;
 
   // The definition's positions, and any the profile holds that the latest definition no longer has (kept, named).
-  const definitionPositions = labels.definition(variant)?.positions ?? [];
+  const definition = labels.definition(variant);
+  const definitionPositions = definition?.positions ?? [];
   const held = [profile?.primaryPosition, ...(profile?.otherPositions ?? [])].filter(
     (code): code is string => Boolean(code) && !definitionPositions.some((position) => position.code === code),
   );
@@ -166,7 +167,11 @@ export function AthleteProfileDialog({
 
       <fieldset className="grid gap-2" aria-describedby={errors.otherPositions ? "athlete-other-positions-error" : undefined}>
         <legend className="mb-1 text-sm font-medium">Other positions (optional, up to {maxOtherPositions})</legend>
-        {positions.length === 0 ? <p className="text-sm text-muted-foreground">The sport names no positions.</p> : null}
+        {positions.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            {definition ? "The sport names no positions." : "Reading the sport's positions…"}
+          </p>
+        ) : null}
         <Controller
           control={form.control}
           name="otherPositions"

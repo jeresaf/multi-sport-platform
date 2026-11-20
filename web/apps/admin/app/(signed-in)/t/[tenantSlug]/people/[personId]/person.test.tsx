@@ -5,10 +5,9 @@
 import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { tenantCapabilities } from "@/test/capabilities";
 import { brenda, brendaPrivate, denis, john, nakato, person } from "@/test/people";
-import { fakeApi, problem, renderWithQuery, type Answer, type Answers } from "@/test/render";
-import { ringball, ringballVariant } from "@/test/sport-definitions";
+import { personPageAnswers } from "@/test/person-page";
+import { fakeApi, problem, renderWithQuery, type Answers } from "@/test/render";
 import TenantWorkspaceLayout from "../../layout";
 import { untilExpiry } from "../people-data";
 import PersonPage from "./page";
@@ -22,64 +21,14 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: navigation.replace, push: vi.fn() }),
 }));
 
-const tenantId = "0199a3f0-0000-7000-8000-00000000000a";
-const me: Answer = {
-  status: 200,
-  body: {
-    id: "0199a3f0-0000-7000-8000-000000000001",
-    email: "brian.ssemakula@kmsa.example",
-    platformRoles: [],
-    tenants: [
-      { tenantId, slug: "kmsa", displayName: "Kampala Metro Sports Association", status: "ACTIVE", roles: ["REGISTRAR"] },
-    ],
-  },
-};
-
 const viewer = ["person.read", "sport.read", "tenant.settings.read"];
 const registrar = [...viewer, "person.read_private"];
-const settings: Answer = {
-  status: 200,
-  body: {
-    timeZone: "Africa/Kampala",
-    currency: "UGX",
-    languageCode: "en",
-    startingSoonMinutes: 30,
-    requireGuardianConsentForMinors: true,
-    publicEnabled: true,
-    version: "1",
-  },
-};
 
 function open(shown: ReturnType<typeof person>, actions = viewer, answers: Answers = {}, search = "") {
   navigation.personId = shown.id;
   navigation.search = search;
   const requests = fakeApi({
-    "GET /api/account/v1/me": me,
-    "GET /api/admin/v1/me/capabilities": { status: 200, body: tenantCapabilities(actions) },
-    "GET /api/admin/v1/tenant/settings": settings,
-    "GET /api/public/v1/reference/countries": {
-      status: 200,
-      body: { items: [{ code: "UG", alpha3Code: "UGA", numericCode: "800", name: "Uganda" }], page: { nextCursor: null, hasMore: false } },
-    },
-    "GET /api/admin/v1/sports": { status: 200, body: { items: [ringballVariant] } },
-    "GET /api/admin/v1/sports/RINGBALL_SEVENS": { status: 200, body: ringball },
-    [`GET /api/admin/v1/people/${shown.id}`]: { status: 200, body: shown },
-    [`GET /api/admin/v1/people/${shown.id}/status-changes`]: {
-      status: 200,
-      body: {
-        items: [
-          {
-            id: "0199a3f0-0000-7000-8000-0000000000f9",
-            fromStatus: null,
-            toStatus: "ACTIVE",
-            reason: null,
-            actorKind: "USER",
-            actorId: "0199a3f0-0000-7000-8000-000000000001",
-            occurredAt: "2026-11-02T21:30:00Z",
-          },
-        ],
-      },
-    },
+    ...personPageAnswers(shown, actions),
     [`GET /api/admin/v1/people/${brenda.id}/private`]: { status: 200, body: brendaPrivate },
     ...answers,
   });
