@@ -363,4 +363,23 @@ test("screenshots of the people screens", async ({ page, request }) => {
   await expect(page.getByRole("list", { name: "People who may match" }).getByText("Same date of birth")).toBeVisible();
   await expect(page.getByText("No sport recorded")).toHaveCount(0);
   await shoot(page, "add-person-review", [phone, ...widths]);
+
+  // Roles (T7c-1a): adding an athlete and an official profile, changing a staff profile, and a status move's reason.
+  await page.goto(`/t/${tenant.slug}/people/${nakato.id}?tab=roles`);
+  await page.getByRole("button", { name: "Add athlete profile" }).click();
+  await expect(page.getByRole("dialog").getByRole("checkbox").first()).toBeVisible();
+  await shoot(page, "athlete-profile-dialog", [phone, ...widths]);
+  await page.getByRole("dialog").getByRole("button", { name: "Cancel" }).click();
+  await page.getByRole("button", { name: "Add official profile" }).click();
+  await expect(page.getByRole("dialog").getByLabel("Licence valid until (optional)")).toBeVisible();
+  await shoot(page, "official-profile-dialog", [phone, ...widths]);
+  await page.getByRole("dialog").getByRole("button", { name: "Cancel" }).click();
+  await page.goto(`/t/${tenant.slug}/people/${denis.id}?tab=roles`);
+  await page.getByRole("button", { name: "Edit: Staff profile" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Add another role" }).click();
+  await shoot(page, "staff-profile-dialog", [phone, ...widths]);
+  await page.getByRole("dialog").getByRole("button", { name: "Cancel" }).click();
+  await page.getByRole("button", { name: /^Retire: .* athlete profile$/ }).click();
+  await expect(page.getByRole("dialog").getByLabel("Reason")).toBeVisible();
+  await shoot(page, "profile-status-dialog", [phone, ...widths]);
 });
