@@ -71,6 +71,11 @@ public sealed class DemoPeopleSeederTests(PostgresFixture fixture) : DatabaseTes
         var consents = kmsa.Concat(elssc).SelectMany(p => p.Consents).ToList();
         consents.ShouldAllBe(c => c.Status == ConsentStatus.Active && c.GivenOn <= today && c.Scopes.Contains(ConsentScope.DataProcessing));
         consents.Count(c => c.EvidenceAssetId != null).ShouldBe(6);
+
+        // A minor's photo is seeded only with a guardian's consent to photos.
+        kmsa.Concat(elssc).Where(p => Age.StatusOn(p.DateOfBirth, today) == AgeStatus.Minor && p.PhotoAssetId != null)
+            .ShouldAllBe(p => p.Consents.Any(c => c.Scopes.Contains(ConsentScope.Photo)));
+        elssc.ShouldAllBe(p => p.DateOfBirth > today.AddYears(-16)); // ELSSC's festival is under-16
     }
 
     [Fact]
@@ -180,6 +185,28 @@ public sealed class DemoPeopleSeederTests(PostgresFixture fixture) : DatabaseTes
         completed.Seeders.Single(s => s.Key == RerunSeeder.SeederKey).Outcome.ShouldBe(new SeedOutcome(Inserted: 0, Updated: 1, Deactivated: 0));
         (await PeopleAsync(_kmsaId)).Single(p => p.Id == ivan.Id).Status.ShouldBe(PersonStatus.Archived);
         (await RegistryAuditEntriesAsync()).Count.ShouldBe(before + 1);
+    }
+
+    [Fact]
+    public async Task A_run_stops_when_the_duplicate_check_disagrees_with_the_data()
+    {
+        await SeedDemoAsync(App);
+
+        // Someone corrected a seeded name by hand: the next run doesn't find "Ronald Kiggundu", and the check finds
+        // the renamed record, a match the data doesn't expect.
+        await using (var scope = RegistryTestData.ScopeFor(App.Services, _kmsaId, out var context))
+        {
+            var ronald = await context.Set<Person>().SingleAsync(p => p.DisplayName == "Ronald Kiggundu", Ct);
+            ronald.Update(new PersonBiodata(
+                "Ronald", "Kigundu", Gender: ronald.Gender, DateOfBirth: ronald.DateOfBirth, Nationality: ronald.Nationality));
+            await context.SaveChangesAsync(Ct);
+        }
+
+        await using var rerun = App.WithWebHostBuilder(builder => builder.ConfigureTestServices(services => services.AddSeeder<RerunSeeder>()));
+        var failure = await Should.ThrowAsync<InvalidOperationException>(() => SeedDemoAsync(rerun));
+
+        failure.Message.ShouldContain("Ronald Kiggundu");
+        (await PeopleAsync(_kmsaId)).Count.ShouldBe(40);
     }
 
     [Fact]

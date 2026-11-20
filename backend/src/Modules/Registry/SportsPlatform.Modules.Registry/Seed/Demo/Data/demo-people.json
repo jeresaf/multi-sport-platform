@@ -1,5 +1,5 @@
 {
-  "_comment": "Demo people (S06 D23; docs/product/pilot-customer.md). Every name is invented. Birth dates are relative to the seed date (ageYears, ageDays); 'club' is the team the person plays for or works with, kept for S08's teams and not seeded yet.",
+  "_comment": "Demo people (S06 D23; docs/product/pilot-customer.md). Every name is invented. Birth dates are relative to the seed date (ageYears, ageDays), so minors stay minors; officials' licence dates are absolute, as the slice demo names Denis Opoka's (2027-06-30). ELSSC's pupils are all under 16, for its under-16 festival. 'club' is the team the person plays for or works with, kept for S08's teams and not seeded yet.",
   "tenants": [
     {
       "slug": "kmsa",
@@ -58,7 +58,7 @@
           "ageYears": 22,
           "ageDays": 58,
           "nationality": "UG",
-          "club": "Kisaasi Kestrels FC Senior Women",
+          "club": "Kisaasi Kestrels FC Women",
           "athlete": {
             "variant": "FOOTBALL_ASSOCIATION",
             "primaryPosition": "LW"
@@ -73,7 +73,7 @@
           "ageYears": 20,
           "ageDays": 201,
           "nationality": "UG",
-          "club": "Ntinda Swifts FC Senior Women",
+          "club": "Ntinda Swifts FC Women",
           "athlete": {
             "variant": "FOOTBALL_ASSOCIATION",
             "primaryPosition": "DM"
@@ -87,7 +87,7 @@
           "ageYears": 20,
           "ageDays": 201,
           "nationality": "UG",
-          "club": "Ntinda Swifts FC Senior Women",
+          "club": "Ntinda Swifts FC Women",
           "athlete": {
             "variant": "FOOTBALL_ASSOCIATION",
             "primaryPosition": "AM"
@@ -358,7 +358,7 @@
           "ageYears": 24,
           "ageDays": 170,
           "nationality": "UG",
-          "club": "Ntinda Swifts FC Senior Women",
+          "club": "Ntinda Swifts FC Women",
           "athlete": {
             "variant": "FOOTBALL_ASSOCIATION",
             "primaryPosition": "GK"
@@ -372,7 +372,7 @@
           "ageYears": 21,
           "ageDays": 66,
           "nationality": "UG",
-          "club": "Ntinda Swifts FC Senior Women",
+          "club": "Ntinda Swifts FC Women",
           "athlete": {
             "variant": "FOOTBALL_ASSOCIATION",
             "primaryPosition": "CB"
@@ -450,7 +450,7 @@
           "ageYears": 15,
           "ageDays": 120,
           "nationality": "UG",
-          "club": "Kisaasi Kestrels FC U17",
+          "club": "Kisaasi Kestrels FC Under-17",
           "athlete": {
             "variant": "FOOTBALL_ASSOCIATION",
             "primaryPosition": "CM"
@@ -463,7 +463,7 @@
           "ageYears": 16,
           "ageDays": 30,
           "nationality": "UG",
-          "club": "Ntinda Swifts FC U17",
+          "club": "Ntinda Swifts FC Under-17",
           "athlete": {
             "variant": "FOOTBALL_ASSOCIATION",
             "primaryPosition": "ST"
@@ -489,7 +489,7 @@
           "ageYears": 15,
           "ageDays": 200,
           "nationality": "UG",
-          "club": "Ntinda Swifts FC U17",
+          "club": "Ntinda Swifts FC Under-17",
           "athlete": {
             "variant": "FOOTBALL_ASSOCIATION",
             "primaryPosition": "CB"
@@ -512,7 +512,7 @@
           "ageYears": 14,
           "ageDays": 90,
           "nationality": "UG",
-          "club": "Kisaasi Kestrels FC U17",
+          "club": "Kisaasi Kestrels FC Under-17",
           "athlete": {
             "variant": "FOOTBALL_ASSOCIATION",
             "primaryPosition": "RW"
@@ -536,7 +536,7 @@
           "ageYears": 16,
           "ageDays": 250,
           "nationality": "UG",
-          "club": "Kisaasi Kestrels FC U17",
+          "club": "Kisaasi Kestrels FC Under-17",
           "athlete": {
             "variant": "FOOTBALL_ASSOCIATION",
             "primaryPosition": "GK"
@@ -558,7 +558,7 @@
           "ageYears": 13,
           "ageDays": 140,
           "nationality": "UG",
-          "club": "Kisaasi Kestrels FC U17",
+          "club": "Kisaasi Kestrels FC Under-17",
           "athlete": {
             "variant": "FOOTBALL_ASSOCIATION",
             "primaryPosition": "LB"
@@ -571,7 +571,7 @@
           "ageYears": 16,
           "ageDays": 10,
           "nationality": "UG",
-          "club": "Ntinda Swifts FC U17",
+          "club": "Ntinda Swifts FC Under-17",
           "athlete": {
             "variant": "FOOTBALL_ASSOCIATION",
             "primaryPosition": "AM"
@@ -584,7 +584,7 @@
           "ageYears": 15,
           "ageDays": 300,
           "nationality": "UG",
-          "club": "Ntinda Swifts FC U17",
+          "club": "Ntinda Swifts FC Under-17",
           "athlete": {
             "variant": "FOOTBALL_ASSOCIATION",
             "primaryPosition": "DM"
@@ -597,7 +597,7 @@
           "ageYears": 12,
           "ageDays": 160,
           "nationality": "UG",
-          "club": "Ntinda Swifts FC U17",
+          "club": "Ntinda Swifts FC Under-17",
           "athlete": {
             "variant": "FOOTBALL_ASSOCIATION",
             "primaryPosition": "LM"
@@ -610,7 +610,7 @@
           "ageYears": 16,
           "ageDays": 75,
           "nationality": "UG",
-          "club": "Kisaasi Kestrels FC U17",
+          "club": "Kisaasi Kestrels FC Under-17",
           "athlete": {
             "variant": "FOOTBALL_ASSOCIATION",
             "primaryPosition": "ST"
@@ -651,7 +651,7 @@
           "firstName": "Ibrahim",
           "lastName": "Waiswa",
           "gender": "MALE",
-          "ageYears": 16,
+          "ageYears": 15,
           "ageDays": 110,
           "nationality": "UG",
           "club": "Lakeshore High School",
@@ -721,7 +721,7 @@
           "firstName": "Patience",
           "lastName": "Namubiru",
           "gender": "FEMALE",
-          "ageYears": 16,
+          "ageYears": 15,
           "ageDays": 280,
           "nationality": "UG",
           "club": "Riverside Secondary School",
@@ -806,7 +806,7 @@
           "firstName": "Rebecca",
           "lastName": "Akot",
           "gender": "FEMALE",
-          "ageYears": 16,
+          "ageYears": 14,
           "ageDays": 130,
           "nationality": "UG",
           "club": "Lakeshore High School",

@@ -125,11 +125,13 @@ guardians' contacts are `example.com` addresses. Clubs are noted in the file for
   (physiotherapist); officials Richard Ekwaro (referee) and Winnie Nambooze (assistant referee). Ten under-17
   players, four with a guardian's consent; **Brenda Akello** (15) has none, so the demo records it. Ten photos.
 - **ELSSC (10):** pupils of Lakeshore High School, Mabira Hills College, Riverside Secondary School and Sunrise
-  Academy, all minors with athlete profiles; seven with a guardian's consent (four with a scanned form), three
+  Academy, all under 16 (the festival's age) with athlete profiles; seven with a guardian's consent (four with a scanned form), three
   photos.
 
-No public profile is on. A person is found again by name: a run only adds what a seeded person lacks (a profile, a
-consent, its form, a photo, the archived status), so a person changed by hand is completed, not duplicated.
+No public profile is on. Officials' licence dates are fixed (Denis Opoka's 2027-06-30, as the slice demo says), so
+they show as expired once that day has passed. A person is found again by name: a run only adds what a seeded person
+lacks (a profile, a consent, its form, a photo, the archived status). A person renamed, archived or marked deceased by
+hand can't be completed that way (the run stops or the duplicate check disagrees): run `seed --reset`.
 
 ## Second tenant (isolation and multi-tenant demos)
 

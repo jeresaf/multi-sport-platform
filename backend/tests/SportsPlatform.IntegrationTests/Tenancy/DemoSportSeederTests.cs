@@ -1,3 +1,5 @@
+using System.Net;
+using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
@@ -56,6 +58,34 @@ public sealed class DemoSportSeederTests(PostgresFixture fixture) : DatabaseTest
         report.Seeders.Single(s => s.Key == RerunSeeder.SeederKey).Outcome.ShouldBe(SeedOutcome.None);
         (await SportsAsync(_kmsaId)).Count.ShouldBe(1);
         (await EnableAuditEntriesAsync()).Count.ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task A_variant_disabled_since_is_enabled_again_but_not_on_a_suspended_tenant()
+    {
+        await SeedDemoAsync(App);
+        App.Authorization.AllowAll();
+        foreach (var tenantId in new[] { _kmsaId, _elsscId })
+        {
+            using var admin = App.CreateClient().AsUser(Guid.CreateVersion7(), memberOf: [tenantId]);
+            admin.DefaultRequestHeaders.Add("X-Tenant-Id", tenantId.ToString());
+            using var disabled = await admin.DisableSportAsync(_football, Ct);
+            disabled.StatusCode.ShouldBe(HttpStatusCode.OK);
+        }
+
+        using (var staff = App.CreateClient().AsUser(TenantTestData.StaffId))
+        {
+            using var suspended = await staff.PostAsJsonAsync(
+                new Uri($"{TenantTestData.TenantsPath}/{_elsscId}/suspend", UriKind.Relative), new { reason = "Season fees outstanding" }, Ct);
+            suspended.StatusCode.ShouldBe(HttpStatusCode.OK);
+        }
+
+        await using var rerun = App.WithWebHostBuilder(builder => builder.ConfigureTestServices(services => services.AddSeeder<RerunSeeder>()));
+        var report = await SeedDemoAsync(rerun);
+
+        report.Seeders.Single(s => s.Key == RerunSeeder.SeederKey).Outcome.ShouldBe(new SeedOutcome(Inserted: 1, Updated: 0, Deactivated: 0));
+        (await SportsAsync(_kmsaId)).Count(s => s.DisabledAt == null).ShouldBe(1);
+        (await SportsAsync(_elsscId)).ShouldAllBe(s => s.DisabledAt != null);
     }
 
     private static Task<SeedReport> SeedDemoAsync(WebApplicationFactory<Program> app) =>
