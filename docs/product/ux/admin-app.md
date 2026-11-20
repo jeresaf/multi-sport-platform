@@ -356,7 +356,7 @@ Members & roles (invite, assign roles with scopes) · Sports (enable within enti
 - Until a sport's definition is read, the positions and roles a profile holds are still shown; if it can't be read
   the dialog says so. The Add buttons appear together once the tenant's sports are read. An archived or deceased
   person's only role, if its sport's definition dropped it, can't be corrected: the dialog says to retire or archive
-  the profile instead (review #110 R2, Q1 with the owner).
+  the profile instead (review #110 R2; owner, Q1: no backend change for it).
 
 ### Competitions
 - **Competition list** and **competition detail** (Overview · Editions · History).
