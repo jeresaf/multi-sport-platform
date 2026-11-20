@@ -669,6 +669,6 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   aliases, lifecycle, editing the biodata with D8's check and this review). As built: `/t/{slug}/people/new` in three
   steps (name with the directory's matches, details, review); the review shows a candidate's birth year only, the
   evidence in words, and blocks the save on `EXACT_IDENTIFIER`; `PERSON_DUPLICATE_CHECK_STALE` and
-  `PERSON_DUPLICATE_CHECK_REQUIRED` run the check again once (an expired check with the same people already reviewed
-  saves with the same reason; anything else is reviewed again); refused fields open their step. Screenshots
+  `PERSON_DUPLICATE_CHECK_REQUIRED` run the check again once (an expired check with the same people and confidence
+  already reviewed saves with the same reason; anything else is reviewed again); refused fields open their step. Screenshots
   `add-person-name`, `-details`, `-review` in `admin-screenshots`.

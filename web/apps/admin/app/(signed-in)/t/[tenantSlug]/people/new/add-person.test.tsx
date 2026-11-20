@@ -354,6 +354,52 @@ describe("add person: the duplicate review", () => {
     ]);
   });
 
+  it.each([
+    ["other people", [candidate(), candidate({ personId: denis.id, displayName: "Denis Opoka" })]],
+    ["a stronger match than the one reviewed", [candidate({ confidence: "LIKELY" })]],
+  ])("checks again when the check expired and shows the review again for %s", async (_, again) => {
+    let round = 0;
+    const requests = open(actions, {
+      "POST /api/admin/v1/people/duplicate-check": () =>
+        ++round === 1 ? checked([candidate({ confidence: "POSSIBLE" })]) : checked(again, "token-2"),
+      "POST /api/admin/v1/people": { status: 422, body: problem("PERSON_DUPLICATE_CHECK_REQUIRED", 422) },
+    });
+    await submitDetails();
+    await screen.findByRole("heading", { name: "Is this someone you already have?" });
+
+    type("Why is John Ssekandi a different person?", "Different parents");
+    fireEvent.click(screen.getByRole("button", { name: "Add as a new person" }));
+
+    expect(await screen.findByText(/The check had to run again/)).toBeTruthy();
+    expect(checks(requests)).toHaveLength(2);
+    expect(creates(requests)).toHaveLength(1);
+    expect(navigation.push).not.toHaveBeenCalled();
+  });
+
+  it("drops empty identifier rows, so a refused identifier is shown under its own row", async () => {
+    const requests = open(actions, {
+      "POST /api/admin/v1/people": {
+        status: 409,
+        body: problem("PERSON_EXTERNAL_ID_EXISTS", 409, {
+          errors: [{ field: "externalIdentifiers[0].value", code: "PERSON_EXTERNAL_ID_EXISTS" }],
+        }),
+      },
+    });
+    await submitDetails(() => {
+      fireEvent.click(screen.getByRole("button", { name: "Add an identifier" }));
+      fireEvent.click(screen.getByRole("button", { name: "Add an identifier" }));
+      const [, second] = screen.getAllByLabelText("Issued by (code)");
+      fireEvent.change(second!, { target: { value: "KMSA_REG_NO" } });
+      fireEvent.change(screen.getAllByLabelText("Identifier")[1]!, { target: { value: "KM-2026-0147" } });
+    });
+
+    await waitFor(() => expect(screen.getByLabelText("Identifier").getAttribute("aria-invalid")).toBe("true"));
+    expect((screen.getByLabelText("Identifier") as HTMLInputElement).value).toBe("KM-2026-0147");
+    expect(checks(requests)[0]!.body).toMatchObject({
+      externalIdentifiers: [{ authority: "KMSA_REG_NO", value: "KM-2026-0147" }],
+    });
+  });
+
   it("goes back to the details with the error under an identifier someone took meanwhile", async () => {
     open(actions, {
       "POST /api/admin/v1/people": {

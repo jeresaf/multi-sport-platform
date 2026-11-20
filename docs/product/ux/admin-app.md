@@ -310,12 +310,13 @@ Members & roles (invite, assign roles with scopes) · Sports (enable within enti
      upper-cased). **Check and add** runs the duplicate check: with no one found, the person is added with the check's
      token and their page opens.
   3. **Check for duplicates** (when the check finds anyone). Each candidate next to the new person: how sure the check is
-     (Same identifier, Likely, Possibly), name, birth year (never a date of birth), status (archived ones marked), sports
+     ("Same identifier", "Likely the same person", "Possibly the same person"), name, birth year (never a date of birth), status (archived ones marked), sports
      played, the evidence in words ("Names 86% alike", "Holds the same KMSA_REG_NO identifier") and **Open {name}**.
      A shared identifier blocks the save ("This identifier is already in use", **Change the details**); otherwise **Add
      as a new person** with a reason (1–500 characters, kept for good, no personal details).
 - A check that went stale before the save (someone added a match) runs again and shows the new list with a note; an
-  expired one (30 minutes) runs again and saves at once if it finds the same people, otherwise it is reviewed again.
+  expired one (30 minutes) runs again and saves at once if it finds the same people with the same confidence,
+  otherwise it is reviewed again. Empty identifier rows are dropped before the check.
   A refused field opens its step with the error under it; an identifier taken meanwhile goes back to the details.
 - **Organisations** — directory, create, detail with teams and relationships.
 - **Teams** — follows the owner's flow: **create team → add staff → add players → rosters**. Detail tabs:

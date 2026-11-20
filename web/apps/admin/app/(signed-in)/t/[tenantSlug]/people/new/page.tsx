@@ -61,17 +61,22 @@ const searchDelay = 300;
 
 const staleNotice =
   "Someone added a person who may match while you were reviewing, so the check ran again. Review the list again.";
-const expiredNotice = "The check was more than 30 minutes old and the list has changed. Review it again.";
+const expiredNotice =
+  "The check had to run again (it expires after 30 minutes) and the list has changed. Review it again.";
 
+// The same people with the same confidence: a stronger match than the one reviewed is shown again (pre-review m3).
 const sameCandidates = (a: readonly DuplicateCandidate[], b: readonly DuplicateCandidate[]) =>
-  a.length === b.length && a.every((candidate) => b.some((other) => other.personId === candidate.personId));
+  a.length === b.length &&
+  a.every((candidate) =>
+    b.some((other) => other.personId === candidate.personId && other.confidence === candidate.confidence),
+  );
 
 const dateFormat = new Intl.DateTimeFormat("en-GB", { dateStyle: "long", timeZone: "UTC" });
 
 /**
  * Registry → People → Add person (S06 D5, D6; admin-app.md): search-first. The name first, with the people it
- * already finds; then the details; then the duplicate check, and its review when it finds anyone. A check that went stale or
- * expired before the save runs again once, by itself.
+ * already finds; then the details; then the duplicate check, and its review when it finds anyone. A check that went
+ * stale or expired before the save runs again once, by itself.
  */
 export default function AddPersonPage() {
   const { tenant, client, can, unavailable } = useTenantWorkspace();
@@ -203,7 +208,17 @@ export default function AddPersonPage() {
       setStep("details");
     }
   };
-  const submitDetails = form.handleSubmit((values) => save.mutate({ values, reviewed: null, reason: null }));
+  const submitDetails = form.handleSubmit((values) => {
+    // Empty identifier rows are dropped first: the API names a refused identifier by its index among those sent.
+    const empty = values.externalIdentifiers.flatMap((row, index) =>
+      row.authority.trim() || row.value.trim() || row.validFrom ? [] : [index],
+    );
+    if (empty.length > 0) {
+      identifierRows.remove(empty);
+    }
+    const externalIdentifiers = values.externalIdentifiers.filter((_, index) => !empty.includes(index));
+    save.mutate({ values: { ...values, externalIdentifiers }, reviewed: null, reason: null });
+  });
 
   return (
     <section className="grid grid-cols-[minmax(0,1fr)] gap-6">
@@ -269,44 +284,53 @@ export default function AddPersonPage() {
             />
           </div>
 
-          <section className="grid gap-3" aria-labelledby="matches-heading" aria-live="polite">
-            <h2 id="matches-heading" className="text-lg font-semibold">
-              Already registered
-            </h2>
-            {search.length < 2 ? (
-              <p className="text-sm text-muted-foreground">People with a similar name show here as you type.</p>
-            ) : matches.isPending ? (
-              <Loading />
-            ) : matches.isError ? (
-              <ProblemAlert error={matches.error} title="The search didn't work" />
-            ) : matchItems.length === 0 ? (
-              <EmptyState title="No one with this name yet">Continue to add them.</EmptyState>
-            ) : (
-              <>
-                <ul className="grid gap-2">
-                  {matchItems.map((person) => (
-                    <li key={person.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border p-3">
-                      <Link
-                        href={personHref(person.id)}
-                        className="break-words text-primary underline-offset-4 hover:underline"
-                      >
-                        {person.displayName}
-                      </Link>
-                      <span className="text-sm text-muted-foreground">Born {person.birthYear ?? "not recorded"}</span>
-                      <span className="text-sm text-muted-foreground">{countryName(person.nationality ?? "")}</span>
-                      <AgeBadge ageStatus={person.ageStatus} />
-                      <StatusBadge status={person.status} />
-                    </li>
-                  ))}
-                </ul>
-                {matches.data?.page.hasMore ? (
-                  <p className="text-sm text-muted-foreground">
-                    The first {nameMatchLimit} are shown: type more of the name to narrow them down.
-                  </p>
+          {can("person.read") ? (
+            <section className="grid gap-3" aria-labelledby="matches-heading">
+              <h2 id="matches-heading" className="text-lg font-semibold">
+                Already registered
+              </h2>
+              <p className="sr-only" aria-live="polite">
+                {search.length < 2 || matches.isPending || matches.isError
+                  ? ""
+                  : matchItems.length === 1
+                    ? "1 person already registered with a similar name"
+                    : `${matchItems.length} people already registered with a similar name`}
+              </p>
+              {search.length < 2 ? (
+                <p className="text-sm text-muted-foreground">People with a similar name show here as you type.</p>
+              ) : matches.isPending ? (
+                <Loading />
+              ) : matches.isError ? (
+                <ProblemAlert error={matches.error} title="The search didn't work" />
+              ) : matchItems.length === 0 ? (
+                <EmptyState title="No one with this name yet">Continue to add them.</EmptyState>
+              ) : (
+                <>
+                  <ul className="grid gap-2">
+                    {matchItems.map((person) => (
+                      <li key={person.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border p-3">
+                        <Link
+                          href={personHref(person.id)}
+                          className="flex min-h-11 items-center break-words text-primary underline-offset-4 hover:underline"
+                        >
+                          {person.displayName}
+                        </Link>
+                        <span className="text-sm text-muted-foreground">Born {person.birthYear ?? "not recorded"}</span>
+                        <span className="text-sm text-muted-foreground">{countryName(person.nationality ?? "")}</span>
+                        <AgeBadge ageStatus={person.ageStatus} />
+                        <StatusBadge status={person.status} />
+                      </li>
+                    ))}
+                  </ul>
+                  {matches.data?.page.hasMore ? (
+                    <p className="text-sm text-muted-foreground">
+                      The first {nameMatchLimit} are shown: type more of the name to narrow them down.
+                    </p>
                 ) : null}
               </>
             )}
           </section>
+          ) : null}
 
           <Button type="submit" className="justify-self-start">
             Continue
