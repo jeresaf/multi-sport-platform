@@ -355,6 +355,19 @@ describe("external identifiers", () => {
     await waitFor(() => expect(end).toHaveProperty("disabled", true));
     expect(document.getElementById(end.getAttribute("aria-describedby")!)?.textContent).toMatch(/^Can be ended from /);
   });
+
+  it("on a read-only tenant, gives both reasons for an identifier that starts after today", async () => {
+    const later = { ...openIdentifier!, validFrom: tomorrow() };
+    open(person({ ...denis, externalIdentifiers: [later] }), readOnlyCapabilities(viewer, identityWrites));
+    const end = await screen.findByRole("button", { name: "End KMSA_REGISTRATION KM-2026-0147" });
+    await waitFor(() => expect(end.getAttribute("aria-describedby")?.split(" ")).toHaveLength(2));
+    const reasons = end
+      .getAttribute("aria-describedby")!
+      .split(" ")
+      .map((id) => document.getElementById(id)?.textContent);
+    expect(reasons[0]).toMatch(/read-only/i);
+    expect(reasons[1]).toMatch(/^Can be ended from /);
+  });
 });
 
 describe("aliases", () => {

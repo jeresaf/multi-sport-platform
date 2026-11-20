@@ -41,9 +41,17 @@ export function PhotoControl({ person }: Readonly<{ person: Person }>) {
       ? `${person.displayName} is ${person.status === "DECEASED" ? "deceased" : "archived"}: no new photo can be added.`
       : null);
   const removeReason = unavailable(identityActions.removePhoto);
-  const note = (setOffered ? setReason : null) ?? (removeOffered ? removeReason : null);
+  // Each button points to its own reason; one note when both have the same (a read-only tenant).
+  const notes = [
+    setOffered && setReason !== null ? { id: `${noteId}-set`, reason: setReason } : null,
+    removeOffered && removeReason !== null && removeReason !== setReason
+      ? { id: `${noteId}-remove`, reason: removeReason }
+      : null,
+  ].filter((note) => note !== null);
   const describedBy = (reason: string | null) =>
-    reason !== null ? { disabled: true, "aria-describedby": noteId } : {};
+    reason !== null
+      ? { disabled: true, "aria-describedby": notes.find((note) => note.reason === reason)?.id }
+      : {};
 
   const saved = (message: string) => {
     changed.current = true;
@@ -75,7 +83,9 @@ export function PhotoControl({ person }: Readonly<{ person: Person }>) {
           </Button>
         ) : null}
       </div>
-      {note ? <UnavailableNote id={noteId} reason={note} /> : null}
+      {notes.map((note) => (
+        <UnavailableNote key={note.id} id={note.id} reason={note.reason} />
+      ))}
       <p role="status" className="sr-only">
         {announcement}
       </p>

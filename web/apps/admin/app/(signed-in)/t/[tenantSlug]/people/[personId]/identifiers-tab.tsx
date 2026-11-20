@@ -83,14 +83,17 @@ export function IdentifiersTab({ person }: Readonly<{ person: Person }>) {
       return null;
     }
     const notYet = today !== "" && identifier.validFrom !== null && identifier.validFrom > today;
+    const readOnly = unavailable(identityActions.endIdentifier) !== null;
+    // Both reasons are read when both apply (a read-only tenant, a start after today).
+    const reasons = [readOnly ? unavailableId : null, notYet ? `starts-${identifier.id}` : null].filter(Boolean);
     return (
       <div className="grid gap-1">
         <Button
           variant="outline"
           aria-label={`End ${identifier.authority} ${identifier.value}`}
           onClick={() => setDialog({ type: "end-identifier", identifier })}
-          {...disabled(identityActions.endIdentifier)}
-          {...(notYet ? { disabled: true, "aria-describedby": `starts-${identifier.id}` } : {})}
+          disabled={reasons.length > 0}
+          aria-describedby={reasons.length > 0 ? reasons.join(" ") : undefined}
         >
           End
         </Button>
