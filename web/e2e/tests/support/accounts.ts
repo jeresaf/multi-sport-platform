@@ -34,7 +34,10 @@ export async function tenantId(request: APIRequestContext, slug: string): Promis
   return tenant!.id;
 }
 
-/** The platform administrator invites `email` as the owner of the tenant with `slug`; returns the email's accept link. */
+/**
+ * The platform administrator invites `email` as the owner of the tenant with `slug`; returns the email's accept link.
+ * Not for KMSA or ELSSC: every run would add a staff user there (S06-T7a); a spec that adds members uses `ownTenant`.
+ */
 export async function inviteOwner(request: APIRequestContext, slug: string, email: string): Promise<string> {
   await signInByApi(request, platformAdmin.email, platformAdmin.password);
   return inviteOwnerOf(request, await tenantId(request, slug), email);
@@ -135,7 +138,7 @@ export async function inviteMember(
   return linkFromEmail(request, email, "/accept-invitation");
 }
 
-/** The signed-in user's tenant ID for `slug`, from `/me`. */
+/** The signed-in user's tenant ID for `slug`, from `/me` (a tenant the spec didn't create: see `inviteOwner`). */
 export async function myTenantId(request: APIRequestContext, slug: string): Promise<string> {
   const me = await request.get("/api/account/v1/me");
   expect(me.status()).toBe(200);

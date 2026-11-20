@@ -273,11 +273,11 @@ test("screenshots of the people screens", async ({ page, request }) => {
   });
   denis = await changePerson(request, member, denis, "official-profiles", {
     capabilities: [
-      { variant: sport.variant, role: sport.officialRole, grade: "Class 2", licenceNumber: "KMSA-R-0193", licenceValidUntil: "2027-06-30" },
+      { variant: sport.variant, role: sport.officialRole, grade: "Class 2", licenceNumber: "BSC-R-0193", licenceValidUntil: "2027-06-30" },
     ],
   });
   denis = await changePerson(request, member, denis, "external-identifiers", {
-    authority: "KMSA_REGISTRATION",
+    authority: "BEE_EATER_REGISTRATION",
     value: `KM-${process.env.MSP_E2E_RUN}-0147`,
     validFrom: "2026-01-15",
   });
