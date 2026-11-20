@@ -91,7 +91,7 @@ export async function enableFirstSport(request: APIRequestContext, member: Membe
 }
 
 /** A PNG of `size` × `size`: a disc in one colour on another, written by hand (no image library). */
-function placeholderPng(size: number): Buffer {
+export function placeholderPng(size: number): Buffer {
   const rows: Buffer[] = [];
   const centre = size / 2;
   for (let y = 0; y < size; y++) {

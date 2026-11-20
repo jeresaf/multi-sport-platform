@@ -1,5 +1,6 @@
 // The read-only viewers' building blocks (S05 D17): facts, sections, "None" and the phone-friendly row name. Shared by
 // the sport variant, format and ruleset template viewers, so they live here rather than under one of them.
+import { cn } from "@msp/ui/lib/utils";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -26,13 +27,29 @@ export function Facts({ items }: Readonly<{ items: ReadonlyArray<readonly [strin
 export function ViewerSection({
   title,
   level = 3,
+  headingId,
   children,
-}: Readonly<{ title: string; level?: 2 | 3; children: ReactNode }>) {
+}: Readonly<{
+  title: string;
+  level?: 2 | 3;
+  /** Makes the heading focusable by this id: where the focus goes after a change to the section. */
+  headingId?: string;
+  children: ReactNode;
+}>) {
   const Heading = level === 2 ? "h2" : "h3";
   return (
     <section className="grid gap-3">
       {/* A page's sections (h2) read above a tab's or a group's parts (h3). */}
-      <Heading className={level === 2 ? "text-xl font-semibold" : "text-lg font-semibold"}>{title}</Heading>
+      <Heading
+        id={headingId}
+        tabIndex={headingId ? -1 : undefined}
+        className={cn(
+          level === 2 ? "text-xl font-semibold" : "text-lg font-semibold",
+          headingId && "outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        )}
+      >
+        {title}
+      </Heading>
       {children}
     </section>
   );
