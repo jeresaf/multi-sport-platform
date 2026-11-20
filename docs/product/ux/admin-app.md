@@ -420,7 +420,7 @@ Members & roles (invite, assign roles with scopes) · Sports (enable within enti
   is left empty so it follows the names), without identifiers or aliases (their own tab). The page waits for the list
   of countries, so a nationality is never shown, and saved, empty. It reads the person and the private details afresh
   on opening (one audited read per visit), so a date of birth kept from an earlier read never goes back under a newer
-  version (review #113 R1).
+  version (review #113 R1); if either read fails, the error shows and the form doesn't open (R3).
 - **Save**: a change to the names, the date of birth or a nationality, as typed, runs the duplicate check with the
   person left out (`personId`, no identifiers); anything else saves at once. The people the check finds are reviewed
   as on Add person, next to "With your changes", and **Save the changes** needs a reason. A check that went stale or
