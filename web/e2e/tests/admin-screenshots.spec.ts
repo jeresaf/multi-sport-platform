@@ -12,7 +12,7 @@ import {
   suspendTenant,
   tenantId,
 } from "./support/accounts";
-import { changePerson, createPerson, enableFirstSport, setPhoto } from "./support/people";
+import { changePerson, createPerson, enableFirstSport, placeholderPng, setPhoto } from "./support/people";
 import { open } from "./support/pages";
 import { phone, shoot, widths } from "./support/screenshots";
 
@@ -394,4 +394,25 @@ test("screenshots of the people screens", async ({ page, request }) => {
   await page.getByRole("button", { name: /^Withdraw: / }).click();
   await expect(page.getByRole("dialog").getByLabel("Reason")).toBeVisible();
   await shoot(page, "withdraw-consent-dialog", [phone, ...widths]);
+  await page.getByRole("dialog").getByRole("button", { name: "Cancel" }).click();
+
+  // Photo, identifiers and aliases (T7c-2a): adding a photo for the long name without one (its preview shown), adding
+  // an identifier and an alias to Denis.
+  await page.goto(`/t/${tenant.slug}/people/${nakato.id}`);
+  await page.getByRole("button", { name: "Add photo" }).click();
+  await page
+    .getByRole("dialog")
+    .getByLabel("Photo")
+    .setInputFiles({ name: "nakato.png", mimeType: "image/png", buffer: placeholderPng(320) });
+  await expect(page.getByRole("dialog").getByRole("img", { name: "The chosen photo" })).toBeVisible();
+  await shoot(page, "photo-dialog", [phone, ...widths]);
+  await page.getByRole("dialog").getByRole("button", { name: "Cancel" }).click();
+  await page.goto(`/t/${tenant.slug}/people/${denis.id}?tab=identifiers`);
+  await page.getByRole("button", { name: "Add identifier" }).click();
+  await expect(page.getByRole("dialog").getByLabel("Valid from (optional)")).toBeEnabled();
+  await shoot(page, "identifier-dialog", [phone, ...widths]);
+  await page.getByRole("dialog").getByRole("button", { name: "Cancel" }).click();
+  await page.getByRole("button", { name: "Add alias" }).click();
+  await expect(page.getByRole("dialog").getByLabel("Kind")).toBeVisible();
+  await shoot(page, "alias-dialog", [phone, ...widths]);
 });
