@@ -54,10 +54,18 @@ export default function EditPersonPage() {
   const person = usePerson(personId, true);
   const privateRead = usePersonPrivate(personId, allowed, false, true);
   const countries = useCountries();
-  // After a conflict the form starts over once both reads are fresh; a background read of the person (its photo's URLs
-  // expire) never resets what is being typed (pre-review m1).
+  // The form starts once both reads have succeeded since the page opened: a failed read keeps its old data and would
+  // otherwise count as read (review #113 R3). Once started, a background read of the person (its photo's URLs expire),
+  // even a failed one, never resets what is being typed (pre-review m1); only Reload starts it over.
+  const [started, setStarted] = useState(false);
   const [reloading, setReloading] = useState(false);
+  const readSince = (query: { isFetchedAfterMount: boolean; isSuccess: boolean; isFetching: boolean }) =>
+    query.isFetchedAfterMount && query.isSuccess && !query.isFetching;
+  if (!started && !reloading && readSince(person) && readSince(privateRead) && countries.data) {
+    setStarted(true);
+  }
   const reload = async () => {
+    setStarted(false);
     setReloading(true);
     try {
       await Promise.all([
@@ -89,9 +97,8 @@ export default function EditPersonPage() {
     );
   }
   // The countries too: a nationality select without its options would show, and save, none.
-  const fresh = person.isFetchedAfterMount && privateRead.isFetchedAfterMount;
-  if (!person.data || !privateRead.data || !fresh || reloading || !countries.data) {
-    const error = person.error ?? privateRead.error ?? countries.error;
+  if (!started || !person.data || !privateRead.data || !countries.data) {
+    const error = reloading ? null : (person.error ?? privateRead.error ?? countries.error);
     return (
       <section className="grid gap-4">
         {back}

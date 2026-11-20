@@ -309,6 +309,11 @@ describe("Edit details", () => {
     const queryClient = createQueryClient();
     queryClient.setQueryData(personQueryKey(tenantId, john.id), john);
     queryClient.setQueryData(personPrivateQueryKey(tenantId, john.id), { id: john.id, dateOfBirth: "1998-03-14", consents: [] });
+    // The countries kept too, so nothing but the fresh reads holds the form back (re-review R4).
+    queryClient.setQueryData(["reference", "countries"], {
+      items: [{ code: "UG", alpha3Code: "UGA", numericCode: "800", name: "Uganda" }],
+      page: { nextCursor: null, hasMore: false },
+    });
     const requests = open(
       registrar,
       {
@@ -326,6 +331,25 @@ describe("Edit details", () => {
     expect(updates(requests)[0]?.headers.get("If-Match")).toBe('"8"');
     expect(updates(requests)[0]?.body).toMatchObject({ dateOfBirth: "1998-04-14" });
     expect(sent(requests, "GET", `/api/admin/v1/people/${john.id}/private`)).toHaveLength(1);
+  });
+
+  it("doesn't start the form from a kept date of birth when the fresh private read fails", async () => {
+    const queryClient = createQueryClient();
+    queryClient.setQueryData(personQueryKey(tenantId, john.id), john);
+    queryClient.setQueryData(personPrivateQueryKey(tenantId, john.id), { id: john.id, dateOfBirth: "1998-03-14", consents: [] });
+    const requests = open(
+      registrar,
+      {
+        [`GET /api/admin/v1/people/${john.id}`]: { status: 200, body: person({ version: 8 }) },
+        [`GET /api/admin/v1/people/${john.id}/private`]: { status: 500, body: problem("PLATFORM_INTERNAL_ERROR", 500) },
+      },
+      john,
+      queryClient,
+    );
+    expect(await screen.findByRole("alert")).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Edit details" })).toBeNull();
+    expect(screen.queryByLabelText("Date of birth (optional)")).toBeNull();
+    expect(updates(requests)).toEqual([]);
   });
 
   it("reads the private details once: a save marks them stale for the person's page without reading them here", async () => {
