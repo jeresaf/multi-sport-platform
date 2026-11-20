@@ -43,7 +43,7 @@ test("a registrar edits a person's details and changes their status", async ({ p
 
   await expect(page.getByRole("heading", { level: 1, name: "Check for duplicates" })).toBeVisible();
   const candidates = page.getByRole("list", { name: "People who may match" });
-  await expect(candidates.getByText("Moses Kato")).toBeVisible();
+  await expect(candidates.getByRole("link", { name: "Open Moses Kato" })).toBeVisible();
   await expect(candidates.getByText("Same date of birth")).toBeVisible();
   await page.getByLabel("Why is Aaron Kato a different person?").fill("Twin brothers; checked with the club.");
   await page.getByRole("button", { name: "Save the changes" }).click();
