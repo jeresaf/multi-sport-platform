@@ -26,8 +26,9 @@ export function fakeApi(answers: Answers) {
     const recorded: RecordedRequest = { method: request.method, path, search, headers: request.headers, body: undefined };
     requests.push(recorded);
     if (request.headers.get("Content-Type")?.startsWith("multipart/form-data")) {
-      // An upload: the form as sent (its file under `file`).
-      recorded.body = await request.formData();
+      // An upload: kept as sent, unparsed. Node's fetch can't read jsdom's File (on Node 24 the part arrives empty and
+      // `formData()` throws), so a test checks the file through `FormData.prototype.append` instead.
+      recorded.body = await request.text();
     } else {
       const text = await request.text();
       recorded.body = text ? JSON.parse(text) : undefined;

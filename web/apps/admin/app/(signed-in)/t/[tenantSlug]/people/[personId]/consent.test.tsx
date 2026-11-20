@@ -74,10 +74,14 @@ function open(shown: Person, capabilities: Parameters<typeof personPageAnswers>[
   return requests;
 }
 
-const sent = async (requests: RecordedRequest[], method: string, path: string) => {
+/** The request once sent and, unless it has none (`withBody` false), once its body is read. */
+const sent = async (requests: RecordedRequest[], method: string, path: string, withBody = true) => {
   let found: RecordedRequest | undefined;
   await waitFor(() => {
-    found = requests.find((request) => request.method === method && request.path === path);
+    found = requests.find(
+      (request) =>
+        request.method === method && request.path === path && (!withBody || request.body !== undefined),
+    );
     expect(found).toBeTruthy();
   });
   return found!;
@@ -89,6 +93,16 @@ const check = (label: string) => fireEvent.click(within(dialog()).getByRole("che
 const chooseFile = (label: string | RegExp, file: File) =>
   fireEvent.change(within(dialog()).getByLabelText(label), { target: { files: [file] } });
 const signedForm = () => new File(["%PDF-1.7 signed form"], "consent-form.pdf", { type: "application/pdf" });
+/** What the page puts in its upload forms, as `[name, value]` pairs. */
+function formAppends() {
+  const calls: Array<[string, unknown]> = [];
+  const append = FormData.prototype.append as (this: FormData, ...args: unknown[]) => void;
+  vi.spyOn(FormData.prototype, "append").mockImplementation(function (this: FormData, ...args: unknown[]) {
+    calls.push([args[0] as string, args[1]]);
+    append.apply(this, args);
+  });
+  return calls;
+}
 const tabStatus = () => within(screen.getByRole("tabpanel")).getByRole("status").textContent;
 
 /** Fills the record form for Nakato's aunt. */
@@ -105,6 +119,7 @@ async function fillConsent() {
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 
 describe("consent", () => {
@@ -139,11 +154,13 @@ describe("consent", () => {
       },
     });
 
+    const appended = formAppends();
     await fillConsent();
     // The date given starts at the tenant's today and can't be later.
     expect(within(dialog()).getByLabelText("Given on").getAttribute("max")).toBe(todayIn("Africa/Kampala"));
     expect(within(dialog()).getByText(/Placeholder wording, to be replaced by the approved text/)).toBeTruthy();
-    chooseFile("Evidence (optional)", signedForm());
+    const chosen = signedForm();
+    chooseFile("Evidence (optional)", chosen);
     fireEvent.click(within(dialog()).getByRole("button", { name: "Record consent" }));
 
     const record = await sent(requests, "POST", `/api/admin/v1/people/${nakato.id}/consents`);
@@ -159,9 +176,9 @@ describe("consent", () => {
     expect(upload.headers.get("If-Match")).toBe('"8"');
     expect(upload.headers.get("X-CSRF")).toBe("1");
     expect(upload.headers.get("Content-Type")).toMatch(/^multipart\/form-data; boundary=/);
-    // The file in the field `file` (jsdom's File loses its name on the way through the test's Request; the browser keeps it).
-    const file = (upload.body as FormData).get("file") as Blob;
-    expect(await file.text()).toBe("%PDF-1.7 signed form");
+    // One part, `file`, holding the chosen file (checked as the page builds the form: see `test/render.tsx`).
+    expect(upload.body).toMatch(/name="file"/);
+    expect(appended).toEqual([["file", chosen]]);
 
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect(tabStatus()).toBe("Consent recorded with its evidence.");
@@ -382,7 +399,7 @@ describe("public profile", () => {
     expect(within(dialog()).getByText(/shows only their display name/)).toBeTruthy();
     fireEvent.click(within(dialog()).getByRole("button", { name: "Turn on" }));
 
-    const enable = await sent(requests, "POST", `/api/admin/v1/people/${brenda.id}/public-profile/enable`);
+    const enable = await sent(requests, "POST", `/api/admin/v1/people/${brenda.id}/public-profile/enable`, false);
     expect(enable.headers.get("If-Match")).toBe('"7"');
     expect(enable.body).toBeUndefined();
     expect(await screen.findByText("Public profile on")).toBeTruthy();
@@ -405,7 +422,7 @@ describe("public profile", () => {
     fireEvent.click(screen.getByRole("button", { name: "Turn off public profile" }));
     fireEvent.click(within(dialog()).getByRole("button", { name: "Turn off" }));
 
-    await sent(requests, "POST", `/api/admin/v1/people/${nakato.id}/public-profile/disable`);
+    await sent(requests, "POST", `/api/admin/v1/people/${nakato.id}/public-profile/disable`, false);
     expect(await screen.findByText("Public profile off")).toBeTruthy();
     // Turning on is now disabled (no consent): the focus goes to the profile's state, not lost on the button.
     expect(screen.getByRole("button", { name: "Turn on public profile" })).toHaveProperty("disabled", true);
