@@ -111,3 +111,24 @@ export function usePersonStatusChanges(personId: string) {
     enabled: can("person.read"),
   });
 }
+
+export type CheckDuplicatesRequest = Schemas["CheckDuplicatesRequest"];
+export type CheckDuplicatesResponse = Schemas["CheckDuplicatesResponse"];
+export type DuplicateCandidate = Schemas["DuplicateCandidateResponse"];
+export type CreatePersonRequest = Schemas["CreatePersonRequest"];
+
+/** How many existing people Add person's first step lists while a name is typed. */
+export const nameMatchLimit = 10;
+
+/**
+ * The existing people a typed name finds (Add person's first step, S06 T7): the directory's own search, so the same
+ * prefixes, similarity and aliases. Asked only with a search of two characters or more.
+ */
+export function useNameMatches(q: string) {
+  const { tenant, client, can } = useTenantWorkspace();
+  return useQuery({
+    queryKey: ["people", tenant.tenantId, "name-matches", q],
+    queryFn: () => call(client.GET("/api/admin/v1/people", { params: { query: { q, limit: nameMatchLimit } } })),
+    enabled: can("person.read") && q.length >= 2,
+  });
+}

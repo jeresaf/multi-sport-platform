@@ -3,7 +3,7 @@
 import { act, cleanup, fireEvent, screen, within } from "@testing-library/react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { tenantCapabilities } from "@/test/capabilities";
+import { readOnlyCapabilities, tenantCapabilities } from "@/test/capabilities";
 import { brenda, denis, john, listItem, nakato } from "@/test/people";
 import { fakeApi, renderWithQuery, type Answer, type Answers } from "@/test/render";
 import TenantWorkspaceLayout from "../layout";
@@ -46,10 +46,10 @@ const tenantSport = (variant: string, name: string, enabled: boolean) => ({
   enabledSince: enabled ? "2026-11-01T07:00:00Z" : null,
 });
 
-function open(actions = reads, answers: Answers = {}) {
+function open(actions = reads, answers: Answers = {}, capabilities = tenantCapabilities(actions)) {
   const requests = fakeApi({
     "GET /api/account/v1/me": me,
-    "GET /api/admin/v1/me/capabilities": { status: 200, body: tenantCapabilities(actions) },
+    "GET /api/admin/v1/me/capabilities": { status: 200, body: capabilities },
     "GET /api/public/v1/reference/countries": listPage([{ code: "UG", alpha3Code: "UGA", numericCode: "800", name: "Uganda" }]),
     "GET /api/admin/v1/tenant/sports": {
       status: 200,
@@ -215,6 +215,25 @@ describe("people directory", () => {
     navigation.search = "q=Nobody";
     open(reads, { "GET /api/admin/v1/people": listPage([]) });
     expect(await screen.findByText("No one matches")).toBeTruthy();
+  });
+
+  it("offers Add person with person.create only, and shows it disabled with the reason on a read-only tenant", async () => {
+    open([...reads, "person.create"]);
+    const add = await screen.findByRole("link", { name: "Add person" });
+    expect(add.getAttribute("href")).toBe("/t/kmsa/people/new");
+    cleanup();
+
+    open();
+    await screen.findByRole("link", { name: "John Ssekandi" });
+    expect(screen.queryByRole("link", { name: "Add person" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Add person" })).toBeNull();
+    cleanup();
+
+    open(reads, {}, readOnlyCapabilities(reads, ["person.create"]));
+    const disabled = await screen.findByRole("button", { name: "Add person" });
+    expect((disabled as HTMLButtonElement).disabled).toBe(true);
+    const note = document.getElementById(disabled.getAttribute("aria-describedby")!);
+    expect(note?.textContent).toMatch(/read-only/i);
   });
 
   it("is refused without person.read, and doesn't ask the API", async () => {

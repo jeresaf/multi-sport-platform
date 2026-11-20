@@ -1,0 +1,201 @@
+"use client";
+
+import { Alert, AlertDescription, AlertTitle } from "@msp/ui/components/alert";
+import { Badge } from "@msp/ui/components/badge";
+import { Button } from "@msp/ui/components/button";
+import { Label } from "@msp/ui/components/label";
+import { Textarea } from "@msp/ui/components/textarea";
+import { Info } from "lucide-react";
+import Link from "next/link";
+import { useId, useState, type ReactNode } from "react";
+import { StatusBadge } from "@/components/status-badge";
+import type { DuplicateCandidate } from "../people-data";
+import { confidenceLabels, evidenceText } from "./duplicate-evidence";
+
+/** DuplicateDecision.ReasonMaxLength on the server. */
+export const reasonMaxLength = 500;
+
+/** What the registrar typed, as the review shows it next to each candidate. The date of birth is their own input. */
+export type NewPersonSummary = { displayName: string; born: string; nationality: string };
+
+function Fact({ term, children }: Readonly<{ term: string; children: ReactNode }>) {
+  return (
+    <div className="grid gap-0.5">
+      <dt className="text-sm text-muted-foreground">{term}</dt>
+      <dd className="break-words">{children}</dd>
+    </div>
+  );
+}
+
+function Column({ title, children }: Readonly<{ title: ReactNode; children: ReactNode }>) {
+  return (
+    <div className="grid content-start gap-3 rounded-md border p-4">
+      <h3 className="font-semibold">{title}</h3>
+      <dl className="grid gap-3">{children}</dl>
+    </div>
+  );
+}
+
+/**
+ * The duplicate review (S06 D5, D6; admin-app.md): each person the check found, next to the new person, with how sure
+ * the check is and why. A candidate shows only what `person.read` may see: the birth year, never a date of birth. A
+ * shared identifier blocks the save (open the existing person or change the identifier); otherwise the registrar opens
+ * an existing person or adds the new one with a reason, which is kept with a "not the same person" decision per
+ * candidate.
+ */
+export function DuplicateReview({
+  newPerson,
+  candidates,
+  notice,
+  personHref,
+  variantLabel,
+  busy,
+  onProceed,
+  onChangeDetails,
+}: Readonly<{
+  newPerson: NewPersonSummary;
+  candidates: readonly DuplicateCandidate[];
+  /** Why the review is shown again (the check ran again before the save). */
+  notice: string | null;
+  personHref: (personId: string) => string;
+  variantLabel: (variant: string) => string;
+  busy: boolean;
+  onProceed: (reason: string) => void;
+  onChangeDetails: () => void;
+}>) {
+  const [reason, setReason] = useState("");
+  const [reasonError, setReasonError] = useState<string | null>(null);
+  const reasonId = useId();
+  const blocked = candidates.filter((candidate) => candidate.confidence === "EXACT_IDENTIFIER");
+  const count = candidates.length === 1 ? "1 person" : `${candidates.length} people`;
+
+  const proceed = () => {
+    const trimmed = reason.trim();
+    if (!trimmed) {
+      setReasonError("Say why this is a different person.");
+      return;
+    }
+    if (trimmed.length > reasonMaxLength) {
+      setReasonError(`Keep the reason to ${reasonMaxLength} characters.`);
+      return;
+    }
+    setReasonError(null);
+    onProceed(trimmed);
+  };
+
+  return (
+    <section className="grid gap-5" aria-labelledby="duplicate-review-heading">
+      <header className="grid gap-1">
+        <h2 id="duplicate-review-heading" className="text-xl font-semibold">
+          Is this someone you already have?
+        </h2>
+        <p className="text-muted-foreground">
+          {count} may be {newPerson.displayName}. Open the existing record if it is the same person.
+        </p>
+      </header>
+      {notice ? (
+        <Alert>
+          <Info aria-hidden="true" />
+          <AlertDescription>{notice}</AlertDescription>
+        </Alert>
+      ) : null}
+
+      <ol className="grid gap-4" aria-label="People who may match">
+        {candidates.map((candidate) => (
+          <li key={candidate.personId} className="grid gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant={candidate.confidence === "POSSIBLE" ? "outline" : "default"}>
+                {confidenceLabels[candidate.confidence]}
+              </Badge>
+            </div>
+            <div className="grid gap-3 tablet:grid-cols-2">
+              <Column title="New person">
+                <Fact term="Name">{newPerson.displayName}</Fact>
+                <Fact term="Born">{newPerson.born}</Fact>
+                <Fact term="Nationality">{newPerson.nationality}</Fact>
+              </Column>
+              <Column title="Already registered">
+                <Fact term="Name">{candidate.displayName}</Fact>
+                <Fact term="Born">{candidate.birthYear ?? "Not recorded"}</Fact>
+                <Fact term="Status">
+                  <StatusBadge status={candidate.status} />
+                </Fact>
+                <Fact term="Plays">
+                  {candidate.athleteVariants.length > 0
+                    ? candidate.athleteVariants.map(variantLabel).join(", ")
+                    : "No sport recorded"}
+                </Fact>
+              </Column>
+            </div>
+            <div className="grid gap-1">
+              <h4 className="text-sm font-medium">Why they match</h4>
+              <ul className="list-disc pl-5 text-sm">
+                {candidate.evidence.map((evidence) => (
+                  <li key={`${evidence.code}-${evidence.value ?? ""}`}>{evidenceText(evidence)}</li>
+                ))}
+              </ul>
+            </div>
+            <Button asChild variant="outline" className="h-auto min-h-11 justify-self-start py-2 whitespace-normal">
+              <Link href={personHref(candidate.personId)}>Open {candidate.displayName}</Link>
+            </Button>
+          </li>
+        ))}
+      </ol>
+
+      {blocked.length > 0 ? (
+        <div className="grid gap-3">
+          <Alert variant="destructive">
+            <AlertTitle>This identifier is already in use</AlertTitle>
+            <AlertDescription>
+              {blocked.map((candidate) => candidate.displayName).join(", ")} already{" "}
+              {blocked.length === 1 ? "holds" : "hold"} an identifier you entered. One identifier belongs to one person:
+              open the existing record, or change the identifier.
+            </AlertDescription>
+          </Alert>
+          <Button variant="outline" className="justify-self-start" onClick={onChangeDetails}>
+            Change the details
+          </Button>
+        </div>
+      ) : (
+        <form
+          className="grid gap-3 rounded-md border p-4"
+          noValidate
+          onSubmit={(event) => {
+            event.preventDefault();
+            proceed();
+          }}
+        >
+          <h3 className="font-semibold">Not the same person?</h3>
+          <div className="grid gap-2">
+            <Label htmlFor={reasonId}>Why is {newPerson.displayName} a different person?</Label>
+            <Textarea
+              id={reasonId}
+              value={reason}
+              maxLength={reasonMaxLength}
+              aria-invalid={reasonError ? true : undefined}
+              aria-describedby={`${reasonId}-hint${reasonError ? ` ${reasonId}-error` : ""}`}
+              onChange={(event) => setReason(event.target.value)}
+            />
+            <p id={`${reasonId}-hint`} className="text-sm text-muted-foreground">
+              Kept with the record for good, so don&apos;t include personal details. For example: &ldquo;Different
+              parents; checked with the club.&rdquo;
+            </p>
+            {reasonError ? (
+              <p id={`${reasonId}-error`} className="text-sm text-destructive">
+                {reasonError}
+              </p>
+            ) : null}
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <Button type="submit" disabled={busy}>
+              {busy ? "Adding…" : "Add as a new person"}
+            </Button>
+            <Button type="button" variant="outline" onClick={onChangeDetails}>
+              Change the details
+            </Button>
+          </div>
+        </form>
+      )}
+    </section>
+  );
+}
