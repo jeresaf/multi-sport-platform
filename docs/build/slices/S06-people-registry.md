@@ -696,4 +696,7 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   Withdraw (scopes and a reason) on an active consent; D14's Data processing wording a marked placeholder until Q13's
   text. The private read is asked again after a consent change (its records changed). `fieldError` (form-errors.ts)
   puts the API's `file` refusal under the file input; the test fake API records multipart bodies. Screenshots
-  `consent-dialog`, `withdraw-consent-dialog`.
+  `consent-dialog`, `withdraw-consent-dialog`. Pre-review (ready, no blocker or major): a refused upload is announced
+  and focuses the file; the refusal wording waits for the refusal (not shown during the first upload); after the
+  switch, focus goes to the profile's state; Reload after a partial success still announces it; one private read for
+  the record and its evidence; the switch's direction frozen at opening.

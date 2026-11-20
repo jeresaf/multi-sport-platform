@@ -18,6 +18,7 @@ import {
   consentScopes,
   guardianRelationships,
   useRecordConsent,
+  useRefreshPrivate,
   useUploadEvidence,
   type ConsentScope,
   type GuardianRelationship,
@@ -100,15 +101,25 @@ export function ConsentDialog({
   const [opened] = useState<OpenedPerson>(() => ({ id: person.id, version: person.version }));
   // Once the consent is recorded: its id and the person's version that answered (the upload's basis).
   const [recorded, setRecorded] = useState<{ consentId: string; version: number } | undefined>();
+  // An upload after the record was refused: the dialog now only offers the upload again.
+  const [uploadRefused, setUploadRefused] = useState(false);
   const record = useRecordConsent(opened);
   const upload = useUploadEvidence(person.id);
   const reload = useReloadPerson(person.id);
+  const refreshPrivate = useRefreshPrivate(person.id);
   const errors = form.formState.errors;
 
   const sendEvidence = (consentId: string, version: number, chosen: File) =>
     upload.mutate(
       { consentId, version, file: chosen },
-      { onSuccess: () => onSaved("Consent recorded with its evidence.", consentId) },
+      {
+        onSuccess: () => onSaved("Consent recorded with its evidence.", consentId),
+        onError: () => {
+          setUploadRefused(true);
+          // The file is what to change: its refusal is under it.
+          document.getElementById("consent-evidence")?.focus();
+        },
+      },
     );
 
   const submit = recorded
@@ -129,15 +140,22 @@ export function ConsentDialog({
         const before = new Set(person.consents.map((consent) => consent.id));
         record.mutate(
           {
-            guardianName: values.guardianName.trim(),
-            relationship: values.relationship as GuardianRelationship,
-            contact: values.contact.trim(),
-            scopes: values.scopes,
-            givenOn: values.givenOn,
+            body: {
+              guardianName: values.guardianName.trim(),
+              relationship: values.relationship as GuardianRelationship,
+              contact: values.contact.trim(),
+              scopes: values.scopes,
+              givenOn: values.givenOn,
+            },
+            evidenceFollows: file !== undefined,
           },
           {
             onSuccess: (saved) => {
-              const consentId = saved.consents.find((consent) => !before.has(consent.id))?.id ?? "";
+              const consentId = saved.consents.find((consent) => !before.has(consent.id))?.id;
+              if (!consentId) {
+                // The API answers the person with the new consent (T6a): without it, this page is wrong.
+                throw new Error("The recorded consent isn't in the person the API answered.");
+              }
               if (file) {
                 setRecorded({ consentId, version: saved.version });
                 sendEvidence(consentId, saved.version, file);
@@ -150,9 +168,10 @@ export function ConsentDialog({
         );
       });
 
-  // After the record: closing keeps the consent (announced) without its evidence.
+  // After the record: closing keeps the consent (announced) without its evidence; the private read waited for this.
   const close = (open: boolean) => {
     if (!open && recorded) {
+      void refreshPrivate();
       onSaved("Consent recorded without its evidence.", recorded.consentId);
       return;
     }
@@ -160,16 +179,15 @@ export function ConsentDialog({
   };
 
   const error = recorded ? upload.error : record.error;
+  const refusedNote = "The consent is recorded. Its evidence wasn't uploaded: choose the file again, or close to add it later.";
 
   return (
     <CommandDialog
       title={`Record consent for ${person.displayName}`}
       description={
-        recorded
-          ? "The consent is recorded. Its evidence wasn't uploaded: choose the file again, or close to add it later."
-          : "What a parent or guardian agreed to. The guardian's details are private."
+        uploadRefused ? refusedNote : "What a parent or guardian agreed to. The guardian's details are private."
       }
-      submitLabel={recorded ? "Upload evidence" : "Record consent"}
+      submitLabel={uploadRefused ? "Upload evidence" : "Record consent"}
       pending={record.isPending || upload.isPending}
       error={error}
       showAlert={recorded ? upload.isError && needsAlert(upload.error, evidenceFields) : record.isError && needsAlert(record.error, fields)}
@@ -179,9 +197,13 @@ export function ConsentDialog({
       onCloseAutoFocus={onCloseAutoFocus}
       onReload={() => {
         void reload();
-        onOpenChange(false);
+        close(false);
       }}
     >
+      {/* Said to screen readers as it happens: the description changed, but isn't announced. */}
+      <p role="status" className="sr-only">
+        {uploadRefused ? refusedNote : ""}
+      </p>
       <FormField
         id="consent-guardian-name"
         label="Guardian's name"
@@ -242,7 +264,7 @@ export function ConsentDialog({
       />
       <EvidenceField
         id="consent-evidence"
-        label={recorded ? "Evidence" : "Evidence (optional)"}
+        label={uploadRefused ? "Evidence" : "Evidence (optional)"}
         error={fileError ?? fieldError(upload.error, "file")}
         onChange={(chosen) => {
           setFile(chosen);

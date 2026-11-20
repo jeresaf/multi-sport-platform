@@ -167,10 +167,8 @@ describe("consent", () => {
     expect(tabStatus()).toBe("Consent recorded with its evidence.");
     await waitFor(() => expect(document.activeElement?.id).toBe(`consent-${newConsentId}`));
     expect(screen.getByText("On file")).toBeTruthy();
-    // The guardians changed: the private read is asked again.
-    await waitFor(() =>
-      expect(requests.filter((request) => request.path.endsWith("/private")).length).toBeGreaterThan(1),
-    );
+    // The guardians changed: the private read (audited) is asked again, once for the record and its evidence.
+    await waitFor(() => expect(requests.filter((request) => request.path.endsWith("/private"))).toHaveLength(2));
   });
 
   it("keeps the consent when its evidence is refused, and uploads another file", async () => {
@@ -192,9 +190,13 @@ describe("consent", () => {
     chooseFile("Evidence (optional)", new File(["GIF89a"], "form.gif", { type: "image/gif" }));
     fireEvent.click(within(dialog()).getByRole("button", { name: "Record consent" }));
 
-    expect(await within(dialog()).findByText(/The consent is recorded\. Its evidence wasn't uploaded/)).toBeTruthy();
+    // Said to screen readers, and the focus goes to the file.
+    await waitFor(() =>
+      expect(within(dialog()).getByRole("status").textContent).toMatch(/^The consent is recorded\. Its evidence wasn't uploaded/),
+    );
     const fileInput = within(dialog()).getByLabelText("Evidence");
     await waitFor(() => expect(fileInput.getAttribute("aria-invalid")).toBe("true"));
+    expect(document.activeElement).toBe(fileInput);
     expect(within(dialog()).getByLabelText("Guardian's name")).toHaveProperty("disabled", true);
 
     chooseFile("Evidence", signedForm());
@@ -208,7 +210,7 @@ describe("consent", () => {
   });
 
   it("closing after a refused upload announces the consent without its evidence", async () => {
-    open(nakato, registrar, {
+    const requests = open(nakato, registrar, {
       [`POST /api/admin/v1/people/${nakato.id}/consents`]: { status: 200, body: nakatoWithConsent(false, 8) },
       [`PUT /api/admin/v1/people/${nakato.id}/consents/${newConsentId}/evidence`]: {
         status: 413,
@@ -219,11 +221,14 @@ describe("consent", () => {
     await fillConsent();
     chooseFile("Evidence (optional)", signedForm());
     fireEvent.click(within(dialog()).getByRole("button", { name: "Record consent" }));
-    await within(dialog()).findByText(/The consent is recorded/);
+    await within(dialog()).findByRole("button", { name: "Upload evidence" });
     fireEvent.click(within(dialog()).getByRole("button", { name: "Cancel" }));
 
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect(tabStatus()).toBe("Consent recorded without its evidence.");
+    await waitFor(() => expect(document.activeElement?.id).toBe(`consent-${newConsentId}`));
+    // The private read waited for the dialog's end: asked again once.
+    await waitFor(() => expect(requests.filter((request) => request.path.endsWith("/private"))).toHaveLength(2));
   });
 
   it("checks the form and the file before sending, and shows a refused field under it", async () => {
@@ -402,6 +407,9 @@ describe("public profile", () => {
 
     await sent(requests, "POST", `/api/admin/v1/people/${nakato.id}/public-profile/disable`);
     expect(await screen.findByText("Public profile off")).toBeTruthy();
+    // Turning on is now disabled (no consent): the focus goes to the profile's state, not lost on the button.
+    expect(screen.getByRole("button", { name: "Turn on public profile" })).toHaveProperty("disabled", true);
+    await waitFor(() => expect(document.activeElement?.id).toBe("public-profile-state"));
   });
 
   it("isn't turned on for an archived person, but is turned off", async () => {

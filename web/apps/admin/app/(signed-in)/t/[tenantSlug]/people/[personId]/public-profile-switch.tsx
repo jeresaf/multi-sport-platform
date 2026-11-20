@@ -5,7 +5,7 @@
 // deceased person isn't turned on. Turning off works in any status. The control says why it can't be used rather
 // than sending a change the API would refuse.
 import { Button } from "@msp/ui/components/button";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ActionDialog } from "@/components/action-dialog";
 import { UnavailableNote } from "@/components/unavailable-note";
 import { useTenantWorkspace } from "@/lib/tenant-workspace";
@@ -48,6 +48,8 @@ export function PublicProfileSwitch({ person }: Readonly<{ person: Person }>) {
   const action = on ? consentActions.disable : consentActions.enable;
   const [open, setOpen] = useState(false);
   const [announcement, setAnnouncement] = useState("");
+  // After a change, focus goes to the profile's state: the button may now be disabled (no consent, archived).
+  const changed = useRef(false);
   const offered = can(action) || unavailable(action) !== null;
   const hidden = hiddenBecause(person);
 
@@ -55,7 +57,7 @@ export function PublicProfileSwitch({ person }: Readonly<{ person: Person }>) {
   return (
     <div className="grid gap-2">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm text-muted-foreground">
+        <span id="public-profile-state" tabIndex={-1} className="text-sm text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring">
           Public profile {on ? "on" : "off"}
           {hidden ? ` (${hidden})` : null}
         </span>
@@ -80,8 +82,17 @@ export function PublicProfileSwitch({ person }: Readonly<{ person: Person }>) {
           on={!on}
           onOpenChange={setOpen}
           onSaved={(message) => {
+            changed.current = true;
             setAnnouncement(message);
             setOpen(false);
+          }}
+          onCloseAutoFocus={(event) => {
+            const state = changed.current ? document.getElementById("public-profile-state") : null;
+            changed.current = false;
+            if (state) {
+              event.preventDefault();
+              state.focus();
+            }
           }}
         />
       ) : null}
@@ -91,12 +102,20 @@ export function PublicProfileSwitch({ person }: Readonly<{ person: Person }>) {
 
 function SwitchDialog({
   person,
-  on,
+  on: asked,
   onOpenChange,
   onSaved,
-}: Readonly<{ person: Person; on: boolean; onOpenChange: (open: boolean) => void; onSaved: (message: string) => void }>) {
-  // The version the dialog opened on (#110 R1).
+  onCloseAutoFocus,
+}: Readonly<{
+  person: Person;
+  on: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSaved: (message: string) => void;
+  onCloseAutoFocus: (event: Event) => void;
+}>) {
+  // The version and the direction the dialog opened on (#110 R1): a newer read while it is open changes neither.
   const [opened] = useState<OpenedPerson>(() => ({ id: person.id, version: person.version }));
+  const [on] = useState(asked);
   const change = useSwitchPublicProfile(opened, on);
   const reload = useReloadPerson(person.id);
   const description = on
@@ -118,6 +137,7 @@ function SwitchDialog({
         void reload();
         onOpenChange(false);
       }}
+      onCloseAutoFocus={onCloseAutoFocus}
     />
   );
 }

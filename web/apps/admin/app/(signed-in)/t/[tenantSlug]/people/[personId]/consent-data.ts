@@ -32,31 +32,42 @@ export const consentActions = {
 export const evidenceAccept = "application/pdf,image/jpeg,image/png";
 export const evidenceMaxBytes = 10 * 1024 * 1024;
 
-/** Keeps the person a change answered; with `consents`, the private read is asked again (its records changed). */
-function useKeepPerson() {
+/**
+ * Asks the private read again (its consent records changed). It is audited, so a change made of two calls (a consent,
+ * then its evidence) asks it once, at the end.
+ */
+export function useRefreshPrivate(personId: string) {
   const { tenant } = useTenantWorkspace();
   const queryClient = useQueryClient();
+  return () => queryClient.invalidateQueries({ queryKey: ["person-private", tenant.tenantId, personId] });
+}
+
+/** Keeps the person a change answered; with `consents`, the private read is asked again. */
+function useKeepPerson(personId: string) {
+  const { tenant } = useTenantWorkspace();
+  const queryClient = useQueryClient();
+  const refreshPrivate = useRefreshPrivate(personId);
   return (person: Person, consents: boolean) => {
     queryClient.setQueryData(personQueryKey(tenant.tenantId, person.id), person);
     if (consents) {
-      void queryClient.invalidateQueries({ queryKey: ["person-private", tenant.tenantId, person.id] });
+      void refreshPrivate();
     }
   };
 }
 
-/** Records a guardian's consent. */
+/** Records a guardian's consent; with `evidenceFollows`, the private read waits for the upload (or the dialog's end). */
 export function useRecordConsent(person: OpenedPerson) {
   const { client } = useTenantWorkspace();
-  const keep = useKeepPerson();
+  const keep = useKeepPerson(person.id);
   return useMutation({
-    mutationFn: (body: RecordConsentRequest) =>
+    mutationFn: ({ body }: { body: RecordConsentRequest; evidenceFollows: boolean }) =>
       call(
         client.POST("/api/admin/v1/people/{personId}/consents", {
           params: { path: { personId: person.id }, header: ifMatch(person.version) },
           body,
         }),
       ),
-    onSuccess: (saved) => keep(saved, true),
+    onSuccess: (saved, { evidenceFollows }) => keep(saved, !evidenceFollows),
   });
 }
 
@@ -66,7 +77,7 @@ export function useRecordConsent(person: OpenedPerson) {
  */
 export function useUploadEvidence(personId: string) {
   const { client } = useTenantWorkspace();
-  const keep = useKeepPerson();
+  const keep = useKeepPerson(personId);
   return useMutation({
     mutationFn: ({ consentId, version, file }: { consentId: string; version: number; file: File }) => {
       const form = new FormData();
@@ -87,7 +98,7 @@ export function useUploadEvidence(personId: string) {
 /** Withdraws some or all of a consent's scopes, with the reason the audit trail keeps. */
 export function useWithdrawConsent(person: OpenedPerson, consentId: string) {
   const { client } = useTenantWorkspace();
-  const keep = useKeepPerson();
+  const keep = useKeepPerson(person.id);
   return useMutation({
     mutationFn: (body: { scopes: ConsentScope[]; reason: string }) =>
       call(
@@ -103,7 +114,7 @@ export function useWithdrawConsent(person: OpenedPerson, consentId: string) {
 /** Turns the public profile on or off (no body). */
 export function useSwitchPublicProfile(person: OpenedPerson, on: boolean) {
   const { client } = useTenantWorkspace();
-  const keep = useKeepPerson();
+  const keep = useKeepPerson(person.id);
   return useMutation({
     mutationFn: () => {
       const params = { path: { personId: person.id }, header: ifMatch(person.version) };
