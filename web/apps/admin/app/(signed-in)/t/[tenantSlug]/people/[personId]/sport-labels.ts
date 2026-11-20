@@ -10,6 +10,8 @@ import { useTenantWorkspace } from "@/lib/tenant-workspace";
 import { useSportVariants } from "../../sports/sports-data";
 
 export type SportLabels = {
+  /** The variant's latest definition once read (its positions and roles for a form's choices). */
+  definition: (variant: string) => SportDefinition | undefined;
   variant: (variant: string) => string;
   position: (variant: string, code: string) => string;
   staffRole: (variant: string, code: string) => string;
@@ -35,6 +37,7 @@ export function useSportLabels(variants: readonly string[]): SportLabels {
     items?.find((item) => item.code === code)?.label ?? codeLabel(code);
 
   return {
+    definition,
     variant: (variant) =>
       definition(variant)?.name ?? list.data?.items.find((item) => item.variant === variant)?.name ?? codeLabel(variant),
     position: (variant, code) => label(definition(variant)?.positions, code),

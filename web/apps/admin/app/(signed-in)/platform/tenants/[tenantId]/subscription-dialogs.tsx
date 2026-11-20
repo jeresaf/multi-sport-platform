@@ -4,21 +4,12 @@
 // command and hands the subscription it answers with to the panel; a refusal stays in the dialog, under its field
 // when it names one.
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button } from "@msp/ui/components/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@msp/ui/components/dialog";
 import { useMutation } from "@tanstack/react-query";
-import { useEffect, type ReactNode } from "react";
+import { useEffect } from "react";
 import { useForm, type FieldValues, type UseFormSetError } from "react-hook-form";
 import { z } from "zod";
+import { CommandDialog } from "@/components/command-dialog";
 import { FormField } from "@/components/form-field";
-import { ProblemAlert } from "@/components/problem-alert";
 import { SelectField } from "@/components/select-field";
 import { api, call } from "@/lib/api";
 import { humanizeCode } from "@/lib/codes";
@@ -71,62 +62,6 @@ function useCommand<T extends FieldValues, V>(
   });
   const alert = command.isError && needsAlert(command.error, fields);
   return { command, alert };
-}
-
-/** A command's dialog: title, what it does, its alert, its fields and its buttons. */
-export function CommandDialog({
-  title,
-  description,
-  submitLabel,
-  pending,
-  error,
-  showAlert,
-  confirmDisabled = false,
-  onSubmit,
-  onOpenChange,
-  children,
-}: Readonly<{
-  title: string;
-  description: ReactNode;
-  submitLabel: string;
-  pending: boolean;
-  error: unknown;
-  showAlert: boolean;
-  /** The command no longer applies (the subscription was read again after a refusal): its refusal stays, sending doesn't. */
-  confirmDisabled?: boolean;
-  onSubmit: () => void;
-  onOpenChange: (open: boolean) => void;
-  children: ReactNode;
-}>) {
-  return (
-    <Dialog open onOpenChange={(open) => !pending && onOpenChange(open)}>
-      <DialogContent className="max-h-[90dvh] overflow-y-auto">
-        <form
-          className="grid gap-4"
-          noValidate
-          onSubmit={(event) => {
-            event.preventDefault();
-            onSubmit();
-          }}
-        >
-          <DialogHeader>
-            <DialogTitle>{title}</DialogTitle>
-            <DialogDescription>{description}</DialogDescription>
-          </DialogHeader>
-          {showAlert ? <ProblemAlert error={error} /> : null}
-          {children}
-          <DialogFooter>
-            <Button variant="outline" disabled={pending} onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={pending || confirmDisabled}>
-              {pending ? "Saving…" : submitLabel}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
 }
 
 function PlanOptions({ plans }: Readonly<{ plans: readonly Plan[] }>) {

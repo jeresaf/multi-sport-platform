@@ -10,6 +10,7 @@ import { useMutation } from "@tanstack/react-query";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { reasonMaxLength } from "@/components/action-dialog";
+import { CommandDialog } from "@/components/command-dialog";
 import { FormField } from "@/components/form-field";
 import { SelectField } from "@/components/select-field";
 import { api, call } from "@/lib/api";
@@ -17,7 +18,6 @@ import { humanizeCode } from "@/lib/codes";
 import { formatEntitlementValue, type EntitlementDefinition, type EntitlementValue } from "@/lib/entitlements";
 import { applyFieldErrors, needsAlert } from "@/lib/form-errors";
 import { useSubscriptionReload, type Subscription } from "./subscription-data";
-import { CommandDialog } from "./subscription-dialogs";
 
 const schema = (definitions: readonly EntitlementDefinition[]) =>
   z
