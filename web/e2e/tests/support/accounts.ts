@@ -75,6 +75,18 @@ export async function createTenant(request: APIRequestContext, slug: string, dis
   return id;
 }
 
+export type OwnTenant = { id: string; slug: string; name: string };
+
+/**
+ * A tenant of this run's own, created and activated as `createTenant` does: a test-only name (pilot-customer.md, "Other
+ * tenants") made run-unique. Specs that add members use one rather than KMSA or ELSSC, which stay the manual demo and
+ * would otherwise pass STANDARD's staff limit on a reused database (S06-T7a).
+ */
+export async function ownTenant(request: APIRequestContext, slug: string, name: string): Promise<OwnTenant> {
+  const tenant = { slug: `${slug}-${run}`, name: `${name} ${run}` };
+  return { ...tenant, id: await createTenant(request, tenant.slug, tenant.name) };
+}
+
 /** A date in Kampala `days` from today, as the API's dates (`2026-10-23`): subscription days are the tenant's (S04 D3). */
 export function kampalaDate(days: number): string {
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Kampala" }).format(new Date());
