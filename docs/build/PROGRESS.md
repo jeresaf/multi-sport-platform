@@ -7,11 +7,12 @@ at the start of every review.
 
 - **Current slice:** S06 — People registry (docs/build/slices/S06-people-registry.md, written by the S05 slice review).
   S00–S05 are done
-- **Current task:** S06-T7c-2a — photo, external identifiers and aliases — in review (#112) (web only; plan approved
-  2026-11-20: T7c-2 split into T7c-2a and T7c-2b; Q46: the page caps "valid from" at the tenant's today; Q47 deferred
-  to the import slice; editing the details on a page of its own in T7c-2b)
-- **Next:** S06-T7c-2b — Edit details (D8's check with T7b's review) and the lifecycle dialogs
-- **Blocked on:** the review of T7c-2a
+- **Current task:** S06-T7c-2b — Edit details (D8's check with T7b's review) and the lifecycle dialogs — in progress
+  (web only; plan approved 2026-11-20 with the defaults: Edit details needs `person.update`, `person.read_private`
+  and `person.duplicate_check`; the check runs when the names, date of birth or nationalities differ as typed; the
+  actions are header buttons; one PR)
+- **Next:** S06-T7d — Seeds, demo e2e, screenshots, slice close
+- **Blocked on:** nothing
 
 ## Next up
 
