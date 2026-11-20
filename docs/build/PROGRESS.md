@@ -7,13 +7,15 @@ at the start of every review.
 
 - **Current slice:** S06 — People registry (docs/build/slices/S06-people-registry.md, written by the S05 slice review).
   S00–S05 are done
-- **Current task:** S06-T6b — the public profile actions, the public person read and its photo route — in review (#107)
-- **Next:** S06-T7 — screens, demo data and slice close
-- **Blocked on:** the review of T6b
+- **Current task:** S06-T7a — People directory and the read-only person page; e2e specs on tenants of their own
+- **Next:** S06-T7b — search-first create and the duplicate review
+- **Blocked on:** —
 
 ## Next up
 
-1. S06-T7 — Screens, demo data and slice close (likely T7a–T7d)
+1. S06-T7b — Search-first create and the duplicate review
+2. S06-T7c — Profiles, consent, photo, identifiers, lifecycle
+3. S06-T7d — Seeds, demo e2e, screenshots, slice close
 
 ## Log
 

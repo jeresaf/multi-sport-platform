@@ -28,9 +28,13 @@ const icons: Readonly<Record<string, LucideIcon>> = {
   EXPIRING: AlarmClock,
   GRACE: Hourglass,
   CANCELLED: CircleX,
+  INACTIVE: CirclePause,
+  DECEASED: CircleMinus,
+  RETIRED: CircleMinus,
+  WITHDRAWN: CircleX,
 };
 
-/** A record's status (membership, invitation, tenant, subscription period) as an icon and its name. */
+/** A record's status (membership, invitation, tenant, subscription period, person, profile, consent) as an icon and its name. */
 export function StatusBadge({ status }: Readonly<{ status: string }>) {
   const Icon = icons[status] ?? CircleDashed;
   return (
