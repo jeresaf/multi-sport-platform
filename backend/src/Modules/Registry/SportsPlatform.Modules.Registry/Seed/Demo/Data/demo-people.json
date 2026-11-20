@@ -1,0 +1,834 @@
+{
+  "_comment": "Demo people (S06 D23; docs/product/pilot-customer.md). Every name is invented. Birth dates are relative to the seed date (ageYears, ageDays); 'club' is the team the person plays for or works with, kept for S08's teams and not seeded yet.",
+  "tenants": [
+    {
+      "slug": "kmsa",
+      "people": [
+        {
+          "firstName": "John",
+          "lastName": "Ssekandi",
+          "gender": "MALE",
+          "ageYears": 25,
+          "ageDays": 141,
+          "nationality": "UG",
+          "club": "Ntinda Swifts FC Senior Men",
+          "athlete": {
+            "variant": "FOOTBALL_ASSOCIATION",
+            "primaryPosition": "ST",
+            "otherPositions": [
+              "AM"
+            ],
+            "dominantSide": "RIGHT"
+          },
+          "photo": true
+        },
+        {
+          "firstName": "Peter",
+          "lastName": "Ochieng",
+          "gender": "MALE",
+          "ageYears": 27,
+          "ageDays": 63,
+          "nationality": "UG",
+          "club": "Kisaasi Kestrels FC Senior Men",
+          "athlete": {
+            "variant": "FOOTBALL_ASSOCIATION",
+            "primaryPosition": "CB",
+            "dominantSide": "LEFT"
+          }
+        },
+        {
+          "firstName": "Peter",
+          "middleName": "Ochieng",
+          "lastName": "Okot",
+          "gender": "MALE",
+          "ageYears": 27,
+          "ageDays": 63,
+          "nationality": "UG",
+          "club": "Bukoto Comets FC",
+          "athlete": {
+            "variant": "FOOTBALL_ASSOCIATION",
+            "primaryPosition": "DM"
+          },
+          "overrideReason": "Not the same person: another player of the same name"
+        },
+        {
+          "firstName": "Mariam",
+          "lastName": "Nankya",
+          "gender": "FEMALE",
+          "ageYears": 22,
+          "ageDays": 58,
+          "nationality": "UG",
+          "club": "Kisaasi Kestrels FC Senior Women",
+          "athlete": {
+            "variant": "FOOTBALL_ASSOCIATION",
+            "primaryPosition": "LW"
+          },
+          "photo": true
+        },
+        {
+          "firstName": "Babirye",
+          "middleName": "Lillian",
+          "lastName": "Namaganda",
+          "gender": "FEMALE",
+          "ageYears": 20,
+          "ageDays": 201,
+          "nationality": "UG",
+          "club": "Ntinda Swifts FC Senior Women",
+          "athlete": {
+            "variant": "FOOTBALL_ASSOCIATION",
+            "primaryPosition": "DM"
+          }
+        },
+        {
+          "firstName": "Nakato",
+          "middleName": "Irene",
+          "lastName": "Namaganda",
+          "gender": "FEMALE",
+          "ageYears": 20,
+          "ageDays": 201,
+          "nationality": "UG",
+          "club": "Ntinda Swifts FC Senior Women",
+          "athlete": {
+            "variant": "FOOTBALL_ASSOCIATION",
+            "primaryPosition": "AM"
+          },
+          "overrideReason": "Twin sister, different first name"
+        },
+        {
+          "firstName": "Denis",
+          "lastName": "Opoka",
+          "gender": "MALE",
+          "ageYears": 36,
+          "ageDays": 135,
+          "nationality": "UG",
+          "club": "Kansanga Harriers FC",
+          "athlete": {
+            "variant": "FOOTBALL_ASSOCIATION",
+            "primaryPosition": "GK"
+          },
+          "photo": true,
+          "staff": [
+            {
+              "variant": "FOOTBALL_ASSOCIATION",
+              "role": "ASSISTANT_COACH"
+            }
+          ],
+          "official": [
+            {
+              "variant": "FOOTBALL_ASSOCIATION",
+              "role": "REFEREE",
+              "grade": "Class 2",
+              "licenceNumber": "KMSA-REF-0112",
+              "licenceValidUntil": "2027-06-30"
+            }
+          ]
+        },
+        {
+          "firstName": "Ivan",
+          "lastName": "Mukasa",
+          "gender": "MALE",
+          "ageYears": 30,
+          "ageDays": 12,
+          "nationality": "UG",
+          "club": "Nakawa Nomads FC",
+          "athlete": {
+            "variant": "FOOTBALL_ASSOCIATION",
+            "primaryPosition": "RB"
+          },
+          "archiveReason": "Left the association"
+        },
+        {
+          "firstName": "Ronald",
+          "lastName": "Kiggundu",
+          "gender": "MALE",
+          "ageYears": 24,
+          "ageDays": 77,
+          "nationality": "UG",
+          "club": "Bukoto Comets FC",
+          "athlete": {
+            "variant": "FOOTBALL_ASSOCIATION",
+            "primaryPosition": "ST"
+          },
+          "photo": true
+        },
+        {
+          "firstName": "Hassan",
+          "lastName": "Wasswa",
+          "gender": "MALE",
+          "ageYears": 23,
+          "ageDays": 310,
+          "nationality": "UG",
+          "club": "Bukoto Comets FC",
+          "athlete": {
+            "variant": "FOOTBALL_ASSOCIATION",
+            "primaryPosition": "LB",
+            "dominantSide": "LEFT"
+          }
+        },
+        {
+          "firstName": "Emmanuel",
+          "lastName": "Okwir",
+          "gender": "MALE",
+          "ageYears": 26,
+          "ageDays": 40,
+          "nationality": "UG",
+          "club": "Kansanga Harriers FC",
+          "athlete": {
+            "variant": "FOOTBALL_ASSOCIATION",
+            "primaryPosition": "RW"
+          }
+        },
+        {
+          "firstName": "Simon",
+          "lastName": "Tumusiime",
+          "gender": "MALE",
+          "ageYears": 29,
+          "ageDays": 222,
+          "nationality": "UG",
+          "club": "Kansanga Harriers FC",
+          "athlete": {
+            "variant": "FOOTBALL_ASSOCIATION",
+            "primaryPosition": "CB"
+          }
+        },
+        {
+          "firstName": "Joseph",
+          "lastName": "Lubega",
+          "gender": "MALE",
+          "ageYears": 31,
+          "ageDays": 95,
+          "nationality": "UG",
+          "club": "Nakawa Nomads FC",
+          "athlete": {
+            "variant": "FOOTBALL_ASSOCIATION",
+            "primaryPosition": "GK"
+          }
+        },
+        {
+          "firstName": "Arnold",
+          "lastName": "Byaruhanga",
+          "gender": "MALE",
+          "ageYears": 22,
+          "ageDays": 180,
+          "nationality": "UG",
+          "club": "Nakawa Nomads FC",
+          "athlete": {
+            "variant": "FOOTBALL_ASSOCIATION",
+            "primaryPosition": "DM",
+            "otherPositions": [
+              "CM"
+            ]
+          }
+        },
+        {
+          "firstName": "Godfrey",
+          "lastName": "Ouma",
+          "gender": "MALE",
+          "ageYears": 25,
+          "ageDays": 260,
+          "nationality": "UG",
+          "club": "Kireka Kingfishers FC",
+          "athlete": {
+            "variant": "FOOTBALL_ASSOCIATION",
+            "primaryPosition": "AM"
+          },
+          "photo": true
+        },
+        {
+          "firstName": "Martin",
+          "lastName": "Ssenyonga",
+          "gender": "MALE",
+          "ageYears": 28,
+          "ageDays": 15,
+          "nationality": "UG",
+          "club": "Kireka Kingfishers FC",
+          "athlete": {
+            "variant": "FOOTBALL_ASSOCIATION",
+            "primaryPosition": "LM"
+          }
+        },
+        {
+          "firstName": "Allan",
+          "lastName": "Kizito",
+          "gender": "MALE",
+          "ageYears": 21,
+          "ageDays": 333,
+          "nationality": "UG",
+          "club": "Bunga Breakers FC",
+          "athlete": {
+            "variant": "FOOTBALL_ASSOCIATION",
+            "primaryPosition": "RM"
+          }
+        },
+        {
+          "firstName": "Rashid",
+          "lastName": "Mutyaba",
+          "gender": "MALE",
+          "ageYears": 24,
+          "ageDays": 120,
+          "nationality": "UG",
+          "club": "Bunga Breakers FC",
+          "athlete": {
+            "variant": "FOOTBALL_ASSOCIATION",
+            "primaryPosition": "ST"
+          }
+        },
+        {
+          "firstName": "Collins",
+          "lastName": "Ojok",
+          "gender": "MALE",
+          "ageYears": 27,
+          "ageDays": 300,
+          "nationality": "UG",
+          "club": "Seeta Sparrows FC",
+          "athlete": {
+            "variant": "FOOTBALL_ASSOCIATION",
+            "primaryPosition": "CB"
+          }
+        },
+        {
+          "firstName": "Julius",
+          "lastName": "Tusiime",
+          "gender": "MALE",
+          "ageYears": 23,
+          "ageDays": 45,
+          "nationality": "UG",
+          "club": "Seeta Sparrows FC",
+          "athlete": {
+            "variant": "FOOTBALL_ASSOCIATION",
+            "primaryPosition": "LW"
+          }
+        },
+        {
+          "firstName": "Eric",
+          "lastName": "Nsubuga",
+          "gender": "MALE",
+          "ageYears": 26,
+          "ageDays": 190,
+          "nationality": "UG",
+          "club": "Kyebando Ravens FC",
+          "athlete": {
+            "variant": "FOOTBALL_ASSOCIATION",
+            "primaryPosition": "RB"
+          }
+        },
+        {
+          "firstName": "Frank",
+          "lastName": "Ainomugisha",
+          "gender": "MALE",
+          "ageYears": 22,
+          "ageDays": 88,
+          "nationality": "UG",
+          "club": "Kyebando Ravens FC",
+          "athlete": {
+            "variant": "FOOTBALL_ASSOCIATION",
+            "primaryPosition": "CM"
+          }
+        },
+        {
+          "firstName": "Bosco",
+          "lastName": "Opiyo",
+          "gender": "MALE",
+          "ageYears": 30,
+          "ageDays": 250,
+          "nationality": "UG",
+          "club": "Mutundwe Meteors FC",
+          "athlete": {
+            "variant": "FOOTBALL_ASSOCIATION",
+            "primaryPosition": "GK"
+          }
+        },
+        {
+          "firstName": "Abdul",
+          "lastName": "Kawuma",
+          "gender": "MALE",
+          "ageYears": 25,
+          "ageDays": 5,
+          "nationality": "UG",
+          "club": "Mutundwe Meteors FC",
+          "athlete": {
+            "variant": "FOOTBALL_ASSOCIATION",
+            "primaryPosition": "ST"
+          }
+        },
+        {
+          "firstName": "Sharon",
+          "lastName": "Nalwoga",
+          "gender": "FEMALE",
+          "ageYears": 24,
+          "ageDays": 170,
+          "nationality": "UG",
+          "club": "Ntinda Swifts FC Senior Women",
+          "athlete": {
+            "variant": "FOOTBALL_ASSOCIATION",
+            "primaryPosition": "GK"
+          },
+          "photo": true
+        },
+        {
+          "firstName": "Prossy",
+          "lastName": "Nakiwala",
+          "gender": "FEMALE",
+          "ageYears": 21,
+          "ageDays": 66,
+          "nationality": "UG",
+          "club": "Ntinda Swifts FC Senior Women",
+          "athlete": {
+            "variant": "FOOTBALL_ASSOCIATION",
+            "primaryPosition": "CB"
+          }
+        },
+        {
+          "firstName": "Charles",
+          "lastName": "Mwesigwa",
+          "gender": "MALE",
+          "ageYears": 48,
+          "ageDays": 100,
+          "nationality": "UG",
+          "club": "Ntinda Swifts FC Senior Men",
+          "photo": true,
+          "staff": [
+            {
+              "variant": "FOOTBALL_ASSOCIATION",
+              "role": "HEAD_COACH",
+              "qualification": "Coaching licence, level B"
+            }
+          ]
+        },
+        {
+          "firstName": "Florence",
+          "lastName": "Akurut",
+          "gender": "FEMALE",
+          "ageYears": 41,
+          "ageDays": 210,
+          "nationality": "UG",
+          "club": "Kisaasi Kestrels FC Senior Men",
+          "staff": [
+            {
+              "variant": "FOOTBALL_ASSOCIATION",
+              "role": "PHYSIOTHERAPIST"
+            }
+          ]
+        },
+        {
+          "firstName": "Richard",
+          "lastName": "Ekwaro",
+          "gender": "MALE",
+          "ageYears": 39,
+          "ageDays": 30,
+          "nationality": "UG",
+          "photo": true,
+          "official": [
+            {
+              "variant": "FOOTBALL_ASSOCIATION",
+              "role": "REFEREE",
+              "grade": "Class 1",
+              "licenceNumber": "KMSA-REF-0087",
+              "licenceValidUntil": "2027-12-31"
+            }
+          ]
+        },
+        {
+          "firstName": "Winnie",
+          "lastName": "Nambooze",
+          "gender": "FEMALE",
+          "ageYears": 33,
+          "ageDays": 280,
+          "nationality": "UG",
+          "official": [
+            {
+              "variant": "FOOTBALL_ASSOCIATION",
+              "role": "ASSISTANT_REFEREE",
+              "grade": "Class 2"
+            }
+          ]
+        },
+        {
+          "firstName": "Brenda",
+          "lastName": "Akello",
+          "gender": "FEMALE",
+          "ageYears": 15,
+          "ageDays": 120,
+          "nationality": "UG",
+          "club": "Kisaasi Kestrels FC U17",
+          "athlete": {
+            "variant": "FOOTBALL_ASSOCIATION",
+            "primaryPosition": "CM"
+          }
+        },
+        {
+          "firstName": "Kevin",
+          "lastName": "Mayanja",
+          "gender": "MALE",
+          "ageYears": 16,
+          "ageDays": 30,
+          "nationality": "UG",
+          "club": "Ntinda Swifts FC U17",
+          "athlete": {
+            "variant": "FOOTBALL_ASSOCIATION",
+            "primaryPosition": "ST"
+          },
+          "photo": true,
+          "consent": {
+            "guardianName": "Rose Mayanja",
+            "relationship": "MOTHER",
+            "contact": "rose.mayanja@example.com",
+            "scopes": [
+              "DATA_PROCESSING",
+              "PUBLIC_PROFILE",
+              "PHOTO"
+            ],
+            "givenDaysAgo": 60,
+            "evidence": true
+          }
+        },
+        {
+          "firstName": "Ali",
+          "lastName": "Ssali",
+          "gender": "MALE",
+          "ageYears": 15,
+          "ageDays": 200,
+          "nationality": "UG",
+          "club": "Ntinda Swifts FC U17",
+          "athlete": {
+            "variant": "FOOTBALL_ASSOCIATION",
+            "primaryPosition": "CB"
+          },
+          "consent": {
+            "guardianName": "Musa Ssali",
+            "relationship": "FATHER",
+            "contact": "musa.ssali@example.com",
+            "scopes": [
+              "DATA_PROCESSING"
+            ],
+            "givenDaysAgo": 45,
+            "evidence": true
+          }
+        },
+        {
+          "firstName": "Gloria",
+          "lastName": "Atuhaire",
+          "gender": "FEMALE",
+          "ageYears": 14,
+          "ageDays": 90,
+          "nationality": "UG",
+          "club": "Kisaasi Kestrels FC U17",
+          "athlete": {
+            "variant": "FOOTBALL_ASSOCIATION",
+            "primaryPosition": "RW"
+          },
+          "photo": true,
+          "consent": {
+            "guardianName": "Jane Kyomuhendo",
+            "relationship": "GUARDIAN",
+            "contact": "jane.kyomuhendo@example.com",
+            "scopes": [
+              "DATA_PROCESSING",
+              "PHOTO"
+            ],
+            "givenDaysAgo": 30
+          }
+        },
+        {
+          "firstName": "Timothy",
+          "lastName": "Kasozi",
+          "gender": "MALE",
+          "ageYears": 16,
+          "ageDays": 250,
+          "nationality": "UG",
+          "club": "Kisaasi Kestrels FC U17",
+          "athlete": {
+            "variant": "FOOTBALL_ASSOCIATION",
+            "primaryPosition": "GK"
+          },
+          "consent": {
+            "guardianName": "Harriet Kasozi",
+            "relationship": "MOTHER",
+            "contact": "harriet.kasozi@example.com",
+            "scopes": [
+              "DATA_PROCESSING"
+            ],
+            "givenDaysAgo": 20
+          }
+        },
+        {
+          "firstName": "Daphine",
+          "lastName": "Achan",
+          "gender": "FEMALE",
+          "ageYears": 13,
+          "ageDays": 140,
+          "nationality": "UG",
+          "club": "Kisaasi Kestrels FC U17",
+          "athlete": {
+            "variant": "FOOTBALL_ASSOCIATION",
+            "primaryPosition": "LB"
+          }
+        },
+        {
+          "firstName": "Jonathan",
+          "lastName": "Ocen",
+          "gender": "MALE",
+          "ageYears": 16,
+          "ageDays": 10,
+          "nationality": "UG",
+          "club": "Ntinda Swifts FC U17",
+          "athlete": {
+            "variant": "FOOTBALL_ASSOCIATION",
+            "primaryPosition": "AM"
+          }
+        },
+        {
+          "firstName": "Faith",
+          "lastName": "Nalubega",
+          "gender": "FEMALE",
+          "ageYears": 15,
+          "ageDays": 300,
+          "nationality": "UG",
+          "club": "Ntinda Swifts FC U17",
+          "athlete": {
+            "variant": "FOOTBALL_ASSOCIATION",
+            "primaryPosition": "DM"
+          }
+        },
+        {
+          "firstName": "Elijah",
+          "lastName": "Kibirige",
+          "gender": "MALE",
+          "ageYears": 12,
+          "ageDays": 160,
+          "nationality": "UG",
+          "club": "Ntinda Swifts FC U17",
+          "athlete": {
+            "variant": "FOOTBALL_ASSOCIATION",
+            "primaryPosition": "LM"
+          }
+        },
+        {
+          "firstName": "Angela",
+          "lastName": "Nabukenya",
+          "gender": "FEMALE",
+          "ageYears": 16,
+          "ageDays": 75,
+          "nationality": "UG",
+          "club": "Kisaasi Kestrels FC U17",
+          "athlete": {
+            "variant": "FOOTBALL_ASSOCIATION",
+            "primaryPosition": "ST"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "elssc",
+      "people": [
+        {
+          "firstName": "Moureen",
+          "lastName": "Nakimuli",
+          "gender": "FEMALE",
+          "ageYears": 15,
+          "ageDays": 40,
+          "nationality": "UG",
+          "club": "Lakeshore High School",
+          "athlete": {
+            "variant": "FOOTBALL_ASSOCIATION",
+            "primaryPosition": "CM"
+          },
+          "photo": true,
+          "consent": {
+            "guardianName": "Betty Nakimuli",
+            "relationship": "MOTHER",
+            "contact": "betty.nakimuli@example.com",
+            "scopes": [
+              "DATA_PROCESSING",
+              "PUBLIC_PROFILE",
+              "PHOTO"
+            ],
+            "givenDaysAgo": 50,
+            "evidence": true
+          }
+        },
+        {
+          "firstName": "Ibrahim",
+          "lastName": "Waiswa",
+          "gender": "MALE",
+          "ageYears": 16,
+          "ageDays": 110,
+          "nationality": "UG",
+          "club": "Lakeshore High School",
+          "athlete": {
+            "variant": "FOOTBALL_ASSOCIATION",
+            "primaryPosition": "ST"
+          },
+          "consent": {
+            "guardianName": "Yusuf Waiswa",
+            "relationship": "FATHER",
+            "contact": "yusuf.waiswa@example.com",
+            "scopes": [
+              "DATA_PROCESSING",
+              "PUBLIC_PROFILE"
+            ],
+            "givenDaysAgo": 50,
+            "evidence": true
+          }
+        },
+        {
+          "firstName": "Lydia",
+          "lastName": "Apio",
+          "gender": "FEMALE",
+          "ageYears": 14,
+          "ageDays": 220,
+          "nationality": "UG",
+          "club": "Mabira Hills College",
+          "athlete": {
+            "variant": "FOOTBALL_ASSOCIATION",
+            "primaryPosition": "LB"
+          },
+          "consent": {
+            "guardianName": "Margaret Apio",
+            "relationship": "MOTHER",
+            "contact": "margaret.apio@example.com",
+            "scopes": [
+              "DATA_PROCESSING"
+            ],
+            "givenDaysAgo": 40
+          }
+        },
+        {
+          "firstName": "Samuel",
+          "lastName": "Odongo",
+          "gender": "MALE",
+          "ageYears": 13,
+          "ageDays": 60,
+          "nationality": "UG",
+          "club": "Mabira Hills College",
+          "athlete": {
+            "variant": "FOOTBALL_ASSOCIATION",
+            "primaryPosition": "GK"
+          },
+          "photo": true,
+          "consent": {
+            "guardianName": "Christopher Okumu",
+            "relationship": "GUARDIAN",
+            "contact": "christopher.okumu@example.com",
+            "scopes": [
+              "DATA_PROCESSING",
+              "PHOTO"
+            ],
+            "givenDaysAgo": 35
+          }
+        },
+        {
+          "firstName": "Patience",
+          "lastName": "Namubiru",
+          "gender": "FEMALE",
+          "ageYears": 16,
+          "ageDays": 280,
+          "nationality": "UG",
+          "club": "Riverside Secondary School",
+          "athlete": {
+            "variant": "FOOTBALL_ASSOCIATION",
+            "primaryPosition": "AM"
+          },
+          "photo": true,
+          "consent": {
+            "guardianName": "Teddy Namubiru",
+            "relationship": "MOTHER",
+            "contact": "teddy.namubiru@example.com",
+            "scopes": [
+              "DATA_PROCESSING",
+              "PUBLIC_PROFILE",
+              "PHOTO"
+            ],
+            "givenDaysAgo": 28,
+            "evidence": true
+          }
+        },
+        {
+          "firstName": "Hillary",
+          "lastName": "Ochan",
+          "gender": "MALE",
+          "ageYears": 15,
+          "ageDays": 150,
+          "nationality": "UG",
+          "club": "Riverside Secondary School",
+          "athlete": {
+            "variant": "FOOTBALL_ASSOCIATION",
+            "primaryPosition": "CB"
+          },
+          "consent": {
+            "guardianName": "Dominic Ochan",
+            "relationship": "FATHER",
+            "contact": "dominic.ochan@example.com",
+            "scopes": [
+              "DATA_PROCESSING"
+            ],
+            "givenDaysAgo": 21
+          }
+        },
+        {
+          "firstName": "Juliet",
+          "lastName": "Nabatanzi",
+          "gender": "FEMALE",
+          "ageYears": 12,
+          "ageDays": 190,
+          "nationality": "UG",
+          "club": "Sunrise Academy",
+          "athlete": {
+            "variant": "FOOTBALL_ASSOCIATION",
+            "primaryPosition": "RW"
+          },
+          "consent": {
+            "guardianName": "Annet Nabatanzi",
+            "relationship": "MOTHER",
+            "contact": "annet.nabatanzi@example.com",
+            "scopes": [
+              "DATA_PROCESSING",
+              "PHOTO"
+            ],
+            "givenDaysAgo": 14,
+            "evidence": true
+          }
+        },
+        {
+          "firstName": "Edwin",
+          "lastName": "Ahimbisibwe",
+          "gender": "MALE",
+          "ageYears": 14,
+          "ageDays": 20,
+          "nationality": "UG",
+          "club": "Sunrise Academy",
+          "athlete": {
+            "variant": "FOOTBALL_ASSOCIATION",
+            "primaryPosition": "RB"
+          }
+        },
+        {
+          "firstName": "Rebecca",
+          "lastName": "Akot",
+          "gender": "FEMALE",
+          "ageYears": 16,
+          "ageDays": 130,
+          "nationality": "UG",
+          "club": "Lakeshore High School",
+          "athlete": {
+            "variant": "FOOTBALL_ASSOCIATION",
+            "primaryPosition": "DM"
+          }
+        },
+        {
+          "firstName": "Victor",
+          "lastName": "Mugerwa",
+          "gender": "MALE",
+          "ageYears": 15,
+          "ageDays": 240,
+          "nationality": "UG",
+          "club": "Riverside Secondary School",
+          "athlete": {
+            "variant": "FOOTBALL_ASSOCIATION",
+            "primaryPosition": "LW"
+          }
+        }
+      ]
+    }
+  ]
+}
