@@ -8,7 +8,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { call } from "@/lib/api";
 import { ifMatch } from "@/lib/concurrency";
 import { useTenantWorkspace } from "@/lib/tenant-workspace";
-import { personQueryKey, type Person } from "../people-data";
+import { personPrivateQueryKey, personQueryKey, type Person } from "../people-data";
 import type { OpenedPerson } from "./profile-data";
 
 type Schemas = components["schemas"];
@@ -39,7 +39,7 @@ export const evidenceMaxBytes = 10 * 1024 * 1024;
 export function useRefreshPrivate(personId: string) {
   const { tenant } = useTenantWorkspace();
   const queryClient = useQueryClient();
-  return () => queryClient.invalidateQueries({ queryKey: ["person-private", tenant.tenantId, personId] });
+  return () => queryClient.invalidateQueries({ queryKey: personPrivateQueryKey(tenant.tenantId, personId) });
 }
 
 /** Keeps the person a change answered; with `consents`, the private read is asked again. */

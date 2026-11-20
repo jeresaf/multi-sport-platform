@@ -192,7 +192,10 @@ export function toCreateRequest(
   };
 }
 
-/** A person's biodata as Edit details shows it; the date of birth is the private read's (S06 D3). */
+/**
+ * A person's biodata as Edit details shows it; the date of birth is the private read's (S06 D3). A display name that
+ * is the default ("first last") is left empty, so it follows a change to the names (the API sets it again).
+ */
 export function fromPerson(
   person: Pick<
     Person,
@@ -214,7 +217,7 @@ export function fromPerson(
     middleName: person.middleName ?? "",
     lastName: person.lastName,
     otherNames: person.otherNames ?? "",
-    displayName: person.displayName,
+    displayName: person.displayName === `${person.firstName} ${person.lastName}` ? "" : person.displayName,
     gender: person.gender ?? "",
     dateOfBirth: dateOfBirth ?? "",
     nationality: person.nationality ?? "",

@@ -86,10 +86,14 @@ export function usePerson(personId: string) {
  * is asked only for a tab that shows them (`shown`: Overview and Consent) and the evidence's URLs are kept fresh only
  * while Consent is open (`consentOpen`).
  */
+export function personPrivateQueryKey(tenantId: string, personId: string) {
+  return ["person-private", tenantId, personId] as const;
+}
+
 export function usePersonPrivate(personId: string, shown: boolean, consentOpen: boolean) {
   const { tenant, client, can } = useTenantWorkspace();
   return useQuery({
-    queryKey: ["person-private", tenant.tenantId, personId],
+    queryKey: personPrivateQueryKey(tenant.tenantId, personId),
     queryFn: () => call(client.GET("/api/admin/v1/people/{personId}/private", { params: { path: { personId } } })),
     enabled: can("person.read_private") && shown,
     // Read once per visit: going to Roles and back keeps it (a re-enabled stale query would be read, and audited,
@@ -102,10 +106,14 @@ export function usePersonPrivate(personId: string, shown: boolean, consentOpen: 
   });
 }
 
+export function personStatusChangesQueryKey(tenantId: string, personId: string) {
+  return ["person-status-changes", tenantId, personId] as const;
+}
+
 export function usePersonStatusChanges(personId: string) {
   const { tenant, client, can } = useTenantWorkspace();
   return useQuery({
-    queryKey: ["person-status-changes", tenant.tenantId, personId],
+    queryKey: personStatusChangesQueryKey(tenant.tenantId, personId),
     queryFn: () =>
       call(client.GET("/api/admin/v1/people/{personId}/status-changes", { params: { path: { personId } } })),
     enabled: can("person.read"),
