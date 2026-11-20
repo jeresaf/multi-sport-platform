@@ -194,19 +194,77 @@ public sealed class DemoPeopleSeederTests(PostgresFixture fixture) : DatabaseTes
 
         // Someone corrected a seeded name by hand: the next run doesn't find "Ronald Kiggundu", and the check finds
         // the renamed record, a match the data doesn't expect.
-        await using (var scope = RegistryTestData.ScopeFor(App.Services, _kmsaId, out var context))
-        {
-            var ronald = await context.Set<Person>().SingleAsync(p => p.DisplayName == "Ronald Kiggundu", Ct);
-            ronald.Update(new PersonBiodata(
-                "Ronald", "Kigundu", Gender: ronald.Gender, DateOfBirth: ronald.DateOfBirth, Nationality: ronald.Nationality));
-            await context.SaveChangesAsync(Ct);
-        }
+        await RenameAsync("Ronald Kiggundu", new PersonBiodata("Ronald", "Kigundu"));
 
         await using var rerun = App.WithWebHostBuilder(builder => builder.ConfigureTestServices(services => services.AddSeeder<RerunSeeder>()));
         var failure = await Should.ThrowAsync<InvalidOperationException>(() => SeedDemoAsync(rerun));
 
         failure.Message.ShouldContain("Ronald Kiggundu");
         (await PeopleAsync(_kmsaId)).Count.ShouldBe(40);
+    }
+
+    [Fact]
+    public async Task A_twin_created_by_a_later_run_takes_her_sisters_date_of_birth()
+    {
+        await SeedDemoAsync(App);
+
+        // As if the run had stopped between the twins: the next run, three days later, doesn't find Nakato by name.
+        await RenameAsync("Nakato Namaganda", new PersonBiodata("Irene", "Kisakye"));
+        App.Clock.Advance(TimeSpan.FromDays(3));
+        await using var rerun = App.WithWebHostBuilder(builder => builder.ConfigureTestServices(services => services.AddSeeder<RerunSeeder>()));
+        var report = await SeedDemoAsync(rerun);
+
+        report.Seeders.Single(s => s.Key == RerunSeeder.SeederKey).Outcome.ShouldBe(new SeedOutcome(Inserted: 1, Updated: 0, Deactivated: 0));
+        var kmsa = await PeopleAsync(_kmsaId);
+        var babirye = kmsa.Single(p => p.DisplayName == "Babirye Namaganda");
+        var nakato = kmsa.Single(p => p.DisplayName == "Nakato Namaganda");
+        nakato.DateOfBirth.ShouldBe(babirye.DateOfBirth);
+        (await DecisionsAsync(_kmsaId)).ShouldContain(d => d.Reason == "Twin sister, different first name"
+            && new[] { d.PersonLowId, d.PersonHighId }.Order().SequenceEqual(new[] { babirye.Id, nakato.Id }.Order()));
+    }
+
+    [Fact]
+    public async Task A_step_its_command_refuses_stops_the_run_naming_the_person_and_the_step()
+    {
+        await SeedDemoAsync(App);
+
+        // John's photo was removed and he was archived by hand: the photo step is missing, and an archived person
+        // takes no photo.
+        await using (var scope = RegistryTestData.ScopeFor(App.Services, _kmsaId, out var context))
+        {
+            var john = await context.Set<Person>().SingleAsync(p => p.DisplayName == "John Ssekandi", Ct);
+            john.RemovePhoto().IsSuccess.ShouldBeTrue();
+            john.ChangeStatus(PersonTransition.Archive, "Left the association", SystemActor.Instance, App.Clock.GetUtcNow()).IsSuccess.ShouldBeTrue();
+            await context.SaveChangesAsync(Ct);
+        }
+
+        await using var rerun = App.WithWebHostBuilder(builder => builder.ConfigureTestServices(services => services.AddSeeder<RerunSeeder>()));
+        var failure = await Should.ThrowAsync<InvalidOperationException>(() => SeedDemoAsync(rerun));
+
+        failure.Message.ShouldContain("photo of demo person John Ssekandi");
+        failure.Message.ShouldContain("PERSON_ARCHIVED");
+    }
+
+    [Fact]
+    public async Task A_seeded_consent_without_its_form_gets_it_and_nothing_else_changes()
+    {
+        await SeedDemoAsync(App);
+        var before = await RegistryAuditEntriesAsync();
+        await using (var scope = RegistryTestData.ScopeFor(App.Services, _kmsaId, out var context))
+        {
+            var kevin = await context.Set<Person>().SingleAsync(p => p.DisplayName == "Kevin Mayanja", Ct);
+            var consent = await context.Set<GuardianConsent>().SingleAsync(c => c.PersonId == kevin.Id, Ct);
+            context.Entry(consent).Property(c => c.EvidenceAssetId).CurrentValue = null; // test setup: no command removes a form
+            await context.SaveChangesAsync(Ct);
+        }
+
+        await using var rerun = App.WithWebHostBuilder(builder => builder.ConfigureTestServices(services => services.AddSeeder<RerunSeeder>()));
+        var report = await SeedDemoAsync(rerun);
+
+        report.Seeders.Single(s => s.Key == RerunSeeder.SeederKey).Outcome.ShouldBe(new SeedOutcome(Inserted: 0, Updated: 1, Deactivated: 0));
+        var added = (await RegistryAuditEntriesAsync()).Where(e => before.All(b => b.Id != e.Id)).ShouldHaveSingleItem();
+        added.ActionCode.ShouldBe("person.consent_evidence.upload");
+        (await PeopleAsync(_kmsaId)).Single(p => p.DisplayName == "Kevin Mayanja").Consents.ShouldHaveSingleItem().EvidenceAssetId.ShouldNotBeNull();
     }
 
     [Fact]
@@ -237,6 +295,15 @@ public sealed class DemoPeopleSeederTests(PostgresFixture fixture) : DatabaseTes
         var kmsaIds = (await PeopleAsync(_kmsaId)).Select(p => p.Id).ToHashSet();
 
         (await PeopleAsync(_elsscId)).ShouldAllBe(p => p.TenantId == _elsscId && !kmsaIds.Contains(p.Id));
+    }
+
+    /// <summary>Renames a seeded person by hand (the domain's update), keeping their gender, birth date and nationality.</summary>
+    private async Task RenameAsync(string displayName, PersonBiodata names)
+    {
+        await using var scope = RegistryTestData.ScopeFor(App.Services, _kmsaId, out var context);
+        var person = await context.Set<Person>().SingleAsync(p => p.DisplayName == displayName, Ct);
+        person.Update(names with { Gender = person.Gender, DateOfBirth = person.DateOfBirth, Nationality = person.Nationality });
+        await context.SaveChangesAsync(Ct);
     }
 
     private static Task<SeedReport> SeedDemoAsync(WebApplicationFactory<Program> app) =>

@@ -1,5 +1,5 @@
 {
-  "_comment": "Demo people (S06 D23; docs/product/pilot-customer.md). Every name is invented. Birth dates are relative to the seed date (ageYears, ageDays), so minors stay minors; officials' licence dates are absolute, as the slice demo names Denis Opoka's (2027-06-30). ELSSC's pupils are all under 16, for its under-16 festival. 'club' is the team the person plays for or works with, kept for S08's teams and not seeded yet.",
+  "_comment": "Demo people (S06 D23; docs/product/pilot-customer.md). Every name is invented. Birth dates are relative to the tenant's date when the person is created (ageYears, ageDays), so minors stay minors, or the stored date of an earlier person (sameBirthDateAs: twins and the demo's decided pairs); officials' licence dates are absolute, as the slice demo names Denis Opoka's (2027-06-30). ELSSC's pupils are all under 16, for its under-16 festival. 'club' is the team the person plays for or works with, kept for S08's teams and not seeded yet.",
   "tenants": [
     {
       "slug": "kmsa",
@@ -41,8 +41,7 @@
           "middleName": "Ochieng",
           "lastName": "Okot",
           "gender": "MALE",
-          "ageYears": 27,
-          "ageDays": 63,
+          "sameBirthDateAs": "Peter Ochieng",
           "nationality": "UG",
           "club": "Bukoto Comets FC",
           "athlete": {
@@ -84,8 +83,7 @@
           "middleName": "Irene",
           "lastName": "Namaganda",
           "gender": "FEMALE",
-          "ageYears": 20,
-          "ageDays": 201,
+          "sameBirthDateAs": "Babirye Lillian Namaganda",
           "nationality": "UG",
           "club": "Ntinda Swifts FC Women",
           "athlete": {

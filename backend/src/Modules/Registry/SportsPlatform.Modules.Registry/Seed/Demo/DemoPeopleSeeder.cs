@@ -33,8 +33,9 @@ namespace SportsPlatform.Modules.Registry.Seed.Demo;
 /// Idempotent by step: a person is found by name key (the earliest created, should the tenant have added another of
 /// the name), then each step runs only when what it adds is missing (an athlete profile of the variant, any staff or
 /// official profile, any consent, the first consent's evidence while it is active, a photo, the archived status). A
-/// tenant that isn't <c>ACTIVE</c> waits; a missing one stops the run. After <c>tenancy.demo.sports</c> (6), whose
-/// variants the profiles need.
+/// tenant that isn't <c>ACTIVE</c> is skipped, but the run is still recorded, so it is seeded only when the seeder next
+/// runs (changed data or <c>seed --reset</c>); a missing one stops the run. A person dropped from the file is left as
+/// they are (nothing is deactivated). After <c>tenancy.demo.sports</c> (6), whose variants the profiles need.
 /// </para>
 /// </summary>
 public sealed class DemoPeopleSeeder : ISeeder
@@ -54,9 +55,7 @@ public sealed class DemoPeopleSeeder : ISeeder
         Converters = { new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseUpper, allowIntegerValues: false) },
     };
 
-    internal static IReadOnlyList<DemoTenantPeople> Tenants { get; } =
-        JsonSerializer.Deserialize<DemoPeopleFile>(Read(), _options)?.Tenants
-            ?? throw new InvalidOperationException($"Demo data file {_file} is empty.");
+    internal static IReadOnlyList<DemoTenantPeople> Tenants { get; } = Load();
 
     public string Key => "registry.demo.people";
 
@@ -127,7 +126,7 @@ public sealed class DemoPeopleSeeder : ISeeder
                     if (await command(services, ct) is { } refusal)
                     {
                         throw new InvalidOperationException(
-                            $"Seeding the {step} of demo person {person.Name} failed: {refusal.Error.Code} {refusal.Field} {refusal.Detail}");
+                            $"Seeding the {step} of demo person {person.Name} failed: {refusal.Error.Code} {refusal.Field}");
                     }
 
                     return true;
@@ -240,8 +239,7 @@ public sealed class DemoPeopleSeeder : ISeeder
     /// </summary>
     private static async Task<bool> CreateAsync(IServiceProvider services, DemoPerson person, CancellationToken cancellationToken)
     {
-        var today = await services.GetRequiredService<TenantToday>().GetAsync(cancellationToken);
-        var dateOfBirth = person.DateOfBirth(today);
+        var dateOfBirth = await DateOfBirthAsync(services, person, cancellationToken);
         var check = new CheckDuplicatesRequest(
             person.FirstName, person.LastName, person.MiddleName, person.OtherNames, dateOfBirth, person.Nationality);
         await ValidateAsync(services, check, person, cancellationToken);
@@ -251,7 +249,8 @@ public sealed class DemoPeopleSeeder : ISeeder
             throw new InvalidOperationException($"The duplicate check of demo person {person.Name} failed: {refused?.Error.Code} {refused?.Field}");
         }
 
-        if (answer.Candidates.Count > 0 != person.OverrideReason is not null)
+        var expectsCandidates = person.OverrideReason is not null;
+        if ((answer.Candidates.Count > 0) != expectsCandidates)
         {
             throw new InvalidOperationException(
                 $"Demo person {person.Name} expected {(person.OverrideReason is null ? "no" : "a")} duplicate candidate and the check found " +
@@ -272,10 +271,33 @@ public sealed class DemoPeopleSeeder : ISeeder
         var (personId, refusal) = await services.GetRequiredService<CreatePersonHandler>().HandleAsync(create, cancellationToken);
         if (personId is null)
         {
-            throw new InvalidOperationException($"Creating demo person {person.Name} failed: {refusal?.Error.Code} {refusal?.Field} {refusal?.Detail}");
+            throw new InvalidOperationException($"Creating demo person {person.Name} failed: {refusal?.Error.Code} {refusal?.Field}");
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// <see cref="DemoPerson.AgeYears"/> and <see cref="DemoPerson.AgeDays"/> before the tenant's date, or the stored date
+    /// of birth of <see cref="DemoPerson.SameBirthDateAs"/> (listed earlier), so a pair created on different days, by a
+    /// run that stopped between them, still shares one date (review #114 R1).
+    /// </summary>
+    private static async Task<DateOnly> DateOfBirthAsync(IServiceProvider services, DemoPerson person, CancellationToken cancellationToken)
+    {
+        if (person.SameBirthDateAs is not { } partner)
+        {
+            var today = await services.GetRequiredService<TenantToday>().GetAsync(cancellationToken);
+            return today.AddYears(-person.AgeYears!.Value).AddDays(-person.AgeDays!.Value);
+        }
+
+        var partnerKey = NameNormaliser.NameKey(partner);
+        return await services.GetRequiredService<RegistryDbContext>().Set<Person>().AsNoTracking()
+            .Where(p => p.NameKey == partnerKey)
+            .OrderBy(p => p.Id)
+            .Select(p => p.DateOfBirth)
+            .FirstOrDefaultAsync(cancellationToken)
+            ?? throw new InvalidOperationException(
+                $"Demo person {person.Name} takes the date of birth of {partner}, who isn't seeded (or has none): list them first.");
     }
 
     /// <summary>What the person already has, or null when the tenant has nobody of the name.</summary>
@@ -315,8 +337,21 @@ public sealed class DemoPeopleSeeder : ISeeder
         var validation = await services.GetRequiredService<IValidator<T>>().ValidateAsync(request, cancellationToken);
         if (!validation.IsValid)
         {
-            throw new InvalidOperationException($"Demo data of {person.Name} is invalid for {typeof(T).Name}: {validation}");
+            // Property names and codes only: a message may repeat a value, e.g. a guardian's contact (PRIVATE).
+            var errors = string.Join(", ", validation.Errors.Select(e => $"{e.PropertyName} {e.ErrorCode}"));
+            throw new InvalidOperationException($"Demo data of {person.Name} is invalid for {typeof(T).Name}: {errors}");
         }
+    }
+
+    private static IReadOnlyList<DemoTenantPeople> Load()
+    {
+        var tenants = JsonSerializer.Deserialize<DemoPeopleFile>(Read(), _options)?.Tenants
+            ?? throw new InvalidOperationException($"Demo data file {_file} is empty.");
+        var invalid = tenants.SelectMany(t => t.People).FirstOrDefault(p => !p.HasOneBirthDate);
+        return invalid is null
+            ? tenants
+            : throw new InvalidOperationException(
+                $"Demo person {invalid.Name} in {_file} needs either ageYears and ageDays or sameBirthDateAs.");
     }
 
     private static byte[] Read()
@@ -348,15 +383,17 @@ internal sealed record DemoTenantPeople(string Slug, IReadOnlyList<DemoPerson> P
 
 /// <summary>
 /// A demo person. The birth date is <see cref="AgeYears"/> years and <see cref="AgeDays"/> days before the tenant's
-/// date when they are created. <see cref="Club"/> is the team they play for or work with, for S08's teams (not seeded).
+/// date when they are created, or <see cref="SameBirthDateAs"/>'s stored one (a twin, or a pair the demo needs on one
+/// date): exactly one of the two is given. <see cref="Club"/> is the team they play for or work with, for S08's teams (not seeded).
 /// </summary>
 internal sealed record DemoPerson(
     string FirstName,
     string LastName,
     Gender Gender,
-    int AgeYears,
-    int AgeDays,
     string Nationality,
+    int? AgeYears = null,
+    int? AgeDays = null,
+    string? SameBirthDateAs = null,
     string? MiddleName = null,
     string? OtherNames = null,
     string? Club = null,
@@ -370,7 +407,9 @@ internal sealed record DemoPerson(
 {
     public string Name => string.Join(' ', new[] { FirstName, MiddleName, LastName }.Where(n => n is not null));
 
-    public DateOnly DateOfBirth(DateOnly today) => today.AddYears(-AgeYears).AddDays(-AgeDays);
+    /// <summary>Whether the birth date is given one way, not both or neither (checked when the file is read).</summary>
+    public bool HasOneBirthDate => (AgeYears is not null && AgeDays is not null) != (SameBirthDateAs is not null)
+        && (AgeYears is null) == (AgeDays is null);
 }
 
 internal sealed record DemoAthlete(

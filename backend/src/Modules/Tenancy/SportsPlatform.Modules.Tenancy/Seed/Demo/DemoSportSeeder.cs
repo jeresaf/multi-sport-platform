@@ -11,7 +11,9 @@ namespace SportsPlatform.Modules.Tenancy.Seed.Demo;
 /// <summary>
 /// The demo tenants' sports (S06 D23, S05 D19): each variant in <c>Seed/Demo/Data/demo-sports.json</c> is enabled through
 /// <c>tenant.sport.enable</c> as the system actor. The variant codes are data, never C# (no sport code in generic code,
-/// AR-11). A variant already enabled is skipped; a tenant that isn't <c>ACTIVE</c> waits, as for the invitations.
+/// AR-11). A variant already enabled is skipped. A tenant that isn't <c>ACTIVE</c> is skipped too, as for the invitations,
+/// but the run is still recorded: it is seeded when the seeder next runs (changed data or <c>seed --reset</c>). A
+/// variant dropped from the file stays enabled (nothing is disabled).
 /// </summary>
 public sealed class DemoSportSeeder : ISeeder
 {
