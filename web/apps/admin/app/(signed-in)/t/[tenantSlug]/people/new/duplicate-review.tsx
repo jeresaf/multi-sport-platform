@@ -7,7 +7,7 @@ import { Label } from "@msp/ui/components/label";
 import { Textarea } from "@msp/ui/components/textarea";
 import { Info } from "lucide-react";
 import Link from "next/link";
-import { useId, useState, type ReactNode } from "react";
+import { useId, useRef, useState, type ReactNode } from "react";
 import { StatusBadge } from "@/components/status-badge";
 import type { DuplicateCandidate } from "../people-data";
 import { confidenceLabels, evidenceText } from "./duplicate-evidence";
@@ -50,6 +50,7 @@ export function DuplicateReview({
   personHref,
   variantLabel,
   busy,
+  canOpen,
   onProceed,
   onChangeDetails,
 }: Readonly<{
@@ -60,23 +61,29 @@ export function DuplicateReview({
   personHref: (personId: string) => string;
   variantLabel: (variant: string) => string;
   busy: boolean;
+  /** "Open {name}" needs `person.read`; every role that adds people holds it today. */
+  canOpen: boolean;
   onProceed: (reason: string) => void;
   onChangeDetails: () => void;
 }>) {
   const [reason, setReason] = useState("");
   const [reasonError, setReasonError] = useState<string | null>(null);
   const reasonId = useId();
+  const reasonBox = useRef<HTMLTextAreaElement>(null);
   const blocked = candidates.filter((candidate) => candidate.confidence === "EXACT_IDENTIFIER");
   const count = candidates.length === 1 ? "1 person" : `${candidates.length} people`;
 
   const proceed = () => {
     const trimmed = reason.trim();
-    if (!trimmed) {
-      setReasonError("Say why this is a different person.");
-      return;
-    }
-    if (trimmed.length > reasonMaxLength) {
-      setReasonError(`Keep the reason to ${reasonMaxLength} characters.`);
+    const refusal = !trimmed
+      ? "Say why this is a different person."
+      : trimmed.length > reasonMaxLength
+        ? `Keep the reason to ${reasonMaxLength} characters.`
+        : null;
+    if (refusal) {
+      // The box gets the focus and the error is announced (review #109 R2).
+      setReasonError(refusal);
+      reasonBox.current?.focus();
       return;
     }
     setReasonError(null);
@@ -135,9 +142,11 @@ export function DuplicateReview({
                 ))}
               </ul>
             </div>
-            <Button asChild variant="outline" className="h-auto min-h-11 justify-self-start py-2 whitespace-normal">
-              <Link href={personHref(candidate.personId)}>Open {candidate.displayName}</Link>
-            </Button>
+            {canOpen ? (
+              <Button asChild variant="outline" className="h-auto min-h-11 justify-self-start py-2 whitespace-normal">
+                <Link href={personHref(candidate.personId)}>Open {candidate.displayName}</Link>
+              </Button>
+            ) : null}
           </li>
         ))}
       </ol>
@@ -170,6 +179,7 @@ export function DuplicateReview({
             <Label htmlFor={reasonId}>Why is {newPerson.displayName} a different person?</Label>
             <Textarea
               id={reasonId}
+              ref={reasonBox}
               value={reason}
               maxLength={reasonMaxLength}
               aria-invalid={reasonError ? true : undefined}
@@ -181,7 +191,7 @@ export function DuplicateReview({
               parents; checked with the club.&rdquo;
             </p>
             {reasonError ? (
-              <p id={`${reasonId}-error`} className="text-sm text-destructive">
+              <p id={`${reasonId}-error`} role="alert" className="text-sm text-destructive">
                 {reasonError}
               </p>
             ) : null}

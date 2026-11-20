@@ -257,11 +257,13 @@ describe("add person: the duplicate review", () => {
       "Same last name",
       "Same nationality",
       "Matches one of their other names (aliases)",
-      "Archived",
-      "No sport recorded",
-      "Not recorded",
     ]) {
       expect(within(review).getAllByText(text).length).toBeGreaterThan(0);
+    }
+    // In the registered person's own column (the new person's Born also says "Not recorded"; review #109 R7).
+    const theirs = within(within(review).getByRole("heading", { name: "Already registered" }).parentElement!);
+    for (const text of ["Archived", "No sport recorded", "Not recorded"]) {
+      expect(theirs.getByText(text)).toBeTruthy();
     }
   });
 
@@ -271,16 +273,20 @@ describe("add person: the duplicate review", () => {
     await screen.findByRole("heading", { name: "Is this someone you already have?" });
 
     fireEvent.click(screen.getByRole("button", { name: "Add as a new person" }));
-    expect(await screen.findByText("Say why this is a different person.")).toBeTruthy();
+    // Announced, and the focus is on the box (review #109 R2).
+    expect((await screen.findByRole("alert")).textContent).toBe("Say why this is a different person.");
+    const box = screen.getByLabelText("Why is John Ssekandi a different person?");
+    expect(document.activeElement).toBe(box);
+    expect(box.getAttribute("aria-invalid")).toBe("true");
     expect(creates(requests)).toEqual([]);
 
-    type("Why is John Ssekandi a different person?", "  Different parents; checked with Kawempe Youth FC.  ");
+    type("Why is John Ssekandi a different person?", "  Different parents; checked with Ntinda Swifts SC.  ");
     fireEvent.click(screen.getByRole("button", { name: "Add as a new person" }));
     await waitFor(() => expect(navigation.push).toHaveBeenCalledWith(`/t/kmsa/people/${created.id}`));
     expect(checks(requests)).toHaveLength(1);
     expect(creates(requests)[0]!.body).toMatchObject({
       checkToken: "token-1",
-      overrideReason: "Different parents; checked with Kawempe Youth FC.",
+      overrideReason: "Different parents; checked with Ntinda Swifts SC.",
     });
   });
 
@@ -376,6 +382,49 @@ describe("add person: the duplicate review", () => {
     expect(navigation.push).not.toHaveBeenCalled();
   });
 
+  it("adds the person without a reason when the second check finds no one", async () => {
+    let round = 0;
+    const requests = open(actions, {
+      "POST /api/admin/v1/people/duplicate-check": () =>
+        ++round === 1 ? checked([candidate()]) : checked([], "token-2"),
+      "POST /api/admin/v1/people": (request) =>
+        (request.body as { checkToken: string }).checkToken === "token-1"
+          ? { status: 422, body: problem("PERSON_DUPLICATE_CHECK_REQUIRED", 422) }
+          : createdAnswer,
+    });
+    await submitDetails();
+    await screen.findByRole("heading", { name: "Is this someone you already have?" });
+    type("Why is John Ssekandi a different person?", "Different parents");
+    fireEvent.click(screen.getByRole("button", { name: "Add as a new person" }));
+
+    await waitFor(() => expect(navigation.push).toHaveBeenCalledWith(`/t/kmsa/people/${created.id}`));
+    expect(creates(requests)[1]!.body).toMatchObject({ checkToken: "token-2", overrideReason: null });
+  });
+
+  it("checks again only once: a second refusal is shown", async () => {
+    const requests = open(actions, {
+      "POST /api/admin/v1/people": { status: 409, body: problem("PERSON_DUPLICATE_CHECK_STALE", 409) },
+    });
+    await submitDetails();
+
+    expect(await screen.findByText("That didn't work")).toBeTruthy();
+    expect(checks(requests)).toHaveLength(2);
+    expect(creates(requests)).toHaveLength(2);
+    expect(navigation.push).not.toHaveBeenCalled();
+  });
+
+  it("doesn't say \"again\" to a registrar who saw no review before the check went stale", async () => {
+    let round = 0;
+    open(actions, {
+      "POST /api/admin/v1/people/duplicate-check": () => (++round === 1 ? checked([]) : checked([candidate()], "token-2")),
+      "POST /api/admin/v1/people": { status: 409, body: problem("PERSON_DUPLICATE_CHECK_STALE", 409) },
+    });
+    await submitDetails();
+
+    expect(await screen.findByText(/Someone added a person who may match just before the save/)).toBeTruthy();
+    expect(screen.queryByText(/while you were reviewing/)).toBeNull();
+  });
+
   it("drops empty identifier rows, so a refused identifier is shown under its own row", async () => {
     const requests = open(actions, {
       "POST /api/admin/v1/people": {
@@ -455,6 +504,15 @@ describe("add person: access", () => {
     const requests = open(["person.read"]);
     expect(await screen.findByRole("heading", { name: "You can't open this page" })).toBeTruthy();
     expect(checks(requests)).toEqual([]);
+  });
+
+  it("shows neither the name's matches nor Open links without person.read", async () => {
+    const requests = open(["person.create"], { "POST /api/admin/v1/people/duplicate-check": checked([candidate()]) });
+    await submitDetails();
+
+    expect(await screen.findByRole("list", { name: "People who may match" })).toBeTruthy();
+    expect(screen.queryByRole("link", { name: "Open John Ssekandi" })).toBeNull();
+    expect(sent(requests, "GET", "/api/admin/v1/people")).toEqual([]);
   });
 
   it("says why on a read-only tenant", async () => {

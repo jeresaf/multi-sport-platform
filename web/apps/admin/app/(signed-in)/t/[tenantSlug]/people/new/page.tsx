@@ -61,6 +61,9 @@ const searchDelay = 300;
 
 const staleNotice =
   "Someone added a person who may match while you were reviewing, so the check ran again. Review the list again.";
+const checkedAgainNotice = "The check had to run again before the save. Review the list.";
+const staleBeforeReviewNotice =
+  "Someone added a person who may match just before the save, so the check ran again. Review the list.";
 const expiredNotice =
   "The check had to run again (it expires after 30 minutes) and the list has changed. Review it again.";
 
@@ -150,10 +153,15 @@ export default function AddPersonPage() {
             person: await create(values, again.checkToken, again.candidates.length > 0 ? reason : null),
           };
         }
-        return {
-          kind: "review",
-          review: { values, ...again, notice: stale ? staleNotice : expiredNotice },
-        };
+        // The notice says "again" only to a registrar who already saw a review (review #109 R5).
+        const notice = reviewed
+          ? stale
+            ? staleNotice
+            : expiredNotice
+          : stale
+            ? staleBeforeReviewNotice
+            : checkedAgainNotice;
+        return { kind: "review", review: { values, ...again, notice } };
       }
     },
     onSuccess: (outcome) => {
@@ -487,6 +495,7 @@ export default function AddPersonPage() {
           personHref={personHref}
           variantLabel={labels.variant}
           busy={save.isPending}
+          canOpen={can("person.read")}
           onProceed={(reason) => save.mutate({ values: review.values, reviewed: review, reason })}
           onChangeDetails={() => {
             save.reset();
