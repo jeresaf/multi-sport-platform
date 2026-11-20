@@ -558,10 +558,6 @@ tasks; two stale triggers moved. Each item names where it gets done.
   doesn't show an action's `grantedWith` (`person.duplicate_check` → `person.read_private`, `person.create` →
   `person.duplicate_check`, `person.read`); add the column with the next catalogue change. An identifier's `validFrom` has no bound
   (a date far in the future is accepted); decide with T3's `person.external_id.add`.
-- e2e on a reused local database (S04-T4b1; owner 2026-11-16, review #93 R3): every run adds owners to KMSA
-  (`admin-shell`, `admin-screenshots`), so after enough runs KMSA passes STANDARD's 100 staff users and `inviteMember`
-  on KMSA answers `403 ENTITLEMENT_QUOTA_EXCEEDED` (CI starts empty; `seed --reset` fixes it locally; hit again closing
-  S05). Move those specs to tenants of their own, or have them remove what they add. (S06-T7a)
 - D11 as built (S06-T1a, #95): a child bumps every loaded root it points at, not only its owner's; the lookup scans
   the tracked entries per changed child; a root loaded untracked gets no conflict (the rule in database.md is the
   guard for now; owner, #95 Q4). Revisit with the first child of two aggregates (S08 memberships) or the first bulk

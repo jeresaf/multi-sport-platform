@@ -408,7 +408,7 @@ Deliver:
 
 Acceptance:
 - [ ] The duplicate review shows evidence, never another person's full birth date (Vitest).
-- [ ] A user without `person.read_private` sees the birth year, not the date, and the consent scopes without the
+- [x] A user without `person.read_private` sees the birth year, not the date, and the consent scopes without the
       guardian's details or the evidence (Vitest).
 - [ ] Missing photos, long names (four name parts) and a person with no profile render at phone width (Vitest,
       screenshots).
@@ -417,7 +417,7 @@ Acceptance:
 ## Carried over from S05 (slice review 2026-11-16)
 
 Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task merges.
-- e2e on a reused local database: KMSA passes STANDARD's 100 staff users after enough runs (owner, #93 R3) — T7a.
+- e2e on a reused local database: KMSA passes STANDARD's 100 staff users after enough runs (owner, #93 R3) — T7a (done).
 - `xmin`/`updated_*` cover only the aggregate root's row (S01-T2a, "S06 at the latest") — T1a (D11).
 - Validation field names camelCased by their first letter only (#22 re-review N2, "with the first nested request
   body") — T2b.
@@ -650,3 +650,12 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   read doesn't show is `PERSON_NOT_FOUND` on both routes; one it shows without a photo (none, or no `PHOTO`)
   `PERSON_PHOTO_NOT_FOUND` on the photo route. The Host now documents `TENANT_NOT_FOUND` and `TENANT_UNAVAILABLE` on
   every `.RequirePublicTenant()` endpoint (`/site` dropped its own list; its document is unchanged). T6 is done.
+- **T7a:** the People directory and the read-only person page. Owner decisions (plan, 2026-11-20): one PR; no photos
+  in the directory (no batch URL method yet); the status history on Overview; the workspace navigation grouped
+  (Registry, Sports configuration, Settings); Q46 and Q47 stay open for T7c. As built: no backend change; the
+  directory's search and filters live in the address; the person page's tabs are `?tab=`; the private read is asked
+  only with `person.read_private` and never cached; signed URLs are read again a minute before they expire; labels
+  come from `GET /sports/{variant}` (shared cache with Sports). The reused-database item covers every spec that added
+  members to KMSA or ELSSC, not only `admin-shell` and `admin-screenshots`: `admin-sports`, `admin-invitation` and
+  `admin-password` too (`ownTenant` in e2e's `support/accounts.ts`; the names are in pilot-customer.md). The screenshot
+  spec creates its people through the API (`support/people.ts`, a generated placeholder PNG) until T7d's seeds.
