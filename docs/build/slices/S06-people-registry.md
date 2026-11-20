@@ -737,5 +737,7 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   the form waits for both), so a kept date of birth older than the person's version is never saved back under it (R1,
   BLOCKER); a test that a status move sends the version its dialog opened on after a newer read (R2). Re-review: the form starts
   only once both reads have succeeded since the page opened (a failed read keeps its old data and counted as read;
-  the error shows instead, R3, BLOCKER); the R1 test seeds the countries so it fails without the gate (R4). Owner, Q49: web-only
+  the error shows instead, R3, BLOCKER); the R1 test seeds the countries so it fails without the gate (R4). Second re-review (approve
+  with nits): tests that a failed background read of the person keeps what is typed and a failed Reload shows the
+  error, not the form (R5). Owner, Q49: web-only
   (the private read doesn't carry the person's version; the small race between the two requests is accepted).

@@ -278,6 +278,40 @@ describe("Edit details", () => {
     expect(updates(requests)[0]?.headers.get("If-Match")).toBe('"7"');
   });
 
+  it("keeps what is typed when a background read of the person fails", async () => {
+    let failing = false;
+    open(registrar, {
+      [`GET /api/admin/v1/people/${john.id}`]: () =>
+        failing ? { status: 500, body: problem("PLATFORM_INTERNAL_ERROR", 500) } : { status: 200, body: john },
+    });
+    await loaded();
+    type("Weight in kg (optional)", "74");
+    failing = true;
+    await rendered.queryClient.refetchQueries({ queryKey: personQueryKey(tenantId, john.id) });
+    await waitFor(() => expect(rendered.queryClient.getQueryState(personQueryKey(tenantId, john.id))?.status).toBe("error"));
+    expect(screen.getByLabelText<HTMLInputElement>("Weight in kg (optional)").value).toBe("74");
+    expect(screen.getByRole("heading", { name: "Edit details" })).toBeTruthy();
+  });
+
+  it("shows the error, not the form, when Reload's read fails", async () => {
+    let privateFails = false;
+    const requests = open(registrar, {
+      [`GET /api/admin/v1/people/${john.id}/private`]: () =>
+        privateFails ? { status: 500, body: problem("PLATFORM_INTERNAL_ERROR", 500) } : privateOf("1998-03-14"),
+      [`PUT /api/admin/v1/people/${john.id}`]: { status: 409, body: problem("PERSON_CONCURRENCY_CONFLICT", 409) },
+    });
+    await loaded();
+    type("Weight in kg (optional)", "74");
+    save();
+    const conflict = await screen.findByText("This record changed since you opened it");
+    privateFails = true;
+    fireEvent.click(within(conflict.closest("[role=alert]") as HTMLElement).getByRole("button", { name: "Reload" }));
+    await waitFor(() => expect(screen.queryByLabelText("Weight in kg (optional)")).toBeNull());
+    expect(await screen.findByRole("alert")).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Edit details" })).toBeNull();
+    expect(updates(requests)).toHaveLength(1);
+  });
+
   it("keeps a display name that isn't the default", async () => {
     const requests = open(registrar, {}, person({ displayName: "Johnny Ssekandi" }));
     await loaded();
