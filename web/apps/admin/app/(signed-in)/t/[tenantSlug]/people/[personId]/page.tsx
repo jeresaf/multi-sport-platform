@@ -17,6 +17,7 @@ import { usePerson, usePersonPrivate, type Person, type PersonPrivate } from "..
 import { ConsentTab, showsConsent } from "./consent-tab";
 import { IdentifiersTab } from "./identifiers-tab";
 import { OverviewTab } from "./overview-tab";
+import { PhotoControl } from "./photo-control";
 import { PublicProfileSwitch } from "./public-profile-switch";
 import { RolesTab } from "./roles-tab";
 
@@ -34,7 +35,8 @@ type PersonTab = (typeof personTabs)[number]["value"];
 /**
  * Registry → People → a person (S06 T7, admin-app.md): the header (photo, display name, status, Minor or Age unknown),
  * then the tabs Overview, Roles, Consent (only when it applies) and External IDs & aliases. The tab is in the address
- * (`?tab=`). The header turns the public profile on and off; Roles and Consent carry their changes (T7c).
+ * (`?tab=`). The header changes the photo and turns the public profile on and off; Roles, Consent and External IDs &
+ * aliases carry their changes (T7c).
  */
 export default function PersonPage() {
   const { personId } = useParams<{ personId: string }>();
@@ -89,6 +91,7 @@ export default function PersonPage() {
             </div>
           </div>
         </div>
+        <PhotoControl person={data} />
         <PublicProfileSwitch person={data} />
       </header>
 

@@ -16,27 +16,31 @@ export const limits = {
   identifiers: 10,
 } as const;
 
-const authorityPattern = /^[A-Z][A-Z0-9_]{1,39}$/;
+/** An issuer's code (S06 D10): 2–40 capital letters, digits or underscores, starting with a letter. */
+export const authorityPattern = /^[A-Z][A-Z0-9_]{1,39}$/;
+export const authorityMessage =
+  "Use 2 to 40 capital letters, digits or underscores, starting with a letter, such as KMSA_REG_NO.";
+/**
+ * Said for a start after the tenant's today: the API accepts one, but the identifier then can't be ended before that
+ * day, so the page refuses it (owner, Q46, S06-T7c-2a).
+ */
+export const validFromLaterMessage = "An identifier can't start later than today.";
 
 const text = (max: number, label: string) =>
   z.string().refine((value) => value.trim().length <= max, `Keep ${label} to ${max} characters.`);
 const required = (max: number, label: string) =>
   text(max, label).refine((value) => value.trim().length > 0, `Enter the ${label}.`);
 
-const identifier = z
-  .object({ authority: z.string(), value: z.string(), validFrom: z.string() })
-  .superRefine((row, context) => {
+/** An identifier row; `today` is the tenant's (YYYY-MM-DD), or empty until its time zone is read (no cap then). */
+const identifier = (today: string) =>
+  z.object({ authority: z.string(), value: z.string(), validFrom: z.string() }).superRefine((row, context) => {
     const authority = row.authority.trim().toUpperCase();
     const value = row.value.trim();
     if (!authority && !value && !row.validFrom) {
       return;
     }
     if (!authorityPattern.test(authority)) {
-      context.addIssue({
-        code: "custom",
-        path: ["authority"],
-        message: "Use 2 to 40 capital letters, digits or underscores, starting with a letter, such as KMSA_REG_NO.",
-      });
+      context.addIssue({ code: "custom", path: ["authority"], message: authorityMessage });
     }
     if (!value) {
       context.addIssue({ code: "custom", path: ["value"], message: "Enter the identifier." });
@@ -47,6 +51,9 @@ const identifier = z
         message: `Keep the identifier to ${limits.identifierValue} characters.`,
       });
     }
+    if (today && row.validFrom > today) {
+      context.addIssue({ code: "custom", path: ["validFrom"], message: validFromLaterMessage });
+    }
   });
 
 function inRange(value: string, min: number, max: number, decimals: number): boolean {
@@ -54,7 +61,9 @@ function inRange(value: string, min: number, max: number, decimals: number): boo
   return Number.isFinite(number) && number >= min && number <= max && Number(number.toFixed(decimals)) === number;
 }
 
-export const schema = z.object({
+/** The form's checks; `today` is the tenant's date, or empty until it is known. */
+export const personSchema = (today: string) =>
+  z.object({
   firstName: required(limits.name, "first name"),
   middleName: text(limits.name, "the middle name"),
   lastName: required(limits.name, "last name"),
@@ -76,9 +85,9 @@ export const schema = z.object({
       (value) => !value.trim() || inRange(value, limits.weight.min, limits.weight.max, 1),
       `Enter kilograms from ${limits.weight.min} to ${limits.weight.max}, with at most one decimal.`,
     ),
-  externalIdentifiers: z.array(identifier).max(limits.identifiers),
+  externalIdentifiers: z.array(identifier(today)).max(limits.identifiers),
 });
-export type Values = z.infer<typeof schema>;
+export type Values = z.infer<ReturnType<typeof personSchema>>;
 
 export const emptyIdentifier = { authority: "", value: "", validFrom: "" };
 

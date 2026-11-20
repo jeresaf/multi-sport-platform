@@ -60,8 +60,11 @@ export const profileActions = {
 /** The person as a dialog first showed them: what a change is based on. */
 export type OpenedPerson = Pick<Person, "id" | "version">;
 
-/** Keeps the person a change answered, and marks the directory stale (its role and sport filters may change). */
-function useKeepPerson() {
+/**
+ * Keeps the person a change answered, and marks the directory stale (its role and sport filters, and what its search
+ * finds by alias or identifier, may change).
+ */
+export function useKeepPerson() {
   const { tenant } = useTenantWorkspace();
   const queryClient = useQueryClient();
   return (person: Person) => {

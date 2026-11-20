@@ -167,7 +167,7 @@ describe("person page", () => {
     expect(screen.getAllByText("From 15 Jan 2026").length).toBeGreaterThan(0);
     expect(screen.getAllByText("1 Feb 2019 to 31 Dec 2025 (ended)").length).toBeGreaterThan(0);
     expect(screen.getByText("Opoka D.")).toBeTruthy();
-    expect(screen.getAllByText("Spelling").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Another spelling").length).toBeGreaterThan(0);
   });
 
   it("shows initials without a photo, four name parts in full, and says when there is no role", async () => {

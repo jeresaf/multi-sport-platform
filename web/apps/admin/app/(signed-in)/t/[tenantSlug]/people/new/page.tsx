@@ -20,6 +20,7 @@ import { UnavailableNote } from "@/components/unavailable-note";
 import { call, isApiProblem } from "@/lib/api";
 import { applyFieldErrors, needsAlert } from "@/lib/form-errors";
 import { useCountries } from "@/lib/reference-data";
+import { todayIn, useTenantTimeZoneOnceRead } from "@/lib/tenant-settings";
 import { useTenantWorkspace } from "@/lib/tenant-workspace";
 import { tenantPath } from "@/lib/workspace";
 import { useSportLabels } from "../[personId]/sport-labels";
@@ -39,7 +40,7 @@ import {
   emptyIdentifier,
   limits,
   nameFields,
-  schema,
+  personSchema,
   toCheckRequest,
   toCreateRequest,
   type Values,
@@ -91,7 +92,10 @@ export default function AddPersonPage() {
   const heading = useRef<HTMLHeadingElement>(null);
   const firstRender = useRef(true);
 
-  const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues, mode: "onTouched" });
+  // An identifier starts no later than the tenant's today (Q46); until its time zone is read, there is no cap.
+  const zone = useTenantTimeZoneOnceRead();
+  const today = zone.isLoading ? "" : todayIn(zone.timeZone);
+  const form = useForm<Values>({ resolver: zodResolver(personSchema(today)), defaultValues, mode: "onTouched" });
   const identifierRows = useFieldArray({ control: form.control, name: "externalIdentifiers" });
   const [firstName, lastName, displayName] = useWatch({
     control: form.control,
@@ -449,6 +453,7 @@ export default function AddPersonPage() {
                   id={`identifier-${index}-validFrom`}
                   label="Valid from (optional)"
                   type="date"
+                  max={today || undefined}
                   error={errors.externalIdentifiers?.[index]?.validFrom?.message}
                   {...form.register(`externalIdentifiers.${index}.validFrom`)}
                 />
