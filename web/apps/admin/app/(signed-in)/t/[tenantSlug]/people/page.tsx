@@ -4,6 +4,7 @@ import { Button } from "@msp/ui/components/button";
 import { Input } from "@msp/ui/components/input";
 import { Label } from "@msp/ui/components/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@msp/ui/components/table";
+import { UserPlus } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -14,6 +15,7 @@ import { ProblemAlert } from "@/components/problem-alert";
 import { SelectField } from "@/components/select-field";
 import { StatusBadge } from "@/components/status-badge";
 import { ForbiddenView } from "@/components/status-page";
+import { UnavailableNote } from "@/components/unavailable-note";
 import { RowName, wide } from "@/components/viewer/facts";
 import { humanizeCode } from "@/lib/codes";
 import { useCountries } from "@/lib/reference-data";
@@ -30,10 +32,10 @@ const ageLabels = { ADULT: "Adult", MINOR: "Minor", UNKNOWN: "Age unknown" } as 
 /**
  * Registry → People (S06 T7, admin-app.md): the tenant's people sorted by last name, searched by name, alias or
  * external identifier and filtered by status, age, profile and sport. The search and filters are in the address, so
- * going back from a person keeps them. Read-only until Add person (T7b).
+ * going back from a person keeps them. **Add person** (T7b) needs `person.create`.
  */
 export default function PeoplePage() {
-  const { tenant, can } = useTenantWorkspace();
+  const { tenant, can, unavailable } = useTenantWorkspace();
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
@@ -88,16 +90,34 @@ export default function PeoplePage() {
     code ? (countries.data?.items.find((country) => country.code === code)?.name ?? code) : "Not recorded";
   const items = people.data?.pages.flatMap((page) => page.items) ?? [];
   const filtered = Boolean(filters.q || filters.status || filters.ageStatus || filters.profile || filters.variant);
+  // Shown disabled with the reason when the roles allow it but the tenant can't now (read-only, S04 D19).
+  const addRefusal = can("person.create") ? null : unavailable("person.create");
   const personHref = (id: string) => `${tenantPath(tenant.slug)}/people/${id}`;
 
   return (
     <section className="grid grid-cols-[minmax(0,1fr)] gap-6">
-      <header className="grid gap-1">
-        <h1 className="text-2xl font-semibold">People</h1>
-        <p className="text-muted-foreground">
-          Everyone your organisation keeps a record of: players, staff and officials, one record per person.
-        </p>
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div className="grid gap-1">
+          <h1 className="text-2xl font-semibold">People</h1>
+          <p className="text-muted-foreground">
+            Everyone your organisation keeps a record of: players, staff and officials, one record per person.
+          </p>
+        </div>
+        {can("person.create") ? (
+          <Button asChild>
+            <Link href={`${tenantPath(tenant.slug)}/people/new`}>
+              <UserPlus aria-hidden="true" />
+              Add person
+            </Link>
+          </Button>
+        ) : addRefusal ? (
+          <Button disabled aria-describedby="add-person-unavailable">
+            <UserPlus aria-hidden="true" />
+            Add person
+          </Button>
+        ) : null}
       </header>
+      {addRefusal ? <UnavailableNote id="add-person-unavailable" reason={addRefusal} /> : null}
 
       <form
         role="search"

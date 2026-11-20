@@ -131,8 +131,9 @@ that add members use one of their own rather than KMSA or ELSSC (S06-T7a): **Tur
 Club** (`pelican-football`), **Mango Grove Sports Club** (`mango-grove`), **Heron Netball Club** (`heron-netball`),
 **Fig Tree Schools Sports Circle** (`fig-tree-schools`), **Tamarind Junior Sports Club** (`tamarind-juniors`), **Ibis
 Rugby Club** (`ibis-rugby`), **Lark Basketball Club** (`lark-basketball`), **Egret Hockey Club** (`egret-hockey`),
-**Musizi Athletics Club** (`musizi-athletics`), **Cassia Community Games** (`cassia-games`) and **Bee-eater Sports
-Club** (`bee-eater-sports`). They are never seeded; e2e runs make each slug and name run-unique.
+**Musizi Athletics Club** (`musizi-athletics`), **Cassia Community Games** (`cassia-games`), **Bee-eater Sports
+Club** (`bee-eater-sports`) and **Crane Netball Club** (`crane-netball`). They are never seeded; e2e runs make
+each slug and name run-unique.
 
 ## Privacy notes for this persona
 

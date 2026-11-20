@@ -346,4 +346,21 @@ test("screenshots of the people screens", async ({ page, request }) => {
   await expect(page.getByText("No roles yet")).toBeVisible();
   await expect(page.getByRole("img", { name: "No photo of Nakato Irene Nalubega Namaganda" })).toBeVisible();
   await shoot(page, "person-no-roles", [phone, ...widths]);
+
+  // Add person (T7b): the name with the person it finds, the details, and the review with Denis as a candidate.
+  await page.goto(`/t/${tenant.slug}/people/new`);
+  await page.getByLabel("First name").fill("Denis");
+  await page.getByLabel("Last name").fill("Opoka");
+  await expect(page.getByRole("link", { name: "Denis Opoka" })).toBeVisible();
+  await shoot(page, "add-person-name", [phone, ...widths]);
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByLabel("Date of birth (optional)").fill("1991-05-02");
+  await page.getByRole("button", { name: "Add an identifier" }).click();
+  await expect(loading(page)).toHaveCount(0);
+  await shoot(page, "add-person-details", [phone, ...widths]);
+  await page.getByRole("button", { name: "Remove" }).click();
+  await page.getByRole("button", { name: "Check and add" }).click();
+  await expect(page.getByRole("list", { name: "People who may match" }).getByText("Same date of birth")).toBeVisible();
+  await expect(page.getByText("No sport recorded")).toHaveCount(0);
+  await shoot(page, "add-person-review", [phone, ...widths]);
 });

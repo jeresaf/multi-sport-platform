@@ -407,7 +407,7 @@ Deliver:
   T7c (profiles, consent, photo, identifiers, lifecycle), T7d (seeds, demo e2e, screenshots, slice close).
 
 Acceptance:
-- [ ] The duplicate review shows evidence, never another person's full birth date (Vitest).
+- [x] The duplicate review shows evidence, never another person's full birth date (Vitest).
 - [x] A user without `person.read_private` sees the birth year, not the date, and the consent scopes without the
       guardian's details or the evidence (Vitest).
 - [ ] Missing photos, long names (four name parts) and a person with no profile render at phone width (Vitest,
@@ -663,3 +663,12 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   evidence URLs refreshed only while Consent is open (pre-review m2). The acceptance box "Missing photos, long names… at phone width" has its read-only evidence
   (`person.test.tsx`, the `person-no-roles` phone screenshots) and is ticked with T7c, whose photo upload and editing
   screens it also covers.
+- **T7b:** Add person, search-first, and the duplicate review. Owner decisions (plan, 2026-11-20): one PR, web only;
+  external identifiers on Add person (so the blocking case shows); a Playwright spec of its own (`admin-people`, on
+  Crane Netball Club); Q48 answered — T7c splits into T7c-1 (roles and consent) and T7c-2 (photo, identifiers and
+  aliases, lifecycle, editing the biodata with D8's check and this review). As built: `/t/{slug}/people/new` in three
+  steps (name with the directory's matches, details, review); the review shows a candidate's birth year only, the
+  evidence in words, and blocks the save on `EXACT_IDENTIFIER`; `PERSON_DUPLICATE_CHECK_STALE` and
+  `PERSON_DUPLICATE_CHECK_REQUIRED` run the check again once (an expired check with the same people and confidence
+  already reviewed saves with the same reason; anything else is reviewed again); refused fields open their step. Screenshots
+  `add-person-name`, `-details`, `-review` in `admin-screenshots`.
