@@ -15,9 +15,8 @@ at the start of every review.
 
 ## Next up
 
-1. S06-T7c-2a — Photo, external identifiers and aliases
-2. S06-T7c-2b — Edit details (D8's check with T7b's review) and the lifecycle dialogs
-3. S06-T7d — Seeds, demo e2e, screenshots, slice close
+1. S06-T7c-2b — Edit details (D8's check with T7b's review) and the lifecycle dialogs
+2. S06-T7d — Seeds, demo e2e, screenshots, slice close
 
 ## Log
 
