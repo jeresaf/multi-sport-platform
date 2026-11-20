@@ -106,6 +106,31 @@ period's last day (through `entitlement.override`, reason "Event pass: one activ
 Festival"). Days are in `Africa/Kampala`. A tenant that already has a period (or, for the override, any override) is
 left alone, so once a demo period has ended (the tenant is read-only), run `seed --reset` to start again.
 
+**Demo sports (S06 D23).** The DEMO seed (`tenancy.demo.sports`, through `tenant.sport.enable` as the system) enables
+football (`FOOTBALL_ASSOCIATION`) for KMSA and ELSSC; a variant already enabled is skipped. The variants are listed
+in `Seed/Demo/Data/demo-sports.json` (Tenancy), not in code.
+
+**Demo people (S06 D23).** The DEMO seed (`registry.demo.people`, from `Seed/Demo/Data/demo-people.json` in Registry)
+creates each person through the duplicate check and `person.create` as the system, then their profiles, consents and
+evidence, photos and lifecycle through the Registry's commands. Birth dates are ages on the seed date, so minors stay
+minors whenever the demo is seeded. Photos and consent forms are generated placeholder images, never photos of anyone;
+guardians' contacts are `example.com` addresses. Clubs are noted in the file for S08's teams; no team exists yet.
+
+- **KMSA (40):** 26 players of the Metro Football League clubs and the Ntinda Swifts women, among them
+  **John Ssekandi** (Ntinda Swifts, striker; the demo's likely match), **Mariam Nankya** (Kisaasi Kestrels women;
+  the demo adds her twin Shamim), **Peter Ochieng** and **Peter Ochieng Okot** (decided "not the same person"), the
+  twins **Babirye Lillian Namaganda** and **Nakato Irene Namaganda** (one birth date, decided "Twin sister,
+  different first name"), and **Ivan Mukasa**, archived ("Left the association"). **Denis Opoka** is a goalkeeper,
+  assistant coach and referee (licence until 2027-06-30). Staff Charles Mwesigwa (head coach) and Florence Akurut
+  (physiotherapist); officials Richard Ekwaro (referee) and Winnie Nambooze (assistant referee). Ten under-17
+  players, four with a guardian's consent; **Brenda Akello** (15) has none, so the demo records it. Ten photos.
+- **ELSSC (10):** pupils of Lakeshore High School, Mabira Hills College, Riverside Secondary School and Sunrise
+  Academy, all minors with athlete profiles; seven with a guardian's consent (four with a scanned form), three
+  photos.
+
+No public profile is on. A person is found again by name: a run only adds what a seeded person lacks (a profile, a
+consent, its form, a photo, the archived status), so a person changed by hand is completed, not duplicated.
+
 ## Second tenant (isolation and multi-tenant demos)
 
 **Eastern Lakes Schools Sports Council (ELSSC)** — slug `elssc`, fictional. Twelve secondary schools (for
