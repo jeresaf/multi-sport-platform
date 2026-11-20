@@ -735,5 +735,5 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   for a user who couldn't use it on a writable tenant (`editDetailsAccess`, m3); a refused reason keeps the review (n4).
   Review #113: Edit details reads the person and the private details afresh on opening (`refetchOnMount: "always"`,
   the form waits for both), so a kept date of birth older than the person's version is never saved back under it (R1,
-  BLOCKER); a test that a status move sends the version its dialog opened on after a newer read (R2). Q49 (the private
-  read carrying the person's version) is the owner's.
+  BLOCKER); a test that a status move sends the version its dialog opened on after a newer read (R2). Owner, Q49: web-only
+  (the private read doesn't carry the person's version; the small race between the two requests is accepted).
