@@ -62,7 +62,9 @@ test("a registrar records consent, turns the public profile on, withdraws and tu
   await withdraw.getByLabel("Reason").fill("The guardian asked by phone");
   await withdraw.getByRole("button", { name: "Withdraw" }).click();
   await expect(withdraw).toBeHidden();
-  await expect(page.getByText("Withdrawn", { exact: true })).toBeVisible();
+  // The closed record keeps its reason; the new one carries data processing alone.
+  await expect(page.getByRole("article").filter({ hasText: "The guardian asked by phone" })).toBeVisible();
+  await expect(page.getByRole("article").filter({ hasText: "Florence Atim" })).toHaveCount(2);
   await expect(page.getByText("Public profile on (not shown without a guardian's consent to the public profile)")).toBeVisible();
 
   await page.getByRole("button", { name: "Turn off public profile" }).click();
