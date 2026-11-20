@@ -271,6 +271,12 @@ Members & roles (invite, assign roles with scopes) · Sports (enable within enti
   continue → biodata → duplicate review (side-by-side, evidence, override reason if proceeding) → save.
   Detail tabs: Overview · Roles (athlete/staff/official profiles) · Teams & history · Competitions · Matches ·
   Statistics · Consent (minors) · External IDs · Audit.
+- **Organisations** — directory, create, detail with teams and relationships.
+- **Teams** — follows the owner's flow: **create team → add staff → add players → rosters**. Detail tabs:
+  Overview · Players (memberships, add existing person or quick-create with duplicate check) · Staff ·
+  Competitions & Rosters (entries and rosters per edition; build roster from current players) · Fixtures ·
+  Results · Statistics · History.
+- **Venues** — directory, create, detail.
 
 #### As built (S06-T7a, read-only)
 
@@ -344,13 +350,13 @@ Members & roles (invite, assign roles with scopes) · Sports (enable within enti
   **Archive** from retired; none for an archived profile (final). An archived or deceased person's profiles are never
   made active again. After a change the dialog closes, the change is announced, and focus goes to the profile's heading.
 - A refused field is shown under it (`otherPositions[i]`, `capabilities[i].role`); a concurrency conflict offers
-  **Reload** in the dialog (the shared `CommandDialog`).
-- **Organisations** — directory, create, detail with teams and relationships.
-- **Teams** — follows the owner's flow: **create team → add staff → add players → rosters**. Detail tabs:
-  Overview · Players (memberships, add existing person or quick-create with duplicate check) · Staff ·
-  Competitions & Rosters (entries and rosters per edition; build roster from current players) · Fixtures ·
-  Results · Statistics · History.
-- **Venues** — directory, create, detail.
+  **Reload** in the dialog (the shared `CommandDialog`). A change is based on the person as the dialog opened: a
+  later read while it is open (the photo's URLs are read again before they expire) doesn't move its `If-Match`, so
+  someone else's change in between is a conflict, not overwritten (review #110 R1).
+- Until a sport's definition is read, the positions and roles a profile holds are still shown; if it can't be read
+  the dialog says so. The Add buttons appear together once the tenant's sports are read. An archived or deceased
+  person's only role, if its sport's definition dropped it, can't be corrected: the dialog says to retire or archive
+  the profile instead (review #110 R2, Q1 with the owner).
 
 ### Competitions
 - **Competition list** and **competition detail** (Overview · Editions · History).
