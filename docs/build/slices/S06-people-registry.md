@@ -703,3 +703,14 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   bodies raw (Node 24's fetch can't read jsdom's File; R1); every consent dialog and the Roles athlete and status
   dialogs are tested for the version they opened on (R2, #110 R7); the date given waits for the tenant's time zone
   (R3); a refused file is cleared (R4). Owner, Q1: the CI E2E screenshots artifact is enough.
+- **T7c-2a:** the photo, external identifiers and aliases. Owner decisions (plan, 2026-11-20): T7c-2 split in two
+  (T7c-2a photo, identifiers and aliases; T7c-2b editing the details on a page of its own, with D8's check and T7b's
+  review, and the lifecycle dialogs); **Q46** — the page caps "valid from" at the tenant's today (Add identifier and
+  Add person; the API is unchanged, so Q46 stays open for it); **Q47** deferred to the import slice. As built: no
+  backend change; the header's photo controls with a preview (a blob: URL, released when another file is chosen and
+  when the dialog closes); Add identifier, End, Add alias and Remove on External IDs & aliases; an identifier that
+  starts after today shows End disabled ("Can be ended from …"); alias kinds read "Former name", "Nickname",
+  "Another spelling". `FileField` (components) is shared by the photo and the consent evidence;
+  `personSchema(today)` replaces Add person's `schema`; `ViewerSection` takes a focusable `headingId`. e2e
+  `admin-people-identity` on Kestrel Sports Club (Kingfisher, planned, was taken by Kingfisher Masters Hockey Club);
+  screenshots `photo-dialog`, `identifier-dialog`, `alias-dialog`.

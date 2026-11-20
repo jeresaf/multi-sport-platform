@@ -302,7 +302,8 @@ Members & roles (invite, assign roles with scopes) · Sports (enable within enti
   authority and validity, ended ones included; current aliases with their kind). The private read (audited) is asked
   only with `person.read_private`, only on Overview and Consent, once per visit, and isn't kept after it; the photo's URLs are read again a
   minute before they expire, the evidence's only while Consent is open.
-  Changes come with T7c (Roles: T7c-1a; Consent and the public profile: T7c-1b).
+  Changes come with T7c (Roles: T7c-1a; Consent and the public profile: T7c-1b; the photo, identifiers and aliases:
+  T7c-2a; editing the details and the lifecycle: T7c-2b).
 
 #### As built (S06-T7b, Add person)
 
@@ -385,6 +386,28 @@ Members & roles (invite, assign roles with scopes) · Sports (enable within enti
 - Every control shows only with its action and is disabled with the reason on a read-only tenant. After a change the
   dialog closes, the change is announced, and focus goes to the consent's heading. A concurrency conflict offers
   **Reload**. The private read (guardians, evidence) is asked again after a consent change.
+
+#### As built (S06-T7c-2a, the photo, external identifiers and aliases)
+
+- The header gains **Add photo** or **Change photo** (`person.photo.set`) and, with a photo, **Remove photo**
+  (`person.photo.remove`, confirmed without a reason). The photo dialog takes one JPEG, PNG or WebP up to 5 MB (the
+  picker offers those, a larger file is refused before it is sent) and previews it; the API's refusal (`MEDIA_*`, the
+  storage quota) shows under the file, which is cleared and focused. An archived or deceased person gets no new photo
+  (the button is disabled with the reason); removing works in any status. After a change, focus goes to Add or
+  Change photo.
+- **External IDs & aliases** gains **Add identifier** (`person.external_id.add`): the issuer's code (upper-cased,
+  checked as Add person does), the identifier and "valid from", which can't be later than the tenant's today (owner,
+  Q46; the API still accepts a later one). A value someone has or had, and the national identity documents, are
+  refused under their field. Each open identifier has **End** (`person.external_id.end`): the last day valid (the
+  tenant's today by default, not before the start nor after today) and an optional reason. One that starts after
+  today can't be ended yet ("Can be ended from …"). Ended identifiers stay listed.
+- **Add alias** (`person.alias.add`): the name and its kind (Former name, Nickname, Another spelling); a name the
+  person already has is refused under it. Each alias has **Remove** (`person.alias.remove`) with a reason.
+- An archived or deceased person takes no new identifier or alias (a note instead of Add); ending and removing work in
+  any status. Every control shows only with its action and is disabled with the reason on a read-only tenant. After a
+  change the dialog closes, the change is announced, and focus goes to the section's heading. A concurrency conflict
+  offers **Reload**; each dialog sends the version it opened on.
+- Add person's identifier rows cap "valid from" at the tenant's today too.
 
 ### Competitions
 - **Competition list** and **competition detail** (Overview · Editions · History).
