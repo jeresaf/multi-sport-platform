@@ -296,7 +296,27 @@ Members & roles (invite, assign roles with scopes) · Sports (enable within enti
   authority and validity, ended ones included; current aliases with their kind). The private read (audited) is asked
   only with `person.read_private`, only on Overview and Consent, once per visit, and isn't kept after it; the photo's URLs are read again a
   minute before they expire, the evidence's only while Consent is open.
-  Changes come with T7b (Add person) and T7c.
+  Changes come with T7c.
+
+#### As built (S06-T7b, Add person)
+
+- **Add person** on People (`person.create`: owner, administrator, registrar; disabled with the reason on a read-only
+  tenant) opens `/t/{slug}/people/new`, three steps with "Step n of 3" and the focus on each step's heading:
+  1. **Who are you adding?** First and last name (required), middle and other names. The people the name already
+     finds (the directory's search on "first last", 300 ms after typing, the first 10) are listed with their birth year,
+     nationality, status and age badge, each linking to their page. **Continue**.
+  2. **Their details.** Display name (defaults to "first last"), gender, date of birth, nationality, second nationality,
+     height, weight, and up to 10 **external identifiers** (code of the issuer, the identifier, valid from; the code is
+     upper-cased). **Check and add** runs the duplicate check: with no one found, the person is added with the check's
+     token and their page opens.
+  3. **Check for duplicates** (when the check finds anyone). Each candidate next to the new person: how sure the check is
+     (Same identifier, Likely, Possibly), name, birth year (never a date of birth), status (archived ones marked), sports
+     played, the evidence in words ("Names 86% alike", "Holds the same KMSA_REG_NO identifier") and **Open {name}**.
+     A shared identifier blocks the save ("This identifier is already in use", **Change the details**); otherwise **Add
+     as a new person** with a reason (1–500 characters, kept for good, no personal details).
+- A check that went stale before the save (someone added a match) runs again and shows the new list with a note; an
+  expired one (30 minutes) runs again and saves at once if it finds the same people, otherwise it is reviewed again.
+  A refused field opens its step with the error under it; an identifier taken meanwhile goes back to the details.
 - **Organisations** — directory, create, detail with teams and relationships.
 - **Teams** — follows the owner's flow: **create team → add staff → add players → rosters**. Detail tabs:
   Overview · Players (memberships, add existing person or quick-create with duplicate check) · Staff ·
