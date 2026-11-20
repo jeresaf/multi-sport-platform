@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Pencil, Plus } from "lucide-react";
 import { useRef, useState, type ReactNode } from "react";
 import { EmptyState } from "@/components/empty-state";
+import { ProblemAlert } from "@/components/problem-alert";
 import { StatusBadge } from "@/components/status-badge";
 import { UnavailableNote } from "@/components/unavailable-note";
 import { Facts, RowName, ViewerSection, wide } from "@/components/viewer/facts";
@@ -37,6 +38,7 @@ type OpenDialog =
   | { type: "status"; kind: ProfileKind; profileId: string; title: string; target: ProfileStatus };
 
 const unavailableId = "roles-unavailable";
+const noSportsId = "roles-no-sports";
 
 /** Every profile's id, to find the one a create added. */
 const profileIds = (person: Person) => [
@@ -82,8 +84,8 @@ export function RolesTab({ person }: Readonly<{ person: Person }>) {
 
   const offered = (action: string) => can(action) || unavailable(action) !== null;
   const anyCreate = Object.values(profileActions).some((actions) => offered(actions.create));
-  const tenantSports = useTenantSports();
   // Only a form needs the tenant's sports and their definitions: the read-only tab doesn't ask for them.
+  const tenantSports = useTenantSports(anyCreate || dialog !== null);
   const sports = (anyCreate || dialog ? tenantSports.data?.variants ?? [] : [])
     .filter((sport) => sport.enabled)
     .map(({ variant, name }) => ({ variant, name }));
@@ -200,8 +202,11 @@ export function RolesTab({ person }: Readonly<{ person: Person }>) {
           {person.displayName} is {person.status === "DECEASED" ? "deceased" : "archived"}: no new role can be added.
         </p>
       ) : null}
+      {!closed && anyCreate && tenantSports.isError ? (
+        <ProblemAlert error={tenantSports.error} />
+      ) : null}
       {!closed && noSports && anyCreate ? (
-        <p className="text-sm text-muted-foreground">
+        <p id={noSportsId} className="text-sm text-muted-foreground">
           No sport is enabled for your organisation yet. A role is for a sport: enable one in Settings → Enabled sports.
         </p>
       ) : null}
@@ -212,7 +217,9 @@ export function RolesTab({ person }: Readonly<{ person: Person }>) {
               key={add.action}
               variant="outline"
               disabled={unavailable(add.action) !== null || sports.length === 0}
-              aria-describedby={unavailable(add.action) !== null ? unavailableId : undefined}
+              aria-describedby={
+                unavailable(add.action) !== null ? unavailableId : noSports ? noSportsId : undefined
+              }
               onClick={() => setDialog(add.open)}
             >
               <Plus aria-hidden="true" />

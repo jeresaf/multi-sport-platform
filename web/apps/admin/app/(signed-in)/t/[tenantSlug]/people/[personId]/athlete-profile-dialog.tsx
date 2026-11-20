@@ -28,14 +28,31 @@ type AthleteProfile = Person["athleteProfiles"][number];
 
 const publicNameMaxLength = 200;
 
-const schema = z.object({
-  variant: z.string().min(1, "Choose a sport."),
-  primaryPosition: z.string(),
-  otherPositions: z.array(z.string()).max(maxOtherPositions, `Choose at most ${maxOtherPositions} other positions.`),
-  dominantSide: z.string(),
-  publicName: z.string().trim().max(publicNameMaxLength, `Keep the public name under ${publicNameMaxLength} characters.`),
-});
-type Values = z.infer<typeof schema>;
+const schema = z
+  .object({
+    variant: z.string().min(1, "Choose a sport."),
+    primaryPosition: z.string(),
+    otherPositions: z.array(z.string()),
+    dominantSide: z.string(),
+    publicName: z.string().trim().max(publicNameMaxLength, `Keep the public name under ${publicNameMaxLength} characters.`),
+  })
+  .superRefine((values, context) => {
+    // Counted as sent: the primary position isn't one of the others.
+    if (otherThanPrimary(values).length > maxOtherPositions) {
+      context.addIssue({
+        code: "custom",
+        path: ["otherPositions"],
+        message: `Choose at most ${maxOtherPositions} other positions.`,
+      });
+    }
+  });
+type Values = { variant: string; primaryPosition: string; otherPositions: string[]; dominantSide: string; publicName: string };
+
+function otherThanPrimary(values: Pick<Values, "primaryPosition" | "otherPositions">) {
+  return values.otherPositions.filter((code) => code !== values.primaryPosition);
+}
+
+const noLonger = " (no longer in the sport's definition)";
 
 /** The API's field names (`otherPositions[2]` included) by the form's. */
 const fields: Readonly<Record<string, keyof Values>> = {
@@ -83,20 +100,36 @@ export function AthleteProfileDialog({
   const save = useSaveAthleteProfile(person, profile?.id);
   const errors = form.formState.errors;
 
-  // The definition's positions, and any the profile holds that the latest definition no longer has (kept, named).
+  // The definition's positions, and any the profile holds that the latest definition no longer has: shown, marked, so
+  // they can be replaced (the API refuses them on save, T4a).
   const definition = labels.definition(variant);
   const definitionPositions = definition?.positions ?? [];
+  const isDropped = (code: string) =>
+    definition !== undefined && !definitionPositions.some((position) => position.code === code);
   const held = [profile?.primaryPosition, ...(profile?.otherPositions ?? [])].filter(
-    (code): code is string => Boolean(code) && !definitionPositions.some((position) => position.code === code),
+    (code): code is string => typeof code === "string" && code !== "" && isDropped(code),
   );
-  const positions = [...definitionPositions, ...held.map((code) => ({ code, label: codeLabel(code) }))];
+  const positions = [...definitionPositions, ...held.map((code) => ({ code, label: `${codeLabel(code)}${noLonger}` }))];
   const sportName = profile ? labels.variant(profile.variant) : undefined;
 
   const submit = form.handleSubmit((values) => {
+    const droppedMessage = (codes: string[]) =>
+      `${codes.map(codeLabel).join(", ")} ${codes.length === 1 ? "is" : "are"} no longer in the sport's definition: choose another position or none.`;
+    const others = otherThanPrimary(values);
+    const droppedOthers = others.filter(isDropped);
+    if (values.primaryPosition && isDropped(values.primaryPosition)) {
+      form.setError("primaryPosition", { type: "dropped", message: droppedMessage([values.primaryPosition]) });
+    }
+    if (droppedOthers.length > 0) {
+      form.setError("otherPositions", { type: "dropped", message: droppedMessage(droppedOthers) });
+    }
+    if ((values.primaryPosition && isDropped(values.primaryPosition)) || droppedOthers.length > 0) {
+      return;
+    }
     const details = {
       primaryPosition: values.primaryPosition || null,
       // A position can't be both: the primary one wins.
-      otherPositions: values.otherPositions.filter((code) => code !== values.primaryPosition),
+      otherPositions: others,
       dominantSide: (values.dominantSide || null) as DominantSide | null,
       publicName: values.publicName.trim() || null,
     };

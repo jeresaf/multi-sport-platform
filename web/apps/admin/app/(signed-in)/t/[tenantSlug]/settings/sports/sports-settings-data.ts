@@ -21,12 +21,13 @@ function useTenantSportsKey() {
   return ["tenant-sports", tenant.tenantId] as const;
 }
 
-export function useTenantSports() {
+/** `needed`: false when the screen has no use for the list now (the person page asks only to offer a profile). */
+export function useTenantSports(needed = true) {
   const { client, can } = useTenantWorkspace();
   return useQuery({
     queryKey: useTenantSportsKey(),
     queryFn: () => call(client.GET("/api/admin/v1/tenant/sports")),
-    enabled: can("tenant.sport.read"),
+    enabled: can("tenant.sport.read") && needed,
   });
 }
 

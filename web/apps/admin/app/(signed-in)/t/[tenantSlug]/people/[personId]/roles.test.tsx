@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { readOnlyCapabilities } from "@/test/capabilities";
 import { denis, john, person } from "@/test/people";
 import { personPageAnswers } from "@/test/person-page";
+import { ringball } from "@/test/sport-definitions";
 import { fakeApi, problem, renderWithQuery, type Answer, type Answers, type RecordedRequest } from "@/test/render";
 import TenantWorkspaceLayout from "../../layout";
 import type { Person } from "../people-data";
@@ -20,7 +21,8 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: vi.fn(), push: vi.fn() }),
 }));
 
-const viewer = ["person.read", "sport.read", "tenant.settings.read"];
+// VIEWER's reads (roles.md), the tenant's sports included: the tab still doesn't ask for them.
+const viewer = ["person.read", "sport.read", "tenant.settings.read", "tenant.sport.read"];
 const profileWrites = [
   "athlete_profile.create",
   "athlete_profile.update",
@@ -32,7 +34,7 @@ const profileWrites = [
   "official_profile.update",
   "official_profile.status.change",
 ];
-const registrar = [...viewer, "tenant.sport.read", "person.read_private", ...profileWrites];
+const registrar = [...viewer, "person.read_private", ...profileWrites];
 
 const tenantSport = (variant: string, name: string, enabled = true) => ({
   variant,
@@ -328,8 +330,75 @@ describe("roles", () => {
     expect(within(dialog()).getByLabelText("Grade (optional)")).toHaveProperty("value", "Class 2");
   });
 
+  it("marks a position the latest definition dropped, and asks for another before saving", async () => {
+    const athlete = denis.athleteProfiles[0]!;
+    const requests = open(denis, registrar, {
+      "GET /api/admin/v1/sports/RINGBALL_SEVENS": {
+        status: 200,
+        body: { ...ringball, positions: ringball.positions.filter((position) => position.code !== "WING_RINGER") },
+      },
+    });
+
+    fireEvent.click(await screen.findByRole("button", { name: "Edit: Ringball sevens athlete profile" }));
+    const primary = within(dialog()).getByLabelText("Primary position (optional)");
+    expect(within(primary).getByRole("option", { name: "Wing ringer (no longer in the sport's definition)" })).toBeTruthy();
+    fireEvent.click(within(dialog()).getByRole("button", { name: "Save profile" }));
+    expect(
+      await within(dialog()).findByText("Wing ringer is no longer in the sport's definition: choose another position or none."),
+    ).toBeTruthy();
+    expect(requests.some((request) => request.method === "PUT")).toBe(false);
+
+    choose("Primary position (optional)", "CENTRE_RINGER");
+    fireEvent.click(within(dialog()).getByRole("button", { name: "Save profile" }));
+    const request = await sent(requests, "PUT", `/api/admin/v1/people/${denis.id}/athlete-profiles/${athlete.id}`);
+    expect(request.body).toMatchObject({ primaryPosition: "CENTRE_RINGER", otherPositions: ["HOOP_GUARD"] });
+  });
+
+  it("on an archived person, shows a dropped or refused role under its locked row", async () => {
+    const requests = open(ivan, registrar, {
+      "GET /api/admin/v1/sports/RINGBALL_SEVENS": {
+        status: 200,
+        body: { ...ringball, officialRoles: ringball.officialRoles.filter((role) => role.code !== "RING_JUDGE") },
+      },
+    });
+
+    fireEvent.click(await screen.findByRole("button", { name: "Edit: Official profile" }));
+    fireEvent.click(within(dialog()).getByRole("button", { name: "Save profile" }));
+    const message = await within(dialog()).findByText("Ring judge is no longer in the sport's definition: remove it.");
+    expect(within(dialog()).getByRole("button", { name: "Remove role 1" }).getAttribute("aria-describedby")).toBe(message.id);
+    expect(requests.some((request) => request.method === "PUT")).toBe(false);
+    cleanup();
+
+    // A refusal the page couldn't foresee is shown there too, not lost on a field the row doesn't show.
+    open(ivan, registrar, {
+      [`PUT /api/admin/v1/people/${ivan.id}/official-profiles/${ivan.officialProfiles[0]!.id}`]: {
+        status: 422,
+        body: problem("PERSON_ROLE_UNKNOWN", 422, { errors: [{ field: "capabilities[0].role", code: "PERSON_ROLE_UNKNOWN" }] }),
+      },
+    });
+    fireEvent.click(await screen.findByRole("button", { name: "Edit: Official profile" }));
+    await waitFor(() => expect(within(dialog()).getByLabelText("Grade (optional)")).toBeTruthy());
+    fireEvent.click(within(dialog()).getByRole("button", { name: "Save profile" }));
+    expect(await within(dialog()).findByText("The sport variant's definition has no such role.")).toBeTruthy();
+  });
+
+  it("keeps a held role on a sport since disabled, but offers only enabled sports to a new row", async () => {
+    const staff = {
+      ...denis.staffProfiles[0]!,
+      capabilities: [{ variant: "RINGBALL_TENS", role: "HEAD_COACH", qualification: null }],
+    };
+    open({ ...denis, staffProfiles: [staff] });
+
+    fireEvent.click(await screen.findByRole("button", { name: "Edit: Staff profile" }));
+    fireEvent.click(within(dialog()).getByRole("button", { name: "Add another role" }));
+    const [held, added] = within(dialog()).getAllByLabelText("Sport");
+    const names = (select: HTMLElement) => within(select).getAllByRole("option").map((option) => option.textContent);
+    expect(names(held!)).toEqual(["Ringball sevens", "Ringball fives", "Ringball tens"]);
+    expect(names(added!)).toEqual(["Ringball sevens", "Ringball fives"]);
+  });
+
   it("on a read-only tenant, shows the controls disabled with the reason", async () => {
-    open(denis, readOnlyCapabilities([...viewer, "tenant.sport.read"], profileWrites));
+    open(denis, readOnlyCapabilities(viewer, profileWrites));
 
     const add = await screen.findByRole("button", { name: "Add athlete profile" });
     expect(add).toHaveProperty("disabled", true);
@@ -345,8 +414,10 @@ describe("roles", () => {
       "GET /api/admin/v1/tenant/sports": { status: 200, body: { variants: [tenantSport("RINGBALL_TENS", "Ringball tens", false)], sportQuota: null } },
     });
 
-    expect(await screen.findByText(/No sport is enabled for your organisation yet/)).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Add athlete profile" })).toHaveProperty("disabled", true);
+    const note = await screen.findByText(/No sport is enabled for your organisation yet/);
+    const add = screen.getByRole("button", { name: "Add athlete profile" });
+    expect(add).toHaveProperty("disabled", true);
+    expect(add.getAttribute("aria-describedby")).toBe(note.id);
   });
 
   it("after a concurrency conflict, offers to reload the person instead of saving", async () => {

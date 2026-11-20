@@ -46,6 +46,9 @@ const schema = z
           licenceValidUntil: z.string(),
           /** Held before this change: on an archived or deceased person its sport and role can't change. */
           held: z.boolean(),
+          /** The sport and role it was held with (empty for a new row): kept as choices though disabled or dropped. */
+          heldVariant: z.string(),
+          heldRole: z.string(),
         }),
       )
       .min(1, "Add at least one role.")
@@ -72,6 +75,8 @@ const emptyRow = (variant: string): Row => ({
   licenceNumber: "",
   licenceValidUntil: "",
   held: false,
+  heldVariant: "",
+  heldRole: "",
 });
 
 /** The API's field names (`capabilities[3].role`) by the form's. */
@@ -125,6 +130,8 @@ export function CapabilityDialog({
             licenceNumber: "licenceNumber" in capability ? (capability.licenceNumber ?? "") : "",
             licenceValidUntil: "licenceValidUntil" in capability ? (capability.licenceValidUntil ?? "") : "",
             held: true,
+            heldVariant: capability.variant,
+            heldRole: capability.role,
           }))
         : [emptyRow(sports[0]?.variant ?? "")],
     },
@@ -136,23 +143,44 @@ export function CapabilityDialog({
   const errors = form.formState.errors;
   const words = kindWords[kind];
 
-  // A held capability may stay on a sport since disabled (T4b1); an added one needs an enabled sport.
-  const heldVariants = (profile?.capabilities ?? [])
-    .map((capability) => capability.variant)
-    .filter((variant) => !sports.some((sport) => sport.variant === variant));
-  const sportOptions = [
-    ...sports,
-    ...[...new Set(heldVariants)].map((variant) => ({ variant, name: labels.variant(variant) })),
-  ];
-  const roleOptions = (variant: string, held: string | undefined) => {
+  // A held capability may stay on a sport since disabled (T4b1); an added one, or another row, needs an enabled sport.
+  const sportOptions = (row: Row) =>
+    row.heldVariant === "" || sports.some((sport) => sport.variant === row.heldVariant)
+      ? sports
+      : [...sports, { variant: row.heldVariant, name: labels.variant(row.heldVariant) }];
+  /** The definition's roles for the sport, or undefined until it is read. */
+  const definitionRoles = (variant: string) => {
     const definition = labels.definition(variant);
-    const roles = (kind === "STAFF" ? definition?.staffRoles : definition?.officialRoles) ?? [];
-    return held && !roles.some((role) => role.code === held) ? [...roles, { code: held, label: codeLabel(held) }] : roles;
+    return kind === "STAFF" ? definition?.staffRoles : definition?.officialRoles;
+  };
+  /** A role the latest definition no longer has: the API refuses it on save (T4b), so it must be replaced or removed. */
+  const isDropped = (variant: string, role: string) => {
+    const roles = definitionRoles(variant);
+    return role !== "" && roles !== undefined && !roles.some((item) => item.code === role);
+  };
+  // The role held stays visible under its own sport, marked, so it can be replaced.
+  const roleOptions = (variant: string, row: Row) => {
+    const roles = definitionRoles(variant) ?? [];
+    return variant === row.heldVariant && isDropped(variant, row.heldRole)
+      ? [...roles, { code: row.heldRole, label: `${codeLabel(row.heldRole)} (no longer in the sport's definition)` }]
+      : roles;
   };
   const roleLabel = (variant: string, role: string) =>
     kind === "STAFF" ? labels.staffRole(variant, role) : labels.officialRole(variant, role);
 
   const submit = form.handleSubmit(({ capabilities }) => {
+    const dropped = capabilities
+      .map((row, index) => ({ row, index }))
+      .filter(({ row }) => isDropped(row.variant, row.role));
+    for (const { row, index } of dropped) {
+      form.setError(`capabilities.${index}.role`, {
+        type: "dropped",
+        message: `${codeLabel(row.role)} is no longer in the sport's definition: ${closed && row.held ? "remove it" : "choose another role or remove it"}.`,
+      });
+    }
+    if (dropped.length > 0) {
+      return;
+    }
     const body =
       kind === "STAFF"
         ? capabilities.map((row) => ({ variant: row.variant, role: row.role, qualification: row.qualification.trim() || null }))
@@ -198,6 +226,9 @@ export function CapabilityDialog({
           const rowErrors = errors.capabilities?.[index];
           const locked = closed && row.held;
           const number = index + 1;
+          // A locked row has no Sport or Role field: a refusal of either is shown under its heading.
+          const lockedError = locked ? (rowErrors?.role?.message ?? rowErrors?.variant?.message) : undefined;
+          const lockedErrorId = `capability-${index}-error`;
           return (
             <li key={row.id} className="grid gap-3 rounded-lg border p-3">
               <div className="flex items-center justify-between gap-2">
@@ -207,6 +238,7 @@ export function CapabilityDialog({
                 <Button
                   variant="ghost"
                   aria-label={`Remove role ${number}`}
+                  aria-describedby={lockedError ? lockedErrorId : undefined}
                   disabled={rows.fields.length === 1}
                   onClick={() => rows.remove(index)}
                 >
@@ -214,6 +246,11 @@ export function CapabilityDialog({
                   Remove
                 </Button>
               </div>
+              {lockedError ? (
+                <p id={lockedErrorId} className="text-sm text-destructive">
+                  {lockedError}
+                </p>
+              ) : null}
               {locked ? null : (
                 <div className="grid gap-3 tablet:grid-cols-2">
                   <SelectField
@@ -225,7 +262,7 @@ export function CapabilityDialog({
                       onChange: () => form.setValue(`capabilities.${index}.role`, ""),
                     })}
                   >
-                    {sportOptions.map((sport) => (
+                    {sportOptions(row).map((sport) => (
                       <option key={sport.variant} value={sport.variant}>
                         {sport.name}
                       </option>
@@ -238,7 +275,7 @@ export function CapabilityDialog({
                     {...form.register(`capabilities.${index}.role`)}
                   >
                     <option value="">Choose a role</option>
-                    {roleOptions(current.variant, row.held ? row.role : undefined).map((role) => (
+                    {roleOptions(current.variant, row).map((role) => (
                       <option key={role.code} value={role.code}>
                         {role.label}
                       </option>

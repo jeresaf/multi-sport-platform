@@ -325,16 +325,20 @@ Members & roles (invite, assign roles with scopes) · Sports (enable within enti
   `official_profile.*`: owner, administrator, registrar) and disabled with the reason on a read-only tenant (one note
   above the profiles). **Add athlete profile** is offered while an enabled sport has no open profile of the person's;
   **Add staff profile** and **Add official profile** while the person has no open one of that kind ("open": not
-  archived). Without an enabled sport they are disabled with "No sport is enabled for your organisation yet…". An
+  archived). Without an enabled sport they are disabled with "No sport is enabled for your organisation yet…" (and
+  an error if the tenant's sports can't be read). An
   archived or deceased person is offered none ("… no new role can be added").
 - **Athlete profile** dialog: the sport (enabled ones only; only when adding, it never changes), primary position,
   other positions (checkboxes, up to five, never the primary one), dominant side, public name (empty: the display
-  name). Positions are the sport's latest definition's, named in its words; one the profile holds that the definition
-  no longer has stays, named from its code.
+  name). Positions are the sport's latest definition's, named in its words. One the profile holds that the latest
+  definition dropped is shown "(no longer in the sport's definition)" and must be replaced before saving: the API
+  refuses it (T4a), so the page says so first.
 - **Staff** and **official profile** dialogs: 1–10 roles, each a sport and a role of its definition; a staff role adds a
   qualification, an official one a grade, a licence number and the licence's last day. The same sport and role twice is
-  refused on the page. The roles are replaced as a whole. A role held on a sport since disabled may stay. On an archived
-  or deceased person the roles held are shown by name and can be removed or changed in their details, none added.
+  refused on the page. The roles are replaced as a whole. A role held on a sport since disabled may stay (that sport is
+  offered only on its own row); a role the latest definition dropped is marked and must be replaced or removed. On an
+  archived or deceased person the roles held are shown by name and can be removed or changed in their details, none
+  added; a refusal of one shows under it.
 - Each open profile has **Edit** and its status moves, each with a reason (`ActionDialog`): **Make inactive**,
   **Retire**, **Archive** from active; **Make active**, **Retire**, **Archive** from inactive; **Make active**,
   **Archive** from retired; none for an archived profile (final). An archived or deceased person's profiles are never
