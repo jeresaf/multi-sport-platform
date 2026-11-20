@@ -49,8 +49,10 @@ export default function EditPersonPage() {
   const { tenant, can, unavailable } = useTenantWorkspace();
   const { allowed, reason } = editDetailsAccess(can, unavailable);
   const queryClient = useQueryClient();
-  const person = usePerson(personId);
-  const privateRead = usePersonPrivate(personId, allowed, false);
+  // Both read fresh on opening: a kept date of birth may be older than the person's version, and the update would put
+  // it back under that version (review #113 R1). One audited private read per visit.
+  const person = usePerson(personId, true);
+  const privateRead = usePersonPrivate(personId, allowed, false, true);
   const countries = useCountries();
   // After a conflict the form starts over once both reads are fresh; a background read of the person (its photo's URLs
   // expire) never resets what is being typed (pre-review m1).
@@ -87,7 +89,8 @@ export default function EditPersonPage() {
     );
   }
   // The countries too: a nationality select without its options would show, and save, none.
-  if (!person.data || !privateRead.data || reloading || !countries.data) {
+  const fresh = person.isFetchedAfterMount && privateRead.isFetchedAfterMount;
+  if (!person.data || !privateRead.data || !fresh || reloading || !countries.data) {
     const error = person.error ?? privateRead.error ?? countries.error;
     return (
       <section className="grid gap-4">

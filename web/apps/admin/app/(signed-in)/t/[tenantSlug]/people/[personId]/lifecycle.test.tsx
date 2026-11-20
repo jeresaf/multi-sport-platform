@@ -5,10 +5,10 @@ import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/re
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readOnlyCapabilities } from "@/test/capabilities";
 import { john, person } from "@/test/people";
-import { personPageAnswers } from "@/test/person-page";
+import { personPageAnswers, tenantId } from "@/test/person-page";
 import { fakeApi, problem, renderWithQuery, type Answers, type RecordedRequest } from "@/test/render";
 import TenantWorkspaceLayout from "../../layout";
-import type { Person, PersonStatus } from "../people-data";
+import { personQueryKey, type Person, type PersonStatus } from "../people-data";
 import PersonPage from "./page";
 
 const navigation = vi.hoisted(() => ({ personId: "", search: "tab=roles" }));
@@ -31,10 +31,12 @@ const moveActions = [
 const editActions = ["person.update", "person.read_private", "person.duplicate_check"];
 const registrar = [...reads, ...editActions, ...moveActions];
 
+let rendered: ReturnType<typeof renderWithQuery>;
+
 function open(shown: Person, capabilities: Parameters<typeof personPageAnswers>[1] = registrar, answers: Answers = {}) {
   navigation.personId = shown.id;
   const requests = fakeApi({ ...personPageAnswers(shown, capabilities), ...answers });
-  renderWithQuery(
+  rendered = renderWithQuery(
     <TenantWorkspaceLayout>
       <PersonPage />
     </TenantWorkspaceLayout>,
@@ -132,6 +134,26 @@ describe("Person header actions", () => {
     expect(moveButtons()).toEqual(["Reactivate", "Archive", "Mark as deceased"]);
     // The status history is read again.
     await waitFor(() => expect(requests.filter((item) => item.path.endsWith("/status-changes"))).toHaveLength(2));
+  });
+
+  it("sends the version the dialog opened on, not a newer read's", async () => {
+    let version = 7;
+    const requests = open(john, registrar, {
+      [`GET /api/admin/v1/people/${john.id}`]: () => ({
+        status: 200,
+        body: person({ version, displayName: version === 7 ? "John Ssekandi" : "J. Ssekandi" }),
+      }),
+      [`POST /api/admin/v1/people/${john.id}/archive`]: movedTo("ARCHIVED"),
+    });
+    await loaded();
+    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+    // The page reads the person again while the dialog is open (the photo's URLs expire), and shows the newer read.
+    version = 8;
+    await rendered.queryClient.refetchQueries({ queryKey: personQueryKey(tenantId, john.id) });
+    await screen.findByRole("heading", { level: 1, name: "J. Ssekandi", hidden: true });
+    fireEvent.change(within(dialog()).getByLabelText("Reason"), { target: { value: "Left the club." } });
+    fireEvent.click(within(dialog()).getByRole("button", { name: "Archive" }));
+    expect((await sentTo(requests, `/api/admin/v1/people/${john.id}/archive`)).headers.get("If-Match")).toBe('"7"');
   });
 
   it("sends the optional reason when one is given", async () => {

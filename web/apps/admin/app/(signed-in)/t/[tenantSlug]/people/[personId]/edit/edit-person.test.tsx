@@ -6,6 +6,7 @@ import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { readOnlyCapabilities } from "@/test/capabilities";
 import { john, person } from "@/test/people";
+import { createQueryClient } from "@/lib/query-client";
 import { personPageAnswers, tenantId } from "@/test/person-page";
 import { fakeApi, problem, renderWithQuery, type Answer, type Answers, type RecordedRequest } from "@/test/render";
 import TenantWorkspaceLayout from "../../../layout";
@@ -44,7 +45,12 @@ const checked = (candidates: unknown[], checkToken = "token-1"): Answer => ({ st
 
 let rendered: ReturnType<typeof renderWithQuery>;
 
-function open(capabilities: Parameters<typeof personPageAnswers>[1] = registrar, answers: Answers = {}, shown = john) {
+function open(
+  capabilities: Parameters<typeof personPageAnswers>[1] = registrar,
+  answers: Answers = {},
+  shown = john,
+  queryClient = createQueryClient(),
+) {
   navigation.personId = shown.id;
   const requests = fakeApi({
     ...personPageAnswers(shown, capabilities),
@@ -60,6 +66,7 @@ function open(capabilities: Parameters<typeof personPageAnswers>[1] = registrar,
     <TenantWorkspaceLayout>
       <EditPersonPage />
     </TenantWorkspaceLayout>,
+    queryClient,
   );
   return requests;
 }
@@ -295,6 +302,30 @@ describe("Edit details", () => {
     await saved();
     // The change is based on the version the page opened on: someone else's change since is a conflict, not lost.
     expect(updates(requests)[0]?.headers.get("If-Match")).toBe('"7"');
+  });
+
+  it("starts from a fresh read, not a kept date of birth older than the person's version", async () => {
+    // The person page kept version 7 and its date of birth; someone has since corrected the date (version 8).
+    const queryClient = createQueryClient();
+    queryClient.setQueryData(personQueryKey(tenantId, john.id), john);
+    queryClient.setQueryData(personPrivateQueryKey(tenantId, john.id), { id: john.id, dateOfBirth: "1998-03-14", consents: [] });
+    const requests = open(
+      registrar,
+      {
+        [`GET /api/admin/v1/people/${john.id}`]: { status: 200, body: person({ version: 8 }) },
+        [`GET /api/admin/v1/people/${john.id}/private`]: privateOf("1998-04-14"),
+      },
+      john,
+      queryClient,
+    );
+    await loaded();
+    expect(screen.getByLabelText<HTMLInputElement>("Date of birth (optional)").value).toBe("1998-04-14");
+    type("Weight in kg (optional)", "74");
+    save();
+    await saved();
+    expect(updates(requests)[0]?.headers.get("If-Match")).toBe('"8"');
+    expect(updates(requests)[0]?.body).toMatchObject({ dateOfBirth: "1998-04-14" });
+    expect(sent(requests, "GET", `/api/admin/v1/people/${john.id}/private`)).toHaveLength(1);
   });
 
   it("reads the private details once: a save marks them stale for the person's page without reading them here", async () => {
