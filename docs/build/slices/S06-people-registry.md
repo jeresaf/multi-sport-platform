@@ -712,5 +712,8 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   starts after today shows End disabled ("Can be ended from …"); alias kinds read "Former name", "Nickname",
   "Another spelling". `FileField` (components) is shared by the photo and the consent evidence;
   `personSchema(today)` replaces Add person's `schema`; `ViewerSection` takes a focusable `headingId`. e2e
-  `admin-people-identity` on Kestrel Sports Club (Kingfisher, planned, was taken by Kingfisher Masters Hockey Club);
-  screenshots `photo-dialog`, `identifier-dialog`, `alias-dialog`.
+  `admin-people-identity` on Bulbul Sports Club (Kingfisher, planned, was taken by Kingfisher Masters Hockey Club;
+  Kestrel, built first, was too close to KMSA's Kisaasi Kestrels, review #112 R3); screenshots `photo-dialog`,
+  `identifier-dialog`, `alias-dialog`. Review #112: a refused file (or its storage) is cleared, a conflict or server
+  failure keeps it, in the photo and both consent dialogs (R4); the quota's refusal shows in the alert (R1); owner,
+  Q1: the size accepted; Q2: Bulbul.

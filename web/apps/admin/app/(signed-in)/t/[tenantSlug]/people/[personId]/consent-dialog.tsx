@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { CommandDialog } from "@/components/command-dialog";
+import { clearFileInput, fileRefused } from "@/components/file-field";
 import { FormField } from "@/components/form-field";
 import { SelectField } from "@/components/select-field";
 import { humanizeCode } from "@/lib/codes";
@@ -122,14 +123,12 @@ export function ConsentDialog({
       { consentId, version, file: chosen },
       {
         onSuccess: () => onSaved("Consent recorded with its evidence.", consentId),
-        onError: () => {
+        onError: (error) => {
           setUploadRefused(true);
-          // The refused file isn't sent again: another is chosen (#111 R4). Its refusal stays under the field.
-          setFile(undefined);
-          const input = document.getElementById("consent-evidence") as HTMLInputElement | null;
-          if (input) {
-            input.value = "";
-            input.focus();
+          // A refused file isn't sent again: another is chosen (#111 R4, #112 R4). Its refusal stays under the field.
+          if (fileRefused(error)) {
+            setFile(undefined);
+            clearFileInput("consent-evidence", true);
           }
         },
       },

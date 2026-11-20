@@ -454,6 +454,7 @@ export default function AddPersonPage() {
                   label="Valid from (optional)"
                   type="date"
                   max={today || undefined}
+                  disabled={zone.isLoading}
                   error={errors.externalIdentifiers?.[index]?.validFrom?.message}
                   {...form.register(`externalIdentifiers.${index}.validFrom`)}
                 />

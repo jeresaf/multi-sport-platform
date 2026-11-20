@@ -3,6 +3,7 @@
 // `person.consent_evidence.upload` on an active consent (S06 D19, T6a): adds its evidence, or replaces the file it had.
 import { useState } from "react";
 import { CommandDialog } from "@/components/command-dialog";
+import { clearFileInput, fileRefused } from "@/components/file-field";
 import { fieldError, needsAlert } from "@/lib/form-errors";
 import { formatDay } from "@/lib/entitlements";
 import type { Person } from "../people-data";
@@ -54,12 +55,11 @@ export function EvidenceDialog({
             { consentId: consent.id, version, file },
             {
               onSuccess: () => onSaved(replacing ? "Evidence replaced." : "Evidence uploaded."),
-              // The refused file isn't sent again: another is chosen (#111 R4).
-              onError: () => {
-                setFile(undefined);
-                const input = document.getElementById("evidence-file") as HTMLInputElement | null;
-                if (input) {
-                  input.value = "";
+              // A refused file isn't sent again: another is chosen (#111 R4, #112 R4).
+              onError: (error) => {
+                if (fileRefused(error)) {
+                  setFile(undefined);
+                  clearFileInput("evidence-file");
                 }
               },
             },

@@ -8,7 +8,7 @@ import { ImageUp, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { ActionDialog } from "@/components/action-dialog";
 import { CommandDialog } from "@/components/command-dialog";
-import { clearFileInput, FileField, fileFields, fileSizeError } from "@/components/file-field";
+import { clearFileInput, FileField, fileFields, fileRefused, fileSizeError } from "@/components/file-field";
 import { UnavailableNote } from "@/components/unavailable-note";
 import { fieldError, needsAlert } from "@/lib/form-errors";
 import { useTenantWorkspace } from "@/lib/tenant-workspace";
@@ -144,10 +144,12 @@ function PhotoDialog({ person, onOpenChange, onSaved, onCloseAutoFocus }: Dialog
         if (file && !sizeError) {
           save.mutate(file, {
             onSuccess: () => onSaved(replacing ? "Photo changed." : "Photo added."),
-            // The refused file isn't sent again: another is chosen (#111 R4).
-            onError: () => {
-              choose(undefined);
-              clearFileInput("photo-file", true);
+            // A refused file isn't sent again: another is chosen (#111 R4, #112 R4).
+            onError: (error) => {
+              if (fileRefused(error)) {
+                choose(undefined);
+                clearFileInput("photo-file", true);
+              }
             },
           });
         }

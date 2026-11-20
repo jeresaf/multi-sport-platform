@@ -391,8 +391,9 @@ Members & roles (invite, assign roles with scopes) · Sports (enable within enti
 
 - The header gains **Add photo** or **Change photo** (`person.photo.set`) and, with a photo, **Remove photo**
   (`person.photo.remove`, confirmed without a reason). The photo dialog takes one JPEG, PNG or WebP up to 5 MB (the
-  picker offers those, a larger file is refused before it is sent) and previews it; the API's refusal (`MEDIA_*`, the
-  storage quota) shows under the file, which is cleared and focused. An archived or deceased person gets no new photo
+  picker offers those, a larger file is refused before it is sent) and previews it; the API's refusal of the file (`MEDIA_*`)
+  shows under it, the storage quota's ("Your plan allows N GB of storage.") in the dialog's alert, and either clears
+  the file and focuses the input; a conflict or a server failure keeps it. An archived or deceased person gets no new photo
   (the button is disabled with the reason); removing works in any status. After a change, focus goes to Add or
   Change photo.
 - **External IDs & aliases** gains **Add identifier** (`person.external_id.add`): the issuer's code (upper-cased,

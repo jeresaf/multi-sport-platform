@@ -171,6 +171,46 @@ describe("photo", () => {
     expect(within(dialog()).queryByRole("img", { name: "The chosen photo" })).toBeNull();
   });
 
+  it("shows the storage quota's refusal in the alert, with the plan's limit, and clears the file", async () => {
+    open(john, registrar, {
+      [`PUT /api/admin/v1/people/${john.id}/photo`]: {
+        status: 403,
+        body: problem("ENTITLEMENT_QUOTA_EXCEEDED", 403, { detail: "Your plan allows 10 GB of storage." }),
+      },
+    });
+
+    fireEvent.click(await screen.findByRole("button", { name: "Add photo" }));
+    chooseFile(portrait());
+    press("Add photo");
+
+    // The quota names no field: the refusal is the dialog's, not the file's (#112 R1).
+    expect((await within(dialog()).findByRole("alert")).textContent).toContain("Your plan allows 10 GB of storage.");
+    expect(within(dialog()).getByLabelText("Photo").getAttribute("aria-invalid")).toBeNull();
+    // Sending the same file again can't help: another is chosen once storage is freed or the plan changes.
+    expect(within(dialog()).getByRole("button", { name: "Add photo" })).toHaveProperty("disabled", true);
+  });
+
+  it("keeps the chosen file after a server failure, so it can be sent again", async () => {
+    let uploads = 0;
+    const requests = open(john, registrar, {
+      [`PUT /api/admin/v1/people/${john.id}/photo`]: () =>
+        ++uploads === 1
+          ? { status: 503, body: problem("PLATFORM_UNAVAILABLE", 503) }
+          : { status: 200, body: person({ ...john, photo: brenda.photo, version: 8 }) },
+    });
+
+    fireEvent.click(await screen.findByRole("button", { name: "Add photo" }));
+    chooseFile(portrait());
+    press("Add photo");
+
+    expect(await within(dialog()).findByRole("alert")).toBeTruthy();
+    // #112 R4: only a refusal of the file (or of its storage) clears it.
+    expect(within(dialog()).getByRole("img", { name: "The chosen photo" })).toBeTruthy();
+    press("Add photo");
+    await closed();
+    expect(requests.filter((request) => request.method === "PUT")).toHaveLength(2);
+  });
+
   it("removes the photo, then focuses Add photo", async () => {
     const requests = open(brenda, registrar, {
       [`DELETE /api/admin/v1/people/${brenda.id}/photo`]: {

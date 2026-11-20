@@ -5,12 +5,25 @@
 import { Input } from "@msp/ui/components/input";
 import { Label } from "@msp/ui/components/label";
 import type { ReactNode } from "react";
+import { isApiProblem } from "@/lib/api";
 
 /** A file the API would refuse for its size, said before it is sent; undefined when it may go. */
 export function fileSizeError(file: File | undefined, maxBytes: number): string | undefined {
   return file && file.size > maxBytes
     ? `The file is larger than ${maxBytes / (1024 * 1024)} MB. Choose a smaller one.`
     : undefined;
+}
+
+/**
+ * Whether the API refused the file itself (a `file` failure: its type or size) or its storage (the plan's quota): the
+ * file isn't sent again, another is chosen (#111 R4). A conflict (Reload) or a failure of the server keeps it, to retry.
+ */
+export function fileRefused(error: unknown): boolean {
+  return (
+    isApiProblem(error) &&
+    (error.problem.code === "ENTITLEMENT_QUOTA_EXCEEDED" ||
+      (error.problem.errors ?? []).some((failure) => failure.field === "file"))
+  );
 }
 
 /** Clears a file input, so a refused file isn't sent again (#111 R4); with `focus`, the input takes the focus. */

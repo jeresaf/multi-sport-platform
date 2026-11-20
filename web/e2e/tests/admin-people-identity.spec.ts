@@ -6,7 +6,7 @@ import { createPerson, placeholderPng } from "./support/people";
 // API: a registrar adds a photo (the API checks its bytes and keeps resized copies), adds an identifier and ends it,
 // adds an alias and removes it, then removes the photo. A tenant of its own (S06-T7a).
 test("a registrar changes a person's photo, identifiers and aliases", async ({ page, request }) => {
-  const tenant = await ownTenant(request, "kestrel-sports", "Kestrel Sports Club");
+  const tenant = await ownTenant(request, "bulbul-sports", "Bulbul Sports Club");
   const owner = { email: personEmail("agnes.nansubuga", tenant.slug), password: newPassword() };
   await acceptByApi(request, await inviteOwnerOf(request, tenant.id, owner.email), owner.password);
   await signInByApi(request, owner.email, owner.password);
@@ -39,15 +39,15 @@ test("a registrar changes a person's photo, identifiers and aliases", async ({ p
   // An identifier: the issuer's code is upper-cased; then it is ended and stays listed.
   await page.getByRole("button", { name: "Add identifier" }).click();
   const identifier = page.getByRole("dialog");
-  await identifier.getByLabel("Issued by (code)").fill("kestrel_reg_no");
-  await identifier.getByLabel("Identifier").fill("KS-2026-0012");
+  await identifier.getByLabel("Issued by (code)").fill("bulbul_reg_no");
+  await identifier.getByLabel("Identifier").fill("BB-2026-0012");
   await identifier.getByLabel("Valid from (optional)").fill("2026-01-10");
   await identifier.getByRole("button", { name: "Add identifier" }).click();
   await expect(identifier).toBeHidden();
-  await expect(page.getByRole("rowheader").filter({ hasText: "KS-2026-0012" })).toBeVisible();
-  await expect(page.getByRole("cell", { name: "KESTREL_REG_NO" })).toBeVisible();
+  await expect(page.getByRole("rowheader").filter({ hasText: "BB-2026-0012" })).toBeVisible();
+  await expect(page.getByRole("cell", { name: "BULBUL_REG_NO", exact: true })).toBeVisible();
 
-  await page.getByRole("button", { name: "End KESTREL_REG_NO KS-2026-0012" }).click();
+  await page.getByRole("button", { name: "End BULBUL_REG_NO BB-2026-0012" }).click();
   const end = page.getByRole("dialog");
   await end.getByLabel("Reason (optional)").fill("Re-registered under a new number");
   await end.getByRole("button", { name: "End identifier" }).click();
@@ -55,14 +55,14 @@ test("a registrar changes a person's photo, identifiers and aliases", async ({ p
   await expect(page.getByRole("cell", { name: /^10 Jan 2026 to .* \(ended\)$/ })).toBeVisible();
   await expect(page.getByRole("button", { name: /^End / })).toHaveCount(0);
 
-  // An alias: added (the directory finds him by it), then removed with a reason.
+  // An alias: added, then removed with a reason.
   await page.getByRole("button", { name: "Add alias" }).click();
   const alias = page.getByRole("dialog");
   await alias.getByLabel("Name").fill("Mozzy Kato");
   await alias.getByLabel("Kind").selectOption("NICKNAME");
   await alias.getByRole("button", { name: "Add alias" }).click();
   await expect(alias).toBeHidden();
-  await expect(page.getByRole("cell", { name: "Nickname" })).toBeVisible();
+  await expect(page.getByRole("cell", { name: "Nickname", exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: "Remove the alias Mozzy Kato" }).click();
   const remove = page.getByRole("dialog");
