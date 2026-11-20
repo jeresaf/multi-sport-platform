@@ -237,7 +237,7 @@ export default function AddPersonPage() {
           <p className="text-muted-foreground">
             Start with their name: if they are already registered, open their record instead of adding them again.
           </p>
-          <div className="grid gap-4 tablet:grid-cols-2">
+          <div className="grid items-start gap-4 tablet:grid-cols-2">
             <FormField
               id="firstName"
               label="First name"
@@ -323,7 +323,7 @@ export default function AddPersonPage() {
           {countries.isError ? (
             <ProblemAlert error={countries.error} title="The list of countries didn't load" />
           ) : null}
-          <div className="grid gap-4 tablet:grid-cols-2">
+          <div className="grid items-start gap-4 tablet:grid-cols-2">
             <FormField
               id="displayName"
               label="Display name (optional)"

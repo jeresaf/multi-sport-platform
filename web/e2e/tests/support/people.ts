@@ -19,13 +19,14 @@ export type NewPerson = {
   gender?: "FEMALE" | "MALE";
   dateOfBirth?: string;
   nationality?: string;
+  externalIdentifiers?: { authority: string; value: string }[];
 };
 
 /** Checks for duplicates, then creates the person with the check's token (a reason only if the check found someone). */
 export async function createPerson(request: APIRequestContext, member: Member, person: NewPerson): Promise<Person> {
   // The check takes only what it compares (no gender or display name); the API refuses a member it doesn't know.
-  const { firstName, middleName, otherNames, lastName, dateOfBirth, nationality } = person;
-  const compared = { firstName, middleName, otherNames, lastName, dateOfBirth, nationality };
+  const { firstName, middleName, otherNames, lastName, dateOfBirth, nationality, externalIdentifiers } = person;
+  const compared = { firstName, middleName, otherNames, lastName, dateOfBirth, nationality, externalIdentifiers };
   const checked = await request.post("/api/admin/v1/people/duplicate-check", { data: compared, headers: headers(member) });
   expect(checked.status(), `duplicate check: ${await checked.text()}`).toBe(200);
   const { checkToken, candidates } = (await checked.json()) as { checkToken: string; candidates: unknown[] };
