@@ -184,6 +184,11 @@ and licence valid-until date; 1–10, one per variant and role) work as staff pr
 person read shows `licenceExpired` on the tenant's date; nothing blocks on it in S06. The directory takes
 `profile=OFFICIAL`, and `variant` also matches an official capability's.
 **First slice:** S06 (people), S07 (organisations, teams, venues).
+**As built (S06-T6b):** the public profile (`POST …/people/{id}/public-profile/enable` and `…/disable`; turning it on
+needs `PUBLIC_PROFILE` consent unless the person is an adult on the tenant's date) and the module's first public reads,
+`GET /api/public/v1/people/{id}` and `…/photo?variant=` under the request host's tenant. Both decide what to show with
+`PublicExposure` on every request (status, flag, age status, active consent scopes); the photo route streams the
+variant from Platform media with `Cache-Control: public, max-age=300`.
 **As built (S06-T1a):** schema `registry`, every table tenant-owned (RLS): `persons` (classified columns, name keys),
 `person_aliases`, `person_status_changes` (append-only), `external_identifiers`. No endpoints or Contracts yet.
 **Absorbs:** pack specs 08–14. Owner's systems: **Player Management System**, the identity half of

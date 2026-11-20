@@ -573,6 +573,38 @@
       "since": "S06"
     },
     {
+      "code": "person.public_profile.disable",
+      "module": "Registry",
+      "description": "Turn off a person's public profile, whatever the person's status.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S06"
+    },
+    {
+      "code": "person.public_profile.enable",
+      "module": "Registry",
+      "description": "Turn on a person's public profile; a person who isn't known to be an adult needs a guardian's consent with the public profile scope; not for an archived or deceased person.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S06"
+    },
+    {
       "code": "person.reactivate",
       "module": "Registry",
       "description": "Make an inactive person active again, with an optional reason.",

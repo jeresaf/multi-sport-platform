@@ -124,6 +124,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/public/v1/people/{personId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a person on the public site
+         * @description A person of the tenant whose site this host serves, when the person is active, their public profile is on and, for a person who is a minor or whose age is unknown, a guardian's consent with `PUBLIC_PROFILE` is in force; otherwise PERSON_NOT_FOUND. An adult shows nationality, the photo and active athlete profiles (codes; labels from the sport's definition); anyone else only the display name, and the photo with `PHOTO` consent. `photo` holds the photo route's paths. Cacheable for a minute; send the `ETag` back as `If-None-Match` to get 304.
+         */
+        get: operations["GetPublicPerson"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/public/v1/people/{personId}/photo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a person's photo on the public site
+         * @description A variant (`THUMBNAIL` 160 px, `MEDIUM` 640 px, `LARGE` 1600 px on the longest side; required) of the photo of a person the public read shows, as WebP. Checked as the public read is, on every request: a person it doesn't show is PERSON_NOT_FOUND, one shown without a photo (none, or no `PHOTO` consent for a minor) PERSON_PHOTO_NOT_FOUND. `Cache-Control: public, max-age=300`.
+         */
+        get: operations["GetPublicPersonPhoto"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/v1/tenant/settings": {
         parameters: {
             query?: never;
@@ -900,6 +940,46 @@ export interface paths {
          */
         put: operations["UploadPersonConsentEvidence"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/people/{personId}/public-profile/enable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Turn on a person's public profile
+         * @description Turns on the person's public profile, so GET /api/public/v1/people/{personId} answers them while they are active. A person who is a minor or whose age is unknown on the tenant's date needs an active guardian's consent with `PUBLIC_PROFILE` (PERSON_CONSENT_REQUIRED); the public read checks the consent again on every request, so withdrawing it hides the person without turning the profile off. An archived or deceased person is refused (PERSON_ARCHIVED, PERSON_DECEASED). A profile already on is answered unchanged. Send `If-Match` from the last read to get 409 PERSON_CONCURRENCY_CONFLICT if the person changed since. Answers the person as GET /people/{personId} does; its version moves when the flag changes.
+         */
+        post: operations["EnablePersonPublicProfile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/people/{personId}/public-profile/disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Turn off a person's public profile
+         * @description Turns off the person's public profile, whatever their status: the public read answers PERSON_NOT_FOUND at once (HTTP caches may keep it up to a minute, its photo up to five). A profile already off is answered unchanged. Send `If-Match` from the last read to get 409 PERSON_CONCURRENCY_CONFLICT if the person changed since. Answers the person as GET /people/{personId} does; its version moves when the flag changes.
+         */
+        post: operations["DisablePersonPublicProfile"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2942,6 +3022,34 @@ export interface components {
          * @enum {unknown}
          */
         ProfileStatus: "ACTIVE" | "INACTIVE" | "RETIRED" | "ARCHIVED";
+        /** @description An active athlete profile: the definition's codes (labels from `GET /sports/{variant}`, AR-29). */
+        PublicAthleteProfileResponse: {
+            variant: string;
+            position: null | string;
+            publicName: null | string;
+        };
+        /**
+         * @description The photo's public routes (`GET /people/{personId}/photo?variant=`): stable paths, relative to the API's origin,
+         *     that check the person's exposure on every request.
+         */
+        PublicPersonPhotoResponse: {
+            thumbnailUrl: string;
+            mediumUrl: string;
+            largeUrl: string;
+        };
+        /**
+         * @description A person on the tenant's public site (S06 D18): only `PUBLIC` fields. For a person who isn't an adult on the
+         *     tenant's date, the display name only, plus the photo with `PHOTO` consent (ADR-0015): `nationality` is null and
+         *     `athleteProfiles` is empty.
+         */
+        PublicPersonResponse: {
+            /** Format: uuid */
+            id: string;
+            displayName: string;
+            nationality: null | string;
+            photo: null | components["schemas"]["PublicPersonPhotoResponse"];
+            athleteProfiles: components["schemas"]["PublicAthleteProfileResponse"][];
+        };
         /**
          * @description One quota's usage (S04 D15): `used` of `limit` (null = unlimited) when a module measures it
          *     (`measured`); otherwise `used` is null: not measured yet. `warning`: the tenant uses 80 % of the
@@ -4005,6 +4113,104 @@ export interface operations {
             };
             /** @description Problem Details; `code`: `VALIDATION_INVALID_QUERY` */
             400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetPublicPerson: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                personId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPersonResponse"];
+                };
+            };
+            /** @description Not Modified */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Problem Details; `code`: `TENANT_UNAVAILABLE` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `PERSON_NOT_FOUND`, `TENANT_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetPublicPersonPhoto: {
+        parameters: {
+            query?: {
+                variant?: "THUMBNAIL" | "MEDIUM" | "LARGE";
+            };
+            header?: never;
+            path: {
+                personId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/webp": components["schemas"]["Stream"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_QUERY` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TENANT_UNAVAILABLE` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `PERSON_NOT_FOUND`, `PERSON_PHOTO_NOT_FOUND`, `TENANT_NOT_FOUND` */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6790,6 +6996,159 @@ export interface operations {
             };
             /** @description Problem Details; `code`: `MEDIA_IMAGE_UNREADABLE`, `MEDIA_TYPE_NOT_ALLOWED` */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    EnablePersonPublicProfile: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too. */
+                "If-Match"?: string;
+            };
+            path: {
+                personId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_MALFORMED_REQUEST` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `PERSON_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `PERSON_ARCHIVED`, `PERSON_CONCURRENCY_CONFLICT`, `PERSON_DECEASED` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `PERSON_CONSENT_REQUIRED` */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    DisablePersonPublicProfile: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too. */
+                "If-Match"?: string;
+            };
+            path: {
+                personId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_MALFORMED_REQUEST` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `PERSON_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `PERSON_CONCURRENCY_CONFLICT` */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

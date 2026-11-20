@@ -109,6 +109,10 @@ public static class RegistryErrors
     public static readonly Error ConsentWithdrawn = new(
         "PERSON_CONSENT_WITHDRAWN", "The consent is withdrawn: it takes no more changes.", ErrorKind.Conflict);
 
+    /// <summary>Turning on the public profile of a person who isn't an adult without <c>PUBLIC_PROFILE</c> consent (S06 D15).</summary>
+    public static readonly Error ConsentRequired = new(
+        "PERSON_CONSENT_REQUIRED", "The person isn't known to be an adult: a guardian's consent with the public profile scope is needed first.", ErrorKind.Unprocessable);
+
     /// <summary>Recording consent for an adult on the tenant's date (owner, S06-T6a plan).</summary>
     public static readonly Error ConsentNotNeeded = new(
         "PERSON_CONSENT_NOT_NEEDED", "The person is an adult: a guardian's consent is recorded only for minors and people of unknown age.", ErrorKind.Unprocessable);

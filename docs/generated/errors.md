@@ -50,6 +50,7 @@ the message is the default title and may change.
 | `PERSON_CONCURRENCY_CONFLICT` | 409 | The record was changed by someone else. Reload and try again. | Registry |
 | `PERSON_CONSENT_NOT_FOUND` | 404 | The person has no such consent. | Registry |
 | `PERSON_CONSENT_NOT_NEEDED` | 422 | The person is an adult: a guardian's consent is recorded only for minors and people of unknown age. | Registry |
+| `PERSON_CONSENT_REQUIRED` | 422 | The person isn't known to be an adult: a guardian's consent with the public profile scope is needed first. | Registry |
 | `PERSON_CONSENT_WITHDRAWN` | 409 | The consent is withdrawn: it takes no more changes. | Registry |
 | `PERSON_DATE_OF_BIRTH_IN_FUTURE` | 422 | A date of birth can't be after today (the tenant's date). | Registry |
 | `PERSON_DECEASED` | 409 | The person is recorded as deceased: they take no new profile, alias, identifier, consent or photo. | Registry |

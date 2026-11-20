@@ -66,7 +66,8 @@ public static class IdentityRoles
         "person.external_id.end", "person.photo.set", "person.photo.remove", "athlete_profile.create", "athlete_profile.update",
         "athlete_profile.status.change", "staff_profile.create", "staff_profile.update", "staff_profile.status.change",
         "official_profile.create", "official_profile.update", "official_profile.status.change", "person.consent.record",
-        "person.consent.withdraw", "person.consent_evidence.upload",
+        "person.consent.withdraw", "person.consent_evidence.upload", "person.public_profile.enable",
+        "person.public_profile.disable",
     ];
 
     private static readonly string[] _tenantAdministration =

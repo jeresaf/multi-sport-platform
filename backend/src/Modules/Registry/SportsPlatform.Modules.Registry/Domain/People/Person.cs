@@ -218,6 +218,33 @@ public sealed class Person : AggregateRoot, ITenantOwned
     }
 
     /// <summary>
+    /// Turns the public profile on (S06 D15). A person whose age status on the tenant's date isn't <c>ADULT</c> needs an
+    /// active consent with <c>PUBLIC_PROFILE</c> among <paramref name="activeConsentScopes"/>
+    /// (<c>PERSON_CONSENT_REQUIRED</c>); an archived or deceased person is refused (D9; owner, S06-T6b plan). Turning on a
+    /// profile that is on changes nothing. The public read re-checks consent every time (<see cref="PublicExposure"/>).
+    /// </summary>
+    public Result EnablePublicProfile(AgeStatus ageStatus, IReadOnlyCollection<ConsentScope> activeConsentScopes)
+    {
+        ArgumentNullException.ThrowIfNull(activeConsentScopes);
+        var accepts = EnsureAcceptsNewChildren();
+        if (accepts.IsFailure)
+        {
+            return accepts;
+        }
+
+        if (Age.IsTreatedAsMinor(ageStatus) && !activeConsentScopes.Contains(ConsentScope.PublicProfile))
+        {
+            return Result.Failure(RegistryErrors.ConsentRequired);
+        }
+
+        PublicProfileEnabled = true;
+        return Result.Success();
+    }
+
+    /// <summary>Turns the public profile off, in any status (S06 D15); turning off a profile that is off changes nothing.</summary>
+    public void DisablePublicProfile() => PublicProfileEnabled = false;
+
+    /// <summary>
     /// Adds an alias with its own name key, so the person is found and matched under that name too (S06 D10). Refused
     /// on an archived or deceased person, and when the alias's key is already the person's own or a current alias's
     /// (<c>PERSON_ALIAS_EXISTS</c>, owner, S06-T3b plan): such an alias would find nothing new. The use case has checked

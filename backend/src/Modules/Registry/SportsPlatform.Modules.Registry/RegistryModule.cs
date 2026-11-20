@@ -13,10 +13,12 @@ using SportsPlatform.Modules.Registry.Features.People.CreatePerson;
 using SportsPlatform.Modules.Registry.Features.People.ExternalIdentifiers;
 using SportsPlatform.Modules.Registry.Features.People.GetPerson;
 using SportsPlatform.Modules.Registry.Features.People.GetPersonPrivate;
+using SportsPlatform.Modules.Registry.Features.People.GetPublicPerson;
 using SportsPlatform.Modules.Registry.Features.People.ListPeople;
 using SportsPlatform.Modules.Registry.Features.People.ListPersonStatusChanges;
 using SportsPlatform.Modules.Registry.Features.People.Photo;
 using SportsPlatform.Modules.Registry.Features.People.Profiles;
+using SportsPlatform.Modules.Registry.Features.People.PublicProfile;
 using SportsPlatform.Modules.Registry.Features.People.UpdatePerson;
 using SportsPlatform.Modules.Registry.Infrastructure;
 
@@ -61,6 +63,11 @@ public sealed class RegistryModule : IModule
         services.AddScoped<RecordConsentHandler>();
         services.AddScoped<WithdrawConsentHandler>();
         services.AddScoped<UploadConsentEvidenceHandler>();
+        services.AddScoped<EnablePublicProfileHandler>();
+        services.AddScoped<DisablePublicProfileHandler>();
+        services.AddScoped<PublicPeople>();
+        services.AddScoped<GetPublicPersonHandler>();
+        services.AddScoped<GetPublicPersonPhotoHandler>();
         services.AddScoped<AddExternalIdentifierHandler>();
         services.AddScoped<EndExternalIdentifierHandler>();
         services.AddScoped<SportCodes>();
@@ -90,6 +97,7 @@ public sealed class RegistryModule : IModule
         services.AddSingleton<IValidator<ChangeProfileStatusRequest>, ChangeProfileStatusRequestValidator>();
         services.AddSingleton<IValidator<RecordConsentRequest>, RecordConsentRequestValidator>();
         services.AddSingleton<IValidator<WithdrawConsentRequest>, WithdrawConsentRequestValidator>();
+        services.AddSingleton<IValidator<PublicPersonPhotoRequest>, PublicPersonPhotoRequestValidator>();
     }
 
     public void MapEndpoints(ApiEndpointGroups groups)
@@ -106,11 +114,14 @@ public sealed class RegistryModule : IModule
         PersonAliasEndpoints.Map(people);
         PersonPhotoEndpoints.Map(people);
         ConsentEndpoints.Map(people);
+        PublicProfileEndpoints.Map(people);
         ExternalIdentifierEndpoints.Map(people);
         AthleteProfileEndpoints.Map(people);
         StaffProfileEndpoints.Map(people);
         OfficialProfileEndpoints.Map(people);
         GetPersonPrivateEndpoint.Map(people);
         ListPersonStatusChangesEndpoint.Map(people);
+
+        PublicPersonEndpoints.Map(groups.Public);
     }
 }

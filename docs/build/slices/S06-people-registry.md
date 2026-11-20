@@ -382,12 +382,12 @@ Deliver:
 - Likely T6a (consent and evidence) and T6b (public profile, public read, photo route).
 
 Acceptance:
-- [ ] A minor's public profile can't be turned on without `PUBLIC_PROFILE` consent; with it, the public read shows
+- [x] A minor's public profile can't be turned on without `PUBLIC_PROFILE` consent; with it, the public read shows
       only the display name, and the photo only with `PHOTO` (tests).
-- [ ] Withdrawing `PHOTO` drops the photo from the public read and makes the photo route `404` at once (test).
-- [ ] A person turning 18 on the tenant's date is an adult that day, not the day before (test across midnight in
+- [x] Withdrawing `PHOTO` drops the photo from the public read and makes the photo route `404` at once (test).
+- [x] A person turning 18 on the tenant's date is an adult that day, not the day before (test across midnight in
       `Africa/Kampala`, with the fake clock).
-- [ ] The public read answers only `PUBLIC` fields (the T1 test covers it) and nothing for another tenant's host.
+- [x] The public read answers only `PUBLIC` fields (the T1 test covers it) and nothing for another tenant's host.
 
 ### T7 — Screens, demo data and slice close (~4 PRs, about 2,000 lines)
 Deliver:
@@ -635,3 +635,18 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   `GuardianConsent.ActiveScopes` over loaded consents; `Person` has no property for them (review #106 N1): T6b's
   callers load the consents first. The T6 acceptance boxes wait for
   T6b.
+- **T6b:** the public profile and the public person read. Owner decisions (plan, 2026-11-19): an archived or deceased
+  person isn't turned on (`PERSON_ARCHIVED`, `PERSON_DECEASED`), an inactive one is (it shows once active), and turning
+  off works in any status; turning on a profile that is on, or off one that is off, answers the person unchanged (still
+  audited; the version stays); the public `photo` is `{thumbnailUrl, mediumUrl, largeUrl}`, stable paths to the photo
+  route, not signed URLs; the public read lists only `ACTIVE` athlete profiles, with the definition's codes; the photo
+  route's `variant` is required, `THUMBNAIL`, `MEDIUM` or `LARGE` (UPPER_SNAKE like every API enum; the plan wrote them in
+  lower case), anything else `400 VALIDATION_INVALID_QUERY`; one PR. As built: `PERSON_CONSENT_REQUIRED` (422, new);
+  `person.public_profile.enable` and `.disable` (audit `REQUIRED`, no body, `If-Match`) for the owner, the admin and the
+  registrar; `PublicExposure` (Domain) decides what both public routes show from the status, the flag, the age status
+  on the tenant's date and `GuardianConsent.ActiveScopes` over the consents loaded with the person (review #106 N1);
+  `PublicPersonResponse` is `id`, `displayName`, `nationality`, `photo`, `athleteProfiles` (`variant`, `position`,
+  `publicName`), all `PUBLIC`; for a person who isn't an adult `nationality` is null and the list empty. A person the
+  read doesn't show is `PERSON_NOT_FOUND` on both routes; one it shows without a photo (none, or no `PHOTO`)
+  `PERSON_PHOTO_NOT_FOUND` on the photo route. The Host now documents `TENANT_NOT_FOUND` and `TENANT_UNAVAILABLE` on
+  every `.RequirePublicTenant()` endpoint (`/site` dropped its own list; its document is unchanged). T6 is done.

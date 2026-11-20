@@ -239,6 +239,155 @@
         }
       }
     },
+    "/api/public/v1/people/{personId}": {
+      "get": {
+        "tags": [
+          "Public people"
+        ],
+        "summary": "Get a person on the public site",
+        "description": "A person of the tenant whose site this host serves, when the person is active, their public profile is on and, for a person who is a minor or whose age is unknown, a guardian's consent with `PUBLIC_PROFILE` is in force; otherwise PERSON_NOT_FOUND. An adult shows nationality, the photo and active athlete profiles (codes; labels from the sport's definition); anyone else only the display name, and the photo with `PHOTO` consent. `photo` holds the photo route's paths. Cacheable for a minute; send the `ETag` back as `If-None-Match` to get 304.",
+        "operationId": "GetPublicPerson",
+        "parameters": [
+          {
+            "name": "personId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicPersonResponse"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Not Modified"
+          },
+          "404": {
+            "description": "Problem Details; `code`: `PERSON_NOT_FOUND`, `TENANT_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "PERSON_NOT_FOUND",
+              "TENANT_NOT_FOUND"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `TENANT_UNAVAILABLE`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "TENANT_UNAVAILABLE"
+            ]
+          }
+        }
+      }
+    },
+    "/api/public/v1/people/{personId}/photo": {
+      "get": {
+        "tags": [
+          "Public people"
+        ],
+        "summary": "Get a person's photo on the public site",
+        "description": "A variant (`THUMBNAIL` 160 px, `MEDIUM` 640 px, `LARGE` 1600 px on the longest side; required) of the photo of a person the public read shows, as WebP. Checked as the public read is, on every request: a person it doesn't show is PERSON_NOT_FOUND, one shown without a photo (none, or no `PHOTO` consent for a minor) PERSON_PHOTO_NOT_FOUND. `Cache-Control: public, max-age=300`.",
+        "operationId": "GetPublicPersonPhoto",
+        "parameters": [
+          {
+            "name": "personId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "variant",
+            "in": "query",
+            "schema": {
+              "enum": [
+                "THUMBNAIL",
+                "MEDIUM",
+                "LARGE"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_QUERY`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_QUERY"
+            ]
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "image/webp": {
+                "schema": {
+                  "$ref": "#/components/schemas/Stream"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Problem Details; `code`: `PERSON_NOT_FOUND`, `PERSON_PHOTO_NOT_FOUND`, `TENANT_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "PERSON_NOT_FOUND",
+              "PERSON_PHOTO_NOT_FOUND",
+              "TENANT_NOT_FOUND"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `TENANT_UNAVAILABLE`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "TENANT_UNAVAILABLE"
+            ]
+          }
+        }
+      }
+    },
     "/api/admin/v1/tenant/settings": {
       "get": {
         "tags": [
@@ -4957,6 +5106,259 @@
             },
             "x-error-codes": [
               "MEDIA_TOO_LARGE"
+            ]
+          }
+        }
+      }
+    },
+    "/api/admin/v1/people/{personId}/public-profile/enable": {
+      "post": {
+        "tags": [
+          "People"
+        ],
+        "summary": "Turn on a person's public profile",
+        "description": "Turns on the person's public profile, so GET /api/public/v1/people/{personId} answers them while they are active. A person who is a minor or whose age is unknown on the tenant's date needs an active guardian's consent with `PUBLIC_PROFILE` (PERSON_CONSENT_REQUIRED); the public read checks the consent again on every request, so withdrawing it hides the person without turning the profile off. An archived or deceased person is refused (PERSON_ARCHIVED, PERSON_DECEASED). A profile already on is answered unchanged. Send `If-Match` from the last read to get 409 PERSON_CONCURRENCY_CONFLICT if the person changed since. Answers the person as GET /people/{personId} does; its version moves when the flag changes.",
+        "operationId": "EnablePersonPublicProfile",
+        "parameters": [
+          {
+            "name": "personId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Problem Details; `code`: `PERSON_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "PERSON_NOT_FOUND"
+            ]
+          },
+          "409": {
+            "description": "Problem Details; `code`: `PERSON_ARCHIVED`, `PERSON_CONCURRENCY_CONFLICT`, `PERSON_DECEASED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "PERSON_ARCHIVED",
+              "PERSON_CONCURRENCY_CONFLICT",
+              "PERSON_DECEASED"
+            ]
+          },
+          "422": {
+            "description": "Problem Details; `code`: `PERSON_CONSENT_REQUIRED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "PERSON_CONSENT_REQUIRED"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING",
+              "TENANT_READ_ONLY"
+            ]
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_MALFORMED_REQUEST`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_MALFORMED_REQUEST"
+            ]
+          }
+        }
+      }
+    },
+    "/api/admin/v1/people/{personId}/public-profile/disable": {
+      "post": {
+        "tags": [
+          "People"
+        ],
+        "summary": "Turn off a person's public profile",
+        "description": "Turns off the person's public profile, whatever their status: the public read answers PERSON_NOT_FOUND at once (HTTP caches may keep it up to a minute, its photo up to five). A profile already off is answered unchanged. Send `If-Match` from the last read to get 409 PERSON_CONCURRENCY_CONFLICT if the person changed since. Answers the person as GET /people/{personId} does; its version moves when the flag changes.",
+        "operationId": "DisablePersonPublicProfile",
+        "parameters": [
+          {
+            "name": "personId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Problem Details; `code`: `PERSON_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "PERSON_NOT_FOUND"
+            ]
+          },
+          "409": {
+            "description": "Problem Details; `code`: `PERSON_CONCURRENCY_CONFLICT`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "PERSON_CONCURRENCY_CONFLICT"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING",
+              "TENANT_READ_ONLY"
+            ]
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_MALFORMED_REQUEST`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_MALFORMED_REQUEST"
             ]
           }
         }
@@ -13559,6 +13961,94 @@
         ],
         "description": "A role profile's stored states in S06 (docs/domain/state-machines.md, Registry). `SUSPENDED` comes with\ndiscipline (S13+)."
       },
+      "PublicAthleteProfileResponse": {
+        "required": [
+          "variant",
+          "position",
+          "publicName"
+        ],
+        "type": "object",
+        "properties": {
+          "variant": {
+            "type": "string"
+          },
+          "position": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "publicName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "An active athlete profile: the definition's codes (labels from `GET /sports/{variant}`, AR-29)."
+      },
+      "PublicPersonPhotoResponse": {
+        "required": [
+          "thumbnailUrl",
+          "mediumUrl",
+          "largeUrl"
+        ],
+        "type": "object",
+        "properties": {
+          "thumbnailUrl": {
+            "type": "string"
+          },
+          "mediumUrl": {
+            "type": "string"
+          },
+          "largeUrl": {
+            "type": "string"
+          }
+        },
+        "description": "The photo's public routes (`GET /people/{personId}/photo?variant=`): stable paths, relative to the API's origin,\nthat check the person's exposure on every request."
+      },
+      "PublicPersonResponse": {
+        "required": [
+          "id",
+          "displayName",
+          "nationality",
+          "photo",
+          "athleteProfiles"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "nationality": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "photo": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PublicPersonPhotoResponse"
+              }
+            ]
+          },
+          "athleteProfiles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicAthleteProfileResponse"
+            }
+          }
+        },
+        "description": "A person on the tenant's public site (S06 D18): only `PUBLIC` fields. For a person who isn't an adult on the\ntenant's date, the display name only, plus the photo with `PHOTO` consent (ADR-0015): `nationality` is null and\n`athleteProfiles` is empty."
+      },
       "QuotaUsageResponse": {
         "required": [
           "code",
@@ -16337,6 +16827,9 @@
     },
     {
       "name": "Reference"
+    },
+    {
+      "name": "Public people"
     },
     {
       "name": "Tenant settings"

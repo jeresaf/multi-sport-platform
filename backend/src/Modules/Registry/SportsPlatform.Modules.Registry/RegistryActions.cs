@@ -175,6 +175,16 @@ public static class RegistryActions
         "Withdraw some or all scopes of a guardian's consent, with a reason; the record is kept and the remaining scopes stay in force.",
         AuditRequirement.RequiredWithReason);
 
+    public static readonly ActionDefinition PersonPublicProfileEnable = Lifecycle(
+        "person.public_profile.enable",
+        "Turn on a person's public profile; a person who isn't known to be an adult needs a guardian's consent with the public profile scope; not for an archived or deceased person.",
+        AuditRequirement.Required);
+
+    public static readonly ActionDefinition PersonPublicProfileDisable = Lifecycle(
+        "person.public_profile.disable",
+        "Turn off a person's public profile, whatever the person's status.",
+        AuditRequirement.Required);
+
     /// <summary>
     /// Stores a new file, so it names <c>STORAGE_GB</c>: the handler checks the quota before storing (S06 D20).
     /// </summary>
@@ -188,7 +198,7 @@ public static class RegistryActions
         entitlement: "STORAGE_GB",
         grantedWith: ["person.read"]);
 
-    // The lifecycle, alias, identifier, profile, photo and consent actions answer the person as person.read does, so they are only
+    // The lifecycle, alias, identifier, profile, photo, consent and public-profile actions answer the person as person.read does, so they are only
     // granted with that read.
     private static ActionDefinition Lifecycle(string code, string description, AuditRequirement audit) => new(
         code,
