@@ -7,16 +7,15 @@ at the start of every review.
 
 - **Current slice:** S06 — People registry (docs/build/slices/S06-people-registry.md, written by the S05 slice review).
   S00–S05 are done
-- **Current task:** S06-T7c-1a — roles (profiles) — in review (#110) (web only; plan approved 2026-11-20:
-  T7c-1 split in two — T7c-1a roles, T7c-1b consent, evidence upload and the public-profile switch)
-- **Next:** S06-T7c-1b — consent, evidence and the public profile
-- **Blocked on:** the review of T7c-1a
+- **Current task:** S06-T7c-1b — consent, evidence upload and the public-profile switch (web only; plan approved
+  2026-11-20: the switch in the person header; e2e on Wagtail Junior Sports Club; one PR)
+- **Next:** S06-T7c-2 — photo, identifiers and aliases, lifecycle, editing the biodata
+- **Blocked on:** —
 
 ## Next up
 
-1. S06-T7c-1b — Consent (record, evidence upload, withdraw) and the public-profile switch
-2. S06-T7c-2 — Photo, identifiers and aliases, lifecycle, editing the biodata (D8's check with T7b's review)
-3. S06-T7d — Seeds, demo e2e, screenshots, slice close
+1. S06-T7c-2 — Photo, identifiers and aliases, lifecycle, editing the biodata (D8's check with T7b's review)
+2. S06-T7d — Seeds, demo e2e, screenshots, slice close
 
 ## Log
 

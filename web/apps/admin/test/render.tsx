@@ -25,8 +25,13 @@ export function fakeApi(answers: Answers) {
     // Recorded when it is made, so a test can tell a request was never sent; the body follows once read.
     const recorded: RecordedRequest = { method: request.method, path, search, headers: request.headers, body: undefined };
     requests.push(recorded);
-    const text = await request.text();
-    recorded.body = text ? JSON.parse(text) : undefined;
+    if (request.headers.get("Content-Type")?.startsWith("multipart/form-data")) {
+      // An upload: the form as sent (its file under `file`).
+      recorded.body = await request.formData();
+    } else {
+      const text = await request.text();
+      recorded.body = text ? JSON.parse(text) : undefined;
+    }
 
     const entry = answers[`${request.method} ${path}`];
     const answer = typeof entry === "function" ? entry(recorded) : (entry ?? { status: 404, body: problem("PLATFORM_ROUTE_NOT_FOUND", 404) });

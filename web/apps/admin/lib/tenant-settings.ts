@@ -46,3 +46,9 @@ export function formatDate(instant: string, timeZone: string): string {
     new Date(instant),
   );
 }
+
+/** Today's date in a time zone, as the API writes dates ("2026-11-20"): the tenant's date (S06 D13). */
+export function todayIn(timeZone: string, now: Date = new Date()): string {
+  // en-CA writes dates as YYYY-MM-DD.
+  return new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit", timeZone }).format(now);
+}

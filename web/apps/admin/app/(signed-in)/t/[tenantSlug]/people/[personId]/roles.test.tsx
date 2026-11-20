@@ -164,7 +164,7 @@ describe("roles", () => {
       publicName: "J. Ssekandi",
     });
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-    expect(screen.getByRole("status").textContent).toBe("Ringball sevens profile added.");
+    expect(within(screen.getByRole("tabpanel")).getByRole("status").textContent).toBe("Ringball sevens profile added.");
     expect(screen.getByText("J. Ssekandi")).toBeTruthy();
     // Focus goes to the new profile's heading.
     await waitFor(() => expect(document.activeElement?.id).toBe("profile-0199a3f0-0000-7000-8000-0000000000b9"));
@@ -227,7 +227,7 @@ describe("roles", () => {
         { variant: "RINGBALL_SEVENS", role: "KIT_KEEPER", qualification: "Club kit store" },
       ],
     });
-    await waitFor(() => expect(screen.getByRole("status").textContent).toBe("The staff profile is saved."));
+    await waitFor(() => expect(within(screen.getByRole("tabpanel")).getByRole("status").textContent).toBe("The staff profile is saved."));
   });
 
   it("adds an official profile with a licence", async () => {
