@@ -116,6 +116,7 @@ export type CheckDuplicatesRequest = Schemas["CheckDuplicatesRequest"];
 export type CheckDuplicatesResponse = Schemas["CheckDuplicatesResponse"];
 export type DuplicateCandidate = Schemas["DuplicateCandidateResponse"];
 export type CreatePersonRequest = Schemas["CreatePersonRequest"];
+export type UpdatePersonRequest = Schemas["UpdatePersonRequest"];
 
 /** How many existing people Add person's first step lists while a name is typed. */
 export const nameMatchLimit = 10;

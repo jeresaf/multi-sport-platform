@@ -3,7 +3,7 @@
 import type { Path } from "react-hook-form";
 import { z } from "zod";
 import type { ApiFields } from "@/lib/form-errors";
-import type { CheckDuplicatesRequest, CreatePersonRequest } from "../people-data";
+import type { CheckDuplicatesRequest, CreatePersonRequest, Person, UpdatePersonRequest } from "../people-data";
 
 // PersonBiodata and ExternalIdentifier on the server.
 export const limits = {
@@ -61,32 +61,38 @@ function inRange(value: string, min: number, max: number, decimals: number): boo
   return Number.isFinite(number) && number >= min && number <= max && Number(number.toFixed(decimals)) === number;
 }
 
-/** The form's checks; `today` is the tenant's date, or empty until it is known. */
+/** The biodata's checks, Add person's and Edit details' (S06 D2). */
+const biodata = {
+  firstName: required(limits.name, "first name"),
+  middleName: text(limits.name, "the middle name"),
+  lastName: required(limits.name, "last name"),
+  otherNames: text(limits.otherNames, "other names"),
+  displayName: text(limits.displayName, "the display name"),
+  gender: z.enum(["", "FEMALE", "MALE"]),
+  dateOfBirth: z.string(),
+  nationality: z.string(),
+  secondaryNationality: z.string(),
+  heightCm: z
+    .string()
+    .refine(
+      (value) => !value.trim() || inRange(value, limits.height.min, limits.height.max, 0),
+      `Enter whole centimetres from ${limits.height.min} to ${limits.height.max}.`,
+    ),
+  weightKg: z
+    .string()
+    .refine(
+      (value) => !value.trim() || inRange(value, limits.weight.min, limits.weight.max, 1),
+      `Enter kilograms from ${limits.weight.min} to ${limits.weight.max}, with at most one decimal.`,
+    ),
+};
+
+/** Edit details' form: the biodata alone (identifiers change through their own actions, S06-T3a). */
+export const biodataSchema = z.object(biodata);
+export type BiodataValues = z.infer<typeof biodataSchema>;
+
+/** Add person's form; `today` is the tenant's date, or empty until it is known. */
 export const personSchema = (today: string) =>
-  z.object({
-    firstName: required(limits.name, "first name"),
-    middleName: text(limits.name, "the middle name"),
-    lastName: required(limits.name, "last name"),
-    otherNames: text(limits.otherNames, "other names"),
-    displayName: text(limits.displayName, "the display name"),
-    gender: z.enum(["", "FEMALE", "MALE"]),
-    dateOfBirth: z.string(),
-    nationality: z.string(),
-    secondaryNationality: z.string(),
-    heightCm: z
-      .string()
-      .refine(
-        (value) => !value.trim() || inRange(value, limits.height.min, limits.height.max, 0),
-        `Enter whole centimetres from ${limits.height.min} to ${limits.height.max}.`,
-      ),
-    weightKg: z
-      .string()
-      .refine(
-        (value) => !value.trim() || inRange(value, limits.weight.min, limits.weight.max, 1),
-        `Enter kilograms from ${limits.weight.min} to ${limits.weight.max}, with at most one decimal.`,
-      ),
-    externalIdentifiers: z.array(identifier(today)).max(limits.identifiers),
-  });
+  z.object({ ...biodata, externalIdentifiers: z.array(identifier(today)).max(limits.identifiers) });
 export type Values = z.infer<ReturnType<typeof personSchema>>;
 
 export const emptyIdentifier = { authority: "", value: "", validFrom: "" };
@@ -109,8 +115,8 @@ export const defaultValues: Values = {
 /** The fields Add person's first step asks for; every other field is on the second. */
 export const nameFields = ["firstName", "middleName", "lastName", "otherNames"] as const;
 
-/** The API's names for the form's fields (`errors[].field`), identifiers by their position. */
-export const apiFields: ApiFields<Values> = {
+/** The API's names for the biodata's fields (`errors[].field`). */
+export const biodataApiFields: ApiFields<BiodataValues> = {
   firstName: "firstName",
   middleName: "middleName",
   lastName: "lastName",
@@ -122,6 +128,11 @@ export const apiFields: ApiFields<Values> = {
   secondaryNationality: "secondaryNationality",
   heightCm: "heightCm",
   weightKg: "weightKg",
+};
+
+/** The API's names for Add person's fields, identifiers by their position. */
+export const apiFields: ApiFields<Values> = {
+  ...biodataApiFields,
   ...Object.fromEntries(
     Array.from({ length: limits.identifiers }, (_, index) =>
       (["authority", "value", "validFrom"] as const).map((part) => [
@@ -135,7 +146,7 @@ export const apiFields: ApiFields<Values> = {
 const optional = (value: string) => value.trim() || null;
 
 /** The name as it is shown before a display name is chosen: "first last", as the server defaults it (S06 D2). */
-export function displayNameOf(values: Pick<Values, "firstName" | "lastName" | "displayName">): string {
+export function displayNameOf(values: Pick<BiodataValues, "firstName" | "lastName" | "displayName">): string {
   return values.displayName.trim() || `${values.firstName.trim()} ${values.lastName.trim()}`.trim();
 }
 
@@ -166,7 +177,7 @@ export function toCheckRequest(values: Values): CheckDuplicatesRequest {
 /** The create (S06 D6): the same details as the check, the rest of the biodata, the token and any reason. */
 export function toCreateRequest(
   values: Values,
-  checkToken: string,
+  checkToken: string | null,
   overrideReason: string | null,
 ): CreatePersonRequest {
   return {
@@ -176,6 +187,77 @@ export function toCreateRequest(
     heightCm: values.heightCm.trim() ? Number(values.heightCm) : null,
     weightKg: values.weightKg.trim() ? Number(values.weightKg) : null,
     externalIdentifiers: identifiers(values),
+    checkToken,
+    overrideReason,
+  };
+}
+
+/** A person's biodata as Edit details shows it; the date of birth is the private read's (S06 D3). */
+export function fromPerson(
+  person: Pick<
+    Person,
+    | "firstName"
+    | "middleName"
+    | "lastName"
+    | "otherNames"
+    | "displayName"
+    | "gender"
+    | "nationality"
+    | "secondaryNationality"
+    | "heightCm"
+    | "weightKg"
+  >,
+  dateOfBirth: string | null,
+): BiodataValues {
+  return {
+    firstName: person.firstName,
+    middleName: person.middleName ?? "",
+    lastName: person.lastName,
+    otherNames: person.otherNames ?? "",
+    displayName: person.displayName,
+    gender: person.gender ?? "",
+    dateOfBirth: dateOfBirth ?? "",
+    nationality: person.nationality ?? "",
+    secondaryNationality: person.secondaryNationality ?? "",
+    heightCm: person.heightCm === null ? "" : String(person.heightCm),
+    weightKg: person.weightKg === null ? "" : String(person.weightKg),
+  };
+}
+
+/**
+ * Whether an edit changes what the duplicate check compares (S06 D8): the names, the date of birth or a nationality,
+ * as typed. The API leaves out case, accents and punctuation, so a few edits it would take without a check are checked
+ * anyway (owner, S06-T7c-2b plan).
+ */
+export function changesIdentity(before: BiodataValues, after: BiodataValues): boolean {
+  return (
+    ["firstName", "middleName", "lastName", "otherNames", "dateOfBirth", "nationality", "secondaryNationality"] as const
+  ).some((field) => before[field].trim() !== after[field].trim());
+}
+
+/** The check for an edit (S06 D8): the person itself left out, no identifiers (the update takes none). */
+export function toUpdateCheckRequest(values: BiodataValues, personId: string): CheckDuplicatesRequest {
+  return { ...toCheckRequest({ ...values, externalIdentifiers: [] }), personId };
+}
+
+/** The update (S06 D8): the whole biodata (a field left out is cleared), with any token and reason. */
+export function toUpdateRequest(
+  values: BiodataValues,
+  checkToken: string | null,
+  overrideReason: string | null,
+): UpdatePersonRequest {
+  return {
+    firstName: values.firstName.trim(),
+    middleName: optional(values.middleName),
+    lastName: values.lastName.trim(),
+    otherNames: optional(values.otherNames),
+    displayName: optional(values.displayName),
+    gender: values.gender || null,
+    dateOfBirth: values.dateOfBirth || null,
+    nationality: values.nationality || null,
+    secondaryNationality: values.secondaryNationality || null,
+    heightCm: values.heightCm.trim() ? Number(values.heightCm) : null,
+    weightKg: values.weightKg.trim() ? Number(values.weightKg) : null,
     checkToken,
     overrideReason,
   };
