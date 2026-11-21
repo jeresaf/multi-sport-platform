@@ -16,7 +16,7 @@ public static partial class Slugs
     public const int MaxLength = 80;
 
     // Room for "-" and a number up to six digits.
-    private const int ProposalMaxLength = MaxLength - 7;
+    private const int _proposalMaxLength = MaxLength - 7;
 
     /// <summary>Whether <paramref name="slug"/> is well formed and not a UUID.</summary>
     public static bool IsValid(string? slug) =>
@@ -52,9 +52,9 @@ public static partial class Slugs
         }
 
         var slug = Hyphens().Replace(builder.ToString(), "-").Trim('-');
-        if (slug.Length > ProposalMaxLength)
+        if (slug.Length > _proposalMaxLength)
         {
-            slug = slug[..ProposalMaxLength].TrimEnd('-');
+            slug = slug[.._proposalMaxLength].TrimEnd('-');
         }
 
         return IsValid(slug) ? slug : fallback;

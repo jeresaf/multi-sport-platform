@@ -21,12 +21,12 @@ using SportsPlatform.Modules.Registry.Features.People.Photo;
 using SportsPlatform.Modules.Registry.Features.People.Profiles;
 using SportsPlatform.Modules.Registry.Features.People.PublicProfile;
 using SportsPlatform.Modules.Registry.Features.People.UpdatePerson;
-using SportsPlatform.Modules.Registry.Infrastructure;
-using SportsPlatform.Modules.Registry.Seed.Demo;
 using SportsPlatform.Modules.Registry.Features.Venues;
 using SportsPlatform.Modules.Registry.Features.Venues.CheckVenueDuplicates;
 using SportsPlatform.Modules.Registry.Features.Venues.CreateVenue;
 using SportsPlatform.Modules.Registry.Features.Venues.GetVenue;
+using SportsPlatform.Modules.Registry.Infrastructure;
+using SportsPlatform.Modules.Registry.Seed.Demo;
 
 namespace SportsPlatform.Modules.Registry;
 

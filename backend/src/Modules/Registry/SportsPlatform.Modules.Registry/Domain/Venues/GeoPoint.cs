@@ -10,7 +10,7 @@ public sealed record GeoPoint
     public const decimal MaxLongitude = 180m;
 
     // The mean earth radius (IUGG), in metres.
-    private const double EarthRadiusMetres = 6_371_008.8;
+    private const double _earthRadiusMetres = 6_371_008.8;
 
     public GeoPoint(decimal latitude, decimal longitude)
     {
@@ -34,7 +34,7 @@ public sealed record GeoPoint
         var dLon = ToRadians(other.Longitude) - ToRadians(Longitude);
         var h = (Math.Sin(dLat / 2) * Math.Sin(dLat / 2))
             + (Math.Cos(lat1) * Math.Cos(lat2) * Math.Sin(dLon / 2) * Math.Sin(dLon / 2));
-        return 2 * EarthRadiusMetres * Math.Asin(Math.Min(1, Math.Sqrt(h)));
+        return 2 * _earthRadiusMetres * Math.Asin(Math.Min(1, Math.Sqrt(h)));
     }
 
     /// <summary>
@@ -43,7 +43,7 @@ public sealed record GeoPoint
     /// </summary>
     public (decimal Latitude, decimal Longitude) DegreesAround(double metres)
     {
-        var latitude = metres / EarthRadiusMetres * (180 / Math.PI);
+        var latitude = metres / _earthRadiusMetres * (180 / Math.PI);
         var cosine = Math.Cos(ToRadians(Latitude));
 
         // Near a pole every longitude is close: the whole range.
