@@ -433,6 +433,15 @@ Members & roles (invite, assign roles with scopes) · Sports (enable within enti
   move is announced, the status history is read again and focus goes to the status. On a read-only tenant Edit
   details and the moves are disabled with one reason.
 
+#### As built (S06-T7d-2, slice demo)
+- **e2e** `admin-people-demo`: the slice demo on a tenant of its own (Coucal Sports Club). A registrar searches, opens
+  a likely match from the review instead of adding it, and adds a twin past the review with a reason, after which the
+  pair isn't warned again. They then add an athlete profile and a photo, record a minor's consent with the form and
+  turn on her public profile. The public read shows only her name and photo until the photo scope is withdrawn. The
+  spec also checks three profiles on one person, an archived person refused a new profile (on the screen and through
+  the API), and the second tenant's owner (Francolin Schools Sports Circle) seeing none of the people. The audit
+  trail keeps the reasons. Screenshots `add-person-likely-match` and `person-archived-roles`.
+
 ### Competitions
 - **Competition list** and **competition detail** (Overview · Editions · History).
 - **New competition wizard** — short, because operating happens in the edition dashboard:

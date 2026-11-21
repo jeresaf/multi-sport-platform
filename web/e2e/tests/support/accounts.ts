@@ -47,7 +47,13 @@ export async function inviteOwnerOf(request: APIRequestContext, id: string, emai
 }
 
 /** The platform administrator creates and activates a tenant of this run's own (fictional, pilot-customer.md style). */
-export async function createTenant(request: APIRequestContext, slug: string, displayName: string): Promise<string> {
+/** `publicEnabled` turns the tenant's public site on (off by default, as the API's create). */
+export async function createTenant(
+  request: APIRequestContext,
+  slug: string,
+  displayName: string,
+  { publicEnabled = false }: { publicEnabled?: boolean } = {},
+): Promise<string> {
   await signInByApi(request, platformAdmin.email, platformAdmin.password);
   const created = await request.post("/api/platform/v1/tenants", {
     data: {
@@ -58,6 +64,7 @@ export async function createTenant(request: APIRequestContext, slug: string, dis
       timeZone: "Africa/Kampala",
       defaultLocale: "en-UG",
       currencyCode: "UGX",
+      publicEnabled,
     },
     headers: csrf,
   });
@@ -76,9 +83,14 @@ export type OwnTenant = { id: string; slug: string; name: string };
  * tenants") made run-unique. Specs that add members use one rather than KMSA or ELSSC, which stay the manual demo and
  * would otherwise pass STANDARD's staff limit on a reused database (S06-T7a).
  */
-export async function ownTenant(request: APIRequestContext, slug: string, name: string): Promise<OwnTenant> {
+export async function ownTenant(
+  request: APIRequestContext,
+  slug: string,
+  name: string,
+  options: { publicEnabled?: boolean } = {},
+): Promise<OwnTenant> {
   const tenant = { slug: `${slug}-${run}`, name: `${name} ${run}` };
-  return { ...tenant, id: await createTenant(request, tenant.slug, tenant.name) };
+  return { ...tenant, id: await createTenant(request, tenant.slug, tenant.name, options) };
 }
 
 /** A date in Kampala `days` from today, as the API's dates (`2026-10-23`): subscription days are the tenant's (S04 D3). */
