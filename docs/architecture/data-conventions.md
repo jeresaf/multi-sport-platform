@@ -155,12 +155,17 @@ As built for people (S06-T1a):
   with a GIN `gin_trgm_ops` index on both name keys; queries use `EF.Functions.TrigramsSimilarity`. These two
   indexes don't start with `tenant_id` (GIN can't without `btree_gin`); RLS and the query filter still apply.
 - **External identifiers:** `registry.external_identifiers` has no foreign key to its entity (one table for every
-  registry entity type; `entity_type` is `PERSON` until S07) and a unique index on `(tenant_id, authority,
+  registry entity type; `entity_type` is `PERSON` or `VENUE` (S07-T1c), with `ORGANISATION` and `TEAM` to come) and
+  a unique index on `(tenant_id, authority,
   entity_type, value)` that includes ended rows. As built (S06-T3b): `person.external_id.add` refuses a value with the
   same authority that any person has or had, this one included (`PERSON_EXTERNAL_ID_EXISTS`); one person may hold two
   open identifiers of one authority. `person.external_id.end` sets `valid_to` (default the tenant's today; not after
   it, not before `valid_from`). Aliases are removed with a reason, never deleted; an alias whose name key is already
   the person's own or a current alias's is refused (`PERSON_ALIAS_EXISTS`).
+  Venues (S07-T1c) follow the same rules under `venue.alias.*` and `venue.external_id.*` with `VENUE_…` codes: a
+  value is unique within its authority and entity type, so a person and a venue may share one; the national-document
+  authorities are a person rule only; an archived or closed venue takes no new alias or identifier. A venue's aliases
+  are searched by the directory, not compared by the duplicate warning (owner, S07-T1c plan).
 
 As built for people (S06-T2a), the duplicate check (`DuplicateMatcher`, Registry Domain; `DuplicateFinder`):
 
