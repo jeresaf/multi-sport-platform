@@ -101,7 +101,7 @@ public sealed class TenantAccessModesTests
         var action = new ActionDefinition(
             "fixture.read", "Read fixtures.", ActionScope.Tenant, AuditRequirement.None, "S04", [AssignmentScope.Tenant],
             availableWhenBlocked: availableWhenBlocked, availableWhenReadOnly: availableWhenReadOnly);
-        var access = new TenantAccess(TenantStatus.Active, mode, "Africa/Kampala", Subscription: null);
+        var access = new TenantAccess(TenantStatus.Active, mode, "Africa/Kampala", "UG", Subscription: null);
 
         access.Admits(action).ShouldBe(admitted);
     }

@@ -7,7 +7,7 @@ namespace SportsPlatform.Modules.Tenancy.Features.Access;
 
 /// <summary>
 /// What step 1 and the effective entitlements read on every admin request (S04 D7): each tenant's stored inputs (time
-/// zone, subscription periods, unremoved overrides) for at most <see cref="TimeToLive"/>, and the plans' values until
+/// zone, country, subscription periods, unremoved overrides) for at most <see cref="TimeToLive"/>, and the plans' values until
 /// restart (configuration data, changed by a reviewed seed). Statuses and "today" are derived on every call, never
 /// cached. Whatever changes a tenant's inputs (a subscription or override command, a settings update) clears the
 /// tenant's entry after it commits; other API instances see the change when their entries expire. As for
@@ -93,7 +93,8 @@ public sealed class TenantAccessCache : IDisposable
 /// A tenant's stored inputs to its access and entitlements, read without tracking and shared between requests: never
 /// change them (load tracked entities to change them). <c>Overrides</c> are the unremoved ones.
 /// </summary>
-public sealed record TenantAccessInputs(string TimeZone, IReadOnlyList<SubscriptionPeriod> Periods, IReadOnlyList<EntitlementOverride> Overrides);
+public sealed record TenantAccessInputs(
+    string TimeZone, string Country, IReadOnlyList<SubscriptionPeriod> Periods, IReadOnlyList<EntitlementOverride> Overrides);
 
 /// <summary>
 /// Every stored plan's values, active or not (a tenant may still be on a deactivated plan), and the active plans' codes
