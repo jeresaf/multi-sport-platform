@@ -412,7 +412,7 @@ Acceptance:
       guardian's details or the evidence (Vitest).
 - [x] Missing photos, long names (four name parts) and a person with no profile render at phone width (Vitest,
       screenshots).
-- [ ] The slice demo runs end to end against the real API (Playwright).
+- [x] The slice demo runs end to end against the real API (Playwright). (`admin-people-demo`, T7d-2)
 
 ## Carried over from S05 (slice review 2026-11-16)
 
@@ -429,14 +429,30 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
 
 ## Slice acceptance
 
-- [ ] Duplicate scenarios behave as D5–D8 say; override reasons are audited and decided pairs aren't warned again.
-- [ ] The public read never answers an `INTERNAL` or `PRIVATE` field (classification test over every public DTO);
+- [x] Duplicate scenarios behave as D5–D8 say; override reasons are audited and decided pairs aren't warned again.
+      (`DuplicateCheckTests`, among them `A_pair_decided_not_the_same_person_is_not_shown_again…`; `CreatePersonTests`'
+      `Proceeding_past_candidates_needs_a_reason_which_is_audited…`; `UpdatePersonTests`; the demo e2e)
+- [x] The public read never answers an `INTERNAL` or `PRIVATE` field (classification test over every public DTO);
       minors follow ADR-0015 and consent (tests); `PRIVATE` values never reach logs or audit metadata (redaction test).
-- [ ] Every new tenant table is covered by the isolation harness; the RLS exception list is unchanged.
-- [ ] One person holds athlete, staff and official profiles; profiles follow the tenant's enabled sports and the
-      definitions' codes; no sport code in generic backend or web code.
-- [ ] Photos and consent evidence are stored through Platform media with signed URLs; `STORAGE_GB` counts them.
-- [ ] Docs updated (D24); the S05 carry-overs above are done or moved, and PROGRESS.md says where.
+      (`PublicDtoClassificationTests`; `PersonPublicProfileTests`; `PeopleReadTests`'
+      `The_date_of_birth_reaches_neither_the_logs_nor_the_audit_trail`, `PersonConsentTests`'
+      `The_guardians_details_reach_neither_the_logs_nor_the_audit_trail`, `AuditMetadataTests`)
+- [x] Every new tenant table is covered by the isolation harness; the RLS exception list is unchanged. (Samples for
+      the person, alias, status change, athlete, staff and official profiles, profile status change, guardian consent,
+      external identifier, duplicate decision and media asset; `RlsCoverageTests` still lists `outbox_messages` and
+      `tenant_domains` only)
+- [x] One person holds athlete, staff and official profiles; profiles follow the tenant's enabled sports and the
+      definitions' codes; no sport code in generic backend or web code. (`OfficialProfileTests`'
+      `A_person_holds_all_three_profiles_and_an_archived_person_gets_none`; the `…_not_enabled_or_a_position|role_not_in_
+      the_definition_is_refused` tests of the three profiles; `SportLiteralTests` and the apps' ESLint rule; the demo
+      e2e)
+- [x] Photos and consent evidence are stored through Platform media with signed URLs; `STORAGE_GB` counts them.
+      (`PersonPhotoTests`' `A_photo_is_shown_as_signed_URLs…` and `At_the_storage_limit_the_upload_is_refused…`;
+      `PersonConsentTests`' `Evidence_is_linked_only_by_the_private_read…` and
+      `At_the_storage_limit_evidence_is_refused…`)
+- [x] Docs updated (D24); the S05 carry-overs above are done or moved, and PROGRESS.md says where. (Each task updated
+      its docs; T7d-2 checked the D24 list. The carry-overs are done in T1a, T2b, T7a and T7d-1, the list typing is
+      D22's, and `TEAM_MANAGER` moved to S08. The S06 items whose trigger had passed now say Later, owner 2026-11-21)
 
 ## Implementation notes
 
@@ -755,3 +771,10 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   `Result` too. Review #114: the second of a pair on one birth date names the first (`sameBirthDateAs`) and takes
   their stored date, so a run resumed on another day keeps them on one date (R1); a tenant that isn't `ACTIVE` is
   seeded only at the seeder's next run, and neither seeder deactivates (R2, R3, docs).
+- **T7d-2:** the slice demo e2e and slice close. Owner decisions (plan, 2026-11-21): one PR; S06 tech debt whose
+  trigger had passed moves to Later. As built: `admin-people-demo` runs the Demo above through the screens on Coucal
+  Sports Club, with Francolin Schools Sports Circle as the second tenant. The people the seeds give KMSA are made
+  through the API first. Positions and roles are the first enabled sport's (labels read from its definition), so the
+  test names no sport. The demo's "Same name, other order" is the screen's "Same names, in any order". The public read
+  is asked with Development's `?tenant=` override. Screenshots: `add-person-likely-match`, `person-archived-roles`. No
+  backend change.

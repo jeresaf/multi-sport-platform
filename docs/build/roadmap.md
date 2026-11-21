@@ -27,7 +27,7 @@ Status legend: ☐ not started · ◐ in progress · ☑ done. Claude Code updat
 
 | Slice | Goal | Spec | Status |
 |---|---|---|---|
-| S06 | People registry: persons, duplicate prevention, athlete/staff/official profiles, minors' consent, media | [S06](slices/S06-people-registry.md) (written by the S05 slice review) | ☐ |
+| S06 | People registry: persons, duplicate prevention, athlete/staff/official profiles, minors' consent, media | [S06](slices/S06-people-registry.md) (written by the S05 slice review) | ☑ |
 | S07 | Organisations, teams, venues | [S07](slices/S07-organisations-teams-venues.md) (outline) | ☐ |
 | S08 | Team operations: player memberships, staff assignments, the team-page flow | [S08](slices/S08-team-operations.md) (outline) | ☐ |
 
