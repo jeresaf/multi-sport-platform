@@ -7,8 +7,8 @@ at the start of every review.
 
 - **Current slice:** S07 — Organisations, teams and venues (docs/build/slices/S07-organisations-teams-venues.md,
   written by the S06 slice review). S00–S06 are done
-- **Current task:** — (S07-T1b-1 in review: #118)
-- **Next:** S07-T1b-2 — Venues: the directory (`sort_key`), `DocumentsQueryInteger` `maximum` and `default` (after #118 merges)
+- **Current task:** S07-T1b-2 — Venues: the directory (`sort_key`), `DocumentsQueryInteger` `maximum` and `default`
+- **Next:** S07-T1c — Venues: aliases, external identifiers (`VENUE`), `IVenueDirectory`
 - **Blocked on:** —
 
 ## Next up
