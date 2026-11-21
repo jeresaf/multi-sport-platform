@@ -12,10 +12,12 @@ using SportsPlatform.Modules.Identity.Domain.Roles;
 using SportsPlatform.Modules.Identity.Infrastructure.Users;
 using SportsPlatform.Modules.Platform.Contracts.Media;
 using SportsPlatform.Modules.Platform.Domain.Media;
+using SportsPlatform.Modules.Registry.Domain;
 using SportsPlatform.Modules.Registry.Domain.People;
 using SportsPlatform.Modules.Registry.Domain.People.Consents;
 using SportsPlatform.Modules.Registry.Domain.People.Duplicates;
 using SportsPlatform.Modules.Registry.Domain.People.Profiles;
+using SportsPlatform.Modules.Registry.Domain.Venues;
 using SportsPlatform.Modules.Tenancy.Contracts.Subscriptions;
 using SportsPlatform.Modules.Tenancy.Domain.Entitlements;
 using SportsPlatform.Modules.Tenancy.Domain.Settings;
@@ -77,6 +79,8 @@ public static class IsolationSamples
         new OfficialProfileSample(),
         new OfficialCapabilitySample(),
         new GuardianConsentSample(),
+        new VenueSample(),
+        new VenueStatusChangeSample(),
         new MediaAssetSample(),
     ];
 
@@ -532,8 +536,49 @@ public static class IsolationSamples
         }
     }
 
+    /// <summary>Registry: a venue; its status history points at it.</summary>
+    private sealed class VenueSample : IIsolationSample
+    {
+        public Type EntityType => typeof(Venue);
+
+        public Entity Add(DbContext context)
+        {
+            var venue = RegistrySamples.NewVenue("Kiwatule Meadow Ground");
+            context.Add(venue);
+            return venue;
+        }
+
+        public Entity? Referencing(IForeignKey foreignKey, Guid principalId) => null;
+    }
+
+    /// <summary>Registry: the history row a new venue gets.</summary>
+    private sealed class VenueStatusChangeSample : IIsolationSample
+    {
+        public Type EntityType => typeof(VenueStatusChange);
+
+        public Entity Add(DbContext context)
+        {
+            var venue = RegistrySamples.NewVenue("Bukoto Community Stadium");
+            context.Add(venue);
+            return venue.StatusHistory.Single();
+        }
+
+        public Entity? Referencing(IForeignKey foreignKey, Guid principalId) =>
+            foreignKey.PrincipalEntityType.ClrType == typeof(Venue)
+                ? new VenueStatusChange(principalId, VenueStatus.Active, VenueStatus.Closed, "Pitch resurfacing", SystemActor.Instance, RegistrySamples.Now)
+                : null;
+    }
+
     private static class RegistrySamples
     {
+        public static Venue NewVenue(string name) =>
+            Venue.Create(
+                new VenueDetails(name, null, VenueType.SportsGround, null, "Kampala", null, "UG", null, "Africa/Kampala", null, [], []),
+                Slugs.Propose("venue", name),
+                VenueSource.Manual,
+                SystemActor.Instance,
+                Now);
+
         public static readonly DateTimeOffset Now = new(2026, 11, 16, 9, 0, 0, TimeSpan.Zero);
 
         public static Person NewPerson(string firstName, string lastName) =>

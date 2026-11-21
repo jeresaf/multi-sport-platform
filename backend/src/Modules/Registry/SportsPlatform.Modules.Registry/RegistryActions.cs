@@ -198,6 +198,41 @@ public static class RegistryActions
         entitlement: "STORAGE_GB",
         grantedWith: ["person.read"]);
 
+    public static readonly ActionDefinition VenueRead = new(
+        "venue.read",
+        "View the venues directory and a venue's record: address, time zone, capacity, surfaces, supported sports and status.",
+        ActionScope.Tenant,
+        AuditRequirement.None,
+        since: "S07",
+        scopableBy: [AssignmentScope.Tenant],
+        availableWhenReadOnly: true);
+
+    /// <summary>
+    /// Its own unaudited action, as <c>person.duplicate_check</c>: the check saves nothing (S07 D13). It answers other
+    /// venues' names and cities, so it is only granted with <c>venue.read</c>.
+    /// </summary>
+    public static readonly ActionDefinition VenueDuplicateCheck = new(
+        "venue.duplicate_check",
+        "Check a new or changed venue's name, city and coordinates against the venues already in the registry.",
+        ActionScope.Tenant,
+        AuditRequirement.None,
+        since: "S07",
+        scopableBy: [AssignmentScope.Tenant],
+        grantedWith: ["venue.read"]);
+
+    /// <summary>
+    /// Runs the duplicate check itself (no token, S07 D13), and answers the venue as <c>venue.read</c> does, so it is
+    /// granted with the check and that read.
+    /// </summary>
+    public static readonly ActionDefinition VenueCreate = new(
+        "venue.create",
+        "Add a venue to the registry; possible duplicates are shown first, and creating it anyway is recorded with the venues shown.",
+        ActionScope.Tenant,
+        AuditRequirement.Required,
+        since: "S07",
+        scopableBy: [AssignmentScope.Tenant],
+        grantedWith: ["venue.duplicate_check", "venue.read"]);
+
     // The lifecycle, alias, identifier, profile, photo, consent and public-profile actions answer the person as person.read does, so they are only
     // granted with that read.
     private static ActionDefinition Lifecycle(string code, string description, AuditRequirement audit) => new(

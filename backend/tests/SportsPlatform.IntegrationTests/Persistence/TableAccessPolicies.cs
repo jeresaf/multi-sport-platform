@@ -99,6 +99,10 @@ public static class TableAccessPolicies
         ["registry.official_capabilities"] = TableAccess.ReadWrite,
         ["registry.guardian_consents"] = TableAccess.ReadWrite,
 
+        // Venues (S07-T1a, RLS): changed and archived, never deleted; the status history is kept for ever.
+        ["registry.venues"] = TableAccess.ReadWrite,
+        ["registry.venue_status_changes"] = TableAccess.AppendOnly,
+
         ["identity.outbox_messages"] = TableAccess.ReadWrite,
         ["registry.outbox_messages"] = TableAccess.ReadWrite,
         ["registry.inbox_messages"] = TableAccess.ReadWrite,
