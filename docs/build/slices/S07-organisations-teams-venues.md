@@ -461,4 +461,6 @@ The rest of S06's tech debt has its own trigger in PROGRESS.md ("From S06").
   of them or to the slug holds `registry.venues:<tenantId>`. `POST /venues/{id}/status` (`venue.status.change`) with
   `{status, reason}`; `VENUE_STATUS_INVALID` (409); unarchive reads the status before archiving from the latest move to
   `ARCHIVED` (rows ordered by time, then ID). `GET /venues/{id}/status-changes` (`venue.read`), newest first. Create and
-  update share `VenueChangeValidator<T>` (slug and duplicate reason).
+  update share `VenueChangeValidator<T>` (slug and duplicate reason). A PUT without `country` gives the venue the
+  tenant's, so T6's venue form always sends the venue's current country (review #118 Q1). `ChangeStatus` throws when
+  the history isn't loaded (review #118 R2).
