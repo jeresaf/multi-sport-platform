@@ -239,8 +239,9 @@ Modules call each other in-process through Contracts, never over HTTP.
   `.ReturnsETag()` (`RowVersionEndpointExtensions`); the Host documents the header parameter and the response header.
   An `ETag` that isn't the row version (a published sport definition's content hash, S05-T1b2) is declared with
   `.ReturnsETag(description)`, which documents what it is instead. A query parameter bound as text that takes a whole
-  number declares `.DocumentsQueryInteger(name, minimum)` (`QueryValues`), as an enum one declares
-  `.DocumentsQueryValues(name, values)`, so OpenAPI types it.
+  number declares `.DocumentsQueryInteger(name, minimum, maximum, @default)` (`QueryValues`; the bounds and default
+  optional, a list's `limit` is `1, 100, 25`), as an enum one declares `.DocumentsQueryValues(name, values)`, so
+  OpenAPI types it.
   Tests require both wherever a body or a success response carries `version` (`RowVersionHeadersTests`). A strict
   JSON body's schema is named by its type's short name: two such types must not share one (`StrictJsonBodySchemaTests`).
 - One document, `v1`, OpenAPI 3.1, covering all four families. Health probes are infrastructure and are left

@@ -24,4 +24,19 @@ public sealed class QueryValuesDocumentationTests(HostOnlyApp factory) : IClassF
         var scopeId = parameters.Single(parameter => parameter!["name"]!.GetValue<string>() == "scopeId")!;
         scopeId["schema"]!.AsObject().ContainsKey("enum").ShouldBeFalse();
     }
+
+    // S07-T1b-2: a list's limit is an integer with its bounds and default, so the client types it.
+    [Theory]
+    [InlineData("/api/admin/v1/people")]
+    [InlineData("/api/admin/v1/venues")]
+    public async Task A_lists_limit_is_an_integer_from_1_to_100_defaulting_to_25(string path)
+    {
+        var document = JsonNode.Parse(await ApiDocumentation.ExportAsync(factory.Services, TestContext.Current.CancellationToken))!;
+
+        var parameters = document["paths"]![path]!["get"]!["parameters"]!.AsArray();
+        var schema = parameters.Single(parameter => parameter!["name"]!.GetValue<string>() == "limit")!["schema"]!;
+
+        (schema["type"]!.GetValue<string>(), schema["minimum"]!.GetValue<int>(), schema["maximum"]!.GetValue<int>(), schema["default"]!.GetValue<int>())
+            .ShouldBe(("integer", 1, 100, 25));
+    }
 }
