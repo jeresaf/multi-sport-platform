@@ -1273,7 +1273,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * List the tenant's venues
+         * @description The venues of the tenant named by `X-Tenant-Id`, sorted by name (ignoring case, accents and punctuation) and ID. `q` matches the name, or one of its words, by prefix, and the name by similarity. `variant` keeps venues that support that sport variant (a code); `city` venues in that city (ignoring case, accents and punctuation); `status` filters by status (without it, archived venues are left out). `limit` is 1–100 (25). Available while the tenant is read-only.
+         */
+        get: operations["ListVenues"];
         put?: never;
         /**
          * Add a venue
@@ -2805,6 +2809,10 @@ export interface components {
         ListTimeZonesResponse: {
             items: components["schemas"]["TimeZoneResponse"][];
         };
+        ListVenuesResponse: {
+            items: components["schemas"]["VenueListItem"][];
+            page: components["schemas"]["PageInfo"];
+        };
         ListVenueStatusChangesResponse: {
             items: components["schemas"]["VenueStatusChangeResponse"][];
         };
@@ -4137,6 +4145,19 @@ export interface components {
                 field: string;
                 code: string;
             }[];
+        };
+        /** @description A venue in the directory: enough to recognise it and open it (S07 D19; every field is public, D16). */
+        VenueListItem: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            shortName: null | string;
+            slug: string;
+            type: components["schemas"]["VenueType"];
+            city: string;
+            country: string;
+            supportedVariants: string[];
+            status: components["schemas"]["VenueStatus"];
         };
         /**
          * @description A venue as the admin reads it (S07 D19). Every field is one the public reads may show (D16) but the version.
@@ -8511,6 +8532,60 @@ export interface operations {
             };
             /** @description Problem Details; `code`: `VENUE_NAME_INVALID` */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListVenues: {
+        parameters: {
+            query?: {
+                q?: string;
+                variant?: string;
+                city?: string;
+                status?: "ACTIVE" | "TEMPORARILY_UNAVAILABLE" | "CLOSED" | "ARCHIVED";
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListVenuesResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_QUERY` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING` */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

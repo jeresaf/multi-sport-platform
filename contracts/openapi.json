@@ -2877,8 +2877,10 @@
             "name": "limit",
             "in": "query",
             "schema": {
+              "maximum": 100,
               "minimum": 1,
-              "type": "integer"
+              "type": "integer",
+              "default": 25
             }
           },
           {
@@ -7347,6 +7349,121 @@
               "TENANT_BLOCKED",
               "TENANT_PROVISIONING",
               "TENANT_READ_ONLY"
+            ]
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Venues"
+        ],
+        "summary": "List the tenant's venues",
+        "description": "The venues of the tenant named by `X-Tenant-Id`, sorted by name (ignoring case, accents and punctuation) and ID. `q` matches the name, or one of its words, by prefix, and the name by similarity. `variant` keeps venues that support that sport variant (a code); `city` venues in that city (ignoring case, accents and punctuation); `status` filters by status (without it, archived venues are left out). `limit` is 1–100 (25). Available while the tenant is read-only.",
+        "operationId": "ListVenues",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "variant",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "city",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "enum": [
+                "ACTIVE",
+                "TEMPORARILY_UNAVAILABLE",
+                "CLOSED",
+                "ARCHIVED"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer",
+              "default": 25
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListVenuesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_QUERY`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_QUERY"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING"
             ]
           }
         }
@@ -13604,6 +13721,24 @@
           }
         }
       },
+      "ListVenuesResponse": {
+        "required": [
+          "items",
+          "page"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VenueListItem"
+            }
+          },
+          "page": {
+            "$ref": "#/components/schemas/PageInfo"
+          }
+        }
+      },
       "ListVenueStatusChangesResponse": {
         "required": [
           "items"
@@ -17897,6 +18032,57 @@
           }
         },
         "description": "The Problem Details of a venue create refused with `422` (S07 D13), for the OpenAPI document and the generated\nclient: `candidates` is present only with `VENUE_DUPLICATE_REVIEW_REQUIRED`, the venues the warning found,\nstrongest first."
+      },
+      "VenueListItem": {
+        "required": [
+          "id",
+          "name",
+          "shortName",
+          "slug",
+          "type",
+          "city",
+          "country",
+          "supportedVariants",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "shortName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "slug": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/VenueType"
+          },
+          "city": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          },
+          "supportedVariants": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "status": {
+            "$ref": "#/components/schemas/VenueStatus"
+          }
+        },
+        "description": "A venue in the directory: enough to recognise it and open it (S07 D19; every field is public, D16)."
       },
       "VenueResponse": {
         "required": [
