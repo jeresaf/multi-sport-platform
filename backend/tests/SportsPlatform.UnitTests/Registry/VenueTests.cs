@@ -199,4 +199,18 @@ public sealed class VenueTests
         (venue.Status, venue.StatusHistory.Count).ShouldBe((VenueStatus.Active, 1));
         Should.Throw<ArgumentException>(() => venue.Update(Kiwatule(), "Not A Slug"));
     }
+
+    // Review #118 R2: a venue loaded without its history is a bug, not a refused move.
+    [Fact]
+    public void A_move_without_the_loaded_history_throws()
+    {
+        var venue = Venue.Create(Kiwatule(), "kiwatule-meadow-ground", VenueSource.Manual, SystemActor.Instance, _now);
+        var history = (List<VenueStatusChange>)typeof(Venue)
+            .GetField("_statusHistory", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .GetValue(venue)!;
+        history.Clear();
+
+        Should.Throw<InvalidOperationException>(() => venue.ChangeStatus(VenueStatus.Closed, "The ground was sold", SystemActor.Instance, _now));
+        venue.Status.ShouldBe(VenueStatus.Active);
+    }
 }

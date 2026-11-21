@@ -139,12 +139,19 @@ public sealed class Venue : AggregateRoot, ITenantOwned
     /// <summary>
     /// Moves the venue to <paramref name="to"/> with a reason (S07 D12, <see cref="VenueTransitions"/>) and writes the row
     /// of its history; a move the current status doesn't allow is <c>VENUE_STATUS_INVALID</c>. Needs the history
-    /// loaded: unarchiving reads the status before archiving from it.
+    /// loaded (it throws otherwise): unarchiving reads the status before archiving from it.
     /// </summary>
     public Result ChangeStatus(VenueStatus to, string reason, ICurrentActor actor, DateTimeOffset now)
     {
         ArgumentNullException.ThrowIfNull(actor);
         ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+
+        // Every venue has its creation row: an empty history means the caller didn't load it (a bug, not a refusal).
+        if (_statusHistory.Count == 0)
+        {
+            throw new InvalidOperationException("The venue's status history is not loaded.");
+        }
+
         if (!VenueTransitions.IsAllowed(Status, to, StatusBeforeArchive()))
         {
             return Result.Failure(RegistryErrors.VenueStatusInvalid);
