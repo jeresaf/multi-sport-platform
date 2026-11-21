@@ -7,14 +7,14 @@ at the start of every review.
 
 - **Current slice:** S07 — Organisations, teams and venues (docs/build/slices/S07-organisations-teams-venues.md,
   written by the S06 slice review). S00–S06 are done
-- **Current task:** — (S07-T1a in review: #117)
-- **Next:** S07-T1b — Venues: update, directory, lifecycle (after #117 merges)
+- **Current task:** S07-T1b-1 — Venues: update (D13's warning again), lifecycle (D12, Q55) and its history read
+- **Next:** S07-T1b-2 — Venues: the directory (`sort_key`), `DocumentsQueryInteger` `maximum` and `default`
 - **Blocked on:** —
 
 ## Next up
 
-1. S07-T1b — Venues: update (D13's warning again), the directory list (`DocumentsQueryInteger` gains `maximum` and
-   `default`, People's list too), lifecycle (D12, Q55) and its history read
+1. S07-T1b-2 — Venues: the directory list (a `sort_key` column, migration `AddVenueDirectory`; `DocumentsQueryInteger`
+   gains `maximum` and `default`, People's list too)
 2. S07-T1c — Venues: aliases, external identifiers (`VENUE`), `IVenueDirectory`
 3. S07-T2 — Organisations
 4. S07-T3 — Teams
@@ -141,6 +141,10 @@ at the start of every review.
   `IVenueDirectory`). `DocumentsQueryInteger` gains `maximum` and `default` in T1b, for People's list too (the S06
   carry-over). Tenancy's `TenantAccess` gains the tenant's `Country`, so a venue without a country takes the tenant's
   (D3). Q54 and Q55: the defaults.
+  T1b (owner, plan 2026-11-21): two PRs, T1b-1 (update, lifecycle, status history) and T1b-2 (directory). The
+  directory sorts by a new `sort_key` (the normalised name, word order kept, collation "C"). A PUT without `slug`
+  keeps the venue's slug; an update is a correction allowed in every status, `ARCHIVED` included (as people's); a PUT
+  without `country` takes the tenant's; the directory's `q` matches names only until T1c adds aliases and identifiers.
 
 - **S05-T5b2a (owner, plan 2026-11-16):** D17's Settings → **Sports** is labelled **Enabled sports** (navigation entry and
   page, `/t/{slug}/settings/sports`), so it isn't confused with the workspace's **Sports** (the definitions). T5b2 is two
