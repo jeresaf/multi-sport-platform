@@ -41,7 +41,7 @@ internal static class PersonAliasEndpoints
             .ReturnsETag()
             .ValidateRequest<AddPersonAliasRequest>(CommonErrors.InvalidRequest)
             .ProducesErrors(
-                RegistryErrors.PersonNotFound, RegistryErrors.ConcurrencyConflict, RegistryErrors.NameInvalid,
+                RegistryErrors.PersonNotFound, RegistryErrors.PersonConcurrencyConflict, RegistryErrors.NameInvalid,
                 RegistryErrors.AliasExists, RegistryErrors.PersonArchived, RegistryErrors.PersonDeceased);
 
         people
@@ -68,7 +68,7 @@ internal static class PersonAliasEndpoints
             .ReturnsETag()
             .ValidateRequest<RemovePersonAliasRequest>(CommonErrors.ReasonRequired)
             .ProducesErrors(
-                RegistryErrors.PersonNotFound, RegistryErrors.ConcurrencyConflict, RegistryErrors.AliasNotFound,
+                RegistryErrors.PersonNotFound, RegistryErrors.PersonConcurrencyConflict, RegistryErrors.AliasNotFound,
                 RegistryErrors.AliasRemoved);
     }
 }

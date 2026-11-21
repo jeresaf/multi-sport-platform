@@ -54,7 +54,7 @@ public sealed class UpdatePersonHandler(
 
         if (!RowVersion.IsSatisfied(context.Entry(person).Property<uint>(AuditColumns.Version).CurrentValue, request.Version, ifMatch))
         {
-            return new(RegistryErrors.ConcurrencyConflict);
+            return new(RegistryErrors.PersonConcurrencyConflict);
         }
 
         var biodata = request.ToBiodata();

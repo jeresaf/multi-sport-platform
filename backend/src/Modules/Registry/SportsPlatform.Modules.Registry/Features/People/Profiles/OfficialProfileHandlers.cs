@@ -114,7 +114,7 @@ public sealed class UpdateOfficialProfileHandler(RegistryDbContext context, Spor
         {
             // Two updates adding the same capability at once: the second's insert can reach the index before the
             // person's version is checked. The person changed under it, as a version mismatch would say.
-            return new(RegistryErrors.ConcurrencyConflict);
+            return new(RegistryErrors.PersonConcurrencyConflict);
         }
     }
 }

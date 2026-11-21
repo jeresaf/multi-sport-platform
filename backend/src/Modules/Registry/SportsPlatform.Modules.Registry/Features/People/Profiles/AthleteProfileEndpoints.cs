@@ -49,7 +49,7 @@ internal static class AthleteProfileEndpoints
             .ReturnsETag()
             .ValidateRequest<CreateAthleteProfileRequest>(CommonErrors.InvalidRequest)
             .ProducesErrors(
-                RegistryErrors.PersonNotFound, RegistryErrors.ConcurrencyConflict, RegistryErrors.SportNotEnabled,
+                RegistryErrors.PersonNotFound, RegistryErrors.PersonConcurrencyConflict, RegistryErrors.SportNotEnabled,
                 RegistryErrors.PositionUnknown, RegistryErrors.AthleteProfileExists, RegistryErrors.PersonArchived,
                 RegistryErrors.PersonDeceased);
 
@@ -78,7 +78,7 @@ internal static class AthleteProfileEndpoints
             .ReturnsETag()
             .ValidateRequest<UpdateAthleteProfileRequest>(CommonErrors.InvalidRequest)
             .ProducesErrors(
-                RegistryErrors.PersonNotFound, RegistryErrors.ConcurrencyConflict, RegistryErrors.ProfileNotFound,
+                RegistryErrors.PersonNotFound, RegistryErrors.PersonConcurrencyConflict, RegistryErrors.ProfileNotFound,
                 RegistryErrors.ProfileArchived, RegistryErrors.PositionUnknown);
 
         people
@@ -106,7 +106,7 @@ internal static class AthleteProfileEndpoints
             .ReturnsETag()
             .ValidateRequest<ChangeProfileStatusRequest>(CommonErrors.InvalidRequest)
             .ProducesErrors(
-                CommonErrors.ReasonRequired, RegistryErrors.PersonNotFound, RegistryErrors.ConcurrencyConflict,
+                CommonErrors.ReasonRequired, RegistryErrors.PersonNotFound, RegistryErrors.PersonConcurrencyConflict,
                 RegistryErrors.ProfileNotFound, RegistryErrors.ProfileStatusInvalid, RegistryErrors.PersonArchived,
                 RegistryErrors.PersonDeceased);
     }

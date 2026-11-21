@@ -45,7 +45,7 @@ internal static class ExternalIdentifierEndpoints
             .ReturnsETag()
             .ValidateRequest<AddExternalIdentifierRequest>(CommonErrors.InvalidRequest)
             .ProducesErrors(
-                RegistryErrors.PersonNotFound, RegistryErrors.ConcurrencyConflict, RegistryErrors.ExternalIdAuthorityReserved,
+                RegistryErrors.PersonNotFound, RegistryErrors.PersonConcurrencyConflict, RegistryErrors.ExternalIdAuthorityReserved,
                 RegistryErrors.ExternalIdExists, RegistryErrors.PersonArchived, RegistryErrors.PersonDeceased);
 
         people
@@ -73,7 +73,7 @@ internal static class ExternalIdentifierEndpoints
             .ReturnsETag()
             .ValidateRequest<EndExternalIdentifierRequest>(CommonErrors.InvalidRequest)
             .ProducesErrors(
-                RegistryErrors.PersonNotFound, RegistryErrors.ConcurrencyConflict, RegistryErrors.ExternalIdNotFound,
+                RegistryErrors.PersonNotFound, RegistryErrors.PersonConcurrencyConflict, RegistryErrors.ExternalIdNotFound,
                 RegistryErrors.ExternalIdEnded, RegistryErrors.ExternalIdValidityInvalid);
     }
 }

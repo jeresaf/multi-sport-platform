@@ -29,7 +29,7 @@ public sealed class ChangePersonStatusHandler(RegistryDbContext context, ICurren
 
         if (!RowVersion.IsSatisfied(context.Entry(person).Property<uint>(AuditColumns.Version).CurrentValue, version, ifMatch))
         {
-            return Result.Failure(RegistryErrors.ConcurrencyConflict);
+            return Result.Failure(RegistryErrors.PersonConcurrencyConflict);
         }
 
         var changed = person.ChangeStatus(transition, reason, actor, timeProvider.GetUtcNow());

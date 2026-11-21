@@ -58,7 +58,7 @@ internal static class ChangePersonStatusEndpoints
         .AcceptsIfMatch()
         .ReturnsETag()
         .ValidateRequest<ChangePersonStatusRequest>(CommonErrors.InvalidRequest)
-        .ProducesErrors(RegistryErrors.PersonNotFound, RegistryErrors.StatusInvalid, RegistryErrors.ConcurrencyConflict);
+        .ProducesErrors(RegistryErrors.PersonNotFound, RegistryErrors.StatusInvalid, RegistryErrors.PersonConcurrencyConflict);
 
     private static void MapWithReason(
         IEndpointRouteBuilder people, string path, PersonTransition transition, ActionDefinition action, string name, string summary,
@@ -80,7 +80,7 @@ internal static class ChangePersonStatusEndpoints
         .AcceptsIfMatch()
         .ReturnsETag()
         .ValidateRequest<ChangePersonStatusWithReasonRequest>(CommonErrors.ReasonRequired)
-        .ProducesErrors(RegistryErrors.PersonNotFound, RegistryErrors.StatusInvalid, RegistryErrors.ConcurrencyConflict);
+        .ProducesErrors(RegistryErrors.PersonNotFound, RegistryErrors.StatusInvalid, RegistryErrors.PersonConcurrencyConflict);
 
     private static async Task<Results<Ok<PersonResponse>, ProblemHttpResult>> HandleAsync(
         Guid personId,

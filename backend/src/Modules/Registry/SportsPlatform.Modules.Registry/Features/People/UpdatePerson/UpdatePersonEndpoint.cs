@@ -31,7 +31,7 @@ internal static class UpdatePersonEndpoint
         .AcceptsIfMatch()
         .ReturnsETag()
         .ProducesErrors(
-            RegistryErrors.PersonNotFound, RegistryErrors.ConcurrencyConflict, RegistryErrors.NameInvalid,
+            RegistryErrors.PersonNotFound, RegistryErrors.PersonConcurrencyConflict, RegistryErrors.NameInvalid,
             RegistryErrors.DateOfBirthInFuture, RegistryErrors.DuplicateCheckRequired, RegistryErrors.DuplicateCheckStale,
             RegistryErrors.DuplicateOverrideRequired);
 
