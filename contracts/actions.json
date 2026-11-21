@@ -1217,6 +1217,54 @@
       "availableWhenBlocked": false,
       "availableWhenReadOnly": false,
       "since": "S02"
+    },
+    {
+      "code": "venue.create",
+      "module": "Registry",
+      "description": "Add a venue to the registry; possible duplicates are shown first, and creating it anyway is recorded with the venues shown.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S07"
+    },
+    {
+      "code": "venue.duplicate_check",
+      "module": "Registry",
+      "description": "Check a new or changed venue's name, city and coordinates against the venues already in the registry.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "NONE",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S07"
+    },
+    {
+      "code": "venue.read",
+      "module": "Registry",
+      "description": "View the venues directory and a venue's record: address, time zone, capacity, surfaces, supported sports and status.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "NONE",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": true,
+      "since": "S07"
     }
   ]
 }

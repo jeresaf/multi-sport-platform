@@ -7161,6 +7161,280 @@
         }
       }
     },
+    "/api/admin/v1/venues/duplicate-check": {
+      "post": {
+        "tags": [
+          "Venues"
+        ],
+        "summary": "Check a venue against the registry for duplicates",
+        "description": "Compares a new venue's name, city and coordinates with the venues of the tenant named by `X-Tenant-Id`, archived ones included (see `status`), and answers those that look like it, strongest first, at most 10. `LIKELY`: the same name in the same city (the same words in any order; case, accents and punctuation aside), or coordinates within 200 m. `POSSIBLE`: names at least 70 % similar in the same city. `evidence` says why. Nothing is saved: the create runs the same check, and refuses with VENUE_DUPLICATE_REVIEW_REQUIRED until it is sent with `duplicatesReviewed`. A name without a letter or a digit is VENUE_NAME_INVALID.",
+        "operationId": "CheckVenueDuplicates",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckVenueDuplicatesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckVenueDuplicatesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_REQUEST",
+              "VALIDATION_MALFORMED_REQUEST"
+            ]
+          },
+          "422": {
+            "description": "Problem Details; `code`: `VENUE_NAME_INVALID`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VENUE_NAME_INVALID"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING",
+              "TENANT_READ_ONLY"
+            ]
+          }
+        }
+      }
+    },
+    "/api/admin/v1/venues": {
+      "post": {
+        "tags": [
+          "Venues"
+        ],
+        "summary": "Add a venue",
+        "description": "Adds an ACTIVE venue to the tenant named by `X-Tenant-Id`. `timeZone` is required (an active IANA zone); `country` defaults to the tenant's; `latitude` and `longitude` come together or not at all; `supportedVariants` are published sport variants, enabled for the tenant or not (else VENUE_SPORT_UNKNOWN). Without `slug`, one is proposed from the name, with -2, -3… when taken; a slug sent that another venue has is VENUE_SLUG_TAKEN. The duplicate check (POST /venues/duplicate-check) runs again: venues that look like this one answer VENUE_DUPLICATE_REVIEW_REQUIRED with `candidates` until the request says `duplicatesReviewed: true`, with an optional `duplicateReason`; the audit entry names the venues shown. The reason is kept permanently in the audit trail: don't include personal data. A name without a letter or a digit is VENUE_NAME_INVALID. Answers the venue as GET /venues/{venueId} does.",
+        "operationId": "CreateVenue",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateVenueRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "headers": {
+              "ETag": {
+                "description": "The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VenueResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_REQUEST",
+              "VALIDATION_MALFORMED_REQUEST"
+            ]
+          },
+          "422": {
+            "description": "Problem Details; `code`: `VENUE_DUPLICATE_REVIEW_REQUIRED`, `VENUE_NAME_INVALID`, `VENUE_SLUG_TAKEN`, `VENUE_SPORT_UNKNOWN`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VENUE_DUPLICATE_REVIEW_REQUIRED",
+              "VENUE_NAME_INVALID",
+              "VENUE_SLUG_TAKEN",
+              "VENUE_SPORT_UNKNOWN"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING",
+              "TENANT_READ_ONLY"
+            ]
+          }
+        }
+      }
+    },
+    "/api/admin/v1/venues/{venueId}": {
+      "get": {
+        "tags": [
+          "Venues"
+        ],
+        "summary": "Get a venue",
+        "description": "A venue of the tenant named by `X-Tenant-Id`, whatever its status: address, time zone, coordinates, capacity, surfaces, supported sport variants (codes; labels come from the definitions), status and `version` (also the `ETag`).",
+        "operationId": "GetVenue",
+        "parameters": [
+          {
+            "name": "venueId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VenueResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Problem Details; `code`: `VENUE_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VENUE_NOT_FOUND"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING"
+            ]
+          }
+        }
+      }
+    },
     "/api/platform/v1/diagnostics/outbox": {
       "get": {
         "tags": [
@@ -11351,6 +11625,58 @@
         },
         "description": "The duplicate check's answer (S06 D5): the existing people who may be the same person, strongest first, at most 20,\nand the token a create needs (S06 D6). It carries no `PRIVATE` value: a birth year, never a date of birth."
       },
+      "CheckVenueDuplicatesRequest": {
+        "required": [
+          "name",
+          "city"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "city": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "latitude": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "longitude": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          }
+        },
+        "additionalProperties": false,
+        "description": "What the venue duplicate warning compares (S07 D13): the name, the city and the coordinates a save would send."
+      },
+      "CheckVenueDuplicatesResponse": {
+        "required": [
+          "candidates"
+        ],
+        "type": "object",
+        "properties": {
+          "candidates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VenueDuplicateCandidateResponse"
+            }
+          }
+        },
+        "description": "The venues that look like the one checked, strongest first (none is an empty list)."
+      },
       "ConsentEvidenceResponse": {
         "required": [
           "url",
@@ -11758,6 +12084,126 @@
         },
         "additionalProperties": false,
         "description": "A new tenant. Every field but `publicEnabled` (default false) is required; unknown members are rejected,\nso a status can't be sent (a new tenant is always `PROVISIONING`)."
+      },
+      "CreateVenueRequest": {
+        "required": [
+          "name",
+          "type",
+          "city",
+          "timeZone"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "type": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/VenueType"
+              }
+            ]
+          },
+          "city": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "timeZone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "shortName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "addressLine": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "region": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "country": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "latitude": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "longitude": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "capacity": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "surfaces": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/VenueSurface"
+            }
+          },
+          "supportedVariants": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "slug": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "duplicatesReviewed": {
+            "type": "boolean",
+            "default": false
+          },
+          "duplicateReason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "description": "A new venue (S07 D3): its fields, an optional slug (proposed from the name when none is sent, D9), and, after the\nduplicate warning, `duplicatesReviewed` with an optional reason (D13)."
       },
       "CurrencyResponse": {
         "required": [
@@ -16783,6 +17229,215 @@
         "additionalProperties": false,
         "description": "The settings to change; a missing or null key stays as it is. Only these keys exist: any other key, or a value of\nthe wrong type, is named in `errors`. `version`, when sent, must be the settings' current version."
       },
+      "VenueDuplicateCandidateResponse": {
+        "required": [
+          "venueId",
+          "name",
+          "type",
+          "city",
+          "status",
+          "confidence",
+          "evidence"
+        ],
+        "type": "object",
+        "properties": {
+          "venueId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/VenueType"
+          },
+          "city": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/VenueStatus"
+          },
+          "confidence": {
+            "$ref": "#/components/schemas/DuplicateConfidence"
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VenueDuplicateEvidence"
+            }
+          }
+        },
+        "description": "A venue that looks like the one checked (S07 D13): enough to recognise it and open it. `status` marks an\narchived one."
+      },
+      "VenueDuplicateEvidence": {
+        "required": [
+          "code"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/VenueDuplicateEvidenceCode"
+          },
+          "value": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "VenueDuplicateEvidenceCode": {
+        "enum": [
+          "SAME_NAME_KEY",
+          "NAME_SIMILARITY",
+          "SAME_CITY",
+          "NEARBY"
+        ],
+        "description": "Why a venue looks like the one checked (S07 D13)."
+      },
+      "VenueResponse": {
+        "required": [
+          "id",
+          "name",
+          "shortName",
+          "slug",
+          "type",
+          "addressLine",
+          "city",
+          "region",
+          "country",
+          "latitude",
+          "longitude",
+          "timeZone",
+          "capacity",
+          "surfaces",
+          "supportedVariants",
+          "status",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "shortName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "slug": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/VenueType"
+          },
+          "addressLine": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "city": {
+            "type": "string"
+          },
+          "region": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "country": {
+            "type": "string"
+          },
+          "latitude": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "longitude": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "timeZone": {
+            "type": "string"
+          },
+          "capacity": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "surfaces": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VenueSurface"
+            }
+          },
+          "supportedVariants": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "status": {
+            "$ref": "#/components/schemas/VenueStatus"
+          },
+          "version": {
+            "type": "integer",
+            "format": "uint32"
+          }
+        },
+        "description": "A venue as the admin reads it (S07 D19). Every field is one the public reads may show (D16) but the version.\nSurfaces and variants keep the order they were sent in; variants are codes, labelled from the definitions (AR-29)."
+      },
+      "VenueStatus": {
+        "enum": [
+          "ACTIVE",
+          "TEMPORARILY_UNAVAILABLE",
+          "CLOSED",
+          "ARCHIVED"
+        ],
+        "description": "A venue's states (docs/domain/state-machines.md, Registry; S07 D12). The transitions come with S07-T1b."
+      },
+      "VenueSurface": {
+        "enum": [
+          "NATURAL_GRASS",
+          "ARTIFICIAL_TURF",
+          "HYBRID_GRASS",
+          "HARDWOOD",
+          "SYNTHETIC_COURT",
+          "CONCRETE",
+          "CLAY",
+          "SAND",
+          "OTHER"
+        ],
+        "description": "A playing surface a venue has (S07 D3). Generic codes: none names a sport (AR-11)."
+      },
+      "VenueType": {
+        "enum": [
+          "STADIUM",
+          "ARENA",
+          "SPORTS_GROUND",
+          "FIELD",
+          "COURT",
+          "INDOOR_HALL",
+          "TRACK",
+          "MULTI_SPORT_COMPLEX",
+          "SCHOOL_GROUND",
+          "OTHER"
+        ],
+        "description": "What kind of place a venue is (S07 D3). Generic codes: none names a sport (AR-11)."
+      },
       "WithdrawConsentRequest": {
         "required": [
           "scopes",
@@ -16863,6 +17518,9 @@
     },
     {
       "name": "People"
+    },
+    {
+      "name": "Venues"
     },
     {
       "name": "Diagnostics"

@@ -689,6 +689,42 @@
       "status": 415,
       "message": "The request body's content type isn't accepted by this endpoint.",
       "owner": "BuildingBlocks"
+    },
+    {
+      "code": "VENUE_CONCURRENCY_CONFLICT",
+      "status": 409,
+      "message": "The venue was changed by someone else. Reload and try again.",
+      "owner": "Registry"
+    },
+    {
+      "code": "VENUE_DUPLICATE_REVIEW_REQUIRED",
+      "status": 422,
+      "message": "Venues already in the registry look like this one: open one of them, or send duplicatesReviewed to add it anyway.",
+      "owner": "Registry"
+    },
+    {
+      "code": "VENUE_NAME_INVALID",
+      "status": 422,
+      "message": "A venue's name needs at least one letter or digit.",
+      "owner": "Registry"
+    },
+    {
+      "code": "VENUE_NOT_FOUND",
+      "status": 404,
+      "message": "The venue was not found.",
+      "owner": "Registry"
+    },
+    {
+      "code": "VENUE_SLUG_TAKEN",
+      "status": 422,
+      "message": "Another venue of the tenant has this slug.",
+      "owner": "Registry"
+    },
+    {
+      "code": "VENUE_SPORT_UNKNOWN",
+      "status": 422,
+      "message": "No published sport definition has this variant.",
+      "owner": "Registry"
     }
   ]
 }
