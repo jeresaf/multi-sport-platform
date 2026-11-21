@@ -13,4 +13,9 @@
     <ProjectReference Include="..\..\SportsConfiguration\SportsPlatform.Modules.SportsConfiguration.Contracts\SportsPlatform.Modules.SportsConfiguration.Contracts.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Demo data names sport variants, so it is data, not C# (SportLiteralTests). -->
+    <EmbeddedResource Include="Seed/Demo/Data/*.json" LogicalName="SportsPlatform.Modules.Registry.Seed.Demo.Data.%(Filename)%(Extension)" />
+  </ItemGroup>
+
 </Project>

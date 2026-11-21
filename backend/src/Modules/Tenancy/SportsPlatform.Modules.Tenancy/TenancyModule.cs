@@ -132,6 +132,7 @@ public sealed class TenancyModule : IModule
         services.AddSeeder<PlanSeeder>();
         services.AddSeeder<DemoTenantSeeder>();
         services.AddSeeder<DemoSubscriptionSeeder>();
+        services.AddSeeder<DemoSportSeeder>();
         services.AddDomainEventSubscriber<TenantCreatedDomainEvent, PublishTenantCreated>();
         services.AddDomainEventSubscriber<TenantStatusChangedDomainEvent, PublishTenantStatusChanged>();
     }

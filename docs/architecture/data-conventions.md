@@ -305,6 +305,21 @@ creates (never TRUNCATE). Each table gets one policy, set in the migration that 
   Seeded invitations: `identity.demo.invitations` (S03 D18, after the tenants) invites the pilot people by email
   through `membership.invite`; they get no deterministic IDs (a person may be invited several times; the natural key
   is tenant + normalised email), and the emails go out when the API's outbox runs (the CLI doesn't send).
+  Seeded sports and people (S06 D23, docs/product/pilot-customer.md): `tenancy.demo.sports` (order 6, after the
+  subscriptions whose plan counts `MAX_ENABLED_SPORTS`) enables each variant through `tenant.sport.enable`, skipping one
+  already enabled; `registry.demo.people` (order 20) creates people through the duplicate check and `person.create`
+  (the file gives the reason where it expects candidates, and the run fails when the check disagrees), then their
+  profiles, consents and evidence, photos and archiving through the Registry's commands, one command per change. Their
+  data files are embedded JSON (`Seed/Demo/Data` in each module), not C#, because they name sport variants (AR-11,
+  `SportLiteralTests`). People get no deterministic IDs (`person.create` makes its own): a person is found again by
+  name key, and each step runs only when what it adds is missing. Birth and consent dates are relative to the
+  tenant's date when the person is created, so the demo's minors stay minors; the second of a pair on one birth date
+  (twins, the demo's decided pairs) takes the first's stored date (`sameBirthDateAs`), so a run that stopped between
+  them and resumes another day still gives them one date. Unlike the upserting seeders, neither deactivates: a person or
+  variant dropped from its file is left as it is (`seed --reset` to remove it). A tenant that isn't `ACTIVE` is
+  skipped, as for the invitations, but the run is recorded, so it is seeded only when the seeder next runs (changed
+  data or `seed --reset`). Photos and consent forms are generated placeholder PNGs
+  (`PlaceholderPng`; SkiaSharp stays in Platform media).
 
 ## CI checks (automate as they become relevant)
 

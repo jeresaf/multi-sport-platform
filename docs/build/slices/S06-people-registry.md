@@ -741,3 +741,17 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   with nits): tests that a failed background read of the person keeps what is typed and a failed Reload shows the
   error, not the form (R5). Owner, Q49: web-only
   (the private read doesn't carry the person's version; the small race between the two requests is accepted).
+- **T7d-1:** the demo seeds. Owner decisions (plan, 2026-11-20): T7d split in two (T7d-1 the seeders, backend only;
+  T7d-2 the slice demo e2e, screenshots and slice close); birth dates relative to the seed date; the demo e2e on test
+  tenants of its own (Coucal Sports Club, Francolin Schools), KMSA and ELSSC staying the manual demo. As built:
+  `tenancy.demo.sports` (order 6) and `registry.demo.people` (order 20), each from an embedded JSON file
+  (`Seed/Demo/Data`): a seeder naming a variant in C# would fail `SportLiteralTests`, so the variant codes are data.
+  People are found again by name key (`person.create` takes no ID) and each step runs only when what it adds is
+  missing; the duplicate check's candidates must match the file (a reason where a pair is expected, none elsewhere),
+  else the run fails. Photos and the consent form are PNGs drawn by `PlaceholderPng` (no image library; SkiaSharp is
+  Platform media's alone). KMSA 40 people (36 athletes, 10 minors of whom 4 with consent, 2 decided pairs, Denis
+  Opoka's three profiles, Ivan Mukasa archived, 10 photos), ELSSC 10 pupils (7 with consent, 3 photos); no public
+  profile on. No backend action, error, event, migration or package. `DemoTenantSeeder.Succeed` takes a plain
+  `Result` too. Review #114: the second of a pair on one birth date names the first (`sameBirthDateAs`) and takes
+  their stored date, so a run resumed on another day keeps them on one date (R1); a tenant that isn't `ACTIVE` is
+  seeded only at the seeder's next run, and neither seeder deactivates (R2, R3, docs).

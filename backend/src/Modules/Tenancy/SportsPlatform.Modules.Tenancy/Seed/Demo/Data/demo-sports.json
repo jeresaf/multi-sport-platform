@@ -1,0 +1,6 @@
+{
+  "tenants": [
+    { "slug": "kmsa", "variants": ["FOOTBALL_ASSOCIATION"] },
+    { "slug": "elssc", "variants": ["FOOTBALL_ASSOCIATION"] }
+  ]
+}

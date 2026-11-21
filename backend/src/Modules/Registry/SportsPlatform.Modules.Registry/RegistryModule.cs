@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SportsPlatform.BuildingBlocks.Modules;
 using SportsPlatform.BuildingBlocks.Persistence;
+using SportsPlatform.BuildingBlocks.Persistence.Seeding;
 using SportsPlatform.Modules.Registry.Contracts.People;
 using SportsPlatform.Modules.Registry.Features.People;
 using SportsPlatform.Modules.Registry.Features.People.Aliases;
@@ -21,6 +22,7 @@ using SportsPlatform.Modules.Registry.Features.People.Profiles;
 using SportsPlatform.Modules.Registry.Features.People.PublicProfile;
 using SportsPlatform.Modules.Registry.Features.People.UpdatePerson;
 using SportsPlatform.Modules.Registry.Infrastructure;
+using SportsPlatform.Modules.Registry.Seed.Demo;
 
 namespace SportsPlatform.Modules.Registry;
 
@@ -30,7 +32,7 @@ namespace SportsPlatform.Modules.Registry;
 /// <see cref="IPeopleDirectory"/>. S06-T2a: the duplicate check. S06-T2b: its token and create. S06-T3a: the
 /// update and the lifecycle. S06-T3b: aliases and external identifiers. S06-T4a: athlete profiles. S06-T4b1: staff profiles.
 /// S06-T4b2: official profiles.
-/// S06-T5b: photos. S06-T6a: guardian consents and their evidence.
+/// S06-T5b: photos. S06-T6a: guardian consents and their evidence. S06-T7d: the demo people.
 /// </summary>
 public sealed class RegistryModule : IModule
 {
@@ -98,6 +100,8 @@ public sealed class RegistryModule : IModule
         services.AddSingleton<IValidator<RecordConsentRequest>, RecordConsentRequestValidator>();
         services.AddSingleton<IValidator<WithdrawConsentRequest>, WithdrawConsentRequestValidator>();
         services.AddSingleton<IValidator<PublicPersonPhotoRequest>, PublicPersonPhotoRequestValidator>();
+
+        services.AddSeeder<DemoPeopleSeeder>();
     }
 
     public void MapEndpoints(ApiEndpointGroups groups)
