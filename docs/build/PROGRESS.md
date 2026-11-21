@@ -7,16 +7,17 @@ at the start of every review.
 
 - **Current slice:** S07 — Organisations, teams and venues (docs/build/slices/S07-organisations-teams-venues.md,
   written by the S06 slice review). S00–S06 are done
-- **Current task:** — (S07-T1 starts with `/next-task` once the owner has read the S07 spec and Q50–Q55)
-- **Next:** S07-T1 — Venues
+- **Current task:** S07-T1a — Venues: model, create with duplicate warnings, read, per-aggregate conflict codes
+- **Next:** S07-T1b — Venues: update, directory, lifecycle
 - **Blocked on:** —
 
 ## Next up
 
-1. S07-T1 — Venues (likely T1a model, create with warnings, update, reads, per-aggregate conflict codes; T1b
-   lifecycle, aliases, identifiers, `IVenueDirectory`)
-2. S07-T2 — Organisations
-3. S07-T3 — Teams
+1. S07-T1b — Venues: update (D13's warning again), the directory list (`DocumentsQueryInteger` gains `maximum` and
+   `default`, People's list too), lifecycle (D12, Q55) and its history read
+2. S07-T1c — Venues: aliases, external identifiers (`VENUE`), `IVenueDirectory`
+3. S07-T2 — Organisations
+4. S07-T3 — Teams
 
 ## Log
 
@@ -133,6 +134,12 @@ at the start of every review.
 | 2026-11-21 | S06 slice review | — | Docs only: S07 spec written by the slice review (D1–D24, T1–T7); S06 slice review note (acceptance confirmed with evidence); Q50–Q55 added with defaults; tech debt regrouped (`RegistryDbContext`'s conflict code to S07-T1, the other S06 items under "From S06" with their triggers); roadmap | All S06 acceptance items met on main (e900d70, #115); backend 3305 tests pass on main and CI on the merge commit is green; the slice demo runs in CI (`admin-people-demo.spec.ts`); the owner's manual demo is not recorded. Run in the builder's session at the owner's request (the reviewer's role, as the S05 slice review was) |
 
 ## Deviations from spec (agreed)
+
+- **S07-T1 (owner, plan 2026-11-21):** T1 is three PRs, not two: T1a (D2, the venue model, create with D13's warning
+  and the check endpoint, the venue read), T1b (update, directory, lifecycle), T1c (aliases, identifiers,
+  `IVenueDirectory`). `DocumentsQueryInteger` gains `maximum` and `default` in T1b, for People's list too (the S06
+  carry-over). Tenancy's `TenantAccess` gains the tenant's `Country`, so a venue without a country takes the tenant's
+  (D3). Q54 and Q55: the defaults.
 
 - **S05-T5b2a (owner, plan 2026-11-16):** D17's Settings → **Sports** is labelled **Enabled sports** (navigation entry and
   page, `/t/{slug}/settings/sports`), so it isn't confused with the workspace's **Sports** (the definitions). T5b2 is two
