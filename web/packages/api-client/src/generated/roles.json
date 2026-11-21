@@ -102,7 +102,10 @@
         "tenant.sport.disable",
         "tenant.sport.enable",
         "tenant.sport.read",
-        "tenant.subscription.read"
+        "tenant.subscription.read",
+        "venue.create",
+        "venue.duplicate_check",
+        "venue.read"
       ]
     },
     {
@@ -160,7 +163,10 @@
         "tenant.sport.disable",
         "tenant.sport.enable",
         "tenant.sport.read",
-        "tenant.subscription.read"
+        "tenant.subscription.read",
+        "venue.create",
+        "venue.duplicate_check",
+        "venue.read"
       ]
     },
     {
@@ -206,7 +212,10 @@
         "staff_profile.update",
         "tenant.capabilities.read",
         "tenant.settings.read",
-        "tenant.sport.read"
+        "tenant.sport.read",
+        "venue.create",
+        "venue.duplicate_check",
+        "venue.read"
       ]
     },
     {
@@ -224,7 +233,8 @@
         "sport.read",
         "tenant.capabilities.read",
         "tenant.settings.read",
-        "tenant.sport.read"
+        "tenant.sport.read",
+        "venue.read"
       ]
     },
     {
@@ -242,7 +252,8 @@
         "sport.read",
         "tenant.capabilities.read",
         "tenant.settings.read",
-        "tenant.sport.read"
+        "tenant.sport.read",
+        "venue.read"
       ]
     },
     {
@@ -287,7 +298,8 @@
         "sport.read",
         "tenant.capabilities.read",
         "tenant.settings.read",
-        "tenant.sport.read"
+        "tenant.sport.read",
+        "venue.read"
       ]
     },
     {
@@ -306,7 +318,8 @@
         "tenant.capabilities.read",
         "tenant.settings.read",
         "tenant.sport.read",
-        "tenant.subscription.read"
+        "tenant.subscription.read",
+        "venue.read"
       ]
     }
   ]

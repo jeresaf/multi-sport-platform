@@ -41,7 +41,7 @@ internal static class PublicProfileEndpoints
             .AcceptsIfMatch()
             .ReturnsETag()
             .ProducesErrors(
-                RegistryErrors.PersonNotFound, RegistryErrors.ConcurrencyConflict, RegistryErrors.ConsentRequired,
+                RegistryErrors.PersonNotFound, RegistryErrors.PersonConcurrencyConflict, RegistryErrors.ConsentRequired,
                 RegistryErrors.PersonArchived, RegistryErrors.PersonDeceased);
 
         people
@@ -63,6 +63,6 @@ internal static class PublicProfileEndpoints
             .RequireAction(RegistryActions.PersonPublicProfileDisable)
             .AcceptsIfMatch()
             .ReturnsETag()
-            .ProducesErrors(RegistryErrors.PersonNotFound, RegistryErrors.ConcurrencyConflict);
+            .ProducesErrors(RegistryErrors.PersonNotFound, RegistryErrors.PersonConcurrencyConflict);
     }
 }

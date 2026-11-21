@@ -44,6 +44,12 @@ public abstract class ModuleDbContext : DbContext
     /// <summary>The module's <c>&lt;MODULE&gt;_CONCURRENCY_CONFLICT</c> error (409).</summary>
     protected abstract Error ConcurrencyConflictError { get; }
 
+    /// <summary>
+    /// The conflict error for the rows whose version failed: by default the module's one
+    /// <see cref="ConcurrencyConflictError"/>. A module with several aggregates answers each root's own code (S07 D2).
+    /// </summary>
+    protected virtual Error ConcurrencyConflictErrorFor(IReadOnlyList<EntityEntry> entries) => ConcurrencyConflictError;
+
     /// <summary>Saves; a lost optimistic-concurrency race is an expected failure, not an exception.</summary>
     public async Task<Result> SaveChangesResultAsync(CancellationToken cancellationToken = default)
     {
@@ -52,9 +58,9 @@ public abstract class ModuleDbContext : DbContext
             await SaveChangesAsync(cancellationToken);
             return Result.Success();
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException exception)
         {
-            return Result.Failure(ConcurrencyConflictError);
+            return Result.Failure(ConcurrencyConflictErrorFor(exception.Entries));
         }
     }
 

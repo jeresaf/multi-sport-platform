@@ -86,3 +86,6 @@ admin endpoint requires one of these; the code is stable and is what roles grant
 | `tenant.suspend` | Tenancy | PLATFORM | — | REQUIRED_WITH_REASON | — | no | no | no | no | S02 | Suspend an active tenant, with a reason (ACTIVE → SUSPENDED). |
 | `tenant.unarchive` | Tenancy | PLATFORM | — | REQUIRED_WITH_REASON | — | no | no | no | no | S02 | Bring an archived tenant back, with a reason (ARCHIVED → SUSPENDED). |
 | `tenant.update` | Tenancy | PLATFORM | — | REQUIRED | — | no | no | no | no | S02 | Change a tenant's profile: names, country, time zone, locale, currency, public site. |
+| `venue.create` | Registry | TENANT | TENANT | REQUIRED | — | no | no | no | no | S07 | Add a venue to the registry; possible duplicates are shown first, and creating it anyway is recorded with the venues shown. |
+| `venue.duplicate_check` | Registry | TENANT | TENANT | NONE | — | no | no | no | no | S07 | Check a new or changed venue's name, city and coordinates against the venues already in the registry. |
+| `venue.read` | Registry | TENANT | TENANT | NONE | — | no | no | no | yes | S07 | View the venues directory and a venue's record: address, time zone, capacity, surfaces, supported sports and status. |

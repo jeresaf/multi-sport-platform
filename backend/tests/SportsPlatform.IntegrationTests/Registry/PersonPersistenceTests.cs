@@ -155,7 +155,7 @@ public sealed class PersonPersistenceTests(PostgresFixture fixture) : DatabaseTe
             "SELECT indexname, indexdef FROM pg_indexes WHERE schemaname = 'registry' AND indexname LIKE '%name_key_trgm'",
             reader => (Name: reader.GetString(0), Definition: reader.GetString(1)));
 
-        indexes.Select(index => index.Name).Order().ShouldBe(["ix_person_aliases_name_key_trgm", "ix_persons_name_key_trgm"]);
+        indexes.Select(index => index.Name).Order().ShouldBe(["ix_person_aliases_name_key_trgm", "ix_persons_name_key_trgm", "ix_venues_name_key_trgm"]);
         indexes.ShouldAllBe(index => index.Definition.Contains("USING gin (name_key gin_trgm_ops)", StringComparison.Ordinal));
     }
 

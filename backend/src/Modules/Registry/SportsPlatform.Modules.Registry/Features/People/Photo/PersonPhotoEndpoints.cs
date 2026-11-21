@@ -43,7 +43,7 @@ internal static class PersonPhotoEndpoints
             .AcceptsIfMatch()
             .ReturnsETag()
             .ProducesErrors(
-                RegistryErrors.PersonNotFound, RegistryErrors.ConcurrencyConflict, RegistryErrors.PersonArchived,
+                RegistryErrors.PersonNotFound, RegistryErrors.PersonConcurrencyConflict, RegistryErrors.PersonArchived,
                 RegistryErrors.PersonDeceased, CommonErrors.InvalidRequest);
 
         people
@@ -56,7 +56,7 @@ internal static class PersonPhotoEndpoints
             .RequireAction(RegistryActions.PersonPhotoRemove)
             .AcceptsIfMatch()
             .ReturnsETag()
-            .ProducesErrors(RegistryErrors.PersonNotFound, RegistryErrors.ConcurrencyConflict, RegistryErrors.PhotoNotFound);
+            .ProducesErrors(RegistryErrors.PersonNotFound, RegistryErrors.PersonConcurrencyConflict, RegistryErrors.PhotoNotFound);
     }
 
     private static async Task<Results<Ok<PersonResponse>, ProblemHttpResult>> SetAsync(

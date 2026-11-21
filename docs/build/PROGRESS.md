@@ -7,16 +7,17 @@ at the start of every review.
 
 - **Current slice:** S07 — Organisations, teams and venues (docs/build/slices/S07-organisations-teams-venues.md,
   written by the S06 slice review). S00–S06 are done
-- **Current task:** — (S07-T1 starts with `/next-task` once the owner has read the S07 spec and Q50–Q55)
-- **Next:** S07-T1 — Venues
+- **Current task:** — (S07-T1a in review: #117)
+- **Next:** S07-T1b — Venues: update, directory, lifecycle (after #117 merges)
 - **Blocked on:** —
 
 ## Next up
 
-1. S07-T1 — Venues (likely T1a model, create with warnings, update, reads, per-aggregate conflict codes; T1b
-   lifecycle, aliases, identifiers, `IVenueDirectory`)
-2. S07-T2 — Organisations
-3. S07-T3 — Teams
+1. S07-T1b — Venues: update (D13's warning again), the directory list (`DocumentsQueryInteger` gains `maximum` and
+   `default`, People's list too), lifecycle (D12, Q55) and its history read
+2. S07-T1c — Venues: aliases, external identifiers (`VENUE`), `IVenueDirectory`
+3. S07-T2 — Organisations
+4. S07-T3 — Teams
 
 ## Log
 
@@ -131,8 +132,15 @@ at the start of every review.
 | 2026-11-20 | S06-T7d-1 | #114 | Demo seeds (D23). Tenancy `tenancy.demo.sports` (order 6): football enabled for KMSA and ELSSC through `tenant.sport.enable` as the system, skipped when enabled or the tenant isn't `ACTIVE`. Registry `registry.demo.people` (order 20): KMSA 40 people (36 athletes on the Metro Football League clubs, John Ssekandi, Mariam Nankya, the decided pairs Peter Ochieng / Peter Ochieng Okot and the Namaganda twins, Denis Opoka as athlete, assistant coach and referee, two staff, two officials, 10 under-17s of whom 4 with consent and Brenda Akello without, Ivan Mukasa archived, 10 photos) and ELSSC 10 pupils under 16 (7 with consent, 3 photos), each change through the Registry's command as the system (check and create, profiles, consent, evidence, photo, archive). Data in embedded JSON (`Seed/Demo/Data`), birth and consent dates relative to the tenant's date; placeholder PNGs drawn by `PlaceholderPng`. pilot-customer.md and data-conventions.md (Seeding) as built | Owner (plan 2026-11-20): T7d in two PRs, relative birth dates, the demo e2e on test tenants of its own. Deviations from the plan: the data is JSON, not C# (`SportLiteralTests` scans C# for variant codes); people are found again by name key (`person.create` takes no ID); a run fails when the duplicate check disagrees with the file. Officials' licence dates stay absolute (the demo names 2027-06-30). No action, error, event, migration or package; catalogues and OpenAPI regenerate unchanged. `DemoTenantSeederTests` leaves `tenant.sport.*` entries to the new tests. Tests: 16 new integration tests (DemoPeopleSeederTests 13, DemoSportSeederTests 3); backend 3,305 pass (architecture, unit, integration). Size: about 630 production lines, 840 lines of JSON data, 430 test lines, 60 doc lines. Pre-review (ready, no blocker or major): the failure path and a suspended tenant for sports tested, minors' photos only with `PHOTO` consent asserted, club names as pilot-customer.md, ELSSC's pupils under 16, the "completed, not duplicated" wording corrected; the licence dates kept absolute (recorded). Review #114 (subagent, request changes): R1 (MAJOR) the second of a pair on one birth date takes the first's stored date (`sameBirthDateAs`: Nakato Irene Namaganda, Peter Ochieng Okot), so a run that stopped between them and resumes another day keeps the twins on one date and the pair found (test fails without it); R2 a tenant that isn't `ACTIVE` is skipped and seeded only at the seeder's next run (docs); R3 neither seeder deactivates (docs); R4 a refused step stops the run naming the person and step, and a seeded consent without its form gets only the form (tests); R5 refusals and invalid data name codes and fields only; R6 the candidate comparison spelt out; R7 and R8 not changed (answered on the PR). CI green on the first head (E2E 4 min 12 s) |
 | 2026-11-21 | S06-T7d-2 | #115 | Slice close. e2e `admin-people-demo`: the S06 Demo through the screens against the real API on Coucal Sports Club, with Francolin Schools Sports Circle (both added to pilot-customer.md's test-only names) as the second tenant. A registrar finds John Ssekandi, opens him from the review ("Likely the same person": same date of birth, same names in any order) instead of adding "Ssekandi John", and adds Shamim Nankya past "Possibly the same person" with "Twin sister, different first name"; an API check for her then leaves Mariam out. Then Shamim's athlete profile and photo; Brenda Akello's consent (three scopes, the form) and public profile, with a public read of display name and photo only and, after withdrawing Photo with a reason, no photo; Denis Opoka's three profiles; archived Ivan Mukasa offered no profile and refused `PERSON_ARCHIVED` by the API. Francolin's owner gets an empty directory, no search match and `PERSON_NOT_FOUND`. Audit: the create's, withdrawal's and archive's reasons. Screenshots `add-person-likely-match`, `person-archived-roles`. `signedForm` moved to `support/people.ts`; `enableFirstSport` also returns the first position's and roles' labels. S06 acceptance ticked with its evidence; admin-app.md; roadmap S06 ☑ | Owner (plan 2026-11-21): one PR; S06 tech debt whose trigger had passed (photo request size, an identifier's `validFrom` in the API with Q46, the private read's audit timing, the directory search's indexes) now says Later. Builder: the people seeded on KMSA are made through the API on the test tenant; positions and roles are the first enabled sport's, so the test names no sport; the demo's "Same name, other order" is the screen's "Same names, in any order". No backend change: no actions, errors, events, migrations or dependencies. Tests: e2e lint, typecheck and `playwright test --list`; Playwright not run locally (no Docker), so CI's E2E job is the spec's first run. Size: about 290 test lines and 60 doc lines. Pre-review (fix before PR): BLOCKER a tenant made by `createTenant` has its public site off, so the public read would answer 403 `TENANT_UNAVAILABLE`; fixed with `ownTenant`/`createTenant`'s `publicEnabled` option. MAJOR the T7 box and S06 ☑ stand on CI's first E2E run of this head (said in the PR). MINOR Brenda now has an athlete profile, so the public read's empty `athleteProfiles` shows the minors' rule. NITs fixed (the withdrawal's audit entry checked by person, wording); Brenda is 14 or 15 depending on the day (kept, the demo needs a minor). CI's E2E job passed on its first run (45 tests). Review #115 (subagent, approve with nits): R1 `enableFirstSport`'s position label is null for a definition without positions, and the demo checks it has one; R2 the review's refusal without a reason is asserted; R3 the search is proved by the person it drops; R4 the capability samples listed in the isolation evidence |
 | 2026-11-21 | S06 slice review | — | Docs only: S07 spec written by the slice review (D1–D24, T1–T7); S06 slice review note (acceptance confirmed with evidence); Q50–Q55 added with defaults; tech debt regrouped (`RegistryDbContext`'s conflict code to S07-T1, the other S06 items under "From S06" with their triggers); roadmap | All S06 acceptance items met on main (e900d70, #115); backend 3305 tests pass on main and CI on the merge commit is green; the slice demo runs in CI (`admin-people-demo.spec.ts`); the owner's manual demo is not recorded. Run in the builder's session at the owner's request (the reviewer's role, as the S05 slice review was) |
+| 2026-11-21 | S07-T1a | #117 | Venues, first part. D2: `ModuleDbContext.ConcurrencyConflictErrorFor(entries)` (default: the module's one code), Registry answers the failing root's (`RegistryConcurrencyConflicts`: `PERSON_CONCURRENCY_CONFLICT`, `VENUE_CONCURRENCY_CONFLICT`). `registry.venues` and append-only `registry.venue_status_changes` (RLS, isolation samples, table policies; migration `AddVenues`): D3's fields, `name_key`, `city_key`, slug unique per tenant (D9, shared `Slugs`). `POST /venues/duplicate-check` (`venue.duplicate_check`), `POST /venues` (`venue.create`: D13's warning under `registry.venues:<tenantId>`, `422 VENUE_DUPLICATE_REVIEW_REQUIRED` with `candidates` in the Problem Details until `duplicatesReviewed`, the audit entry names the candidates and the reason), `GET /venues/{id}` (`venue.read`, `ETag`). Tenancy's `TenantAccess` gains `Country` (a venue without one takes the tenant's). Roles per D20 | Owner (plan 2026-11-21): T1 in three PRs; Q54, Q55 the defaults. New error `VENUE_NAME_INVALID` (a name without a letter or digit has no name key, as `PERSON_NAME_INVALID`). The 200 m rule is a bounding box in SQL and haversine in C# (no PostGIS). About 1,530 production lines against ~650 planned (the new venue files, with their comments) and ~1,000 test lines: accepted by the owner for this PR (review of #117, 2026-11-21). Review #117: R1 `candidates` documented with `.ProducesProblem<T>`; R2/R4 tech debt "From S07"; R3, R5 fixed |
 
 ## Deviations from spec (agreed)
+
+- **S07-T1 (owner, plan 2026-11-21):** T1 is three PRs, not two: T1a (D2, the venue model, create with D13's warning
+  and the check endpoint, the venue read), T1b (update, directory, lifecycle), T1c (aliases, identifiers,
+  `IVenueDirectory`). `DocumentsQueryInteger` gains `maximum` and `default` in T1b, for People's list too (the S06
+  carry-over). Tenancy's `TenantAccess` gains the tenant's `Country`, so a venue without a country takes the tenant's
+  (D3). Q54 and Q55: the defaults.
 
 - **S05-T5b2a (owner, plan 2026-11-16):** D17's Settings → **Sports** is labelled **Enabled sports** (navigation entry and
   page, `/t/{slug}/settings/sports`), so it isn't confused with the workspace's **Sports** (the definitions). T5b2 is two
@@ -572,6 +580,15 @@ other S06 items keep their triggers under "From S06". Each item names where it g
 docs/build/slices/S07-organisations-teams-venues.md, "Carried over from S06")
 - `RegistryDbContext` has one conflict error, `PERSON_CONCURRENCY_CONFLICT`: decide per-aggregate errors or a neutral
   code before organisations, teams and venues save through it (#95 Q1). (S07-T1, S07 D2: one code per aggregate root)
+  **Done in S07-T1a (#117):** `RegistryConcurrencyConflicts` maps each root to its code (`PERSON_…`, `VENUE_…`; organisations
+  and teams join in T2 and T3) through `ModuleDbContext.ConcurrencyConflictErrorFor`.
+
+**From S07** (each names its trigger)
+- Venues' duplicate warning (S07-T1a, review of #117 R4): the same-city branch compares `similarity(...)` as a value,
+  so neither the trigram index on `name_key` nor an index on `city_key` serves it, and it scans the tenant's venues
+  (people's finder does the same). Fine at venue volumes; add `(tenant_id, city_key)` or switch to `%` with
+  `pg_trgm.similarity_threshold` when a tenant's venues reach the thousands, or when T2/T3's finders for organisations
+  and teams (more rows) are planned.
 
 **From S06** (regrouped by the S06 slice review, 2026-11-21; each names its trigger)
 - Consent's `givenOn` has no lower bound when the date of birth is unknown (S06-T6a pre-review N3; as T4b2's

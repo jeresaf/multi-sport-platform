@@ -29,6 +29,21 @@ public sealed class ProducesErrorsTests
             .ShouldBe($"#/components/schemas/{ApiDocumentation.ProblemDetailsSchema}");
     }
 
+    // S07 D13: a status whose Problem Details carry an extension documents it, still with its codes.
+    [Fact]
+    public async Task A_problem_type_replaces_its_status_plain_schema()
+    {
+        var operation = await DocumentedOperationAsync(endpoint => endpoint
+            .ProducesErrors(PlatformErrors.ConcurrencyConflict)
+            .ProducesProblem<CandidatesProblem>(StatusCodes.Status409Conflict));
+
+        var conflict = operation["responses"]!["409"]!;
+        conflict["x-error-codes"]!.AsArray().Select(code => code!.GetValue<string>()).ShouldBe([PlatformErrors.ConcurrencyConflict.Code]);
+        conflict["content"]!.AsObject().Select(content => content.Key).ShouldBe([ErrorResponseExtensions.ProblemContentType]);
+        conflict["content"]![ErrorResponseExtensions.ProblemContentType]!["schema"]!["$ref"]!.GetValue<string>()
+            .ShouldBe($"#/components/schemas/{nameof(CandidatesProblem)}");
+    }
+
     [Fact]
     public async Task Codes_sharing_a_status_are_listed_together_in_order()
     {
@@ -102,5 +117,10 @@ public sealed class ProducesErrorsTests
 
         var document = JsonNode.Parse(await ApiDocumentation.ExportAsync(app.Services, TestContext.Current.CancellationToken))!;
         return document["paths"]!["/fixtures/{id}"]!["get"]!;
+    }
+
+    public sealed class CandidatesProblem : Microsoft.AspNetCore.Mvc.ProblemDetails
+    {
+        public IReadOnlyList<string>? Candidates { get; init; }
     }
 }

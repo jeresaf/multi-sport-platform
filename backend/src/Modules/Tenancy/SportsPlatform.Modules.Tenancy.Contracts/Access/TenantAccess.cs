@@ -6,11 +6,13 @@ namespace SportsPlatform.Modules.Tenancy.Contracts.Access;
 
 /// <summary>
 /// A tenant's access today (state-machines.md, "Access mode"): its status, the access mode derived from it and the
-/// current subscription period, and the tenant's time zone (an IANA ID), in which the period's days begin and end.
+/// current subscription period, the tenant's time zone (an IANA ID), in which the period's days begin and end, and its
+/// country (ISO 3166-1 alpha-2, the tenant profile's), the default country of what the tenant registers (S07 D3).
 /// <c>Subscription</c> is null when the tenant has no period. For handlers that check their own window while
 /// read-only (S11, S13) and for the tenant's access read.
 /// </summary>
-public sealed record TenantAccess(TenantStatus Status, TenantAccessMode Mode, string TimeZone, SubscriptionAccess? Subscription)
+public sealed record TenantAccess(
+    TenantStatus Status, TenantAccessMode Mode, string TimeZone, string Country, SubscriptionAccess? Subscription)
 {
     /// <summary>
     /// Whether the access mode lets <paramref name="action"/> (a tenant action) through: every action when <c>FULL</c>,

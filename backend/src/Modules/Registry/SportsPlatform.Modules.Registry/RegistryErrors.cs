@@ -5,8 +5,11 @@ namespace SportsPlatform.Modules.Registry;
 /// <summary>The Registry module's expected failures; exported to docs/generated/errors.md by the CLI.</summary>
 public static class RegistryErrors
 {
-    public static readonly Error ConcurrencyConflict = new(
+    public static readonly Error PersonConcurrencyConflict = new(
         "PERSON_CONCURRENCY_CONFLICT", "The record was changed by someone else. Reload and try again.", ErrorKind.Conflict);
+
+    public static readonly Error VenueConcurrencyConflict = new(
+        "VENUE_CONCURRENCY_CONFLICT", "The venue was changed by someone else. Reload and try again.", ErrorKind.Conflict);
 
     public static readonly Error PersonNotFound = new("PERSON_NOT_FOUND", "The person was not found.", ErrorKind.NotFound);
 
@@ -116,4 +119,20 @@ public static class RegistryErrors
     /// <summary>Recording consent for an adult on the tenant's date (owner, S06-T6a plan).</summary>
     public static readonly Error ConsentNotNeeded = new(
         "PERSON_CONSENT_NOT_NEEDED", "The person is an adult: a guardian's consent is recorded only for minors and people of unknown age.", ErrorKind.Unprocessable);
+
+    public static readonly Error VenueNotFound = new("VENUE_NOT_FOUND", "The venue was not found.", ErrorKind.NotFound);
+
+    public static readonly Error VenueSportUnknown = new(
+        "VENUE_SPORT_UNKNOWN", "No published sport definition has this variant.", ErrorKind.Unprocessable);
+
+    public static readonly Error VenueNameInvalid = new(
+        "VENUE_NAME_INVALID", "A venue's name needs at least one letter or digit.", ErrorKind.Unprocessable);
+
+    public static readonly Error VenueDuplicateReviewRequired = new(
+        "VENUE_DUPLICATE_REVIEW_REQUIRED",
+        "Venues already in the registry look like this one: open one of them, or send duplicatesReviewed to add it anyway.",
+        ErrorKind.Unprocessable);
+
+    public static readonly Error VenueSlugTaken = new(
+        "VENUE_SLUG_TAKEN", "Another venue of the tenant has this slug.", ErrorKind.Unprocessable);
 }

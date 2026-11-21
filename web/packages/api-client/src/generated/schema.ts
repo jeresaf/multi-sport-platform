@@ -1246,6 +1246,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/v1/venues/duplicate-check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Check a venue against the registry for duplicates
+         * @description Compares a new venue's name, city and coordinates with the venues of the tenant named by `X-Tenant-Id`, archived ones included (see `status`), and answers those that look like it, strongest first, at most 10. `LIKELY`: the same name in the same city (the same words in any order; case, accents and punctuation aside), or coordinates within 200 m. `POSSIBLE`: names at least 70 % similar in the same city. `evidence` says why. Nothing is saved: the create runs the same check, and refuses with VENUE_DUPLICATE_REVIEW_REQUIRED until it is sent with `duplicatesReviewed`. A name without a letter or a digit is VENUE_NAME_INVALID.
+         */
+        post: operations["CheckVenueDuplicates"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/venues": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add a venue
+         * @description Adds an ACTIVE venue to the tenant named by `X-Tenant-Id`. `timeZone` is required (an active IANA zone); `country` defaults to the tenant's; `latitude` and `longitude` come together or not at all; `supportedVariants` are published sport variants, enabled for the tenant or not (else VENUE_SPORT_UNKNOWN). Without `slug`, one is proposed from the name, with -2, -3… when taken; a slug sent that another venue has is VENUE_SLUG_TAKEN. The duplicate check (POST /venues/duplicate-check) runs again: venues that look like this one answer VENUE_DUPLICATE_REVIEW_REQUIRED with `candidates` until the request says `duplicatesReviewed: true`, with an optional `duplicateReason`; the audit entry names the venues shown. The reason is kept permanently in the audit trail: don't include personal data. A name without a letter or a digit is VENUE_NAME_INVALID. Answers the venue as GET /venues/{venueId} does.
+         */
+        post: operations["CreateVenue"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/venues/{venueId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a venue
+         * @description A venue of the tenant named by `X-Tenant-Id`, whatever its status: address, time zone, coordinates, capacity, surfaces, supported sport variants (codes; labels come from the definitions), status and `version` (also the `ETag`).
+         */
+        get: operations["GetVenue"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/platform/v1/diagnostics/outbox": {
         parameters: {
             query?: never;
@@ -2219,6 +2279,19 @@ export interface components {
             candidates: components["schemas"]["DuplicateCandidateResponse"][];
             checkToken: string;
         };
+        /** @description What the venue duplicate warning compares (S07 D13): the name, the city and the coordinates a save would send. */
+        CheckVenueDuplicatesRequest: {
+            name: null | string;
+            city: null | string;
+            /** Format: double */
+            latitude?: null | number;
+            /** Format: double */
+            longitude?: null | number;
+        };
+        /** @description The venues that look like the one checked, strongest first (none is an empty list). */
+        CheckVenueDuplicatesResponse: {
+            candidates: components["schemas"]["VenueDuplicateCandidateResponse"][];
+        };
         /**
          * @description The evidence's signed URL (S06 D17): it downloads the file until `expiresAt` (ten minutes with the local
          *     storage); read again for a new one. Never cache it.
@@ -2337,6 +2410,32 @@ export interface components {
             defaultLocale: null | string;
             currencyCode: null | string;
             publicEnabled?: null | boolean;
+        };
+        /**
+         * @description A new venue (S07 D3): its fields, an optional slug (proposed from the name when none is sent, D9), and, after the
+         *     duplicate warning, `duplicatesReviewed` with an optional reason (D13).
+         */
+        CreateVenueRequest: {
+            name: null | string;
+            type: null | components["schemas"]["VenueType"];
+            city: null | string;
+            timeZone: null | string;
+            shortName?: null | string;
+            addressLine?: null | string;
+            region?: null | string;
+            country?: null | string;
+            /** Format: double */
+            latitude?: null | number;
+            /** Format: double */
+            longitude?: null | number;
+            /** Format: int32 */
+            capacity?: null | number;
+            surfaces?: null | components["schemas"]["VenueSurface"][];
+            supportedVariants?: null | string[];
+            slug?: null | string;
+            /** @default false */
+            duplicatesReviewed: boolean;
+            duplicateReason?: null | string;
         };
         /** @description An ISO 4217 currency: alphabetic `code` (`UGX`), numeric code, English name, minor units (UGX 0). */
         CurrencyResponse: {
@@ -3905,6 +4004,95 @@ export interface components {
             /** Format: uint32 */
             version?: null | number;
         };
+        /**
+         * @description A venue that looks like the one checked (S07 D13): enough to recognise it and open it. `status` marks an
+         *     archived one.
+         */
+        VenueDuplicateCandidateResponse: {
+            /** Format: uuid */
+            venueId: string;
+            name: string;
+            type: components["schemas"]["VenueType"];
+            city: string;
+            status: components["schemas"]["VenueStatus"];
+            confidence: components["schemas"]["DuplicateConfidence"];
+            evidence: components["schemas"]["VenueDuplicateEvidence"][];
+        };
+        VenueDuplicateEvidence: {
+            code: components["schemas"]["VenueDuplicateEvidenceCode"];
+            value?: null | string;
+        };
+        /**
+         * @description Why a venue looks like the one checked (S07 D13).
+         * @enum {unknown}
+         */
+        VenueDuplicateEvidenceCode: "SAME_NAME_KEY" | "NAME_SIMILARITY" | "SAME_CITY" | "NEARBY";
+        /**
+         * @description The Problem Details of a venue create refused with `422` (S07 D13), for the OpenAPI document and the generated
+         *     client: `candidates` is present only with `VENUE_DUPLICATE_REVIEW_REQUIRED`, the venues the warning found,
+         *     strongest first.
+         */
+        VenueDuplicateReviewProblem: {
+            type?: null | string;
+            title?: null | string;
+            /** Format: int32 */
+            status?: null | number;
+            detail?: null | string;
+            instance?: null | string;
+            candidates?: null | components["schemas"]["VenueDuplicateCandidateResponse"][];
+            /** @description Stable error code, `<AREA>_<CONDITION>` (contracts/errors.json). Clients branch on it. */
+            code: string;
+            /** @description The request's correlation ID (also the `X-Correlation-Id` response header). */
+            correlationId: string;
+            /** @description Validation failures, one per field: `field` (camelCase) and `code`. */
+            errors?: {
+                field: string;
+                code: string;
+            }[];
+        };
+        /**
+         * @description A venue as the admin reads it (S07 D19). Every field is one the public reads may show (D16) but the version.
+         *     Surfaces and variants keep the order they were sent in; variants are codes, labelled from the definitions (AR-29).
+         */
+        VenueResponse: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            shortName: null | string;
+            slug: string;
+            type: components["schemas"]["VenueType"];
+            addressLine: null | string;
+            city: string;
+            region: null | string;
+            country: string;
+            /** Format: double */
+            latitude: null | number;
+            /** Format: double */
+            longitude: null | number;
+            timeZone: string;
+            /** Format: int32 */
+            capacity: null | number;
+            surfaces: components["schemas"]["VenueSurface"][];
+            supportedVariants: string[];
+            status: components["schemas"]["VenueStatus"];
+            /** Format: uint32 */
+            version: number;
+        };
+        /**
+         * @description A venue's states (docs/domain/state-machines.md, Registry; S07 D12). The transitions come with S07-T1b.
+         * @enum {unknown}
+         */
+        VenueStatus: "ACTIVE" | "TEMPORARILY_UNAVAILABLE" | "CLOSED" | "ARCHIVED";
+        /**
+         * @description A playing surface a venue has (S07 D3). Generic codes: none names a sport (AR-11).
+         * @enum {unknown}
+         */
+        VenueSurface: "NATURAL_GRASS" | "ARTIFICIAL_TURF" | "HYBRID_GRASS" | "HARDWOOD" | "SYNTHETIC_COURT" | "CONCRETE" | "CLAY" | "SAND" | "OTHER";
+        /**
+         * @description What kind of place a venue is (S07 D3). Generic codes: none names a sport (AR-11).
+         * @enum {unknown}
+         */
+        VenueType: "STADIUM" | "ARENA" | "SPORTS_GROUND" | "FIELD" | "COURT" | "INDOOR_HALL" | "TRACK" | "MULTI_SPORT_COMPLEX" | "SCHOOL_GROUND" | "OTHER";
         /**
          * @description Withdrawing scopes of a consent (audit `REQUIRED_WITH_REASON`). The reason is kept permanently on the record and
          *     in the audit trail and is not redacted: it must not contain personal data.
@@ -8161,6 +8349,179 @@ export interface operations {
                 };
             };
             /** @description Problem Details; `code`: `PERSON_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    CheckVenueDuplicates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CheckVenueDuplicatesRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckVenueDuplicatesResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `VENUE_NAME_INVALID` */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    CreateVenue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateVenueRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VenueResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `VENUE_DUPLICATE_REVIEW_REQUIRED`, `VENUE_NAME_INVALID`, `VENUE_SLUG_TAKEN`, `VENUE_SPORT_UNKNOWN` */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["VenueDuplicateReviewProblem"];
+                };
+            };
+        };
+    };
+    GetVenue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                venueId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VenueResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `VENUE_NOT_FOUND` */
             404: {
                 headers: {
                     [name: string]: unknown;

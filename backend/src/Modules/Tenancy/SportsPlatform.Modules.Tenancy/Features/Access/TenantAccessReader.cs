@@ -5,6 +5,7 @@ using SportsPlatform.Modules.Tenancy.Domain.Entitlements;
 using SportsPlatform.Modules.Tenancy.Domain.Plans;
 using SportsPlatform.Modules.Tenancy.Domain.Settings;
 using SportsPlatform.Modules.Tenancy.Domain.Subscriptions;
+using SportsPlatform.Modules.Tenancy.Domain.Tenants;
 using SportsPlatform.Modules.Tenancy.Infrastructure;
 
 namespace SportsPlatform.Modules.Tenancy.Features.Access;
@@ -28,6 +29,10 @@ public sealed class TenantAccessReader(
             await context.Set<TenantSettings>().AsNoTracking()
                 .Where(s => s.TenantId == tenantId)
                 .Select(s => s.TimeZone)
+                .SingleAsync(cancellationToken),
+            await context.Set<Tenant>().AsNoTracking()
+                .Where(t => t.Id == tenantId)
+                .Select(t => t.CountryCode)
                 .SingleAsync(cancellationToken),
             await context.Set<SubscriptionPeriod>().AsNoTracking()
                 .Where(p => p.TenantId == tenantId)

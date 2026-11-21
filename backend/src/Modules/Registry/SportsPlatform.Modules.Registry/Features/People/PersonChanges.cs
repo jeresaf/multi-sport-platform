@@ -57,7 +57,7 @@ internal static class PersonChanges
 
         return RowVersion.IsSatisfied(context.Entry(person).Property<uint>(AuditColumns.Version).CurrentValue, version, ifMatch)
             ? (person, null)
-            : (null, new(RegistryErrors.ConcurrencyConflict));
+            : (null, new(RegistryErrors.PersonConcurrencyConflict));
     }
 
     /// <summary>

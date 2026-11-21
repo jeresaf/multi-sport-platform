@@ -78,6 +78,6 @@ public sealed class TenantAccessCacheTests : IDisposable
     private static Task<TenantAccessInputs> Load(ref int loads)
     {
         loads++;
-        return Task.FromResult(new TenantAccessInputs("Africa/Kampala", [], []));
+        return Task.FromResult(new TenantAccessInputs("Africa/Kampala", "UG", [], []));
     }
 }

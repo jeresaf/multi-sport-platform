@@ -49,7 +49,7 @@ internal static class ConsentEndpoints
             .ReturnsETag()
             .ValidateRequest<RecordConsentRequest>(CommonErrors.InvalidRequest)
             .ProducesErrors(
-                RegistryErrors.PersonNotFound, RegistryErrors.ConcurrencyConflict, RegistryErrors.ConsentNotNeeded,
+                RegistryErrors.PersonNotFound, RegistryErrors.PersonConcurrencyConflict, RegistryErrors.ConsentNotNeeded,
                 RegistryErrors.PersonArchived, RegistryErrors.PersonDeceased);
 
         people
@@ -78,7 +78,7 @@ internal static class ConsentEndpoints
             .ReturnsETag()
             .ValidateRequest<WithdrawConsentRequest>(CommonErrors.InvalidRequest)
             .ProducesErrors(
-                RegistryErrors.PersonNotFound, RegistryErrors.ConcurrencyConflict, RegistryErrors.ConsentNotFound,
+                RegistryErrors.PersonNotFound, RegistryErrors.PersonConcurrencyConflict, RegistryErrors.ConsentNotFound,
                 RegistryErrors.ConsentWithdrawn, CommonErrors.ReasonRequired);
 
         people
@@ -102,7 +102,7 @@ internal static class ConsentEndpoints
             .AcceptsIfMatch()
             .ReturnsETag()
             .ProducesErrors(
-                RegistryErrors.PersonNotFound, RegistryErrors.ConcurrencyConflict, RegistryErrors.ConsentNotFound,
+                RegistryErrors.PersonNotFound, RegistryErrors.PersonConcurrencyConflict, RegistryErrors.ConsentNotFound,
                 RegistryErrors.ConsentWithdrawn, RegistryErrors.PersonArchived, RegistryErrors.PersonDeceased,
                 CommonErrors.InvalidRequest);
     }

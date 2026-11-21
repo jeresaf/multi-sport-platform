@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Results;
 using SportsPlatform.BuildingBlocks.Tenancy;
@@ -9,7 +10,13 @@ namespace SportsPlatform.Modules.Registry.Infrastructure;
 public sealed class RegistryDbContext(DbContextOptions<RegistryDbContext> options, ITenantContext tenantContext)
     : ModuleDbContext(options, RegistryModule.SchemaName, tenantContext)
 {
-    protected override Error ConcurrencyConflictError => RegistryErrors.ConcurrencyConflict;
+    // A person's code for a row of no aggregate root (none is versioned today).
+    protected override Error ConcurrencyConflictError => RegistryErrors.PersonConcurrencyConflict;
+
+    /// <summary>The conflict of the aggregate root whose version failed (S07 D2): <see cref="RegistryConcurrencyConflicts"/>.</summary>
+    protected override Error ConcurrencyConflictErrorFor(IReadOnlyList<EntityEntry> entries) =>
+        entries.Select(entry => RegistryConcurrencyConflicts.For(entry.Metadata.ClrType)).FirstOrDefault(error => error is not null)
+            ?? ConcurrencyConflictError;
 
     protected override void ConfigureModel(ModelBuilder modelBuilder)
     {

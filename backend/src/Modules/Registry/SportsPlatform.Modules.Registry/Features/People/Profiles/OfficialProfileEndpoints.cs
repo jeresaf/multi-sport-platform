@@ -51,7 +51,7 @@ internal static class OfficialProfileEndpoints
             .ReturnsETag()
             .ValidateRequest<OfficialProfileRequest>(CommonErrors.InvalidRequest)
             .ProducesErrors(
-                RegistryErrors.PersonNotFound, RegistryErrors.ConcurrencyConflict, RegistryErrors.SportNotEnabled,
+                RegistryErrors.PersonNotFound, RegistryErrors.PersonConcurrencyConflict, RegistryErrors.SportNotEnabled,
                 RegistryErrors.RoleUnknown, RegistryErrors.OfficialProfileExists, RegistryErrors.PersonArchived,
                 RegistryErrors.PersonDeceased);
 
@@ -82,7 +82,7 @@ internal static class OfficialProfileEndpoints
             .ReturnsETag()
             .ValidateRequest<OfficialProfileRequest>(CommonErrors.InvalidRequest)
             .ProducesErrors(
-                RegistryErrors.PersonNotFound, RegistryErrors.ConcurrencyConflict, RegistryErrors.ProfileNotFound,
+                RegistryErrors.PersonNotFound, RegistryErrors.PersonConcurrencyConflict, RegistryErrors.ProfileNotFound,
                 RegistryErrors.ProfileArchived, RegistryErrors.SportNotEnabled, RegistryErrors.RoleUnknown,
                 RegistryErrors.PersonArchived, RegistryErrors.PersonDeceased);
 
@@ -111,7 +111,7 @@ internal static class OfficialProfileEndpoints
             .ReturnsETag()
             .ValidateRequest<ChangeProfileStatusRequest>(CommonErrors.InvalidRequest)
             .ProducesErrors(
-                CommonErrors.ReasonRequired, RegistryErrors.PersonNotFound, RegistryErrors.ConcurrencyConflict,
+                CommonErrors.ReasonRequired, RegistryErrors.PersonNotFound, RegistryErrors.PersonConcurrencyConflict,
                 RegistryErrors.ProfileNotFound, RegistryErrors.ProfileStatusInvalid, RegistryErrors.PersonArchived,
                 RegistryErrors.PersonDeceased);
     }
