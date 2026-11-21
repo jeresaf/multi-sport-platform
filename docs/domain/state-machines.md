@@ -199,6 +199,21 @@ deceased person a profile can be corrected, deactivated, retired or archived, bu
 profile starts (owner, S06-T4 plan); a staff or official profile's correction there may keep, remove or re-qualify
 (re-license) its roles but not add one (owner, review #102; S06-T4b2). An official's expired licence changes no status. `SUSPENDED` comes with discipline (S13+).
 
+### Venue (stored, as built in S07-T1b-1)
+
+```text
+ACTIVE ──(reason)──► TEMPORARILY_UNAVAILABLE ──(reason)──► ACTIVE
+ACTIVE | TEMPORARILY_UNAVAILABLE ──close (reason)──► CLOSED ──reopen (reason)──► ACTIVE
+ACTIVE | TEMPORARILY_UNAVAILABLE | CLOSED ──archive (reason)──► ARCHIVED ──unarchive (reason)──► the status before archiving
+```
+
+One endpoint, `POST …/venues/{id}/status` with `{status, reason}` (`venue.status.change`); any other move is
+`409 VENUE_STATUS_INVALID`. Unarchiving goes back only to the status the venue had before it was archived, read from
+the history (the source of the latest move to `ARCHIVED`), so archiving a closed venue and unarchiving it never reopens
+it (Q55). Every move writes a row to `registry.venue_status_changes` (from, to, reason, actor, time; the first row at
+creation), read newest first at `GET …/venues/{id}/status-changes`. A venue's details can be corrected in every status.
+The pack's venue `INACTIVE` isn't built. Nothing is deleted (AR-18).
+
 ---
 
 ## Team Operations

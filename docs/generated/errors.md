@@ -127,3 +127,4 @@ the message is the default title and may change.
 | `VENUE_NOT_FOUND` | 404 | The venue was not found. | Registry |
 | `VENUE_SLUG_TAKEN` | 422 | Another venue of the tenant has this slug. | Registry |
 | `VENUE_SPORT_UNKNOWN` | 422 | No published sport definition has this variant. | Registry |
+| `VENUE_STATUS_INVALID` | 409 | The venue's current status doesn't allow this change. | Registry |

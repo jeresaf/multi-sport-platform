@@ -105,7 +105,9 @@
         "tenant.subscription.read",
         "venue.create",
         "venue.duplicate_check",
-        "venue.read"
+        "venue.read",
+        "venue.status.change",
+        "venue.update"
       ]
     },
     {
@@ -166,7 +168,9 @@
         "tenant.subscription.read",
         "venue.create",
         "venue.duplicate_check",
-        "venue.read"
+        "venue.read",
+        "venue.status.change",
+        "venue.update"
       ]
     },
     {
@@ -215,7 +219,9 @@
         "tenant.sport.read",
         "venue.create",
         "venue.duplicate_check",
-        "venue.read"
+        "venue.read",
+        "venue.status.change",
+        "venue.update"
       ]
     },
     {

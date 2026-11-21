@@ -29,7 +29,7 @@ public enum VenueSurface
     Other,
 }
 
-/// <summary>A venue's states (docs/domain/state-machines.md, Registry; S07 D12). The transitions come with S07-T1b.</summary>
+/// <summary>A venue's states (docs/domain/state-machines.md, Registry; S07 D12): <see cref="VenueTransitions"/>.</summary>
 public enum VenueStatus
 {
     Active,

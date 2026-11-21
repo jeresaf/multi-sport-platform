@@ -197,6 +197,12 @@ Guardian consents (S06-T6a, D14): `person.consent.record` (audit `REQUIRED`), `p
 (S06-T6b, D15): `person.public_profile.enable` and `person.public_profile.disable` (audit `REQUIRED`). All of these declare
 `grantedWith: person.read` (they answer the person) and are held by `TENANT_OWNER`, `TENANT_ADMIN` and `REGISTRAR`;
 none is available while read-only. The guardians' details and the evidence are read with `person.read_private`.
+Venues (S07 D20; S07-T1a, T1b-1): `venue.read` (the directory, the record and its status history; audit `NONE`,
+available while read-only) for every tenant-wide role that reads people (`SCORER` and `TEAM_MANAGER` aside);
+`venue.duplicate_check` (audit `NONE`, `grantedWith: venue.read`), `venue.create` and `venue.update` (`PUT …/venues/{id}`;
+audit `REQUIRED`, with the reason when the warning found venues; `grantedWith: venue.duplicate_check, venue.read`) and
+`venue.status.change` (`POST …/venues/{id}/status`; `REQUIRED_WITH_REASON`, `grantedWith: venue.read`) for
+`TENANT_OWNER`, `TENANT_ADMIN` and `REGISTRAR`, none available while read-only.
 
 | Role | Typical scope | Includes (summary) |
 |---|---|---|

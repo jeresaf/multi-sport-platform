@@ -454,3 +454,13 @@ The rest of S06's tech debt has its own trigger in PROGRESS.md ("From S06").
   antimeridian filters on latitude only. "The same city" compares the normalised city (`city_key`). A sent slug that
   parses as a UUID or isn't well formed is `400 VALIDATION_INVALID_REQUEST` on `slug`; a taken one is
   `422 VENUE_SLUG_TAKEN`. The venue's country defaults to the tenant's through `TenantAccess.Country`.
+- **T1b-1 (venues: update, lifecycle):** T1b is two PRs (owner, plan 2026-11-21): T1b-1 update, lifecycle and the status
+  history; T1b-2 the directory with a `sort_key` column. `PUT /venues/{id}` (`venue.update`) replaces the fields in every
+  status (a correction, as people's); `slug` left out keeps the venue's, `country` left out is the tenant's. The warning
+  runs again only when the name key, the city key or the coordinates change, the venue itself left out; a change to one
+  of them or to the slug holds `registry.venues:<tenantId>`. `POST /venues/{id}/status` (`venue.status.change`) with
+  `{status, reason}`; `VENUE_STATUS_INVALID` (409); unarchive reads the status before archiving from the latest move to
+  `ARCHIVED` (rows ordered by time, then ID). `GET /venues/{id}/status-changes` (`venue.read`), newest first. Create and
+  update share `VenueChangeValidator<T>` (slug and duplicate reason). A PUT without `country` gives the venue the
+  tenant's, so T6's venue form always sends the venue's current country (review #118 Q1). `ChangeStatus` throws when
+  the history isn't loaded (review #118 R2).

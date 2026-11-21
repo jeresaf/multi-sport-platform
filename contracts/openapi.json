@@ -7433,6 +7433,357 @@
             ]
           }
         }
+      },
+      "put": {
+        "tags": [
+          "Venues"
+        ],
+        "summary": "Change a venue",
+        "description": "Replaces the fields of a venue of the tenant named by `X-Tenant-Id`, whatever its status: a field left out is cleared, `country` left out is the tenant's, and `slug` left out keeps the venue's (a slug another venue has is VENUE_SLUG_TAKEN). The status changes through POST /venues/{venueId}/status. When the name (as the duplicate check compares it: case, accents, punctuation and word order aside), the city or the coordinates change, the duplicate check runs again, the venue itself left out: venues that look like the changed one answer VENUE_DUPLICATE_REVIEW_REQUIRED with `candidates` until the request says `duplicatesReviewed: true`, with an optional `duplicateReason`; the audit entry names the venues shown. The reason is kept permanently in the audit trail: don't include personal data. Send `version` or `If-Match` from the last read to get 409 VENUE_CONCURRENCY_CONFLICT if the venue changed since. Answers the venue as GET /venues/{venueId} does.",
+        "operationId": "UpdateVenue",
+        "parameters": [
+          {
+            "name": "venueId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateVenueRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VenueResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_REQUEST",
+              "VALIDATION_MALFORMED_REQUEST"
+            ]
+          },
+          "404": {
+            "description": "Problem Details; `code`: `VENUE_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VENUE_NOT_FOUND"
+            ]
+          },
+          "409": {
+            "description": "Problem Details; `code`: `VENUE_CONCURRENCY_CONFLICT`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VENUE_CONCURRENCY_CONFLICT"
+            ]
+          },
+          "422": {
+            "description": "Problem Details; `code`: `VENUE_DUPLICATE_REVIEW_REQUIRED`, `VENUE_NAME_INVALID`, `VENUE_SLUG_TAKEN`, `VENUE_SPORT_UNKNOWN`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VenueDuplicateReviewProblem"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VENUE_DUPLICATE_REVIEW_REQUIRED",
+              "VENUE_NAME_INVALID",
+              "VENUE_SLUG_TAKEN",
+              "VENUE_SPORT_UNKNOWN"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING",
+              "TENANT_READ_ONLY"
+            ]
+          }
+        }
+      }
+    },
+    "/api/admin/v1/venues/{venueId}/status": {
+      "post": {
+        "tags": [
+          "Venues"
+        ],
+        "summary": "Change a venue's status",
+        "description": "Moves the venue, with a reason (body `{ \"status\": …, \"reason\": … }`, both required): ACTIVE ⇄ TEMPORARILY_UNAVAILABLE; ACTIVE or TEMPORARILY_UNAVAILABLE → CLOSED; CLOSED → ACTIVE (reopen); any status but ARCHIVED → ARCHIVED; ARCHIVED → the status it had before archiving (unarchive), and no other. Any other move is VENUE_STATUS_INVALID. Nothing is deleted: each move is kept in the venue's history (GET /venues/{venueId}/status-changes). The reason is kept permanently in that history and the audit trail: don't include personal data. Send `version` or `If-Match` from the last read to get 409 VENUE_CONCURRENCY_CONFLICT if the venue changed since. Answers the venue as GET /venues/{venueId} does.",
+        "operationId": "ChangeVenueStatus",
+        "parameters": [
+          {
+            "name": "venueId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeVenueStatusRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VenueResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST`, `VALIDATION_REASON_REQUIRED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_REQUEST",
+              "VALIDATION_MALFORMED_REQUEST",
+              "VALIDATION_REASON_REQUIRED"
+            ]
+          },
+          "404": {
+            "description": "Problem Details; `code`: `VENUE_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VENUE_NOT_FOUND"
+            ]
+          },
+          "409": {
+            "description": "Problem Details; `code`: `VENUE_CONCURRENCY_CONFLICT`, `VENUE_STATUS_INVALID`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VENUE_CONCURRENCY_CONFLICT",
+              "VENUE_STATUS_INVALID"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING",
+              "TENANT_READ_ONLY"
+            ]
+          }
+        }
+      }
+    },
+    "/api/admin/v1/venues/{venueId}/status-changes": {
+      "get": {
+        "tags": [
+          "Venues"
+        ],
+        "summary": "List a venue's status history",
+        "description": "Every status the venue has had, newest first, with who changed it, when and why.",
+        "operationId": "ListVenueStatusChanges",
+        "parameters": [
+          {
+            "name": "venueId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListVenueStatusChangesResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Problem Details; `code`: `VENUE_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VENUE_NOT_FOUND"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING"
+            ]
+          }
+        }
       }
     },
     "/api/platform/v1/diagnostics/outbox": {
@@ -11536,6 +11887,40 @@
         "additionalProperties": false,
         "description": "The body of `suspend`, `archive` and `unarchive` (audit `REQUIRED_WITH_REASON`). The reason is kept\npermanently in the status history and the audit trail and is not redacted: it must not contain personal data."
       },
+      "ChangeVenueStatusRequest": {
+        "required": [
+          "status",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/VenueStatus"
+              }
+            ]
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "version": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "uint32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "The status to move a venue to and why (S07 D12; audit `REQUIRED_WITH_REASON`). The reason is kept permanently in\nthe status history and the audit trail and is not redacted: it must not contain personal data. `version`, when\nsent, must be the venue's current one (or `If-Match`)."
+      },
       "CheckDuplicatesRequest": {
         "required": [
           "firstName",
@@ -13215,6 +13600,20 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/TimeZoneResponse"
+            }
+          }
+        }
+      },
+      "ListVenueStatusChangesResponse": {
+        "required": [
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VenueStatusChangeResponse"
             }
           }
         }
@@ -17229,6 +17628,133 @@
         "additionalProperties": false,
         "description": "The settings to change; a missing or null key stays as it is. Only these keys exist: any other key, or a value of\nthe wrong type, is named in `errors`. `version`, when sent, must be the settings' current version."
       },
+      "UpdateVenueRequest": {
+        "required": [
+          "name",
+          "type",
+          "city",
+          "timeZone"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "type": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/VenueType"
+              }
+            ]
+          },
+          "city": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "timeZone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "shortName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "addressLine": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "region": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "country": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "latitude": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "longitude": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "capacity": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "surfaces": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/VenueSurface"
+            }
+          },
+          "supportedVariants": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "slug": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "duplicatesReviewed": {
+            "type": "boolean",
+            "default": false
+          },
+          "duplicateReason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "version": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "uint32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A venue's editable fields, replaced whole (S07 D11): a field left out is cleared; `country` left out is the\ntenant's, as on create; `slug` left out keeps the venue's (D9; owner, T1b plan). After the duplicate warning\n(a change to the name, city or coordinates, D13), `duplicatesReviewed` with an optional reason. `version`,\nwhen sent, must be the venue's current one (or `If-Match`)."
+      },
       "VenueDuplicateCandidateResponse": {
         "required": [
           "venueId",
@@ -17484,7 +18010,56 @@
           "CLOSED",
           "ARCHIVED"
         ],
-        "description": "A venue's states (docs/domain/state-machines.md, Registry; S07 D12). The transitions come with S07-T1b."
+        "description": "A venue's states (docs/domain/state-machines.md, Registry; S07 D12): VenueTransitions."
+      },
+      "VenueStatusChangeResponse": {
+        "required": [
+          "id",
+          "fromStatus",
+          "toStatus",
+          "reason",
+          "actorKind",
+          "actorId",
+          "occurredAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fromStatus": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/VenueStatus"
+              }
+            ]
+          },
+          "toStatus": {
+            "$ref": "#/components/schemas/VenueStatus"
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "actorKind": {
+            "$ref": "#/components/schemas/ActorKind"
+          },
+          "actorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "One row of a venue's status history (S07 D12, D16: the reasons and the history are internal)."
       },
       "VenueSurface": {
         "enum": [

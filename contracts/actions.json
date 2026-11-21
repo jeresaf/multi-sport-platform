@@ -1265,6 +1265,38 @@
       "availableWhenBlocked": false,
       "availableWhenReadOnly": true,
       "since": "S07"
+    },
+    {
+      "code": "venue.status.change",
+      "module": "Registry",
+      "description": "Mark a venue temporarily unavailable, closed or archived, reopen it or unarchive it, with a reason.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED_WITH_REASON",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S07"
+    },
+    {
+      "code": "venue.update",
+      "module": "Registry",
+      "description": "Change a venue's details; a change to its name, city or coordinates shows possible duplicates first, and saving it anyway is recorded with the venues shown.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S07"
     }
   ]
 }

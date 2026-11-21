@@ -7,14 +7,14 @@ at the start of every review.
 
 - **Current slice:** S07 — Organisations, teams and venues (docs/build/slices/S07-organisations-teams-venues.md,
   written by the S06 slice review). S00–S06 are done
-- **Current task:** — (S07-T1a in review: #117)
-- **Next:** S07-T1b — Venues: update, directory, lifecycle (after #117 merges)
+- **Current task:** — (S07-T1b-1 in review: #118)
+- **Next:** S07-T1b-2 — Venues: the directory (`sort_key`), `DocumentsQueryInteger` `maximum` and `default` (after #118 merges)
 - **Blocked on:** —
 
 ## Next up
 
-1. S07-T1b — Venues: update (D13's warning again), the directory list (`DocumentsQueryInteger` gains `maximum` and
-   `default`, People's list too), lifecycle (D12, Q55) and its history read
+1. S07-T1b-2 — Venues: the directory list (a `sort_key` column, migration `AddVenueDirectory`; `DocumentsQueryInteger`
+   gains `maximum` and `default`, People's list too)
 2. S07-T1c — Venues: aliases, external identifiers (`VENUE`), `IVenueDirectory`
 3. S07-T2 — Organisations
 4. S07-T3 — Teams
@@ -133,6 +133,7 @@ at the start of every review.
 | 2026-11-21 | S06-T7d-2 | #115 | Slice close. e2e `admin-people-demo`: the S06 Demo through the screens against the real API on Coucal Sports Club, with Francolin Schools Sports Circle (both added to pilot-customer.md's test-only names) as the second tenant. A registrar finds John Ssekandi, opens him from the review ("Likely the same person": same date of birth, same names in any order) instead of adding "Ssekandi John", and adds Shamim Nankya past "Possibly the same person" with "Twin sister, different first name"; an API check for her then leaves Mariam out. Then Shamim's athlete profile and photo; Brenda Akello's consent (three scopes, the form) and public profile, with a public read of display name and photo only and, after withdrawing Photo with a reason, no photo; Denis Opoka's three profiles; archived Ivan Mukasa offered no profile and refused `PERSON_ARCHIVED` by the API. Francolin's owner gets an empty directory, no search match and `PERSON_NOT_FOUND`. Audit: the create's, withdrawal's and archive's reasons. Screenshots `add-person-likely-match`, `person-archived-roles`. `signedForm` moved to `support/people.ts`; `enableFirstSport` also returns the first position's and roles' labels. S06 acceptance ticked with its evidence; admin-app.md; roadmap S06 ☑ | Owner (plan 2026-11-21): one PR; S06 tech debt whose trigger had passed (photo request size, an identifier's `validFrom` in the API with Q46, the private read's audit timing, the directory search's indexes) now says Later. Builder: the people seeded on KMSA are made through the API on the test tenant; positions and roles are the first enabled sport's, so the test names no sport; the demo's "Same name, other order" is the screen's "Same names, in any order". No backend change: no actions, errors, events, migrations or dependencies. Tests: e2e lint, typecheck and `playwright test --list`; Playwright not run locally (no Docker), so CI's E2E job is the spec's first run. Size: about 290 test lines and 60 doc lines. Pre-review (fix before PR): BLOCKER a tenant made by `createTenant` has its public site off, so the public read would answer 403 `TENANT_UNAVAILABLE`; fixed with `ownTenant`/`createTenant`'s `publicEnabled` option. MAJOR the T7 box and S06 ☑ stand on CI's first E2E run of this head (said in the PR). MINOR Brenda now has an athlete profile, so the public read's empty `athleteProfiles` shows the minors' rule. NITs fixed (the withdrawal's audit entry checked by person, wording); Brenda is 14 or 15 depending on the day (kept, the demo needs a minor). CI's E2E job passed on its first run (45 tests). Review #115 (subagent, approve with nits): R1 `enableFirstSport`'s position label is null for a definition without positions, and the demo checks it has one; R2 the review's refusal without a reason is asserted; R3 the search is proved by the person it drops; R4 the capability samples listed in the isolation evidence |
 | 2026-11-21 | S06 slice review | — | Docs only: S07 spec written by the slice review (D1–D24, T1–T7); S06 slice review note (acceptance confirmed with evidence); Q50–Q55 added with defaults; tech debt regrouped (`RegistryDbContext`'s conflict code to S07-T1, the other S06 items under "From S06" with their triggers); roadmap | All S06 acceptance items met on main (e900d70, #115); backend 3305 tests pass on main and CI on the merge commit is green; the slice demo runs in CI (`admin-people-demo.spec.ts`); the owner's manual demo is not recorded. Run in the builder's session at the owner's request (the reviewer's role, as the S05 slice review was) |
 | 2026-11-21 | S07-T1a | #117 | Venues, first part. D2: `ModuleDbContext.ConcurrencyConflictErrorFor(entries)` (default: the module's one code), Registry answers the failing root's (`RegistryConcurrencyConflicts`: `PERSON_CONCURRENCY_CONFLICT`, `VENUE_CONCURRENCY_CONFLICT`). `registry.venues` and append-only `registry.venue_status_changes` (RLS, isolation samples, table policies; migration `AddVenues`): D3's fields, `name_key`, `city_key`, slug unique per tenant (D9, shared `Slugs`). `POST /venues/duplicate-check` (`venue.duplicate_check`), `POST /venues` (`venue.create`: D13's warning under `registry.venues:<tenantId>`, `422 VENUE_DUPLICATE_REVIEW_REQUIRED` with `candidates` in the Problem Details until `duplicatesReviewed`, the audit entry names the candidates and the reason), `GET /venues/{id}` (`venue.read`, `ETag`). Tenancy's `TenantAccess` gains `Country` (a venue without one takes the tenant's). Roles per D20 | Owner (plan 2026-11-21): T1 in three PRs; Q54, Q55 the defaults. New error `VENUE_NAME_INVALID` (a name without a letter or digit has no name key, as `PERSON_NAME_INVALID`). The 200 m rule is a bounding box in SQL and haversine in C# (no PostGIS). About 1,530 production lines against ~650 planned (the new venue files, with their comments) and ~1,000 test lines: accepted by the owner for this PR (review of #117, 2026-11-21). Review #117: R1 `candidates` documented with `.ProducesProblem<T>`; R2/R4 tech debt "From S07"; R3, R5 fixed |
+| 2026-11-21 | S07-T1b-1 | #118 | Venues: update and lifecycle. `PUT /venues/{id}` (`venue.update`, audit `REQUIRED`, `If-Match`): a whole replacement in every status; `slug` left out kept, `country` left out the tenant's; D13's warning again (the venue left out) only when the name key, city key or coordinates change, under `registry.venues:<tenantId>` (also for a slug change). `POST /venues/{id}/status` (`venue.status.change`, `REQUIRED_WITH_REASON`): D12's machine (`VenueTransitions`), unarchive only to the status before archiving (Q55), `VENUE_STATUS_INVALID` (409). `GET /venues/{id}/status-changes` (`venue.read`). Create and update share `VenueChangeValidator<T>`. Backend 3452 tests pass | Owner (plan 2026-11-21): T1b in two PRs; the update defaults (see Deviations). No migration, events or dependencies. About 600 production and 710 test lines. The run shares one `FakeTimeProvider` that is never reset: the first draft's day-long advances expired a licence in `OfficialProfileTests` and reordered `DemoPeopleSeederTests`' history; the tests now advance minutes (tech debt "From S07"). Pre-review: ready; the other-tenant move test added. Review #118 (approve with nits): R1 the update's lock under a race, R2 `ChangeStatus` throws without the loaded history, R3/R4 test fixes; R5 kept; Q1 T6's venue form sends the venue's country. Re-review: approve |
 
 ## Deviations from spec (agreed)
 
@@ -141,6 +142,10 @@ at the start of every review.
   `IVenueDirectory`). `DocumentsQueryInteger` gains `maximum` and `default` in T1b, for People's list too (the S06
   carry-over). Tenancy's `TenantAccess` gains the tenant's `Country`, so a venue without a country takes the tenant's
   (D3). Q54 and Q55: the defaults.
+  T1b (owner, plan 2026-11-21): two PRs, T1b-1 (update, lifecycle, status history) and T1b-2 (directory). The
+  directory sorts by a new `sort_key` (the normalised name, word order kept, collation "C"). A PUT without `slug`
+  keeps the venue's slug; an update is a correction allowed in every status, `ARCHIVED` included (as people's); a PUT
+  without `country` takes the tenant's; the directory's `q` matches names only until T1c adds aliases and identifiers.
 
 - **S05-T5b2a (owner, plan 2026-11-16):** D17's Settings → **Sports** is labelled **Enabled sports** (navigation entry and
   page, `/t/{slug}/settings/sports`), so it isn't confused with the workspace's **Sports** (the definitions). T5b2 is two
@@ -584,6 +589,10 @@ docs/build/slices/S07-organisations-teams-venues.md, "Carried over from S06")
   and teams join in T2 and T3) through `ModuleDbContext.ConcurrencyConflictErrorFor`.
 
 **From S07** (each names its trigger)
+- Integration tests share one `TestApp.Clock` (`FakeTimeProvider`) for the whole run and nothing resets it (S07-T1b-1):
+  a test that advances it by days moves every later test's "now" (an official's licence expired, the demo seeder's
+  history reordered). Reset the clock in `DatabaseTest` before each test, or give date-sensitive tests their own
+  fixed time. (Next test-infrastructure change, or the first flaky date test.)
 - Venues' duplicate warning (S07-T1a, review of #117 R4): the same-city branch compares `similarity(...)` as a value,
   so neither the trigram index on `name_key` nor an index on `city_key` serves it, and it scans the tenant's venues
   (people's finder does the same). Fine at venue volumes; add `(tenant_id, city_key)` or switch to `%` with

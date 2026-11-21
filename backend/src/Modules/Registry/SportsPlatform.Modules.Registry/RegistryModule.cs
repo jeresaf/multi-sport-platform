@@ -22,9 +22,12 @@ using SportsPlatform.Modules.Registry.Features.People.Profiles;
 using SportsPlatform.Modules.Registry.Features.People.PublicProfile;
 using SportsPlatform.Modules.Registry.Features.People.UpdatePerson;
 using SportsPlatform.Modules.Registry.Features.Venues;
+using SportsPlatform.Modules.Registry.Features.Venues.ChangeVenueStatus;
 using SportsPlatform.Modules.Registry.Features.Venues.CheckVenueDuplicates;
 using SportsPlatform.Modules.Registry.Features.Venues.CreateVenue;
 using SportsPlatform.Modules.Registry.Features.Venues.GetVenue;
+using SportsPlatform.Modules.Registry.Features.Venues.ListVenueStatusChanges;
+using SportsPlatform.Modules.Registry.Features.Venues.UpdateVenue;
 using SportsPlatform.Modules.Registry.Infrastructure;
 using SportsPlatform.Modules.Registry.Seed.Demo;
 
@@ -37,7 +40,7 @@ namespace SportsPlatform.Modules.Registry;
 /// update and the lifecycle. S06-T3b: aliases and external identifiers. S06-T4a: athlete profiles. S06-T4b1: staff profiles.
 /// S06-T4b2: official profiles.
 /// S06-T5b: photos. S06-T6a: guardian consents and their evidence. S06-T7d: the demo people. S07-T1a: venues (create
-/// with the duplicate warning, the read).
+/// with the duplicate warning, the read). S07-T1b-1: the venue's update, lifecycle and status history.
 /// </summary>
 public sealed class RegistryModule : IModule
 {
@@ -92,6 +95,9 @@ public sealed class RegistryModule : IModule
         services.AddScoped<CheckVenueDuplicatesHandler>();
         services.AddScoped<CreateVenueHandler>();
         services.AddScoped<GetVenueHandler>();
+        services.AddScoped<UpdateVenueHandler>();
+        services.AddScoped<ChangeVenueStatusHandler>();
+        services.AddScoped<ListVenueStatusChangesHandler>();
         services.AddSingleton<IValidator<ListPeopleRequest>, ListPeopleRequestValidator>();
         services.AddScoped<IValidator<CheckDuplicatesRequest>, CheckDuplicatesRequestValidator>();
         services.AddScoped<IValidator<CreatePersonRequest>, CreatePersonRequestValidator>();
@@ -112,6 +118,8 @@ public sealed class RegistryModule : IModule
         services.AddSingleton<IValidator<PublicPersonPhotoRequest>, PublicPersonPhotoRequestValidator>();
         services.AddSingleton<IValidator<CheckVenueDuplicatesRequest>, CheckVenueDuplicatesRequestValidator>();
         services.AddScoped<IValidator<CreateVenueRequest>, CreateVenueRequestValidator>();
+        services.AddScoped<IValidator<UpdateVenueRequest>, UpdateVenueRequestValidator>();
+        services.AddSingleton<IValidator<ChangeVenueStatusRequest>, ChangeVenueStatusRequestValidator>();
 
         services.AddSeeder<DemoPeopleSeeder>();
     }
@@ -142,6 +150,9 @@ public sealed class RegistryModule : IModule
         CheckVenueDuplicatesEndpoint.Map(venues);
         CreateVenueEndpoint.Map(venues);
         GetVenueEndpoint.Map(venues);
+        UpdateVenueEndpoint.Map(venues);
+        ChangeVenueStatusEndpoint.Map(venues);
+        ListVenueStatusChangesEndpoint.Map(venues);
 
         PublicPersonEndpoints.Map(groups.Public);
     }

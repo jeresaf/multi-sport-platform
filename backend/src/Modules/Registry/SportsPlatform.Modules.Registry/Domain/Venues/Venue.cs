@@ -1,5 +1,6 @@
 using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.BuildingBlocks.Domain;
+using SportsPlatform.BuildingBlocks.Results;
 using SportsPlatform.Modules.Registry.Domain.People;
 
 namespace SportsPlatform.Modules.Registry.Domain.Venues;
@@ -8,7 +9,8 @@ namespace SportsPlatform.Modules.Registry.Domain.Venues;
 /// A place where contests happen (<c>registry.venues</c>, tenant-owned, S07 D3): its address, time zone, capacity,
 /// surfaces and the sport variants it can host. Its ID never changes (AR-23); its slug is unique in the tenant (D9).
 /// The name and city are kept as entered and as normalised keys (<see cref="NameNormaliser"/>) for the duplicate check
-/// (D13). The status history is its child: a new row changes the venue's version (S06 D11).
+/// (D13). The status history is its child: a new row changes the venue's version (S06 D11). Its lifecycle is
+/// <see cref="VenueTransitions"/>.
 /// </summary>
 public sealed class Venue : AggregateRoot, ITenantOwned
 {
@@ -94,6 +96,71 @@ public sealed class Venue : AggregateRoot, ITenantOwned
         venue.Apply(details);
         venue._statusHistory.Add(new VenueStatusChange(venue.Id, null, venue.Status, null, actor, now));
         return venue;
+    }
+
+    /// <summary>
+    /// Whether <paramref name="details"/> change what the duplicate warning compares (S07 D13): the name key, the city
+    /// key or the coordinates. A change of case, accents, punctuation or word order in the name changes none of them.
+    /// </summary>
+    public bool ChangesComparedFields(VenueDetails details)
+    {
+        ArgumentNullException.ThrowIfNull(details);
+        return NameKeyOf(details.Name) != NameKey || CityKeyOf(details.City) != CityKey || details.Location != Location;
+    }
+
+    /// <summary>
+    /// Replaces the editable fields and the slug (S07 D11, D9), whatever the status: a correction. The use case has
+    /// checked <paramref name="details"/>, the slug's place in the tenant and, for a change to a compared field, the
+    /// duplicate warning. The status, its history and the source don't change.
+    /// </summary>
+    public void Update(VenueDetails details, string slug)
+    {
+        ArgumentNullException.ThrowIfNull(details);
+        if (!Slugs.IsValid(slug))
+        {
+            throw new ArgumentException("The slug is not valid.", nameof(slug));
+        }
+
+        Apply(details);
+        Slug = slug;
+    }
+
+    /// <summary>
+    /// The status the venue had before it was archived (the source row of the latest move to <c>ARCHIVED</c>, Q55); null
+    /// unless it is archived. Rows are ordered by time, then by ID.
+    /// </summary>
+    public VenueStatus? StatusBeforeArchive() => Status != VenueStatus.Archived
+        ? null
+        : _statusHistory
+            .Where(change => change.ToStatus == VenueStatus.Archived)
+            .OrderBy(change => change.OccurredAt).ThenBy(change => change.Id)
+            .LastOrDefault()?.FromStatus;
+
+    /// <summary>
+    /// Moves the venue to <paramref name="to"/> with a reason (S07 D12, <see cref="VenueTransitions"/>) and writes the row
+    /// of its history; a move the current status doesn't allow is <c>VENUE_STATUS_INVALID</c>. Needs the history
+    /// loaded (it throws otherwise): unarchiving reads the status before archiving from it.
+    /// </summary>
+    public Result ChangeStatus(VenueStatus to, string reason, ICurrentActor actor, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(actor);
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+
+        // Every venue has its creation row: an empty history means the caller didn't load it (a bug, not a refusal).
+        if (_statusHistory.Count == 0)
+        {
+            throw new InvalidOperationException("The venue's status history is not loaded.");
+        }
+
+        if (!VenueTransitions.IsAllowed(Status, to, StatusBeforeArchive()))
+        {
+            return Result.Failure(RegistryErrors.VenueStatusInvalid);
+        }
+
+        var from = Status;
+        Status = to;
+        _statusHistory.Add(new VenueStatusChange(Id, from, to, reason.Trim(), actor, now));
+        return Result.Success();
     }
 
     /// <summary>The name key of a venue name; empty when it has no letter or digit.</summary>
