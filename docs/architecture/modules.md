@@ -191,6 +191,11 @@ needs `PUBLIC_PROFILE` consent unless the person is an adult on the tenant's dat
 variant from Platform media with `Cache-Control: public, max-age=300`.
 **As built (S06-T1a):** schema `registry`, every table tenant-owned (RLS): `persons` (classified columns, name keys),
 `person_aliases`, `person_status_changes` (append-only), `external_identifiers`. No endpoints or Contracts yet.
+**As built (S07-T1a, T1b-1):** venues (`registry.venues`, `registry.venue_status_changes`, append-only) under
+`/api/admin/v1/venues`: the duplicate check, create and `PUT …/{id}` (a whole replacement in every status; a change to
+the name, city or coordinates runs the lighter warning again under `registry.venues:<tenantId>`, data-conventions.md),
+the record (`ETag`), `POST …/{id}/status` (the venue machine, state-machines.md) and `…/{id}/status-changes`.
+`RegistryDbContext` answers the conflict of the root whose version failed (`PERSON_…`, `VENUE_CONCURRENCY_CONFLICT`).
 **Absorbs:** pack specs 08–14. Owner's systems: **Player Management System**, the identity half of
 **Team Management System**. Owner's rule "duplicate players within the same tenant should be avoided at all
 costs" is implemented here (docs/build/slices/S06-people-registry.md).
