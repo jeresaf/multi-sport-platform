@@ -30,6 +30,26 @@ public static class RowLevelSecurityMigrationExtensions
         return migrationBuilder;
     }
 
+    /// <summary>
+    /// Runs <paramref name="sql"/> (a data change to <paramref name="table"/>'s rows in every tenant) as the table's
+    /// owner, the migrator: FORCE is lifted for it and put back, in the migration's transaction, so no other session
+    /// sees the table unforced and <c>sp_app</c>'s policy never changes (owner, S07-T1b-2). Without it forced RLS
+    /// matches no row and the change silently does nothing. A test proves the rows changed and FORCE is back.
+    /// </summary>
+    public static MigrationBuilder UpdateTenantRowsAsOwner(this MigrationBuilder migrationBuilder, string schema, string table, string sql)
+    {
+        ArgumentNullException.ThrowIfNull(migrationBuilder);
+        ArgumentException.ThrowIfNullOrWhiteSpace(sql);
+        var name = TableAccessMigrationExtensions.QualifiedName(schema, table);
+
+        migrationBuilder.Sql($"""
+            ALTER TABLE {name} NO FORCE ROW LEVEL SECURITY;
+            {sql.Trim()}
+            ALTER TABLE {name} FORCE ROW LEVEL SECURITY;
+            """);
+        return migrationBuilder;
+    }
+
     /// <summary>The <c>Down</c> of <see cref="EnableTenantRls"/>, for a migration that keeps the table.</summary>
     public static MigrationBuilder DisableTenantRls(this MigrationBuilder migrationBuilder, string schema, string table)
     {

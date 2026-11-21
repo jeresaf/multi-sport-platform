@@ -330,6 +330,8 @@ public static class ApiDocumentation
             {
                 Type = JsonSchemaType.Integer,
                 Minimum = declared.Minimum.ToString(CultureInfo.InvariantCulture),
+                Maximum = declared.Maximum?.ToString(CultureInfo.InvariantCulture),
+                Default = declared.Default is { } value ? JsonValue.Create(value) : null,
             };
         }
 

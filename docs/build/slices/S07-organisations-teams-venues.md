@@ -464,3 +464,18 @@ The rest of S06's tech debt has its own trigger in PROGRESS.md ("From S06").
   update share `VenueChangeValidator<T>` (slug and duplicate reason). A PUT without `country` gives the venue the
   tenant's, so T6's venue form always sends the venue's current country (review #118 Q1). `ChangeStatus` throws when
   the history isn't loaded (review #118 R2).
+- **T1b-2 (venues: the directory):** `GET /venues` (`venue.read`): `q`, `variant`, `city`, `status`, `limit` (1–100,
+  25), `cursor`; sorted by `sort_key` and ID. `sort_key` (migration `AddVenueDirectory`) is
+  `NameNormaliser.Normalise(name)`: word order kept, collation "C", index `(tenant_id, sort_key, id)`. `q` matches a
+  prefix of the sort key or of one of its words, a prefix of the name key, or the name key by trigram similarity
+  ≥ 0.3 (People's constant); text without a letter or digit matches nothing until T1c adds identifiers. `city`
+  compares `city_key` (as D13's "same city"); `variant` is a code in `supported_variants`. Items: id, name, short
+  name, slug, type, city, country, supported variants, status. The migration backfills existing rows in SQL (NFD,
+  Latin modifier letters (U+02B0–U+02FF and the other Latin ranges) and combining marks U+0300–U+036F dropped,
+  lower case, everything but `[:alnum:]` and whitespace (every space .NET counts, no-break ones included) dropped,
+  whitespace collapsed, NFC; modifier letters of other scripts stay (review #119 R1);
+  the name key if that is empty) through the new `migrationBuilder.UpdateTenantRowsAsOwner(schema, table, sql)`,
+  which lifts `FORCE ROW LEVEL SECURITY` for that SQL only, in the migration's transaction (owner, plan and
+  pre-review 2026-11-21; multi-tenancy.md and database.md name it); a test proves the rows changed in two tenants
+  and FORCE is back. A `city` without a letter or digit matches no venue. `DocumentsQueryInteger(name, minimum, maximum, @default)`: People's and
+  venues' `limit` declare `1, 100, 25`; the other lists are tech debt "From S07".

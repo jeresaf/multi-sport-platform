@@ -40,6 +40,12 @@ public sealed class Venue : AggregateRoot, ITenantOwned
     /// <summary>The sorted normalised tokens of the name (S06 D4): what the duplicate check compares.</summary>
     public string NameKey { get; private set; } = string.Empty;
 
+    /// <summary>
+    /// The normalised name with its word order kept (<see cref="NameNormaliser.Normalise"/>): what the directory sorts
+    /// and pages by (S07-T1b-2), so case, accents and punctuation don't move a venue.
+    /// </summary>
+    public string SortKey { get; private set; } = string.Empty;
+
     public string Slug { get; private set; } = string.Empty;
 
     public VenueType Type { get; private set; }
@@ -166,6 +172,9 @@ public sealed class Venue : AggregateRoot, ITenantOwned
     /// <summary>The name key of a venue name; empty when it has no letter or digit.</summary>
     public static string NameKeyOf(string? name) => NameNormaliser.NameKey(name);
 
+    /// <summary>The directory's sort key of a venue name; empty when it has no letter or digit.</summary>
+    public static string SortKeyOf(string? name) => NameNormaliser.Normalise(name);
+
     /// <summary>The key "the same city" compares; empty for a blank city.</summary>
     public static string CityKeyOf(string? city) => NameNormaliser.Normalise(city);
 
@@ -201,6 +210,7 @@ public sealed class Venue : AggregateRoot, ITenantOwned
         Name = details.Name;
         ShortName = details.ShortName;
         NameKey = nameKey;
+        SortKey = SortKeyOf(details.Name);
         Type = details.Type;
         AddressLine = details.AddressLine;
         City = details.City;

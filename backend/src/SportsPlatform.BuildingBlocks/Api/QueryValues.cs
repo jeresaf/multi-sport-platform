@@ -5,14 +5,18 @@ namespace SportsPlatform.BuildingBlocks.Api;
 /// <summary>The values a query parameter accepts, for OpenAPI: <see cref="QueryValues.DocumentsQueryValues"/>.</summary>
 public sealed record QueryValuesMetadata(string Name, IReadOnlyList<string> Values);
 
-/// <summary>A query parameter that takes a whole number, for OpenAPI: <see cref="QueryValues.DocumentsQueryInteger"/>.</summary>
-public sealed record QueryIntegerMetadata(string Name, long Minimum);
+/// <summary>
+/// A query parameter that takes a whole number, for OpenAPI: <see cref="QueryValues.DocumentsQueryInteger"/>. A null
+/// <paramref name="Maximum"/> has no upper bound; a null <paramref name="Default"/> means the parameter has no default.
+/// </summary>
+public sealed record QueryIntegerMetadata(string Name, long Minimum, long? Maximum = null, long? Default = null);
 
 /// <summary>
 /// Query parameters are bound as text, so a bad value is <c>VALIDATION_INVALID_QUERY</c> from the request's validator
 /// rather than the framework's 400; OpenAPI would then show a free string. An endpoint declares
 /// <c>.DocumentsQueryValues(name, values)</c> so the document shows the parameter's <c>enum</c> (S03 follow-up, S04 D14), or
-/// <c>.DocumentsQueryInteger(name, minimum)</c> for an integer with its minimum.
+/// <c>.DocumentsQueryInteger(name, minimum, maximum, @default)</c> for an integer with its bounds and the value used
+/// without it (a list's <c>limit</c>: 1, 100, 25).
 /// </summary>
 public static class QueryValues
 {
@@ -24,10 +28,21 @@ public static class QueryValues
         return builder.WithMetadata(new QueryValuesMetadata(name, [.. values]));
     }
 
-    public static RouteHandlerBuilder DocumentsQueryInteger(this RouteHandlerBuilder builder, string name, long minimum)
+    public static RouteHandlerBuilder DocumentsQueryInteger(
+        this RouteHandlerBuilder builder, string name, long minimum, long? maximum = null, long? @default = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        return builder.WithMetadata(new QueryIntegerMetadata(name, minimum));
+        if (maximum < minimum)
+        {
+            throw new ArgumentOutOfRangeException(nameof(maximum), "The maximum is below the minimum.");
+        }
+
+        if (@default < minimum || @default > maximum)
+        {
+            throw new ArgumentOutOfRangeException(nameof(@default), "The default is outside the bounds.");
+        }
+
+        return builder.WithMetadata(new QueryIntegerMetadata(name, minimum, maximum, @default));
     }
 }

@@ -27,7 +27,7 @@ internal static class ListPeopleEndpoint
         .DocumentsQueryValues("status", ListPeopleRequest.Statuses)
         .DocumentsQueryValues("ageStatus", ListPeopleRequest.AgeStatuses)
         .DocumentsQueryValues("profile", ListPeopleRequest.Profiles)
-        .DocumentsQueryInteger("limit", 1);
+        .DocumentsQueryInteger("limit", 1, ListPeopleRequest.MaxLimit, ListPeopleRequest.DefaultLimit);
 
     private static async Task<Ok<ListPeopleResponse>> HandleAsync(
         [AsParameters] ListPeopleRequest request,

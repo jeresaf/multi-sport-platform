@@ -19,6 +19,7 @@ internal sealed class VenueConfiguration : IEntityTypeConfiguration<Venue>
     public const string Table = "venues";
     public const string SlugIndex = "ux_venues_tenant_id_slug";
     public const string NameKeyIndex = "ix_venues_name_key_trgm";
+    public const string DirectoryIndex = "ix_venues_tenant_id_sort_key_id";
 
     public void Configure(EntityTypeBuilder<Venue> builder)
     {
@@ -33,6 +34,7 @@ internal sealed class VenueConfiguration : IEntityTypeConfiguration<Venue>
                 "ck_venues_slug",
                 $"slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$' AND char_length(slug) BETWEEN {Slugs.MinLength} AND {Slugs.MaxLength}");
             table.HasCheckConstraint("ck_venues_name_key", "name_key <> ''");
+            table.HasCheckConstraint("ck_venues_sort_key", "sort_key <> ''");
             table.HasCheckConstraint(
                 "ck_venues_coordinates",
                 "(latitude IS NULL AND longitude IS NULL) OR " +
@@ -50,7 +52,11 @@ internal sealed class VenueConfiguration : IEntityTypeConfiguration<Venue>
         builder.Property(v => v.ShortName).HasMaxLength(VenueDetails.ShortNameMaxLength).IsPersonalData(PersonalDataClass.Public);
         builder.Property(v => v.NameKey).HasMaxLength(VenueDetails.NameMaxLength).IsPersonalData(PersonalDataClass.Internal);
 
-        // "C": byte order, so the directory (sorted by slug-like keys later) pages the same way in every database.
+        // "C": byte order, so the directory sorts and pages the same way in every database, whatever its locale.
+        builder.Property(v => v.SortKey).HasMaxLength(VenueDetails.NameMaxLength).UseCollation("C")
+            .IsPersonalData(PersonalDataClass.Internal);
+
+        // "C": byte order, as the sort key.
         builder.Property(v => v.Slug).HasMaxLength(Slugs.MaxLength).UseCollation("C").IsPersonalData(PersonalDataClass.Public);
         builder.Property(v => v.Type).HasConversion(EnumColumns.UpperSnake<VenueType>()).HasMaxLength(30)
             .IsPersonalData(PersonalDataClass.Public);
@@ -85,6 +91,7 @@ internal sealed class VenueConfiguration : IEntityTypeConfiguration<Venue>
         builder.Navigation(v => v.StatusHistory).HasField("_statusHistory").UsePropertyAccessMode(PropertyAccessMode.Field);
 
         builder.HasIndex(v => new { v.TenantId, v.Slug }).IsUnique().HasDatabaseName(SlugIndex);
+        builder.HasIndex(v => new { v.TenantId, v.SortKey, v.Id }).HasDatabaseName(DirectoryIndex);
         builder.HasIndex(v => v.NameKey).HasMethod("gin").HasOperators("gin_trgm_ops").HasDatabaseName(NameKeyIndex);
         builder.HasIndex(v => new { v.TenantId, v.Latitude, v.Longitude });
     }

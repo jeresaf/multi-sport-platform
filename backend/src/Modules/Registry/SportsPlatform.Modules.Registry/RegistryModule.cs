@@ -26,6 +26,7 @@ using SportsPlatform.Modules.Registry.Features.Venues.ChangeVenueStatus;
 using SportsPlatform.Modules.Registry.Features.Venues.CheckVenueDuplicates;
 using SportsPlatform.Modules.Registry.Features.Venues.CreateVenue;
 using SportsPlatform.Modules.Registry.Features.Venues.GetVenue;
+using SportsPlatform.Modules.Registry.Features.Venues.ListVenues;
 using SportsPlatform.Modules.Registry.Features.Venues.ListVenueStatusChanges;
 using SportsPlatform.Modules.Registry.Features.Venues.UpdateVenue;
 using SportsPlatform.Modules.Registry.Infrastructure;
@@ -95,6 +96,7 @@ public sealed class RegistryModule : IModule
         services.AddScoped<CheckVenueDuplicatesHandler>();
         services.AddScoped<CreateVenueHandler>();
         services.AddScoped<GetVenueHandler>();
+        services.AddScoped<ListVenuesHandler>();
         services.AddScoped<UpdateVenueHandler>();
         services.AddScoped<ChangeVenueStatusHandler>();
         services.AddScoped<ListVenueStatusChangesHandler>();
@@ -120,6 +122,7 @@ public sealed class RegistryModule : IModule
         services.AddScoped<IValidator<CreateVenueRequest>, CreateVenueRequestValidator>();
         services.AddScoped<IValidator<UpdateVenueRequest>, UpdateVenueRequestValidator>();
         services.AddSingleton<IValidator<ChangeVenueStatusRequest>, ChangeVenueStatusRequestValidator>();
+        services.AddSingleton<IValidator<ListVenuesRequest>, ListVenuesRequestValidator>();
 
         services.AddSeeder<DemoPeopleSeeder>();
     }
@@ -149,6 +152,7 @@ public sealed class RegistryModule : IModule
         var venues = VenuesEndpoints.Group(groups.Admin);
         CheckVenueDuplicatesEndpoint.Map(venues);
         CreateVenueEndpoint.Map(venues);
+        ListVenuesEndpoint.Map(venues);
         GetVenueEndpoint.Map(venues);
         UpdateVenueEndpoint.Map(venues);
         ChangeVenueStatusEndpoint.Map(venues);
