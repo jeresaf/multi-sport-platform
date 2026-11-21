@@ -65,7 +65,10 @@ export async function setPhoto(request: APIRequestContext, member: Member, perso
   return (await set.json()) as Person;
 }
 
-/** Enables the tenant's first published variant (as the owner) and returns its code and its definition's codes. */
+/**
+ * Enables the tenant's first published variant (as the owner) and returns its code, its definition's codes and the
+ * labels the screens show for the first position, staff role and official role.
+ */
 export async function enableFirstSport(request: APIRequestContext, member: Member) {
   const sports = await request.get("/api/admin/v1/tenant/sports", { headers: headers(member) });
   expect(sports.status()).toBe(200);
@@ -77,18 +80,27 @@ export async function enableFirstSport(request: APIRequestContext, member: Membe
   }
   const read = await request.get(`/api/admin/v1/sports/${variant}`, { headers: headers(member) });
   expect(read.status()).toBe(200);
-  const definition = (await read.json()) as {
-    positions: { code: string }[];
-    staffRoles: { code: string }[];
-    officialRoles: { code: string }[];
-  };
+  type Coded = { code: string; label: string };
+  const definition = (await read.json()) as { positions: Coded[]; staffRoles: Coded[]; officialRoles: Coded[] };
   return {
     variant,
     positions: definition.positions.map((position) => position.code),
     staffRole: definition.staffRoles[0]!.code,
     officialRole: definition.officialRoles[0]!.code,
+    labels: {
+      position: definition.positions[0]!.label,
+      staffRole: definition.staffRoles[0]!.label,
+      officialRole: definition.officialRoles[0]!.label,
+    },
   };
 }
+
+/** A signed consent form for the tests: a small PDF: the API checks the file's first bytes, not its name or the type sent. */
+export const signedForm = {
+  name: "consent-form.pdf",
+  mimeType: "application/pdf",
+  buffer: Buffer.from("%PDF-1.4\n1 0 obj << /Type /Catalog >> endobj\ntrailer << /Root 1 0 R >>\n%%EOF\n"),
+};
 
 /** A PNG of `size` × `size`: a disc in one colour on another, written by hand (no image library). */
 export function placeholderPng(size: number): Buffer {

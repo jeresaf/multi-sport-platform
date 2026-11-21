@@ -7,15 +7,14 @@ at the start of every review.
 
 - **Current slice:** S06 — People registry (docs/build/slices/S06-people-registry.md, written by the S05 slice review).
   S00–S05 are done
-- **Current task:** S06-T7d-1 — Demo seeds: `tenancy.demo.sports` and `registry.demo.people` — in review (#114)
-  (backend only; plan approved 2026-11-20: two PRs, birth dates relative to the seed date, the demo e2e on test
-  tenants of its own)
-- **Next:** S06-T7d-2 — Slice demo e2e, screenshots, slice close
-- **Blocked on:** the review of T7d-1
+- **Current task:** S06-T7d-2 — Slice demo e2e, screenshots, slice close (plan approved 2026-11-21: one PR; the
+  demo on Coucal Sports Club and Francolin Schools Sports Circle; S06 tech debt with passed triggers moves to Later)
+- **Next:** S06 slice review (reviewer), then S07
+- **Blocked on:** —
 
 ## Next up
 
-1. S06-T7d-2 — Slice demo e2e (Coucal Sports Club, Francolin Schools), screenshots, slice close
+1. S06-T7d-2 — Slice demo e2e (Coucal Sports Club, Francolin Schools Sports Circle), screenshots, slice close
 
 ## Log
 

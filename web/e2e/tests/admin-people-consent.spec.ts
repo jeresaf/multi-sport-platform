@@ -1,13 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { acceptByApi, inviteMember, inviteOwnerOf, newPassword, ownTenant, personEmail, signIn, signInByApi } from "./support/accounts";
-import { createPerson } from "./support/people";
-
-/** A small PDF: the API checks the file's first bytes, not its name or the type sent. */
-export const signedForm = {
-  name: "consent-form.pdf",
-  mimeType: "application/pdf",
-  buffer: Buffer.from("%PDF-1.4\n1 0 obj << /Type /Catalog >> endobj\ntrailer << /Root 1 0 R >>\n%%EOF\n"),
-};
+import { createPerson, signedForm } from "./support/people";
 
 // Registry → People → a person → Consent and the public profile (S06 D14, D15, T7c-1b) against the real API: a
 // registrar records a minor's guardian consent with the signed form, turns the public profile on, withdraws the
