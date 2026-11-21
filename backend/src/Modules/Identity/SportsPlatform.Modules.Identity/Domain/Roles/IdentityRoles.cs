@@ -73,7 +73,11 @@ public static class IdentityRoles
     // Venues (S07 D20): read by every role that reads people; changed by those who change people. The duplicate check
     // is its own unaudited action, granted with the create.
     private const string _venueRead = "venue.read";
-    private static readonly string[] _venueChanges = ["venue.duplicate_check", "venue.create", "venue.update", "venue.status.change"];
+    private static readonly string[] _venueChanges =
+    [
+        "venue.duplicate_check", "venue.create", "venue.update", "venue.status.change", "venue.alias.add", "venue.alias.remove",
+        "venue.external_id.add", "venue.external_id.end",
+    ];
 
     private static readonly string[] _tenantAdministration =
     [

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using SportsPlatform.BuildingBlocks.Api;
 using SportsPlatform.BuildingBlocks.Privacy;
+using SportsPlatform.Modules.Registry.Domain.People;
 using SportsPlatform.Modules.Registry.Domain.Venues;
 using SportsPlatform.Modules.Registry.Features.People.ListPeople;
 using SportsPlatform.Modules.Registry.Infrastructure;
@@ -27,8 +28,9 @@ public sealed record ListVenuesResponse(
 
 /// <summary>
 /// The venue directory of the request's tenant (query filter and RLS), sorted by sort key (the normalised name, word
-/// order kept, collation "C") and ID (S07 D19). <c>q</c> matches the name by prefix (of the name or of one of its
-/// words) or trigram similarity; aliases and external identifiers join it in S07-T1c. <c>variant</c> keeps venues
+/// order kept, collation "C") and ID (S07 D19). <c>q</c> matches the name or a current alias by prefix (of the name or
+/// of one of its words) or trigram similarity, and an external identifier's value exactly, ended ones included
+/// (S07-T1c, as People's). <c>variant</c> keeps venues
 /// that support it, <c>city</c> venues in that city (normalised, as the duplicate warning's "same city"). Without a
 /// status, archived venues are left out.
 /// </summary>
@@ -81,18 +83,21 @@ public sealed class ListVenuesHandler(RegistryDbContext context)
         return new ListVenuesResponse(items, new PageInfo(next, hasMore));
     }
 
-    private static IQueryable<Venue> Matching(IQueryable<Venue> venues, string search)
+    private IQueryable<Venue> Matching(IQueryable<Venue> venues, string search)
     {
         // The normalised text as typed ("kiwatule mea") for prefixes; its sorted tokens to compare with name keys. Text
-        // without a letter or a digit matches no name.
+        // without a letter or a digit has no key and can only be an identifier's value.
         var prefix = Venue.SortKeyOf(search);
         var key = Venue.NameKeyOf(search);
+        var identifiers = context.Set<ExternalIdentifier>()
+            .Where(i => i.EntityType == ExternalIdentifierEntityType.Venue && i.Value == search);
         if (prefix.Length == 0)
         {
-            return venues.Where(_ => false);
+            return venues.Where(v => identifiers.Any(i => i.EntityId == v.Id));
         }
 
-        // Keys hold letters, digits and spaces only, so no pattern has a wildcard of its own.
+        // Keys hold letters, digits and spaces only, so no pattern has a wildcard of its own. An alias has a name key
+        // only (sorted tokens): a prefix of the key or of one of its words finds it.
         var prefixPattern = prefix + "%";
         var wordPattern = "% " + prefix + "%";
         var keyPattern = key + "%";
@@ -100,7 +105,13 @@ public sealed class ListVenuesHandler(RegistryDbContext context)
             EF.Functions.Like(v.SortKey, prefixPattern)
             || EF.Functions.Like(v.SortKey, wordPattern)
             || EF.Functions.Like(v.NameKey, keyPattern)
-            || EF.Functions.TrigramsSimilarity(v.NameKey, key) >= ListPeopleHandler.SearchSimilarity);
+            || EF.Functions.TrigramsSimilarity(v.NameKey, key) >= ListPeopleHandler.SearchSimilarity
+            || v.Aliases.Any(a => a.RemovedAt == null
+                && (EF.Functions.Like(a.NameKey, keyPattern)
+                    || EF.Functions.Like(a.NameKey, prefixPattern)
+                    || EF.Functions.Like(a.NameKey, wordPattern)
+                    || EF.Functions.TrigramsSimilarity(a.NameKey, key) >= ListPeopleHandler.SearchSimilarity))
+            || identifiers.Any(i => i.EntityId == v.Id));
     }
 
     private sealed record Row(

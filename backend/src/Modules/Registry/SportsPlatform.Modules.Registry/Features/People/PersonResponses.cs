@@ -134,7 +134,7 @@ public sealed record OfficialCapabilityResponse(
     [property: PersonalData(PersonalDataClass.Internal)] DateOnly? LicenceValidUntil,
     [property: PersonalData(PersonalDataClass.Internal)] bool LicenceExpired);
 
-/// <summary>An identifier another authority gave the person; one with <c>validTo</c> has ended (S06 D10).</summary>
+/// <summary>An identifier another authority gave the person or venue; one with <c>validTo</c> has ended (S06 D10, S07 D10).</summary>
 public sealed record ExternalIdentifierResponse(
     [property: PersonalData(PersonalDataClass.Internal)] Guid Id,
     [property: PersonalData(PersonalDataClass.Internal)] string Authority,

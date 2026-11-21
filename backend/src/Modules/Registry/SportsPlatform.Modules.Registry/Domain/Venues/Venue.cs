@@ -9,12 +9,14 @@ namespace SportsPlatform.Modules.Registry.Domain.Venues;
 /// A place where contests happen (<c>registry.venues</c>, tenant-owned, S07 D3): its address, time zone, capacity,
 /// surfaces and the sport variants it can host. Its ID never changes (AR-23); its slug is unique in the tenant (D9).
 /// The name and city are kept as entered and as normalised keys (<see cref="NameNormaliser"/>) for the duplicate check
-/// (D13). The status history is its child: a new row changes the venue's version (S06 D11). Its lifecycle is
+/// (D13). The status history and the aliases are its children: a new or changed row changes the venue's version (S06
+/// D11); its external identifiers have no foreign key, so their use cases mark it changed. Its lifecycle is
 /// <see cref="VenueTransitions"/>.
 /// </summary>
 public sealed class Venue : AggregateRoot, ITenantOwned
 {
     private readonly List<VenueStatusChange> _statusHistory = [];
+    private readonly List<VenueAlias> _aliases = [];
     private List<VenueSurface> _surfaces = [];
     private List<string> _supportedVariants = [];
 
@@ -81,6 +83,9 @@ public sealed class Venue : AggregateRoot, ITenantOwned
     public VenueSource Source { get; private set; }
 
     public IReadOnlyList<VenueStatusChange> StatusHistory => _statusHistory;
+
+    /// <summary>Every alias, removed ones included (they keep who removed them, when and why).</summary>
+    public IReadOnlyList<VenueAlias> Aliases => _aliases;
 
     /// <summary>Both coordinates, or null when the venue has none.</summary>
     public GeoPoint? Location => Latitude is { } latitude && Longitude is { } longitude ? new GeoPoint(latitude, longitude) : null;
@@ -166,6 +171,63 @@ public sealed class Venue : AggregateRoot, ITenantOwned
         var from = Status;
         Status = to;
         _statusHistory.Add(new VenueStatusChange(Id, from, to, reason.Trim(), actor, now));
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Whether the venue takes a new alias or external identifier (S07 D10): not when <c>ARCHIVED</c>
+    /// (<c>VENUE_ARCHIVED</c>) or <c>CLOSED</c> (<c>VENUE_CLOSED</c>); a temporarily unavailable venue does. Removing an
+    /// alias and ending an identifier stay allowed in every status (S06's pattern).
+    /// </summary>
+    public Result EnsureAcceptsNewChildren() => Status switch
+    {
+        VenueStatus.Archived => Result.Failure(RegistryErrors.VenueArchived),
+        VenueStatus.Closed => Result.Failure(RegistryErrors.VenueClosed),
+        _ => Result.Success(),
+    };
+
+    /// <summary>
+    /// Adds an alias with its own name key, so the directory finds the venue under that name too (S07 D10). Refused on
+    /// an archived or closed venue, and when the alias's key is already the venue's own or a current alias's
+    /// (<c>VENUE_ALIAS_EXISTS</c>). Needs the aliases loaded. The use case has checked that the name has a letter or a
+    /// digit.
+    /// </summary>
+    public Result<VenueAlias> AddAlias(string name, AliasKind kind)
+    {
+        var accepts = EnsureAcceptsNewChildren();
+        if (accepts.IsFailure)
+        {
+            return accepts.Error;
+        }
+
+        var alias = new VenueAlias(Id, name, kind);
+        if (alias.NameKey == NameKey || _aliases.Any(existing => !existing.IsRemoved && existing.NameKey == alias.NameKey))
+        {
+            return RegistryErrors.VenueAliasExists;
+        }
+
+        _aliases.Add(alias);
+        return Result.Success(alias);
+    }
+
+    /// <summary>
+    /// Removes an alias, keeping it with who, when and why (S07 D10); allowed in every status. An alias of another venue
+    /// is <c>VENUE_ALIAS_NOT_FOUND</c>, one already removed <c>VENUE_ALIAS_REMOVED</c>.
+    /// </summary>
+    public Result RemoveAlias(Guid aliasId, string reason, ICurrentActor actor, DateTimeOffset now)
+    {
+        var alias = _aliases.SingleOrDefault(existing => existing.Id == aliasId);
+        if (alias is null)
+        {
+            return Result.Failure(RegistryErrors.VenueAliasNotFound);
+        }
+
+        if (alias.IsRemoved)
+        {
+            return Result.Failure(RegistryErrors.VenueAliasRemoved);
+        }
+
+        alias.Remove(reason, actor, now);
         return Result.Success();
     }
 

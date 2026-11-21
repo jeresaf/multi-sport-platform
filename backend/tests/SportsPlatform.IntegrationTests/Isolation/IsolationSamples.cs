@@ -81,6 +81,7 @@ public static class IsolationSamples
         new GuardianConsentSample(),
         new VenueSample(),
         new VenueStatusChangeSample(),
+        new VenueAliasSample(),
         new MediaAssetSample(),
     ];
 
@@ -566,6 +567,24 @@ public static class IsolationSamples
         public Entity? Referencing(IForeignKey foreignKey, Guid principalId) =>
             foreignKey.PrincipalEntityType.ClrType == typeof(Venue)
                 ? new VenueStatusChange(principalId, VenueStatus.Active, VenueStatus.Closed, "Pitch resurfacing", SystemActor.Instance, RegistrySamples.Now)
+                : null;
+    }
+
+    /// <summary>Registry: an alias of a venue; it points at its venue.</summary>
+    private sealed class VenueAliasSample : IIsolationSample
+    {
+        public Type EntityType => typeof(VenueAlias);
+
+        public Entity Add(DbContext context)
+        {
+            var venue = RegistrySamples.NewVenue("Nakawa Lakeside Field");
+            context.Add(venue);
+            return venue.AddAlias("Nakawa Grounds", AliasKind.FormerName).Value;
+        }
+
+        public Entity? Referencing(IForeignKey foreignKey, Guid principalId) =>
+            foreignKey.PrincipalEntityType.ClrType == typeof(Venue)
+                ? new VenueAlias(principalId, "The Lakeside", AliasKind.Nickname)
                 : null;
     }
 

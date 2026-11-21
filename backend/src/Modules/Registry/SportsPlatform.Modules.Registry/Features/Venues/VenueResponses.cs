@@ -2,14 +2,18 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using SportsPlatform.BuildingBlocks.Api;
 using SportsPlatform.BuildingBlocks.Privacy;
+using SportsPlatform.Modules.Registry.Domain.People;
 using SportsPlatform.Modules.Registry.Domain.People.Duplicates;
 using SportsPlatform.Modules.Registry.Domain.Venues;
+using SportsPlatform.Modules.Registry.Features.People;
 
 namespace SportsPlatform.Modules.Registry.Features.Venues;
 
 /// <summary>
-/// A venue as the admin reads it (S07 D19). Every field is one the public reads may show (D16) but the version.
-/// Surfaces and variants keep the order they were sent in; variants are codes, labelled from the definitions (AR-29).
+/// A venue as the admin reads it (S07 D19). Every field is one the public reads may show (D16) but the aliases, the
+/// external identifiers and the version. Surfaces and variants keep the order they were sent in; variants are codes,
+/// labelled from the definitions (AR-29). Aliases are the ones not removed, oldest first; identifiers are all of them,
+/// ended ones included, by authority (as a person's). A change to an alias or an identifier moves the version (S06 D11).
 /// </summary>
 public sealed record VenueResponse(
     [property: PersonalData(PersonalDataClass.Public)] Guid Id,
@@ -28,6 +32,8 @@ public sealed record VenueResponse(
     [property: PersonalData(PersonalDataClass.Public)] IReadOnlyList<VenueSurface> Surfaces,
     [property: PersonalData(PersonalDataClass.Public)] IReadOnlyList<string> SupportedVariants,
     [property: PersonalData(PersonalDataClass.Public)] VenueStatus Status,
+    [property: PersonalData(PersonalDataClass.Internal)] IReadOnlyList<VenueAliasResponse> Aliases,
+    [property: PersonalData(PersonalDataClass.Internal)] IReadOnlyList<ExternalIdentifierResponse> ExternalIdentifiers,
     [property: PersonalData(PersonalDataClass.Internal)] uint Version)
 {
     public void SetETag(HttpResponse response)
@@ -36,6 +42,12 @@ public sealed record VenueResponse(
         response.Headers.ETag = RowVersion.EntityTag(Version).ToString();
     }
 }
+
+/// <summary>Another name the venue is known by (S07 D10).</summary>
+public sealed record VenueAliasResponse(
+    [property: PersonalData(PersonalDataClass.Internal)] Guid Id,
+    [property: PersonalData(PersonalDataClass.Internal)] string Name,
+    [property: PersonalData(PersonalDataClass.Internal)] AliasKind Kind);
 
 /// <summary>
 /// A venue that looks like the one checked (S07 D13): enough to recognise it and open it. <c>status</c> marks an

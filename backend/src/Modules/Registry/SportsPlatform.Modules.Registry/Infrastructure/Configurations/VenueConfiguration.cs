@@ -4,6 +4,7 @@ using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Privacy;
 using SportsPlatform.Modules.Registry.Domain;
+using SportsPlatform.Modules.Registry.Domain.People;
 using SportsPlatform.Modules.Registry.Domain.Venues;
 
 namespace SportsPlatform.Modules.Registry.Infrastructure.Configurations;
@@ -89,11 +90,49 @@ internal sealed class VenueConfiguration : IEntityTypeConfiguration<Venue>
             .HasPrincipalKey(v => new { v.TenantId, v.Id })
             .OnDelete(DeleteBehavior.Restrict);
         builder.Navigation(v => v.StatusHistory).HasField("_statusHistory").UsePropertyAccessMode(PropertyAccessMode.Field);
+        builder.HasMany(v => v.Aliases).WithOne()
+            .HasForeignKey(a => new { a.TenantId, a.VenueId })
+            .HasPrincipalKey(v => new { v.TenantId, v.Id })
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.Navigation(v => v.Aliases).HasField("_aliases").UsePropertyAccessMode(PropertyAccessMode.Field);
 
         builder.HasIndex(v => new { v.TenantId, v.Slug }).IsUnique().HasDatabaseName(SlugIndex);
         builder.HasIndex(v => new { v.TenantId, v.SortKey, v.Id }).HasDatabaseName(DirectoryIndex);
         builder.HasIndex(v => v.NameKey).HasMethod("gin").HasOperators("gin_trgm_ops").HasDatabaseName(NameKeyIndex);
         builder.HasIndex(v => new { v.TenantId, v.Latitude, v.Longitude });
+    }
+}
+
+/// <summary>
+/// <c>registry.venue_aliases</c> (S07 D10): tenant-owned (RLS), each pointing at its tenant's venue. A removed alias keeps
+/// its row (the three <c>remove</c> columns are set together). Aliases other than former names are <c>INTERNAL</c> (D16).
+/// </summary>
+internal sealed class VenueAliasConfiguration : IEntityTypeConfiguration<VenueAlias>
+{
+    public const string Table = "venue_aliases";
+    public const string NameKeyIndex = "ix_venue_aliases_name_key_trgm";
+
+    public void Configure(EntityTypeBuilder<VenueAlias> builder)
+    {
+        builder.ToTable(Table, table =>
+        {
+            table.HasCheckConstraint("ck_venue_aliases_kind", $"kind IN ({EnumColumns.SqlList<AliasKind>()})");
+            table.HasCheckConstraint("ck_venue_aliases_name_key", "name_key <> ''");
+            table.HasCheckConstraint(
+                "ck_venue_aliases_removed",
+                "(removed_at IS NULL AND removed_by IS NULL AND remove_reason IS NULL) " +
+                "OR (removed_at IS NOT NULL AND removed_by IS NOT NULL AND remove_reason IS NOT NULL)");
+        });
+
+        builder.Property(a => a.Name).HasMaxLength(VenueAlias.NameMaxLength).IsPersonalData(PersonalDataClass.Internal);
+        builder.Property(a => a.NameKey).HasMaxLength(VenueAlias.NameMaxLength).IsPersonalData(PersonalDataClass.Internal);
+        builder.Property(a => a.Kind).HasConversion(EnumColumns.UpperSnake<AliasKind>()).HasMaxLength(20)
+            .IsPersonalData(PersonalDataClass.Internal);
+        builder.Property(a => a.RemoveReason).HasMaxLength(VenueAlias.ReasonMaxLength).IsPersonalData(PersonalDataClass.Internal);
+        builder.Ignore(a => a.IsRemoved);
+
+        builder.HasIndex(a => a.NameKey).HasMethod("gin").HasOperators("gin_trgm_ops").HasDatabaseName(NameKeyIndex);
+        builder.HasIndex(a => new { a.TenantId, a.VenueId });
     }
 }
 

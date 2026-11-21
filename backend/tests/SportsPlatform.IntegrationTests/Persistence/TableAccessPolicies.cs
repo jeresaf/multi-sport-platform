@@ -103,6 +103,9 @@ public static class TableAccessPolicies
         ["registry.venues"] = TableAccess.ReadWrite,
         ["registry.venue_status_changes"] = TableAccess.AppendOnly,
 
+        // Venue aliases (S07-T1c, RLS): removed with a reason, never deleted.
+        ["registry.venue_aliases"] = TableAccess.ReadWrite,
+
         ["identity.outbox_messages"] = TableAccess.ReadWrite,
         ["registry.outbox_messages"] = TableAccess.ReadWrite,
         ["registry.inbox_messages"] = TableAccess.ReadWrite,

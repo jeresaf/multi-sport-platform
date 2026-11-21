@@ -31,8 +31,9 @@ public enum AliasKind
     Spelling,
 }
 
-/// <summary>What an external identifier names. S07 adds organisations, teams and venues.</summary>
+/// <summary>What an external identifier names. S07 adds venues (T1c), then organisations and teams.</summary>
 public enum ExternalIdentifierEntityType
 {
     Person,
+    Venue,
 }

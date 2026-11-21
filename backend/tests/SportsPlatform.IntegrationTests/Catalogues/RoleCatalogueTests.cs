@@ -110,7 +110,8 @@ public sealed class RoleCatalogueTests
             "person.external_id.end", "person.mark_deceased", "person.photo.remove", "person.photo.set", "person.public_profile.disable",
             "person.public_profile.enable", "person.reactivate", "person.read", "person.read_private", "person.unarchive", "person.update", "role.assign", "role.revoke", "ruleset.read", "sport.read", "staff_profile.create", "staff_profile.status.change",
             "staff_profile.update", "tenant.access.read", "tenant.capabilities.read", "tenant.settings.read", "tenant.settings.update", "tenant.sport.disable", "tenant.sport.enable", "tenant.sport.read",
-            "tenant.subscription.read", "venue.create", "venue.duplicate_check", "venue.read", "venue.status.change", "venue.update",
+            "tenant.subscription.read", "venue.alias.add", "venue.alias.remove", "venue.create", "venue.duplicate_check", "venue.external_id.add",
+            "venue.external_id.end", "venue.read", "venue.status.change", "venue.update",
         ]);
     }
 }

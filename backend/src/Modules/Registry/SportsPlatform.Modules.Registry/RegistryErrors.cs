@@ -138,4 +138,34 @@ public static class RegistryErrors
 
     public static readonly Error VenueSlugTaken = new(
         "VENUE_SLUG_TAKEN", "Another venue of the tenant has this slug.", ErrorKind.Unprocessable);
+
+    public static readonly Error VenueArchived = new(
+        "VENUE_ARCHIVED", "The venue is archived: it takes no new alias or external identifier.", ErrorKind.Conflict);
+
+    public static readonly Error VenueClosed = new(
+        "VENUE_CLOSED", "The venue is closed: it takes no new alias or external identifier. Reopen it first.", ErrorKind.Conflict);
+
+    public static readonly Error VenueAliasExists = new(
+        "VENUE_ALIAS_EXISTS", "The venue is already known by this name: its own name or a current alias gives the same name key.",
+        ErrorKind.Conflict);
+
+    public static readonly Error VenueAliasNotFound = new("VENUE_ALIAS_NOT_FOUND", "The venue has no such alias.", ErrorKind.NotFound);
+
+    public static readonly Error VenueAliasRemoved = new("VENUE_ALIAS_REMOVED", "The alias is already removed.", ErrorKind.Conflict);
+
+    public static readonly Error VenueExternalIdExists = new(
+        "VENUE_EXTERNAL_ID_EXISTS",
+        "A venue already has this external identifier (the same authority and value), or had it: a value is never reused.",
+        ErrorKind.Conflict);
+
+    public static readonly Error VenueExternalIdNotFound = new(
+        "VENUE_EXTERNAL_ID_NOT_FOUND", "The venue has no such external identifier.", ErrorKind.NotFound);
+
+    public static readonly Error VenueExternalIdEnded = new(
+        "VENUE_EXTERNAL_ID_ENDED", "The external identifier has already ended.", ErrorKind.Conflict);
+
+    public static readonly Error VenueExternalIdValidityInvalid = new(
+        "VENUE_EXTERNAL_ID_VALIDITY_INVALID",
+        "An identifier's end date can't be before its start date or after today (the tenant's date).",
+        ErrorKind.Unprocessable);
 }
