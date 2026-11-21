@@ -7,15 +7,14 @@ at the start of every review.
 
 - **Current slice:** S07 — Organisations, teams and venues (docs/build/slices/S07-organisations-teams-venues.md,
   written by the S06 slice review). S00–S06 are done
-- **Current task:** — (S07-T1b-2 in review: #119)
-- **Next:** S07-T1c — Venues: aliases, external identifiers (`VENUE`), `IVenueDirectory`
+- **Current task:** S07-T1c — Venues: aliases, external identifiers (`VENUE`), `IVenueDirectory`
+- **Next:** S07-T2 — Organisations
 - **Blocked on:** —
 
 ## Next up
 
-1. S07-T1c — Venues: aliases, external identifiers (`VENUE`), `IVenueDirectory`
-2. S07-T2 — Organisations
-3. S07-T3 — Teams
+1. S07-T2 — Organisations
+2. S07-T3 — Teams
 
 ## Log
 
