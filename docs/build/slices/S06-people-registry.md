@@ -790,4 +790,4 @@ dependency, SkiaSharp with its no-dependencies Linux assets, has its ADR (ADR-00
 agreed deviations in PROGRESS.md (S06-T1a … T7c-2b). No ADR drift. The owner's manual demo on KMSA and ELSSC is not
 recorded. Tech debt: `RegistryDbContext`'s single conflict code moves to S07-T1 (S07 D2); the other S06 items keep
 their triggers under "From S06" in PROGRESS.md. S07's spec is written (docs/build/slices/S07-organisations-teams-venues.md,
-Q50–Q54).
+Q50–Q55).

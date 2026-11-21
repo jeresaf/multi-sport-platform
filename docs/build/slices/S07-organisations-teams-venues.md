@@ -6,7 +6,7 @@
 > "an organisation runs teams in several sports" is shown by test definitions, as S05 D18 showed the sport quota
 > (Q51). Duplicate warnings are lighter than people's: no check token and no remembered decisions (Q54). Logos and
 > badges are the first `PUBLIC` media assets (D15). Venues come first because organisations and teams point at them.
-> Task sizes are estimated and the likely PR splits named. Q50–Q54 carry reviewer defaults until the owner answers.
+> Task sizes are estimated and the likely PR splits named. Q50–Q55 carry reviewer defaults until the owner answers.
 
 **Goal:** persistent identities for the clubs, schools and federations of a tenant, their teams, and the venues where
 contests happen, so S08 can put people in teams and S09–S10 can enter teams in editions and play at venues.
@@ -19,8 +19,8 @@ sports through `IEnabledSports`), Identity (roles for the new actions), Host (ca
 football teams: Senior Men, Women and Under-17 → he opens **Venues** and adds Kiwatule Meadow Ground (Football, natural
 grass, 1,200 seats, `Africa/Kampala`) → he starts **Add team** for Kisaasi Kestrels SC with the name "Kisaasi
 Kestrel FC", Senior Men: the form warns that **Kisaasi Kestrels FC** (Senior Men, Football) looks like the same team;
-he opens it instead → he renames Bunga Breakers FC to "Bunga Lakeside FC" from 1 January this year: the old name stays
-as a former name with its dates → he uploads Bunga Lakeside FC's badge and sets its home venue to Kiwatule Meadow Ground
+he opens it instead → he renames Bunga Breakers FC (named so since 2020) to "Bunga Lakeside FC" from 1 January this year: the
+old name stays as a former name with its dates → he uploads Bunga Lakeside FC's badge and sets its home venue to Kiwatule Meadow Ground
 → the sport picker offers only the tenant's enabled sports → the public team read (the API; the public team page is
 S14's) shows the new name, the badge and the home venue, and none of the internal fields → he disbands Seeta Sparrows
 FC's Under-17 team with a reason; it stays in the directory under "Disbanded" and frees a team for the plan's limit.
@@ -95,14 +95,16 @@ docs/product/ux/public-app.md (Team, player and venue pages), docs/reference/cha
   `legal_name` (optional, ≤ 200), `short_name` (optional, ≤ 40), `country` (default the tenant's), `city`
   (optional, ≤ 100), `founded_year` (optional, 1800 to the tenant's year), `website` (optional, absolute `https://` or
   `http://` URL, ≤ 200), `email` and `phone` (optional, the body's own contacts, ≤ 200 and ≤ 30), `description`
-  (optional, ≤ 2,000, plain text), `primary_venue_id` (optional, a venue of the tenant that isn't `ARCHIVED`),
+  (optional, ≤ 2,000, plain text), `primary_venue_id` (optional, a venue of the tenant that isn't `ARCHIVED` or `CLOSED`, `422
+  ORGANISATION_PRIMARY_VENUE_UNAVAILABLE`),
   `logo_asset_id`, `name_key`, `status`, `source`. No named contact person: people belong to the person registry,
   and S08 links staff to teams. Registration numbers are external identifiers (D10).
 - **D5 — Parent organisation.** One current parent per organisation, kept with its history in
   `registry.organisation_parent_links` (child, parent, `valid_from`, `valid_to`, set by, reason): `POST
   …/organisations/{id}/parent` with `{parentId | null, reason}` (`organisation.parent.set`, `REQUIRED_WITH_REASON`)
   ends the open link on the tenant's today and opens the new one. The parent must be another organisation of the
-  tenant, not `DISSOLVED` or `ARCHIVED`, and not the child or any of its descendants (`422 ORGANISATION_PARENT_CYCLE`),
+  tenant, not `DISSOLVED` or `ARCHIVED` (`422 ORGANISATION_PARENT_UNAVAILABLE`), and not the child or any of its
+  descendants (`422 ORGANISATION_PARENT_CYCLE`),
   checked under `registry.organisations:<tenantId>`. Depth isn't limited. A child's status never follows its parent's
   (pack RULE-ORG-005). The read shows the parent, the children and the history.
 - **D6 — The team.** `registry.teams`: `variant` (required, **enabled for the tenant at creation**, `422
@@ -111,29 +113,35 @@ docs/product/ux/public-app.md (Team, player and venue pages), docs/reference/cha
   (1–120, the playing name, e.g. "Ntinda Swifts FC"), `short_name` (optional, ≤ 30, e.g. "Ntinda Swifts"), `slug`
   (D9), `code` (optional, `^[A-Z]{3}$`, for scoreboards; not unique: a club's men and women may both be "NTS"),
   `motto` (optional, ≤ 120), colours `primary_colour`, `secondary_colour`, `tertiary_colour` (optional,
-  `#RRGGBB`; primary needed before secondary), `home_venue_id` (optional, a venue that isn't `ARCHIVED`; a venue that
-  doesn't list the variant is accepted, the screen notes it), `logo_asset_id`, `badge_asset_id`, `founded_year`,
+  `#RRGGBB`; a secondary without a primary, or a tertiary without a secondary, is `422 TEAM_COLOURS_INVALID`),
+  `home_venue_id` (optional, a venue that isn't `ARCHIVED` or `CLOSED`, `422 TEAM_HOME_VENUE_UNAVAILABLE`; a venue that
+  doesn't list the variant is accepted, the screen notes it), `name_since` (D8), `logo_asset_id`, `badge_asset_id`, `founded_year`,
   `name_key`, `status`, `source`. A tenant may hold two teams with one name in other categories or variants (that's
-  what categories are for). Competition entries are not on the team (pack RULE-TEAM-004; S09).
+  what categories are for). Competition entries are not on the team (pack RULE-TEAM-004; S09). References (organisation,
+  home venue, an organisation's primary venue) are checked only when a request sets or changes them: an update that
+  keeps a reference to an organisation dissolved since then succeeds.
 - **D7 — Team category.** Three generic codes, stored as columns and shown together ("Senior Men", "Under-17 Women"):
   `gender_category` (`MEN`, `WOMEN`, `MIXED`), `age_group` (`SENIOR`, `U6` … `U23`, `VETERANS`), `level` (`FIRST`
   default, `RESERVE`, `DEVELOPMENT`, `ACADEMY`). Labels live in the web app's dictionary, not in definitions (they
-  aren't sport words). The category is descriptive: S09's age limits use the edition's rules and a reference date, not
+  aren't sport words): `MEN`/`WOMEN` read "Boys"/"Girls" with `U6`…`U17` and "Men"/"Women" otherwise (Q53). The category is descriptive: S09's age limits use the edition's rules and a reference date, not
   the team's age group. Changing a team's category is an update (D11), not a new team. Q53 confirms the lists.
 - **D8 — Team names keep history.** `POST …/teams/{id}/rename` (`team.rename`, audit `REQUIRED`) takes `name`,
-  optional `shortName` and `code`, and `effectiveOn` (a date not after the tenant's today and not before the current
-  name's start): the old name becomes a `FORMER_NAME` alias with `valid_from` = the old name's start (the team's
-  creation date, or its last rename) and `valid_to` = the day before `effectiveOn`. `registry.team_aliases` holds
+  optional `shortName` and `code`, and `effectiveOn` (after the current name's start and not after the tenant's today,
+  else `422 TEAM_RENAME_DATE_INVALID`): the old name becomes a `FORMER_NAME` alias with `valid_from` = the old name's
+  start and `valid_to` = the day before `effectiveOn`. The first name's start is `name_since`, an optional date on
+  create (not after the tenant's today; default the tenant's today), so a team registered now can carry the name it
+  has used since 2020 and be renamed from any later date. `registry.team_aliases` holds
   former names, nicknames and spellings (`FORMER_NAME`, `NICKNAME`, `SPELLING`), each with its name key and, for
   former names, the dates; nicknames and spellings are added and removed as people's aliases are
   (`team.alias.add`, `team.alias.remove` with reason). `PUT …/teams/{id}` can't change the name (`422
   TEAM_RENAME_REQUIRED` points to rename). `ITeamDirectory` answers the name on a date (D18), so S13–S14 can show
-  "Bunga Breakers FC" on a 2026 result. A future-dated rename waits for scheduled jobs (Later). Organisations and
+  "Bunga Breakers FC" on a 2025 result; a date before `name_since` answers the first name. A future-dated rename waits for scheduled jobs (Later). Organisations and
   venues change names by update and keep the old one as an alias only when the user adds it (`organisation.alias.add`,
   `venue.alias.add`): their history isn't shown on results.
 - **D9 — Slugs.** Teams, organisations and venues each have a `slug` (`^[a-z0-9]+(-[a-z0-9]+)*$`, 2–80), unique per
   tenant and entity type among every status (an archived team keeps its slug), proposed from the name and category
-  (`ntinda-swifts-fc-senior-men`) with `-2`, `-3` on a clash, editable on update (`422 TEAM_SLUG_TAKEN`,
+  (`ntinda-swifts-fc-senior-men`) with `-2`, `-3` on a clash when create sends none, editable on update; a slug that
+  parses as a UUID is refused (`{idOrSlug}` must stay unambiguous) (`422 TEAM_SLUG_TAKEN`,
   `ORGANISATION_SLUG_TAKEN`, `VENUE_SLUG_TAKEN`). A rename doesn't change the slug. Old slugs aren't kept: S14 decides
   redirects with the public pages.
 - **D10 — Aliases and external identifiers.** `registry.organisation_aliases`, `registry.team_aliases` (D8),
@@ -142,11 +150,17 @@ docs/product/ux/public-app.md (Team, player and venue pages), docs/reference/cha
   `VENUE_ALIAS_EXISTS`). External identifiers go in the existing `registry.external_identifiers` with `entity_type`
   `ORGANISATION`, `TEAM` or `VENUE` and the same rules as people's (authority pattern, value 1–100, `valid_from`,
   `valid_to`, a value never reused within an authority and entity type, `…_EXTERNAL_ID_EXISTS`, ending sets
-  `valid_to`); the reserved national-document authorities are a person rule only. Actions
+  `valid_to`); the reserved national-document authorities are a person rule only. T1 replaces
+  `ck_external_identifiers_entity_type` (today `'PERSON'` only) in a new migration, and the handlers call
+  `MarkChanged(root)` as `AddExternalIdentifierHandler` does (the table has no foreign key, so a new row moves no
+  version by itself). An unknown or already removed alias or identifier is `404 <AREA>_ALIAS_NOT_FOUND` /
+  `<AREA>_EXTERNAL_ID_NOT_FOUND`, an already removed or ended one `409 <AREA>_ALIAS_REMOVED` /
+  `<AREA>_EXTERNAL_ID_ENDED` (people's codes, per area). Actions
   `<entity>.alias.add`, `<entity>.alias.remove` (`REQUIRED_WITH_REASON`), `<entity>.external_id.add`,
   `<entity>.external_id.end`. An `ARCHIVED` record (and a `DISSOLVED`, `DISBANDED` or `CLOSED` one) takes no new
-  alias, identifier, logo, team or parent link; removing and ending stay allowed (S06's `EnsureAcceptsNewChildren`
-  pattern).
+  alias, identifier, logo, team or parent link (`409 ORGANISATION_ARCHIVED`, `ORGANISATION_DISSOLVED`, `TEAM_ARCHIVED`,
+  `TEAM_DISBANDED`, `VENUE_ARCHIVED`, `VENUE_CLOSED`); removing and ending stay allowed (S06's
+  `EnsureAcceptsNewChildren` pattern).
 - **D11 — Changing a record.** `PUT …/organisations/{id}`, `PUT …/teams/{id}`, `PUT …/venues/{id}` (`*.update`, audit
   `REQUIRED`, `If-Match`) replace the editable fields (not the team's variant or name, not statuses, parents, aliases,
   identifiers or images, which have their own actions). A change to the compared fields (D13) runs the warnings again.
@@ -157,21 +171,32 @@ docs/product/ux/public-app.md (Team, player and venue pages), docs/reference/cha
   `venue.status.change`, `REQUIRED_WITH_REASON`), history in `registry.organisation_status_changes`,
   `team_status_changes`, `venue_status_changes` (from, to, reason, actor, time; the first row at creation; append-only):
 
-  ```text
-  Organisation: ACTIVE ⇄ INACTIVE · ACTIVE | INACTIVE ⇄ SUSPENDED · ACTIVE | INACTIVE | SUSPENDED → DISSOLVED
-                any but ARCHIVED → ARCHIVED → ACTIVE (unarchive)
-  Team:         ACTIVE ⇄ INACTIVE · ACTIVE | INACTIVE ⇄ SUSPENDED · ACTIVE | INACTIVE | SUSPENDED → DISBANDED → ACTIVE (reform)
-                any but ARCHIVED → ARCHIVED → ACTIVE (unarchive)
-  Venue:        ACTIVE ⇄ TEMPORARILY_UNAVAILABLE · ACTIVE | TEMPORARILY_UNAVAILABLE → CLOSED → ACTIVE (reopen)
-                any but ARCHIVED → ARCHIVED → ACTIVE (unarchive)
-  ```
+  | Entity | From | To |
+  |---|---|---|
+  | Organisation | `ACTIVE` | `INACTIVE`, `SUSPENDED`, `DISSOLVED`, `ARCHIVED` |
+  | | `INACTIVE` | `ACTIVE`, `SUSPENDED`, `DISSOLVED`, `ARCHIVED` |
+  | | `SUSPENDED` | `ACTIVE`, `INACTIVE`, `DISSOLVED`, `ARCHIVED` |
+  | | `DISSOLVED` | `ARCHIVED` (final otherwise) |
+  | | `ARCHIVED` | the status it had before archiving (unarchive) |
+  | Team | `ACTIVE` | `INACTIVE`, `SUSPENDED`, `DISBANDED`, `ARCHIVED` |
+  | | `INACTIVE` | `ACTIVE`, `SUSPENDED`, `DISBANDED`, `ARCHIVED` |
+  | | `SUSPENDED` | `ACTIVE`, `INACTIVE`, `DISBANDED`, `ARCHIVED` |
+  | | `DISBANDED` | `ACTIVE` (reform), `ARCHIVED` |
+  | | `ARCHIVED` | the status it had before archiving (unarchive) |
+  | Venue | `ACTIVE` | `TEMPORARILY_UNAVAILABLE`, `CLOSED`, `ARCHIVED` |
+  | | `TEMPORARILY_UNAVAILABLE` | `ACTIVE`, `CLOSED`, `ARCHIVED` |
+  | | `CLOSED` | `ACTIVE` (reopen), `ARCHIVED` |
+  | | `ARCHIVED` | the status it had before archiving (unarchive) |
+
+  Unarchive sends the status before archiving (read from the history); any other target is refused, so archiving a
+  dissolved organisation and unarchiving it never undoes the dissolution (Q55).
 
   `SUSPENDED` here is an administrative stop set by staff (discipline's own suspensions come later). Any other move is
   `409 ORGANISATION_STATUS_INVALID`, `TEAM_STATUS_INVALID`, `VENUE_STATUS_INVALID`. An organisation's status never
   changes its teams'. Nothing is deleted (AR-18). The pack's venue `INACTIVE` isn't in state-machines.md and isn't
   built. state-machines.md gets the machines "as built".
 - **D13 — Lighter duplicate warnings (Q54).** Organisations, teams and venues use S06's normaliser and trigram
-  similarity, but no check token, no lock-held re-check against a token and no remembered decisions:
+  similarity, but no check token and no remembered decisions:
   - **Organisation:** `LIKELY` with the same name key (display, legal, short name or a current alias, either side) and
     the same type or city; `POSSIBLE` with similarity ≥ 0.7 and the same city or type.
   - **Team:** `LIKELY` with the same name key (name, short name or a current alias) and the same variant and
@@ -179,13 +204,16 @@ docs/product/ux/public-app.md (Team, player and venue pages), docs/reference/cha
   - **Venue:** `LIKELY` with the same name key and city, or coordinates within 200 m; `POSSIBLE` with similarity ≥ 0.7
     and the same city.
 
-  Create, and an update or rename that changes a compared field, answer `409 <AREA>_DUPLICATE_WARNING` with
+  A null city or type never matches. Create, and an update or rename that changes a compared field, run the check
+  under D21's lock and answer `422 <AREA>_DUPLICATE_REVIEW_REQUIRED` (422 as people's
+  `PERSON_DUPLICATE_OVERRIDE_REQUIRED`) with
   `candidates` (id, name, the type or category and variant, city, status, the evidence codes) in the Problem Details,
   unless the body says `duplicatesReviewed: true` (with an optional `duplicateReason`, 1–500). The audit entry names
   the candidates shown and the reason. An exact external identifier is never a warning: it is `409
   <AREA>_EXTERNAL_ID_EXISTS`. `ARCHIVED` records are found and marked; at most 10 candidates, strongest first; the
   thresholds are constants in one place with edge tests. `POST …/organisations/duplicate-check`, `…/teams/…` and
-  `…/venues/…` (the create action, unaudited) give the form its live warning before the save.
+  `…/venues/…` (`organisation.duplicate_check`, `team.duplicate_check`, `venue.duplicate_check`; audit `NONE`, as
+  `person.duplicate_check`; granted with the create action) give the form its live warning before the save.
 - **D14 — `MAX_TEAMS` (Q50).** Registry counts the tenant's teams in `ACTIVE`, `INACTIVE` or `SUSPENDED` (`TeamCount`,
   `AddQuotaUsage<TeamCount>("MAX_TEAMS")`); `team.create` names the entitlement, and create, reform (`DISBANDED →
   ACTIVE`) and unarchive check `IEntitlements.CheckQuotaAsync` under `registry.teams:<tenantId>` before saving: at the
@@ -193,14 +221,18 @@ docs/product/ux/public-app.md (Team, player and venue pages), docs/reference/cha
   Subscription page shows the count with S04's `QuotaUsage`.
 - **D15 — Logos and badges (ADR-0014).** New purposes `ORG_LOGO`, `TEAM_LOGO`, `TEAM_BADGE` in `MediaPurpose`, the
   first with visibility `PUBLIC`: PNG, JPEG or WebP up to 2 MB (no SVG: it can carry script), at least 64 px on the
-  shorter side, re-encoded as WebP `thumbnail` (160 px) and `medium` (640 px) with transparency kept, no `large`.
+  shorter side (`422 MEDIA_IMAGE_TOO_SMALL`, a new Platform code), re-encoded as WebP `thumbnail` (160 px) and `medium` (640 px) with transparency kept, no `large`.
   Endpoints `PUT/DELETE …/organisations/{id}/logo`, `…/teams/{id}/logo`, `…/teams/{id}/badge` (multipart;
   `organisation.logo.set`/`.remove`, `team.logo.set`/`.remove`, `team.badge.set`/`.remove`; audit `REQUIRED`; the set
   actions name `STORAGE_GB` and check it as S06 D20 does). A new image marks the old asset `REMOVED`. Admin reads carry
-  signed URLs as photos do. Public reads carry `logoUrl`/`badgeUrl` on the tenant's host: `GET
+  signed URLs as photos do. Public reads carry `logoUrl`/`badgeUrl` on the tenant's host, built by a new
+  `IMediaAssets.GetPublicPath(assetId, variant)` (Registry never hard-codes Platform's route, ADR-0014): `GET
   /api/public/v1/assets/{assetId}/{variant}` (Platform, `.RequirePublicTenant()`), which streams only `ACTIVE` assets
   with visibility `PUBLIC` of the host's tenant (else `404 MEDIA_NOT_FOUND`) with `Cache-Control: public,
-  max-age=31536000, immutable` (an asset never changes; a new image is a new ID). Person photos stay `PRIVATE`.
+  max-age=86400` (a day, no `immutable`: a removed logo, or a site whose public flag is turned off, leaves caches
+  within a day; the IDs change with each new image, so a longer life buys little). The route doesn't know the owner: a
+  logo of an archived team stays reachable by its URL, but no public read links it (D17). Person photos stay
+  `PRIVATE`.
 - **D16 — Classification.** Each column carries `pii` and each DTO property `[PersonalData]`. `PUBLIC`: names, short
   names, slug, type, category, variant, code, motto, colours, logo and badge, founded year, organisation (as id, name,
   slug), home or primary venue (as id, name, slug), city, region, country, website, description, a venue's address,
@@ -212,12 +244,13 @@ docs/product/ux/public-app.md (Team, player and venue pages), docs/reference/cha
   `.RequirePublicTenant()`, `CacheableJson` 60 s, every status but `ARCHIVED` (`404 ORGANISATION_NOT_FOUND`,
   `TEAM_NOT_FOUND`, `VENUE_NOT_FOUND`), `PUBLIC` fields only:
   - `GET /api/public/v1/organisations` (cursor; `type`, `q`) and `…/organisations/{idOrSlug}` (with its teams, its
-    parent and children that aren't archived);
+    parent and its children, none of them archived);
   - `GET /api/public/v1/teams` (cursor; `variant`, `organisationId`, `genderCategory`, `ageGroup`, `q`) and
     `…/teams/{idOrSlug}` (organisation, home venue, former names);
   - `GET /api/public/v1/venues` (cursor; `variant`, `q`) and `…/venues/{idOrSlug}`.
 
-  Directories default to `ACTIVE` and take `status`. The public site's pages are S14's; S07 builds the API only.
+  An embedded organisation or venue that is `ARCHIVED` is answered as `null` (it 404s on its own read), and an archived
+  record's logo isn't linked. Directories default to `ACTIVE` and take `status`. The public site's pages are S14's; S07 builds the API only.
 - **D18 — Contracts.** `ITeamDirectory.GetSummariesAsync(ids, onDate?)` (id, the name, short name and code on that date,
   variant, category codes, organisation id, status, slug, logo and badge asset IDs), `IVenueDirectory.GetSummariesAsync
   (ids)` (id, name, short name, time zone, city, country, supported variants, status), `IOrganisationDirectory
@@ -233,12 +266,12 @@ docs/product/ux/public-app.md (Team, player and venue pages), docs/reference/cha
   `status`; sorted by name, id). Query integers typed as integers in OpenAPI.
 - **D20 — Actions and roles.** Reads `organisation.read`, `team.read`, `venue.read` (available while read-only; audit
   `NONE`) for `TENANT_OWNER`, `TENANT_ADMIN`, `REGISTRAR`, `COMPETITION_MANAGER`, `RESULTS_OFFICER`, `DATA_ENTRY`,
-  `VIEWER` (as `person.read`). Every change — create (and its duplicate check), update, rename, status, parent,
+  `VIEWER` (as `person.read`). Every change — create (and its `*.duplicate_check`), update, rename, status, parent,
   aliases, identifiers, images — for `TENANT_OWNER`, `TENANT_ADMIN`, `REGISTRAR`. `SCORER` and `TEAM_MANAGER` get none
   in S07 (S08 gives a team manager their own team through the `TEAM` scope). Names follow docs/generated/actions.md;
   each task's plan confirms them.
-- **D21 — Concurrency and locks.** Updates, renames, status changes and child changes take `If-Match`. Creates hold
-  `registry.<organisations|teams|venues>:<tenantId>` while they check identifiers, slugs and (teams) the quota and
+- **D21 — Concurrency and locks.** Updates, renames, status changes and child changes take `If-Match`. Creates, and updates or renames
+  that change a compared field (D13), hold `registry.<organisations|teams|venues>:<tenantId>` while they check identifiers, slugs and (teams) the quota and
   save; the unique indexes are the last guard (a clash after the lock is the `…_SLUG_TAKEN` or `…_EXTERNAL_ID_EXISTS`
   answer, never a 500).
 - **D22 — Seeds and test data (Q51).** DEMO seeders through the Registry commands, from JSON files beside
@@ -251,9 +284,11 @@ docs/product/ux/public-app.md (Team, player and venue pages), docs/reference/cha
     and basketball clubs) with types, cities and primary venues, and ELSSC's four schools (`SCHOOL`).
   - `registry.demo.teams`: football only — the 10 Metro Football League teams (Senior Men), 6 women's and 8 under-17
     teams as the competitions in pilot-customer.md need (Seeta Sparrows FC Under-17 among them), each under its club;
-    one renamed team (Mutundwe Meteors FC was "Mutundwe United FC" until 2025-12-31) and one archived historical team
+    one renamed team (Mutundwe Meteors FC, created with `name_since` 2018-01-01 as "Mutundwe Weavers FC" and renamed
+    from 2026-01-01) and one archived historical team
     (Kireka Kingfishers FC Reserves, archived "Folded into the first team"); ELSSC: under-16 boys' and girls' teams for
-    its four schools. An independent team (no organisation) is a test case, not demo data. Rugby and basketball teams join the seed when S15 and S16 publish their definitions.
+    its four schools. An independent team (no organisation) is a test case, not demo data. Rugby and basketball teams
+    join the seed when S15 and S16 publish their definitions.
   - Idempotent by name as `registry.demo.people`; a tenant that isn't `ACTIVE` is skipped. Logos are generated
     placeholder images (`PlaceholderPng`), never a real club's. Every name is invented and listed in pilot-customer.md.
   - Tests: `RegistryTestData` gains organisations, teams and venues through the handlers; the multi-sport rule uses
@@ -315,7 +350,9 @@ Deliver:
 Acceptance:
 - [ ] Setting a descendant as parent is refused with `ORGANISATION_PARENT_CYCLE`, also when two requests would close a
       cycle at once (test holding the lock); the parent history keeps both links with their dates.
-- [ ] Suspending or dissolving an organisation leaves its teams' statuses alone (test, with T3's teams).
+- [ ] Suspending or dissolving an organisation leaves its teams' statuses alone, and a team's update that keeps its
+      dissolved organisation succeeds (tests, with T3's teams).
+- [ ] Unarchiving returns to the status before archiving; a dissolved organisation stays dissolved (test).
 - [ ] Duplicate warnings for organisations behave as D13 says (table-driven tests).
 
 ### T3 — Teams (~2 PRs, about 1,300 lines)
@@ -329,25 +366,28 @@ Deliver:
 Acceptance:
 - [ ] A team can't be created for a variant the tenant hasn't enabled (`TEAM_SPORT_NOT_ENABLED`); one organisation
       runs teams in two sports (two test variants of two test sports) and in several categories of one (tests).
-- [ ] Renaming keeps the old name as a `FORMER_NAME` alias with its dates; `ITeamDirectory` answers the old name on a
-      date before the rename and the new one after (tests); `PUT` can't rename.
+- [ ] Renaming keeps the old name as a `FORMER_NAME` alias with its dates (from `name_since`); `ITeamDirectory`
+      answers the old name on a date before the rename, the new one after and the first name before `name_since`
+      (tests); an `effectiveOn` on or before the current name's start or after today is `TEAM_RENAME_DATE_INVALID`;
+      `PUT` can't rename.
 - [ ] At `MAX_TEAMS` create, reform and unarchive are refused with "Your plan allows N teams."; disbanding frees a
       place; two creates at the limit don't both pass (tests).
 - [ ] A disabled variant keeps its teams, which can still be updated and change status (test).
 
-### T4 — Logos, badges and public assets (~1 PR, about 700 lines)
+### T4 — Logos, badges and public assets (~1 PR, about 700 lines; if larger, T4a Platform purposes and route, T4b Registry endpoints)
 Deliver:
 - The three purposes as `PUBLIC` assets (D15) with their limits and variants; the set/remove endpoints and actions;
   `STORAGE_GB` checked; the public asset route; signed URLs in admin reads.
 
 Acceptance:
-- [ ] An SVG, a file over 2 MB or an image under 64 px is refused with its `MEDIA_*` code; a PNG with transparency
+- [ ] An SVG, a file over 2 MB or an image under 64 px is refused (`MEDIA_TYPE_NOT_ALLOWED`, `MEDIA_TOO_LARGE`,
+      `MEDIA_IMAGE_TOO_SMALL`); a PNG with transparency
       keeps it in the WebP variants (tests).
 - [ ] The public asset route serves another tenant's asset, a `PRIVATE` asset (a person photo) or a removed one as
       `404` (tests); its response is cacheable as D15 says.
 - [ ] At the storage limit a logo upload is refused (test).
 
-### T5 — Public reads (~1 PR, about 700 lines)
+### T5 — Public reads (~1 PR, about 700 lines; if larger, T5a organisations and venues, T5b teams)
 Deliver:
 - D17's six endpoints with `idOrSlug`, the filters and caching; OpenAPI and the client.
 
@@ -355,7 +395,7 @@ Acceptance:
 - [ ] Public reads answer only `PUBLIC` fields (the classification test covers the new DTOs); an archived record is
       `404`; another tenant's host never sees the record (tests).
 - [ ] A team read shows its former names with dates, its organisation and home venue, and its logo URL on the
-      tenant's host (test).
+      tenant's host; an archived organisation or venue is embedded as `null` (tests).
 
 ### T6 — Screens (~4 PRs, about 2,200 lines)
 Deliver:
