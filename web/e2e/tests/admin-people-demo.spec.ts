@@ -40,7 +40,8 @@ test("slice demo: duplicate review, a twin past it, a minor's consent and public
 }) => {
   // Two tenants, a dozen people, the screens' steps and the audit trail's polls.
   test.slow();
-  const coucal = await ownTenant(request, "coucal-sports", "Coucal Sports Club");
+  // Its public site is on, so the public read answers for it.
+  const coucal = await ownTenant(request, "coucal-sports", "Coucal Sports Club", { publicEnabled: true });
   const owner = { email: personEmail("agnes.nansubuga", coucal.slug), password: newPassword() };
   await acceptByApi(request, await inviteOwnerOf(request, coucal.id, owner.email), owner.password);
   await signInByApi(request, owner.email, owner.password);
@@ -48,7 +49,7 @@ test("slice demo: duplicate review, a twin past it, a minor's consent and public
   const sport = await enableFirstSport(request, member);
 
   // Already registered (as registry.demo.people seeds KMSA): John Ssekandi, Mariam Nankya, Brenda Akello (a minor,
-  // 14 or 15 on the day the test runs, with a photo and no consent), Denis Opoka with three profiles, Ivan Mukasa
+  // 14 or 15 on the day the test runs, with a photo, an athlete profile and no consent), Denis Opoka with three profiles, Ivan Mukasa
   // archived.
   const thisYear = Number(kampalaDate(0).slice(0, 4));
   const john = await createPerson(request, member, {
@@ -73,6 +74,8 @@ test("slice demo: duplicate review, a twin past it, a minor's consent and public
     nationality: "UG",
   });
   brenda = await setPhoto(request, member, brenda);
+  // An athlete profile, which the public read of a minor leaves out (ADR-0015).
+  brenda = await changePerson(request, member, brenda, "athlete-profiles", { variant: sport.variant });
   let denis = await createPerson(request, member, {
     firstName: "Denis",
     lastName: "Opoka",
@@ -259,7 +262,10 @@ test("slice demo: duplicate review, a twin past it, a minor's consent and public
     success("person.create", shamimId, "Twin sister, different first name"),
   ]);
   await auditEntries(request, { tenantId: coucal.id, action: "person.consent.withdraw" }, [
-    (entry) => entry.outcome === "SUCCESS" && entry.reason === "Her mother asked for the photo to come down",
+    (entry) =>
+      entry.outcome === "SUCCESS" &&
+      entry.entityId === brenda.id &&
+      entry.reason === "Her mother asked for the photo to come down",
   ]);
   await auditEntries(request, { tenantId: coucal.id, action: "person.archive" }, [
     success("person.archive", ivan.id, "Left the association"),

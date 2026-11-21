@@ -95,7 +95,7 @@ export async function enableFirstSport(request: APIRequestContext, member: Membe
   };
 }
 
-/** A signed consent form for the tests: a small PDF: the API checks the file's first bytes, not its name or the type sent. */
+/** A signed consent form for the tests, a small PDF: the API checks the file's first bytes, not its name or the type sent. */
 export const signedForm = {
   name: "consent-form.pdf",
   mimeType: "application/pdf",
