@@ -779,3 +779,15 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
   test names no sport. The demo's "Same name, other order" is the screen's "Same names, in any order". The public read
   is asked with Development's `?tenant=` override. Screenshots: `add-person-likely-match`, `person-archived-roles`. No
   backend change.
+
+**Slice review (2026-11-21).** All acceptance items are met on main (e900d70, #115): each item's evidence is named
+above and the tests exist. On main the backend runs 3305 tests, all passing (run locally against Testcontainers),
+and CI on the merge commit is green (backend, web, e2e with `admin-people-demo.spec.ts`, contracts, infra). The RLS
+exception list is unchanged (`outbox_messages`, `tenant_domains`); every new Registry table and
+`platform.media_assets` has its isolation sample. No sport code in generic code (`SportLiteralTests`, the apps' ESLint
+rule); Registry references only other modules' Contracts (Platform, Tenancy, Sports Configuration). The one new
+dependency, SkiaSharp with its no-dependencies Linux assets, has its ADR (ADR-0017, Q35). D1–D24 are built, with the
+agreed deviations in PROGRESS.md (S06-T1a … T7c-2b). No ADR drift. The owner's manual demo on KMSA and ELSSC is not
+recorded. Tech debt: `RegistryDbContext`'s single conflict code moves to S07-T1 (S07 D2); the other S06 items keep
+their triggers under "From S06" in PROGRESS.md. S07's spec is written (docs/build/slices/S07-organisations-teams-venues.md,
+Q50–Q55).
