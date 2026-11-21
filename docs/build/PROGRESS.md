@@ -583,6 +583,13 @@ docs/build/slices/S07-organisations-teams-venues.md, "Carried over from S06")
   **Done in S07-T1a (#117):** `RegistryConcurrencyConflicts` maps each root to its code (`PERSON_…`, `VENUE_…`; organisations
   and teams join in T2 and T3) through `ModuleDbContext.ConcurrencyConflictErrorFor`.
 
+**From S07** (each names its trigger)
+- Venues' duplicate warning (S07-T1a, review of #117 R4): the same-city branch compares `similarity(...)` as a value,
+  so neither the trigram index on `name_key` nor an index on `city_key` serves it, and it scans the tenant's venues
+  (people's finder does the same). Fine at venue volumes; add `(tenant_id, city_key)` or switch to `%` with
+  `pg_trgm.similarity_threshold` when a tenant's venues reach the thousands, or when T2/T3's finders for organisations
+  and teams (more rows) are planned.
+
 **From S06** (regrouped by the S06 slice review, 2026-11-21; each names its trigger)
 - Consent's `givenOn` has no lower bound when the date of birth is unknown (S06-T6a pre-review N3; as T4b2's
   `licenceValidUntil`). Add a floor (e.g. 100 years before the tenant's date) with the next validation pass.

@@ -2,6 +2,7 @@ using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.Modules.Registry.Domain;
 using SportsPlatform.Modules.Registry.Domain.People;
 using SportsPlatform.Modules.Registry.Domain.Venues;
+using SportsPlatform.Modules.Registry.Features.Venues;
 using SportsPlatform.Modules.Registry.Infrastructure;
 
 namespace SportsPlatform.UnitTests.Registry;
@@ -82,6 +83,15 @@ public sealed class VenueTests
 
         from.DistanceMetresTo(new GeoPoint((decimal)latitude, (decimal)longitude)).ShouldBe(metres, tolerance: 0.5);
     }
+
+    // D13: the 200 m rule is inclusive; a venue without coordinates is never nearby.
+    [Theory]
+    [InlineData(200.0, true)]
+    [InlineData(199.99, true)]
+    [InlineData(200.01, false)]
+    [InlineData(null, false)]
+    public void Two_venues_are_nearby_up_to_200_m(double? metres, bool nearby) =>
+        VenueDuplicateThresholds.IsNearby(metres).ShouldBe(nearby);
 
     [Fact]
     public void The_box_around_a_point_holds_every_point_within_the_distance()

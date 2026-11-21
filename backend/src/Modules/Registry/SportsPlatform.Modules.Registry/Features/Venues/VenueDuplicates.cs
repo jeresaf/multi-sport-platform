@@ -16,6 +16,9 @@ public static class VenueDuplicateThresholds
     public const double NearbyMetres = 200;
 
     public const int MaxCandidates = 10;
+
+    /// <summary>Whether two venues <paramref name="metres"/> apart look like one place (inclusive); no distance never does.</summary>
+    public static bool IsNearby(double? metres) => metres <= NearbyMetres;
 }
 
 /// <summary>Why a venue looks like the one checked (S07 D13).</summary>
@@ -59,7 +62,8 @@ public sealed record VenueDuplicateCandidate(
 /// </summary>
 public sealed class VenueDuplicateFinder(RegistryDbContext context)
 {
-    // Rows read before classifying, in the query's order. Far above what one name or place finds.
+    // Rows read before classifying, in the query's order (venues in the box first, so a nearby LIKELY is never cut for
+    // names that are only similar). Far above what one name or place finds.
     public const int MaxRows = 100;
 
     public async Task<IReadOnlyList<VenueDuplicateCandidate>> FindAsync(VenueDuplicateInput input, CancellationToken cancellationToken)
@@ -78,6 +82,8 @@ public sealed class VenueDuplicateFinder(RegistryDbContext context)
         var (minLongitude, maxLongitude) = (longitude - longitudeSpan, longitude + longitudeSpan);
         var anyLongitude = minLongitude < -GeoPoint.MaxLongitude || maxLongitude > GeoPoint.MaxLongitude;
 
+        // The similarity is compared as a value, so the trigram index on name_key doesn't serve this query (only `%`
+        // would); a tenant's venues are few. The index serves the directory's search (S07-T1b), as people's.
         var rows = await context.Set<Venue>().AsNoTracking()
             .Where(v => self == null || v.Id != self)
             .Where(v =>
@@ -85,7 +91,9 @@ public sealed class VenueDuplicateFinder(RegistryDbContext context)
                     && (v.NameKey == key || EF.Functions.TrigramsSimilarity(v.NameKey, key) >= VenueDuplicateThresholds.Similar - 0.0001))
                 || (near && v.Latitude >= minLatitude && v.Latitude <= maxLatitude
                     && (anyLongitude || (v.Longitude >= minLongitude && v.Longitude <= maxLongitude))))
-            .OrderByDescending(v => v.NameKey == key)
+            .OrderByDescending(v => near && v.Latitude >= minLatitude && v.Latitude <= maxLatitude
+                && (anyLongitude || (v.Longitude >= minLongitude && v.Longitude <= maxLongitude)))
+            .ThenByDescending(v => v.NameKey == key)
             .ThenByDescending(v => EF.Functions.TrigramsSimilarity(v.NameKey, key))
             .ThenBy(v => v.Id)
             .Take(MaxRows)
@@ -122,7 +130,7 @@ public sealed class VenueDuplicateFinder(RegistryDbContext context)
         double? distance = input.Location is { } location && row.Latitude is { } latitude && row.Longitude is { } longitude
             ? location.DistanceMetresTo(new GeoPoint(latitude, longitude))
             : null;
-        var nearby = distance <= VenueDuplicateThresholds.NearbyMetres;
+        var nearby = VenueDuplicateThresholds.IsNearby(distance);
 
         var evidence = new List<VenueDuplicateEvidence>();
         if (sameCity && row.SameNameKey)
