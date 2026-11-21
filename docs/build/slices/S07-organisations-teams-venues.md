@@ -472,8 +472,8 @@ The rest of S06's tech debt has its own trigger in PROGRESS.md ("From S06").
   compares `city_key` (as D13's "same city"); `variant` is a code in `supported_variants`. Items: id, name, short
   name, slug, type, city, country, supported variants, status. The migration backfills existing rows in SQL (NFD,
   combining marks U+0300–U+036F dropped, lower case, `[^[:alnum:][:space:]]` dropped, whitespace collapsed, NFC;
-  the name key if that is empty), lifting `FORCE ROW LEVEL SECURITY` for the update inside the migration's
-  transaction: forced RLS hides every row from the migrator, the table's owner (the SQL backfill: owner, plan
-  2026-11-21; lifting FORCE instead of running per tenant or as `sp_platform`, database.md: the builder, raised on
-  the PR; a test proves the rows changed in two tenants and FORCE is back). `DocumentsQueryInteger(name, minimum, maximum, @default)`: People's and
+  the name key if that is empty) through the new `migrationBuilder.UpdateTenantRowsAsOwner(schema, table, sql)`,
+  which lifts `FORCE ROW LEVEL SECURITY` for that SQL only, in the migration's transaction (owner, plan and
+  pre-review 2026-11-21; multi-tenancy.md and database.md name it); a test proves the rows changed in two tenants
+  and FORCE is back. A `city` without a letter or digit matches no venue. `DocumentsQueryInteger(name, minimum, maximum, @default)`: People's and
   venues' `limit` declare `1, 100, 25`; the other lists are tech debt "From S07".

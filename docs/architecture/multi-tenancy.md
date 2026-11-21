@@ -154,8 +154,10 @@ CREATE POLICY tenant_isolation ON registry.persons
   PostgreSQL (Azure Database for PostgreSQL Flexible Server, ADR-0016) the server admin is not a superuser but can
   create `BYPASSRLS` roles on PostgreSQL 16 and later. Local and CI scripts create the same roles.
 - `FORCE ROW LEVEL SECURITY` makes the table owner (`sp_migrator`) subject to the policies too. A migration
-  that changes tenant rows must therefore run per tenant (setting `app.tenant_id`) or through `sp_platform`;
-  otherwise it silently matches no rows.
+  that changes tenant rows must therefore run per tenant (setting `app.tenant_id`), through `sp_platform`, or, for a
+  change to every tenant's rows inside an EF migration, with `migrationBuilder.UpdateTenantRowsAsOwner(schema,
+  table, sql)`: FORCE lifted for that SQL only, in the migration's transaction (owner, S07-T1b-2); otherwise it
+  silently matches no rows.
 
 ### Layer 3 — tests
 

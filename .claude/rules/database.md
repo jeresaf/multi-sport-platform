@@ -40,8 +40,9 @@ paths:
 - Review generated SQL: names, types, nullability, defaults, indexes, constraints.
 - Semantic data changes need a data migration in the same PR; destructive steps need a backup/restore note.
 - Tables use `FORCE ROW LEVEL SECURITY`, so even the owner role sees no tenant rows without `app.tenant_id`.
-  Data migrations that touch tenant rows run per tenant or through `sp_platform` (docs/architecture/multi-tenancy.md);
-  a test proves the rows actually changed.
+  Data migrations that touch tenant rows run per tenant, through `sp_platform`, or inside the migration with
+  `migrationBuilder.UpdateTenantRowsAsOwner(schema, table, sql)` (FORCE lifted for that SQL only;
+  docs/architecture/multi-tenancy.md); a test proves the rows actually changed and FORCE is back.
 
 ## Tenant tables
 - `tenant_id uuid not null` on every tenant-owned table.
