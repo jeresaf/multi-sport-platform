@@ -725,6 +725,12 @@
       "status": 422,
       "message": "No published sport definition has this variant.",
       "owner": "Registry"
+    },
+    {
+      "code": "VENUE_STATUS_INVALID",
+      "status": 409,
+      "message": "The venue's current status doesn't allow this change.",
+      "owner": "Registry"
     }
   ]
 }
