@@ -41,7 +41,7 @@ public sealed class UpdateVenueTests(PostgresFixture fixture) : DatabaseTest(fix
         var created = await CreateVenueAsync(registrar, body);
         var id = created.GetProperty("id").GetGuid();
 
-        // Left out: the short name, the region, the country (the tenant's), the slug (kept) and the coordinates.
+        // Left out: the short name, the region, the country (the tenant's) and the slug (kept); the coordinates are unchanged.
         var changed = KiwatuleMeadow();
         changed["name"] = "Kiwatule Meadow Ground";
         changed["capacity"] = 1500;
@@ -138,13 +138,14 @@ public sealed class UpdateVenueTests(PostgresFixture fixture) : DatabaseTest(fix
     }
 
     // D13: only the name key, the city and the coordinates are compared; a venue that already looks like another one
-    // takes any other change without a warning, and moving it within 200 m of another one is warned.
+    // takes any other change without a warning, and moving it within 200 m of a venue it shares nothing else with is
+    // warned on the distance alone.
     [Fact]
     public async Task Only_a_change_to_a_compared_field_runs_the_warning()
     {
         var (kmsa, registrar) = await TenantAsync("kmsa", IdentityRoles.Registrar);
-        var meadow = new GeoPoint(0.371245m, 32.618310m);
-        var other = await SaveVenueAsync(App.Services, kmsa, "Kiwatule Meadow Ground", location: meadow);
+        await SaveVenueAsync(App.Services, kmsa, "Kiwatule Meadow Ground");
+        var ntinda = await SaveVenueAsync(App.Services, kmsa, "Ntinda View Ground", city: "Wakiso", location: new GeoPoint(0.371245m, 32.618310m));
         var kiwatule = await SaveVenueAsync(App.Services, kmsa, "Kiwatule Meadow Ground");
 
         var body = KiwatuleMeadow();
@@ -152,11 +153,42 @@ public sealed class UpdateVenueTests(PostgresFixture fixture) : DatabaseTest(fix
         body["capacity"] = 800;
         (await UpdateVenueAsync(registrar, kiwatule.Id, body)).GetProperty("capacity").GetInt32().ShouldBe(800);
 
+        // About 84 m north of the Ntinda ground; the other Kiwatule venue is a candidate by name and city as before.
         body["latitude"] = 0.372000m;
         body["longitude"] = 32.618310m;
         using var moved = await registrar.PutAsJsonAsync(VenuePath(kiwatule.Id), body, Ct);
         var problem = await moved.ShouldBeProblemAsync(HttpStatusCode.UnprocessableEntity, "VENUE_DUPLICATE_REVIEW_REQUIRED");
-        Candidates(problem).ShouldBe([(other.Id, "LIKELY")]);
+        var near = problem.GetProperty("candidates").EnumerateArray().Single(c => c.GetProperty("venueId").GetGuid() == ntinda.Id);
+        near.GetProperty("confidence").GetString().ShouldBe("LIKELY");
+        near.GetProperty("evidence").EnumerateArray().Select(e => e.GetProperty("code").GetString()).ShouldBe(["NEARBY"]);
+    }
+
+    // D21 on update (review #118 R1): a create and a rename to the same venue queue on the lock; the second finds the
+    // first and is warned, whichever comes first.
+    [Fact]
+    public async Task A_create_and_a_rename_to_the_same_venue_at_once_make_one_such_venue()
+    {
+        var (kmsa, registrar) = await TenantAsync("kmsa", IdentityRoles.Registrar);
+        var kisaasi = await SaveVenueAsync(App.Services, kmsa, "Kisaasi Recreation Ground");
+        var rename = KiwatuleMeadow();
+        rename["name"] = "Bukoto Community Stadium";
+        var create = KiwatuleMeadow();
+        create["name"] = "Bukoto Community Stadium";
+
+        var responses = await Task.WhenAll(
+            registrar.PutAsJsonAsync(VenuePath(kisaasi.Id), rename, Ct),
+            registrar.PostAsJsonAsync(VenuesPath, create, Ct));
+
+        var refused = responses.Where(r => r.StatusCode == HttpStatusCode.UnprocessableEntity).ShouldHaveSingleItem();
+        responses.Count(r => r.IsSuccessStatusCode).ShouldBe(1);
+        await refused.ShouldBeProblemAsync(HttpStatusCode.UnprocessableEntity, "VENUE_DUPLICATE_REVIEW_REQUIRED");
+        foreach (var response in responses)
+        {
+            response.Dispose();
+        }
+
+        await using var scope = ScopeFor(App.Services, kmsa, out var context);
+        (await context.Set<Venue>().CountAsync(v => v.NameKey == Venue.NameKeyOf("Bukoto Community Stadium"), Ct)).ShouldBe(1);
     }
 
     [Fact]
