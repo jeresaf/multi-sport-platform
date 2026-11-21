@@ -112,4 +112,91 @@ public sealed class VenueTests
         RegistryConcurrencyConflicts.For(typeof(Person))!.Code.ShouldBe("PERSON_CONCURRENCY_CONFLICT");
         RegistryConcurrencyConflicts.For(typeof(PersonAlias)).ShouldBeNull();
     }
+
+    // D12: every pair of statuses that isn't archived; ARCHIVED's own moves are below.
+    public static TheoryData<VenueStatus, VenueStatus, bool> Moves() => new()
+    {
+        { VenueStatus.Active, VenueStatus.Active, false },
+        { VenueStatus.Active, VenueStatus.TemporarilyUnavailable, true },
+        { VenueStatus.Active, VenueStatus.Closed, true },
+        { VenueStatus.Active, VenueStatus.Archived, true },
+        { VenueStatus.TemporarilyUnavailable, VenueStatus.Active, true },
+        { VenueStatus.TemporarilyUnavailable, VenueStatus.TemporarilyUnavailable, false },
+        { VenueStatus.TemporarilyUnavailable, VenueStatus.Closed, true },
+        { VenueStatus.TemporarilyUnavailable, VenueStatus.Archived, true },
+        { VenueStatus.Closed, VenueStatus.Active, true },
+        { VenueStatus.Closed, VenueStatus.TemporarilyUnavailable, false },
+        { VenueStatus.Closed, VenueStatus.Closed, false },
+        { VenueStatus.Closed, VenueStatus.Archived, true },
+    };
+
+    [Theory]
+    [MemberData(nameof(Moves))]
+    public void The_lifecycle_allows_only_its_moves(VenueStatus from, VenueStatus to, bool allowed) =>
+        VenueTransitions.IsAllowed(from, to).ShouldBe(allowed);
+
+    // Q55: unarchiving goes back to the status before archiving and nowhere else.
+    [Theory]
+    [InlineData(VenueStatus.Active)]
+    [InlineData(VenueStatus.TemporarilyUnavailable)]
+    [InlineData(VenueStatus.Closed)]
+    public void An_archived_venue_goes_back_only_to_the_status_it_had(VenueStatus before)
+    {
+        foreach (var to in Enum.GetValues<VenueStatus>())
+        {
+            VenueTransitions.IsAllowed(VenueStatus.Archived, to, before).ShouldBe(to == before, $"{before} → ARCHIVED → {to}");
+        }
+
+        VenueTransitions.IsAllowed(VenueStatus.Archived, VenueStatus.Active).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Each_move_writes_its_history_row_and_unarchiving_reads_the_latest_archive()
+    {
+        var venue = Venue.Create(Kiwatule(), "kiwatule-meadow-ground", VenueSource.Manual, SystemActor.Instance, _now);
+
+        venue.ChangeStatus(VenueStatus.Archived, " Recorded twice ", SystemActor.Instance, _now.AddMinutes(1)).IsSuccess.ShouldBeTrue();
+        venue.StatusBeforeArchive().ShouldBe(VenueStatus.Active);
+        venue.ChangeStatus(VenueStatus.Active, "Recorded once after all", SystemActor.Instance, _now.AddMinutes(2)).IsSuccess.ShouldBeTrue();
+        venue.ChangeStatus(VenueStatus.Closed, "The ground was sold", SystemActor.Instance, _now.AddMinutes(3)).IsSuccess.ShouldBeTrue();
+        venue.ChangeStatus(VenueStatus.Archived, "No longer used", SystemActor.Instance, _now.AddMinutes(4)).IsSuccess.ShouldBeTrue();
+
+        venue.StatusBeforeArchive().ShouldBe(VenueStatus.Closed);
+        venue.ChangeStatus(VenueStatus.Active, "Back in use", SystemActor.Instance, _now.AddMinutes(5)).Error!.Code.ShouldBe("VENUE_STATUS_INVALID");
+        venue.ChangeStatus(VenueStatus.Closed, "Archived by mistake", SystemActor.Instance, _now.AddMinutes(5)).IsSuccess.ShouldBeTrue();
+
+        venue.Status.ShouldBe(VenueStatus.Closed);
+        venue.StatusBeforeArchive().ShouldBeNull();
+        venue.StatusHistory.Select(c => (c.FromStatus, c.ToStatus)).ShouldBe(
+        [
+            (null, VenueStatus.Active),
+            (VenueStatus.Active, VenueStatus.Archived),
+            (VenueStatus.Archived, VenueStatus.Active),
+            (VenueStatus.Active, VenueStatus.Closed),
+            (VenueStatus.Closed, VenueStatus.Archived),
+            (VenueStatus.Archived, VenueStatus.Closed),
+        ]);
+        venue.StatusHistory[1].Reason.ShouldBe("Recorded twice");
+    }
+
+    [Fact]
+    public void An_update_replaces_the_fields_and_keys_and_says_when_the_compared_fields_change()
+    {
+        var venue = Venue.Create(Kiwatule(new GeoPoint(0.371245m, 32.618310m)), "kiwatule-meadow-ground", VenueSource.Manual, SystemActor.Instance, _now);
+
+        // Case, punctuation and word order aside, and the same point to six places: nothing the warning compares.
+        venue.ChangesComparedFields(Kiwatule(new GeoPoint(0.3712450m, 32.61831m)) with { Name = "Ground, KIWATULE Meadow", Capacity = 900 }).ShouldBeFalse();
+        venue.ChangesComparedFields(Kiwatule(new GeoPoint(0.371245m, 32.618310m)) with { Name = "Kiwatule Meadow Grounds" }).ShouldBeTrue();
+        venue.ChangesComparedFields(Kiwatule(new GeoPoint(0.371245m, 32.618310m)) with { City = "Wakiso" }).ShouldBeTrue();
+        venue.ChangesComparedFields(Kiwatule(new GeoPoint(0.371246m, 32.618310m))).ShouldBeTrue();
+        venue.ChangesComparedFields(Kiwatule()).ShouldBeTrue();
+
+        venue.Update(Kiwatule() with { Name = "Kiwatule Recreation Ground", City = "Wakiso", ShortName = null, Surfaces = [] }, "kiwatule-recreation");
+
+        (venue.Name, venue.NameKey, venue.City, venue.CityKey, venue.Slug).ShouldBe(
+            ("Kiwatule Recreation Ground", "ground kiwatule recreation", "Wakiso", "wakiso", "kiwatule-recreation"));
+        (venue.ShortName, venue.Latitude, venue.Longitude, venue.Surfaces.Count).ShouldBe((null, null, null, 0));
+        (venue.Status, venue.StatusHistory.Count).ShouldBe((VenueStatus.Active, 1));
+        Should.Throw<ArgumentException>(() => venue.Update(Kiwatule(), "Not A Slug"));
+    }
 }

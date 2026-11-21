@@ -233,6 +233,29 @@ public static class RegistryActions
         scopableBy: [AssignmentScope.Tenant],
         grantedWith: ["venue.duplicate_check", "venue.read"]);
 
+    /// <summary>
+    /// Runs the duplicate check again when the name, city or coordinates change (S07 D11, D13), and answers the venue as
+    /// <c>venue.read</c> does, so it is granted with the check and that read.
+    /// </summary>
+    public static readonly ActionDefinition VenueUpdate = new(
+        "venue.update",
+        "Change a venue's details; a change to its name, city or coordinates shows possible duplicates first, and saving it anyway is recorded with the venues shown.",
+        ActionScope.Tenant,
+        AuditRequirement.Required,
+        since: "S07",
+        scopableBy: [AssignmentScope.Tenant],
+        grantedWith: ["venue.duplicate_check", "venue.read"]);
+
+    /// <summary>One action for every move of the venue lifecycle (S07 D12), with a reason; answers the venue as <c>venue.read</c> does.</summary>
+    public static readonly ActionDefinition VenueStatusChange = new(
+        "venue.status.change",
+        "Mark a venue temporarily unavailable, closed or archived, reopen it or unarchive it, with a reason.",
+        ActionScope.Tenant,
+        AuditRequirement.RequiredWithReason,
+        since: "S07",
+        scopableBy: [AssignmentScope.Tenant],
+        grantedWith: ["venue.read"]);
+
     // The lifecycle, alias, identifier, profile, photo, consent and public-profile actions answer the person as person.read does, so they are only
     // granted with that read.
     private static ActionDefinition Lifecycle(string code, string description, AuditRequirement audit) => new(

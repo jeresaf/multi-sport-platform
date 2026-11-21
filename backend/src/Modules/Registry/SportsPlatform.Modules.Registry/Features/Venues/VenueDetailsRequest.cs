@@ -1,12 +1,13 @@
 using FluentValidation;
 using SportsPlatform.Modules.Platform.Contracts.Reference;
+using SportsPlatform.Modules.Registry.Domain;
 using SportsPlatform.Modules.Registry.Domain.Venues;
 using SportsPlatform.Modules.Registry.Features.People;
 using SportsPlatform.Modules.SportsConfiguration.Contracts.Sports;
 
 namespace SportsPlatform.Modules.Registry.Features.Venues;
 
-/// <summary>A venue's editable fields as sent (S07 D3), shared by create and (S07-T1b) update.</summary>
+/// <summary>A venue's editable fields as sent (S07 D3), shared by create and update.</summary>
 public interface IVenueDetailsRequest
 {
     string? Name { get; }
@@ -34,6 +35,48 @@ public interface IVenueDetailsRequest
     IReadOnlyList<VenueSurface>? Surfaces { get; }
 
     IReadOnlyList<string?>? SupportedVariants { get; }
+}
+
+/// <summary>
+/// What a create and an update send beside the fields (S07 D9, D13): an optional slug, and, after the duplicate
+/// warning, <c>duplicatesReviewed</c> with an optional reason.
+/// </summary>
+public interface IVenueChangeRequest : IVenueDetailsRequest
+{
+    const int DuplicateReasonMaxLength = 500;
+
+    string? Slug { get; }
+
+    bool DuplicatesReviewed { get; }
+
+    string? DuplicateReason { get; }
+}
+
+/// <summary>
+/// The shape of <see cref="IVenueChangeRequest"/>: <see cref="VenueDetailsValidator{T}"/>, a well-formed slug that
+/// isn't a UUID, and a reason that isn't blank and comes only with <c>duplicatesReviewed</c>. Scoped: it reads the
+/// reference data.
+/// </summary>
+public sealed class VenueChangeValidator<T> : AbstractValidator<T>
+    where T : IVenueChangeRequest
+{
+    public VenueChangeValidator(IReferenceData reference)
+    {
+        Include(new VenueDetailsValidator<T>(reference));
+        RuleFor(request => request.Slug)
+            .Must(slug => slug is null || Slugs.IsValid(slug))
+            .WithMessage(
+                $"'slug' must be {Slugs.MinLength}–{Slugs.MaxLength} lower-case letters and digits in words joined by single hyphens, and not a UUID.");
+        RuleFor(request => request.DuplicateReason)
+            .Cascade(CascadeMode.Stop)
+            .Must(reason => reason is null || !string.IsNullOrWhiteSpace(reason))
+            .WithMessage("'duplicateReason' must not be empty when sent.")
+            .Must(reason => reason is null || reason.Trim().Length <= IVenueChangeRequest.DuplicateReasonMaxLength)
+            .WithMessage($"'duplicateReason' must be at most {IVenueChangeRequest.DuplicateReasonMaxLength} characters.");
+        RuleFor(request => request.DuplicateReason)
+            .Null().When(request => !request.DuplicatesReviewed)
+            .WithMessage("'duplicateReason' comes only with 'duplicatesReviewed'.");
+    }
 }
 
 /// <summary>

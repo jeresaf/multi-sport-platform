@@ -1,7 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Microsoft.EntityFrameworkCore;
 using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.Modules.Registry.Domain;
 using SportsPlatform.Modules.Registry.Domain.Venues;
@@ -19,6 +18,10 @@ internal static class VenueRequests
     private static int _nextSlug = 1000;
 
     public static string VenuePath(Guid venueId) => $"{VenuesPath}/{venueId}";
+
+    public static string VenueStatusPath(Guid venueId) => $"{VenuePath(venueId)}/status";
+
+    public static string VenueStatusChangesPath(Guid venueId) => $"{VenuePath(venueId)}/status-changes";
 
     /// <summary>The demo's new venue (S07 Demo), with only the required fields.</summary>
     public static Dictionary<string, object?> KiwatuleMeadow() => new()
@@ -66,22 +69,15 @@ internal static class VenueRequests
             VenueSource.Manual,
             SystemActor.Instance,
             RegistryTestData.Now);
-        context.Add(venue);
-        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Reached through the lifecycle, so the history knows what an archived venue was before.
         if (status != VenueStatus.Active)
         {
-            await context.Database.ExecuteSqlAsync(
-                $"UPDATE registry.venues SET status = {StatusCode(status)} WHERE id = {venue.Id}", TestContext.Current.CancellationToken);
+            venue.ChangeStatus(status, "Set up by the test", SystemActor.Instance, RegistryTestData.Now).IsSuccess.ShouldBeTrue();
         }
 
+        context.Add(venue);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
         return venue;
     }
-
-    private static string StatusCode(VenueStatus status) => status switch
-    {
-        VenueStatus.Archived => "ARCHIVED",
-        VenueStatus.Closed => "CLOSED",
-        VenueStatus.TemporarilyUnavailable => "TEMPORARILY_UNAVAILABLE",
-        _ => "ACTIVE",
-    };
 }

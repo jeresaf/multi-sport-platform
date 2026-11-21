@@ -122,6 +122,9 @@ public static class RegistryErrors
 
     public static readonly Error VenueNotFound = new("VENUE_NOT_FOUND", "The venue was not found.", ErrorKind.NotFound);
 
+    public static readonly Error VenueStatusInvalid = new(
+        "VENUE_STATUS_INVALID", "The venue's current status doesn't allow this change.", ErrorKind.Conflict);
+
     public static readonly Error VenueSportUnknown = new(
         "VENUE_SPORT_UNKNOWN", "No published sport definition has this variant.", ErrorKind.Unprocessable);
 
