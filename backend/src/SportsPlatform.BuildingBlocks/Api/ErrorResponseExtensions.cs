@@ -34,4 +34,25 @@ public static class ErrorResponseExtensions
 
         return builder.WithMetadata(new DeclaredErrorsMetadata(errors));
     }
+
+    /// <summary>
+    /// Documents <paramref name="statusCode"/>'s Problem Details as <typeparamref name="TProblem"/>: a
+    /// <see cref="ProblemDetails"/> subtype naming the extension members one of that status's errors carries (S07 D13's
+    /// <c>candidates</c>). Call it after <see cref="ProducesErrors"/>; it replaces that status's plain schema.
+    /// </summary>
+    public static RouteHandlerBuilder ProducesProblem<TProblem>(this RouteHandlerBuilder builder, int statusCode)
+        where TProblem : ProblemDetails
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        builder.Add(endpoint =>
+        {
+            foreach (var plain in endpoint.Metadata.OfType<ProducesResponseTypeMetadata>().Where(m => m.StatusCode == statusCode).ToList())
+            {
+                endpoint.Metadata.Remove(plain);
+            }
+
+            endpoint.Metadata.Add(new ProducesResponseTypeMetadata(statusCode, typeof(TProblem), [ProblemContentType]));
+        });
+        return builder;
+    }
 }

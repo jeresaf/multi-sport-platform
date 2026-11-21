@@ -7307,7 +7307,7 @@
             "content": {
               "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
+                  "$ref": "#/components/schemas/VenueDuplicateReviewProblem"
                 }
               }
             },
@@ -17294,6 +17294,83 @@
           "NEARBY"
         ],
         "description": "Why a venue looks like the one checked (S07 D13)."
+      },
+      "VenueDuplicateReviewProblem": {
+        "required": [
+          "code",
+          "correlationId"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "detail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "instance": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "candidates": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/VenueDuplicateCandidateResponse"
+            }
+          },
+          "code": {
+            "type": "string",
+            "description": "Stable error code, `<AREA>_<CONDITION>` (contracts/errors.json). Clients branch on it."
+          },
+          "correlationId": {
+            "type": "string",
+            "description": "The request's correlation ID (also the `X-Correlation-Id` response header)."
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "required": [
+                "field",
+                "code"
+              ],
+              "type": "object",
+              "properties": {
+                "field": {
+                  "type": "string"
+                },
+                "code": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Validation failures, one per field: `field` (camelCase) and `code`."
+          }
+        },
+        "description": "The Problem Details of a venue create refused with `422` (S07 D13), for the OpenAPI document and the generated\nclient: `candidates` is present only with `VENUE_DUPLICATE_REVIEW_REQUIRED`, the venues the warning found,\nstrongest first."
       },
       "VenueResponse": {
         "required": [

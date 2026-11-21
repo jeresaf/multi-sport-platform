@@ -4028,6 +4028,29 @@ export interface components {
          */
         VenueDuplicateEvidenceCode: "SAME_NAME_KEY" | "NAME_SIMILARITY" | "SAME_CITY" | "NEARBY";
         /**
+         * @description The Problem Details of a venue create refused with `422` (S07 D13), for the OpenAPI document and the generated
+         *     client: `candidates` is present only with `VENUE_DUPLICATE_REVIEW_REQUIRED`, the venues the warning found,
+         *     strongest first.
+         */
+        VenueDuplicateReviewProblem: {
+            type?: null | string;
+            title?: null | string;
+            /** Format: int32 */
+            status?: null | number;
+            detail?: null | string;
+            instance?: null | string;
+            candidates?: null | components["schemas"]["VenueDuplicateCandidateResponse"][];
+            /** @description Stable error code, `<AREA>_<CONDITION>` (contracts/errors.json). Clients branch on it. */
+            code: string;
+            /** @description The request's correlation ID (also the `X-Correlation-Id` response header). */
+            correlationId: string;
+            /** @description Validation failures, one per field: `field` (camelCase) and `code`. */
+            errors?: {
+                field: string;
+                code: string;
+            }[];
+        };
+        /**
          * @description A venue as the admin reads it (S07 D19). Every field is one the public reads may show (D16) but the version.
          *     Surfaces and variants keep the order they were sent in; variants are codes, labelled from the definitions (AR-29).
          */
@@ -8453,7 +8476,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                    "application/problem+json": components["schemas"]["VenueDuplicateReviewProblem"];
                 };
             };
         };

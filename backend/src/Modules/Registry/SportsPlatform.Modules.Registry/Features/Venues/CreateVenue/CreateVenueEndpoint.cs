@@ -29,7 +29,8 @@ internal static class CreateVenueEndpoint
         .ReturnsETag()
         .ProducesErrors(
             RegistryErrors.VenueNameInvalid, RegistryErrors.VenueSportUnknown, RegistryErrors.VenueSlugTaken,
-            RegistryErrors.VenueDuplicateReviewRequired);
+            RegistryErrors.VenueDuplicateReviewRequired)
+        .ProducesProblem<VenueDuplicateReviewProblem>(StatusCodes.Status422UnprocessableEntity);
 
     private static async Task<Results<Created<VenueResponse>, ProblemHttpResult>> HandleAsync(
         CreateVenueRequest request,

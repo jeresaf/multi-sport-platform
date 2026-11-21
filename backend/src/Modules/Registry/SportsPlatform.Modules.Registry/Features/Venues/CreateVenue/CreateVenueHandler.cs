@@ -31,7 +31,7 @@ public sealed class CreateVenueHandler(
     AuditScope audit,
     TimeProvider timeProvider)
 {
-    // The candidates of a refused create, in the Problem Details (S07 D13).
+    // The candidates of a refused create, in the Problem Details (S07 D13; documented as VenueDuplicateReviewProblem).
     public const string CandidatesExtension = "candidates";
 
     public async Task<(Guid? VenueId, ProblemHttpResult? Refusal)> HandleAsync(CreateVenueRequest request, CancellationToken cancellationToken)

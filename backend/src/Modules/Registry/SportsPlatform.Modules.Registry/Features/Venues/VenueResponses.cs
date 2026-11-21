@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using SportsPlatform.BuildingBlocks.Api;
 using SportsPlatform.BuildingBlocks.Privacy;
 using SportsPlatform.Modules.Registry.Domain.People.Duplicates;
@@ -54,6 +55,17 @@ public sealed record VenueDuplicateCandidateResponse(
         ArgumentNullException.ThrowIfNull(candidate);
         return new(candidate.VenueId, candidate.Name, candidate.Type, candidate.City, candidate.Status, candidate.Confidence, candidate.Evidence);
     }
+}
+
+/// <summary>
+/// The Problem Details of a venue create refused with <c>422</c> (S07 D13), for the OpenAPI document and the generated
+/// client: <c>candidates</c> is present only with <c>VENUE_DUPLICATE_REVIEW_REQUIRED</c>, the venues the warning found,
+/// strongest first.
+/// </summary>
+public sealed class VenueDuplicateReviewProblem : ProblemDetails
+{
+    [PersonalData(PersonalDataClass.Public)]
+    public IReadOnlyList<VenueDuplicateCandidateResponse>? Candidates { get; init; }
 }
 
 /// <summary>

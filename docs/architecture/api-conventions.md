@@ -228,6 +228,11 @@ Modules call each other in-process through Contracts, never over HTTP.
   endpoint, and `AUTH_TENANT_FORBIDDEN`, `TENANT_PROVISIONING` and (unless the action is available when blocked)
   `TENANT_BLOCKED` on tenant actions, and `400 VALIDATION_MALFORMED_REQUEST` on every endpoint that reads a body or
   `If-Match` (S03-T6a).
+- A Problem Details response that carries more than `code`, `correlationId` and `errors` (S07 D13's `candidates` with
+  `<AREA>_DUPLICATE_REVIEW_REQUIRED`) documents its shape: a `ProblemDetails` subtype naming the extra members, declared
+  with `.ProducesProblem<T>(status)` after `.ProducesErrors(...)` (it replaces that status's plain schema). The handler
+  still sets the members as extensions; the subtype is what OpenAPI and the generated client see (S07-T1a,
+  `VenueDuplicateReviewProblem`).
 - Request members the server treats as optional (`version`, PATCH fields, an optional scope) have a default (`= null`)
   on the request record, so the schema doesn't list them as `required` and the generated client lets callers leave
   them out. Endpoints that read `If-Match` declare `.AcceptsIfMatch()` and endpoints that set the `ETag` declare
