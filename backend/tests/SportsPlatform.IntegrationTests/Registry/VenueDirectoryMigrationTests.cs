@@ -25,7 +25,7 @@ public sealed class VenueDirectoryMigrationTests(PostgresFixture fixture) : Data
     {
         var kmsa = await TenantTestData.SaveTenantAsync(App.Services, "kmsa", TenantStatus.Active, Ct);
         var elssc = await TenantTestData.SaveTenantAsync(App.Services, "elssc", TenantStatus.Active, Ct);
-        string[] kmsaNames = ["Bukoto Community Stadium", "  ÉNSIBUKO   Grounds ", "Ggaba-Lakeside Rugby Ground", "St. Mbaaga's Field", "Naguru Ñ Arena", "Ngʼanga Field", "ስታዲየም 2"];
+        string[] kmsaNames = ["Bukoto Community Stadium", "  ÉNSIBUKO   Grounds ", "Ggaba-Lakeside Rugby Ground", "St. Mbaaga's Field", "Naguru Ñ Arena", "Ngʼanga Field", "Kampala\u00a0Road\u202fGround", "Mᵃkindye Pitch", "ስታዲየም 2"];
         foreach (var name in kmsaNames)
         {
             await SaveVenueAsync(App.Services, kmsa, name);

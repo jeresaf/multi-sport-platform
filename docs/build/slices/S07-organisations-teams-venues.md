@@ -471,7 +471,9 @@ The rest of S06's tech debt has its own trigger in PROGRESS.md ("From S06").
   ≥ 0.3 (People's constant); text without a letter or digit matches nothing until T1c adds identifiers. `city`
   compares `city_key` (as D13's "same city"); `variant` is a code in `supported_variants`. Items: id, name, short
   name, slug, type, city, country, supported variants, status. The migration backfills existing rows in SQL (NFD,
-  combining marks U+0300–U+036F dropped, lower case, `[^[:alnum:][:space:]]` dropped, whitespace collapsed, NFC;
+  Latin modifier letters (U+02B0–U+02FF and the other Latin ranges) and combining marks U+0300–U+036F dropped,
+  lower case, everything but `[:alnum:]` and whitespace (every space .NET counts, no-break ones included) dropped,
+  whitespace collapsed, NFC; modifier letters of other scripts stay (review #119 R1);
   the name key if that is empty) through the new `migrationBuilder.UpdateTenantRowsAsOwner(schema, table, sql)`,
   which lifts `FORCE ROW LEVEL SECURITY` for that SQL only, in the migration's transaction (owner, plan and
   pre-review 2026-11-21; multi-tenancy.md and database.md name it); a test proves the rows changed in two tenants

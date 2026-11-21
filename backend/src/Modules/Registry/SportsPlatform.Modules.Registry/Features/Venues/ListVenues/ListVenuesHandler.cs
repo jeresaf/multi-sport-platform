@@ -19,6 +19,10 @@ public sealed record VenueListItem(
     [property: PersonalData(PersonalDataClass.Public)] IReadOnlyList<string> SupportedVariants,
     [property: PersonalData(PersonalDataClass.Public)] VenueStatus Status);
 
+/// <summary>
+/// A page of the directory. <c>PUBLIC</c>, unlike People's list (<c>INTERNAL</c>): every venue field is one the public
+/// reads may show (D16), and the cursor carries only a sort key built from the public name (review #119 R3).
+/// </summary>
 public sealed record ListVenuesResponse(
     [property: PersonalData(PersonalDataClass.Public)] IReadOnlyList<VenueListItem> Items,
     [property: PersonalData(PersonalDataClass.Public)] PageInfo Page);
