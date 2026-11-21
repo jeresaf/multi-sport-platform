@@ -23,6 +23,10 @@ internal static class VenueRequests
 
     public static string VenueStatusChangesPath(Guid venueId) => $"{VenuePath(venueId)}/status-changes";
 
+    /// <summary>The names of a page of the venue directory, in the order answered.</summary>
+    public static List<string?> VenueNames(this JsonElement page) =>
+        [.. page.GetProperty("items").EnumerateArray().Select(item => item.GetProperty("name").GetString())];
+
     /// <summary>The demo's new venue (S07 Demo), with only the required fields.</summary>
     public static Dictionary<string, object?> KiwatuleMeadow() => new()
     {
@@ -60,11 +64,12 @@ internal static class VenueRequests
         string name,
         string city = "Kampala",
         GeoPoint? location = null,
-        VenueStatus status = VenueStatus.Active)
+        VenueStatus status = VenueStatus.Active,
+        IReadOnlyList<string>? supportedVariants = null)
     {
         await using var scope = RegistryTestData.ScopeFor(services, tenantId, out var context);
         var venue = Venue.Create(
-            new VenueDetails(name, null, VenueType.SportsGround, null, city, null, "UG", location, "Africa/Kampala", null, [], []),
+            new VenueDetails(name, null, VenueType.SportsGround, null, city, null, "UG", location, "Africa/Kampala", null, [], supportedVariants ?? []),
             Slugs.WithSuffix(Slugs.Propose("venue", name), Interlocked.Increment(ref _nextSlug)),
             VenueSource.Manual,
             SystemActor.Instance,
