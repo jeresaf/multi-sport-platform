@@ -1,5 +1,6 @@
 using SportsPlatform.BuildingBlocks.Results;
 using SportsPlatform.Modules.Registry.Domain.People;
+using SportsPlatform.Modules.Registry.Domain.People.Duplicates;
 using SportsPlatform.Modules.Registry.Domain.Venues;
 
 namespace SportsPlatform.Modules.Registry.Infrastructure;
@@ -11,16 +12,14 @@ namespace SportsPlatform.Modules.Registry.Infrastructure;
 /// </summary>
 public static class RegistryConcurrencyConflicts
 {
-    private static readonly Dictionary<Type, Error> _byRoot = new()
-    {
-        [typeof(Person)] = RegistryErrors.PersonConcurrencyConflict,
-        [typeof(Venue)] = RegistryErrors.VenueConcurrencyConflict,
-    };
-
     /// <summary>The conflict of an entity of <paramref name="type"/> when it is an aggregate root of the module; otherwise null.</summary>
     public static Error? For(Type type)
     {
         ArgumentNullException.ThrowIfNull(type);
-        return _byRoot.GetValueOrDefault(type);
+
+        // A duplicate decision is about two people (S06 D7): its conflict is a person's.
+        return type == typeof(Person) || type == typeof(DuplicateDecision) ? RegistryErrors.PersonConcurrencyConflict
+            : type == typeof(Venue) ? RegistryErrors.VenueConcurrencyConflict
+            : null;
     }
 }
