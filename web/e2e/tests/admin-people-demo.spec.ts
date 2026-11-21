@@ -47,6 +47,8 @@ test("slice demo: duplicate review, a twin past it, a minor's consent and public
   await signInByApi(request, owner.email, owner.password);
   const member = { tenantId: coucal.id };
   const sport = await enableFirstSport(request, member);
+  const position = { code: sport.positions[0], label: sport.labels.position };
+  expect(position.label, "the first enabled sport has a position").toBeTruthy();
 
   // Already registered (as registry.demo.people seeds KMSA): John Ssekandi, Mariam Nankya, Brenda Akello (a minor,
   // 14 or 15 on the day the test runs, with a photo, an athlete profile and no consent), Denis Opoka with three profiles, Ivan Mukasa
@@ -85,7 +87,7 @@ test("slice demo: duplicate review, a twin past it, a minor's consent and public
   });
   denis = await changePerson(request, member, denis, "athlete-profiles", {
     variant: sport.variant,
-    primaryPosition: sport.positions[0] ?? null,
+    primaryPosition: position.code ?? null,
   });
   denis = await changePerson(request, member, denis, "staff-profiles", {
     capabilities: [{ variant: sport.variant, role: sport.staffRole }],
@@ -114,8 +116,9 @@ test("slice demo: duplicate review, a twin past it, a minor's consent and public
   await expect(page.getByRole("heading", { level: 1, name: "People" })).toBeVisible();
   await page.getByLabel("Search").fill("Ssekandi");
   await expect(page).toHaveURL(/\?q=Ssekandi$/);
-  await expect(page.getByRole("table").getByRole("link", { name: "John Ssekandi" })).toBeVisible();
+  // Mariam leaving the list is what shows the search applied (John is listed before it too).
   await expect(page.getByRole("table").getByRole("link", { name: "Mariam Nankya" })).toHaveCount(0);
+  await expect(page.getByRole("table").getByRole("link", { name: "John Ssekandi" })).toBeVisible();
 
   // Add person "Ssekandi John" on John's date of birth: likely the same person, so the registrar opens him instead.
   await page.getByRole("link", { name: "Add person" }).click();
@@ -145,7 +148,9 @@ test("slice demo: duplicate review, a twin past it, a minor's consent and public
   await page.getByRole("button", { name: "Check and add" }).click();
   await expect(candidates.getByText("Possibly the same person")).toBeVisible();
   await expect(candidates.getByRole("link", { name: "Open Mariam Nankya" })).toBeVisible();
+  // Without a reason the review refuses to add her.
   await page.getByRole("button", { name: "Add as a new person" }).click();
+  await expect(page.getByText("Say why this is a different person.")).toBeVisible();
   await page.getByLabel("Why is Shamim Nankya a different person?").fill("Twin sister, different first name");
   await page.getByRole("button", { name: "Add as a new person" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Shamim Nankya" })).toBeVisible();
@@ -165,10 +170,10 @@ test("slice demo: duplicate review, a twin past it, a minor's consent and public
   await page.getByRole("tab", { name: "Roles" }).click();
   await page.getByRole("button", { name: "Add athlete profile" }).click();
   const athleteDialog = page.getByRole("dialog");
-  await athleteDialog.getByLabel("Primary position (optional)").selectOption(sport.positions[0]!);
+  await athleteDialog.getByLabel("Primary position (optional)").selectOption(position.code!);
   await athleteDialog.getByRole("button", { name: "Add profile" }).click();
   await expect(athleteDialog).toBeHidden();
-  await expect(page.getByRole("tabpanel")).toContainText(sport.labels.position);
+  await expect(page.getByRole("tabpanel")).toContainText(position.label!);
   await page.getByRole("button", { name: "Add photo" }).click();
   const photo = page.getByRole("dialog");
   await photo.getByLabel("Photo").setInputFiles({ name: "shamim.png", mimeType: "image/png", buffer: placeholderPng(320) });
@@ -217,7 +222,7 @@ test("slice demo: duplicate review, a twin past it, a minor's consent and public
   const roles = page.getByRole("tabpanel");
   await expect(roles.getByRole("heading", { level: 4, name: "Staff profile" })).toBeVisible();
   await expect(roles.getByRole("heading", { level: 4, name: "Official profile" })).toBeVisible();
-  await expect(roles).toContainText(sport.labels.position);
+  await expect(roles).toContainText(position.label!);
   await expect(roles).toContainText(sport.labels.staffRole);
   await expect(roles).toContainText(sport.labels.officialRole);
   await expect(roles.getByRole("cell", { name: "CSC-R-0193, valid until 30 Jun 2027" }).first()).toBeVisible();

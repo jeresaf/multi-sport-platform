@@ -88,7 +88,8 @@ export async function enableFirstSport(request: APIRequestContext, member: Membe
     staffRole: definition.staffRoles[0]!.code,
     officialRole: definition.officialRoles[0]!.code,
     labels: {
-      position: definition.positions[0]!.label,
+      // A definition may have no positions: callers that need one check it.
+      position: definition.positions[0]?.label ?? null,
       staffRole: definition.staffRoles[0]!.label,
       officialRole: definition.officialRoles[0]!.label,
     },

@@ -438,7 +438,8 @@ Each is assigned above; remove it from PROGRESS.md "Tech debt" when its task mer
       `The_date_of_birth_reaches_neither_the_logs_nor_the_audit_trail`, `PersonConsentTests`'
       `The_guardians_details_reach_neither_the_logs_nor_the_audit_trail`, `AuditMetadataTests`)
 - [x] Every new tenant table is covered by the isolation harness; the RLS exception list is unchanged. (Samples for
-      the person, alias, status change, athlete, staff and official profiles, profile status change, guardian consent,
+      the person, alias, status change, athlete, staff and official profiles, staff and official capabilities, profile
+      status change, guardian consent,
       external identifier, duplicate decision and media asset; `RlsCoverageTests` still lists `outbox_messages` and
       `tenant_domains` only)
 - [x] One person holds athlete, staff and official profiles; profiles follow the tenant's enabled sports and the
