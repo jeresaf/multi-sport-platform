@@ -1275,7 +1275,7 @@ export interface paths {
         };
         /**
          * List the tenant's venues
-         * @description The venues of the tenant named by `X-Tenant-Id`, sorted by name (ignoring case, accents and punctuation) and ID. `q` matches the name, or one of its words, by prefix, and the name by similarity. `variant` keeps venues that support that sport variant (a code); `city` venues in that city (ignoring case, accents and punctuation); `status` filters by status (without it, archived venues are left out). `limit` is 1–100 (25). Available while the tenant is read-only.
+         * @description The venues of the tenant named by `X-Tenant-Id`, sorted by name (ignoring case, accents and punctuation) and ID. `q` matches the name or a current alias, or one of their words, by prefix and by similarity, and an external identifier's value exactly (ended ones included). `variant` keeps venues that support that sport variant (a code); `city` venues in that city (ignoring case, accents and punctuation); `status` filters by status (without it, archived venues are left out). `limit` is 1–100 (25). Available while the tenant is read-only.
          */
         get: operations["ListVenues"];
         put?: never;
@@ -1348,6 +1348,86 @@ export interface paths {
         get: operations["ListVenueStatusChanges"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/venues/{venueId}/aliases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add an alias to a venue
+         * @description Adds another name the venue is known by (`FORMER_NAME`, `NICKNAME` or `SPELLING`): the directory search finds the venue under it too; the duplicate warning compares the venue's own name only. A name the venue is already known by (the same name key as its own name or a current alias: word order, case, accents and punctuation aside) is VENUE_ALIAS_EXISTS; a name without a letter or a digit VENUE_NAME_INVALID. An archived or closed venue takes no new alias (VENUE_ARCHIVED, VENUE_CLOSED). Send `version` or `If-Match` from the last read to get 409 VENUE_CONCURRENCY_CONFLICT if the venue changed since; without them, a change to the same venue saved at the same moment can still answer it. Answers the venue as GET /venues/{venueId} does; its version moves.
+         */
+        post: operations["AddVenueAlias"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/venues/{venueId}/aliases/{aliasId}/remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Remove a venue's alias
+         * @description Removes an alias, whatever the venue's status, with a reason (body `{ "reason": … }`, required): the alias is kept with who removed it, when and why, and is no longer shown or searched. The reason is kept permanently on the alias and in the audit trail: don't include personal data. An alias already removed is VENUE_ALIAS_REMOVED. Send `version` or `If-Match` from the last read to get 409 VENUE_CONCURRENCY_CONFLICT if the venue changed since; without them, a change to the same venue saved at the same moment can still answer it. Answers the venue as GET /venues/{venueId} does; its version moves.
+         */
+        post: operations["RemoveVenueAlias"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/venues/{venueId}/external-identifiers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add an external identifier to a venue
+         * @description Adds an identifier another authority gave the venue: `authority` is a code the tenant chooses (e.g. `KCCA_FACILITY_NO`), `value` is trimmed. A value with this authority that any venue has or had, ended ones and this venue's included, is VENUE_EXTERNAL_ID_EXISTS: a value is never reused (a person's identifier with the same authority and value doesn't count). The directory finds the venue by the exact value. An archived or closed venue takes no new identifier (VENUE_ARCHIVED, VENUE_CLOSED). Send `version` or `If-Match` from the last read to get 409 VENUE_CONCURRENCY_CONFLICT if the venue changed since; without them, a change to the same venue saved at the same moment can still answer it. Answers the venue as GET /venues/{venueId} does; its version moves.
+         */
+        post: operations["AddVenueExternalIdentifier"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/venues/{venueId}/external-identifiers/{identifierId}/end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * End a venue's external identifier
+         * @description Ends an identifier, whatever the venue's status: it is kept with its `validTo`, and its value is never given to another venue. The body is optional: `validTo` defaults to today (the tenant's date) and can't be after it or before `validFrom` (VENUE_EXTERNAL_ID_VALIDITY_INVALID); `reason` (1–500 characters) is kept permanently in the audit trail: don't include personal data. An identifier already ended is VENUE_EXTERNAL_ID_ENDED. Send `version` or `If-Match` from the last read to get 409 VENUE_CONCURRENCY_CONFLICT if the venue changed since; without them, a change to the same venue saved at the same moment can still answer it. Answers the venue as GET /venues/{venueId} does; its version moves.
+         */
+        post: operations["EndVenueExternalIdentifier"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2096,6 +2176,28 @@ export interface components {
             version?: null | number;
         };
         /**
+         * @description A new alias of a venue (S07 D10): the name the venue is known by and its kind; `version`, when sent, must be the
+         *     venue's current one.
+         */
+        AddVenueAliasRequest: {
+            name: null | string;
+            kind: null | components["schemas"]["AliasKind"];
+            /** Format: uint32 */
+            version?: null | number;
+        };
+        /**
+         * @description A new external identifier of a venue (S07 D10): the authority's code, its value, and since when it is valid;
+         *     `version`, when sent, must be the venue's current one.
+         */
+        AddVenueExternalIdentifierRequest: {
+            authority: null | string;
+            value: null | string;
+            /** Format: date */
+            validFrom?: null | string;
+            /** Format: uint32 */
+            version?: null | number;
+        };
+        /**
          * @description Whether a person is an adult on the tenant's date (S06 D13): computed from the date of birth on every read, never
          *     stored. AgeStatus.Unknown means no date of birth is recorded; such a person is treated as a minor wherever data
          *     is shown publicly.
@@ -2569,6 +2671,17 @@ export interface components {
             version?: null | number;
         };
         /**
+         * @description The end of a venue's external identifier: `validTo` defaults to the tenant's today. The optional reason is kept
+         *     in the audit trail and is not redacted: it must not contain personal data.
+         */
+        EndVenueExternalIdentifierRequest: {
+            /** Format: date */
+            validTo?: null | string;
+            reason?: null | string;
+            /** Format: uint32 */
+            version?: null | number;
+        };
+        /**
          * @description One entitlement override: `value` in place of the plan's for `entitlementCode`, until `effectiveUntil`
          *     (included; none = until removed). `inEffect`: it applies on the response's `today` (not removed, not past
          *     its last day). The removal fields are set together.
@@ -2619,7 +2732,7 @@ export interface components {
         EventEffect: "SEND_OFF" | "TEMPORARY_SUSPENSION" | "SUBSTITUTE" | "TEMPORARY_SUBSTITUTE" | "RETURN" | "DISQUALIFY" | "FOUL_COUNT";
         /** @enum {unknown} */
         EventImportance: "KEY" | "STANDARD" | "DETAILED" | "TECHNICAL";
-        /** @description An identifier another authority gave the person; one with `validTo` has ended (S06 D10). */
+        /** @description An identifier another authority gave the person or venue; one with `validTo` has ended (S06 D10, S07 D10). */
         ExternalIdentifierResponse: {
             /** Format: uuid */
             id: string;
@@ -3268,6 +3381,15 @@ export interface components {
          *     audit trail and is not redacted: it must not contain personal data.
          */
         RemovePersonAliasRequest: {
+            reason: null | string;
+            /** Format: uint32 */
+            version?: null | number;
+        };
+        /**
+         * @description The removal of a venue's alias (audit `REQUIRED_WITH_REASON`). The reason is kept permanently on the alias and
+         *     in the audit trail and is not redacted: it must not contain personal data.
+         */
+        RemoveVenueAliasRequest: {
             reason: null | string;
             /** Format: uint32 */
             version?: null | number;
@@ -4100,6 +4222,13 @@ export interface components {
             /** Format: uint32 */
             version?: null | number;
         };
+        /** @description Another name the venue is known by (S07 D10). */
+        VenueAliasResponse: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            kind: components["schemas"]["AliasKind"];
+        };
         /**
          * @description A venue that looks like the one checked (S07 D13): enough to recognise it and open it. `status` marks an
          *     archived one.
@@ -4160,8 +4289,10 @@ export interface components {
             status: components["schemas"]["VenueStatus"];
         };
         /**
-         * @description A venue as the admin reads it (S07 D19). Every field is one the public reads may show (D16) but the version.
-         *     Surfaces and variants keep the order they were sent in; variants are codes, labelled from the definitions (AR-29).
+         * @description A venue as the admin reads it (S07 D19). Every field is one the public reads may show (D16) but the aliases, the
+         *     external identifiers and the version. Surfaces and variants keep the order they were sent in; variants are codes,
+         *     labelled from the definitions (AR-29). Aliases are the ones not removed, oldest first; identifiers are all of them,
+         *     ended ones included, by authority (as a person's). A change to an alias or an identifier moves the version (S06 D11).
          */
         VenueResponse: {
             /** Format: uuid */
@@ -4184,6 +4315,8 @@ export interface components {
             surfaces: components["schemas"]["VenueSurface"][];
             supportedVariants: string[];
             status: components["schemas"]["VenueStatus"];
+            aliases: components["schemas"]["VenueAliasResponse"][];
+            externalIdentifiers: components["schemas"]["ExternalIdentifierResponse"][];
             /** Format: uint32 */
             version: number;
         };
@@ -8909,6 +9042,330 @@ export interface operations {
             };
             /** @description Problem Details; `code`: `VENUE_NOT_FOUND` */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    AddVenueAlias: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too. */
+                "If-Match"?: string;
+            };
+            path: {
+                venueId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddVenueAliasRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VenueResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `VENUE_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `VENUE_ALIAS_EXISTS`, `VENUE_ARCHIVED`, `VENUE_CLOSED`, `VENUE_CONCURRENCY_CONFLICT` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `VENUE_NAME_INVALID` */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    RemoveVenueAlias: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too. */
+                "If-Match"?: string;
+            };
+            path: {
+                venueId: string;
+                aliasId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RemoveVenueAliasRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VenueResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_MALFORMED_REQUEST`, `VALIDATION_REASON_REQUIRED` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `VENUE_ALIAS_NOT_FOUND`, `VENUE_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `VENUE_ALIAS_REMOVED`, `VENUE_CONCURRENCY_CONFLICT` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    AddVenueExternalIdentifier: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too. */
+                "If-Match"?: string;
+            };
+            path: {
+                venueId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddVenueExternalIdentifierRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VenueResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `VENUE_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `VENUE_ARCHIVED`, `VENUE_CLOSED`, `VENUE_CONCURRENCY_CONFLICT`, `VENUE_EXTERNAL_ID_EXISTS` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    EndVenueExternalIdentifier: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too. */
+                "If-Match"?: string;
+            };
+            path: {
+                venueId: string;
+                identifierId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["EndVenueExternalIdentifierRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VenueResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `VENUE_EXTERNAL_ID_NOT_FOUND`, `VENUE_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `VENUE_CONCURRENCY_CONFLICT`, `VENUE_EXTERNAL_ID_ENDED` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `VENUE_EXTERNAL_ID_VALIDITY_INVALID` */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
