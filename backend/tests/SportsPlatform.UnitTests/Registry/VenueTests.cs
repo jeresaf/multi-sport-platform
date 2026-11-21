@@ -27,6 +27,21 @@ public sealed class VenueTests
         (first.VenueId, first.FromStatus, first.ToStatus, first.OccurredAt).ShouldBe((venue.Id, null, VenueStatus.Active, _now));
     }
 
+    // S07-T1b-2: the directory's sort key keeps the word order the name key sorts.
+    [Theory]
+    [InlineData("Kiwatule Meadow Ground", "kiwatule meadow ground")]
+    [InlineData("  ÉNSIBUKO   Grounds ", "ensibuko grounds")]
+    [InlineData("Ggaba-Lakeside Rugby Ground", "ggabalakeside rugby ground")]
+    [InlineData("St. Mbaaga's Field", "st mbaagas field")]
+    public void The_sort_key_is_the_normalised_name_in_its_word_order(string name, string sortKey)
+    {
+        var venue = Venue.Create(Kiwatule() with { Name = name }, "ground", VenueSource.Manual, SystemActor.Instance, _now);
+        venue.SortKey.ShouldBe(sortKey);
+
+        venue.Update(Kiwatule(), "ground");
+        venue.SortKey.ShouldBe("kiwatule meadow ground");
+    }
+
     [Fact]
     public void A_venue_refuses_a_name_without_letters_a_bad_slug_and_repeated_surfaces()
     {

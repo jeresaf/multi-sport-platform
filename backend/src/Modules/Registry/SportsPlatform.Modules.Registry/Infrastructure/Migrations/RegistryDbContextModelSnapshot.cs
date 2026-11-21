@@ -1324,6 +1324,14 @@ namespace SportsPlatform.Modules.Registry.Infrastructure.Migrations
                         .UseCollation("C")
                         .HasAnnotation("pii", "PUBLIC");
 
+                    b.Property<string>("SortKey")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("sort_key")
+                        .UseCollation("C")
+                        .HasAnnotation("pii", "INTERNAL");
+
                     b.Property<string>("Source")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -1401,6 +1409,9 @@ namespace SportsPlatform.Modules.Registry.Infrastructure.Migrations
                     b.HasIndex("TenantId", "Latitude", "Longitude")
                         .HasDatabaseName("ix_venues_tenant_id_latitude_longitude");
 
+                    b.HasIndex("TenantId", "SortKey", "Id")
+                        .HasDatabaseName("ix_venues_tenant_id_sort_key_id");
+
                     b.ToTable("venues", "registry", t =>
                         {
                             t.HasCheckConstraint("ck_venues_capacity", "capacity BETWEEN 0 AND 200000");
@@ -1412,6 +1423,8 @@ namespace SportsPlatform.Modules.Registry.Infrastructure.Migrations
                             t.HasCheckConstraint("ck_venues_name_key", "name_key <> ''");
 
                             t.HasCheckConstraint("ck_venues_slug", "slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$' AND char_length(slug) BETWEEN 2 AND 80");
+
+                            t.HasCheckConstraint("ck_venues_sort_key", "sort_key <> ''");
 
                             t.HasCheckConstraint("ck_venues_source", "source IN ('MANUAL', 'SEED')");
 
