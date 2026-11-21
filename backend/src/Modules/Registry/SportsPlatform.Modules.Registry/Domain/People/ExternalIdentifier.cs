@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.RegularExpressions;
 using SportsPlatform.BuildingBlocks.Domain;
 using SportsPlatform.BuildingBlocks.Results;
@@ -80,14 +81,22 @@ public sealed partial class ExternalIdentifier : Entity, ITenantOwned
     {
         if (IsEnded)
         {
-            return Result.Failure(EntityType == ExternalIdentifierEntityType.Venue ? RegistryErrors.VenueExternalIdEnded : RegistryErrors.ExternalIdEnded);
+            return Result.Failure(EntityType switch
+            {
+                ExternalIdentifierEntityType.Person => RegistryErrors.ExternalIdEnded,
+                ExternalIdentifierEntityType.Venue => RegistryErrors.VenueExternalIdEnded,
+                _ => throw new UnreachableException($"No codes for {EntityType} identifiers."),
+            });
         }
 
         if (validTo > today || validTo < ValidFrom)
         {
-            return Result.Failure(EntityType == ExternalIdentifierEntityType.Venue
-                ? RegistryErrors.VenueExternalIdValidityInvalid
-                : RegistryErrors.ExternalIdValidityInvalid);
+            return Result.Failure(EntityType switch
+            {
+                ExternalIdentifierEntityType.Person => RegistryErrors.ExternalIdValidityInvalid,
+                ExternalIdentifierEntityType.Venue => RegistryErrors.VenueExternalIdValidityInvalid,
+                _ => throw new UnreachableException($"No codes for {EntityType} identifiers."),
+            });
         }
 
         ValidTo = validTo;

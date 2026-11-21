@@ -36,6 +36,23 @@ public sealed class VenueDirectoryContractTests(PostgresFixture fixture) : Datab
         (await DirectoryAsync(elssc, bukoto.Id, seeta.Id)).Select(s => s.Id).ShouldBe([seeta.Id]);
     }
 
+    // Every domain status has a contract status of the same name (the mapping is written by hand).
+    [Theory]
+    [InlineData(DomainStatus.Active)]
+    [InlineData(DomainStatus.TemporarilyUnavailable)]
+    [InlineData(DomainStatus.Closed)]
+    [InlineData(DomainStatus.Archived)]
+    public async Task Every_status_maps_to_the_contract_status_of_its_name(DomainStatus status)
+    {
+        Enum.GetValues<DomainStatus>().Length.ShouldBe(4, "a new venue status needs a row here and a contract value");
+        var kmsa = await TenantTestData.SaveTenantAsync(App.Services, "kmsa", TenantStatus.Active, Ct);
+        var venue = await SaveVenueAsync(App.Services, kmsa, "Kiwatule Meadow Ground", status: status);
+
+        var summary = (await DirectoryAsync(kmsa, venue.Id)).ShouldHaveSingleItem();
+
+        summary.Status.ToString().ShouldBe(status.ToString());
+    }
+
     private async Task<IReadOnlyList<VenueSummary>> DirectoryAsync(Guid tenantId, params Guid[] venueIds)
     {
         await using var scope = App.Services.CreateAsyncScope();

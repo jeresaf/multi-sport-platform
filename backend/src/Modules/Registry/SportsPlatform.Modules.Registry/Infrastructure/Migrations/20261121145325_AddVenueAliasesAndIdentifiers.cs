@@ -86,6 +86,7 @@ namespace SportsPlatform.Modules.Registry.Infrastructure.Migrations
                 schema: "registry",
                 table: "external_identifiers");
 
+            // Fails while VENUE identifiers exist: a rollback needs them removed first (no data is deleted here).
             migrationBuilder.AddCheckConstraint(
                 name: "ck_external_identifiers_entity_type",
                 schema: "registry",

@@ -92,7 +92,8 @@ public sealed class VenueAliasesAndIdentifiersTests(PostgresFixture fixture) : D
         var (kmsa, registrar) = await TenantAsync("kmsa", IdentityRoles.Registrar);
         var venue = await SaveVenueAsync(App.Services, kmsa, "Kiwatule Meadow Ground", alias: ("The Meadow", AliasKind.Nickname));
         var other = await SaveVenueAsync(App.Services, kmsa, "Kisaasi Recreation Ground");
-        var aliasId = (await registrar.ReadJsonAsync(VenuePath(venue.Id), Ct)).GetProperty("aliases")[0].GetProperty("id").GetGuid();
+        var read = await registrar.ReadJsonAsync(VenuePath(venue.Id), Ct);
+        var aliasId = read.GetProperty("aliases")[0].GetProperty("id").GetGuid();
 
         using (var noReason = await registrar.PostAsJsonAsync(VenueAliasPath(venue.Id, aliasId, "remove"), new { reason = " " }, Ct))
         {
@@ -105,7 +106,8 @@ public sealed class VenueAliasesAndIdentifiersTests(PostgresFixture fixture) : D
             await missing.ShouldBeProblemAsync(HttpStatusCode.NotFound, "VENUE_ALIAS_NOT_FOUND");
         }
 
-        await OkAsync(await registrar.PostAsJsonAsync(VenueAliasPath(venue.Id, aliasId, "remove"), new { reason = "Misspelt" }, Ct));
+        var removed = await OkAsync(await registrar.PostAsJsonAsync(VenueAliasPath(venue.Id, aliasId, "remove"), new { reason = "Misspelt" }, Ct));
+        removed.GetProperty("version").GetUInt32().ShouldNotBe(read.GetProperty("version").GetUInt32());
         using var again = await registrar.PostAsJsonAsync(VenueAliasPath(venue.Id, aliasId, "remove"), new { reason = "Misspelt" }, Ct);
         await again.ShouldBeProblemAsync(HttpStatusCode.Conflict, "VENUE_ALIAS_REMOVED");
     }
@@ -239,8 +241,10 @@ public sealed class VenueAliasesAndIdentifiersTests(PostgresFixture fixture) : D
             await missing.ShouldBeProblemAsync(HttpStatusCode.NotFound, "VENUE_EXTERNAL_ID_NOT_FOUND");
         }
 
-        await OkAsync(await registrar.PostAsJsonAsync(
+        var before = (await registrar.ReadJsonAsync(VenuePath(venue.Id), Ct)).GetProperty("version").GetUInt32();
+        var first = await OkAsync(await registrar.PostAsJsonAsync(
             VenueIdentifierPath(venue.Id, facilityNo, "end"), new { validTo = today.AddDays(-30), reason = "Renumbered by the council" }, Ct));
+        first.GetProperty("version").GetUInt32().ShouldNotBe(before);
         var ended = await OkAsync(await registrar.PostAsync(VenueIdentifierPath(venue.Id, groundNo, "end"), null, Ct));
 
         ended.GetProperty("externalIdentifiers").EnumerateArray()
