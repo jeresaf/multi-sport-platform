@@ -446,3 +446,11 @@ The rest of S06's tech debt has its own trigger in PROGRESS.md ("From S06").
 ## Implementation notes
 
 (The builder adds notes here as tasks merge.)
+
+- **T1a (venues, first part):** T1 is three PRs (owner, plan 2026-11-21): T1a the model, create with the warning, the
+  check and the read, and D2; T1b update, directory and lifecycle; T1c aliases, identifiers and `IVenueDirectory`.
+  `VENUE_NAME_INVALID` (422) refuses a name with no letter or digit (it has no name key). The warning's 200 m rule
+  filters a box around the point in SQL and measures the haversine distance in C# (`GeoPoint`); a box across the
+  antimeridian filters on latitude only. "The same city" compares the normalised city (`city_key`). A sent slug that
+  parses as a UUID or isn't well formed is `400 VALIDATION_INVALID_REQUEST` on `slug`; a taken one is
+  `422 VENUE_SLUG_TAKEN`. The venue's country defaults to the tenant's through `TenantAccess.Country`.
