@@ -225,6 +225,21 @@ public sealed class VenueLifecycleTests(PostgresFixture fixture) : DatabaseTest(
         await unknown.ShouldBeProblemAsync(HttpStatusCode.NotFound, "VENUE_NOT_FOUND");
     }
 
+    [Fact]
+    public async Task Another_tenants_venue_cant_be_moved()
+    {
+        var (kmsa, _) = await TenantAsync("kmsa", IdentityRoles.Registrar);
+        var (_, elsscOwner) = await TenantAsync("elssc", IdentityRoles.TenantOwner);
+        var venue = await SaveVenueAsync(App.Services, kmsa, "Kiwatule Meadow Ground");
+
+        using var response = await elsscOwner.PostAsJsonAsync(VenueStatusPath(venue.Id), new { status = "CLOSED", reason = _reason }, Ct);
+
+        await response.ShouldBeProblemAsync(HttpStatusCode.NotFound, "VENUE_NOT_FOUND");
+        await using var scope = ScopeFor(App.Services, kmsa, out var context);
+        var saved = await context.Set<Venue>().AsNoTracking().Include(v => v.StatusHistory).SingleAsync(Ct);
+        (saved.Status, saved.StatusHistory.Count).ShouldBe((VenueStatus.Active, 1));
+    }
+
     // D20: moving venues is the owner's, the admin's and the registrar's; the history is read with the venue.
     [Theory]
     [InlineData(IdentityRoles.TenantOwner, true, true)]
