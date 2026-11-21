@@ -18,6 +18,7 @@ public sealed class RowLevelSecurityMigrationExtensionsTests
 
         Should.Throw<ArgumentException>(() => builder.EnableTenantRls("conventions_test", table));
         Should.Throw<ArgumentException>(() => builder.DisableTenantRls("conventions_test", table));
+        Should.Throw<ArgumentException>(() => builder.UpdateTenantRowsAsOwner("conventions_test", table, "UPDATE x SET y = 1;"));
     }
 
     [Fact]
@@ -34,5 +35,24 @@ public sealed class RowLevelSecurityMigrationExtensionsTests
             "ALTER TABLE \"conventions_test\".\"tenant_probes\" FORCE ROW LEVEL SECURITY;",
             $"CREATE POLICY tenant_isolation ON \"conventions_test\".\"tenant_probes\" USING ({condition}) WITH CHECK ({condition});",
         ]);
+    }
+
+    // S07-T1b-2: the SQL runs between lifting FORCE and putting it back, in one operation of the migration's transaction.
+    [Fact]
+    public void Updating_tenant_rows_as_the_owner_lifts_force_only_around_the_sql()
+    {
+        var builder = new MigrationBuilder("Npgsql.EntityFrameworkCore.PostgreSQL");
+
+        builder.UpdateTenantRowsAsOwner("conventions_test", "tenant_probes", "  UPDATE conventions_test.tenant_probes SET note = 'x';\n");
+
+        var operation = builder.Operations.ShouldHaveSingleItem().ShouldBeOfType<SqlOperation>();
+        operation.SuppressTransaction.ShouldBeFalse();
+        operation.Sql.Split('\n').ShouldBe(
+        [
+            "ALTER TABLE \"conventions_test\".\"tenant_probes\" NO FORCE ROW LEVEL SECURITY;",
+            "UPDATE conventions_test.tenant_probes SET note = 'x';",
+            "ALTER TABLE \"conventions_test\".\"tenant_probes\" FORCE ROW LEVEL SECURITY;",
+        ]);
+        Should.Throw<ArgumentException>(() => builder.UpdateTenantRowsAsOwner("conventions_test", "tenant_probes", "  "));
     }
 }

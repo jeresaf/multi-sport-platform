@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore.Migrations;
+using SportsPlatform.BuildingBlocks.Persistence;
 
 #nullable disable
 
@@ -27,10 +28,8 @@ namespace SportsPlatform.Modules.Registry.Infrastructure.Migrations
                 defaultValue: "",
                 collation: "C");
 
-            // The migrator owns the table, but forced RLS hides every row from it without a tenant: lift FORCE for the
-            // update only, in the migration's transaction.
-            migrationBuilder.Sql("""
-                ALTER TABLE registry.venues NO FORCE ROW LEVEL SECURITY;
+            // Forced RLS hides every row from the migrator, the table's owner: the helper lifts FORCE for the update.
+            migrationBuilder.UpdateTenantRowsAsOwner("registry", "venues", """
                 UPDATE registry.venues
                 SET sort_key = COALESCE(NULLIF(normalize(
                     btrim(regexp_replace(
@@ -39,9 +38,8 @@ namespace SportsPlatform.Modules.Registry.Infrastructure.Migrations
                             '[^[:alnum:][:space:]]', '', 'g'),
                         '[[:space:]]+', ' ', 'g')),
                     NFC), ''), name_key);
-                ALTER TABLE registry.venues FORCE ROW LEVEL SECURITY;
-                ALTER TABLE registry.venues ALTER COLUMN sort_key DROP DEFAULT;
                 """);
+            migrationBuilder.Sql("ALTER TABLE registry.venues ALTER COLUMN sort_key DROP DEFAULT;");
 
             migrationBuilder.CreateIndex(
                 name: "ix_venues_tenant_id_sort_key_id",
