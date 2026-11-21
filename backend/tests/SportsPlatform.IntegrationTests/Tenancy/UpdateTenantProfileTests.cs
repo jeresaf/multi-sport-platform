@@ -5,10 +5,12 @@ using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using SportsPlatform.BuildingBlocks.Auditing;
 using SportsPlatform.BuildingBlocks.Persistence.Messaging;
+using SportsPlatform.BuildingBlocks.Tenancy;
 using SportsPlatform.IntegrationTests.Api;
 using SportsPlatform.IntegrationTests.Audit;
 using SportsPlatform.IntegrationTests.Infrastructure;
 using SportsPlatform.Modules.Tenancy;
+using SportsPlatform.Modules.Tenancy.Contracts.Access;
 using SportsPlatform.Modules.Tenancy.Contracts.Tenants;
 using SportsPlatform.Modules.Tenancy.Features.Tenants;
 
@@ -59,6 +61,19 @@ public sealed class UpdateTenantProfileTests(PostgresFixture fixture) : Database
             s => s.TimeZone.ShouldBe("Africa/Nairobi"),
             s => s.CurrencyCode.ShouldBe("KES"),
             s => s.StartingSoonMinutes.ShouldBe(30));
+    }
+
+    // S07 D3: the country is the default of what the tenant registers, so a change clears the cached access at once.
+    [Fact]
+    public async Task A_new_country_is_the_tenants_access_country_at_once()
+    {
+        var tenantId = await TenantTestData.SaveTenantAsync(App.Services, "kmsa", TenantStatus.Active, Ct);
+        (await AccessCountryAsync(tenantId)).ShouldBe("UG");
+
+        using var response = await PatchAsync(tenantId, new { countryCode = "KE" });
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await AccessCountryAsync(tenantId)).ShouldBe("KE");
     }
 
     [Fact]
@@ -192,5 +207,12 @@ public sealed class UpdateTenantProfileTests(PostgresFixture fixture) : Database
     {
         App.Authorization.Allow(TenancyActions.TenantRead, TenancyActions.TenantUpdate);
         return App.CreateClient().AsUser(TenantTestData.StaffId);
+    }
+
+    private async Task<string?> AccessCountryAsync(Guid tenantId)
+    {
+        await using var scope = App.Services.CreateAsyncScope();
+        scope.ServiceProvider.GetRequiredService<TenantContext>().Set(tenantId);
+        return (await scope.ServiceProvider.GetRequiredService<ITenantAccess>().GetAccessAsync(tenantId, Ct))?.Country;
     }
 }

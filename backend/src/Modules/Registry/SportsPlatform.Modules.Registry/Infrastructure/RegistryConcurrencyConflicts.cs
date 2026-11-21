@@ -6,15 +6,21 @@ namespace SportsPlatform.Modules.Registry.Infrastructure;
 
 /// <summary>
 /// Each Registry aggregate root's conflict code (S07 D2), in one place: a lost update answers the code of the root whose
-/// version failed. Organisations and teams join with S07-T2 and T3.
+/// version failed. Organisations and teams join with S07-T2 and T3; a test fails for a root mapped in
+/// <see cref="RegistryDbContext"/> without a code here.
 /// </summary>
 public static class RegistryConcurrencyConflicts
 {
-    /// <summary>The conflict of <paramref name="entity"/> when it is an aggregate root of the module; otherwise null.</summary>
-    public static Error? For(object entity) => entity switch
+    private static readonly Dictionary<Type, Error> _byRoot = new()
     {
-        Person => RegistryErrors.PersonConcurrencyConflict,
-        Venue => RegistryErrors.VenueConcurrencyConflict,
-        _ => null,
+        [typeof(Person)] = RegistryErrors.PersonConcurrencyConflict,
+        [typeof(Venue)] = RegistryErrors.VenueConcurrencyConflict,
     };
+
+    /// <summary>The conflict of an entity of <paramref name="type"/> when it is an aggregate root of the module; otherwise null.</summary>
+    public static Error? For(Type type)
+    {
+        ArgumentNullException.ThrowIfNull(type);
+        return _byRoot.GetValueOrDefault(type);
+    }
 }

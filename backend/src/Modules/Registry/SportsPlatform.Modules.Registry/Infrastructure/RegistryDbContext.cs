@@ -15,7 +15,7 @@ public sealed class RegistryDbContext(DbContextOptions<RegistryDbContext> option
 
     /// <summary>The conflict of the aggregate root whose version failed (S07 D2): <see cref="RegistryConcurrencyConflicts"/>.</summary>
     protected override Error ConcurrencyConflictErrorFor(IReadOnlyList<EntityEntry> entries) =>
-        entries.Select(entry => RegistryConcurrencyConflicts.For(entry.Entity)).FirstOrDefault(error => error is not null)
+        entries.Select(entry => RegistryConcurrencyConflicts.For(entry.Metadata.ClrType)).FirstOrDefault(error => error is not null)
             ?? ConcurrencyConflictError;
 
     protected override void ConfigureModel(ModelBuilder modelBuilder)

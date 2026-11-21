@@ -66,9 +66,11 @@ public sealed class UpdateTenantProfileHandler(
             }
         }
 
-        if (!string.Equals(currentSettings.TimeZone, settings.TimeZone, StringComparison.Ordinal))
+        if (!string.Equals(currentSettings.TimeZone, settings.TimeZone, StringComparison.Ordinal)
+            || !string.Equals(currentProfile.CountryCode, tenant.Profile.CountryCode, StringComparison.Ordinal))
         {
-            // The time zone decides the tenant's date, so its subscription status and overrides in effect (S04 D7).
+            // The time zone decides the tenant's date, so its subscription status and overrides in effect (S04 D7);
+            // the country is the default of what the tenant registers (S07 D3).
             accessCache.Clear(tenantId);
         }
 

@@ -98,10 +98,8 @@ public sealed class VenueTests
     [Fact]
     public void Each_root_has_its_own_conflict_code()
     {
-        RegistryConcurrencyConflicts.For(Venue.Create(Kiwatule(), "ground", VenueSource.Manual, SystemActor.Instance, _now))!.Code
-            .ShouldBe("VENUE_CONCURRENCY_CONFLICT");
-        RegistryConcurrencyConflicts.For(Person.Create(new PersonBiodata("John", "Ssekandi"), PersonSource.Manual, SystemActor.Instance, _now))!.Code
-            .ShouldBe("PERSON_CONCURRENCY_CONFLICT");
-        RegistryConcurrencyConflicts.For(new PersonAlias(Guid.CreateVersion7(), "Johnny", AliasKind.Nickname)).ShouldBeNull();
+        RegistryConcurrencyConflicts.For(typeof(Venue))!.Code.ShouldBe("VENUE_CONCURRENCY_CONFLICT");
+        RegistryConcurrencyConflicts.For(typeof(Person))!.Code.ShouldBe("PERSON_CONCURRENCY_CONFLICT");
+        RegistryConcurrencyConflicts.For(typeof(PersonAlias)).ShouldBeNull();
     }
 }

@@ -3,6 +3,7 @@ using SportsPlatform.IntegrationTests.Infrastructure;
 using SportsPlatform.IntegrationTests.Tenancy;
 using SportsPlatform.Modules.Registry.Domain.People;
 using SportsPlatform.Modules.Registry.Domain.Venues;
+using SportsPlatform.Modules.Registry.Infrastructure;
 using SportsPlatform.Modules.Tenancy.Contracts.Tenants;
 using static SportsPlatform.IntegrationTests.Registry.RegistryTestData;
 using static SportsPlatform.IntegrationTests.Registry.VenueRequests;
@@ -25,6 +26,21 @@ public sealed class RegistryConcurrencyConflictTests(PostgresFixture fixture) : 
 
         (await LoseAnUpdateAsync<Venue>(kmsa, venue.Id, nameof(Venue.Capacity), 1_200, 1_500)).ShouldBe("VENUE_CONCURRENCY_CONFLICT");
         (await LoseAnUpdateAsync<Person>(kmsa, person.Id, nameof(Person.HeightCm), 180, 181)).ShouldBe("PERSON_CONCURRENCY_CONFLICT");
+    }
+
+    // D2: a root added to the module (organisations, teams) can't fall back to the person's code unnoticed.
+    [Fact]
+    public void Every_aggregate_root_of_the_module_has_its_own_conflict_code()
+    {
+        using var scope = ScopeFor(App.Services, Kmsa, out var context);
+
+        var roots = context.Model.GetEntityTypes()
+            .Select(entityType => entityType.ClrType)
+            .Where(type => type.IsSubclassOf(typeof(BuildingBlocks.Domain.AggregateRoot)))
+            .ToList();
+
+        roots.ShouldNotBeEmpty();
+        roots.ShouldAllBe(type => RegistryConcurrencyConflicts.For(type) != null);
     }
 
     // Two scopes read the same version; the first saves, the second's save answers the code.
