@@ -118,6 +118,8 @@ public sealed class VenueDirectoryTests(PostgresFixture fixture) : DatabaseTest(
         (await registrar.ReadJsonAsync($"{VenuesPath}?city=%20NAGURU.%20", Ct)).VenueNames().ShouldBe(["Metro Indoor Arena"]);
         (await registrar.ReadJsonAsync($"{VenuesPath}?variant=UNHOSTED_VARIANT", Ct)).VenueNames().ShouldBeEmpty();
         (await registrar.ReadJsonAsync($"{VenuesPath}?city=Entebbe", Ct)).VenueNames().ShouldBeEmpty();
+        await SaveVenueAsync(App.Services, kmsa, "Kyambogo Ground", city: "--");
+        (await registrar.ReadJsonAsync($"{VenuesPath}?city=--", Ct)).VenueNames().ShouldBeEmpty();
     }
 
     [Theory]

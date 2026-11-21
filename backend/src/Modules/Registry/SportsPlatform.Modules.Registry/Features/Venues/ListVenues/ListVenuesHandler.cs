@@ -48,8 +48,9 @@ public sealed class ListVenuesHandler(RegistryDbContext context)
 
         if (query.City is { } city)
         {
+            // A city without a letter or a digit has no key and matches no venue (as the duplicate warning's).
             var cityKey = Venue.CityKeyOf(city);
-            venues = venues.Where(v => v.CityKey == cityKey);
+            venues = cityKey.Length == 0 ? venues.Where(_ => false) : venues.Where(v => v.CityKey == cityKey);
         }
 
         if (query.Search is { } search)
