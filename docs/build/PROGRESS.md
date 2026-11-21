@@ -593,6 +593,9 @@ docs/build/slices/S07-organisations-teams-venues.md, "Carried over from S06")
   a test that advances it by days moves every later test's "now" (an official's licence expired, the demo seeder's
   history reordered). Reset the clock in `DatabaseTest` before each test, or give date-sensitive tests their own
   fixed time. (Next test-infrastructure change, or the first flaky date test.)
+- Members, invitations, audit entries and outbox messages still show `limit` as a string in OpenAPI (S07-T1b-2, owner:
+  only People's and venues' lists declare `DocumentsQueryInteger("limit", 1, 100, 25)`). Declare it on each, with
+  the web client regenerated. (Next task that touches one of those lists.)
 - Venues' duplicate warning (S07-T1a, review of #117 R4): the same-city branch compares `similarity(...)` as a value,
   so neither the trigram index on `name_key` nor an index on `city_key` serves it, and it scans the tenant's venues
   (people's finder does the same). Fine at venue volumes; add `(tenant_id, city_key)` or switch to `%` with
