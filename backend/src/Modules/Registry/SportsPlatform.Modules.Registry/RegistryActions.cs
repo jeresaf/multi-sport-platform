@@ -256,6 +256,26 @@ public static class RegistryActions
         scopableBy: [AssignmentScope.Tenant],
         grantedWith: ["venue.read"]);
 
+    public static readonly ActionDefinition VenueAliasAdd = VenueChild(
+        "venue.alias.add",
+        "Add another name a venue is known by (former name, nickname, spelling), so the directory finds it under it too; not for an archived or closed venue.",
+        AuditRequirement.Required);
+
+    public static readonly ActionDefinition VenueAliasRemove = VenueChild(
+        "venue.alias.remove",
+        "Remove a venue's alias, with a reason; the alias is kept with who removed it, when and why.",
+        AuditRequirement.RequiredWithReason);
+
+    public static readonly ActionDefinition VenueExternalIdAdd = VenueChild(
+        "venue.external_id.add",
+        "Add an identifier another authority gave a venue (e.g. a facility number); a value any venue has or had is refused; not for an archived or closed venue.",
+        AuditRequirement.Required);
+
+    public static readonly ActionDefinition VenueExternalIdEnd = VenueChild(
+        "venue.external_id.end",
+        "End a venue's external identifier; it is kept, and its value is never given to another venue.",
+        AuditRequirement.Required);
+
     // The lifecycle, alias, identifier, profile, photo, consent and public-profile actions answer the person as person.read does, so they are only
     // granted with that read.
     private static ActionDefinition Lifecycle(string code, string description, AuditRequirement audit) => new(
@@ -266,4 +286,15 @@ public static class RegistryActions
         since: "S06",
         scopableBy: [AssignmentScope.Tenant],
         grantedWith: ["person.read"]);
+
+    // A venue's alias and identifier actions (S07 D10) answer the venue as venue.read does, so they are only granted with
+    // that read.
+    private static ActionDefinition VenueChild(string code, string description, AuditRequirement audit) => new(
+        code,
+        description,
+        ActionScope.Tenant,
+        audit,
+        since: "S07",
+        scopableBy: [AssignmentScope.Tenant],
+        grantedWith: ["venue.read"]);
 }

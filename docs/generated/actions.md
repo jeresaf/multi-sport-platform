@@ -86,8 +86,12 @@ admin endpoint requires one of these; the code is stable and is what roles grant
 | `tenant.suspend` | Tenancy | PLATFORM | — | REQUIRED_WITH_REASON | — | no | no | no | no | S02 | Suspend an active tenant, with a reason (ACTIVE → SUSPENDED). |
 | `tenant.unarchive` | Tenancy | PLATFORM | — | REQUIRED_WITH_REASON | — | no | no | no | no | S02 | Bring an archived tenant back, with a reason (ARCHIVED → SUSPENDED). |
 | `tenant.update` | Tenancy | PLATFORM | — | REQUIRED | — | no | no | no | no | S02 | Change a tenant's profile: names, country, time zone, locale, currency, public site. |
+| `venue.alias.add` | Registry | TENANT | TENANT | REQUIRED | — | no | no | no | no | S07 | Add another name a venue is known by (former name, nickname, spelling), so the directory finds it under it too; not for an archived or closed venue. |
+| `venue.alias.remove` | Registry | TENANT | TENANT | REQUIRED_WITH_REASON | — | no | no | no | no | S07 | Remove a venue's alias, with a reason; the alias is kept with who removed it, when and why. |
 | `venue.create` | Registry | TENANT | TENANT | REQUIRED | — | no | no | no | no | S07 | Add a venue to the registry; possible duplicates are shown first, and creating it anyway is recorded with the venues shown. |
 | `venue.duplicate_check` | Registry | TENANT | TENANT | NONE | — | no | no | no | no | S07 | Check a new or changed venue's name, city and coordinates against the venues already in the registry. |
+| `venue.external_id.add` | Registry | TENANT | TENANT | REQUIRED | — | no | no | no | no | S07 | Add an identifier another authority gave a venue (e.g. a facility number); a value any venue has or had is refused; not for an archived or closed venue. |
+| `venue.external_id.end` | Registry | TENANT | TENANT | REQUIRED | — | no | no | no | no | S07 | End a venue's external identifier; it is kept, and its value is never given to another venue. |
 | `venue.read` | Registry | TENANT | TENANT | NONE | — | no | no | no | yes | S07 | View the venues directory and a venue's record: address, time zone, capacity, surfaces, supported sports and status. |
 | `venue.status.change` | Registry | TENANT | TENANT | REQUIRED_WITH_REASON | — | no | no | no | no | S07 | Mark a venue temporarily unavailable, closed or archived, reopen it or unarchive it, with a reason. |
 | `venue.update` | Registry | TENANT | TENANT | REQUIRED | — | no | no | no | no | S07 | Change a venue's details; a change to its name, city or coordinates shows possible duplicates first, and saving it anyway is recorded with the venues shown. |

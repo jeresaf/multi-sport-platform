@@ -196,6 +196,10 @@ variant from Platform media with `Cache-Control: public, max-age=300`.
 the name, city or coordinates runs the lighter warning again under `registry.venues:<tenantId>`, data-conventions.md),
 the record (`ETag`), `POST …/{id}/status` (the venue machine, state-machines.md) and `…/{id}/status-changes`.
 `RegistryDbContext` answers the conflict of the root whose version failed (`PERSON_…`, `VENUE_CONCURRENCY_CONFLICT`).
+**As built (S07-T1b-2, T1c):** `GET /venues` (search by name, current alias and an identifier's exact value);
+`registry.venue_aliases` and `VENUE` external identifiers (`…/{id}/aliases`, `…/{id}/external-identifiers`); and
+`IVenueDirectory.GetSummariesAsync(ids)` in Contracts: id, name, short name, time zone, city, country, supported
+variants and status, the scope's tenant only, no action checked.
 **Absorbs:** pack specs 08–14. Owner's systems: **Player Management System**, the identity half of
 **Team Management System**. Owner's rule "duplicate players within the same tenant should be avoided at all
 costs" is implemented here (docs/build/slices/S06-people-registry.md).

@@ -15,7 +15,8 @@ internal static class ListVenuesEndpoint
         .WithSummary("List the tenant's venues")
         .WithDescription(
             "The venues of the tenant named by `X-Tenant-Id`, sorted by name (ignoring case, accents and punctuation) " +
-            "and ID. `q` matches the name, or one of its words, by prefix, and the name by similarity. `variant` keeps " +
+            "and ID. `q` matches the name or a current alias, or one of their words, by prefix and by similarity, and an " +
+            "external identifier's value exactly (ended ones included). `variant` keeps " +
             "venues that support that sport variant (a code); `city` venues in that city (ignoring case, accents and " +
             "punctuation); `status` filters by status (without it, archived venues are left out). `limit` is 1–100 (25). " +
             "Available while the tenant is read-only.")

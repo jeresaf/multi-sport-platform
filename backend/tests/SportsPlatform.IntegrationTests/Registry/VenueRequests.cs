@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.Modules.Registry.Domain;
+using SportsPlatform.Modules.Registry.Domain.People;
 using SportsPlatform.Modules.Registry.Domain.Venues;
 
 namespace SportsPlatform.IntegrationTests.Registry;
@@ -22,6 +23,15 @@ internal static class VenueRequests
     public static string VenueStatusPath(Guid venueId) => $"{VenuePath(venueId)}/status";
 
     public static string VenueStatusChangesPath(Guid venueId) => $"{VenuePath(venueId)}/status-changes";
+
+    public static string VenueAliasesPath(Guid venueId) => $"{VenuePath(venueId)}/aliases";
+
+    public static string VenueAliasPath(Guid venueId, Guid aliasId, string command) => $"{VenueAliasesPath(venueId)}/{aliasId}/{command}";
+
+    public static string VenueIdentifiersPath(Guid venueId) => $"{VenuePath(venueId)}/external-identifiers";
+
+    public static string VenueIdentifierPath(Guid venueId, Guid identifierId, string command) =>
+        $"{VenueIdentifiersPath(venueId)}/{identifierId}/{command}";
 
     /// <summary>The names of a page of the venue directory, in the order answered.</summary>
     public static List<string?> VenueNames(this JsonElement page) =>
@@ -57,7 +67,10 @@ internal static class VenueRequests
             .Select(candidate => (candidate.GetProperty("venueId").GetGuid(), candidate.GetProperty("confidence").GetString())),
     ];
 
-    /// <summary>A venue of <paramref name="tenantId"/>, saved without the warning (the test's starting point).</summary>
+    /// <summary>
+    /// A venue of <paramref name="tenantId"/>, saved without the warning (the test's starting point), with an alias and an
+    /// identifier when given.
+    /// </summary>
     public static async Task<Venue> SaveVenueAsync(
         IServiceProvider services,
         Guid tenantId,
@@ -65,7 +78,9 @@ internal static class VenueRequests
         string city = "Kampala",
         GeoPoint? location = null,
         VenueStatus status = VenueStatus.Active,
-        IReadOnlyList<string>? supportedVariants = null)
+        IReadOnlyList<string>? supportedVariants = null,
+        (string Name, AliasKind Kind)? alias = null,
+        (string Authority, string Value)? identifier = null)
     {
         await using var scope = RegistryTestData.ScopeFor(services, tenantId, out var context);
         var venue = Venue.Create(
@@ -74,6 +89,15 @@ internal static class VenueRequests
             VenueSource.Manual,
             SystemActor.Instance,
             RegistryTestData.Now);
+        if (alias is { } a)
+        {
+            venue.AddAlias(a.Name, a.Kind).IsSuccess.ShouldBeTrue();
+        }
+
+        if (identifier is { } i)
+        {
+            context.Add(ExternalIdentifier.ForVenue(venue.Id, i.Authority, i.Value));
+        }
 
         // Reached through the lifecycle, so the history knows what an archived venue was before.
         if (status != VenueStatus.Active)

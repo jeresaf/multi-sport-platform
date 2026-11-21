@@ -691,6 +691,36 @@
       "owner": "BuildingBlocks"
     },
     {
+      "code": "VENUE_ALIAS_EXISTS",
+      "status": 409,
+      "message": "The venue is already known by this name: its own name or a current alias gives the same name key.",
+      "owner": "Registry"
+    },
+    {
+      "code": "VENUE_ALIAS_NOT_FOUND",
+      "status": 404,
+      "message": "The venue has no such alias.",
+      "owner": "Registry"
+    },
+    {
+      "code": "VENUE_ALIAS_REMOVED",
+      "status": 409,
+      "message": "The alias is already removed.",
+      "owner": "Registry"
+    },
+    {
+      "code": "VENUE_ARCHIVED",
+      "status": 409,
+      "message": "The venue is archived: it takes no new alias or external identifier.",
+      "owner": "Registry"
+    },
+    {
+      "code": "VENUE_CLOSED",
+      "status": 409,
+      "message": "The venue is closed: it takes no new alias or external identifier. Reopen it first.",
+      "owner": "Registry"
+    },
+    {
       "code": "VENUE_CONCURRENCY_CONFLICT",
       "status": 409,
       "message": "The venue was changed by someone else. Reload and try again.",
@@ -700,6 +730,30 @@
       "code": "VENUE_DUPLICATE_REVIEW_REQUIRED",
       "status": 422,
       "message": "Venues already in the registry look like this one: open one of them, or send duplicatesReviewed to add it anyway.",
+      "owner": "Registry"
+    },
+    {
+      "code": "VENUE_EXTERNAL_ID_ENDED",
+      "status": 409,
+      "message": "The external identifier has already ended.",
+      "owner": "Registry"
+    },
+    {
+      "code": "VENUE_EXTERNAL_ID_EXISTS",
+      "status": 409,
+      "message": "A venue already has this external identifier (the same authority and value), or had it: a value is never reused.",
+      "owner": "Registry"
+    },
+    {
+      "code": "VENUE_EXTERNAL_ID_NOT_FOUND",
+      "status": 404,
+      "message": "The venue has no such external identifier.",
+      "owner": "Registry"
+    },
+    {
+      "code": "VENUE_EXTERNAL_ID_VALIDITY_INVALID",
+      "status": 422,
+      "message": "An identifier's end date can't be before its start date or after today (the tenant's date).",
       "owner": "Registry"
     },
     {

@@ -1,4 +1,5 @@
 using SportsPlatform.BuildingBlocks.Actors;
+using SportsPlatform.Modules.Registry;
 using SportsPlatform.Modules.Registry.Domain;
 using SportsPlatform.Modules.Registry.Domain.People;
 using SportsPlatform.Modules.Registry.Domain.Venues;
@@ -7,7 +8,10 @@ using SportsPlatform.Modules.Registry.Infrastructure;
 
 namespace SportsPlatform.UnitTests.Registry;
 
-/// <summary>Venues (S07-T1a): the record's keys and first history row, slugs (D9), distances (D13), conflict codes (D2).</summary>
+/// <summary>
+/// Venues (S07-T1a): the record's keys and first history row, slugs (D9), distances (D13), conflict codes (D2); S07-T1c:
+/// aliases, the new-children guard and identifier codes (D10).
+/// </summary>
 public sealed class VenueTests
 {
     private static readonly DateTimeOffset _now = new(2026, 11, 21, 9, 0, 0, TimeSpan.Zero);
@@ -227,5 +231,66 @@ public sealed class VenueTests
 
         Should.Throw<InvalidOperationException>(() => venue.ChangeStatus(VenueStatus.Closed, "The ground was sold", SystemActor.Instance, _now));
         venue.Status.ShouldBe(VenueStatus.Active);
+    }
+
+    // S07-T1c (D10): an alias with its own key; a key the venue already has is refused; removal keeps who, when and why.
+    [Fact]
+    public void An_alias_has_its_own_key_and_is_refused_when_the_venue_is_already_known_by_it()
+    {
+        var venue = Venue.Create(Kiwatule(), "kiwatule-meadow-ground", VenueSource.Manual, SystemActor.Instance, _now);
+
+        var alias = venue.AddAlias("  The   Meadow ", AliasKind.Nickname).Value;
+
+        (alias.VenueId, alias.Name, alias.NameKey, alias.Kind).ShouldBe((venue.Id, "The Meadow", "meadow the", AliasKind.Nickname));
+        venue.AddAlias("Meadow Ground, Kiwatule", AliasKind.Spelling).Error.ShouldBe(RegistryErrors.VenueAliasExists);
+        venue.AddAlias("the MEADOW", AliasKind.Spelling).Error.ShouldBe(RegistryErrors.VenueAliasExists);
+        Should.Throw<ArgumentException>(() => venue.AddAlias("--", AliasKind.Spelling));
+
+        venue.RemoveAlias(Guid.CreateVersion7(), "Misspelt", SystemActor.Instance, _now).Error.ShouldBe(RegistryErrors.VenueAliasNotFound);
+        venue.RemoveAlias(alias.Id, " Misspelt ", SystemActor.Instance, _now).IsSuccess.ShouldBeTrue();
+        (alias.RemoveReason, alias.RemovedBy, alias.RemovedAt).ShouldBe(("Misspelt", SystemActor.Instance.ActorId, _now));
+        venue.RemoveAlias(alias.Id, "Misspelt", SystemActor.Instance, _now).Error.ShouldBe(RegistryErrors.VenueAliasRemoved);
+
+        // A removed alias's key is free again.
+        venue.AddAlias("The Meadow", AliasKind.Nickname).IsSuccess.ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData(VenueStatus.Active, null)]
+    [InlineData(VenueStatus.TemporarilyUnavailable, null)]
+    [InlineData(VenueStatus.Closed, "VENUE_CLOSED")]
+    [InlineData(VenueStatus.Archived, "VENUE_ARCHIVED")]
+    public void Only_a_venue_that_isnt_closed_or_archived_takes_new_children_but_every_one_removes_them(VenueStatus status, string? refusal)
+    {
+        var venue = Venue.Create(Kiwatule(), "kiwatule-meadow-ground", VenueSource.Manual, SystemActor.Instance, _now);
+        var alias = venue.AddAlias("The Meadow", AliasKind.Nickname).Value;
+        if (status != VenueStatus.Active)
+        {
+            venue.ChangeStatus(status, "Set up by the test", SystemActor.Instance, _now).IsSuccess.ShouldBeTrue();
+        }
+
+        venue.EnsureAcceptsNewChildren().IsSuccess.ShouldBe(refusal is null);
+        var added = venue.AddAlias("Kiwatule Grounds", AliasKind.Spelling);
+        (added.IsFailure ? added.Error.Code : null).ShouldBe(refusal);
+        venue.RemoveAlias(alias.Id, "Misspelt", SystemActor.Instance, _now).IsSuccess.ShouldBeTrue();
+    }
+
+    // S07 D10: ending an identifier answers in the area of what it names.
+    [Fact]
+    public void Ending_an_identifier_answers_with_its_entity_types_codes()
+    {
+        var today = new DateOnly(2026, 11, 21);
+        var venueId = ExternalIdentifier.ForVenue(Guid.CreateVersion7(), "KCCA_FACILITY_NO", " KCCA-0147 ", today.AddDays(-5));
+        var personId = ExternalIdentifier.ForPerson(Guid.CreateVersion7(), "KMSA_REG_NO", "KM-2026-0147", today.AddDays(-5));
+
+        (venueId.EntityType, venueId.Value).ShouldBe((ExternalIdentifierEntityType.Venue, "KCCA-0147"));
+        venueId.End(today.AddDays(1), today).Error.ShouldBe(RegistryErrors.VenueExternalIdValidityInvalid);
+        venueId.End(today.AddDays(-6), today).Error.ShouldBe(RegistryErrors.VenueExternalIdValidityInvalid);
+        personId.End(today.AddDays(1), today).Error.ShouldBe(RegistryErrors.ExternalIdValidityInvalid);
+        venueId.End(today, today).IsSuccess.ShouldBeTrue();
+        personId.End(today, today).IsSuccess.ShouldBeTrue();
+        venueId.End(today, today).Error.ShouldBe(RegistryErrors.VenueExternalIdEnded);
+        personId.End(today, today).Error.ShouldBe(RegistryErrors.ExternalIdEnded);
+        Should.Throw<ArgumentException>(() => ExternalIdentifier.ForVenue(Guid.Empty, "KCCA_FACILITY_NO", "KCCA-0147"));
     }
 }

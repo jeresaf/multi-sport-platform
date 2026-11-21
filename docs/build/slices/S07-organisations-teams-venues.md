@@ -333,12 +333,12 @@ Deliver:
 - Likely T1a (model, create with warnings, update, reads, D2) and T1b (lifecycle, aliases, identifiers, directory).
 
 Acceptance:
-- [ ] A venue without a time zone, with an unknown zone, with only one coordinate or with an unpublished variant is
+- [x] A venue without a time zone, with an unknown zone, with only one coordinate or with an unpublished variant is
       refused with its field and code (tests).
-- [ ] A venue with the same name in the same city, or within 200 m, is warned as `LIKELY`; `duplicatesReviewed`
+- [x] A venue with the same name in the same city, or within 200 m, is warned as `LIKELY`; `duplicatesReviewed`
       creates it and the audit entry names the candidate (tests, edges at 0.7 and 200 m).
-- [ ] Every new table has RLS and an isolation sample; `RlsCoverageTests`' exception list is unchanged.
-- [ ] A conflict on a venue answers `VENUE_CONCURRENCY_CONFLICT`, on a person still `PERSON_CONCURRENCY_CONFLICT`.
+- [x] Every new table has RLS and an isolation sample; `RlsCoverageTests`' exception list is unchanged.
+- [x] A conflict on a venue answers `VENUE_CONCURRENCY_CONFLICT`, on a person still `PERSON_CONCURRENCY_CONFLICT`.
 
 ### T2 — Organisations (~2 PRs, about 1,200 lines)
 Deliver:
@@ -479,3 +479,18 @@ The rest of S06's tech debt has its own trigger in PROGRESS.md ("From S06").
   pre-review 2026-11-21; multi-tenancy.md and database.md name it); a test proves the rows changed in two tenants
   and FORCE is back. A `city` without a letter or digit matches no venue. `DocumentsQueryInteger(name, minimum, maximum, @default)`: People's and
   venues' `limit` declare `1, 100, 25`; the other lists are tech debt "From S07".
+- **T1c (venues: aliases, identifiers, directory contract):** `registry.venue_aliases` (migration
+  `AddVenueAliasesAndIdentifiers`, RLS, composite FK to the venue; names 1–120 as a venue's, `AliasKind` reused) and
+  `ck_external_identifiers_entity_type` allowing `PERSON` and `VENUE` only (owner, plan 2026-11-21: each task adds its
+  own type). `POST /venues/{id}/aliases`, `…/aliases/{aliasId}/remove`, `…/external-identifiers`,
+  `…/external-identifiers/{identifierId}/end` (`venue.alias.add`, `venue.alias.remove`, `venue.external_id.add`,
+  `venue.external_id.end`, granted with `venue.read`; `TENANT_OWNER`, `TENANT_ADMIN`, `REGISTRAR`) answer the venue
+  with its `ETag`; `VENUE_ARCHIVED` and `VENUE_CLOSED` refuse new children, a temporarily unavailable venue takes them.
+  The identifier add holds `registry.venues:<tenantId>`; a value is unique within authority and entity type, so a
+  person's identifier never clashes with a venue's; no reserved authorities. `ExternalIdentifier.End` answers the
+  codes of its entity type. The venue read gains `aliases` (current) and `externalIdentifiers` (`INTERNAL`). `GET
+  /venues?q=` adds a current alias's name key (prefix of the key or of a word, similarity ≥ 0.3) and an identifier's
+  exact value, ended ones included; text without a letter or digit finds identifiers only. Aliases don't feed the
+  duplicate warning (owner, plan 2026-11-21: D13 read literally). `IVenueDirectory` with its own `VenueStatus` in
+  Contracts, mapped from the domain's, as `IPeopleDirectory` (not moved, as the plan first said: People's pattern).
+  One PR (owner).

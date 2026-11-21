@@ -1219,6 +1219,38 @@
       "since": "S02"
     },
     {
+      "code": "venue.alias.add",
+      "module": "Registry",
+      "description": "Add another name a venue is known by (former name, nickname, spelling), so the directory finds it under it too; not for an archived or closed venue.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S07"
+    },
+    {
+      "code": "venue.alias.remove",
+      "module": "Registry",
+      "description": "Remove a venue's alias, with a reason; the alias is kept with who removed it, when and why.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED_WITH_REASON",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S07"
+    },
+    {
       "code": "venue.create",
       "module": "Registry",
       "description": "Add a venue to the registry; possible duplicates are shown first, and creating it anyway is recorded with the venues shown.",
@@ -1243,6 +1275,38 @@
         "TENANT"
       ],
       "audit": "NONE",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S07"
+    },
+    {
+      "code": "venue.external_id.add",
+      "module": "Registry",
+      "description": "Add an identifier another authority gave a venue (e.g. a facility number); a value any venue has or had is refused; not for an archived or closed venue.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S07"
+    },
+    {
+      "code": "venue.external_id.end",
+      "module": "Registry",
+      "description": "End a venue's external identifier; it is kept, and its value is never given to another venue.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED",
       "entitlement": null,
       "idempotent": false,
       "allowsAnonymous": false,

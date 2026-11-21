@@ -121,8 +121,17 @@ the message is the default title and may change.
 | `VALIDATION_REASON_REQUIRED` | 400 | This action needs a reason. | BuildingBlocks |
 | `VALIDATION_REQUEST_TOO_LARGE` | 413 | The request body is too large. | BuildingBlocks |
 | `VALIDATION_UNSUPPORTED_MEDIA_TYPE` | 415 | The request body's content type isn't accepted by this endpoint. | BuildingBlocks |
+| `VENUE_ALIAS_EXISTS` | 409 | The venue is already known by this name: its own name or a current alias gives the same name key. | Registry |
+| `VENUE_ALIAS_NOT_FOUND` | 404 | The venue has no such alias. | Registry |
+| `VENUE_ALIAS_REMOVED` | 409 | The alias is already removed. | Registry |
+| `VENUE_ARCHIVED` | 409 | The venue is archived: it takes no new alias or external identifier. | Registry |
+| `VENUE_CLOSED` | 409 | The venue is closed: it takes no new alias or external identifier. Reopen it first. | Registry |
 | `VENUE_CONCURRENCY_CONFLICT` | 409 | The venue was changed by someone else. Reload and try again. | Registry |
 | `VENUE_DUPLICATE_REVIEW_REQUIRED` | 422 | Venues already in the registry look like this one: open one of them, or send duplicatesReviewed to add it anyway. | Registry |
+| `VENUE_EXTERNAL_ID_ENDED` | 409 | The external identifier has already ended. | Registry |
+| `VENUE_EXTERNAL_ID_EXISTS` | 409 | A venue already has this external identifier (the same authority and value), or had it: a value is never reused. | Registry |
+| `VENUE_EXTERNAL_ID_NOT_FOUND` | 404 | The venue has no such external identifier. | Registry |
+| `VENUE_EXTERNAL_ID_VALIDITY_INVALID` | 422 | An identifier's end date can't be before its start date or after today (the tenant's date). | Registry |
 | `VENUE_NAME_INVALID` | 422 | A venue's name needs at least one letter or digit. | Registry |
 | `VENUE_NOT_FOUND` | 404 | The venue was not found. | Registry |
 | `VENUE_SLUG_TAKEN` | 422 | Another venue of the tenant has this slug. | Registry |
