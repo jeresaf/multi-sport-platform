@@ -13,6 +13,7 @@ using SportsPlatform.Modules.Identity.Infrastructure.Users;
 using SportsPlatform.Modules.Platform.Contracts.Media;
 using SportsPlatform.Modules.Platform.Domain.Media;
 using SportsPlatform.Modules.Registry.Domain;
+using SportsPlatform.Modules.Registry.Domain.Organisations;
 using SportsPlatform.Modules.Registry.Domain.People;
 using SportsPlatform.Modules.Registry.Domain.People.Consents;
 using SportsPlatform.Modules.Registry.Domain.People.Duplicates;
@@ -82,6 +83,8 @@ public static class IsolationSamples
         new VenueSample(),
         new VenueStatusChangeSample(),
         new VenueAliasSample(),
+        new OrganisationSample(),
+        new OrganisationStatusChangeSample(),
         new MediaAssetSample(),
     ];
 
@@ -588,8 +591,53 @@ public static class IsolationSamples
                 : null;
     }
 
+    /// <summary>Registry: an organisation; it points at its primary venue, and its status history points at it.</summary>
+    private sealed class OrganisationSample : IIsolationSample
+    {
+        public Type EntityType => typeof(Organisation);
+
+        public Entity Add(DbContext context)
+        {
+            var organisation = RegistrySamples.NewOrganisation("Ntinda Swifts SC");
+            context.Add(organisation);
+            return organisation;
+        }
+
+        public Entity? Referencing(IForeignKey foreignKey, Guid principalId) =>
+            foreignKey.PrincipalEntityType.ClrType == typeof(Venue)
+                ? RegistrySamples.NewOrganisation("Kiwatule Athletic Club", primaryVenueId: principalId)
+                : null;
+    }
+
+    /// <summary>Registry: the history row a new organisation gets.</summary>
+    private sealed class OrganisationStatusChangeSample : IIsolationSample
+    {
+        public Type EntityType => typeof(OrganisationStatusChange);
+
+        public Entity Add(DbContext context)
+        {
+            var organisation = RegistrySamples.NewOrganisation("Bunga Lakeside Sports Club");
+            context.Add(organisation);
+            return organisation.StatusHistory.Single();
+        }
+
+        public Entity? Referencing(IForeignKey foreignKey, Guid principalId) =>
+            foreignKey.PrincipalEntityType.ClrType == typeof(Organisation)
+                ? new OrganisationStatusChange(
+                    principalId, OrganisationStatus.Active, OrganisationStatus.Suspended, "Unpaid league fees", SystemActor.Instance, RegistrySamples.Now)
+                : null;
+    }
+
     private static class RegistrySamples
     {
+        public static Organisation NewOrganisation(string name, Guid? primaryVenueId = null) =>
+            Organisation.Create(
+                new OrganisationDetails(OrganisationType.Club, name, null, null, "UG", "Kampala", null, null, null, null, null, primaryVenueId),
+                Slugs.Propose("organisation", name),
+                OrganisationSource.Manual,
+                SystemActor.Instance,
+                Now);
+
         public static Venue NewVenue(string name) =>
             Venue.Create(
                 new VenueDetails(name, null, VenueType.SportsGround, null, "Kampala", null, "UG", null, "Africa/Kampala", null, [], []),

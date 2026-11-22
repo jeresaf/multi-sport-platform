@@ -1,4 +1,5 @@
 using SportsPlatform.BuildingBlocks.Results;
+using SportsPlatform.Modules.Registry.Domain.Organisations;
 using SportsPlatform.Modules.Registry.Domain.People;
 using SportsPlatform.Modules.Registry.Domain.People.Duplicates;
 using SportsPlatform.Modules.Registry.Domain.Venues;
@@ -20,6 +21,7 @@ public static class RegistryConcurrencyConflicts
         // A duplicate decision is about two people (S06 D7): its conflict is a person's.
         return type == typeof(Person) || type == typeof(DuplicateDecision) ? RegistryErrors.PersonConcurrencyConflict
             : type == typeof(Venue) ? RegistryErrors.VenueConcurrencyConflict
+            : type == typeof(Organisation) ? RegistryErrors.OrganisationConcurrencyConflict
             : null;
     }
 }

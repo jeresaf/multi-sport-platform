@@ -11,6 +11,9 @@ public static class RegistryErrors
     public static readonly Error VenueConcurrencyConflict = new(
         "VENUE_CONCURRENCY_CONFLICT", "The venue was changed by someone else. Reload and try again.", ErrorKind.Conflict);
 
+    public static readonly Error OrganisationConcurrencyConflict = new(
+        "ORGANISATION_CONCURRENCY_CONFLICT", "The organisation was changed by someone else. Reload and try again.", ErrorKind.Conflict);
+
     public static readonly Error PersonNotFound = new("PERSON_NOT_FOUND", "The person was not found.", ErrorKind.NotFound);
 
     public static readonly Error StatusInvalid = new(
@@ -167,5 +170,24 @@ public static class RegistryErrors
     public static readonly Error VenueExternalIdValidityInvalid = new(
         "VENUE_EXTERNAL_ID_VALIDITY_INVALID",
         "An identifier's end date can't be before its start date or after today (the tenant's date).",
+        ErrorKind.Unprocessable);
+
+    public static readonly Error OrganisationNotFound = new(
+        "ORGANISATION_NOT_FOUND", "The organisation was not found.", ErrorKind.NotFound);
+
+    public static readonly Error OrganisationNameInvalid = new(
+        "ORGANISATION_NAME_INVALID", "An organisation's display name needs at least one letter or digit.", ErrorKind.Unprocessable);
+
+    public static readonly Error OrganisationDuplicateReviewRequired = new(
+        "ORGANISATION_DUPLICATE_REVIEW_REQUIRED",
+        "Organisations already in the registry look like this one: open one of them, or send duplicatesReviewed to add it anyway.",
+        ErrorKind.Unprocessable);
+
+    public static readonly Error OrganisationSlugTaken = new(
+        "ORGANISATION_SLUG_TAKEN", "Another organisation of the tenant has this slug.", ErrorKind.Unprocessable);
+
+    public static readonly Error OrganisationPrimaryVenueUnavailable = new(
+        "ORGANISATION_PRIMARY_VENUE_UNAVAILABLE",
+        "The primary venue must be a venue of the tenant that isn't closed or archived.",
         ErrorKind.Unprocessable);
 }

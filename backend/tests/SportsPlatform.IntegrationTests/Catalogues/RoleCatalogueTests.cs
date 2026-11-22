@@ -88,7 +88,7 @@ public sealed class RoleCatalogueTests
         var json = RoleCatalogueExport.ToJson(_roles);
 
         markdown.ShouldContain("**Actions** is what a role grants today; **Description** is the role's purpose");
-        markdown.ShouldContain("| `VIEWER` | TENANT | TENANT | `format.read`, `membership.read`, `person.read`, `ruleset.read`, `sport.read`, `tenant.capabilities.read`, `tenant.settings.read`, `tenant.sport.read`, `tenant.subscription.read`, `venue.read` | Read-only admin. |\n");
+        markdown.ShouldContain("| `VIEWER` | TENANT | TENANT | `format.read`, `membership.read`, `organisation.read`, `person.read`, `ruleset.read`, `sport.read`, `tenant.capabilities.read`, `tenant.settings.read`, `tenant.sport.read`, `tenant.subscription.read`, `venue.read` | Read-only admin. |\n");
         markdown.ShouldContain("| `SCORER` | TENANT | TENANT, COMPETITION, CONTEST | `format.read`, `ruleset.read`, `sport.read`, `tenant.capabilities.read`, `tenant.settings.read`, `tenant.sport.read` |");
         markdown.ShouldContain("| `TEAM_MANAGER` | TENANT | TEAM | — |");
         markdown.ShouldContain("| `PLATFORM_SUPPORT` | PLATFORM | — | `plan.read`, `platform.audit.read`, `platform.capabilities.read`, `platform.outbox.read`, `platform.sport.read`, `subscription.read`, `tenant.read` |");
@@ -105,7 +105,8 @@ public sealed class RoleCatalogueTests
         owner.GetProperty("actions").EnumerateArray().Select(action => action.GetString()).ShouldBe(
         [
             "athlete_profile.create", "athlete_profile.status.change", "athlete_profile.update", "format.read", "invitation.revoke", "membership.invite", "membership.read", "membership.remove", "membership.restore",
-            "membership.suspend", "official_profile.create", "official_profile.status.change", "official_profile.update", "person.alias.add", "person.alias.remove", "person.archive", "person.consent.record", "person.consent.withdraw",
+            "membership.suspend", "official_profile.create", "official_profile.status.change", "official_profile.update", "organisation.create",
+            "organisation.duplicate_check", "organisation.read", "person.alias.add", "person.alias.remove", "person.archive", "person.consent.record", "person.consent.withdraw",
             "person.consent_evidence.upload", "person.create", "person.deactivate", "person.duplicate_check", "person.external_id.add",
             "person.external_id.end", "person.mark_deceased", "person.photo.remove", "person.photo.set", "person.public_profile.disable",
             "person.public_profile.enable", "person.reactivate", "person.read", "person.read_private", "person.unarchive", "person.update", "role.assign", "role.revoke", "ruleset.read", "sport.read", "staff_profile.create", "staff_profile.status.change",
