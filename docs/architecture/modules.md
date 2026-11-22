@@ -200,6 +200,11 @@ the record (`ETag`), `POST …/{id}/status` (the venue machine, state-machines.m
 `registry.venue_aliases` and `VENUE` external identifiers (`…/{id}/aliases`, `…/{id}/external-identifiers`); and
 `IVenueDirectory.GetSummariesAsync(ids)` in Contracts: id, name, short name, time zone, city, country, supported
 variants and status, the scope's tenant only, no action checked.
+**As built (S07-T2a):** organisations (`registry.organisations`, `registry.organisation_status_changes`, append-only)
+under `/api/admin/v1/organisations`: the duplicate check, create (the lighter warning under
+`registry.organisations:<tenantId>`, data-conventions.md) and the record (`ETag`, the primary venue as id, name and
+slug). A primary venue is the tenant's own (composite foreign key). `ORGANISATION_CONCURRENCY_CONFLICT` joins the
+per-root conflicts.
 **Absorbs:** pack specs 08–14. Owner's systems: **Player Management System**, the identity half of
 **Team Management System**. Owner's rule "duplicate players within the same tenant should be avoided at all
 costs" is implemented here (docs/build/slices/S06-people-registry.md).
