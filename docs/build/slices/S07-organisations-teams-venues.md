@@ -502,5 +502,6 @@ The rest of S06's tech debt has its own trigger in PROGRESS.md ("From S06").
   `LIKELY` when a name key of one is a name key of the other, `POSSIBLE` when display name keys are at least 0.7 similar
   (display names only, owner). `ORGANISATION_NAME_INVALID` (422) refuses a display name with no letter or digit; a
   founded year after the tenant's year is `400 VALIDATION_INVALID_REQUEST` on `foundedYear`. The primary venue is
-  checked only when set or changed (D6's rule), untracked; a temporarily unavailable venue is accepted. `logo_asset_id`
-  exists but stays null until T4.
+  checked only when set or changed (D6's rule), untracked and before the lock (as venues' references); a temporarily
+  unavailable venue is accepted. D4's `organisation_type` is the column `type` (as venues' `type` for D3's
+  `venue_type`). `logo_asset_id` exists but stays null until T4.

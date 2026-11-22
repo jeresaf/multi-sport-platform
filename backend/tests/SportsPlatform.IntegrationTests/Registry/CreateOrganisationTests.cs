@@ -127,6 +127,25 @@ public sealed class CreateOrganisationTests(PostgresFixture fixture) : DatabaseT
         (await context.Set<Organisation>().CountAsync(Ct)).ShouldBe(0);
     }
 
+    // D4: the founded year runs to the tenant's year (Africa/Kampala), edges included.
+    [Fact]
+    public async Task The_founded_year_may_be_this_year_but_not_next_year()
+    {
+        var (_, registrar) = await TenantAsync("kmsa", IdentityRoles.Registrar);
+        var kampala = TimeZoneInfo.FindSystemTimeZoneById("Africa/Kampala");
+        var year = TimeZoneInfo.ConvertTime(App.Clock.GetUtcNow(), kampala).Year;
+        var thisYear = NtindaSwifts();
+        thisYear["foundedYear"] = year;
+        var nextYear = NtindaSwifts();
+        nextYear["displayName"] = "Seeta Sparrows FC";
+        nextYear["foundedYear"] = year + 1;
+
+        (await CreateOrganisationAsync(registrar, thisYear)).GetProperty("foundedYear").GetInt32().ShouldBe(year);
+        using var refused = await registrar.PostAsJsonAsync(OrganisationsPath, nextYear, Ct);
+        Fields(await refused.ShouldBeProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_INVALID_REQUEST"))
+            .ShouldBe([("foundedYear", "VALIDATION_INVALID_REQUEST")]);
+    }
+
     [Fact]
     public async Task A_status_or_unknown_member_is_refused()
     {

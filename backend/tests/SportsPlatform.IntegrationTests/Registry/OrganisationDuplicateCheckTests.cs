@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 using SportsPlatform.IntegrationTests.Api;
 using SportsPlatform.IntegrationTests.Identity;
 using SportsPlatform.IntegrationTests.Infrastructure;
@@ -94,6 +95,26 @@ public sealed class OrganisationDuplicateCheckTests(PostgresFixture fixture) : D
                 candidates[0].GetProperty("status").GetString(), candidates[0].GetProperty("confidence").GetString())
             .ShouldBe((same.Id, _existing, "CLUB", "Wakiso", "ACTIVE", "LIKELY"));
         candidates.Skip(1).ShouldAllBe(candidate => candidate.GetProperty("confidence").GetString() == "POSSIBLE");
+    }
+
+    // D13: archived organisations are found and marked. Archiving is S07-T2b's: the test sets the status directly.
+    [Fact]
+    public async Task An_archived_organisation_is_found_and_marked()
+    {
+        var (kmsa, registrar) = await TenantAsync();
+        var archived = await SaveOrganisationAsync(App.Services, kmsa, _existing);
+        await using (var scope = RegistryTestData.ScopeFor(App.Services, kmsa, out var context))
+        {
+            var organisation = await context.Set<Organisation>().SingleAsync(o => o.Id == archived.Id, Ct);
+            context.Entry(organisation).Property(o => o.Status).CurrentValue = OrganisationStatus.Archived;
+            await context.SaveChangesAsync(Ct);
+        }
+
+        var candidate = (await CheckOrganisationAsync(registrar, new { type = "CLUB", displayName = _existing }))
+            .GetProperty("candidates").EnumerateArray().ShouldHaveSingleItem();
+
+        (candidate.GetProperty("organisationId").GetGuid(), candidate.GetProperty("status").GetString(), candidate.GetProperty("confidence").GetString())
+            .ShouldBe((archived.Id, "ARCHIVED", "LIKELY"));
     }
 
     [Fact]
