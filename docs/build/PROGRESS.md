@@ -7,14 +7,16 @@ at the start of every review.
 
 - **Current slice:** S07 — Organisations, teams and venues (docs/build/slices/S07-organisations-teams-venues.md,
   written by the S06 slice review). S00–S06 are done
-- **Current task:** — (S07-T1c in review: #120)
-- **Next:** S07-T2 — Organisations
+- **Current task:** S07-T2a — Organisations: model, create with the duplicate warning, the check, the read
+- **Next:** S07-T2b — Organisations: update, lifecycle, directory
 - **Blocked on:** —
 
 ## Next up
 
-1. S07-T2 — Organisations
-2. S07-T3 — Teams
+1. S07-T2b — Organisations: update, lifecycle, status history, directory
+2. S07-T2c — Organisations: parent links and the cycle check
+3. S07-T2d — Organisations: aliases, external identifiers, `IOrganisationDirectory`
+4. S07-T3 — Teams
 
 ## Log
 
@@ -135,6 +137,14 @@ at the start of every review.
 | 2026-11-21 | S07-T1c | #120 | Venues: aliases, external identifiers, directory contract (T1 complete). `registry.venue_aliases` (RLS, isolation sample, table policy) and `VENUE` in `ck_external_identifiers_entity_type` (migration `AddVenueAliasesAndIdentifiers`). `POST /venues/{id}/aliases`, `…/aliases/{aliasId}/remove`, `…/external-identifiers`, `…/external-identifiers/{identifierId}/end` (`venue.alias.add`, `venue.alias.remove`, `venue.external_id.add`, `venue.external_id.end`; `TENANT_OWNER`, `TENANT_ADMIN`, `REGISTRAR`), answering the venue with its `ETag`. New errors `VENUE_ARCHIVED`, `VENUE_CLOSED`, `VENUE_ALIAS_EXISTS`/`_NOT_FOUND`/`_REMOVED`, `VENUE_EXTERNAL_ID_EXISTS`/`_NOT_FOUND`/`_ENDED`/`_VALIDITY_INVALID`. The venue read shows aliases and identifiers; `GET /venues?q=` finds current aliases and an identifier's exact value. `IVenueDirectory` in Contracts. Backend 3545 tests pass; web lint, typecheck, tests and build pass | Owner (plan 2026-11-21): aliases feed the directory search, not the duplicate warning; `VENUE` only in the constraint; one PR (planned about 650 production and 550 test lines; built about 930 production lines plus the 97-line migration, and 625 test lines). `VenueStatus` not moved to Contracts as planned: Contracts has its own enum mapped from the domain's, as `IPeopleDirectory`. Two existing tests that list the owner role's actions and the trigram indexes gained the new entries. No events or dependencies. Pre-review (ready): `ExternalIdentifier.End` maps codes per entity type with a switch (an unmapped type throws); tests for the version on remove/end and every status mapping; `Down` comment on the rollback limit. Review #120 (subagent, approve with nits): R1 the actual size recorded; Q1 public former names → tech debt "From S07" |
 
 ## Deviations from spec (agreed)
+
+- **S07-T2 (owner, plan 2026-11-22):** T2 is four PRs, not two: T2a (the model, create with D13's warning, the check,
+  the read), T2b (update, lifecycle and status history, the directory), T2c (parent links, the cycle check), T2d
+  (aliases, external identifiers, `IOrganisationDirectory`). A parent link moves only the child's version: the old and
+  new parents are checked without being tracked (the S06 D11 carry-over). D13's `POSSIBLE` compares display names only;
+  legal and short names (and, from T2d, aliases) count for the exact `LIKELY` match. New error
+  `ORGANISATION_NAME_INVALID` (a display name without a letter or digit). A founded year after the tenant's year is
+  `400 VALIDATION_INVALID_REQUEST` on `foundedYear`. T2 acceptance 2 (teams' statuses) is tested with T3's teams.
 
 - **S07-T1 (owner, plan 2026-11-21):** T1 is three PRs, not two: T1a (D2, the venue model, create with D13's warning
   and the check endpoint, the venue read), T1b (update, directory, lifecycle), T1c (aliases, identifiers,
@@ -601,7 +611,8 @@ docs/build/slices/S07-organisations-teams-venues.md, "Carried over from S06")
   so neither the trigram index on `name_key` nor an index on `city_key` serves it, and it scans the tenant's venues
   (people's finder does the same). Fine at venue volumes; add `(tenant_id, city_key)` or switch to `%` with
   `pg_trgm.similarity_threshold` when a tenant's venues reach the thousands, or when T2/T3's finders for organisations
-  and teams (more rows) are planned.
+  and teams (more rows) are planned. **Organisations (S07-T2a):** their finder filters on the type or the city key first
+  (both indexed per tenant), then measures similarity within those rows. Teams decide in T3's plan; venues unchanged.
 - A venue's former names are `PUBLIC` (D16) but `venue_aliases.name` is classified `INTERNAL` for every alias kind
   (S07-T1c, review of #120 Q1): one column carries one `pii` class. T5's plan chooses between a public read of former
   names only (`kind = FORMER_NAME`, its own public DTO) and reclassifying the column. (S07-T5.)
