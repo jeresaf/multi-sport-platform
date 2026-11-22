@@ -217,6 +217,42 @@
       "owner": "Platform"
     },
     {
+      "code": "ORGANISATION_CONCURRENCY_CONFLICT",
+      "status": 409,
+      "message": "The organisation was changed by someone else. Reload and try again.",
+      "owner": "Registry"
+    },
+    {
+      "code": "ORGANISATION_DUPLICATE_REVIEW_REQUIRED",
+      "status": 422,
+      "message": "Organisations already in the registry look like this one: open one of them, or send duplicatesReviewed to add it anyway.",
+      "owner": "Registry"
+    },
+    {
+      "code": "ORGANISATION_NAME_INVALID",
+      "status": 422,
+      "message": "An organisation's display name needs at least one letter or digit.",
+      "owner": "Registry"
+    },
+    {
+      "code": "ORGANISATION_NOT_FOUND",
+      "status": 404,
+      "message": "The organisation was not found.",
+      "owner": "Registry"
+    },
+    {
+      "code": "ORGANISATION_PRIMARY_VENUE_UNAVAILABLE",
+      "status": 422,
+      "message": "The primary venue must be a venue of the tenant that isn't closed or archived.",
+      "owner": "Registry"
+    },
+    {
+      "code": "ORGANISATION_SLUG_TAKEN",
+      "status": 422,
+      "message": "Another organisation of the tenant has this slug.",
+      "owner": "Registry"
+    },
+    {
       "code": "PERSON_ALIAS_EXISTS",
       "status": 409,
       "message": "The person is already known by this name: their own name or a current alias gives the same name key.",
