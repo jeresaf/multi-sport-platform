@@ -353,7 +353,7 @@ Acceptance:
 - [ ] Suspending or dissolving an organisation leaves its teams' statuses alone, and a team's update that keeps its
       dissolved organisation succeeds (tests, with T3's teams).
 - [x] Unarchiving returns to the status before archiving; a dissolved organisation stays dissolved (test).
-- [ ] Duplicate warnings for organisations behave as D13 says (table-driven tests).
+- [x] Duplicate warnings for organisations behave as D13 says (table-driven tests).
 
 ### T3 — Teams (~2 PRs, about 1,300 lines)
 Deliver:
@@ -551,3 +551,18 @@ The rest of S06's tech debt has its own trigger in PROGRESS.md ("From S06").
   `D` form is `400 VALIDATION_INVALID_QUERY`. `DocumentsQueryUuid(name)` documents an ID query parameter as a `uuid`
   string (for T3's `organisationId` too). No migration: T2c-1's index on the open links' `(tenant_id, parent_id)` serves
   both.
+- **T2d (organisations: aliases, identifiers, directory contract):** `registry.organisation_aliases` (migration
+  `AddOrganisationAliasesAndIdentifiers`, RLS, composite foreign key to the organisation; names 1–120 as a display
+  name, `AliasKind` reused) and `ck_external_identifiers_entity_type` with `ORGANISATION`. `POST /organisations/{id}/aliases`,
+  `…/aliases/{aliasId}/remove`, `…/external-identifiers`, `…/external-identifiers/{identifierId}/end`
+  (`organisation.alias.add`, `organisation.alias.remove`, `organisation.external_id.add`, `organisation.external_id.end`,
+  granted with `organisation.read`; `TENANT_OWNER`, `TENANT_ADMIN`, `REGISTRAR`) answer the organisation with its
+  `ETag`, as venues' (T1c). `ORGANISATION_DISSOLVED` and `ORGANISATION_ARCHIVED` refuse new children; removing and
+  ending stay allowed. An alias whose key is the display, legal or short name's or a current alias's is
+  `ORGANISATION_ALIAS_EXISTS`. The identifier add holds `registry.organisations:<tenantId>`. The read gains `aliases`
+  (current) and `externalIdentifiers` (`INTERNAL`). `GET /organisations?q=` adds a current alias (as venues') and an
+  identifier's exact value, ended ones included; text without a letter or digit finds identifiers only. The duplicate
+  warning compares current aliases on both sides (owner, plan 2026-11-23): `SAME_NAME_KEY` when a name or alias key of
+  one is a name or alias key of the other; an update brings the organisation's own aliases, a create and the live check
+  have none. Adding an alias runs no warning (owner). `IOrganisationDirectory` with its own `OrganisationStatus` and
+  `OrganisationType` in Contracts, mapped from the domain's. One PR (owner).
