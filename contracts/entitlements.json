@@ -250,7 +250,8 @@
       },
       "enforcedBy": "Registry",
       "actions": [
-        "team.create"
+        "team.create",
+        "team.status.change"
       ],
       "since": "S04"
     },

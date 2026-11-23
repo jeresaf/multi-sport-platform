@@ -36,9 +36,12 @@ using SportsPlatform.Modules.Registry.Features.People.Profiles;
 using SportsPlatform.Modules.Registry.Features.People.PublicProfile;
 using SportsPlatform.Modules.Registry.Features.People.UpdatePerson;
 using SportsPlatform.Modules.Registry.Features.Teams;
+using SportsPlatform.Modules.Registry.Features.Teams.ChangeTeamStatus;
 using SportsPlatform.Modules.Registry.Features.Teams.CheckTeamDuplicates;
 using SportsPlatform.Modules.Registry.Features.Teams.CreateTeam;
 using SportsPlatform.Modules.Registry.Features.Teams.GetTeam;
+using SportsPlatform.Modules.Registry.Features.Teams.ListTeamStatusChanges;
+using SportsPlatform.Modules.Registry.Features.Teams.UpdateTeam;
 using SportsPlatform.Modules.Registry.Features.Venues;
 using SportsPlatform.Modules.Registry.Features.Venues.Aliases;
 using SportsPlatform.Modules.Registry.Features.Venues.ChangeVenueStatus;
@@ -137,6 +140,9 @@ public sealed class RegistryModule : IModule
         services.AddScoped<CheckTeamDuplicatesHandler>();
         services.AddScoped<CreateTeamHandler>();
         services.AddScoped<GetTeamHandler>();
+        services.AddScoped<UpdateTeamHandler>();
+        services.AddScoped<ChangeTeamStatusHandler>();
+        services.AddScoped<ListTeamStatusChangesHandler>();
         services.AddQuotaUsage<TeamCount>(TeamCount.Code);
         services.AddScoped<VenueDetailsRules>();
         services.AddScoped<VenueDuplicateFinder>();
@@ -181,6 +187,8 @@ public sealed class RegistryModule : IModule
         services.AddSingleton<IValidator<EndOrganisationExternalIdentifierRequest>, EndOrganisationExternalIdentifierRequestValidator>();
         services.AddSingleton<IValidator<CheckTeamDuplicatesRequest>, CheckTeamDuplicatesRequestValidator>();
         services.AddSingleton<IValidator<CreateTeamRequest>, CreateTeamRequestValidator>();
+        services.AddSingleton<IValidator<UpdateTeamRequest>, UpdateTeamRequestValidator>();
+        services.AddSingleton<IValidator<ChangeTeamStatusRequest>, ChangeTeamStatusRequestValidator>();
         services.AddSingleton<IValidator<CheckVenueDuplicatesRequest>, CheckVenueDuplicatesRequestValidator>();
         services.AddScoped<IValidator<CreateVenueRequest>, CreateVenueRequestValidator>();
         services.AddScoped<IValidator<UpdateVenueRequest>, UpdateVenueRequestValidator>();
@@ -234,6 +242,9 @@ public sealed class RegistryModule : IModule
         CheckTeamDuplicatesEndpoint.Map(teams);
         CreateTeamEndpoint.Map(teams);
         GetTeamEndpoint.Map(teams);
+        UpdateTeamEndpoint.Map(teams);
+        ChangeTeamStatusEndpoint.Map(teams);
+        ListTeamStatusChangesEndpoint.Map(teams);
 
         var venues = VenuesEndpoints.Group(groups.Admin);
         CheckVenueDuplicatesEndpoint.Map(venues);

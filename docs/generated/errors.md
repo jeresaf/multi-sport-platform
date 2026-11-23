@@ -113,8 +113,10 @@ the message is the default title and may change.
 | `TEAM_NAME_INVALID` | 422 | A team's name needs at least one letter or digit. | Registry |
 | `TEAM_NOT_FOUND` | 404 | The team was not found. | Registry |
 | `TEAM_ORGANISATION_UNAVAILABLE` | 422 | The organisation must be an organisation of the tenant that isn't dissolved or archived. | Registry |
+| `TEAM_RENAME_REQUIRED` | 422 | An update keeps the team's name: rename the team (POST /teams/{teamId}/rename) so the old name is kept with its dates. | Registry |
 | `TEAM_SLUG_TAKEN` | 422 | Another team of the tenant has this slug. | Registry |
 | `TEAM_SPORT_NOT_ENABLED` | 422 | The sport isn't enabled for your organisation: a team can only be created for an enabled sport. | Registry |
+| `TEAM_STATUS_INVALID` | 409 | The team's current status doesn't allow this change. | Registry |
 | `TENANT_BLOCKED` | 403 | This tenant is suspended or archived. | Tenancy |
 | `TENANT_CONCURRENCY_CONFLICT` | 409 | The tenant was changed by someone else. Reload and try again. | Tenancy |
 | `TENANT_INVALID_TRANSITION` | 409 | The tenant's status does not allow this change. | Tenancy |

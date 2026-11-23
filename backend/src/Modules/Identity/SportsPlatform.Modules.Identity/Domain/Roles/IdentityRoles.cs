@@ -81,7 +81,7 @@ public static class IdentityRoles
 
     // Teams (S07 D20): as venues. Each S07 task adds the actions it builds.
     private const string _teamRead = "team.read";
-    private static readonly string[] _teamChanges = ["team.duplicate_check", "team.create"];
+    private static readonly string[] _teamChanges = ["team.duplicate_check", "team.create", "team.update", "team.status.change"];
 
     // Venues (S07 D20): read by every role that reads people; changed by those who change people. The duplicate check
     // is its own unaudited action, granted with the create.

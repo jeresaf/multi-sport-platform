@@ -407,6 +407,34 @@ public static class RegistryActions
         entitlement: "MAX_TEAMS",
         grantedWith: ["team.duplicate_check", "team.read"]);
 
+    /// <summary>
+    /// Changes a team's details (S07 D11), not its variant or name; a change to a compared field runs the duplicate
+    /// check itself (D13), and the team is answered as <c>team.read</c> does.
+    /// </summary>
+    public static readonly ActionDefinition TeamUpdate = new(
+        "team.update",
+        "Change a team's details (not its sport or name: a new name is a rename); a change to its short name, category or organisation shows possible duplicates first, and saving it anyway is recorded with the teams shown.",
+        ActionScope.Tenant,
+        AuditRequirement.Required,
+        since: "S07",
+        scopableBy: [AssignmentScope.Tenant],
+        grantedWith: ["team.duplicate_check", "team.read"]);
+
+    /// <summary>
+    /// One action for every move of the team lifecycle (S07 D12), with a reason. Reform and unarchive take a place of
+    /// the quota, so it names <c>MAX_TEAMS</c> (D14; the handler counts under the teams' lock). Answers the team as
+    /// <c>team.read</c> does.
+    /// </summary>
+    public static readonly ActionDefinition TeamStatusChange = new(
+        "team.status.change",
+        "Mark a team inactive, suspended, disbanded or archived, reactivate or reform it, or unarchive it, with a reason; reforming or unarchiving needs a free place within the plan's team limit.",
+        ActionScope.Tenant,
+        AuditRequirement.RequiredWithReason,
+        since: "S07",
+        scopableBy: [AssignmentScope.Tenant],
+        entitlement: "MAX_TEAMS",
+        grantedWith: ["team.read"]);
+
     // The lifecycle, alias, identifier, profile, photo, consent and public-profile actions answer the person as person.read does, so they are only
     // granted with that read.
     private static ActionDefinition Lifecycle(string code, string description, AuditRequirement audit) => new(

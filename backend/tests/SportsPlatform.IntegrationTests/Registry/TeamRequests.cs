@@ -20,6 +20,27 @@ internal static class TeamRequests
 
     public static string TeamPath(Guid teamId) => $"{TeamsPath}/{teamId}";
 
+    public static string TeamStatusPath(Guid teamId) => $"{TeamsPath}/{teamId}/status";
+
+    public static string TeamStatusChangesPath(Guid teamId) => $"{TeamsPath}/{teamId}/status-changes";
+
+    /// <summary>Moves a team over HTTP and answers the team; <paramref name="ifMatch"/> is sent when given.</summary>
+    public static async Task<JsonElement> MoveTeamAsync(HttpClient client, Guid teamId, string status, string reason, string? ifMatch = null)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, TeamStatusPath(teamId))
+        {
+            Content = JsonContent.Create(new { status, reason }),
+        };
+        if (ifMatch is not null)
+        {
+            request.Headers.TryAddWithoutValidation("If-Match", ifMatch);
+        }
+
+        using var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
+        response.StatusCode.ShouldBe(HttpStatusCode.OK, await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+        return await response.Content.ReadFromJsonAsync<JsonElement>(TestContext.Current.CancellationToken);
+    }
+
     /// <summary>The demo club's first team (S07 Demo) in a test variant, with only the required fields.</summary>
     public static Dictionary<string, object?> NtindaSwiftsMen() => new()
     {
@@ -54,7 +75,7 @@ internal static class TeamRequests
 
     /// <summary>
     /// A team of <paramref name="tenantId"/>, saved without the warning or the quota (the test's starting point), in
-    /// <paramref name="status"/> set directly (the lifecycle is S07-T3b's).
+    /// <paramref name="status"/> through the domain's move (a second history row).
     /// </summary>
     public static async Task<Team> SaveTeamAsync(
         IServiceProvider services,
@@ -76,11 +97,12 @@ internal static class TeamRequests
             TeamSource.Manual,
             SystemActor.Instance,
             RegistryTestData.Now);
-        context.Add(team);
         if (status != TeamStatus.Active)
         {
-            context.Entry(team).Property(t => t.Status).CurrentValue = status;
+            team.ChangeStatus(status, "Set up by the test", SystemActor.Instance, RegistryTestData.Now).IsSuccess.ShouldBeTrue();
         }
+
+        context.Add(team);
 
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
         return team;

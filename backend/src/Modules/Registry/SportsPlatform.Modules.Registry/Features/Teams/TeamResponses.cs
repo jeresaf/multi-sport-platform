@@ -55,7 +55,8 @@ public sealed record TeamVenueResponse(
 
 /// <summary>
 /// A team that looks like the one checked (S07 D13): enough to recognise it and open it. Its variant and category are
-/// the checked team's (only those are compared); <c>status</c> marks an archived one.
+/// the checked team's (only those are compared); <c>organisation</c> is its organisation, whatever its status now, or
+/// null for an independent team (owner, review #127 Q1); <c>status</c> marks an archived one.
 /// </summary>
 public sealed record TeamDuplicateCandidateResponse(
     [property: PersonalData(PersonalDataClass.Public)] Guid TeamId,
@@ -64,7 +65,7 @@ public sealed record TeamDuplicateCandidateResponse(
     [property: PersonalData(PersonalDataClass.Public)] GenderCategory GenderCategory,
     [property: PersonalData(PersonalDataClass.Public)] AgeGroup AgeGroup,
     [property: PersonalData(PersonalDataClass.Public)] TeamLevel Level,
-    [property: PersonalData(PersonalDataClass.Public)] Guid? OrganisationId,
+    [property: PersonalData(PersonalDataClass.Public)] TeamOrganisationResponse? Organisation,
     [property: PersonalData(PersonalDataClass.Public)] TeamStatus Status,
     [property: PersonalData(PersonalDataClass.Public)] DuplicateConfidence Confidence,
     [property: PersonalData(PersonalDataClass.Public)] IReadOnlyList<TeamDuplicateEvidence> Evidence)
@@ -74,12 +75,18 @@ public sealed record TeamDuplicateCandidateResponse(
         ArgumentNullException.ThrowIfNull(candidate);
         return new(
             candidate.TeamId, candidate.Name, candidate.Variant, candidate.Category.Gender, candidate.Category.AgeGroup,
-            candidate.Category.Level, candidate.OrganisationId, candidate.Status, candidate.Confidence, candidate.Evidence);
+            candidate.Category.Level,
+            candidate.Organisation is { } organisation
+                ? new TeamOrganisationResponse(organisation.Id, organisation.DisplayName, organisation.Slug)
+                : null,
+            candidate.Status,
+            candidate.Confidence,
+            candidate.Evidence);
     }
 }
 
 /// <summary>
-/// The Problem Details of a team create refused with <c>422</c> (S07 D13), for the OpenAPI document and the generated
+/// The Problem Details of a team create or update refused with <c>422</c> (S07 D13), for the OpenAPI document and the generated
 /// client: <c>candidates</c> is present only with <c>TEAM_DUPLICATE_REVIEW_REQUIRED</c>, the teams the warning found,
 /// strongest first.
 /// </summary>
@@ -90,7 +97,7 @@ public sealed class TeamDuplicateReviewProblem : ProblemDetails
 }
 
 /// <summary>
-/// The audit metadata of a create (or, in S07-T3b, an update) that ran the duplicate warning (S07 D13): the teams it
+/// The audit metadata of a create or an update that ran the duplicate warning (S07 D13): the teams it
 /// showed, by ID, with their confidence. The reason to proceed is the entry's reason.
 /// </summary>
 public sealed record TeamDuplicateReviewAuditMetadata(

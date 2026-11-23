@@ -270,4 +270,12 @@ public static class RegistryErrors
         "TEAM_DUPLICATE_REVIEW_REQUIRED",
         "Teams already in the registry look like this one: open one of them, or send duplicatesReviewed to add it anyway.",
         ErrorKind.Unprocessable);
+
+    public static readonly Error TeamRenameRequired = new(
+        "TEAM_RENAME_REQUIRED",
+        "An update keeps the team's name: rename the team (POST /teams/{teamId}/rename) so the old name is kept with its dates.",
+        ErrorKind.Unprocessable);
+
+    public static readonly Error TeamStatusInvalid = new(
+        "TEAM_STATUS_INVALID", "The team's current status doesn't allow this change.", ErrorKind.Conflict);
 }
