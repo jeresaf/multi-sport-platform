@@ -311,6 +311,32 @@ public static class RegistryActions
         scopableBy: [AssignmentScope.Tenant],
         grantedWith: ["organisation.duplicate_check", "organisation.read"]);
 
+    /// <summary>
+    /// Runs the duplicate check again when a name, the type or the city changes (S07 D11, D13), and answers the
+    /// organisation as <c>organisation.read</c> does, so it is granted with the check and that read.
+    /// </summary>
+    public static readonly ActionDefinition OrganisationUpdate = new(
+        "organisation.update",
+        "Change an organisation's details; a change to its names, type or city shows possible duplicates first, and saving it anyway is recorded with the organisations shown.",
+        ActionScope.Tenant,
+        AuditRequirement.Required,
+        since: "S07",
+        scopableBy: [AssignmentScope.Tenant],
+        grantedWith: ["organisation.duplicate_check", "organisation.read"]);
+
+    /// <summary>
+    /// One action for every move of the organisation lifecycle (S07 D12), with a reason; answers the organisation as
+    /// <c>organisation.read</c> does.
+    /// </summary>
+    public static readonly ActionDefinition OrganisationStatusChange = new(
+        "organisation.status.change",
+        "Mark an organisation inactive, suspended, dissolved or archived, reactivate it or unarchive it, with a reason; its teams keep their statuses.",
+        ActionScope.Tenant,
+        AuditRequirement.RequiredWithReason,
+        since: "S07",
+        scopableBy: [AssignmentScope.Tenant],
+        grantedWith: ["organisation.read"]);
+
     // The lifecycle, alias, identifier, profile, photo, consent and public-profile actions answer the person as person.read does, so they are only
     // granted with that read.
     private static ActionDefinition Lifecycle(string code, string description, AuditRequirement audit) => new(

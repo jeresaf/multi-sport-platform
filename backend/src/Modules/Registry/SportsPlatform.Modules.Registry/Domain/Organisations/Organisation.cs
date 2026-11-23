@@ -1,5 +1,6 @@
 using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.BuildingBlocks.Domain;
+using SportsPlatform.BuildingBlocks.Results;
 using SportsPlatform.Modules.Registry.Domain.People;
 
 namespace SportsPlatform.Modules.Registry.Domain.Organisations;
@@ -106,6 +107,77 @@ public sealed class Organisation : AggregateRoot, ITenantOwned
         organisation.Apply(details);
         organisation._statusHistory.Add(new OrganisationStatusChange(organisation.Id, null, organisation.Status, null, actor, now));
         return organisation;
+    }
+
+    /// <summary>
+    /// Whether <paramref name="details"/> change what the duplicate warning compares (S07 D13): a name key (display,
+    /// legal or short), the type or the city key. A change of case, accents, punctuation or word order in a name changes
+    /// none of them.
+    /// </summary>
+    public bool ChangesComparedFields(OrganisationDetails details)
+    {
+        ArgumentNullException.ThrowIfNull(details);
+        return NameKeyOf(details.DisplayName) != DisplayNameKey
+            || OptionalNameKeyOf(details.LegalName) != LegalNameKey
+            || OptionalNameKeyOf(details.ShortName) != ShortNameKey
+            || details.Type != Type
+            || CityKeyOf(details.City) != CityKey;
+    }
+
+    /// <summary>
+    /// Replaces the editable fields and the slug (S07 D11, D9), whatever the status: a correction (owner, T2b plan, as
+    /// venues'). The use case has checked <paramref name="details"/>, the slug's place in the tenant and, for a change to
+    /// a compared field, the duplicate warning. The status, its history, the logo and the source don't change.
+    /// </summary>
+    public void Update(OrganisationDetails details, string slug)
+    {
+        ArgumentNullException.ThrowIfNull(details);
+        if (!Slugs.IsValid(slug))
+        {
+            throw new ArgumentException("The slug is not valid.", nameof(slug));
+        }
+
+        Apply(details);
+        Slug = slug;
+    }
+
+    /// <summary>
+    /// The status the organisation had before it was archived (the source row of the latest move to <c>ARCHIVED</c>,
+    /// Q55); null unless it is archived. Rows are ordered by time, then by ID.
+    /// </summary>
+    public OrganisationStatus? StatusBeforeArchive() => Status != OrganisationStatus.Archived
+        ? null
+        : _statusHistory
+            .Where(change => change.ToStatus == OrganisationStatus.Archived)
+            .OrderBy(change => change.OccurredAt).ThenBy(change => change.Id)
+            .LastOrDefault()?.FromStatus;
+
+    /// <summary>
+    /// Moves the organisation to <paramref name="to"/> with a reason (S07 D12, <see cref="OrganisationTransitions"/>) and
+    /// writes the row of its history; a move the current status doesn't allow is <c>ORGANISATION_STATUS_INVALID</c>.
+    /// Its teams keep their statuses. Needs the history loaded (it throws otherwise): unarchiving reads the status
+    /// before archiving from it.
+    /// </summary>
+    public Result ChangeStatus(OrganisationStatus to, string reason, ICurrentActor actor, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(actor);
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+
+        // Every organisation has its creation row: an empty history means the caller didn't load it (a bug, not a refusal).
+        if (_statusHistory.Count == 0)
+        {
+            throw new InvalidOperationException("The organisation's status history is not loaded.");
+        }
+
+        if (!OrganisationTransitions.IsAllowed(Status, to, StatusBeforeArchive()))
+        {
+            return Result.Failure(RegistryErrors.OrganisationStatusInvalid);
+        }
+
+        var from = Status;
+        Status = to;
+        _statusHistory.Add(new OrganisationStatusChange(Id, from, to, reason.Trim(), actor, now));
+        return Result.Success();
     }
 
     /// <summary>The name key of an organisation's name; empty when it has no letter or digit.</summary>

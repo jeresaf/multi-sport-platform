@@ -175,6 +175,9 @@ public static class RegistryErrors
     public static readonly Error OrganisationNotFound = new(
         "ORGANISATION_NOT_FOUND", "The organisation was not found.", ErrorKind.NotFound);
 
+    public static readonly Error OrganisationStatusInvalid = new(
+        "ORGANISATION_STATUS_INVALID", "The organisation's current status doesn't allow this change.", ErrorKind.Conflict);
+
     public static readonly Error OrganisationNameInvalid = new(
         "ORGANISATION_NAME_INVALID", "An organisation's display name needs at least one letter or digit.", ErrorKind.Unprocessable);
 
