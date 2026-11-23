@@ -84,7 +84,8 @@ public sealed class ListOrganisationsHandler(RegistryDbContext context)
             return organisations.Where(_ => false);
         }
 
-        // Keys hold letters, digits and spaces only, so no pattern has a wildcard of its own.
+        // Keys hold letters, digits and spaces only, so no pattern has a wildcard of its own. The legal name is INTERNAL
+        // (D16): matching it is for this admin directory only; a public list (T5) must not reuse this to probe it.
         var key = Organisation.NameKeyOf(search);
         var prefixPattern = prefix + "%";
         var wordPattern = "% " + prefix + "%";
