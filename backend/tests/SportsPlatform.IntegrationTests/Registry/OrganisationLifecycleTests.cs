@@ -96,6 +96,9 @@ public sealed class OrganisationLifecycleTests(PostgresFixture fixture) : Databa
         {
             await response.ShouldBeProblemAsync(HttpStatusCode.Conflict, "ORGANISATION_STATUS_INVALID");
             saved.Status.ShouldBe(from);
+
+            // No row for a refused move: the creation row, and the test's setup move for a status other than ACTIVE.
+            saved.StatusHistory.Count.ShouldBe(from == OrganisationStatus.Active ? 1 : 2);
             entry.ErrorCode.ShouldBe("ORGANISATION_STATUS_INVALID");
         }
     }

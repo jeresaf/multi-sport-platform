@@ -74,6 +74,7 @@ public sealed class UpdateOrganisationTests(PostgresFixture fixture) : DatabaseT
         await AccountTestData.DeliverOutboxAsync(App.Services, Ct);
         var entry = (await AuditTestData.EntriesAsync(App.Services, Ct)).Single(e => e.ActionCode == "organisation.update");
         (entry.Outcome, entry.EntityType, entry.EntityId, entry.Reason).ShouldBe((AuditOutcome.Success, "Organisation", id, null));
+        JsonDocument.Parse(entry.Metadata!).RootElement.GetProperty("candidates").GetArrayLength().ShouldBe(0);
     }
 
     [Fact]
