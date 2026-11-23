@@ -85,6 +85,7 @@ public static class IsolationSamples
         new VenueAliasSample(),
         new OrganisationSample(),
         new OrganisationStatusChangeSample(),
+        new OrganisationParentLinkSample(),
         new MediaAssetSample(),
     ];
 
@@ -626,6 +627,33 @@ public static class IsolationSamples
                 ? new OrganisationStatusChange(
                     principalId, OrganisationStatus.Active, OrganisationStatus.Suspended, "Unpaid league fees", SystemActor.Instance, RegistrySamples.Now)
                 : null;
+    }
+
+    /// <summary>Registry: a club's link to the association it belongs to (S07 D5).</summary>
+    private sealed class OrganisationParentLinkSample : IIsolationSample
+    {
+        public Type EntityType => typeof(OrganisationParentLink);
+
+        public Entity Add(DbContext context)
+        {
+            var association = RegistrySamples.NewOrganisation("Kampala Metro Sports Association");
+            var club = RegistrySamples.NewOrganisation("Bunga Lakeside Sports Club");
+            var link = new OrganisationParentLink(
+                club.Id, association.Id, new DateOnly(2026, 10, 1), "Affiliated this season", SystemActor.Instance, RegistrySamples.Now);
+            context.AddRange(association, club, link);
+            return link;
+        }
+
+        // Both ends are organisations. The sample can add only the link, so the end not under test is a new ID that names
+        // no organisation; the end under test points at tenant A's row.
+        public Entity? Referencing(IForeignKey foreignKey, Guid principalId) =>
+            foreignKey.PrincipalEntityType.ClrType != typeof(Organisation)
+                ? null
+                : foreignKey.Properties.Any(property => property.Name == nameof(OrganisationParentLink.ParentId))
+                    ? new OrganisationParentLink(
+                        Guid.CreateVersion7(), principalId, new DateOnly(2026, 10, 1), "Affiliated this season", SystemActor.Instance, RegistrySamples.Now)
+                    : new OrganisationParentLink(
+                        principalId, Guid.CreateVersion7(), new DateOnly(2026, 10, 1), "Affiliated this season", SystemActor.Instance, RegistrySamples.Now);
     }
 
     private static class RegistrySamples

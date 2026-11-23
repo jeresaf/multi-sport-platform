@@ -1,4 +1,6 @@
 using SportsPlatform.BuildingBlocks.Actors;
+using SportsPlatform.Modules.Registry;
+using SportsPlatform.Modules.Registry.Domain;
 using SportsPlatform.Modules.Registry.Domain.Organisations;
 using SportsPlatform.Modules.Registry.Features.Organisations;
 using SportsPlatform.Modules.Registry.Features.Organisations.CreateOrganisation;
@@ -8,7 +10,8 @@ namespace SportsPlatform.UnitTests.Registry;
 
 /// <summary>
 /// Organisations (S07-T2a, T2b-1): the record's keys and first history row (D4, D13), the keys an optional name or city
-/// gives, the warning's input, the conflict code (D2), the lifecycle (D12, Q55) and the update (D11).
+/// gives, the warning's input, the conflict code (D2), the lifecycle (D12, Q55), the update (D11) and the parent (D5,
+/// S07-T2c).
 /// </summary>
 public sealed class OrganisationTests
 {
@@ -207,5 +210,116 @@ public sealed class OrganisationTests
             .ShouldBe(("Ntinda Swifts FC", "fc ntinda swifts", "ntinda swifts fc", null, "wakiso", "ntinda-swifts"));
         (organisation.Status, organisation.StatusHistory.Count).ShouldBe((OrganisationStatus.Active, 1));
         Should.Throw<ArgumentException>(() => organisation.Update(NtindaSwifts(), "Not A Slug"));
+    }
+
+    private static Organisation New(string name, OrganisationType type = OrganisationType.Club) =>
+        Organisation.Create(
+            NtindaSwifts() with { DisplayName = name, Type = type }, Slugs.Propose("organisation", name), OrganisationSource.Manual,
+            SystemActor.Instance, _now);
+
+    [Fact]
+    public void A_new_parent_ends_the_open_link_on_the_day_and_opens_one_from_it()
+    {
+        var club = New("Ntinda Swifts SC");
+        var association = New("Kampala Metro Sports Association", OrganisationType.Association);
+        var kestrels = New("Kisaasi Kestrels SC");
+        var first = new DateOnly(2026, 11, 22);
+        var later = new DateOnly(2027, 1, 1);
+
+        club.SetParent(association, " Affiliated ", SystemActor.Instance, first, _now).IsSuccess.ShouldBeTrue();
+        club.SetParent(kestrels, "Moved", SystemActor.Instance, later, _now.AddDays(40)).IsSuccess.ShouldBeTrue();
+
+        club.CurrentParentId.ShouldBe(kestrels.Id);
+        club.ParentLinks.Select(l => (l.OrganisationId, l.ParentId, l.ValidFrom, l.ValidTo, l.Reason)).ShouldBe(
+        [
+            (club.Id, association.Id, first, (DateOnly?)later, "Affiliated"),
+            (club.Id, kestrels.Id, later, null, "Moved"),
+        ]);
+    }
+
+    [Fact]
+    public void Clearing_ends_the_open_link_and_a_link_of_one_day_keeps_both_dates()
+    {
+        var club = New("Ntinda Swifts SC");
+        var association = New("Kampala Metro Sports Association", OrganisationType.Association);
+        var day = new DateOnly(2026, 11, 22);
+
+        club.SetParent(association, "Affiliated", SystemActor.Instance, day, _now).IsSuccess.ShouldBeTrue();
+        club.SetParent(null, "Recorded by mistake", SystemActor.Instance, day, _now).IsSuccess.ShouldBeTrue();
+
+        club.CurrentParentId.ShouldBeNull();
+        var link = club.ParentLinks.ShouldHaveSingleItem();
+        (link.ValidFrom, link.ValidTo).ShouldBe((day, (DateOnly?)day));
+    }
+
+    [Fact]
+    public void The_parent_it_already_has_or_none_when_it_has_none_changes_nothing()
+    {
+        var club = New("Ntinda Swifts SC");
+        var association = New("Kampala Metro Sports Association", OrganisationType.Association);
+        var day = new DateOnly(2026, 11, 22);
+
+        club.SetParent(null, "No parent", SystemActor.Instance, day, _now).IsSuccess.ShouldBeTrue();
+        club.ParentLinks.ShouldBeEmpty();
+        club.SetParent(association, "Affiliated", SystemActor.Instance, day, _now).IsSuccess.ShouldBeTrue();
+        club.SetParent(association, "Affiliated again", SystemActor.Instance, day.AddDays(3), _now).IsSuccess.ShouldBeTrue();
+
+        club.ParentLinks.ShouldHaveSingleItem().ValidTo.ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData(OrganisationStatus.Active, true)]
+    [InlineData(OrganisationStatus.Inactive, true)]
+    [InlineData(OrganisationStatus.Suspended, true)]
+    [InlineData(OrganisationStatus.Dissolved, false)]
+    [InlineData(OrganisationStatus.Archived, false)]
+    public void Only_a_dissolved_or_archived_organisation_cant_be_a_parent(OrganisationStatus status, bool accepted)
+    {
+        var club = New("Ntinda Swifts SC");
+        var association = New("Kampala Metro Sports Association", OrganisationType.Association);
+        if (status != OrganisationStatus.Active)
+        {
+            association.ChangeStatus(status, "Set up by the test", SystemActor.Instance, _now).IsSuccess.ShouldBeTrue();
+        }
+
+        var set = club.SetParent(association, "Affiliated", SystemActor.Instance, new DateOnly(2026, 11, 22), _now);
+
+        Organisation.CanBeParent(status).ShouldBe(accepted);
+        if (accepted)
+        {
+            set.IsSuccess.ShouldBeTrue();
+        }
+        else
+        {
+            set.Error.ShouldBe(RegistryErrors.OrganisationParentUnavailable);
+            club.ParentLinks.ShouldBeEmpty();
+        }
+    }
+
+    [Theory]
+    [InlineData(OrganisationStatus.Dissolved, "ORGANISATION_DISSOLVED")]
+    [InlineData(OrganisationStatus.Archived, "ORGANISATION_ARCHIVED")]
+    public void A_dissolved_or_archived_organisation_takes_no_new_parent_but_can_clear_it(OrganisationStatus status, string code)
+    {
+        var club = New("Ntinda Swifts SC");
+        var association = New("Kampala Metro Sports Association", OrganisationType.Association);
+        var kestrels = New("Kisaasi Kestrels SC");
+        var day = new DateOnly(2026, 11, 22);
+        club.SetParent(association, "Affiliated", SystemActor.Instance, day, _now).IsSuccess.ShouldBeTrue();
+        club.ChangeStatus(status, "Set up by the test", SystemActor.Instance, _now).IsSuccess.ShouldBeTrue();
+
+        club.SetParent(kestrels, "Moved", SystemActor.Instance, day, _now).Error!.Code.ShouldBe(code);
+        club.SetParent(null, "No longer plays", SystemActor.Instance, day, _now).IsSuccess.ShouldBeTrue();
+        club.CurrentParentId.ShouldBeNull();
+    }
+
+    [Fact]
+    public void The_organisation_itself_is_a_cycle()
+    {
+        var club = New("Ntinda Swifts SC");
+
+        club.SetParent(club, "Affiliated", SystemActor.Instance, new DateOnly(2026, 11, 22), _now).Error
+            .ShouldBe(RegistryErrors.OrganisationParentCycle);
+        club.ParentLinks.ShouldBeEmpty();
     }
 }
