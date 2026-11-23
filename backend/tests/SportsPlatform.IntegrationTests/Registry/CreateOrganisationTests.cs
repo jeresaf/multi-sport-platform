@@ -127,6 +127,35 @@ public sealed class CreateOrganisationTests(PostgresFixture fixture) : DatabaseT
         (await context.Set<Organisation>().CountAsync(Ct)).ShouldBe(0);
     }
 
+    // D4's length limits (review #121 R1): one past each is refused on its field; the limit itself is accepted.
+    [Theory]
+    [InlineData("displayName", 120)]
+    [InlineData("legalName", 200)]
+    [InlineData("shortName", 40)]
+    [InlineData("city", 100)]
+    [InlineData("description", 2_000)]
+    [InlineData("website", 200)]
+    [InlineData("email", 200)]
+    [InlineData("phone", 30)]
+    [InlineData("duplicateReason", 500)]
+    public async Task A_text_longer_than_its_limit_is_refused_on_its_field(string field, int limit)
+    {
+        var (kmsa, registrar) = await TenantAsync("kmsa", IdentityRoles.Registrar);
+
+        using var refused = await registrar.PostAsJsonAsync(OrganisationsPath, WithText(field, limit + 1), Ct);
+        Fields(await refused.ShouldBeProblemAsync(HttpStatusCode.BadRequest, "VALIDATION_INVALID_REQUEST"))
+            .ShouldBe([(field, "VALIDATION_INVALID_REQUEST")]);
+
+        var accepted = await CreateOrganisationAsync(registrar, WithText(field, limit));
+        if (field != "duplicateReason")
+        {
+            accepted.GetProperty(field).GetString()!.Length.ShouldBe(limit);
+        }
+
+        await using var scope = ScopeFor(App.Services, kmsa, out var context);
+        (await context.Set<Organisation>().CountAsync(Ct)).ShouldBe(1);
+    }
+
     // D4: the founded year runs to the tenant's year (Africa/Kampala), edges included.
     [Fact]
     public async Task The_founded_year_may_be_this_year_but_not_next_year()
@@ -367,6 +396,25 @@ public sealed class CreateOrganisationTests(PostgresFixture fixture) : DatabaseT
 
         await create.ShouldBeProblemAsync(HttpStatusCode.Forbidden, "TENANT_READ_ONLY");
         read.StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
+
+    // A valid body whose field is exactly length characters long, in that field's own format.
+    private static Dictionary<string, object?> WithText(string field, int length)
+    {
+        var body = NtindaSwifts();
+        body[field] = field switch
+        {
+            "website" => "https://" + new string('n', length - "https://.example".Length) + ".example",
+            "email" => new string('o', length - "@ntinda.example".Length) + "@ntinda.example",
+            "phone" => "+" + new string('4', length - 1),
+            _ => new string('n', length),
+        };
+        if (field == "duplicateReason")
+        {
+            body["duplicatesReviewed"] = true;
+        }
+
+        return body;
     }
 
     /// <summary>An active tenant (country UG, time zone Africa/Kampala) and a client of a member with <paramref name="role"/> tenant-wide.</summary>
