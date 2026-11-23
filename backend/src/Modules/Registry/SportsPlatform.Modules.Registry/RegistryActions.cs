@@ -370,6 +370,43 @@ public static class RegistryActions
         "End an organisation's external identifier; it is kept, and its value is never given to another organisation.",
         AuditRequirement.Required);
 
+    public static readonly ActionDefinition TeamRead = new(
+        "team.read",
+        "View the teams directory and a team's record: sport, category, organisation, names, code, colours, home venue and status.",
+        ActionScope.Tenant,
+        AuditRequirement.None,
+        since: "S07",
+        scopableBy: [AssignmentScope.Tenant],
+        availableWhenReadOnly: true);
+
+    /// <summary>
+    /// Its own unaudited action, as <c>organisation.duplicate_check</c>: the check saves nothing (S07 D13). It answers
+    /// other teams' names and categories, so it is only granted with <c>team.read</c>.
+    /// </summary>
+    public static readonly ActionDefinition TeamDuplicateCheck = new(
+        "team.duplicate_check",
+        "Check a new team's names, sport, category and organisation against the teams already in the registry.",
+        ActionScope.Tenant,
+        AuditRequirement.None,
+        since: "S07",
+        scopableBy: [AssignmentScope.Tenant],
+        grantedWith: ["team.read"]);
+
+    /// <summary>
+    /// Adds a team, so it names <c>MAX_TEAMS</c>: the handler counts the tenant's teams and checks the quota under the
+    /// teams' lock (S07 D14). Runs the duplicate check itself (no token, D13) and answers the team as <c>team.read</c>
+    /// does, so it is granted with the check and that read.
+    /// </summary>
+    public static readonly ActionDefinition TeamCreate = new(
+        "team.create",
+        "Add a team in one of the tenant's enabled sports, within the plan's team limit; possible duplicates are shown first, and creating it anyway is recorded with the teams shown.",
+        ActionScope.Tenant,
+        AuditRequirement.Required,
+        since: "S07",
+        scopableBy: [AssignmentScope.Tenant],
+        entitlement: "MAX_TEAMS",
+        grantedWith: ["team.duplicate_check", "team.read"]);
+
     // The lifecycle, alias, identifier, profile, photo, consent and public-profile actions answer the person as person.read does, so they are only
     // granted with that read.
     private static ActionDefinition Lifecycle(string code, string description, AuditRequirement audit) => new(

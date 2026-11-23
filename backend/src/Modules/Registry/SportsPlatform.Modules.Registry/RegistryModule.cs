@@ -35,6 +35,10 @@ using SportsPlatform.Modules.Registry.Features.People.Photo;
 using SportsPlatform.Modules.Registry.Features.People.Profiles;
 using SportsPlatform.Modules.Registry.Features.People.PublicProfile;
 using SportsPlatform.Modules.Registry.Features.People.UpdatePerson;
+using SportsPlatform.Modules.Registry.Features.Teams;
+using SportsPlatform.Modules.Registry.Features.Teams.CheckTeamDuplicates;
+using SportsPlatform.Modules.Registry.Features.Teams.CreateTeam;
+using SportsPlatform.Modules.Registry.Features.Teams.GetTeam;
 using SportsPlatform.Modules.Registry.Features.Venues;
 using SportsPlatform.Modules.Registry.Features.Venues.Aliases;
 using SportsPlatform.Modules.Registry.Features.Venues.ChangeVenueStatus;
@@ -47,6 +51,7 @@ using SportsPlatform.Modules.Registry.Features.Venues.ListVenueStatusChanges;
 using SportsPlatform.Modules.Registry.Features.Venues.UpdateVenue;
 using SportsPlatform.Modules.Registry.Infrastructure;
 using SportsPlatform.Modules.Registry.Seed.Demo;
+using SportsPlatform.Modules.Tenancy.Contracts.Entitlements;
 
 namespace SportsPlatform.Modules.Registry;
 
@@ -61,6 +66,7 @@ namespace SportsPlatform.Modules.Registry;
 /// S07-T1b-2: the venue directory. S07-T1c: venue aliases and external identifiers, <see cref="IVenueDirectory"/>.
 /// S07-T2a: organisations (create with the duplicate warning, the read). S07-T2b and T2c: their update, lifecycle,
 /// directory and parent links. S07-T2d: organisation aliases and external identifiers, <see cref="IOrganisationDirectory"/>.
+/// S07-T3a: teams (create with the duplicate warning and <c>MAX_TEAMS</c>, the read).
 /// </summary>
 public sealed class RegistryModule : IModule
 {
@@ -126,6 +132,12 @@ public sealed class RegistryModule : IModule
         services.AddScoped<AddOrganisationExternalIdentifierHandler>();
         services.AddScoped<EndOrganisationExternalIdentifierHandler>();
         services.AddScoped<IOrganisationDirectory, OrganisationDirectory>();
+        services.AddScoped<TeamDetailsRules>();
+        services.AddScoped<TeamDuplicateFinder>();
+        services.AddScoped<CheckTeamDuplicatesHandler>();
+        services.AddScoped<CreateTeamHandler>();
+        services.AddScoped<GetTeamHandler>();
+        services.AddQuotaUsage<TeamCount>(TeamCount.Code);
         services.AddScoped<VenueDetailsRules>();
         services.AddScoped<VenueDuplicateFinder>();
         services.AddScoped<CheckVenueDuplicatesHandler>();
@@ -167,6 +179,8 @@ public sealed class RegistryModule : IModule
         services.AddSingleton<IValidator<RemoveOrganisationAliasRequest>, RemoveOrganisationAliasRequestValidator>();
         services.AddSingleton<IValidator<AddOrganisationExternalIdentifierRequest>, AddOrganisationExternalIdentifierRequestValidator>();
         services.AddSingleton<IValidator<EndOrganisationExternalIdentifierRequest>, EndOrganisationExternalIdentifierRequestValidator>();
+        services.AddSingleton<IValidator<CheckTeamDuplicatesRequest>, CheckTeamDuplicatesRequestValidator>();
+        services.AddSingleton<IValidator<CreateTeamRequest>, CreateTeamRequestValidator>();
         services.AddSingleton<IValidator<CheckVenueDuplicatesRequest>, CheckVenueDuplicatesRequestValidator>();
         services.AddScoped<IValidator<CreateVenueRequest>, CreateVenueRequestValidator>();
         services.AddScoped<IValidator<UpdateVenueRequest>, UpdateVenueRequestValidator>();
@@ -215,6 +229,11 @@ public sealed class RegistryModule : IModule
         ListOrganisationParentLinksEndpoint.Map(organisations);
         OrganisationAliasEndpoints.Map(organisations);
         OrganisationExternalIdentifierEndpoints.Map(organisations);
+
+        var teams = TeamsEndpoints.Group(groups.Admin);
+        CheckTeamDuplicatesEndpoint.Map(teams);
+        CreateTeamEndpoint.Map(teams);
+        GetTeamEndpoint.Map(teams);
 
         var venues = VenuesEndpoints.Group(groups.Admin);
         CheckVenueDuplicatesEndpoint.Map(venues);
