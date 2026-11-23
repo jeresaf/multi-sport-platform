@@ -137,6 +137,25 @@ public sealed class OrganisationDirectoryTests(PostgresFixture fixture) : Databa
         (await registrar.ReadJsonAsync($"{OrganisationsPath}?q={Uri.EscapeDataString(q)}", Ct)).OrganisationNames().ShouldBe([expected]);
     }
 
+    // Review #123 N1: the search keeps the other filters, the default that leaves archived organisations out included.
+    [Fact]
+    public async Task Search_combines_with_the_type_and_status_filters()
+    {
+        var (kmsa, registrar) = await TenantAsync("kmsa", IdentityRoles.Registrar);
+        await SaveOrganisationAsync(App.Services, kmsa, "Lakeshore High School", type: OrganisationType.School);
+        await SaveOrganisationAsync(App.Services, kmsa, "Lakeshore Rovers FC");
+        await SaveOrganisationAsync(App.Services, kmsa, "Lakeshore Academy", type: OrganisationType.School, status: OrganisationStatus.Archived);
+
+        (await registrar.ReadJsonAsync($"{OrganisationsPath}?q=Lakeshore", Ct)).OrganisationNames()
+            .ShouldBe(["Lakeshore High School", "Lakeshore Rovers FC"]);
+        (await registrar.ReadJsonAsync($"{OrganisationsPath}?q=Lakeshore&status=ARCHIVED", Ct)).OrganisationNames()
+            .ShouldBe(["Lakeshore Academy"]);
+        (await registrar.ReadJsonAsync($"{OrganisationsPath}?q=Lakeshore&type=SCHOOL", Ct)).OrganisationNames()
+            .ShouldBe(["Lakeshore High School"]);
+        (await registrar.ReadJsonAsync($"{OrganisationsPath}?q=Lakeshore&type=SCHOOL&status=ARCHIVED", Ct)).OrganisationNames()
+            .ShouldBe(["Lakeshore Academy"]);
+    }
+
     [Theory]
     [InlineData("Entebbe")]
     [InlineData("--")]

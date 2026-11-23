@@ -7,7 +7,7 @@ namespace SportsPlatform.Modules.Registry.Features.Organisations.ListOrganisatio
 
 /// <summary>
 /// <paramref name="Search"/> is the trimmed <c>q</c>; no status means every state but <c>ARCHIVED</c>;
-/// <paramref name="After"/> is the sort key of the previous page's last organisation.
+/// <paramref name="After"/> is the sort key and ID of the previous page's last organisation.
 /// </summary>
 public sealed record OrganisationsQuery(
     string? Search, OrganisationType? Type, OrganisationStatus? Status, int Limit, DirectoryCursor? After);

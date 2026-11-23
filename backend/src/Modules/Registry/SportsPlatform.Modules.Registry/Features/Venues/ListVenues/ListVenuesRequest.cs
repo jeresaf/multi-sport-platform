@@ -7,7 +7,7 @@ namespace SportsPlatform.Modules.Registry.Features.Venues.ListVenues;
 
 /// <summary>
 /// <paramref name="Search"/> is the trimmed <c>q</c>; <paramref name="City"/> the trimmed city as sent; no status means
-/// every state but <c>ARCHIVED</c>; <paramref name="After"/> is the sort key of the previous page's last venue.
+/// every state but <c>ARCHIVED</c>; <paramref name="After"/> is the sort key and ID of the previous page's last venue.
 /// </summary>
 public sealed record VenuesQuery(string? Search, string? Variant, string? City, VenueStatus? Status, int Limit, DirectoryCursor? After);
 
