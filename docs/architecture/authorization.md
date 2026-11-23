@@ -303,7 +303,7 @@ tests compare this table with the code and the seeded rows with the code. Platfo
 |---|---|---|---|---|
 | `MAX_ENABLED_SPORTS` | QUOTA | `tenant.sport.enable`. Counts distinct **sports**, not variants: `RUGBY_UNION_15` + `RUGBY_UNION_7` = 1 | 3 | unlimited |
 | `MAX_ACTIVE_EDITIONS` | QUOTA | `edition.create`; counts editions in `DRAFT`, `REGISTRATION_OPEN`, `REGISTRATION_CLOSED` or `IN_PROGRESS` | 8 | 60 |
-| `MAX_TEAMS` | QUOTA | `team.create`; active teams | 120 | 2,000 |
+| `MAX_TEAMS` | QUOTA | `team.create` (reform and unarchive from S07-T3b); teams `ACTIVE`, `INACTIVE` or `SUSPENDED` (Q50) | 120 | 2,000 |
 | `MAX_STAFF_USERS` | QUOTA | `membership.invite`; users with a tenant membership (admins, managers, scorers, officials with logins). Public accounts don't count | 100 | 1,000 |
 | `STORAGE_GB` | QUOTA | media upload (ADR-0014) | 10 | 100 |
 | `LIVE_SCORING` | BOOLEAN | `contest.start`, `timeline.event.record` | ✓ | ✓ |

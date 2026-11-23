@@ -568,3 +568,22 @@ The rest of S06's tech debt has its own trigger in PROGRESS.md ("From S06").
   `OrganisationType` in Contracts, mapped from the domain's. One PR (owner). The live check takes no `organisationId`: T6's edit forms
   (organisations, and venues and teams alike) don't call it; the save's `…_DUPLICATE_REVIEW_REQUIRED` shows the
   candidates (owner, review of #126, Q56).
+- **T3a (teams, first part):** T3 is five PRs (owner, plan 2026-11-23): T3a the model, create with the warning and
+  `MAX_TEAMS`, the check and the read; T3b-1 update, lifecycle (the quota on reform and unarchive) and the status
+  history; T3b-2 the directory and the teams in the organisation read; T3c rename, aliases and the name on a date; T3d
+  identifiers and `ITeamDirectory`. `registry.teams` and `team_status_changes` (migration `AddTeams`, RLS): D6's fields,
+  D7's category as `gender_category`, `age_group`, `level` (Q53 as its default; `level` `FIRST` when left out), name
+  and short-name keys, `sort_key`, `name_since` (`PUBLIC`: the names' dates, D16), `logo_asset_id` and `badge_asset_id`
+  null until T4. The variant must be enabled (`IEnabledSports`; an unknown code is `TEAM_SPORT_NOT_ENABLED` too); it is
+  checked before the lock, as `nameSince` (not after the tenant's today, not before 1800-01-01; `400` on its field).
+  An unknown, other tenant's, dissolved or archived organisation is `422 TEAM_ORGANISATION_UNAVAILABLE` on
+  `organisationId` (owner: D6's code, not D10's `409 ORGANISATION_*`); a suspended or inactive one is accepted. Colours
+  are accepted in either case and stored upper case; the order rule answers on the first colour out of place
+  (`secondaryColour` or `tertiaryColour`). The proposed slug is the name, the age group and gender codes, and the level
+  unless `FIRST` (`seeta-sparrows-fc-u17-men`, `kireka-kingfishers-fc-senior-men-reserve`; owner). Under
+  `registry.teams:<tenantId>`: the slug, then `MAX_TEAMS` (`TeamCount`: `ACTIVE`, `INACTIVE`, `SUSPENDED`; Q50 as its
+  default; "Your plan allows N teams."), then the warning. D13 for teams as built (owner, Q57): only teams of the same
+  variant **and category** are compared, for `POSSIBLE` too; `LIKELY` when the name or short name of one has a key of
+  the other's; `POSSIBLE` when the names are at least 0.7 similar and the two share an organisation or either has none.
+  The finder filters on `(tenant_id, variant)` and the category first. Candidates carry the team's variant, category,
+  organisation ID and status (teams have no city). `TEAM_MANAGER` reads no team yet (S08's `TEAM` scope).
