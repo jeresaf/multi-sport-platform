@@ -7,8 +7,9 @@ at the start of every review.
 
 - **Current slice:** S07 — Organisations, teams and venues (docs/build/slices/S07-organisations-teams-venues.md,
   written by the S06 slice review). S00–S06 are done
-- **Current task:** — (S07-T2c-2 in review: #125)
-- **Next:** S07-T2d — Organisations: aliases, external identifiers, `IOrganisationDirectory`
+- **Current task:** S07-T2d — Organisations: aliases, external identifiers, `IOrganisationDirectory` (plan approved
+  2026-11-23: aliases feed the warning on both sides, an alias add runs no warning, one PR)
+- **Next:** S07-T3 — Teams
 - **Blocked on:** —
 
 ## Next up
