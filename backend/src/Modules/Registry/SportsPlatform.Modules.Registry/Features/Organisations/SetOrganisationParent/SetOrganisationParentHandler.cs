@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.BuildingBlocks.Api;
 using SportsPlatform.BuildingBlocks.Auditing;
@@ -8,6 +9,7 @@ using SportsPlatform.BuildingBlocks.Tenancy;
 using SportsPlatform.Modules.Registry.Domain.Organisations;
 using SportsPlatform.Modules.Registry.Features.People;
 using SportsPlatform.Modules.Registry.Infrastructure;
+using SportsPlatform.Modules.Registry.Infrastructure.Configurations;
 
 namespace SportsPlatform.Modules.Registry.Features.Organisations.SetOrganisationParent;
 
@@ -20,6 +22,8 @@ namespace SportsPlatform.Modules.Registry.Features.Organisations.SetOrganisation
 /// other and the second sees the first's link. The parent is loaded tracked, so its new link moves its version too: a
 /// parent dissolved or archived at the same moment is a conflict, never a link to it (owner, S07-T2c plan). Clearing
 /// the parent needs no lock: it can't close a cycle. Setting the parent the organisation already has changes nothing.
+/// Two changes to one organisation at once answer <c>ORGANISATION_CONCURRENCY_CONFLICT</c> for the second, whichever of
+/// its version check and the one-open-link index refuses it first.
 /// </summary>
 public sealed class SetOrganisationParentHandler(
     RegistryDbContext context, ICurrentActor actor, AuditScope audit, TenantToday tenantToday, ITenantContext tenantContext,
@@ -77,10 +81,22 @@ public sealed class SetOrganisationParentHandler(
             return new(set.Error, set.Error.Code.StartsWith("ORGANISATION_PARENT_", StringComparison.Ordinal) ? "parentId" : null);
         }
 
-        var saved = await context.SaveChangesResultAsync(cancellationToken);
-        if (saved.IsFailure)
+        try
         {
-            return new(saved.Error);
+            var saved = await context.SaveChangesResultAsync(cancellationToken);
+            if (saved.IsFailure)
+            {
+                return new(saved.Error);
+            }
+        }
+        catch (DbUpdateException exception) when (exception.InnerException is PostgresException
+        {
+            SqlState: PostgresErrorCodes.UniqueViolation, ConstraintName: OrganisationParentLinkConfiguration.OpenLinkIndex,
+        })
+        {
+            // Two new parents for one organisation at once (review #124 R1, as #101 R1): both read the organisation
+            // before the lock, and the second's insert can reach the one-open-link index before its version is checked.
+            return new(RegistryErrors.OrganisationConcurrencyConflict);
         }
 
         // The audit counts as recorded once saved: a client hanging up now must not roll the change back unaudited.

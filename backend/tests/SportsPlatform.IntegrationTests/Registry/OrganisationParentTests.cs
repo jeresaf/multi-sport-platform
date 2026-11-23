@@ -212,6 +212,62 @@ public sealed class OrganisationParentTests(PostgresFixture fixture) : DatabaseT
         (await context.Set<OrganisationParentLink>().CountAsync(Ct)).ShouldBe(1);
     }
 
+    // Review #124 R1: two new parents for one organisation at once. Both read the organisation before the lock; the
+    // second's insert can reach the one-open-link index before the organisation's version is checked. It answers the
+    // conflict, never a 500.
+    [Fact]
+    public async Task Two_new_parents_for_one_organisation_at_once_save_one_and_conflict_the_other()
+    {
+        var (kmsa, registrar) = await TenantAsync("kmsa", IdentityRoles.Registrar);
+        var colleague = App.ClientFor(
+            (await CreateMemberAsync(App.Services, kmsa, "brian.ssemakula@kmsa.example", Ct, TenantWide(IdentityRoles.Registrar))).UserId, kmsa);
+        var association = await SaveOrganisationAsync(App.Services, kmsa, "Kampala Metro Sports Association", OrganisationType.Association);
+        var kestrels = await SaveOrganisationAsync(App.Services, kmsa, "Kisaasi Kestrels SC");
+        var club = await SaveOrganisationAsync(App.Services, kmsa, "Ntinda Swifts SC");
+
+        HttpResponseMessage[] responses;
+        await using (var holder = ScopeFor(App.Services, kmsa, out var holding))
+        {
+            await using var held = await holding.Database.BeginTransactionAsync(Ct);
+            var key = $"registry.organisations:{kmsa}";
+            await holding.Database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock(hashtextextended({key}, 0))", Ct);
+            var changes = new[]
+            {
+                registrar.PostAsJsonAsync(OrganisationParentPath(club.Id), new { parentId = association.Id, reason = _reason }, Ct),
+                colleague.PostAsJsonAsync(OrganisationParentPath(club.Id), new { parentId = kestrels.Id, reason = _reason }, Ct),
+            };
+
+            var deadline = DateTimeOffset.UtcNow.AddSeconds(30);
+            while (await WaitingOnAdvisoryLocksAsync(holding) < 2)
+            {
+                changes.ShouldAllBe(change => !change.IsCompleted, "A change finished without waiting for the organisations lock.");
+                DateTimeOffset.UtcNow.ShouldBeLessThan(deadline, "The two changes never both waited on the organisations lock.");
+                await Task.Delay(TimeSpan.FromMilliseconds(20), Ct);
+            }
+
+            await held.CommitAsync(Ct);
+            responses = await Task.WhenAll(changes);
+        }
+
+        try
+        {
+            responses.Select(response => response.StatusCode)
+                .ShouldBe([HttpStatusCode.OK, HttpStatusCode.Conflict], ignoreOrder: true);
+            await responses.Single(response => response.StatusCode == HttpStatusCode.Conflict)
+                .ShouldBeProblemAsync(HttpStatusCode.Conflict, "ORGANISATION_CONCURRENCY_CONFLICT");
+        }
+        finally
+        {
+            foreach (var response in responses)
+            {
+                response.Dispose();
+            }
+        }
+
+        await using var scope = ScopeFor(App.Services, kmsa, out var context);
+        (await context.Set<OrganisationParentLink>().CountAsync(Ct)).ShouldBe(1);
+    }
+
     [Theory]
     [InlineData(OrganisationStatus.Dissolved)]
     [InlineData(OrganisationStatus.Archived)]
