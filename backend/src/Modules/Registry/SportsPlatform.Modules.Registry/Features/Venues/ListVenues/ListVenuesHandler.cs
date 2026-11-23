@@ -79,7 +79,7 @@ public sealed class ListVenuesHandler(RegistryDbContext context)
         var page = rows.Take(query.Limit).ToList();
         var items = page.Select(row => new VenueListItem(
             row.Id, row.Name, row.ShortName, row.Slug, row.Type, row.City, row.Country, row.SupportedVariants, row.Status)).ToList();
-        var next = hasMore ? new VenueCursor(page[^1].SortKey, page[^1].Id).Encode() : null;
+        var next = hasMore ? new DirectoryCursor(page[^1].SortKey, page[^1].Id).Encode() : null;
         return new ListVenuesResponse(items, new PageInfo(next, hasMore));
     }
 

@@ -9,7 +9,7 @@ namespace SportsPlatform.Modules.Registry.Features.Venues.ListVenues;
 /// <paramref name="Search"/> is the trimmed <c>q</c>; <paramref name="City"/> the trimmed city as sent; no status means
 /// every state but <c>ARCHIVED</c>; <paramref name="After"/> is the sort key of the previous page's last venue.
 /// </summary>
-public sealed record VenuesQuery(string? Search, string? Variant, string? City, VenueStatus? Status, int Limit, VenueCursor? After);
+public sealed record VenuesQuery(string? Search, string? Variant, string? City, VenueStatus? Status, int Limit, DirectoryCursor? After);
 
 /// <summary>The directory's query parameters as sent (text, so every bad value is <c>VALIDATION_INVALID_QUERY</c>).</summary>
 public sealed record ListVenuesRequest(
@@ -49,10 +49,10 @@ public sealed record ListVenuesRequest(
             throw NotValidated();
         }
 
-        VenueCursor? after = null;
+        DirectoryCursor? after = null;
         if (Cursor is not null)
         {
-            after = VenueCursor.TryDecode(Cursor, out var cursor) ? cursor : throw NotValidated();
+            after = DirectoryCursor.TryDecode(Cursor, VenueDetails.NameMaxLength, out var cursor) ? cursor : throw NotValidated();
         }
 
         return new VenuesQuery(Trimmed(Q), Variant, Trimmed(City), status, limit, after);
