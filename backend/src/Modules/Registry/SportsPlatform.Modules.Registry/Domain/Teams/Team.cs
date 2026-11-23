@@ -136,12 +136,13 @@ public sealed class Team : AggregateRoot, ITenantOwned
     /// <summary>
     /// The slug proposed for a team (S07 D9; owner, S07-T3a plan): the name, then the age group and gender codes, then the
     /// level unless it is <see cref="TeamLevel.First"/> (<c>ntinda-swifts-fc-senior-men</c>,
-    /// <c>kireka-kingfishers-fc-senior-men-reserve</c>). Codes, not labels: "Boys" and "Girls" are the web app's words.
+    /// <c>kireka-kingfishers-fc-senior-men-reserve</c>). Codes, not labels: "Boys" and "Girls" are the web app's words. A long
+    /// name is cut, never the category (review #127 R2).
     /// </summary>
     public static string ProposeSlug(string name, TeamCategory category)
     {
         ArgumentNullException.ThrowIfNull(category);
-        return Slugs.Propose(
+        return Slugs.ProposeWithSuffix(
             "team",
             name,
             SlugPart(category.AgeGroup),

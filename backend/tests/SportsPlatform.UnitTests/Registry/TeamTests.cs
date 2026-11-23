@@ -1,4 +1,5 @@
 using SportsPlatform.BuildingBlocks.Actors;
+using SportsPlatform.Modules.Registry.Domain;
 using SportsPlatform.Modules.Registry.Domain.Teams;
 using SportsPlatform.Modules.Registry.Features.Teams;
 using SportsPlatform.Modules.Registry.Features.Teams.CreateTeam;
@@ -70,6 +71,26 @@ public sealed class TeamTests
     [InlineData("***", GenderCategory.Men, AgeGroup.Senior, TeamLevel.First, "senior-men")]
     public void A_slug_is_proposed_from_the_name_and_category(string name, GenderCategory gender, AgeGroup ageGroup, TeamLevel level, string slug) =>
         Team.ProposeSlug(name, new TeamCategory(gender, ageGroup, level)).ShouldBe(slug);
+
+    // Review #127 R2: a long name is cut, never the category, so a club's two categories of one long name get two slugs.
+    [Fact]
+    public void A_long_name_is_cut_so_the_category_codes_always_fit()
+    {
+        const string name = "Kawempe Northern Division Community Development Association Football Club of the Lakeside Parishes";
+        var underSeventeen = Team.ProposeSlug(name, new TeamCategory(GenderCategory.Men, AgeGroup.U17, TeamLevel.First));
+        var reserveWomen = Team.ProposeSlug(name, new TeamCategory(GenderCategory.Women, AgeGroup.Senior, TeamLevel.Reserve));
+
+        underSeventeen.ShouldStartWith("kawempe-northern-division-community");
+        underSeventeen.ShouldEndWith("-u17-men");
+        reserveWomen.ShouldEndWith("-senior-women-reserve");
+        underSeventeen.ShouldNotBe(reserveWomen);
+        foreach (var slug in new[] { underSeventeen, reserveWomen })
+        {
+            slug.Length.ShouldBeLessThanOrEqualTo(Slugs.MaxLength - 7);
+            Slugs.IsValid(slug).ShouldBeTrue();
+            slug.ShouldNotContain("--");
+        }
+    }
 
     [Fact]
     public void The_warning_compares_the_name_and_short_name_keys_the_variant_category_and_organisation()

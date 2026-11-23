@@ -13,8 +13,9 @@ namespace SportsPlatform.Modules.Registry.Infrastructure.Configurations;
 /// <summary>
 /// <c>registry.teams</c> (S07 D6, D7): tenant-owned (RLS). A team holds no person's data: what the public reads may show
 /// is <c>PUBLIC</c>; the keys and the source are <c>INTERNAL</c> (D16). The slug is unique per tenant
-/// among every status (D9). The duplicate check (D13) compares teams of the same variant: the variant is indexed per
-/// tenant and the name key has a trigram index. The organisation and the home venue are the tenant's own (composite
+/// among every status (D9). The duplicate check (D13) compares teams of the same variant and category: it narrows on
+/// the variant (indexed per tenant) and measures similarity within those rows, so it doesn't use the name key's trigram
+/// index; that index is for the directory's search (S07-T3b-2), as organisations' (review #127 R4). The organisation and the home venue are the tenant's own (composite
 /// foreign keys); the variant is a Sports Configuration code and the logo and badge are Platform asset IDs (no foreign
 /// keys: other modules' schemas).
 /// </summary>

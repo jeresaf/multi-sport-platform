@@ -29,11 +29,37 @@ public static partial class Slugs
     /// </summary>
     public static string Propose(string fallback, params ReadOnlySpan<string?> parts)
     {
+        EnsureFallback(fallback);
+        var slug = Cut(Slugify(parts), _proposalMaxLength);
+        return IsValid(slug) ? slug : fallback;
+    }
+
+    /// <summary>
+    /// A slug from <paramref name="name"/> followed by <paramref name="suffix"/> (a team's category codes, S07 D9): as
+    /// <see cref="Propose"/>, but only the name is cut, so the suffix is always whole (S07-T3a, review #127 R2).
+    /// </summary>
+    public static string ProposeWithSuffix(string fallback, string? name, params ReadOnlySpan<string?> suffix)
+    {
+        EnsureFallback(fallback);
+        var tail = Cut(Slugify(suffix), _proposalMaxLength);
+        var room = tail.Length == 0 ? _proposalMaxLength : _proposalMaxLength - tail.Length - 1;
+        var head = Cut(Slugify([name]), Math.Max(room, 0));
+        var slug = head.Length == 0 ? tail : tail.Length == 0 ? head : $"{head}-{tail}";
+        return IsValid(slug) ? slug : fallback;
+    }
+
+    private static void EnsureFallback(string fallback)
+    {
         if (!IsValid(fallback))
         {
             throw new ArgumentException("The fallback must be a valid slug.", nameof(fallback));
         }
+    }
 
+    // Accents removed, letters and digits outside ASCII and everything else turned into hyphens, single hyphens between
+    // words; not cut.
+    private static string Slugify(ReadOnlySpan<string?> parts)
+    {
         var builder = new StringBuilder();
         foreach (var part in parts)
         {
@@ -51,14 +77,10 @@ public static partial class Slugs
             builder.Append('-');
         }
 
-        var slug = Hyphens().Replace(builder.ToString(), "-").Trim('-');
-        if (slug.Length > _proposalMaxLength)
-        {
-            slug = slug[.._proposalMaxLength].TrimEnd('-');
-        }
-
-        return IsValid(slug) ? slug : fallback;
+        return Hyphens().Replace(builder.ToString(), "-").Trim('-');
     }
+
+    private static string Cut(string slug, int maxLength) => slug.Length > maxLength ? slug[..maxLength].TrimEnd('-') : slug;
 
     /// <summary><paramref name="slug"/> with <c>-<paramref name="number"/></c>; 1 is the slug itself.</summary>
     public static string WithSuffix(string slug, int number)

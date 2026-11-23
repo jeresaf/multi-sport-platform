@@ -140,15 +140,15 @@ internal static class TeamText
 /// not closed or archived (<c>TEAM_HOME_VENUE_UNAVAILABLE</c>), each checked only when the request sets or changes it.
 /// References are read untracked: they are other aggregates (S06 D11), and another tenant's is not found (RLS).
 /// </summary>
-public sealed class TeamDetailsRules(RegistryDbContext context, TenantToday tenantToday)
+public sealed class TeamDetailsRules(RegistryDbContext context)
 {
     /// <summary>
     /// The details to save, trimmed, with colours in upper case and <c>FIRST</c> when no level was sent; or the first
     /// refusal. <paramref name="current"/> is the team before the change (null on a create): a reference it keeps isn't
-    /// checked again.
+    /// checked again. <paramref name="today"/> is the tenant's date, read once by the use case (review #127 R3).
     /// </summary>
     public async Task<(TeamDetails? Details, FieldRefusal? Refusal)> CheckAsync(
-        ITeamDetailsRequest request, string? name, Team? current, CancellationToken cancellationToken)
+        ITeamDetailsRequest request, string? name, Team? current, DateOnly today, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
         if (Team.NameKeyOf(name).Length == 0)
@@ -164,7 +164,7 @@ public sealed class TeamDetailsRules(RegistryDbContext context, TenantToday tena
             return (null, new(RegistryErrors.TeamColoursInvalid, secondary is not null && primary is null ? "secondaryColour" : "tertiaryColour"));
         }
 
-        if (request.FoundedYear is { } year && year > (await tenantToday.GetAsync(cancellationToken)).Year)
+        if (request.FoundedYear is { } year && year > today.Year)
         {
             return (null, new(CommonErrors.InvalidRequest, "foundedYear", "'foundedYear' can't be after this year (the tenant's date)."));
         }

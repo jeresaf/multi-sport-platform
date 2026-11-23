@@ -64,7 +64,7 @@ public sealed class CreateTeamHandler(
                 CommonErrors.InvalidRequest, "nameSince", "'nameSince' can't be after today (the tenant's date).").ToProblem());
         }
 
-        var (details, refusal) = await rules.CheckAsync(request, request.Name, current: null, cancellationToken);
+        var (details, refusal) = await rules.CheckAsync(request, request.Name, current: null, today, cancellationToken);
         if (details is null)
         {
             return (null, refusal!.ToProblem());
