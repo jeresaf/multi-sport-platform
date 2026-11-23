@@ -25,10 +25,25 @@ public sealed class QueryValuesDocumentationTests(HostOnlyApp factory) : IClassF
         scopeId["schema"]!.AsObject().ContainsKey("enum").ShouldBeFalse();
     }
 
+    // S07-T2b-2: the organisation directory's type and status list their values.
+    [Theory]
+    [InlineData("type", new[] { "CLUB", "SCHOOL", "UNIVERSITY", "ACADEMY", "FEDERATION", "ASSOCIATION", "COMPANY", "COMMUNITY", "GOVERNMENT", "OTHER" })]
+    [InlineData("status", new[] { "ACTIVE", "INACTIVE", "SUSPENDED", "DISSOLVED", "ARCHIVED" })]
+    public async Task The_organisation_directorys_type_and_status_list_their_values(string name, string[] values)
+    {
+        var document = JsonNode.Parse(await ApiDocumentation.ExportAsync(factory.Services, TestContext.Current.CancellationToken))!;
+
+        var parameters = document["paths"]!["/api/admin/v1/organisations"]!["get"]!["parameters"]!.AsArray();
+        var parameter = parameters.Single(parameter => parameter!["name"]!.GetValue<string>() == name)!;
+
+        parameter["schema"]!["enum"]!.AsArray().Select(value => value!.GetValue<string>()).ShouldBe(values);
+    }
+
     // S07-T1b-2: a list's limit is an integer with its bounds and default, so the client types it.
     [Theory]
     [InlineData("/api/admin/v1/people")]
     [InlineData("/api/admin/v1/venues")]
+    [InlineData("/api/admin/v1/organisations")]
     public async Task A_lists_limit_is_an_integer_from_1_to_100_defaulting_to_25(string path)
     {
         var document = JsonNode.Parse(await ApiDocumentation.ExportAsync(factory.Services, TestContext.Current.CancellationToken))!;

@@ -23,6 +23,10 @@ internal static class OrganisationRequests
 
     public static string OrganisationStatusChangesPath(Guid organisationId) => $"{OrganisationPath(organisationId)}/status-changes";
 
+    /// <summary>The display names of a page of the organisation directory, in the order answered.</summary>
+    public static List<string?> OrganisationNames(this JsonElement page) =>
+        [.. page.GetProperty("items").EnumerateArray().Select(item => item.GetProperty("displayName").GetString())];
+
     /// <summary>The demo's multi-sport club (S07 Demo), with only the required fields.</summary>
     public static Dictionary<string, object?> NtindaSwifts() => new()
     {
