@@ -1299,7 +1299,7 @@ export interface paths {
         };
         /**
          * Get an organisation
-         * @description An organisation of the tenant named by `X-Tenant-Id`, whatever its status: type, names, country, city, founded year, website, the body's own email and phone, description, primary venue (id, name, slug), the current `parent` (id, display name, slug, status; null without one), the current `children` (the same summary, archived ones left out, sorted by display name; `GET /organisations?parentId=` pages them), status and `version` (also the `ETag`; it doesn't move when a child leaves).
+         * @description An organisation of the tenant named by `X-Tenant-Id`, whatever its status: type, names, country, city, founded year, website, the body's own email and phone, description, primary venue (id, name, slug), the current `parent` (id, display name, slug, status; null without one), the current `children` (the same summary, archived ones left out, sorted by display name ignoring case, accents and punctuation, as the directory; `GET /organisations?parentId=` pages them), status and `version` (also the `ETag`; it doesn't move when a child leaves).
          */
         get: operations["GetOrganisation"];
         /**
@@ -3364,8 +3364,8 @@ export interface components {
          * @description An organisation as the admin reads it (S07 D19). The legal name, the body's own email and phone and the version are
          *     `INTERNAL`; every other field is one the public reads may show (D16). The primary venue is a summary of the
          *     tenant's venue (null without one). `parent` is the current parent in any status (null without one); `children`
-         *     are the organisations whose current parent this is, archived ones left out (owner, S07-T2c-2 plan), sorted by display
-         *     name; the directory's `parentId` pages them with filters. The version doesn't move when a child leaves (S07-T2c-1),
+         *     are the organisations whose current parent this is, archived ones left out (owner, S07-T2c-2 plan), in the directory's
+         *     order (the sort key); the directory's `parentId` pages them with filters. The version doesn't move when a child leaves (S07-T2c-1),
          *     so it is no freshness marker for `children`. Teams, aliases, identifiers and the logo join with S07-T2d, T3 and T4.
          */
         OrganisationResponse: {

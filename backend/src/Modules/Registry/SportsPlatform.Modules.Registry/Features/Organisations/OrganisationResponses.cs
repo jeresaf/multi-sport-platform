@@ -11,8 +11,8 @@ namespace SportsPlatform.Modules.Registry.Features.Organisations;
 /// An organisation as the admin reads it (S07 D19). The legal name, the body's own email and phone and the version are
 /// <c>INTERNAL</c>; every other field is one the public reads may show (D16). The primary venue is a summary of the
 /// tenant's venue (null without one). <c>parent</c> is the current parent in any status (null without one); <c>children</c>
-/// are the organisations whose current parent this is, archived ones left out (owner, S07-T2c-2 plan), sorted by display
-/// name; the directory's <c>parentId</c> pages them with filters. The version doesn't move when a child leaves (S07-T2c-1),
+/// are the organisations whose current parent this is, archived ones left out (owner, S07-T2c-2 plan), in the directory's
+/// order (the sort key); the directory's <c>parentId</c> pages them with filters. The version doesn't move when a child leaves (S07-T2c-1),
 /// so it is no freshness marker for <c>children</c>. Teams, aliases, identifiers and the logo join with S07-T2d, T3 and T4.
 /// </summary>
 public sealed record OrganisationResponse(

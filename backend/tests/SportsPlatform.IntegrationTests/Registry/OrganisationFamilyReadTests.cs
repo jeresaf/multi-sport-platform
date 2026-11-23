@@ -31,6 +31,8 @@ public sealed class OrganisationFamilyReadTests(PostgresFixture fixture) : Datab
         read.GetProperty("children").GetArrayLength().ShouldBe(0);
     }
 
+    // Sorted as the directory sorts (the sort key: case, accents and punctuation aside), so a name typed in lower case
+    // isn't put after the others.
     [Fact]
     public async Task The_read_shows_the_current_parent_and_the_children_sorted_by_display_name()
     {
@@ -38,7 +40,7 @@ public sealed class OrganisationFamilyReadTests(PostgresFixture fixture) : Datab
         var association = await SaveOrganisationAsync(App.Services, kmsa, "Kampala Metro Sports Association", OrganisationType.Association);
         var swifts = await SaveOrganisationAsync(App.Services, kmsa, "Ntinda Swifts SC");
         var kestrels = await SaveOrganisationAsync(App.Services, kmsa, "Kisaasi Kestrels SC");
-        var breakers = await SaveOrganisationAsync(App.Services, kmsa, "Bunga Breakers FC", status: OrganisationStatus.Suspended);
+        var breakers = await SaveOrganisationAsync(App.Services, kmsa, "bunga Breakers FC", status: OrganisationStatus.Suspended);
         foreach (var club in new[] { swifts, kestrels, breakers })
         {
             await SaveParentAsync(App.Services, kmsa, club.Id, association.Id);
@@ -50,7 +52,7 @@ public sealed class OrganisationFamilyReadTests(PostgresFixture fixture) : Datab
         parent.GetProperty("parent").ValueKind.ShouldBe(JsonValueKind.Null);
         Children(parent).ShouldBe(
         [
-            (breakers.Id, "Bunga Breakers FC", breakers.Slug, "SUSPENDED"),
+            (breakers.Id, "bunga Breakers FC", breakers.Slug, "SUSPENDED"),
             (kestrels.Id, "Kisaasi Kestrels SC", kestrels.Slug, "ACTIVE"),
             (swifts.Id, "Ntinda Swifts SC", swifts.Slug, "ACTIVE"),
         ]);
@@ -73,9 +75,11 @@ public sealed class OrganisationFamilyReadTests(PostgresFixture fixture) : Datab
         await ChangeStatusAsync(registrar, association.Id, "ARCHIVED");
 
         var parent = await registrar.ReadJsonAsync(OrganisationPath(association.Id), Ct);
+        var current = await registrar.ReadJsonAsync($"{OrganisationsPath}?parentId={association.Id}", Ct);
         var archived = await registrar.ReadJsonAsync($"{OrganisationsPath}?parentId={association.Id}&status=ARCHIVED", Ct);
 
         Children(parent).Select(c => c.Id).ShouldBe([swifts.Id]);
+        current.OrganisationNames().ShouldBe(["Ntinda Swifts SC"]);
         archived.OrganisationNames().ShouldBe(["Seeta Sparrows FC"]);
         (await registrar.ReadJsonAsync(OrganisationPath(swifts.Id), Ct)).GetProperty("parent").GetProperty("status").GetString()
             .ShouldBe("ARCHIVED");
