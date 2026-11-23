@@ -7,13 +7,13 @@ at the start of every review.
 
 - **Current slice:** S07 — Organisations, teams and venues (docs/build/slices/S07-organisations-teams-venues.md,
   written by the S06 slice review). S00–S06 are done
-- **Current task:** — (S07-T2a in review: #121)
-- **Next:** S07-T2b — Organisations: update, lifecycle, directory
+- **Current task:** S07-T2b-1 — Organisations: update, lifecycle, status history
+- **Next:** S07-T2b-2 — Organisations: the directory
 - **Blocked on:** —
 
 ## Next up
 
-1. S07-T2b — Organisations: update, lifecycle, status history, directory
+1. S07-T2b-2 — Organisations: the directory
 2. S07-T2c — Organisations: parent links and the cycle check
 3. S07-T2d — Organisations: aliases, external identifiers, `IOrganisationDirectory`
 4. S07-T3 — Teams
@@ -138,6 +138,12 @@ at the start of every review.
 | 2026-11-22 | S07-T2a | #121 | Organisations, first part. `registry.organisations` and append-only `registry.organisation_status_changes` (RLS, isolation samples, table policies; migration `AddOrganisations`): D4's fields, name keys for the display, legal and short names, `sort_key`, `city_key`, slug unique per tenant (D9), primary venue by composite FK. `POST /organisations/duplicate-check` (`organisation.duplicate_check`), `POST /organisations` (`organisation.create`: D13's warning under `registry.organisations:<tenantId>`, `422 ORGANISATION_DUPLICATE_REVIEW_REQUIRED` with `candidates` until `duplicatesReviewed`, audited with the candidates and the reason), `GET /organisations/{id}` (`organisation.read`, `ETag`). `ORGANISATION_CONCURRENCY_CONFLICT` (D2). Roles per D20. Backend 3610 tests pass | Owner (plan 2026-11-22): T2 in four PRs; a parent link moves only the child's version; `POSSIBLE` on display names only (see Deviations). New error `ORGANISATION_NAME_INVALID`; a founded year after the tenant's year is 400 on `foundedYear`. The finder filters on type or city key first (tech debt "From S07", organisations). About 1,450 production lines (migration excluded) and 760 test lines against ~650 planned (new files with their comments, as T1a). No events or dependencies. Pre-review (ready): founded-year edge tests and an archived-candidate test added; the `type` column name noted in the slice; the venue check before the lock kept (venues' precedent). Review #121 (subagent, approve with nits): R1 a test per length limit; R2 the duplicated `Text` rule helper kept (venues' precedent); Q1 owner (2026-11-23): a short name matches any name key for `LIKELY`, as built |
 
 ## Deviations from spec (agreed)
+
+- **S07-T2b (owner, plan 2026-11-23):** T2b is two PRs: T2b-1 (update, lifecycle, status history) and T2b-2 (the
+  directory). The update follows venues' defaults: a correction in every status, `slug` left out kept, `country` left
+  out the tenant's, the warning and the lock again only when a name key, the type or the city key changes (or, for the
+  lock, the slug). The directory's `q` searches all three names (display: prefix of the name or a word, name-key prefix,
+  similarity ≥ 0.3; legal and short: name-key prefix) until T2d adds aliases and identifiers.
 
 - **S07-T2 (owner, plan 2026-11-22):** T2 is four PRs, not two: T2a (the model, create with D13's warning, the check,
   the read), T2b (update, lifecycle and status history, the directory), T2c (parent links, the cycle check), T2d
