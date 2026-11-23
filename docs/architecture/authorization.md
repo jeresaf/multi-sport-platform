@@ -203,11 +203,13 @@ available while read-only) for every tenant-wide role that reads people (`SCORER
 audit `REQUIRED`, with the reason when the warning found venues; `grantedWith: venue.duplicate_check, venue.read`) and
 `venue.status.change` (`POST …/venues/{id}/status`; `REQUIRED_WITH_REASON`, `grantedWith: venue.read`) for
 `TENANT_OWNER`, `TENANT_ADMIN` and `REGISTRAR`, none available while read-only.
-Organisations (S07 D20; S07-T2a): `organisation.read` (the record; audit `NONE`, available while read-only) for the
+Organisations (S07 D20; S07-T2a, T2b-1): `organisation.read` (the record; audit `NONE`, available while read-only) for the
 same roles as `venue.read`; `organisation.duplicate_check` (audit `NONE`, `grantedWith: organisation.read`) and
 `organisation.create` (audit `REQUIRED`, with the reason when the warning found organisations; `grantedWith:
-organisation.duplicate_check, organisation.read`) for `TENANT_OWNER`, `TENANT_ADMIN` and `REGISTRAR`. The other
-organisation actions join with S07-T2b–T2d.
+organisation.duplicate_check, organisation.read`), `organisation.update` (`PUT …/organisations/{id}`; audit
+`REQUIRED`, granted as the create) and `organisation.status.change` (`POST …/organisations/{id}/status`;
+`REQUIRED_WITH_REASON`, `grantedWith: organisation.read`) for `TENANT_OWNER`, `TENANT_ADMIN` and `REGISTRAR`. The
+status history is read with `organisation.read`. The other organisation actions join with S07-T2c–T2d.
 
 | Role | Typical scope | Includes (summary) |
 |---|---|---|

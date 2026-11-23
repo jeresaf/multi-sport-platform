@@ -221,12 +221,13 @@ venue itself left out), run it under `registry.venues:<tenantId>` and answer `42
 (unique per tenant, every status) is proposed on create and editable on update, where one left out is kept; an update
 that changes it holds the same lock.
 
-As built for organisations (S07-T2a): `OrganisationDuplicateFinder` compares only organisations of the same type or
+As built for organisations (S07-T2a, T2b-1): `OrganisationDuplicateFinder` compares only organisations of the same type or
 with the same city key (a missing city never matches; `(tenant_id, type)` and `(tenant_id, city_key)` are indexed, so
 the similarity is measured within them). `LIKELY`: a name key (display, legal or short name) of one equals a name key of
 the other; `POSSIBLE`: display name keys at least 0.7 similar (display names only, owner, plan 2026-11-22). Evidence:
-`SAME_NAME_KEY` or `NAME_SIMILARITY`, then `SAME_TYPE`, `SAME_CITY`. Create runs it under
-`registry.organisations:<tenantId>` and answers `422 ORGANISATION_DUPLICATE_REVIEW_REQUIRED` with `candidates` until
+`SAME_NAME_KEY` or `NAME_SIMILARITY`, then `SAME_TYPE`, `SAME_CITY`. Create, and an update that changes a name key
+(display, legal or short), the type or the city key (the organisation itself left out), run it under
+`registry.organisations:<tenantId>` and answer `422 ORGANISATION_DUPLICATE_REVIEW_REQUIRED` with `candidates` until
 `duplicatesReviewed`, as venues. Current aliases join the names compared with S07-T2d (D13).
 
 ## Migrations

@@ -48,6 +48,7 @@ the message is the default title and may change.
 | `ORGANISATION_NOT_FOUND` | 404 | The organisation was not found. | Registry |
 | `ORGANISATION_PRIMARY_VENUE_UNAVAILABLE` | 422 | The primary venue must be a venue of the tenant that isn't closed or archived. | Registry |
 | `ORGANISATION_SLUG_TAKEN` | 422 | Another organisation of the tenant has this slug. | Registry |
+| `ORGANISATION_STATUS_INVALID` | 409 | The organisation's current status doesn't allow this change. | Registry |
 | `PERSON_ALIAS_EXISTS` | 409 | The person is already known by this name: their own name or a current alias gives the same name key. | Registry |
 | `PERSON_ALIAS_NOT_FOUND` | 404 | The person has no such alias. | Registry |
 | `PERSON_ALIAS_REMOVED` | 409 | The alias is already removed. | Registry |

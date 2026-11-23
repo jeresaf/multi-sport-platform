@@ -19,6 +19,10 @@ internal static class OrganisationRequests
 
     public static string OrganisationPath(Guid organisationId) => $"{OrganisationsPath}/{organisationId}";
 
+    public static string OrganisationStatusPath(Guid organisationId) => $"{OrganisationPath(organisationId)}/status";
+
+    public static string OrganisationStatusChangesPath(Guid organisationId) => $"{OrganisationPath(organisationId)}/status-changes";
+
     /// <summary>The demo's multi-sport club (S07 Demo), with only the required fields.</summary>
     public static Dictionary<string, object?> NtindaSwifts() => new()
     {
@@ -56,7 +60,8 @@ internal static class OrganisationRequests
         string? city = "Kampala",
         string? legalName = null,
         string? shortName = null,
-        Guid? primaryVenueId = null)
+        Guid? primaryVenueId = null,
+        OrganisationStatus status = OrganisationStatus.Active)
     {
         await using var scope = RegistryTestData.ScopeFor(services, tenantId, out var context);
         var organisation = Organisation.Create(
@@ -65,6 +70,13 @@ internal static class OrganisationRequests
             OrganisationSource.Manual,
             SystemActor.Instance,
             RegistryTestData.Now);
+
+        // Reached through the lifecycle, so the history knows what an archived organisation was before.
+        if (status != OrganisationStatus.Active)
+        {
+            organisation.ChangeStatus(status, "Set up by the test", SystemActor.Instance, RegistryTestData.Now).IsSuccess.ShouldBeTrue();
+        }
+
         context.Add(organisation);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
         return organisation;

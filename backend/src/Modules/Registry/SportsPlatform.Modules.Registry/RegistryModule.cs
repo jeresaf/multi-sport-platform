@@ -7,9 +7,12 @@ using SportsPlatform.BuildingBlocks.Persistence.Seeding;
 using SportsPlatform.Modules.Registry.Contracts.People;
 using SportsPlatform.Modules.Registry.Contracts.Venues;
 using SportsPlatform.Modules.Registry.Features.Organisations;
+using SportsPlatform.Modules.Registry.Features.Organisations.ChangeOrganisationStatus;
 using SportsPlatform.Modules.Registry.Features.Organisations.CheckOrganisationDuplicates;
 using SportsPlatform.Modules.Registry.Features.Organisations.CreateOrganisation;
 using SportsPlatform.Modules.Registry.Features.Organisations.GetOrganisation;
+using SportsPlatform.Modules.Registry.Features.Organisations.ListOrganisationStatusChanges;
+using SportsPlatform.Modules.Registry.Features.Organisations.UpdateOrganisation;
 using SportsPlatform.Modules.Registry.Features.People;
 using SportsPlatform.Modules.Registry.Features.People.Aliases;
 using SportsPlatform.Modules.Registry.Features.People.ChangePersonStatus;
@@ -105,6 +108,9 @@ public sealed class RegistryModule : IModule
         services.AddScoped<CheckOrganisationDuplicatesHandler>();
         services.AddScoped<CreateOrganisationHandler>();
         services.AddScoped<GetOrganisationHandler>();
+        services.AddScoped<UpdateOrganisationHandler>();
+        services.AddScoped<ChangeOrganisationStatusHandler>();
+        services.AddScoped<ListOrganisationStatusChangesHandler>();
         services.AddScoped<VenueDetailsRules>();
         services.AddScoped<VenueDuplicateFinder>();
         services.AddScoped<CheckVenueDuplicatesHandler>();
@@ -139,6 +145,8 @@ public sealed class RegistryModule : IModule
         services.AddSingleton<IValidator<PublicPersonPhotoRequest>, PublicPersonPhotoRequestValidator>();
         services.AddSingleton<IValidator<CheckOrganisationDuplicatesRequest>, CheckOrganisationDuplicatesRequestValidator>();
         services.AddScoped<IValidator<CreateOrganisationRequest>, CreateOrganisationRequestValidator>();
+        services.AddScoped<IValidator<UpdateOrganisationRequest>, UpdateOrganisationRequestValidator>();
+        services.AddSingleton<IValidator<ChangeOrganisationStatusRequest>, ChangeOrganisationStatusRequestValidator>();
         services.AddSingleton<IValidator<CheckVenueDuplicatesRequest>, CheckVenueDuplicatesRequestValidator>();
         services.AddScoped<IValidator<CreateVenueRequest>, CreateVenueRequestValidator>();
         services.AddScoped<IValidator<UpdateVenueRequest>, UpdateVenueRequestValidator>();
@@ -178,6 +186,9 @@ public sealed class RegistryModule : IModule
         CheckOrganisationDuplicatesEndpoint.Map(organisations);
         CreateOrganisationEndpoint.Map(organisations);
         GetOrganisationEndpoint.Map(organisations);
+        UpdateOrganisationEndpoint.Map(organisations);
+        ChangeOrganisationStatusEndpoint.Map(organisations);
+        ListOrganisationStatusChangesEndpoint.Map(organisations);
 
         var venues = VenuesEndpoints.Group(groups.Admin);
         CheckVenueDuplicatesEndpoint.Map(venues);

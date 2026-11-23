@@ -214,6 +214,22 @@ it (Q55). Every move writes a row to `registry.venue_status_changes` (from, to, 
 creation), read newest first at `GET …/venues/{id}/status-changes`. A venue's details can be corrected in every status.
 The pack's venue `INACTIVE` isn't built. Nothing is deleted (AR-18).
 
+### Organisation (stored, as built in S07-T2b-1)
+
+```text
+ACTIVE ⇄ INACTIVE ⇄ SUSPENDED ⇄ ACTIVE   (every pair, each way, with a reason)
+ACTIVE | INACTIVE | SUSPENDED ──dissolve (reason)──► DISSOLVED   (final, but for archiving)
+ACTIVE | INACTIVE | SUSPENDED | DISSOLVED ──archive (reason)──► ARCHIVED ──unarchive (reason)──► the status before archiving
+```
+
+One endpoint, `POST …/organisations/{id}/status` with `{status, reason}` (`organisation.status.change`); any other move
+is `409 ORGANISATION_STATUS_INVALID`. Unarchiving goes back only to the status the organisation had before it was
+archived (as venues'), so archiving a dissolved organisation and unarchiving it never undoes the dissolution (Q55).
+`SUSPENDED` is an administrative stop set by staff; discipline's suspensions come later. An organisation's status never
+changes its teams' (pack RULE-ORG-005). Every move writes a row to `registry.organisation_status_changes` (the first at
+creation), read newest first at `GET …/organisations/{id}/status-changes`. An organisation's details can be corrected in
+every status. Nothing is deleted (AR-18).
+
 ---
 
 ## Team Operations
