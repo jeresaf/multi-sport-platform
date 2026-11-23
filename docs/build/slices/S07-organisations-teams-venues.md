@@ -580,7 +580,8 @@ The rest of S06's tech debt has its own trigger in PROGRESS.md ("From S06").
   `organisationId` (owner: D6's code, not D10's `409 ORGANISATION_*`); a suspended or inactive one is accepted. Colours
   are accepted in either case and stored upper case; the order rule answers on the first colour out of place
   (`secondaryColour` or `tertiaryColour`). The proposed slug is the name, the age group and gender codes, and the level
-  unless `FIRST` (`seeta-sparrows-fc-u17-men`, `kireka-kingfishers-fc-senior-men-reserve`; owner). Under
+  unless `FIRST` (`seeta-sparrows-fc-u17-men`, `kireka-kingfishers-fc-senior-men-reserve`; owner); a long name is cut, never
+  the category codes (review #127 R2). Under
   `registry.teams:<tenantId>`: the slug, then `MAX_TEAMS` (`TeamCount`: `ACTIVE`, `INACTIVE`, `SUSPENDED`; Q50 as its
   default; "Your plan allows N teams."), then the warning. D13 for teams as built (owner, Q57): only teams of the same
   variant **and category** are compared, for `POSSIBLE` too; `LIKELY` when the name or short name of one has a key of
