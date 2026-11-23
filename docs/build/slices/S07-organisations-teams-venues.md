@@ -352,7 +352,7 @@ Acceptance:
       cycle at once (test holding the lock); the parent history keeps both links with their dates.
 - [ ] Suspending or dissolving an organisation leaves its teams' statuses alone, and a team's update that keeps its
       dissolved organisation succeeds (tests, with T3's teams).
-- [ ] Unarchiving returns to the status before archiving; a dissolved organisation stays dissolved (test).
+- [x] Unarchiving returns to the status before archiving; a dissolved organisation stays dissolved (test).
 - [ ] Duplicate warnings for organisations behave as D13 says (table-driven tests).
 
 ### T3 — Teams (~2 PRs, about 1,300 lines)
