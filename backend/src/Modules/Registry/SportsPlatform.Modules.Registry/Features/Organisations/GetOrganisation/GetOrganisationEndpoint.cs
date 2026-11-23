@@ -14,8 +14,11 @@ internal static class GetOrganisationEndpoint
         .WithSummary("Get an organisation")
         .WithDescription(
             "An organisation of the tenant named by `X-Tenant-Id`, whatever its status: type, names, country, city, " +
-            "founded year, website, the body's own email and phone, description, primary venue (id, name, slug), status " +
-            "and `version` (also the `ETag`).")
+            "founded year, website, the body's own email and phone, description, primary venue (id, name, slug), the " +
+            "current `parent` (id, display name, slug, status; null without one), the current `children` (the same " +
+            "summary, archived ones left out, sorted by display name ignoring case, accents and punctuation, as the " +
+            "directory; `GET /organisations?parentId=` pages them), status " +
+            "and `version` (also the `ETag`; it doesn't move when a child leaves).")
         .RequireAction(RegistryActions.OrganisationRead)
         .ReturnsETag()
         .ProducesErrors(RegistryErrors.OrganisationNotFound);

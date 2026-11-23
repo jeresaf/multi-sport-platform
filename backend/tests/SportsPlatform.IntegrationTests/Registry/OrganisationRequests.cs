@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.Modules.Registry.Domain;
 using SportsPlatform.Modules.Registry.Domain.Organisations;
@@ -88,5 +89,22 @@ internal static class OrganisationRequests
         context.Add(organisation);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
         return organisation;
+    }
+
+    /// <summary>
+    /// Sets <paramref name="organisationId"/>'s parent directly (no lock, no cycle check, no audit: the test's starting
+    /// point), on <see cref="RegistryTestData.Now"/>'s date.
+    /// </summary>
+    public static async Task SaveParentAsync(IServiceProvider services, Guid tenantId, Guid organisationId, Guid? parentId)
+    {
+        await using var scope = RegistryTestData.ScopeFor(services, tenantId, out var context);
+        var organisation = await context.Set<Organisation>().Include(o => o.ParentLinks)
+            .SingleAsync(o => o.Id == organisationId, TestContext.Current.CancellationToken);
+        var parent = parentId is { } id
+            ? await context.Set<Organisation>().SingleAsync(o => o.Id == id, TestContext.Current.CancellationToken)
+            : null;
+        organisation.SetParent(parent, "Set up by the test", SystemActor.Instance, DateOnly.FromDateTime(RegistryTestData.Now.UtcDateTime), RegistryTestData.Now)
+            .IsSuccess.ShouldBeTrue();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 }

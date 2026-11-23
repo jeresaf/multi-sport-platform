@@ -7358,7 +7358,7 @@
           "Organisations"
         ],
         "summary": "List the tenant's organisations",
-        "description": "The organisations of the tenant named by `X-Tenant-Id`, sorted by display name (ignoring case, accents and punctuation) and ID. `q` matches the display name or one of its words by prefix and by similarity, and the legal or short name by prefix (word order and punctuation aside). `type` keeps organisations of that type; `status` filters by status (without it, archived organisations are left out). `limit` is 1–100 (25). Available while the tenant is read-only.",
+        "description": "The organisations of the tenant named by `X-Tenant-Id`, sorted by display name (ignoring case, accents and punctuation) and ID. `q` matches the display name or one of its words by prefix and by similarity, and the legal or short name by prefix (word order and punctuation aside). `type` keeps organisations of that type; `status` filters by status (without it, archived organisations are left out). `parentId` keeps the organisations whose current parent it is (direct children only; an unknown ID keeps none). `limit` is 1–100 (25). Available while the tenant is read-only.",
         "operationId": "ListOrganisations",
         "parameters": [
           {
@@ -7399,6 +7399,14 @@
                 "ARCHIVED"
               ],
               "type": "string"
+            }
+          },
+          {
+            "name": "parentId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
             }
           },
           {
@@ -7481,7 +7489,7 @@
           "Organisations"
         ],
         "summary": "Get an organisation",
-        "description": "An organisation of the tenant named by `X-Tenant-Id`, whatever its status: type, names, country, city, founded year, website, the body's own email and phone, description, primary venue (id, name, slug), status and `version` (also the `ETag`).",
+        "description": "An organisation of the tenant named by `X-Tenant-Id`, whatever its status: type, names, country, city, founded year, website, the body's own email and phone, description, primary venue (id, name, slug), the current `parent` (id, display name, slug, status; null without one), the current `children` (the same summary, archived ones left out, sorted by display name ignoring case, accents and punctuation, as the directory; `GET /organisations?parentId=` pages them), status and `version` (also the `ETag`; it doesn't move when a child leaves).",
         "operationId": "GetOrganisation",
         "parameters": [
           {
@@ -16275,7 +16283,7 @@
             "format": "uuid"
           },
           "parent": {
-            "$ref": "#/components/schemas/OrganisationParentSummary"
+            "$ref": "#/components/schemas/OrganisationSummaryResponse"
           },
           "validFrom": {
             "type": "string",
@@ -16305,31 +16313,6 @@
         },
         "description": "One link of an organisation to a parent (S07 D5, D19; D16: the links and their reasons are internal). The parent is a\nsummary of the tenant's organisation, whatever its status now; `validTo` is null on the current link."
       },
-      "OrganisationParentSummary": {
-        "required": [
-          "id",
-          "displayName",
-          "slug",
-          "status"
-        ],
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "displayName": {
-            "type": "string"
-          },
-          "slug": {
-            "type": "string"
-          },
-          "status": {
-            "$ref": "#/components/schemas/OrganisationStatus"
-          }
-        },
-        "description": "An organisation another points at (S07 D16: id, display name, slug), with its status now."
-      },
       "OrganisationResponse": {
         "required": [
           "id",
@@ -16346,6 +16329,8 @@
           "phone",
           "description",
           "primaryVenue",
+          "parent",
+          "children",
           "status",
           "version"
         ],
@@ -16426,6 +16411,22 @@
               }
             ]
           },
+          "parent": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/OrganisationSummaryResponse"
+              }
+            ]
+          },
+          "children": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrganisationSummaryResponse"
+            }
+          },
           "status": {
             "$ref": "#/components/schemas/OrganisationStatus"
           },
@@ -16434,7 +16435,7 @@
             "format": "uint32"
           }
         },
-        "description": "An organisation as the admin reads it (S07 D19). The legal name, the body's own email and phone and the version are\n`INTERNAL`; every other field is one the public reads may show (D16). The primary venue is a summary of the\ntenant's venue (null without one). Parent, children, teams, aliases, identifiers and the logo join with S07-T2c,\nT2d, T3 and T4."
+        "description": "An organisation as the admin reads it (S07 D19). The legal name, the body's own email and phone and the version are\n`INTERNAL`; every other field is one the public reads may show (D16). The primary venue is a summary of the\ntenant's venue (null without one). `parent` is the current parent in any status (null without one); `children`\nare the organisations whose current parent this is, archived ones left out (owner, S07-T2c-2 plan), in the directory's\norder (the sort key); the directory's `parentId` pages them with filters. The version doesn't move when a child leaves (S07-T2c-1),\nso it is no freshness marker for `children`. Teams, aliases, identifiers and the logo join with S07-T2d, T3 and T4."
       },
       "OrganisationStatus": {
         "enum": [
@@ -16494,6 +16495,31 @@
           }
         },
         "description": "One row of an organisation's status history (S07 D12, D16: the reasons and the history are internal)."
+      },
+      "OrganisationSummaryResponse": {
+        "required": [
+          "id",
+          "displayName",
+          "slug",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/OrganisationStatus"
+          }
+        },
+        "description": "An organisation another points at, as its parent or as one of its children (S07 D16: id, display name, slug), with its\nstatus now."
       },
       "OrganisationType": {
         "enum": [

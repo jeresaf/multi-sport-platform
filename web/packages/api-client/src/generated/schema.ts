@@ -1275,7 +1275,7 @@ export interface paths {
         };
         /**
          * List the tenant's organisations
-         * @description The organisations of the tenant named by `X-Tenant-Id`, sorted by display name (ignoring case, accents and punctuation) and ID. `q` matches the display name or one of its words by prefix and by similarity, and the legal or short name by prefix (word order and punctuation aside). `type` keeps organisations of that type; `status` filters by status (without it, archived organisations are left out). `limit` is 1–100 (25). Available while the tenant is read-only.
+         * @description The organisations of the tenant named by `X-Tenant-Id`, sorted by display name (ignoring case, accents and punctuation) and ID. `q` matches the display name or one of its words by prefix and by similarity, and the legal or short name by prefix (word order and punctuation aside). `type` keeps organisations of that type; `status` filters by status (without it, archived organisations are left out). `parentId` keeps the organisations whose current parent it is (direct children only; an unknown ID keeps none). `limit` is 1–100 (25). Available while the tenant is read-only.
          */
         get: operations["ListOrganisations"];
         put?: never;
@@ -1299,7 +1299,7 @@ export interface paths {
         };
         /**
          * Get an organisation
-         * @description An organisation of the tenant named by `X-Tenant-Id`, whatever its status: type, names, country, city, founded year, website, the body's own email and phone, description, primary venue (id, name, slug), status and `version` (also the `ETag`).
+         * @description An organisation of the tenant named by `X-Tenant-Id`, whatever its status: type, names, country, city, founded year, website, the body's own email and phone, description, primary venue (id, name, slug), the current `parent` (id, display name, slug, status; null without one), the current `children` (the same summary, archived ones left out, sorted by display name ignoring case, accents and punctuation, as the directory; `GET /organisations?parentId=` pages them), status and `version` (also the `ETag`; it doesn't move when a child leaves).
          */
         get: operations["GetOrganisation"];
         /**
@@ -3348,7 +3348,7 @@ export interface components {
         OrganisationParentLinkResponse: {
             /** Format: uuid */
             id: string;
-            parent: components["schemas"]["OrganisationParentSummary"];
+            parent: components["schemas"]["OrganisationSummaryResponse"];
             /** Format: date */
             validFrom: string;
             /** Format: date */
@@ -3360,19 +3360,13 @@ export interface components {
             /** Format: date-time */
             setAt: string;
         };
-        /** @description An organisation another points at (S07 D16: id, display name, slug), with its status now. */
-        OrganisationParentSummary: {
-            /** Format: uuid */
-            id: string;
-            displayName: string;
-            slug: string;
-            status: components["schemas"]["OrganisationStatus"];
-        };
         /**
          * @description An organisation as the admin reads it (S07 D19). The legal name, the body's own email and phone and the version are
          *     `INTERNAL`; every other field is one the public reads may show (D16). The primary venue is a summary of the
-         *     tenant's venue (null without one). Parent, children, teams, aliases, identifiers and the logo join with S07-T2c,
-         *     T2d, T3 and T4.
+         *     tenant's venue (null without one). `parent` is the current parent in any status (null without one); `children`
+         *     are the organisations whose current parent this is, archived ones left out (owner, S07-T2c-2 plan), in the directory's
+         *     order (the sort key); the directory's `parentId` pages them with filters. The version doesn't move when a child leaves (S07-T2c-1),
+         *     so it is no freshness marker for `children`. Teams, aliases, identifiers and the logo join with S07-T2d, T3 and T4.
          */
         OrganisationResponse: {
             /** Format: uuid */
@@ -3391,6 +3385,8 @@ export interface components {
             phone: null | string;
             description: null | string;
             primaryVenue: null | components["schemas"]["OrganisationVenueResponse"];
+            parent: null | components["schemas"]["OrganisationSummaryResponse"];
+            children: components["schemas"]["OrganisationSummaryResponse"][];
             status: components["schemas"]["OrganisationStatus"];
             /** Format: uint32 */
             version: number;
@@ -3412,6 +3408,17 @@ export interface components {
             actorId: string;
             /** Format: date-time */
             occurredAt: string;
+        };
+        /**
+         * @description An organisation another points at, as its parent or as one of its children (S07 D16: id, display name, slug), with its
+         *     status now.
+         */
+        OrganisationSummaryResponse: {
+            /** Format: uuid */
+            id: string;
+            displayName: string;
+            slug: string;
+            status: components["schemas"]["OrganisationStatus"];
         };
         /**
          * @description What kind of body an organisation is (S07 D4). Generic codes: none names a sport (AR-11).
@@ -9070,6 +9077,7 @@ export interface operations {
                 q?: string;
                 type?: "CLUB" | "SCHOOL" | "UNIVERSITY" | "ACADEMY" | "FEDERATION" | "ASSOCIATION" | "COMPANY" | "COMMUNITY" | "GOVERNMENT" | "OTHER";
                 status?: "ACTIVE" | "INACTIVE" | "SUSPENDED" | "DISSOLVED" | "ARCHIVED";
+                parentId?: string;
                 limit?: number;
                 cursor?: string;
             };

@@ -11,12 +11,16 @@ public sealed record QueryValuesMetadata(string Name, IReadOnlyList<string> Valu
 /// </summary>
 public sealed record QueryIntegerMetadata(string Name, long Minimum, long? Maximum = null, long? Default = null);
 
+/// <summary>A query parameter that takes a UUID, for OpenAPI: <see cref="QueryValues.DocumentsQueryUuid"/>.</summary>
+public sealed record QueryUuidMetadata(string Name);
+
 /// <summary>
 /// Query parameters are bound as text, so a bad value is <c>VALIDATION_INVALID_QUERY</c> from the request's validator
 /// rather than the framework's 400; OpenAPI would then show a free string. An endpoint declares
 /// <c>.DocumentsQueryValues(name, values)</c> so the document shows the parameter's <c>enum</c> (S03 follow-up, S04 D14), or
 /// <c>.DocumentsQueryInteger(name, minimum, maximum, @default)</c> for an integer with its bounds and the value used
-/// without it (a list's <c>limit</c>: 1, 100, 25).
+/// without it (a list's <c>limit</c>: 1, 100, 25), or <c>.DocumentsQueryUuid(name)</c> for an ID (a string in the
+/// <c>uuid</c> format).
 /// </summary>
 public static class QueryValues
 {
@@ -44,5 +48,12 @@ public static class QueryValues
         }
 
         return builder.WithMetadata(new QueryIntegerMetadata(name, minimum, maximum, @default));
+    }
+
+    public static RouteHandlerBuilder DocumentsQueryUuid(this RouteHandlerBuilder builder, string name)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        return builder.WithMetadata(new QueryUuidMetadata(name));
     }
 }

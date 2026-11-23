@@ -10,8 +10,10 @@ namespace SportsPlatform.Modules.Registry.Features.Organisations;
 /// <summary>
 /// An organisation as the admin reads it (S07 D19). The legal name, the body's own email and phone and the version are
 /// <c>INTERNAL</c>; every other field is one the public reads may show (D16). The primary venue is a summary of the
-/// tenant's venue (null without one). Parent, children, teams, aliases, identifiers and the logo join with S07-T2c,
-/// T2d, T3 and T4.
+/// tenant's venue (null without one). <c>parent</c> is the current parent in any status (null without one); <c>children</c>
+/// are the organisations whose current parent this is, archived ones left out (owner, S07-T2c-2 plan), in the directory's
+/// order (the sort key); the directory's <c>parentId</c> pages them with filters. The version doesn't move when a child leaves (S07-T2c-1),
+/// so it is no freshness marker for <c>children</c>. Teams, aliases, identifiers and the logo join with S07-T2d, T3 and T4.
 /// </summary>
 public sealed record OrganisationResponse(
     [property: PersonalData(PersonalDataClass.Public)] Guid Id,
@@ -28,6 +30,8 @@ public sealed record OrganisationResponse(
     [property: PersonalData(PersonalDataClass.Internal)] string? Phone,
     [property: PersonalData(PersonalDataClass.Public)] string? Description,
     [property: PersonalData(PersonalDataClass.Public)] OrganisationVenueResponse? PrimaryVenue,
+    [property: PersonalData(PersonalDataClass.Public)] OrganisationSummaryResponse? Parent,
+    [property: PersonalData(PersonalDataClass.Public)] IReadOnlyList<OrganisationSummaryResponse> Children,
     [property: PersonalData(PersonalDataClass.Public)] OrganisationStatus Status,
     [property: PersonalData(PersonalDataClass.Internal)] uint Version)
 {
@@ -43,6 +47,16 @@ public sealed record OrganisationVenueResponse(
     [property: PersonalData(PersonalDataClass.Public)] Guid Id,
     [property: PersonalData(PersonalDataClass.Public)] string Name,
     [property: PersonalData(PersonalDataClass.Public)] string Slug);
+
+/// <summary>
+/// An organisation another points at, as its parent or as one of its children (S07 D16: id, display name, slug), with its
+/// status now.
+/// </summary>
+public sealed record OrganisationSummaryResponse(
+    [property: PersonalData(PersonalDataClass.Public)] Guid Id,
+    [property: PersonalData(PersonalDataClass.Public)] string DisplayName,
+    [property: PersonalData(PersonalDataClass.Public)] string Slug,
+    [property: PersonalData(PersonalDataClass.Public)] OrganisationStatus Status);
 
 /// <summary>
 /// An organisation that looks like the one checked (S07 D13): enough to recognise it and open it. <c>status</c> marks an

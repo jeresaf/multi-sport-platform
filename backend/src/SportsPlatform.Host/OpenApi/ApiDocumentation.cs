@@ -40,6 +40,7 @@ public static class ApiDocumentation
             options.AddOperationTransformer(DescribeRowVersionHeaders);
             options.AddOperationTransformer(DescribeQueryValues);
             options.AddOperationTransformer(DescribeQueryIntegers);
+            options.AddOperationTransformer(DescribeQueryUuids);
         });
         return services;
     }
@@ -333,6 +334,21 @@ public static class ApiDocumentation
                 Maximum = declared.Maximum?.ToString(CultureInfo.InvariantCulture),
                 Default = declared.Default is { } value ? JsonValue.Create(value) : null,
             };
+        }
+
+        return Task.CompletedTask;
+    }
+
+    // QueryValues: a query parameter bound as text that takes a UUID.
+    private static Task DescribeQueryUuids(
+        OpenApiOperation operation, OpenApiOperationTransformerContext context, CancellationToken cancellationToken)
+    {
+        foreach (var declared in context.Description.ActionDescriptor.EndpointMetadata.OfType<QueryUuidMetadata>())
+        {
+            var parameter = operation.Parameters?.OfType<OpenApiParameter>()
+                .SingleOrDefault(p => p.In == ParameterLocation.Query && p.Name == declared.Name)
+                ?? throw new InvalidOperationException($"{context.Description.RelativePath} has no query parameter {declared.Name}.");
+            parameter.Schema = new OpenApiSchema { Type = JsonSchemaType.String, Format = "uuid" };
         }
 
         return Task.CompletedTask;
