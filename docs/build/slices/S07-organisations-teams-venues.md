@@ -505,3 +505,14 @@ The rest of S06's tech debt has its own trigger in PROGRESS.md ("From S06").
   checked only when set or changed (D6's rule), untracked and before the lock (as venues' references); a temporarily
   unavailable venue is accepted. D4's `organisation_type` is the column `type` (as venues' `type` for D3's
   `venue_type`). `logo_asset_id` exists but stays null until T4.
+- **T2b-1 (organisations: update, lifecycle, status history):** T2b is two PRs (owner, plan 2026-11-23): T2b-1 update,
+  lifecycle and the status history; T2b-2 the directory. `PUT /organisations/{id}` (`organisation.update`) replaces the
+  fields in every status, `ARCHIVED` and `DISSOLVED` included (a correction, as venues'); `slug` left out keeps the
+  organisation's, `country` left out is the tenant's. The warning runs again only when a name key (display, legal or
+  short), the type or the city key changes, the organisation itself left out; such a change, or a slug change, holds
+  `registry.organisations:<tenantId>`. The primary venue is checked only when it changes (D6): a kept venue closed since
+  stays. The organisation is loaded before the details' rules, so the venue check compares with the saved one.
+  `POST /organisations/{id}/status` (`organisation.status.change`) with `{status, reason}`;
+  `ORGANISATION_STATUS_INVALID` (409); `OrganisationTransitions` is D12's table; unarchive reads the status before
+  archiving from the latest move to `ARCHIVED`, so a dissolved organisation stays dissolved (Q55). `GET
+  /organisations/{id}/status-changes` (`organisation.read`), newest first. No migration (T2a's table has the columns).

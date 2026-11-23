@@ -204,7 +204,9 @@ variants and status, the scope's tenant only, no action checked.
 under `/api/admin/v1/organisations`: the duplicate check, create (the lighter warning under
 `registry.organisations:<tenantId>`, data-conventions.md) and the record (`ETag`, the primary venue as id, name and
 slug). A primary venue is the tenant's own (composite foreign key). `ORGANISATION_CONCURRENCY_CONFLICT` joins the
-per-root conflicts.
+per-root conflicts. S07-T2b-1: the update (`PUT`, a correction in every status; the warning again when a name, the
+type or the city changes, under the same lock), the lifecycle (`POST …/status`, state-machines.md) and the status
+history (`GET …/status-changes`).
 **Absorbs:** pack specs 08–14. Owner's systems: **Player Management System**, the identity half of
 **Team Management System**. Owner's rule "duplicate players within the same tenant should be avoided at all
 costs" is implemented here (docs/build/slices/S06-people-registry.md).
