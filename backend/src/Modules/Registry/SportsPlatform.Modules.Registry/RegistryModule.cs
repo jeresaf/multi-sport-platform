@@ -4,12 +4,15 @@ using Microsoft.Extensions.DependencyInjection;
 using SportsPlatform.BuildingBlocks.Modules;
 using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Persistence.Seeding;
+using SportsPlatform.Modules.Registry.Contracts.Organisations;
 using SportsPlatform.Modules.Registry.Contracts.People;
 using SportsPlatform.Modules.Registry.Contracts.Venues;
 using SportsPlatform.Modules.Registry.Features.Organisations;
+using SportsPlatform.Modules.Registry.Features.Organisations.Aliases;
 using SportsPlatform.Modules.Registry.Features.Organisations.ChangeOrganisationStatus;
 using SportsPlatform.Modules.Registry.Features.Organisations.CheckOrganisationDuplicates;
 using SportsPlatform.Modules.Registry.Features.Organisations.CreateOrganisation;
+using SportsPlatform.Modules.Registry.Features.Organisations.ExternalIdentifiers;
 using SportsPlatform.Modules.Registry.Features.Organisations.GetOrganisation;
 using SportsPlatform.Modules.Registry.Features.Organisations.ListOrganisationParentLinks;
 using SportsPlatform.Modules.Registry.Features.Organisations.ListOrganisations;
@@ -56,7 +59,8 @@ namespace SportsPlatform.Modules.Registry;
 /// S06-T5b: photos. S06-T6a: guardian consents and their evidence. S06-T7d: the demo people. S07-T1a: venues (create
 /// with the duplicate warning, the read). S07-T1b-1: the venue's update, lifecycle and status history.
 /// S07-T1b-2: the venue directory. S07-T1c: venue aliases and external identifiers, <see cref="IVenueDirectory"/>.
-/// S07-T2a: organisations (create with the duplicate warning, the read).
+/// S07-T2a: organisations (create with the duplicate warning, the read). S07-T2b and T2c: their update, lifecycle,
+/// directory and parent links. S07-T2d: organisation aliases and external identifiers, <see cref="IOrganisationDirectory"/>.
 /// </summary>
 public sealed class RegistryModule : IModule
 {
@@ -117,6 +121,11 @@ public sealed class RegistryModule : IModule
         services.AddScoped<ListOrganisationStatusChangesHandler>();
         services.AddScoped<SetOrganisationParentHandler>();
         services.AddScoped<ListOrganisationParentLinksHandler>();
+        services.AddScoped<AddOrganisationAliasHandler>();
+        services.AddScoped<RemoveOrganisationAliasHandler>();
+        services.AddScoped<AddOrganisationExternalIdentifierHandler>();
+        services.AddScoped<EndOrganisationExternalIdentifierHandler>();
+        services.AddScoped<IOrganisationDirectory, OrganisationDirectory>();
         services.AddScoped<VenueDetailsRules>();
         services.AddScoped<VenueDuplicateFinder>();
         services.AddScoped<CheckVenueDuplicatesHandler>();
@@ -154,6 +163,10 @@ public sealed class RegistryModule : IModule
         services.AddScoped<IValidator<UpdateOrganisationRequest>, UpdateOrganisationRequestValidator>();
         services.AddSingleton<IValidator<ChangeOrganisationStatusRequest>, ChangeOrganisationStatusRequestValidator>();
         services.AddSingleton<IValidator<SetOrganisationParentRequest>, SetOrganisationParentRequestValidator>();
+        services.AddSingleton<IValidator<AddOrganisationAliasRequest>, AddOrganisationAliasRequestValidator>();
+        services.AddSingleton<IValidator<RemoveOrganisationAliasRequest>, RemoveOrganisationAliasRequestValidator>();
+        services.AddSingleton<IValidator<AddOrganisationExternalIdentifierRequest>, AddOrganisationExternalIdentifierRequestValidator>();
+        services.AddSingleton<IValidator<EndOrganisationExternalIdentifierRequest>, EndOrganisationExternalIdentifierRequestValidator>();
         services.AddSingleton<IValidator<CheckVenueDuplicatesRequest>, CheckVenueDuplicatesRequestValidator>();
         services.AddScoped<IValidator<CreateVenueRequest>, CreateVenueRequestValidator>();
         services.AddScoped<IValidator<UpdateVenueRequest>, UpdateVenueRequestValidator>();
@@ -200,6 +213,8 @@ public sealed class RegistryModule : IModule
         ListOrganisationStatusChangesEndpoint.Map(organisations);
         SetOrganisationParentEndpoint.Map(organisations);
         ListOrganisationParentLinksEndpoint.Map(organisations);
+        OrganisationAliasEndpoints.Map(organisations);
+        OrganisationExternalIdentifierEndpoints.Map(organisations);
 
         var venues = VenuesEndpoints.Group(groups.Admin);
         CheckVenueDuplicatesEndpoint.Map(venues);

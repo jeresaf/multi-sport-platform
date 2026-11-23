@@ -195,10 +195,11 @@ public static class RegistryErrors
         ErrorKind.Unprocessable);
 
     public static readonly Error OrganisationArchived = new(
-        "ORGANISATION_ARCHIVED", "The organisation is archived: it takes no new parent. Unarchive it first.", ErrorKind.Conflict);
+        "ORGANISATION_ARCHIVED",
+        "The organisation is archived: it takes no new parent, alias or external identifier. Unarchive it first.", ErrorKind.Conflict);
 
     public static readonly Error OrganisationDissolved = new(
-        "ORGANISATION_DISSOLVED", "The organisation is dissolved: it takes no new parent.", ErrorKind.Conflict);
+        "ORGANISATION_DISSOLVED", "The organisation is dissolved: it takes no new parent, alias or external identifier.", ErrorKind.Conflict);
 
     public static readonly Error OrganisationParentUnavailable = new(
         "ORGANISATION_PARENT_UNAVAILABLE",
@@ -208,5 +209,32 @@ public static class RegistryErrors
     public static readonly Error OrganisationParentCycle = new(
         "ORGANISATION_PARENT_CYCLE",
         "The parent can't be the organisation itself or one of the organisations below it: the links would close a cycle.",
+        ErrorKind.Unprocessable);
+
+    public static readonly Error OrganisationAliasExists = new(
+        "ORGANISATION_ALIAS_EXISTS",
+        "The organisation is already known by this name: its display, legal or short name or a current alias gives the same name key.",
+        ErrorKind.Conflict);
+
+    public static readonly Error OrganisationAliasNotFound = new(
+        "ORGANISATION_ALIAS_NOT_FOUND", "The organisation has no such alias.", ErrorKind.NotFound);
+
+    public static readonly Error OrganisationAliasRemoved = new(
+        "ORGANISATION_ALIAS_REMOVED", "The alias is already removed.", ErrorKind.Conflict);
+
+    public static readonly Error OrganisationExternalIdExists = new(
+        "ORGANISATION_EXTERNAL_ID_EXISTS",
+        "An organisation already has this external identifier (the same authority and value), or had it: a value is never reused.",
+        ErrorKind.Conflict);
+
+    public static readonly Error OrganisationExternalIdNotFound = new(
+        "ORGANISATION_EXTERNAL_ID_NOT_FOUND", "The organisation has no such external identifier.", ErrorKind.NotFound);
+
+    public static readonly Error OrganisationExternalIdEnded = new(
+        "ORGANISATION_EXTERNAL_ID_ENDED", "The external identifier has already ended.", ErrorKind.Conflict);
+
+    public static readonly Error OrganisationExternalIdValidityInvalid = new(
+        "ORGANISATION_EXTERNAL_ID_VALIDITY_INVALID",
+        "An identifier's end date can't be before its start date or after today (the tenant's date).",
         ErrorKind.Unprocessable);
 }

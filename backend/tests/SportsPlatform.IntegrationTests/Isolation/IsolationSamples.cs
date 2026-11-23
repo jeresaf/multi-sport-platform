@@ -86,6 +86,7 @@ public static class IsolationSamples
         new OrganisationSample(),
         new OrganisationStatusChangeSample(),
         new OrganisationParentLinkSample(),
+        new OrganisationAliasSample(),
         new MediaAssetSample(),
     ];
 
@@ -654,6 +655,24 @@ public static class IsolationSamples
                         Guid.CreateVersion7(), principalId, new DateOnly(2026, 10, 1), "Affiliated this season", SystemActor.Instance, RegistrySamples.Now)
                     : new OrganisationParentLink(
                         principalId, Guid.CreateVersion7(), new DateOnly(2026, 10, 1), "Affiliated this season", SystemActor.Instance, RegistrySamples.Now);
+    }
+
+    /// <summary>Registry: an alias of an organisation; it points at its organisation.</summary>
+    private sealed class OrganisationAliasSample : IIsolationSample
+    {
+        public Type EntityType => typeof(OrganisationAlias);
+
+        public Entity Add(DbContext context)
+        {
+            var organisation = RegistrySamples.NewOrganisation("Kisaasi Kestrels SC");
+            context.Add(organisation);
+            return organisation.AddAlias("Kisaasi Kestrels Sports Club", AliasKind.FormerName).Value;
+        }
+
+        public Entity? Referencing(IForeignKey foreignKey, Guid principalId) =>
+            foreignKey.PrincipalEntityType.ClrType == typeof(Organisation)
+                ? new OrganisationAlias(principalId, "The Kestrels", AliasKind.Nickname)
+                : null;
     }
 
     private static class RegistrySamples

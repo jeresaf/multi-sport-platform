@@ -42,10 +42,17 @@ the message is the default title and may change.
 | `MEDIA_NOT_FOUND` | 404 | The file doesn't exist, was removed, or its link has expired. | Platform |
 | `MEDIA_TOO_LARGE` | 413 | The file is too large. Photos: up to 5 MB. Documents: up to 10 MB. | Platform |
 | `MEDIA_TYPE_NOT_ALLOWED` | 422 | The file's type isn't accepted here. Photos: JPEG, PNG or WebP. Documents: PDF, JPEG or PNG. | Platform |
-| `ORGANISATION_ARCHIVED` | 409 | The organisation is archived: it takes no new parent. Unarchive it first. | Registry |
+| `ORGANISATION_ALIAS_EXISTS` | 409 | The organisation is already known by this name: its display, legal or short name or a current alias gives the same name key. | Registry |
+| `ORGANISATION_ALIAS_NOT_FOUND` | 404 | The organisation has no such alias. | Registry |
+| `ORGANISATION_ALIAS_REMOVED` | 409 | The alias is already removed. | Registry |
+| `ORGANISATION_ARCHIVED` | 409 | The organisation is archived: it takes no new parent, alias or external identifier. Unarchive it first. | Registry |
 | `ORGANISATION_CONCURRENCY_CONFLICT` | 409 | The organisation was changed by someone else. Reload and try again. | Registry |
-| `ORGANISATION_DISSOLVED` | 409 | The organisation is dissolved: it takes no new parent. | Registry |
+| `ORGANISATION_DISSOLVED` | 409 | The organisation is dissolved: it takes no new parent, alias or external identifier. | Registry |
 | `ORGANISATION_DUPLICATE_REVIEW_REQUIRED` | 422 | Organisations already in the registry look like this one: open one of them, or send duplicatesReviewed to add it anyway. | Registry |
+| `ORGANISATION_EXTERNAL_ID_ENDED` | 409 | The external identifier has already ended. | Registry |
+| `ORGANISATION_EXTERNAL_ID_EXISTS` | 409 | An organisation already has this external identifier (the same authority and value), or had it: a value is never reused. | Registry |
+| `ORGANISATION_EXTERNAL_ID_NOT_FOUND` | 404 | The organisation has no such external identifier. | Registry |
+| `ORGANISATION_EXTERNAL_ID_VALIDITY_INVALID` | 422 | An identifier's end date can't be before its start date or after today (the tenant's date). | Registry |
 | `ORGANISATION_NAME_INVALID` | 422 | An organisation's display name needs at least one letter or digit. | Registry |
 | `ORGANISATION_NOT_FOUND` | 404 | The organisation was not found. | Registry |
 | `ORGANISATION_PARENT_CYCLE` | 422 | The parent can't be the organisation itself or one of the organisations below it: the links would close a cycle. | Registry |

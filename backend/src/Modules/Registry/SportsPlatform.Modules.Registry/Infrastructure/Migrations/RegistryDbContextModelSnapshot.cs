@@ -383,6 +383,93 @@ namespace SportsPlatform.Modules.Registry.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("SportsPlatform.Modules.Registry.Domain.Organisations.OrganisationAlias", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("kind")
+                        .HasAnnotation("pii", "INTERNAL");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("name")
+                        .HasAnnotation("pii", "INTERNAL");
+
+                    b.Property<string>("NameKey")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("name_key")
+                        .HasAnnotation("pii", "INTERNAL");
+
+                    b.Property<Guid>("OrganisationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organisation_id");
+
+                    b.Property<string>("RemoveReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("remove_reason")
+                        .HasAnnotation("pii", "INTERNAL");
+
+                    b.Property<DateTimeOffset?>("RemovedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("removed_at");
+
+                    b.Property<Guid?>("RemovedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("removed_by");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_organisation_aliases");
+
+                    b.HasIndex("NameKey")
+                        .HasDatabaseName("ix_organisation_aliases_name_key_trgm");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("NameKey"), "gin");
+                    NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex("NameKey"), new[] { "gin_trgm_ops" });
+
+                    b.HasIndex("TenantId", "OrganisationId")
+                        .HasDatabaseName("ix_organisation_aliases_tenant_id_organisation_id");
+
+                    b.ToTable("organisation_aliases", "registry", t =>
+                        {
+                            t.HasCheckConstraint("ck_organisation_aliases_kind", "kind IN ('FORMER_NAME', 'NICKNAME', 'SPELLING')");
+
+                            t.HasCheckConstraint("ck_organisation_aliases_name_key", "name_key <> ''");
+
+                            t.HasCheckConstraint("ck_organisation_aliases_removed", "(removed_at IS NULL AND removed_by IS NULL AND remove_reason IS NULL) OR (removed_at IS NOT NULL AND removed_by IS NOT NULL AND remove_reason IS NOT NULL)");
+                        });
+                });
+
             modelBuilder.Entity("SportsPlatform.Modules.Registry.Domain.Organisations.OrganisationParentLink", b =>
                 {
                     b.Property<Guid>("Id")
@@ -834,7 +921,7 @@ namespace SportsPlatform.Modules.Registry.Infrastructure.Migrations
                         {
                             t.HasCheckConstraint("ck_external_identifiers_authority", "authority ~ '^[A-Z][A-Z0-9_]{1,39}$'");
 
-                            t.HasCheckConstraint("ck_external_identifiers_entity_type", "entity_type IN ('PERSON', 'VENUE')");
+                            t.HasCheckConstraint("ck_external_identifiers_entity_type", "entity_type IN ('PERSON', 'VENUE', 'ORGANISATION')");
 
                             t.HasCheckConstraint("ck_external_identifiers_validity", "valid_from IS NULL OR valid_to IS NULL OR valid_to >= valid_from");
 
@@ -1985,6 +2072,17 @@ namespace SportsPlatform.Modules.Registry.Infrastructure.Migrations
                         .HasConstraintName("fk_organisations_venue_tenant_id_primary_venue_id");
                 });
 
+            modelBuilder.Entity("SportsPlatform.Modules.Registry.Domain.Organisations.OrganisationAlias", b =>
+                {
+                    b.HasOne("SportsPlatform.Modules.Registry.Domain.Organisations.Organisation", null)
+                        .WithMany("Aliases")
+                        .HasForeignKey("TenantId", "OrganisationId")
+                        .HasPrincipalKey("TenantId", "Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_organisation_aliases_organisations_tenant_id_organisation_id");
+                });
+
             modelBuilder.Entity("SportsPlatform.Modules.Registry.Domain.Organisations.OrganisationParentLink", b =>
                 {
                     b.HasOne("SportsPlatform.Modules.Registry.Domain.Organisations.Organisation", null)
@@ -2164,6 +2262,8 @@ namespace SportsPlatform.Modules.Registry.Infrastructure.Migrations
 
             modelBuilder.Entity("SportsPlatform.Modules.Registry.Domain.Organisations.Organisation", b =>
                 {
+                    b.Navigation("Aliases");
+
                     b.Navigation("ParentLinks");
 
                     b.Navigation("StatusHistory");

@@ -170,7 +170,7 @@ internal sealed class PersonStatusChangeConfiguration : IEntityTypeConfiguration
 /// <summary>
 /// <c>registry.external_identifiers</c> (S06 D10; data-conventions.md, Identifiers): tenant-owned (RLS). A value is
 /// unique per tenant, authority and entity type for ever. No foreign key to the entity: one table serves every registry
-/// entity type (people in S06, venues from S07-T1c).
+/// entity type (people in S06, venues from S07-T1c, organisations from S07-T2d).
 /// </summary>
 internal sealed class ExternalIdentifierConfiguration : IEntityTypeConfiguration<ExternalIdentifier>
 {

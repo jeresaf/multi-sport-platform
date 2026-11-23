@@ -349,6 +349,38 @@
       "since": "S06"
     },
     {
+      "code": "organisation.alias.add",
+      "module": "Registry",
+      "description": "Add another name an organisation is known by (former name, nickname, spelling), so the directory and the duplicate warning find it under it too; not for a dissolved or archived organisation.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S07"
+    },
+    {
+      "code": "organisation.alias.remove",
+      "module": "Registry",
+      "description": "Remove an organisation's alias, with a reason; the alias is kept with who removed it, when and why.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED_WITH_REASON",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S07"
+    },
+    {
       "code": "organisation.create",
       "module": "Registry",
       "description": "Add an organisation (a club, school, federation…) to the registry; possible duplicates are shown first, and creating it anyway is recorded with the organisations shown.",
@@ -373,6 +405,38 @@
         "TENANT"
       ],
       "audit": "NONE",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S07"
+    },
+    {
+      "code": "organisation.external_id.add",
+      "module": "Registry",
+      "description": "Add an identifier another authority gave an organisation (e.g. a registration number); a value any organisation has or had is refused; not for a dissolved or archived organisation.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S07"
+    },
+    {
+      "code": "organisation.external_id.end",
+      "module": "Registry",
+      "description": "End an organisation's external identifier; it is kept, and its value is never given to another organisation.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED",
       "entitlement": null,
       "idempotent": false,
       "allowsAnonymous": false,

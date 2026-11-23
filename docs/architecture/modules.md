@@ -142,7 +142,8 @@ registers.
 - **Teams:** persistent playing identities (name, short name, slug, logo, badge, motto, colours, sport variant,
   category e.g. Senior Men/U19 Women, parent organisation, home venue, aliases).
 - **Venues:** location, time zone, capacity, surfaces, supported sports.
-**Provides:** summaries for other modules (`IPeopleDirectory`, `ITeamDirectory`, `IVenueDirectory`), duplicate
+**Provides:** summaries for other modules (`IPeopleDirectory`, `IOrganisationDirectory`, `ITeamDirectory`,
+`IVenueDirectory`), duplicate
 check, approved commands for imports (`IRegistryCommands`), external-ID lookup.
 **Does not own:** who plays for whom (Team Operations), who is entered in a competition (Competitions).
 **As built (S06-T1b):** the people reads under `/api/admin/v1/people` (the directory, a person's record, the private
@@ -209,6 +210,10 @@ type or the city changes, under the same lock), the lifecycle (`POST …/status`
 history (`GET …/status-changes`). S07-T2c-1: the parent (`POST …/parent`, `registry.organisation_parent_links` with
 dated links; the cycle check under the same lock) and its history (`GET …/parent-links`). S07-T2c-2: the record shows
 the current `parent` and `children` (archived children left out); the directory takes `parentId` (direct children).
+S07-T2d: `registry.organisation_aliases` and `ORGANISATION` external identifiers (`…/{id}/aliases`,
+`…/{id}/external-identifiers`; the record shows both), the directory's `q` by current alias and an identifier's exact
+value, current aliases in the duplicate warning on both sides, and `IOrganisationDirectory.GetSummariesAsync(ids)` in
+Contracts: id, display name, short name, type, status and logo asset ID, the scope's tenant only, no action checked.
 **Absorbs:** pack specs 08–14. Owner's systems: **Player Management System**, the identity half of
 **Team Management System**. Owner's rule "duplicate players within the same tenant should be avoided at all
 costs" is implemented here (docs/build/slices/S06-people-registry.md).

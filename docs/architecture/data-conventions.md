@@ -155,7 +155,7 @@ As built for people (S06-T1a):
   with a GIN `gin_trgm_ops` index on both name keys; queries use `EF.Functions.TrigramsSimilarity`. These two
   indexes don't start with `tenant_id` (GIN can't without `btree_gin`); RLS and the query filter still apply.
 - **External identifiers:** `registry.external_identifiers` has no foreign key to its entity (one table for every
-  registry entity type; `entity_type` is `PERSON` or `VENUE` (S07-T1c), with `ORGANISATION` and `TEAM` to come) and
+  registry entity type; `entity_type` is `PERSON`, `VENUE` (S07-T1c) or `ORGANISATION` (S07-T2d), with `TEAM` to come) and
   a unique index on `(tenant_id, authority,
   entity_type, value)` that includes ended rows. As built (S06-T3b): `person.external_id.add` refuses a value with the
   same authority that any person has or had, this one included (`PERSON_EXTERNAL_ID_EXISTS`); one person may hold two
@@ -166,6 +166,10 @@ As built for people (S06-T1a):
   value is unique within its authority and entity type, so a person and a venue may share one; the national-document
   authorities are a person rule only; an archived or closed venue takes no new alias or identifier. A venue's aliases
   are searched by the directory, not compared by the duplicate warning (owner, S07-T1c plan).
+  Organisations (S07-T2d) follow them too under `organisation.alias.*` and `organisation.external_id.*` with
+  `ORGANISATION_…` codes; a dissolved or archived organisation takes no new alias or identifier; an alias whose key is
+  already the organisation's display, legal or short name key or a current alias's is `ORGANISATION_ALIAS_EXISTS`.
+  Unlike venues', their current aliases feed the duplicate warning (D13).
 
 As built for people (S06-T2a), the duplicate check (`DuplicateMatcher`, Registry Domain; `DuplicateFinder`):
 
@@ -228,7 +232,9 @@ the other; `POSSIBLE`: display name keys at least 0.7 similar (display names onl
 `SAME_NAME_KEY` or `NAME_SIMILARITY`, then `SAME_TYPE`, `SAME_CITY`. Create, and an update that changes a name key
 (display, legal or short), the type or the city key (the organisation itself left out), run it under
 `registry.organisations:<tenantId>` and answer `422 ORGANISATION_DUPLICATE_REVIEW_REQUIRED` with `candidates` until
-`duplicatesReviewed`, as venues. Current aliases join the names compared with S07-T2d (D13).
+`duplicatesReviewed`, as venues. Current aliases count as name keys on both sides (S07-T2d, owner, plan
+2026-11-23): an organisation's aliases meet the other's names and aliases, and an update brings the organisation's
+own aliases (a create and the live check have none). Adding an alias runs no warning; removed aliases are no evidence.
 
 Organisation parents (S07-T2c): `registry.organisation_parent_links` (child, parent, `valid_from`, `valid_to` as the
 tenant's dates, reason, who set it and when). At most one link of a child is open (`valid_to` null; partial unique

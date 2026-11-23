@@ -75,7 +75,8 @@ public static class IdentityRoles
     private static readonly string[] _organisationChanges =
         [
             "organisation.duplicate_check", "organisation.create", "organisation.update", "organisation.status.change",
-            "organisation.parent.set",
+            "organisation.parent.set", "organisation.alias.add", "organisation.alias.remove", "organisation.external_id.add",
+            "organisation.external_id.end",
         ];
 
     // Venues (S07 D20): read by every role that reads people; changed by those who change people. The duplicate check

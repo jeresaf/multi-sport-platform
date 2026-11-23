@@ -20,8 +20,8 @@ public static class OrganisationDuplicateThresholds
 public enum OrganisationDuplicateEvidenceCode
 {
     /// <summary>
-    /// One of the names (display, legal, short) has the same key as one of the other's: the same words in any order,
-    /// case, accents and punctuation aside.
+    /// One of the names (display, legal, short, or a current alias) has the same key as one of the other's: the same
+    /// words in any order, case, accents and punctuation aside.
     /// </summary>
     SameNameKey,
 
@@ -40,7 +40,7 @@ public sealed record OrganisationDuplicateEvidence(
 /// <summary>
 /// What the warning compares, normalised: the display name's key, the legal and short names' keys (null when absent),
 /// the type and the city key (null when there is none). <paramref name="OrganisationId"/> is the organisation being
-/// changed, if any.
+/// changed, if any: its current aliases are compared too (S07 D13, "either side").
 /// </summary>
 public sealed record OrganisationDuplicateInput(
     string DisplayNameKey,
@@ -69,9 +69,10 @@ public sealed record OrganisationDuplicateCandidate(
 /// <summary>
 /// Finds the organisations of the scope's tenant (query filter and RLS) that look like an
 /// <see cref="OrganisationDuplicateInput"/> (S07 D13), archived ones included. Only organisations of the same type or
-/// the same city are compared (a missing city never matches): <c>LIKELY</c> when a name key (display, legal or short)
-/// of one equals a name key of the other; <c>POSSIBLE</c> when the display names are at least 0.7 similar (owner, plan
-/// 2026-11-22: display names only). Strongest first, then the most similar display name, then by name; at most
+/// the same city are compared (a missing city never matches): <c>LIKELY</c> when a key of one (display, legal or short
+/// name, or a current alias) equals a key of the other (owner, S07-T2d plan: aliases on both sides; the organisation
+/// being changed brings its own aliases, a new one has none); <c>POSSIBLE</c> when the display names are at least 0.7
+/// similar (owner, plan 2026-11-22: display names only). Strongest first, then the most similar display name, then by name; at most
 /// <see cref="OrganisationDuplicateThresholds.MaxCandidates"/>.
 /// </summary>
 public sealed class OrganisationDuplicateFinder(RegistryDbContext context)
@@ -86,38 +87,46 @@ public sealed class OrganisationDuplicateFinder(RegistryDbContext context)
         ArgumentNullException.ThrowIfNull(input);
 
         var key = input.DisplayNameKey;
-        var keys = input.NameKeys.ToList();
         var type = input.Type;
         var cityKey = input.CityKey;
         var self = input.OrganisationId;
+
+        // The organisation being changed is known by its current aliases too.
+        var ownAliasKeys = self is null
+            ? []
+            : await context.Set<OrganisationAlias>().AsNoTracking()
+                .Where(a => a.OrganisationId == self && a.RemovedAt == null)
+                .Select(a => a.NameKey)
+                .ToListAsync(cancellationToken);
+        var keys = input.NameKeys.Concat(ownAliasKeys).Distinct(StringComparer.Ordinal).ToList();
 
         // The type and the city narrow the rows first ((tenant_id, type) and (tenant_id, city_key) are indexed), so the
         // similarity is measured only within them.
         var rows = await context.Set<Organisation>().AsNoTracking()
             .Where(o => self == null || o.Id != self)
             .Where(o => o.Type == type || (cityKey != null && o.CityKey == cityKey))
-            .Where(o => keys.Contains(o.DisplayNameKey)
-                || (o.LegalNameKey != null && keys.Contains(o.LegalNameKey))
-                || (o.ShortNameKey != null && keys.Contains(o.ShortNameKey))
-                || EF.Functions.TrigramsSimilarity(o.DisplayNameKey, key) >= OrganisationDuplicateThresholds.Similar - 0.0001)
-            .OrderByDescending(o => keys.Contains(o.DisplayNameKey)
-                || (o.LegalNameKey != null && keys.Contains(o.LegalNameKey))
-                || (o.ShortNameKey != null && keys.Contains(o.ShortNameKey)))
-            .ThenByDescending(o => EF.Functions.TrigramsSimilarity(o.DisplayNameKey, key))
-            .ThenBy(o => o.Id)
-            .Take(MaxRows)
-            .Select(o => new Row(
+            .Select(o => new
+            {
                 o.Id,
                 o.DisplayName,
                 o.Type,
                 o.City,
                 o.Status,
-                keys.Contains(o.DisplayNameKey)
+                SameNameKey = keys.Contains(o.DisplayNameKey)
                     || (o.LegalNameKey != null && keys.Contains(o.LegalNameKey))
-                    || (o.ShortNameKey != null && keys.Contains(o.ShortNameKey)),
-                o.Type == type,
-                cityKey != null && o.CityKey == cityKey,
-                EF.Functions.TrigramsSimilarity(o.DisplayNameKey, key)))
+                    || (o.ShortNameKey != null && keys.Contains(o.ShortNameKey))
+                    || o.Aliases.Any(a => a.RemovedAt == null && keys.Contains(a.NameKey)),
+                SameType = o.Type == type,
+                SameCity = cityKey != null && o.CityKey == cityKey,
+                Similarity = EF.Functions.TrigramsSimilarity(o.DisplayNameKey, key),
+            })
+            .Where(row => row.SameNameKey || row.Similarity >= OrganisationDuplicateThresholds.Similar - 0.0001)
+            .OrderByDescending(row => row.SameNameKey)
+            .ThenByDescending(row => row.Similarity)
+            .ThenBy(row => row.Id)
+            .Take(MaxRows)
+            .Select(row => new Row(
+                row.Id, row.DisplayName, row.Type, row.City, row.Status, row.SameNameKey, row.SameType, row.SameCity, row.Similarity))
             .ToListAsync(cancellationToken);
 
         return
