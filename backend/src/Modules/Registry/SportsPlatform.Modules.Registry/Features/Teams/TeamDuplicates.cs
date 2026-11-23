@@ -78,7 +78,8 @@ public sealed record TeamDuplicateCandidate(
 public sealed class TeamDuplicateFinder(RegistryDbContext context)
 {
     // Rows read before classifying, in the query's order (same keys first, so a LIKELY is never cut for names that are
-    // only similar). Far above what one name finds.
+    // only similar; the organisation rule is in the query, so a POSSIBLE isn't cut by other organisations' teams). Far
+    // above what one name finds.
     public const int MaxRows = 100;
 
     public async Task<IReadOnlyList<TeamDuplicateCandidate>> FindAsync(TeamDuplicateInput input, CancellationToken cancellationToken)
@@ -108,7 +109,9 @@ public sealed class TeamDuplicateFinder(RegistryDbContext context)
                 SameNameKey = keys.Contains(t.NameKey) || (t.ShortNameKey != null && keys.Contains(t.ShortNameKey)),
                 Similarity = EF.Functions.TrigramsSimilarity(t.NameKey, key),
             })
-            .Where(row => row.SameNameKey || row.Similarity >= TeamDuplicateThresholds.Similar - 0.0001)
+            .Where(row => row.SameNameKey
+                || (row.Similarity >= TeamDuplicateThresholds.Similar - 0.0001
+                    && (organisationId == null || row.OrganisationId == null || row.OrganisationId == organisationId)))
             .OrderByDescending(row => row.SameNameKey)
             .ThenByDescending(row => row.Similarity)
             .ThenBy(row => row.Id)
