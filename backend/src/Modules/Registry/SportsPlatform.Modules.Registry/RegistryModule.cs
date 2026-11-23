@@ -11,6 +11,7 @@ using SportsPlatform.Modules.Registry.Features.Organisations.ChangeOrganisationS
 using SportsPlatform.Modules.Registry.Features.Organisations.CheckOrganisationDuplicates;
 using SportsPlatform.Modules.Registry.Features.Organisations.CreateOrganisation;
 using SportsPlatform.Modules.Registry.Features.Organisations.GetOrganisation;
+using SportsPlatform.Modules.Registry.Features.Organisations.ListOrganisations;
 using SportsPlatform.Modules.Registry.Features.Organisations.ListOrganisationStatusChanges;
 using SportsPlatform.Modules.Registry.Features.Organisations.UpdateOrganisation;
 using SportsPlatform.Modules.Registry.Features.People;
@@ -110,6 +111,7 @@ public sealed class RegistryModule : IModule
         services.AddScoped<GetOrganisationHandler>();
         services.AddScoped<UpdateOrganisationHandler>();
         services.AddScoped<ChangeOrganisationStatusHandler>();
+        services.AddScoped<ListOrganisationsHandler>();
         services.AddScoped<ListOrganisationStatusChangesHandler>();
         services.AddScoped<VenueDetailsRules>();
         services.AddScoped<VenueDuplicateFinder>();
@@ -151,6 +153,7 @@ public sealed class RegistryModule : IModule
         services.AddScoped<IValidator<CreateVenueRequest>, CreateVenueRequestValidator>();
         services.AddScoped<IValidator<UpdateVenueRequest>, UpdateVenueRequestValidator>();
         services.AddSingleton<IValidator<ChangeVenueStatusRequest>, ChangeVenueStatusRequestValidator>();
+        services.AddSingleton<IValidator<ListOrganisationsRequest>, ListOrganisationsRequestValidator>();
         services.AddSingleton<IValidator<ListVenuesRequest>, ListVenuesRequestValidator>();
         services.AddSingleton<IValidator<AddVenueAliasRequest>, AddVenueAliasRequestValidator>();
         services.AddSingleton<IValidator<RemoveVenueAliasRequest>, RemoveVenueAliasRequestValidator>();
@@ -185,6 +188,7 @@ public sealed class RegistryModule : IModule
         var organisations = OrganisationsEndpoints.Group(groups.Admin);
         CheckOrganisationDuplicatesEndpoint.Map(organisations);
         CreateOrganisationEndpoint.Map(organisations);
+        ListOrganisationsEndpoint.Map(organisations);
         GetOrganisationEndpoint.Map(organisations);
         UpdateOrganisationEndpoint.Map(organisations);
         ChangeOrganisationStatusEndpoint.Map(organisations);

@@ -1273,7 +1273,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * List the tenant's organisations
+         * @description The organisations of the tenant named by `X-Tenant-Id`, sorted by display name (ignoring case, accents and punctuation) and ID. `q` matches the display name or one of its words by prefix and by similarity, and the legal or short name by prefix (word order and punctuation aside). `type` keeps organisations of that type; `status` filters by status (without it, archived organisations are left out). `limit` is 1–100 (25). Available while the tenant is read-only.
+         */
+        get: operations["ListOrganisations"];
         put?: never;
         /**
          * Add an organisation
@@ -3046,6 +3050,10 @@ export interface components {
             items: components["schemas"]["MemberResponse"][];
             page: components["schemas"]["PageInfo"];
         };
+        ListOrganisationsResponse: {
+            items: components["schemas"]["OrganisationListItem"][];
+            page: components["schemas"]["PageInfo"];
+        };
         ListOrganisationStatusChangesResponse: {
             items: components["schemas"]["OrganisationStatusChangeResponse"][];
         };
@@ -3274,6 +3282,21 @@ export interface components {
                 field: string;
                 code: string;
             }[];
+        };
+        /**
+         * @description An organisation in the directory: enough to recognise it and open it (S07 D19; every field is public, D16 — the email
+         *     and phone, which are internal, are left out).
+         */
+        OrganisationListItem: {
+            /** Format: uuid */
+            id: string;
+            displayName: string;
+            shortName: null | string;
+            slug: string;
+            type: components["schemas"]["OrganisationType"];
+            city: null | string;
+            country: string;
+            status: components["schemas"]["OrganisationStatus"];
         };
         /**
          * @description An organisation as the admin reads it (S07 D19). The legal name, the body's own email and phone and the version are
@@ -8950,6 +8973,59 @@ export interface operations {
             };
             /** @description Problem Details; `code`: `ORGANISATION_NAME_INVALID` */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListOrganisations: {
+        parameters: {
+            query?: {
+                q?: string;
+                type?: "CLUB" | "SCHOOL" | "UNIVERSITY" | "ACADEMY" | "FEDERATION" | "ASSOCIATION" | "COMPANY" | "COMMUNITY" | "GOVERNMENT" | "OTHER";
+                status?: "ACTIVE" | "INACTIVE" | "SUSPENDED" | "DISSOLVED" | "ARCHIVED";
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListOrganisationsResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_QUERY` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING` */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

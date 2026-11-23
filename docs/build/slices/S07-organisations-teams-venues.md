@@ -516,3 +516,12 @@ The rest of S06's tech debt has its own trigger in PROGRESS.md ("From S06").
   `ORGANISATION_STATUS_INVALID` (409); `OrganisationTransitions` is D12's table; unarchive reads the status before
   archiving from the latest move to `ARCHIVED`, so a dissolved organisation stays dissolved (Q55). `GET
   /organisations/{id}/status-changes` (`organisation.read`), newest first. No migration (T2a's table has the columns).
+- **T2b-2 (organisations: the directory):** `GET /organisations` (`organisation.read`): `q`, `type`, `status`, `limit`
+  (1–100, 25), `cursor`; sorted by `sort_key` (the normalised display name) and ID; without `status`, archived ones are
+  left out. `q` matches the display name as venues' name (a prefix of the sort key or of one of its words, a prefix of
+  the name key, or trigram similarity ≥ 0.3) and the legal or short name by a prefix of its name key (owner, plan
+  2026-11-23); text without a letter or digit matches nothing until T2d adds aliases and identifiers. Items: id,
+  display name, short name, slug, type, city, country, status (all `PUBLIC`; email and phone left out). D19's
+  `parentId` filter comes with T2c's parent links (owner, plan 2026-11-23). `VenueCursor` became the shared
+  `DirectoryCursor` (`Features/`), decoded against the directory's sort key length (owner). No migration: T2a made the
+  `(tenant_id, sort_key, id)` and `(tenant_id, type)` indexes.

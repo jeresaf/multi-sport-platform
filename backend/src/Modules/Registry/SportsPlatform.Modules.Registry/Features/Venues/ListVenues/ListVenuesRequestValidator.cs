@@ -30,7 +30,7 @@ public sealed class ListVenuesRequestValidator : AbstractValidator<ListVenuesReq
             .Must(limit => limit is null || ListVenuesRequest.TryParseLimit(limit, out _))
             .WithMessage($"'limit' must be a whole number between 1 and {ListVenuesRequest.MaxLimit}.");
         RuleFor(request => request.Cursor)
-            .Must(cursor => cursor is null || VenueCursor.TryDecode(cursor, out _))
+            .Must(cursor => cursor is null || DirectoryCursor.TryDecode(cursor, VenueDetails.NameMaxLength, out _))
             .WithMessage("'cursor' must be a nextCursor returned by this list.");
     }
 }
