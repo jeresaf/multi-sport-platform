@@ -18,6 +18,7 @@ using SportsPlatform.Modules.Registry.Domain.People;
 using SportsPlatform.Modules.Registry.Domain.People.Consents;
 using SportsPlatform.Modules.Registry.Domain.People.Duplicates;
 using SportsPlatform.Modules.Registry.Domain.People.Profiles;
+using SportsPlatform.Modules.Registry.Domain.Teams;
 using SportsPlatform.Modules.Registry.Domain.Venues;
 using SportsPlatform.Modules.Tenancy.Contracts.Subscriptions;
 using SportsPlatform.Modules.Tenancy.Domain.Entitlements;
@@ -87,6 +88,8 @@ public static class IsolationSamples
         new OrganisationStatusChangeSample(),
         new OrganisationParentLinkSample(),
         new OrganisationAliasSample(),
+        new TeamSample(),
+        new TeamStatusChangeSample(),
         new MediaAssetSample(),
     ];
 
@@ -675,8 +678,59 @@ public static class IsolationSamples
                 : null;
     }
 
+    /// <summary>Registry: a team; it points at its organisation and its home venue, and its status history points at it.</summary>
+    private sealed class TeamSample : IIsolationSample
+    {
+        public Type EntityType => typeof(Team);
+
+        public Entity Add(DbContext context)
+        {
+            var team = RegistrySamples.NewTeam("Ntinda Swifts FC");
+            context.Add(team);
+            return team;
+        }
+
+        public Entity? Referencing(IForeignKey foreignKey, Guid principalId) =>
+            foreignKey.PrincipalEntityType.ClrType == typeof(Organisation)
+                ? RegistrySamples.NewTeam("Kiwatule Athletic FC", organisationId: principalId)
+                : foreignKey.PrincipalEntityType.ClrType == typeof(Venue)
+                    ? RegistrySamples.NewTeam("Kisaasi Kestrels FC", homeVenueId: principalId)
+                    : null;
+    }
+
+    /// <summary>Registry: the history row a new team gets.</summary>
+    private sealed class TeamStatusChangeSample : IIsolationSample
+    {
+        public Type EntityType => typeof(TeamStatusChange);
+
+        public Entity Add(DbContext context)
+        {
+            var team = RegistrySamples.NewTeam("Seeta Sparrows FC");
+            context.Add(team);
+            return team.StatusHistory.Single();
+        }
+
+        public Entity? Referencing(IForeignKey foreignKey, Guid principalId) =>
+            foreignKey.PrincipalEntityType.ClrType == typeof(Team)
+                ? new TeamStatusChange(principalId, TeamStatus.Active, TeamStatus.Disbanded, "Folded into the first team", SystemActor.Instance, RegistrySamples.Now)
+                : null;
+    }
+
     private static class RegistrySamples
     {
+        public static Team NewTeam(string name, Guid? organisationId = null, Guid? homeVenueId = null)
+        {
+            var category = new TeamCategory(GenderCategory.Men, AgeGroup.Senior, TeamLevel.First);
+            return Team.Create(
+                "TESTBALL_FULL",
+                new TeamDetails(name, null, category, organisationId, null, null, null, null, null, homeVenueId, null),
+                new DateOnly(2020, 1, 1),
+                Team.ProposeSlug(name, category),
+                TeamSource.Manual,
+                SystemActor.Instance,
+                Now);
+        }
+
         public static Organisation NewOrganisation(string name, Guid? primaryVenueId = null) =>
             Organisation.Create(
                 new OrganisationDetails(OrganisationType.Club, name, null, null, "UG", "Kampala", null, null, null, null, null, primaryVenueId),
