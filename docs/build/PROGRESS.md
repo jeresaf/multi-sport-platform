@@ -636,9 +636,13 @@ docs/build/slices/S07-organisations-teams-venues.md, "Carried over from S06")
   display name by similarity; no index serves the legal and short name prefixes (only `sort_key`, collation "C", can
   serve a prefix; the display name key has the trigram index). Fine at a tenant's few hundred organisations; add
   `text_pattern_ops` indexes or move to `%` with a threshold when a tenant's organisations reach the thousands (as
-  the duplicate finders' item above). (When T2d adds alias search, or the first slow directory query.)
-- A venue's former names are `PUBLIC` (D16) but `venue_aliases.name` is classified `INTERNAL` for every alias kind
-  (S07-T1c, review of #120 Q1): one column carries one `pii` class. T5's plan chooses between a public read of former
+  the duplicate finders' item above). S07-T2d (review of #126 R1) added current aliases to the same scan: a `LIKE`
+  prefix and `similarity(...) >= 0.3` on `organisation_aliases.name_key` inside a correlated `EXISTS`, which neither
+  the trigram index nor a btree serves; still fine at a tenant's few hundred organisations, as venues' alias search
+  (T1c). (When a tenant's organisations or aliases reach the thousands, or the first slow directory query.)
+- Venues' and organisations' former names are `PUBLIC` (D16) but `venue_aliases.name` and
+  `organisation_aliases.name` (and `OrganisationAliasResponse`) are classified `INTERNAL` for every alias kind (S07-T1c,
+  review of #120 Q1; S07-T2d, review of #126 R2): one column carries one `pii` class; T3's team aliases join this. T5's plan chooses between a public read of former
   names only (`kind = FORMER_NAME`, its own public DTO) and reclassifying the column. (S07-T5.)
 
 **From S06** (regrouped by the S06 slice review, 2026-11-21; each names its trigger)
