@@ -414,7 +414,7 @@ namespace SportsPlatform.Modules.Registry.Infrastructure.Migrations
                     b.Property<Guid>("ParentId")
                         .HasColumnType("uuid")
                         .HasColumnName("parent_id")
-                        .HasAnnotation("pii", "INTERNAL");
+                        .HasAnnotation("pii", "PUBLIC");
 
                     b.Property<string>("Reason")
                         .IsRequired()

@@ -12,7 +12,7 @@ using SportsPlatform.Modules.Registry.Infrastructure;
 namespace SportsPlatform.Modules.Registry.Infrastructure.Migrations
 {
     [DbContext(typeof(RegistryDbContext))]
-    [Migration("20261123090355_AddOrganisationParentLinks")]
+    [Migration("20261123104101_AddOrganisationParentLinks")]
     partial class AddOrganisationParentLinks
     {
         /// <inheritdoc />
@@ -417,7 +417,7 @@ namespace SportsPlatform.Modules.Registry.Infrastructure.Migrations
                     b.Property<Guid>("ParentId")
                         .HasColumnType("uuid")
                         .HasColumnName("parent_id")
-                        .HasAnnotation("pii", "INTERNAL");
+                        .HasAnnotation("pii", "PUBLIC");
 
                     b.Property<string>("Reason")
                         .IsRequired()
