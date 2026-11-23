@@ -337,6 +337,19 @@ public static class RegistryActions
         scopableBy: [AssignmentScope.Tenant],
         grantedWith: ["organisation.read"]);
 
+    /// <summary>
+    /// Sets or clears an organisation's parent (S07 D5), with a reason; answers the organisation as
+    /// <c>organisation.read</c> does.
+    /// </summary>
+    public static readonly ActionDefinition OrganisationParentSet = new(
+        "organisation.parent.set",
+        "Set or clear the organisation an organisation belongs to (its parent), with a reason; the earlier parent is kept in its history.",
+        ActionScope.Tenant,
+        AuditRequirement.RequiredWithReason,
+        since: "S07",
+        scopableBy: [AssignmentScope.Tenant],
+        grantedWith: ["organisation.read"]);
+
     // The lifecycle, alias, identifier, profile, photo, consent and public-profile actions answer the person as person.read does, so they are only
     // granted with that read.
     private static ActionDefinition Lifecycle(string code, string description, AuditRequirement audit) => new(

@@ -73,7 +73,10 @@ public static class IdentityRoles
     // Organisations (S07 D20): as venues. Each S07 task adds the actions it builds.
     private const string _organisationRead = "organisation.read";
     private static readonly string[] _organisationChanges =
-        ["organisation.duplicate_check", "organisation.create", "organisation.update", "organisation.status.change"];
+        [
+            "organisation.duplicate_check", "organisation.create", "organisation.update", "organisation.status.change",
+            "organisation.parent.set",
+        ];
 
     // Venues (S07 D20): read by every role that reads people; changed by those who change people. The duplicate check
     // is its own unaudited action, granted with the create.

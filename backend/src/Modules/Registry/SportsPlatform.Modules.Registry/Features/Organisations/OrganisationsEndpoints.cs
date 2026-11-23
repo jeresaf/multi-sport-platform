@@ -23,8 +23,8 @@ internal static class OrganisationsEndpoints
 internal static class OrganisationChanges
 {
     /// <summary>
-    /// Holds <c>registry.organisations:&lt;tenantId&gt;</c> until the transaction ends: creates (and, from S07-T2b, changes
-    /// to a compared field and parent links) queue on it while they check slugs, duplicates and cycles and save.
+    /// Holds <c>registry.organisations:&lt;tenantId&gt;</c> until the transaction ends: creates, changes to a compared field
+    /// or the slug, and new parents (S07-T2c) queue on it while they check slugs, duplicates and cycles and save.
     /// </summary>
     public static async Task LockOrganisationsAsync(RegistryDbContext context, Guid tenantId, CancellationToken cancellationToken)
     {
