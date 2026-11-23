@@ -7358,7 +7358,7 @@
           "Organisations"
         ],
         "summary": "List the tenant's organisations",
-        "description": "The organisations of the tenant named by `X-Tenant-Id`, sorted by display name (ignoring case, accents and punctuation) and ID. `q` matches the display name or one of its words by prefix and by similarity, and the legal or short name by prefix (word order and punctuation aside). `type` keeps organisations of that type; `status` filters by status (without it, archived organisations are left out). `parentId` keeps the organisations whose current parent it is (direct children only; an unknown ID keeps none). `limit` is 1–100 (25). Available while the tenant is read-only.",
+        "description": "The organisations of the tenant named by `X-Tenant-Id`, sorted by display name (ignoring case, accents and punctuation) and ID. `q` matches the display name or one of its words by prefix and by similarity, and the legal or short name by prefix (word order and punctuation aside), a current alias by prefix or similarity, and an external identifier's value exactly (ended ones included). `type` keeps organisations of that type; `status` filters by status (without it, archived organisations are left out). `parentId` keeps the organisations whose current parent it is (direct children only; an unknown ID keeps none). `limit` is 1–100 (25). Available while the tenant is read-only.",
         "operationId": "ListOrganisations",
         "parameters": [
           {
@@ -8134,6 +8134,586 @@
               "AUTH_TENANT_FORBIDDEN",
               "TENANT_BLOCKED",
               "TENANT_PROVISIONING"
+            ]
+          }
+        }
+      }
+    },
+    "/api/admin/v1/organisations/{organisationId}/aliases": {
+      "post": {
+        "tags": [
+          "Organisations"
+        ],
+        "summary": "Add an alias to an organisation",
+        "description": "Adds another name the organisation is known by (`FORMER_NAME`, `NICKNAME` or `SPELLING`): the directory search finds the organisation under it too, and the duplicate warning of later creates and updates compares it with their names. Adding one runs no duplicate warning. A name the organisation is already known by (the same name key as its display, legal or short name or a current alias: word order, case, accents and punctuation aside) is ORGANISATION_ALIAS_EXISTS; a name without a letter or a digit ORGANISATION_NAME_INVALID. A dissolved or archived organisation takes no new alias (ORGANISATION_DISSOLVED, ORGANISATION_ARCHIVED). Send `version` or `If-Match` from the last read to get 409 ORGANISATION_CONCURRENCY_CONFLICT if the organisation changed since; without them, a change to the same organisation saved at the same moment can still answer it. Answers the organisation as GET /organisations/{organisationId} does; its version moves.",
+        "operationId": "AddOrganisationAlias",
+        "parameters": [
+          {
+            "name": "organisationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddOrganisationAliasRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganisationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_REQUEST",
+              "VALIDATION_MALFORMED_REQUEST"
+            ]
+          },
+          "404": {
+            "description": "Problem Details; `code`: `ORGANISATION_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "ORGANISATION_NOT_FOUND"
+            ]
+          },
+          "409": {
+            "description": "Problem Details; `code`: `ORGANISATION_ALIAS_EXISTS`, `ORGANISATION_ARCHIVED`, `ORGANISATION_CONCURRENCY_CONFLICT`, `ORGANISATION_DISSOLVED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "ORGANISATION_ALIAS_EXISTS",
+              "ORGANISATION_ARCHIVED",
+              "ORGANISATION_CONCURRENCY_CONFLICT",
+              "ORGANISATION_DISSOLVED"
+            ]
+          },
+          "422": {
+            "description": "Problem Details; `code`: `ORGANISATION_NAME_INVALID`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "ORGANISATION_NAME_INVALID"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING",
+              "TENANT_READ_ONLY"
+            ]
+          }
+        }
+      }
+    },
+    "/api/admin/v1/organisations/{organisationId}/aliases/{aliasId}/remove": {
+      "post": {
+        "tags": [
+          "Organisations"
+        ],
+        "summary": "Remove an organisation's alias",
+        "description": "Removes an alias, whatever the organisation's status, with a reason (body `{ \"reason\": … }`, required): the alias is kept with who removed it, when and why, and is no longer shown or searched. The reason is kept permanently on the alias and in the audit trail: don't include personal data. An alias already removed is ORGANISATION_ALIAS_REMOVED. Send `version` or `If-Match` from the last read to get 409 ORGANISATION_CONCURRENCY_CONFLICT if the organisation changed since; without them, a change to the same organisation saved at the same moment can still answer it. Answers the organisation as GET /organisations/{organisationId} does; its version moves.",
+        "operationId": "RemoveOrganisationAlias",
+        "parameters": [
+          {
+            "name": "organisationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "aliasId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemoveOrganisationAliasRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganisationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_MALFORMED_REQUEST`, `VALIDATION_REASON_REQUIRED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_MALFORMED_REQUEST",
+              "VALIDATION_REASON_REQUIRED"
+            ]
+          },
+          "404": {
+            "description": "Problem Details; `code`: `ORGANISATION_ALIAS_NOT_FOUND`, `ORGANISATION_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "ORGANISATION_ALIAS_NOT_FOUND",
+              "ORGANISATION_NOT_FOUND"
+            ]
+          },
+          "409": {
+            "description": "Problem Details; `code`: `ORGANISATION_ALIAS_REMOVED`, `ORGANISATION_CONCURRENCY_CONFLICT`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "ORGANISATION_ALIAS_REMOVED",
+              "ORGANISATION_CONCURRENCY_CONFLICT"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING",
+              "TENANT_READ_ONLY"
+            ]
+          }
+        }
+      }
+    },
+    "/api/admin/v1/organisations/{organisationId}/external-identifiers": {
+      "post": {
+        "tags": [
+          "Organisations"
+        ],
+        "summary": "Add an external identifier to an organisation",
+        "description": "Adds an identifier another authority gave the organisation: `authority` is a code the tenant chooses (e.g. `KMSA_CLUB_NO`), `value` is trimmed. A value with this authority that any organisation has or had, ended ones and this organisation's included, is ORGANISATION_EXTERNAL_ID_EXISTS: a value is never reused (a person's identifier with the same authority and value doesn't count). The directory finds the organisation by the exact value. A dissolved or archived organisation takes no new identifier (ORGANISATION_DISSOLVED, ORGANISATION_ARCHIVED). Send `version` or `If-Match` from the last read to get 409 ORGANISATION_CONCURRENCY_CONFLICT if the organisation changed since; without them, a change to the same organisation saved at the same moment can still answer it. Answers the organisation as GET /organisations/{organisationId} does; its version moves.",
+        "operationId": "AddOrganisationExternalIdentifier",
+        "parameters": [
+          {
+            "name": "organisationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddOrganisationExternalIdentifierRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganisationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_REQUEST",
+              "VALIDATION_MALFORMED_REQUEST"
+            ]
+          },
+          "404": {
+            "description": "Problem Details; `code`: `ORGANISATION_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "ORGANISATION_NOT_FOUND"
+            ]
+          },
+          "409": {
+            "description": "Problem Details; `code`: `ORGANISATION_ARCHIVED`, `ORGANISATION_CONCURRENCY_CONFLICT`, `ORGANISATION_DISSOLVED`, `ORGANISATION_EXTERNAL_ID_EXISTS`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "ORGANISATION_ARCHIVED",
+              "ORGANISATION_CONCURRENCY_CONFLICT",
+              "ORGANISATION_DISSOLVED",
+              "ORGANISATION_EXTERNAL_ID_EXISTS"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING",
+              "TENANT_READ_ONLY"
+            ]
+          }
+        }
+      }
+    },
+    "/api/admin/v1/organisations/{organisationId}/external-identifiers/{identifierId}/end": {
+      "post": {
+        "tags": [
+          "Organisations"
+        ],
+        "summary": "End an organisation's external identifier",
+        "description": "Ends an identifier, whatever the organisation's status: it is kept with its `validTo`, and its value is never given to another organisation. The body is optional: `validTo` defaults to today (the tenant's date) and can't be after it or before `validFrom` (ORGANISATION_EXTERNAL_ID_VALIDITY_INVALID); `reason` (1–500 characters) is kept permanently in the audit trail: don't include personal data. An identifier already ended is ORGANISATION_EXTERNAL_ID_ENDED. Send `version` or `If-Match` from the last read to get 409 ORGANISATION_CONCURRENCY_CONFLICT if the organisation changed since; without them, a change to the same organisation saved at the same moment can still answer it. Answers the organisation as GET /organisations/{organisationId} does; its version moves.",
+        "operationId": "EndOrganisationExternalIdentifier",
+        "parameters": [
+          {
+            "name": "organisationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "identifierId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/EndOrganisationExternalIdentifierRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganisationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_REQUEST",
+              "VALIDATION_MALFORMED_REQUEST"
+            ]
+          },
+          "404": {
+            "description": "Problem Details; `code`: `ORGANISATION_EXTERNAL_ID_NOT_FOUND`, `ORGANISATION_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "ORGANISATION_EXTERNAL_ID_NOT_FOUND",
+              "ORGANISATION_NOT_FOUND"
+            ]
+          },
+          "409": {
+            "description": "Problem Details; `code`: `ORGANISATION_CONCURRENCY_CONFLICT`, `ORGANISATION_EXTERNAL_ID_ENDED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "ORGANISATION_CONCURRENCY_CONFLICT",
+              "ORGANISATION_EXTERNAL_ID_ENDED"
+            ]
+          },
+          "422": {
+            "description": "Problem Details; `code`: `ORGANISATION_EXTERNAL_ID_VALIDITY_INVALID`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "ORGANISATION_EXTERNAL_ID_VALIDITY_INVALID"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING",
+              "TENANT_READ_ONLY"
             ]
           }
         }
@@ -12911,6 +13491,77 @@
         "additionalProperties": false,
         "description": "A new external identifier of a person (S06 D10): the authority's code, its value, and since when it is valid;\n`version`, when sent, must be the person's current one."
       },
+      "AddOrganisationAliasRequest": {
+        "required": [
+          "name",
+          "kind"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "kind": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AliasKind"
+              }
+            ]
+          },
+          "version": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "uint32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A new alias of an organisation (S07 D10): the name the organisation is known by and its kind; `version`, when sent, must be the\norganisation's current one."
+      },
+      "AddOrganisationExternalIdentifierRequest": {
+        "required": [
+          "authority",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "authority": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "value": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "validFrom": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "version": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "uint32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A new external identifier of an organisation (S07 D10): the authority's code, its value, and since when it is valid;\n`version`, when sent, must be the organisation's current one."
+      },
       "AddPersonAliasRequest": {
         "required": [
           "name",
@@ -14716,6 +15367,33 @@
         "additionalProperties": false,
         "description": "The end of an external identifier: `validTo` defaults to the tenant's today. The optional reason is kept in the\naudit trail and is not redacted: it must not contain personal data."
       },
+      "EndOrganisationExternalIdentifierRequest": {
+        "type": "object",
+        "properties": {
+          "validTo": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "version": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "uint32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "The end of an organisation's external identifier: `validTo` defaults to the tenant's today. The optional reason is kept\nin the audit trail and is not redacted: it must not contain personal data."
+      },
       "EndVenueExternalIdentifierRequest": {
         "type": "object",
         "properties": {
@@ -16072,6 +16750,27 @@
         },
         "description": "A person's work as an official (S06 D12): what they officiate as, by variant and role (codes of the variant's\ndefinition; labels from `GET /sports/{variant}`, AR-29)."
       },
+      "OrganisationAliasResponse": {
+        "required": [
+          "id",
+          "name",
+          "kind"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/AliasKind"
+          }
+        },
+        "description": "A current alias of an organisation (S07 D10): `INTERNAL`, former names included (D16)."
+      },
       "OrganisationDuplicateCandidateResponse": {
         "required": [
           "organisationId",
@@ -16332,6 +17031,8 @@
           "parent",
           "children",
           "status",
+          "aliases",
+          "externalIdentifiers",
           "version"
         ],
         "type": "object",
@@ -16430,12 +17131,24 @@
           "status": {
             "$ref": "#/components/schemas/OrganisationStatus"
           },
+          "aliases": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrganisationAliasResponse"
+            }
+          },
+          "externalIdentifiers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExternalIdentifierResponse"
+            }
+          },
           "version": {
             "type": "integer",
             "format": "uint32"
           }
         },
-        "description": "An organisation as the admin reads it (S07 D19). The legal name, the body's own email and phone and the version are\n`INTERNAL`; every other field is one the public reads may show (D16). The primary venue is a summary of the\ntenant's venue (null without one). `parent` is the current parent in any status (null without one); `children`\nare the organisations whose current parent this is, archived ones left out (owner, S07-T2c-2 plan), in the directory's\norder (the sort key); the directory's `parentId` pages them with filters. The version doesn't move when a child leaves (S07-T2c-1),\nso it is no freshness marker for `children`. Teams, aliases, identifiers and the logo join with S07-T2d, T3 and T4."
+        "description": "An organisation as the admin reads it (S07 D19). The legal name, the body's own email and phone and the version are\n`INTERNAL`; every other field is one the public reads may show (D16). The primary venue is a summary of the\ntenant's venue (null without one). `parent` is the current parent in any status (null without one); `children`\nare the organisations whose current parent this is, archived ones left out (owner, S07-T2c-2 plan), in the directory's\norder (the sort key); the directory's `parentId` pages them with filters. The version doesn't move when a child leaves (S07-T2c-1),\nso it is no freshness marker for `children`. Aliases are the ones not removed, oldest first; identifiers are all of\nthem, ended ones included, by authority (as a venue's); both are `INTERNAL` (D16), and a change to one moves the\nversion (S06 D11). Teams and the logo join with S07-T3 and T4."
       },
       "OrganisationStatus": {
         "enum": [
@@ -17530,6 +18243,29 @@
           }
         },
         "description": "Why the message is re-driven; the audit entry records it (action audit `REQUIRED_WITH_REASON`). Kept permanently\nand not redacted, so it must not contain personal data."
+      },
+      "RemoveOrganisationAliasRequest": {
+        "required": [
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "version": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "uint32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "The removal of an organisation's alias (audit `REQUIRED_WITH_REASON`). The reason is kept permanently on the alias and\nin the audit trail and is not redacted: it must not contain personal data."
       },
       "RemoveOverrideRequest": {
         "required": [

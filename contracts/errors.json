@@ -217,9 +217,27 @@
       "owner": "Platform"
     },
     {
+      "code": "ORGANISATION_ALIAS_EXISTS",
+      "status": 409,
+      "message": "The organisation is already known by this name: its display, legal or short name or a current alias gives the same name key.",
+      "owner": "Registry"
+    },
+    {
+      "code": "ORGANISATION_ALIAS_NOT_FOUND",
+      "status": 404,
+      "message": "The organisation has no such alias.",
+      "owner": "Registry"
+    },
+    {
+      "code": "ORGANISATION_ALIAS_REMOVED",
+      "status": 409,
+      "message": "The alias is already removed.",
+      "owner": "Registry"
+    },
+    {
       "code": "ORGANISATION_ARCHIVED",
       "status": 409,
-      "message": "The organisation is archived: it takes no new parent. Unarchive it first.",
+      "message": "The organisation is archived: it takes no new parent, alias or external identifier. Unarchive it first.",
       "owner": "Registry"
     },
     {
@@ -231,13 +249,37 @@
     {
       "code": "ORGANISATION_DISSOLVED",
       "status": 409,
-      "message": "The organisation is dissolved: it takes no new parent.",
+      "message": "The organisation is dissolved: it takes no new parent, alias or external identifier.",
       "owner": "Registry"
     },
     {
       "code": "ORGANISATION_DUPLICATE_REVIEW_REQUIRED",
       "status": 422,
       "message": "Organisations already in the registry look like this one: open one of them, or send duplicatesReviewed to add it anyway.",
+      "owner": "Registry"
+    },
+    {
+      "code": "ORGANISATION_EXTERNAL_ID_ENDED",
+      "status": 409,
+      "message": "The external identifier has already ended.",
+      "owner": "Registry"
+    },
+    {
+      "code": "ORGANISATION_EXTERNAL_ID_EXISTS",
+      "status": 409,
+      "message": "An organisation already has this external identifier (the same authority and value), or had it: a value is never reused.",
+      "owner": "Registry"
+    },
+    {
+      "code": "ORGANISATION_EXTERNAL_ID_NOT_FOUND",
+      "status": 404,
+      "message": "The organisation has no such external identifier.",
+      "owner": "Registry"
+    },
+    {
+      "code": "ORGANISATION_EXTERNAL_ID_VALIDITY_INVALID",
+      "status": 422,
+      "message": "An identifier's end date can't be before its start date or after today (the tenant's date).",
       "owner": "Registry"
     },
     {
