@@ -273,7 +273,7 @@ public static class RegistryErrors
 
     public static readonly Error TeamRenameRequired = new(
         "TEAM_RENAME_REQUIRED",
-        "An update keeps the team's name: rename the team (POST /teams/{teamId}/rename) so the old name is kept with its dates.",
+        "An update keeps the team's name: rename the team instead, so the old name is kept with its dates.",
         ErrorKind.Unprocessable);
 
     public static readonly Error TeamStatusInvalid = new(
