@@ -7,15 +7,14 @@ at the start of every review.
 
 - **Current slice:** S07 — Organisations, teams and venues (docs/build/slices/S07-organisations-teams-venues.md,
   written by the S06 slice review). S00–S06 are done
-- **Current task:** — (S07-T2c-1 in review: #124)
-- **Next:** S07-T2c-2 — Organisations: parent and children in the reads
+- **Current task:** S07-T2c-2 — Organisations: parent and children in the reads
+- **Next:** S07-T2d — Organisations: aliases, external identifiers, `IOrganisationDirectory`
 - **Blocked on:** —
 
 ## Next up
 
-1. S07-T2c-2 — Organisations: parent and children in the reads
-2. S07-T2d — Organisations: aliases, external identifiers, `IOrganisationDirectory`
-3. S07-T3 — Teams
+1. S07-T2d — Organisations: aliases, external identifiers, `IOrganisationDirectory`
+2. S07-T3 — Teams
 
 ## Log
 
