@@ -17,12 +17,15 @@ internal static class ListOrganisationsEndpoint
             "The organisations of the tenant named by `X-Tenant-Id`, sorted by display name (ignoring case, accents and " +
             "punctuation) and ID. `q` matches the display name or one of its words by prefix and by similarity, and the " +
             "legal or short name by prefix (word order and punctuation aside). `type` keeps organisations of that type; " +
-            "`status` filters by status (without it, archived organisations are left out). `limit` is 1–100 (25). " +
+            "`status` filters by status (without it, archived organisations are left out). `parentId` keeps the " +
+            "organisations whose current parent it is (direct children only; an unknown ID keeps none). `limit` is " +
+            "1–100 (25). " +
             "Available while the tenant is read-only.")
         .RequireAction(RegistryActions.OrganisationRead)
         .ValidateRequest<ListOrganisationsRequest>(CommonErrors.InvalidQuery)
         .DocumentsQueryValues("type", ListOrganisationsRequest.Types)
         .DocumentsQueryValues("status", ListOrganisationsRequest.Statuses)
+        .DocumentsQueryUuid("parentId")
         .DocumentsQueryInteger("limit", 1, ListOrganisationsRequest.MaxLimit, ListOrganisationsRequest.DefaultLimit);
 
     private static async Task<Ok<ListOrganisationsResponse>> HandleAsync(

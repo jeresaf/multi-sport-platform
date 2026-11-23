@@ -181,6 +181,8 @@ public sealed class OrganisationDirectoryTests(PostgresFixture fixture) : Databa
     [InlineData("type=club", "type")]
     [InlineData("type=TEAM", "type")]
     [InlineData("cursor=not-a-cursor", "cursor")]
+    [InlineData("parentId=not-an-id", "parentId")]
+    [InlineData("parentId=0193c7a0f4e27b3c9d1e2f3a4b5c6d7e", "parentId")]
     [InlineData("q=Ntinda%00", "q")]
     public async Task A_bad_query_value_is_refused_naming_its_parameter(string query, string field)
     {

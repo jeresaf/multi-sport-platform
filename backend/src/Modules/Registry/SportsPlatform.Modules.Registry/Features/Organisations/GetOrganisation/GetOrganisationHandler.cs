@@ -8,8 +8,9 @@ using SportsPlatform.Modules.Registry.Infrastructure;
 namespace SportsPlatform.Modules.Registry.Features.Organisations.GetOrganisation;
 
 /// <summary>
-/// One organisation of the request's tenant, whatever its status, with its primary venue as a summary; another tenant's
-/// organisation is not found (RLS).
+/// One organisation of the request's tenant, whatever its status, with its primary venue, its current parent and its
+/// current children (archived ones left out) as summaries; another tenant's organisation is not found (RLS). The parent
+/// and the children come from the open links (S07 D5; the index on the open links' parent serves the children).
 /// </summary>
 public sealed class GetOrganisationHandler(RegistryDbContext context)
 {
@@ -32,8 +33,22 @@ public sealed class GetOrganisationHandler(RegistryDbContext context)
                 .SingleOrDefaultAsync(cancellationToken)
             : null;
 
+        var links = context.Set<OrganisationParentLink>().AsNoTracking().Where(l => l.ValidTo == null);
+        var organisations = context.Set<Organisation>().AsNoTracking();
+        var parent = await links
+            .Where(l => l.OrganisationId == organisationId)
+            .Join(organisations, l => l.ParentId, p => p.Id, (_, p) => new OrganisationSummaryResponse(p.Id, p.DisplayName, p.Slug, p.Status))
+            .SingleOrDefaultAsync(cancellationToken);
+        var children = await links
+            .Where(l => l.ParentId == organisationId)
+            .Join(organisations, l => l.OrganisationId, c => c.Id, (_, c) => c)
+            .Where(c => c.Status != OrganisationStatus.Archived)
+            .OrderBy(c => c.SortKey).ThenBy(c => c.Id)
+            .Select(c => new OrganisationSummaryResponse(c.Id, c.DisplayName, c.Slug, c.Status))
+            .ToListAsync(cancellationToken);
+
         return Result.Success(new OrganisationResponse(
             o.Id, o.Type, o.DisplayName, o.LegalName, o.ShortName, o.Slug, o.Country, o.City, o.FoundedYear, o.Website, o.Email,
-            o.Phone, o.Description, venue, o.Status, found.Version));
+            o.Phone, o.Description, venue, parent, children, o.Status, found.Version));
     }
 }

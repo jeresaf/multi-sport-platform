@@ -32,6 +32,8 @@ public sealed record ListOrganisationsResponse(
 /// name, word order kept, collation "C") and ID (S07 D19). <c>q</c> matches the display name by prefix (of the name or of
 /// one of its words), name-key prefix or trigram similarity, and the legal or short name by name-key prefix (owner, plan
 /// 2026-11-23); aliases and identifiers join in S07-T2d. Without a status, archived organisations are left out.
+/// <c>parentId</c> keeps the direct children: the organisations whose open parent link points at it (S07-T2c-2); an
+/// unknown ID or another tenant's keeps none.
 /// </summary>
 public sealed class ListOrganisationsHandler(RegistryDbContext context)
 {
@@ -47,6 +49,12 @@ public sealed class ListOrganisationsHandler(RegistryDbContext context)
         if (query.Type is { } type)
         {
             organisations = organisations.Where(o => o.Type == type);
+        }
+
+        if (query.ParentId is { } parentId)
+        {
+            organisations = organisations.Where(o => context.Set<OrganisationParentLink>()
+                .Any(l => l.OrganisationId == o.Id && l.ParentId == parentId && l.ValidTo == null));
         }
 
         if (query.Search is { } search)

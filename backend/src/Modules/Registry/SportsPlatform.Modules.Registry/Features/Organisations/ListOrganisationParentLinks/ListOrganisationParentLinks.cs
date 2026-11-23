@@ -18,20 +18,13 @@ namespace SportsPlatform.Modules.Registry.Features.Organisations.ListOrganisatio
 /// </summary>
 public sealed record OrganisationParentLinkResponse(
     [property: PersonalData(PersonalDataClass.Internal)] Guid Id,
-    [property: PersonalData(PersonalDataClass.Internal)] OrganisationParentSummary Parent,
+    [property: PersonalData(PersonalDataClass.Internal)] OrganisationSummaryResponse Parent,
     [property: PersonalData(PersonalDataClass.Internal)] DateOnly ValidFrom,
     [property: PersonalData(PersonalDataClass.Internal)] DateOnly? ValidTo,
     [property: PersonalData(PersonalDataClass.Internal)] string Reason,
     [property: PersonalData(PersonalDataClass.Internal)] ActorKind ActorKind,
     [property: PersonalData(PersonalDataClass.Internal)] Guid ActorId,
     [property: PersonalData(PersonalDataClass.Internal)] DateTimeOffset SetAt);
-
-/// <summary>An organisation another points at (S07 D16: id, display name, slug), with its status now.</summary>
-public sealed record OrganisationParentSummary(
-    [property: PersonalData(PersonalDataClass.Public)] Guid Id,
-    [property: PersonalData(PersonalDataClass.Public)] string DisplayName,
-    [property: PersonalData(PersonalDataClass.Public)] string Slug,
-    [property: PersonalData(PersonalDataClass.Public)] OrganisationStatus Status);
 
 public sealed record ListOrganisationParentLinksResponse(
     [property: PersonalData(PersonalDataClass.Internal)] IReadOnlyList<OrganisationParentLinkResponse> Items);
@@ -55,7 +48,7 @@ public sealed class ListOrganisationParentLinksHandler(RegistryDbContext context
             .OrderByDescending(row => row.Link.SetAt).ThenByDescending(row => row.Link.Id)
             .Select(row => new OrganisationParentLinkResponse(
                 row.Link.Id,
-                new OrganisationParentSummary(row.Parent.Id, row.Parent.DisplayName, row.Parent.Slug, row.Parent.Status),
+                new OrganisationSummaryResponse(row.Parent.Id, row.Parent.DisplayName, row.Parent.Slug, row.Parent.Status),
                 row.Link.ValidFrom,
                 row.Link.ValidTo,
                 row.Link.Reason,

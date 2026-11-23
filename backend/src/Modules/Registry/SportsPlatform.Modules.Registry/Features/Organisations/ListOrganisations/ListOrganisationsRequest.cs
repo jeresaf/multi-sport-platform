@@ -7,16 +7,18 @@ namespace SportsPlatform.Modules.Registry.Features.Organisations.ListOrganisatio
 
 /// <summary>
 /// <paramref name="Search"/> is the trimmed <c>q</c>; no status means every state but <c>ARCHIVED</c>;
-/// <paramref name="After"/> is the sort key and ID of the previous page's last organisation.
+/// <paramref name="ParentId"/> keeps the organisations whose current parent it is; <paramref name="After"/> is the sort
+/// key and ID of the previous page's last organisation.
 /// </summary>
 public sealed record OrganisationsQuery(
-    string? Search, OrganisationType? Type, OrganisationStatus? Status, int Limit, DirectoryCursor? After);
+    string? Search, OrganisationType? Type, OrganisationStatus? Status, Guid? ParentId, int Limit, DirectoryCursor? After);
 
 /// <summary>The directory's query parameters as sent (text, so every bad value is <c>VALIDATION_INVALID_QUERY</c>).</summary>
 public sealed record ListOrganisationsRequest(
     [FromQuery(Name = "q")] string? Q,
     [FromQuery(Name = "type")] string? Type,
     [FromQuery(Name = "status")] string? Status,
+    [FromQuery(Name = "parentId")] string? ParentId,
     [FromQuery(Name = "limit")] string? Limit,
     [FromQuery(Name = "cursor")] string? Cursor)
 {
@@ -34,6 +36,10 @@ public sealed record ListOrganisationsRequest(
     public static bool TryParseType(string value, out OrganisationType type) => _types.TryGetValue(value, out type);
 
     public static bool TryParseStatus(string value, out OrganisationStatus status) => _statuses.TryGetValue(value, out status);
+
+    /// <summary>A UUID in its usual form (32 hex digits with hyphens), as route IDs are written.</summary>
+    public static bool TryParseParentId(string value, out Guid parentId) =>
+        Guid.TryParseExact(value, "D", out parentId);
 
     public static bool TryParseLimit(string value, out int limit) =>
         int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out limit) && limit is >= 1 and <= MaxLimit;
@@ -56,6 +62,12 @@ public sealed record ListOrganisationsRequest(
             status = TryParseStatus(Status, out var parsed) ? parsed : throw NotValidated();
         }
 
+        Guid? parentId = null;
+        if (ParentId is not null)
+        {
+            parentId = TryParseParentId(ParentId, out var parsed) ? parsed : throw NotValidated();
+        }
+
         var limit = DefaultLimit;
         if (Limit is not null && !TryParseLimit(Limit, out limit))
         {
@@ -68,7 +80,7 @@ public sealed record ListOrganisationsRequest(
             after = TryParseCursor(Cursor, out var cursor) ? cursor : throw NotValidated();
         }
 
-        return new OrganisationsQuery(string.IsNullOrWhiteSpace(Q) ? null : Q.Trim(), type, status, limit, after);
+        return new OrganisationsQuery(string.IsNullOrWhiteSpace(Q) ? null : Q.Trim(), type, status, parentId, limit, after);
     }
 
     private static Dictionary<string, T> ValuesOf<T>()

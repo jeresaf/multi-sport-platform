@@ -54,4 +54,16 @@ public sealed class QueryValuesDocumentationTests(HostOnlyApp factory) : IClassF
         (schema["type"]!.GetValue<string>(), schema["minimum"]!.GetValue<int>(), schema["maximum"]!.GetValue<int>(), schema["default"]!.GetValue<int>())
             .ShouldBe(("integer", 1, 100, 25));
     }
+
+    // S07-T2c-2: an ID filter is a string in the uuid format, so the client types it.
+    [Fact]
+    public async Task The_organisation_directorys_parentId_is_a_uuid()
+    {
+        var document = JsonNode.Parse(await ApiDocumentation.ExportAsync(factory.Services, TestContext.Current.CancellationToken))!;
+
+        var parameters = document["paths"]!["/api/admin/v1/organisations"]!["get"]!["parameters"]!.AsArray();
+        var schema = parameters.Single(parameter => parameter!["name"]!.GetValue<string>() == "parentId")!["schema"]!;
+
+        (schema["type"]!.GetValue<string>(), schema["format"]!.GetValue<string>()).ShouldBe(("string", "uuid"));
+    }
 }

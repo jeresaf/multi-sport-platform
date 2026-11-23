@@ -19,6 +19,9 @@ public sealed class ListOrganisationsRequestValidator : AbstractValidator<ListOr
         RuleFor(request => request.Status)
             .Must(status => status is null || ListOrganisationsRequest.TryParseStatus(status, out _))
             .WithMessage($"'status' must be one of: {string.Join(", ", ListOrganisationsRequest.Statuses)}.");
+        RuleFor(request => request.ParentId)
+            .Must(parentId => parentId is null || ListOrganisationsRequest.TryParseParentId(parentId, out _))
+            .WithMessage("'parentId' must be an organisation ID (a UUID).");
         RuleFor(request => request.Limit)
             .Must(limit => limit is null || ListOrganisationsRequest.TryParseLimit(limit, out _))
             .WithMessage($"'limit' must be a whole number between 1 and {ListOrganisationsRequest.MaxLimit}.");
