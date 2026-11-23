@@ -139,7 +139,8 @@ internal sealed class OrganisationStatusChangeConfiguration : IEntityTypeConfigu
 /// <c>registry.organisation_parent_links</c> (S07 D5): tenant-owned (RLS). Not append-only: ending a link sets
 /// <c>valid_to</c>, nothing else changes and nothing is deleted. Both ends are the tenant's organisations (composite
 /// foreign keys); at most one link of an organisation is open (partial unique index), and the open links are indexed by
-/// parent for the children and the cycle check. The link and its reason are <c>INTERNAL</c> (D16).
+/// parent for the children and the cycle check. The parent is <c>PUBLIC</c> (the public read shows the current one, D17;
+/// owner, review #124 Q1); the dates and the reason are <c>INTERNAL</c> (D16: parent-link history and reasons).
 /// </summary>
 internal sealed class OrganisationParentLinkConfiguration : IEntityTypeConfiguration<OrganisationParentLink>
 {
@@ -156,7 +157,7 @@ internal sealed class OrganisationParentLinkConfiguration : IEntityTypeConfigura
                 "ck_organisation_parent_links_actor_kind", $"actor_kind IN ({EnumColumns.SqlList<ActorKind>()})");
         });
 
-        builder.Property(l => l.ParentId).IsPersonalData(PersonalDataClass.Internal);
+        builder.Property(l => l.ParentId).IsPersonalData(PersonalDataClass.Public);
         builder.Property(l => l.ValidFrom).IsPersonalData(PersonalDataClass.Internal);
         builder.Property(l => l.ValidTo).IsPersonalData(PersonalDataClass.Internal);
         builder.Property(l => l.Reason).HasMaxLength(OrganisationParentLink.ReasonMaxLength)

@@ -539,4 +539,5 @@ The rest of S06's tech debt has its own trigger in PROGRESS.md ("From S06").
   (`Organisation.EnsureAcceptsNewChildren`, for T2d too). Setting the parent it already has (or none when it has none)
   is a no-op: no link, no new version, the audit entry still recorded (owner). A new link moves the child's version and
   the new parent's, not the earlier parent's (owner; the S06 carry-over). The reason for clearing a parent is in the
-  audit trail only (D5's columns have one reason, the link's).
+  audit trail only (D5's columns have one reason, the link's). The link's `parent_id` is `PUBLIC`, its dates and reason
+  `INTERNAL` (owner, review #124 Q1).
