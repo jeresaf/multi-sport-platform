@@ -381,6 +381,22 @@
       "since": "S07"
     },
     {
+      "code": "organisation.parent.set",
+      "module": "Registry",
+      "description": "Set or clear the organisation an organisation belongs to (its parent), with a reason; the earlier parent is kept in its history.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED_WITH_REASON",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S07"
+    },
+    {
       "code": "organisation.read",
       "module": "Registry",
       "description": "View the organisations directory and an organisation's record: type, names, city, contacts, primary venue and status.",

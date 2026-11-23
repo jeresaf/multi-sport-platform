@@ -9,12 +9,13 @@ namespace SportsPlatform.Modules.Registry.Domain.Organisations;
 /// A club, school, federation or other body of a tenant (<c>registry.organisations</c>, tenant-owned, S07 D4). Its ID
 /// never changes (AR-23); its slug is unique in the tenant (D9). The display, legal and short names are kept as entered
 /// and as normalised keys (<see cref="NameNormaliser"/>) for the duplicate check (D13), as is the city. The status
-/// history is its child: a new row changes the organisation's version (S06 D11). No named contact person: people
-/// belong to the person registry (D4).
+/// history and the parent links (D5) are its children: a new or changed row changes the organisation's version (S06
+/// D11). No named contact person: people belong to the person registry (D4).
 /// </summary>
 public sealed class Organisation : AggregateRoot, ITenantOwned
 {
     private readonly List<OrganisationStatusChange> _statusHistory = [];
+    private readonly List<OrganisationParentLink> _parentLinks = [];
 
     private Organisation()
     {
@@ -87,6 +88,9 @@ public sealed class Organisation : AggregateRoot, ITenantOwned
     public OrganisationSource Source { get; private set; }
 
     public IReadOnlyList<OrganisationStatusChange> StatusHistory => _statusHistory;
+
+    /// <summary>The links to its parents (S07 D5), the current one open; loaded by the commands that change them.</summary>
+    public IReadOnlyList<OrganisationParentLink> ParentLinks => _parentLinks;
 
     /// <summary>
     /// A new <c>ACTIVE</c> organisation in the scope's tenant (stamped on save), with the first row of its status
@@ -177,6 +181,72 @@ public sealed class Organisation : AggregateRoot, ITenantOwned
         var from = Status;
         Status = to;
         _statusHistory.Add(new OrganisationStatusChange(Id, from, to, reason.Trim(), actor, now));
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Whether the organisation takes a new child row, such as a parent link (S07 D10): not when it is <c>ARCHIVED</c>
+    /// (<c>ORGANISATION_ARCHIVED</c>) or <c>DISSOLVED</c> (<c>ORGANISATION_DISSOLVED</c>). Ending or clearing one stays
+    /// allowed in every status (S06's pattern).
+    /// </summary>
+    public Result EnsureAcceptsNewChildren() => Status switch
+    {
+        OrganisationStatus.Archived => Result.Failure(RegistryErrors.OrganisationArchived),
+        OrganisationStatus.Dissolved => Result.Failure(RegistryErrors.OrganisationDissolved),
+        _ => Result.Success(),
+    };
+
+    /// <summary>Whether an organisation in <paramref name="status"/> may become a parent (S07 D5): not dissolved or archived.</summary>
+    public static bool CanBeParent(OrganisationStatus status) =>
+        status is not (OrganisationStatus.Dissolved or OrganisationStatus.Archived);
+
+    /// <summary>The current parent (the open link's), or null. Needs the parent links loaded.</summary>
+    public Guid? CurrentParentId => _parentLinks.SingleOrDefault(link => link.IsOpen)?.ParentId;
+
+    /// <summary>
+    /// Sets the parent (S07 D5): ends the open link on <paramref name="today"/> (the tenant's date) and, unless
+    /// <paramref name="parent"/> is null (no parent), opens a link to it from that day. Needs the parent links loaded. The
+    /// use case holds <c>registry.organisations:&lt;tenantId&gt;</c> and has checked that <paramref name="parent"/> is not a
+    /// descendant; this refuses the rest: a dissolved or archived organisation takes no new parent (clearing stays
+    /// allowed), the organisation itself is <c>ORGANISATION_PARENT_CYCLE</c>, a dissolved or archived parent
+    /// <c>ORGANISATION_PARENT_UNAVAILABLE</c>. Setting the parent it already has (or none when it has none) changes
+    /// nothing (owner, S07-T2c plan). Statuses don't follow the parent (RULE-ORG-005).
+    /// </summary>
+    public Result SetParent(
+        Organisation? parent, string reason, ICurrentActor actor, DateOnly today, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(actor);
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+        if (parent?.Id == CurrentParentId)
+        {
+            return Result.Success();
+        }
+
+        if (parent is not null)
+        {
+            var accepts = EnsureAcceptsNewChildren();
+            if (accepts.IsFailure)
+            {
+                return accepts;
+            }
+
+            if (parent.Id == Id)
+            {
+                return Result.Failure(RegistryErrors.OrganisationParentCycle);
+            }
+
+            if (!CanBeParent(parent.Status))
+            {
+                return Result.Failure(RegistryErrors.OrganisationParentUnavailable);
+            }
+        }
+
+        _parentLinks.SingleOrDefault(link => link.IsOpen)?.End(today);
+        if (parent is not null)
+        {
+            _parentLinks.Add(new OrganisationParentLink(Id, parent.Id, today, reason.Trim(), actor, now));
+        }
+
         return Result.Success();
     }
 

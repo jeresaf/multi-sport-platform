@@ -348,7 +348,7 @@ Deliver:
 - Likely T2a (model, create, update, reads) and T2b (lifecycle, parent links, aliases, identifiers).
 
 Acceptance:
-- [ ] Setting a descendant as parent is refused with `ORGANISATION_PARENT_CYCLE`, also when two requests would close a
+- [x] Setting a descendant as parent is refused with `ORGANISATION_PARENT_CYCLE`, also when two requests would close a
       cycle at once (test holding the lock); the parent history keeps both links with their dates.
 - [ ] Suspending or dissolving an organisation leaves its teams' statuses alone, and a team's update that keeps its
       dissolved organisation succeeds (tests, with T3's teams).
@@ -423,7 +423,7 @@ Acceptance:
 - `RegistryDbContext`'s single conflict code (#95 Q1): D2, S07-T1.
 - D11 as built (a child bumps every loaded root it points at; untracked roots get no conflict): organisation parent
   links point at two organisations; T2's plan says whether a link moves the parent's version too (S08's memberships
-  remain the item's trigger).
+  remain the item's trigger). Done in T2c-1: the new parent's version moves too, the earlier parent's doesn't (owner).
 - The People directory's `limit` lacks `maximum`/`default` in OpenAPI (`DocumentsQueryInteger`): D19's new lists have
   the same need; T1a may add the maximum and default to `DocumentsQueryInteger` for every list (owner).
 
@@ -525,3 +525,19 @@ The rest of S06's tech debt has its own trigger in PROGRESS.md ("From S06").
   `parentId` filter comes with T2c's parent links (owner, plan 2026-11-23). `VenueCursor` became the shared
   `DirectoryCursor` (`Features/`), decoded against the directory's sort key length (owner). No migration: T2a made the
   `(tenant_id, sort_key, id)` and `(tenant_id, type)` indexes.
+- **T2c-1 (organisations: parent links):** T2c is two PRs (owner, plan 2026-11-23): T2c-1 the parent, the cycle check
+  and the link history; T2c-2 `parent` and `children` on the read and the directory's `parentId`. `POST
+  /organisations/{id}/parent` (`organisation.parent.set`, `REQUIRED_WITH_REASON`, `If-Match`) with `{parentId | null,
+  reason}` answers the organisation with its `ETag`; `GET /organisations/{id}/parent-links` (`organisation.read`), newest
+  first (by when set, then ID), each with the parent as id, display name, slug and status. Migration
+  `AddOrganisationParentLinks`: `registry.organisation_parent_links` (RLS; composite foreign keys to both organisations;
+  checks: not itself, `valid_to >= valid_from`; one open link per child). The parent's own checks and the cycle check
+  (a recursive walk up the open links) run under `registry.organisations:<tenantId>`; clearing takes no lock. An unknown
+  parent or another tenant's is `422 ORGANISATION_PARENT_UNAVAILABLE`, as a dissolved or archived one; the organisation
+  itself or one below it `422 ORGANISATION_PARENT_CYCLE` (field `parentId`). A dissolved or archived child is `409
+  ORGANISATION_DISSOLVED` / `ORGANISATION_ARCHIVED` for a new parent but may clear it
+  (`Organisation.EnsureAcceptsNewChildren`, for T2d too). Setting the parent it already has (or none when it has none)
+  is a no-op: no link, no new version, the audit entry still recorded (owner). A new link moves the child's version and
+  the new parent's, not the earlier parent's (owner; the S06 carry-over). The reason for clearing a parent is in the
+  audit trail only (D5's columns have one reason, the link's). The link's `parent_id` is `PUBLIC`, its dates and reason
+  `INTERNAL` (owner, review #124 Q1).

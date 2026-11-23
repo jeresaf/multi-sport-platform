@@ -23,6 +23,10 @@ internal static class OrganisationRequests
 
     public static string OrganisationStatusChangesPath(Guid organisationId) => $"{OrganisationPath(organisationId)}/status-changes";
 
+    public static string OrganisationParentPath(Guid organisationId) => $"{OrganisationPath(organisationId)}/parent";
+
+    public static string OrganisationParentLinksPath(Guid organisationId) => $"{OrganisationPath(organisationId)}/parent-links";
+
     /// <summary>The display names of a page of the organisation directory, in the order answered.</summary>
     public static List<string?> OrganisationNames(this JsonElement page) =>
         [.. page.GetProperty("items").EnumerateArray().Select(item => item.GetProperty("displayName").GetString())];

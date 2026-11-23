@@ -193,4 +193,20 @@ public static class RegistryErrors
         "ORGANISATION_PRIMARY_VENUE_UNAVAILABLE",
         "The primary venue must be a venue of the tenant that isn't closed or archived.",
         ErrorKind.Unprocessable);
+
+    public static readonly Error OrganisationArchived = new(
+        "ORGANISATION_ARCHIVED", "The organisation is archived: it takes no new parent. Unarchive it first.", ErrorKind.Conflict);
+
+    public static readonly Error OrganisationDissolved = new(
+        "ORGANISATION_DISSOLVED", "The organisation is dissolved: it takes no new parent.", ErrorKind.Conflict);
+
+    public static readonly Error OrganisationParentUnavailable = new(
+        "ORGANISATION_PARENT_UNAVAILABLE",
+        "The parent must be another organisation of the tenant that isn't dissolved or archived.",
+        ErrorKind.Unprocessable);
+
+    public static readonly Error OrganisationParentCycle = new(
+        "ORGANISATION_PARENT_CYCLE",
+        "The parent can't be the organisation itself or one of the organisations below it: the links would close a cycle.",
+        ErrorKind.Unprocessable);
 }

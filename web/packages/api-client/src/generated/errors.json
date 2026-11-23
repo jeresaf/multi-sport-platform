@@ -217,9 +217,21 @@
       "owner": "Platform"
     },
     {
+      "code": "ORGANISATION_ARCHIVED",
+      "status": 409,
+      "message": "The organisation is archived: it takes no new parent. Unarchive it first.",
+      "owner": "Registry"
+    },
+    {
       "code": "ORGANISATION_CONCURRENCY_CONFLICT",
       "status": 409,
       "message": "The organisation was changed by someone else. Reload and try again.",
+      "owner": "Registry"
+    },
+    {
+      "code": "ORGANISATION_DISSOLVED",
+      "status": 409,
+      "message": "The organisation is dissolved: it takes no new parent.",
       "owner": "Registry"
     },
     {
@@ -238,6 +250,18 @@
       "code": "ORGANISATION_NOT_FOUND",
       "status": 404,
       "message": "The organisation was not found.",
+      "owner": "Registry"
+    },
+    {
+      "code": "ORGANISATION_PARENT_CYCLE",
+      "status": 422,
+      "message": "The parent can't be the organisation itself or one of the organisations below it: the links would close a cycle.",
+      "owner": "Registry"
+    },
+    {
+      "code": "ORGANISATION_PARENT_UNAVAILABLE",
+      "status": 422,
+      "message": "The parent must be another organisation of the tenant that isn't dissolved or archived.",
       "owner": "Registry"
     },
     {

@@ -110,6 +110,9 @@ public static class TableAccessPolicies
         ["registry.organisations"] = TableAccess.ReadWrite,
         ["registry.organisation_status_changes"] = TableAccess.AppendOnly,
 
+        // Organisation parent links (S07-T2c, RLS): ended by setting valid_to, never deleted.
+        ["registry.organisation_parent_links"] = TableAccess.ReadWrite,
+
         ["identity.outbox_messages"] = TableAccess.ReadWrite,
         ["registry.outbox_messages"] = TableAccess.ReadWrite,
         ["registry.inbox_messages"] = TableAccess.ReadWrite,
