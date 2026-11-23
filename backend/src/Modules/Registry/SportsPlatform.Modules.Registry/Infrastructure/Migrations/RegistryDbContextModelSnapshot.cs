@@ -170,6 +170,292 @@ namespace SportsPlatform.Modules.Registry.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("SportsPlatform.Modules.Registry.Domain.Organisations.Organisation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("City")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("city")
+                        .HasAnnotation("pii", "PUBLIC");
+
+                    b.Property<string>("CityKey")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("city_key")
+                        .HasAnnotation("pii", "INTERNAL");
+
+                    b.Property<string>("Country")
+                        .IsRequired()
+                        .HasMaxLength(2)
+                        .HasColumnType("character varying(2)")
+                        .HasColumnName("country")
+                        .HasAnnotation("pii", "PUBLIC");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("description")
+                        .HasAnnotation("pii", "PUBLIC");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("display_name")
+                        .HasAnnotation("pii", "PUBLIC");
+
+                    b.Property<string>("DisplayNameKey")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("display_name_key")
+                        .HasAnnotation("pii", "INTERNAL");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("email")
+                        .HasAnnotation("pii", "INTERNAL");
+
+                    b.Property<int?>("FoundedYear")
+                        .HasColumnType("integer")
+                        .HasColumnName("founded_year")
+                        .HasAnnotation("pii", "PUBLIC");
+
+                    b.Property<string>("LegalName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("legal_name")
+                        .HasAnnotation("pii", "INTERNAL");
+
+                    b.Property<string>("LegalNameKey")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("legal_name_key")
+                        .HasAnnotation("pii", "INTERNAL");
+
+                    b.Property<Guid?>("LogoAssetId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("logo_asset_id")
+                        .HasAnnotation("pii", "PUBLIC");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("phone")
+                        .HasAnnotation("pii", "INTERNAL");
+
+                    b.Property<Guid?>("PrimaryVenueId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("primary_venue_id")
+                        .HasAnnotation("pii", "PUBLIC");
+
+                    b.Property<string>("ShortName")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("short_name")
+                        .HasAnnotation("pii", "PUBLIC");
+
+                    b.Property<string>("ShortNameKey")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("short_name_key")
+                        .HasAnnotation("pii", "INTERNAL");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("slug")
+                        .UseCollation("C")
+                        .HasAnnotation("pii", "PUBLIC");
+
+                    b.Property<string>("SortKey")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("sort_key")
+                        .UseCollation("C")
+                        .HasAnnotation("pii", "INTERNAL");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("source")
+                        .HasAnnotation("pii", "INTERNAL");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status")
+                        .HasAnnotation("pii", "PUBLIC");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("type")
+                        .HasAnnotation("pii", "PUBLIC");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.Property<string>("Website")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("website")
+                        .HasAnnotation("pii", "PUBLIC");
+
+                    b.HasKey("Id")
+                        .HasName("pk_organisations");
+
+                    b.HasAlternateKey("TenantId", "Id")
+                        .HasName("ak_organisations_tenant_id_id");
+
+                    b.HasIndex("DisplayNameKey")
+                        .HasDatabaseName("ix_organisations_display_name_key_trgm");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("DisplayNameKey"), "gin");
+                    NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex("DisplayNameKey"), new[] { "gin_trgm_ops" });
+
+                    b.HasIndex("TenantId", "CityKey")
+                        .HasDatabaseName("ix_organisations_tenant_id_city_key");
+
+                    b.HasIndex("TenantId", "PrimaryVenueId")
+                        .HasDatabaseName("ix_organisations_tenant_id_primary_venue_id");
+
+                    b.HasIndex("TenantId", "Slug")
+                        .IsUnique()
+                        .HasDatabaseName("ux_organisations_tenant_id_slug");
+
+                    b.HasIndex("TenantId", "Type")
+                        .HasDatabaseName("ix_organisations_tenant_id_type");
+
+                    b.HasIndex("TenantId", "SortKey", "Id")
+                        .HasDatabaseName("ix_organisations_tenant_id_sort_key_id");
+
+                    b.ToTable("organisations", "registry", t =>
+                        {
+                            t.HasCheckConstraint("ck_organisations_country", "country ~ '^[A-Z]{2}$'");
+
+                            t.HasCheckConstraint("ck_organisations_display_name_key", "display_name_key <> ''");
+
+                            t.HasCheckConstraint("ck_organisations_founded_year", "founded_year >= 1800");
+
+                            t.HasCheckConstraint("ck_organisations_slug", "slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$' AND char_length(slug) BETWEEN 2 AND 80");
+
+                            t.HasCheckConstraint("ck_organisations_sort_key", "sort_key <> ''");
+
+                            t.HasCheckConstraint("ck_organisations_source", "source IN ('MANUAL', 'SEED')");
+
+                            t.HasCheckConstraint("ck_organisations_status", "status IN ('ACTIVE', 'INACTIVE', 'SUSPENDED', 'DISSOLVED', 'ARCHIVED')");
+
+                            t.HasCheckConstraint("ck_organisations_type", "type IN ('CLUB', 'SCHOOL', 'UNIVERSITY', 'ACADEMY', 'FEDERATION', 'ASSOCIATION', 'COMPANY', 'COMMUNITY', 'GOVERNMENT', 'OTHER')");
+                        });
+                });
+
+            modelBuilder.Entity("SportsPlatform.Modules.Registry.Domain.Organisations.OrganisationStatusChange", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("ActorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("actor_id");
+
+                    b.Property<string>("ActorKind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("actor_kind");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("FromStatus")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("from_status")
+                        .HasAnnotation("pii", "INTERNAL");
+
+                    b.Property<DateTimeOffset>("OccurredAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("occurred_at");
+
+                    b.Property<Guid>("OrganisationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organisation_id");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("reason")
+                        .HasAnnotation("pii", "INTERNAL");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("ToStatus")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("to_status")
+                        .HasAnnotation("pii", "INTERNAL");
+
+                    b.HasKey("Id")
+                        .HasName("pk_organisation_status_changes");
+
+                    b.HasIndex("TenantId", "OrganisationId", "OccurredAt")
+                        .HasDatabaseName("ix_organisation_status_changes_tenant_id_organisation_id_occur");
+
+                    b.ToTable("organisation_status_changes", "registry", t =>
+                        {
+                            t.HasCheckConstraint("ck_organisation_status_changes_actor_kind", "actor_kind IN ('USER', 'SYSTEM', 'ANONYMOUS')");
+
+                            t.HasCheckConstraint("ck_organisation_status_changes_from_status", "from_status IN ('ACTIVE', 'INACTIVE', 'SUSPENDED', 'DISSOLVED', 'ARCHIVED')");
+
+                            t.HasCheckConstraint("ck_organisation_status_changes_to_status", "to_status IN ('ACTIVE', 'INACTIVE', 'SUSPENDED', 'DISSOLVED', 'ARCHIVED')");
+                        });
+
+                    b.HasAnnotation("SportsPlatform:AppendOnly", true);
+                });
+
             modelBuilder.Entity("SportsPlatform.Modules.Registry.Domain.People.Consents.GuardianConsent", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1598,6 +1884,27 @@ namespace SportsPlatform.Modules.Registry.Infrastructure.Migrations
                     b.HasAnnotation("SportsPlatform:AppendOnly", true);
                 });
 
+            modelBuilder.Entity("SportsPlatform.Modules.Registry.Domain.Organisations.Organisation", b =>
+                {
+                    b.HasOne("SportsPlatform.Modules.Registry.Domain.Venues.Venue", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId", "PrimaryVenueId")
+                        .HasPrincipalKey("TenantId", "Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_organisations_venue_tenant_id_primary_venue_id");
+                });
+
+            modelBuilder.Entity("SportsPlatform.Modules.Registry.Domain.Organisations.OrganisationStatusChange", b =>
+                {
+                    b.HasOne("SportsPlatform.Modules.Registry.Domain.Organisations.Organisation", null)
+                        .WithMany("StatusHistory")
+                        .HasForeignKey("TenantId", "OrganisationId")
+                        .HasPrincipalKey("TenantId", "Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_organisation_status_changes_organisations_tenant_id_organis");
+                });
+
             modelBuilder.Entity("SportsPlatform.Modules.Registry.Domain.People.Consents.GuardianConsent", b =>
                 {
                     b.HasOne("SportsPlatform.Modules.Registry.Domain.People.Person", null)
@@ -1743,6 +2050,11 @@ namespace SportsPlatform.Modules.Registry.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_venue_status_changes_venues_tenant_id_venue_id");
+                });
+
+            modelBuilder.Entity("SportsPlatform.Modules.Registry.Domain.Organisations.Organisation", b =>
+                {
+                    b.Navigation("StatusHistory");
                 });
 
             modelBuilder.Entity("SportsPlatform.Modules.Registry.Domain.People.Person", b =>

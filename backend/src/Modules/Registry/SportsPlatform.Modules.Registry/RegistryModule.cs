@@ -6,6 +6,10 @@ using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Persistence.Seeding;
 using SportsPlatform.Modules.Registry.Contracts.People;
 using SportsPlatform.Modules.Registry.Contracts.Venues;
+using SportsPlatform.Modules.Registry.Features.Organisations;
+using SportsPlatform.Modules.Registry.Features.Organisations.CheckOrganisationDuplicates;
+using SportsPlatform.Modules.Registry.Features.Organisations.CreateOrganisation;
+using SportsPlatform.Modules.Registry.Features.Organisations.GetOrganisation;
 using SportsPlatform.Modules.Registry.Features.People;
 using SportsPlatform.Modules.Registry.Features.People.Aliases;
 using SportsPlatform.Modules.Registry.Features.People.ChangePersonStatus;
@@ -46,6 +50,7 @@ namespace SportsPlatform.Modules.Registry;
 /// S06-T5b: photos. S06-T6a: guardian consents and their evidence. S06-T7d: the demo people. S07-T1a: venues (create
 /// with the duplicate warning, the read). S07-T1b-1: the venue's update, lifecycle and status history.
 /// S07-T1b-2: the venue directory. S07-T1c: venue aliases and external identifiers, <see cref="IVenueDirectory"/>.
+/// S07-T2a: organisations (create with the duplicate warning, the read).
 /// </summary>
 public sealed class RegistryModule : IModule
 {
@@ -95,6 +100,11 @@ public sealed class RegistryModule : IModule
         services.AddScoped<CreateOfficialProfileHandler>();
         services.AddScoped<UpdateOfficialProfileHandler>();
         services.AddScoped<ChangeOfficialProfileStatusHandler>();
+        services.AddScoped<OrganisationDetailsRules>();
+        services.AddScoped<OrganisationDuplicateFinder>();
+        services.AddScoped<CheckOrganisationDuplicatesHandler>();
+        services.AddScoped<CreateOrganisationHandler>();
+        services.AddScoped<GetOrganisationHandler>();
         services.AddScoped<VenueDetailsRules>();
         services.AddScoped<VenueDuplicateFinder>();
         services.AddScoped<CheckVenueDuplicatesHandler>();
@@ -127,6 +137,8 @@ public sealed class RegistryModule : IModule
         services.AddSingleton<IValidator<RecordConsentRequest>, RecordConsentRequestValidator>();
         services.AddSingleton<IValidator<WithdrawConsentRequest>, WithdrawConsentRequestValidator>();
         services.AddSingleton<IValidator<PublicPersonPhotoRequest>, PublicPersonPhotoRequestValidator>();
+        services.AddSingleton<IValidator<CheckOrganisationDuplicatesRequest>, CheckOrganisationDuplicatesRequestValidator>();
+        services.AddScoped<IValidator<CreateOrganisationRequest>, CreateOrganisationRequestValidator>();
         services.AddSingleton<IValidator<CheckVenueDuplicatesRequest>, CheckVenueDuplicatesRequestValidator>();
         services.AddScoped<IValidator<CreateVenueRequest>, CreateVenueRequestValidator>();
         services.AddScoped<IValidator<UpdateVenueRequest>, UpdateVenueRequestValidator>();
@@ -161,6 +173,11 @@ public sealed class RegistryModule : IModule
         OfficialProfileEndpoints.Map(people);
         GetPersonPrivateEndpoint.Map(people);
         ListPersonStatusChangesEndpoint.Map(people);
+
+        var organisations = OrganisationsEndpoints.Group(groups.Admin);
+        CheckOrganisationDuplicatesEndpoint.Map(organisations);
+        CreateOrganisationEndpoint.Map(organisations);
+        GetOrganisationEndpoint.Map(organisations);
 
         var venues = VenuesEndpoints.Group(groups.Admin);
         CheckVenueDuplicatesEndpoint.Map(venues);

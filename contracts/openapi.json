@@ -7163,6 +7163,280 @@
         }
       }
     },
+    "/api/admin/v1/organisations/duplicate-check": {
+      "post": {
+        "tags": [
+          "Organisations"
+        ],
+        "summary": "Check an organisation against the registry for duplicates",
+        "description": "Compares a new organisation's names, type and city with the organisations of the tenant named by `X-Tenant-Id`, archived ones included (see `status`), and answers those that look like it, strongest first, at most 10. Only organisations of the same type or in the same city are compared (no city never matches). `LIKELY`: one of the names (display, legal or short) is the same as one of the other's (the same words in any order; case, accents and punctuation aside). `POSSIBLE`: display names at least 70 % similar. `evidence` says why. Nothing is saved: the create runs the same check, and refuses with ORGANISATION_DUPLICATE_REVIEW_REQUIRED until it is sent with `duplicatesReviewed`. A display name without a letter or a digit is ORGANISATION_NAME_INVALID.",
+        "operationId": "CheckOrganisationDuplicates",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckOrganisationDuplicatesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckOrganisationDuplicatesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_REQUEST",
+              "VALIDATION_MALFORMED_REQUEST"
+            ]
+          },
+          "422": {
+            "description": "Problem Details; `code`: `ORGANISATION_NAME_INVALID`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "ORGANISATION_NAME_INVALID"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING",
+              "TENANT_READ_ONLY"
+            ]
+          }
+        }
+      }
+    },
+    "/api/admin/v1/organisations": {
+      "post": {
+        "tags": [
+          "Organisations"
+        ],
+        "summary": "Add an organisation",
+        "description": "Adds an ACTIVE organisation (a club, school, federation…) to the tenant named by `X-Tenant-Id`. `type` and `displayName` are required; `country` defaults to the tenant's; `foundedYear` is 1800 to this year (the tenant's date); `website` is an absolute https:// or http:// address; `email` and `phone` are the body's own contacts, not a person's. `primaryVenueId` is a venue of the tenant that isn't closed or archived (else ORGANISATION_PRIMARY_VENUE_UNAVAILABLE). Without `slug`, one is proposed from the display name, with -2, -3… when taken; a slug sent that another organisation has is ORGANISATION_SLUG_TAKEN. The duplicate check (POST /organisations/duplicate-check) runs again: organisations that look like this one answer ORGANISATION_DUPLICATE_REVIEW_REQUIRED with `candidates` until the request says `duplicatesReviewed: true`, with an optional `duplicateReason`; the audit entry names the organisations shown. The reason is kept permanently in the audit trail: don't include personal data. A display name without a letter or a digit is ORGANISATION_NAME_INVALID. Answers the organisation as GET /organisations/{organisationId} does.",
+        "operationId": "CreateOrganisation",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOrganisationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "headers": {
+              "ETag": {
+                "description": "The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganisationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_REQUEST",
+              "VALIDATION_MALFORMED_REQUEST"
+            ]
+          },
+          "422": {
+            "description": "Problem Details; `code`: `ORGANISATION_DUPLICATE_REVIEW_REQUIRED`, `ORGANISATION_NAME_INVALID`, `ORGANISATION_PRIMARY_VENUE_UNAVAILABLE`, `ORGANISATION_SLUG_TAKEN`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganisationDuplicateReviewProblem"
+                }
+              }
+            },
+            "x-error-codes": [
+              "ORGANISATION_DUPLICATE_REVIEW_REQUIRED",
+              "ORGANISATION_NAME_INVALID",
+              "ORGANISATION_PRIMARY_VENUE_UNAVAILABLE",
+              "ORGANISATION_SLUG_TAKEN"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING",
+              "TENANT_READ_ONLY"
+            ]
+          }
+        }
+      }
+    },
+    "/api/admin/v1/organisations/{organisationId}": {
+      "get": {
+        "tags": [
+          "Organisations"
+        ],
+        "summary": "Get an organisation",
+        "description": "An organisation of the tenant named by `X-Tenant-Id`, whatever its status: type, names, country, city, founded year, website, the body's own email and phone, description, primary venue (id, name, slug), status and `version` (also the `ETag`).",
+        "operationId": "GetOrganisation",
+        "parameters": [
+          {
+            "name": "organisationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganisationResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Problem Details; `code`: `ORGANISATION_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "ORGANISATION_NOT_FOUND"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING"
+            ]
+          }
+        }
+      }
+    },
     "/api/admin/v1/venues/duplicate-check": {
       "post": {
         "tags": [
@@ -12778,6 +13052,66 @@
         },
         "description": "The duplicate check's answer (S06 D5): the existing people who may be the same person, strongest first, at most 20,\nand the token a create needs (S06 D6). It carries no `PRIVATE` value: a birth year, never a date of birth."
       },
+      "CheckOrganisationDuplicatesRequest": {
+        "required": [
+          "type",
+          "displayName"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/OrganisationType"
+              }
+            ]
+          },
+          "displayName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "legalName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "shortName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "city": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "description": "What the organisation duplicate warning compares (S07 D13): the names, type and city a save would send."
+      },
+      "CheckOrganisationDuplicatesResponse": {
+        "required": [
+          "candidates"
+        ],
+        "type": "object",
+        "properties": {
+          "candidates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrganisationDuplicateCandidateResponse"
+            }
+          }
+        },
+        "description": "The organisations that look like the one checked, strongest first (none is an empty list)."
+      },
       "CheckVenueDuplicatesRequest": {
         "required": [
           "name",
@@ -13068,6 +13402,111 @@
         },
         "additionalProperties": false,
         "description": "A new athlete profile (S06 D12): the variant's code, then the details as UpdateAthleteProfileRequest\ntakes them; `version`, when sent, must be the person's current one."
+      },
+      "CreateOrganisationRequest": {
+        "required": [
+          "type",
+          "displayName"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/OrganisationType"
+              }
+            ]
+          },
+          "displayName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "legalName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "shortName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "country": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "city": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "foundedYear": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "website": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "phone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "primaryVenueId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "slug": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "duplicatesReviewed": {
+            "type": "boolean",
+            "default": false
+          },
+          "duplicateReason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "description": "A new organisation (S07 D4): its fields, an optional slug (proposed from the display name when none is sent, D9),\nand, after the duplicate warning, `duplicatesReviewed` with an optional reason (D13)."
       },
       "CreatePersonRequest": {
         "required": [
@@ -14850,6 +15289,304 @@
           }
         },
         "description": "A person's work as an official (S06 D12): what they officiate as, by variant and role (codes of the variant's\ndefinition; labels from `GET /sports/{variant}`, AR-29)."
+      },
+      "OrganisationDuplicateCandidateResponse": {
+        "required": [
+          "organisationId",
+          "displayName",
+          "type",
+          "city",
+          "status",
+          "confidence",
+          "evidence"
+        ],
+        "type": "object",
+        "properties": {
+          "organisationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/OrganisationType"
+          },
+          "city": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/OrganisationStatus"
+          },
+          "confidence": {
+            "$ref": "#/components/schemas/DuplicateConfidence"
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrganisationDuplicateEvidence"
+            }
+          }
+        },
+        "description": "An organisation that looks like the one checked (S07 D13): enough to recognise it and open it. `status` marks an\narchived one."
+      },
+      "OrganisationDuplicateEvidence": {
+        "required": [
+          "code"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/OrganisationDuplicateEvidenceCode"
+          },
+          "value": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "OrganisationDuplicateEvidenceCode": {
+        "enum": [
+          "SAME_NAME_KEY",
+          "NAME_SIMILARITY",
+          "SAME_TYPE",
+          "SAME_CITY"
+        ],
+        "description": "Why an organisation looks like the one checked (S07 D13)."
+      },
+      "OrganisationDuplicateReviewProblem": {
+        "required": [
+          "code",
+          "correlationId"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "detail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "instance": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "candidates": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/OrganisationDuplicateCandidateResponse"
+            }
+          },
+          "code": {
+            "type": "string",
+            "description": "Stable error code, `<AREA>_<CONDITION>` (contracts/errors.json). Clients branch on it."
+          },
+          "correlationId": {
+            "type": "string",
+            "description": "The request's correlation ID (also the `X-Correlation-Id` response header)."
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "required": [
+                "field",
+                "code"
+              ],
+              "type": "object",
+              "properties": {
+                "field": {
+                  "type": "string"
+                },
+                "code": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Validation failures, one per field: `field` (camelCase) and `code`."
+          }
+        },
+        "description": "The Problem Details of an organisation create refused with `422` (S07 D13), for the OpenAPI document and the\ngenerated client: `candidates` is present only with `ORGANISATION_DUPLICATE_REVIEW_REQUIRED`, the\norganisations the warning found, strongest first."
+      },
+      "OrganisationResponse": {
+        "required": [
+          "id",
+          "type",
+          "displayName",
+          "legalName",
+          "shortName",
+          "slug",
+          "country",
+          "city",
+          "foundedYear",
+          "website",
+          "email",
+          "phone",
+          "description",
+          "primaryVenue",
+          "status",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "$ref": "#/components/schemas/OrganisationType"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "legalName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "shortName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "slug": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          },
+          "city": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "foundedYear": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "website": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "phone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "primaryVenue": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/OrganisationVenueResponse"
+              }
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/OrganisationStatus"
+          },
+          "version": {
+            "type": "integer",
+            "format": "uint32"
+          }
+        },
+        "description": "An organisation as the admin reads it (S07 D19). The legal name, the body's own email and phone and the version are\n`INTERNAL`; every other field is one the public reads may show (D16). The primary venue is a summary of the\ntenant's venue (null without one). Parent, children, teams, aliases, identifiers and the logo join with S07-T2c,\nT2d, T3 and T4."
+      },
+      "OrganisationStatus": {
+        "enum": [
+          "ACTIVE",
+          "INACTIVE",
+          "SUSPENDED",
+          "DISSOLVED",
+          "ARCHIVED"
+        ],
+        "description": "An organisation's states (docs/domain/state-machines.md, Registry; S07 D12)."
+      },
+      "OrganisationType": {
+        "enum": [
+          "CLUB",
+          "SCHOOL",
+          "UNIVERSITY",
+          "ACADEMY",
+          "FEDERATION",
+          "ASSOCIATION",
+          "COMPANY",
+          "COMMUNITY",
+          "GOVERNMENT",
+          "OTHER"
+        ],
+        "description": "What kind of body an organisation is (S07 D4). Generic codes: none names a sport (AR-11)."
+      },
+      "OrganisationVenueResponse": {
+        "required": [
+          "id",
+          "name",
+          "slug"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          }
+        },
+        "description": "A venue an organisation points at (S07 D16: id, name, slug), whatever the venue's status now."
       },
       "OutboxMessageResponse": {
         "required": [
@@ -19092,6 +19829,9 @@
     },
     {
       "name": "People"
+    },
+    {
+      "name": "Organisations"
     },
     {
       "name": "Venues"

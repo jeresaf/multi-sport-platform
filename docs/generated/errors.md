@@ -42,6 +42,12 @@ the message is the default title and may change.
 | `MEDIA_NOT_FOUND` | 404 | The file doesn't exist, was removed, or its link has expired. | Platform |
 | `MEDIA_TOO_LARGE` | 413 | The file is too large. Photos: up to 5 MB. Documents: up to 10 MB. | Platform |
 | `MEDIA_TYPE_NOT_ALLOWED` | 422 | The file's type isn't accepted here. Photos: JPEG, PNG or WebP. Documents: PDF, JPEG or PNG. | Platform |
+| `ORGANISATION_CONCURRENCY_CONFLICT` | 409 | The organisation was changed by someone else. Reload and try again. | Registry |
+| `ORGANISATION_DUPLICATE_REVIEW_REQUIRED` | 422 | Organisations already in the registry look like this one: open one of them, or send duplicatesReviewed to add it anyway. | Registry |
+| `ORGANISATION_NAME_INVALID` | 422 | An organisation's display name needs at least one letter or digit. | Registry |
+| `ORGANISATION_NOT_FOUND` | 404 | The organisation was not found. | Registry |
+| `ORGANISATION_PRIMARY_VENUE_UNAVAILABLE` | 422 | The primary venue must be a venue of the tenant that isn't closed or archived. | Registry |
+| `ORGANISATION_SLUG_TAKEN` | 422 | Another organisation of the tenant has this slug. | Registry |
 | `PERSON_ALIAS_EXISTS` | 409 | The person is already known by this name: their own name or a current alias gives the same name key. | Registry |
 | `PERSON_ALIAS_NOT_FOUND` | 404 | The person has no such alias. | Registry |
 | `PERSON_ALIAS_REMOVED` | 409 | The alias is already removed. | Registry |

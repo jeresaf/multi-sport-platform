@@ -156,8 +156,13 @@ public sealed class PersonPersistenceTests(PostgresFixture fixture) : DatabaseTe
             reader => (Name: reader.GetString(0), Definition: reader.GetString(1)));
 
         indexes.Select(index => index.Name).Order().ShouldBe(
-            ["ix_person_aliases_name_key_trgm", "ix_persons_name_key_trgm", "ix_venue_aliases_name_key_trgm", "ix_venues_name_key_trgm"]);
-        indexes.ShouldAllBe(index => index.Definition.Contains("USING gin (name_key gin_trgm_ops)", StringComparison.Ordinal));
+            [
+                "ix_organisations_display_name_key_trgm", "ix_person_aliases_name_key_trgm", "ix_persons_name_key_trgm",
+                "ix_venue_aliases_name_key_trgm", "ix_venues_name_key_trgm",
+            ]);
+        indexes.ShouldAllBe(index => index.Definition.Contains(
+            index.Name == "ix_organisations_display_name_key_trgm" ? "USING gin (display_name_key gin_trgm_ops)" : "USING gin (name_key gin_trgm_ops)",
+            StringComparison.Ordinal));
     }
 
     [Fact]

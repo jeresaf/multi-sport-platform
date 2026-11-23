@@ -494,3 +494,14 @@ The rest of S06's tech debt has its own trigger in PROGRESS.md ("From S06").
   duplicate warning (owner, plan 2026-11-21: D13 read literally). `IVenueDirectory` with its own `VenueStatus` in
   Contracts, mapped from the domain's, as `IPeopleDirectory` (not moved, as the plan first said: People's pattern).
   One PR (owner).
+- **T2a (organisations, first part):** T2 is four PRs (owner, plan 2026-11-22): T2a the model, create with the warning,
+  the check and the read; T2b update, lifecycle, status history and the directory; T2c parent links; T2d aliases,
+  identifiers and `IOrganisationDirectory`. `registry.organisations` keeps a key for each name (display, legal, short;
+  null when a name has no letter or digit), `sort_key` and `city_key` (null without a city to compare) from the start,
+  so the directory needs no backfill. D13 for organisations as built: only the same type or city key is compared;
+  `LIKELY` when a name key of one is a name key of the other, `POSSIBLE` when display name keys are at least 0.7 similar
+  (display names only, owner). `ORGANISATION_NAME_INVALID` (422) refuses a display name with no letter or digit; a
+  founded year after the tenant's year is `400 VALIDATION_INVALID_REQUEST` on `foundedYear`. The primary venue is
+  checked only when set or changed (D6's rule), untracked and before the lock (as venues' references); a temporarily
+  unavailable venue is accepted. D4's `organisation_type` is the column `type` (as venues' `type` for D3's
+  `venue_type`). `logo_asset_id` exists but stays null until T4.

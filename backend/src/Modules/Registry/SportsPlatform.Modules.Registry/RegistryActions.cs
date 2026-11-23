@@ -276,6 +276,41 @@ public static class RegistryActions
         "End a venue's external identifier; it is kept, and its value is never given to another venue.",
         AuditRequirement.Required);
 
+    public static readonly ActionDefinition OrganisationRead = new(
+        "organisation.read",
+        "View the organisations directory and an organisation's record: type, names, city, contacts, primary venue and status.",
+        ActionScope.Tenant,
+        AuditRequirement.None,
+        since: "S07",
+        scopableBy: [AssignmentScope.Tenant],
+        availableWhenReadOnly: true);
+
+    /// <summary>
+    /// Its own unaudited action, as <c>venue.duplicate_check</c>: the check saves nothing (S07 D13). It answers other
+    /// organisations' names and cities, so it is only granted with <c>organisation.read</c>.
+    /// </summary>
+    public static readonly ActionDefinition OrganisationDuplicateCheck = new(
+        "organisation.duplicate_check",
+        "Check a new or changed organisation's names, type and city against the organisations already in the registry.",
+        ActionScope.Tenant,
+        AuditRequirement.None,
+        since: "S07",
+        scopableBy: [AssignmentScope.Tenant],
+        grantedWith: ["organisation.read"]);
+
+    /// <summary>
+    /// Runs the duplicate check itself (no token, S07 D13), and answers the organisation as <c>organisation.read</c>
+    /// does, so it is granted with the check and that read.
+    /// </summary>
+    public static readonly ActionDefinition OrganisationCreate = new(
+        "organisation.create",
+        "Add an organisation (a club, school, federation…) to the registry; possible duplicates are shown first, and creating it anyway is recorded with the organisations shown.",
+        ActionScope.Tenant,
+        AuditRequirement.Required,
+        since: "S07",
+        scopableBy: [AssignmentScope.Tenant],
+        grantedWith: ["organisation.duplicate_check", "organisation.read"]);
+
     // The lifecycle, alias, identifier, profile, photo, consent and public-profile actions answer the person as person.read does, so they are only
     // granted with that read.
     private static ActionDefinition Lifecycle(string code, string description, AuditRequirement audit) => new(

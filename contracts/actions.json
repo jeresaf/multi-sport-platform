@@ -349,6 +349,54 @@
       "since": "S06"
     },
     {
+      "code": "organisation.create",
+      "module": "Registry",
+      "description": "Add an organisation (a club, school, federation…) to the registry; possible duplicates are shown first, and creating it anyway is recorded with the organisations shown.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S07"
+    },
+    {
+      "code": "organisation.duplicate_check",
+      "module": "Registry",
+      "description": "Check a new or changed organisation's names, type and city against the organisations already in the registry.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "NONE",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S07"
+    },
+    {
+      "code": "organisation.read",
+      "module": "Registry",
+      "description": "View the organisations directory and an organisation's record: type, names, city, contacts, primary venue and status.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "NONE",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": true,
+      "since": "S07"
+    },
+    {
       "code": "person.alias.add",
       "module": "Registry",
       "description": "Add another name a person is known by (former name, nickname, spelling), so search and the duplicate check find them under it too; not for an archived or deceased person.",
