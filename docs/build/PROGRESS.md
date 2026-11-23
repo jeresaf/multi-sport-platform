@@ -7,13 +7,16 @@ at the start of every review.
 
 - **Current slice:** S07 — Organisations, teams and venues (docs/build/slices/S07-organisations-teams-venues.md,
   written by the S06 slice review). S00–S06 are done
-- **Current task:** — (S07-T2d in review: #126)
-- **Next:** S07-T3 — Teams
+- **Current task:** S07-T3a — Teams, first part (model, create with the warning and `MAX_TEAMS`, the check, the read)
+- **Next:** S07-T3b-1 — Teams: update, lifecycle, status history
 - **Blocked on:** —
 
 ## Next up
 
-1. S07-T3 — Teams
+1. S07-T3b-1 — Teams: update (`TEAM_RENAME_REQUIRED`), lifecycle with the quota on reform and unarchive, status history
+2. S07-T3b-2 — Teams: the directory, and the teams in the organisation read
+3. S07-T3c — Teams: rename, aliases (former names), the name on a date
+4. S07-T3d — Teams: external identifiers, `ITeamDirectory`
 
 ## Log
 
@@ -140,6 +143,13 @@ at the start of every review.
 | 2026-11-23 | S07-T2d | #126 | Organisations: `registry.organisation_aliases` (RLS) and `ORGANISATION` external identifiers (`POST …/aliases`, `…/aliases/{id}/remove`, `…/external-identifiers`, `…/external-identifiers/{id}/end`; actions `organisation.alias.add`/`.remove`, `organisation.external_id.add`/`.end` for `TENANT_OWNER`, `TENANT_ADMIN`, `REGISTRAR`); the read shows aliases and identifiers; `GET /organisations?q=` by current alias and exact identifier value; current aliases in the duplicate warning; `IOrganisationDirectory` with its own status and type enums in Contracts. Migration `AddOrganisationAliasesAndIdentifiers` | Owner (plan 2026-11-23): aliases feed the warning on both sides (an update brings the organisation's own aliases; a create and the live check have none), an alias add runs no warning, one PR. An alias matching the display, legal or short name key is `ORGANISATION_ALIAS_EXISTS`. No new dependencies. Size: about 1,000 production and 600 test and doc lines without the migration and generated files, against ~1,100–1,250 planned. Web client regenerated on Node 22 (CI uses 24) |
 
 ## Deviations from spec (agreed)
+
+- **S07-T3 (owner, plan 2026-11-23):** T3 is five PRs: T3a (model, create with the warning and `MAX_TEAMS`, the check,
+  the read), T3b-1 (update, lifecycle, status history), T3b-2 (directory, teams in the organisation read), T3c (rename,
+  aliases, the name on a date), T3d (identifiers, `ITeamDirectory`). A dissolved, archived, unknown or other tenant's
+  organisation is `422 TEAM_ORGANISATION_UNAVAILABLE` on `organisationId` (D6 over D10's `409 ORGANISATION_*`). The
+  proposed slug is the name, the age group and gender codes, and the level unless `FIRST`
+  (`seeta-sparrows-fc-u17-men`, `kireka-kingfishers-fc-senior-men-reserve`). Q50 and Q53 confirmed as their defaults.
 
 - **S07-T2c (owner, plan 2026-11-23):** T2c is two PRs: T2c-1 (the parent, the cycle check, the link history) and
   T2c-2 (`parent` and `children` on the read, the directory's `parentId`). A new parent link moves the new parent's
