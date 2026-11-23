@@ -139,6 +139,9 @@ at the start of every review.
 
 ## Deviations from spec (agreed)
 
+- **S07-T2b-2 (owner, plan 2026-11-23):** D19's `parentId` filter on `GET /organisations` moves to T2c, with the
+  parent links it reads. The venue directory's cursor is shared as `DirectoryCursor` for every registry directory.
+
 - **S07-T2b (owner, plan 2026-11-23):** T2b is two PRs: T2b-1 (update, lifecycle, status history) and T2b-2 (the
   directory). The update follows venues' defaults: a correction in every status, `slug` left out kept, `country` left
   out the tenant's, the warning and the lock again only when a name key, the type or the city key changes (or, for the
@@ -620,6 +623,11 @@ docs/build/slices/S07-organisations-teams-venues.md, "Carried over from S06")
   `pg_trgm.similarity_threshold` when a tenant's venues reach the thousands, or when T2/T3's finders for organisations
   and teams (more rows) are planned. **Organisations (S07-T2a):** their finder filters on the type or the city key first
   (both indexed per tenant), then measures similarity within those rows. Teams decide in T3's plan; venues unchanged.
+- The organisation directory's `q` (S07-T2b-2) tests the legal and short name keys with `LIKE 'key%'` and the
+  display name by similarity; no index serves the legal and short name prefixes (only `sort_key`, collation "C",
+  can serve a prefix; the display name key has the trigram index). Fine at a tenant's few hundred organisations; add `text_pattern_ops` indexes or
+  move to `%` with a threshold when a tenant's organisations reach the thousands (as the duplicate finders' item
+  above). (When T2d adds alias search, or the first slow directory query.)
 - A venue's former names are `PUBLIC` (D16) but `venue_aliases.name` is classified `INTERNAL` for every alias kind
   (S07-T1c, review of #120 Q1): one column carries one `pii` class. T5's plan chooses between a public read of former
   names only (`kind = FORMER_NAME`, its own public DTO) and reclassifying the column. (S07-T5.)
