@@ -7909,6 +7909,228 @@
         }
       }
     },
+    "/api/admin/v1/organisations/{organisationId}/parent": {
+      "post": {
+        "tags": [
+          "Organisations"
+        ],
+        "summary": "Set or clear an organisation's parent",
+        "description": "Sets the organisation this one belongs to (body `{ \"parentId\": …, \"reason\": … }`; `parentId: null` clears it; the reason is required). The current parent link ends today (the tenant's date) and the new one starts today; every link is kept with its dates (GET /organisations/{organisationId}/parent-links). The parent must be another organisation of the tenant that isn't dissolved or archived (ORGANISATION_PARENT_UNAVAILABLE), and not the organisation itself or any organisation below it (ORGANISATION_PARENT_CYCLE). A dissolved or archived organisation takes no new parent (ORGANISATION_DISSOLVED, ORGANISATION_ARCHIVED) but can have its parent cleared. Setting the parent it already has changes nothing. Statuses don't follow the parent. The reason is kept permanently on the link and in the audit trail: don't include personal data. Send `version` or `If-Match` from the last read to get 409 ORGANISATION_CONCURRENCY_CONFLICT if the organisation changed since; a change saved to the new parent at the same moment answers it too. Answers the organisation as GET /organisations/{organisationId} does.",
+        "operationId": "SetOrganisationParent",
+        "parameters": [
+          {
+            "name": "organisationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetOrganisationParentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganisationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST`, `VALIDATION_REASON_REQUIRED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_REQUEST",
+              "VALIDATION_MALFORMED_REQUEST",
+              "VALIDATION_REASON_REQUIRED"
+            ]
+          },
+          "404": {
+            "description": "Problem Details; `code`: `ORGANISATION_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "ORGANISATION_NOT_FOUND"
+            ]
+          },
+          "409": {
+            "description": "Problem Details; `code`: `ORGANISATION_ARCHIVED`, `ORGANISATION_CONCURRENCY_CONFLICT`, `ORGANISATION_DISSOLVED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "ORGANISATION_ARCHIVED",
+              "ORGANISATION_CONCURRENCY_CONFLICT",
+              "ORGANISATION_DISSOLVED"
+            ]
+          },
+          "422": {
+            "description": "Problem Details; `code`: `ORGANISATION_PARENT_CYCLE`, `ORGANISATION_PARENT_UNAVAILABLE`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "ORGANISATION_PARENT_CYCLE",
+              "ORGANISATION_PARENT_UNAVAILABLE"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING",
+              "TENANT_READ_ONLY"
+            ]
+          }
+        }
+      }
+    },
+    "/api/admin/v1/organisations/{organisationId}/parent-links": {
+      "get": {
+        "tags": [
+          "Organisations"
+        ],
+        "summary": "List an organisation's parent history",
+        "description": "Every parent the organisation has had, newest first, with the dates of each link (the tenant's dates; `validTo` is null on the current one), who set it, when and why. A link opened and ended on the same day keeps both dates.",
+        "operationId": "ListOrganisationParentLinks",
+        "parameters": [
+          {
+            "name": "organisationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListOrganisationParentLinksResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Problem Details; `code`: `ORGANISATION_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "ORGANISATION_NOT_FOUND"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING"
+            ]
+          }
+        }
+      }
+    },
     "/api/admin/v1/venues/duplicate-check": {
       "post": {
         "tags": [
@@ -15220,6 +15442,20 @@
           }
         }
       },
+      "ListOrganisationParentLinksResponse": {
+        "required": [
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrganisationParentLinkResponse"
+            }
+          }
+        }
+      },
       "ListOrganisationsResponse": {
         "required": [
           "items",
@@ -16020,6 +16256,79 @@
           }
         },
         "description": "An organisation in the directory: enough to recognise it and open it (S07 D19; every field is public, D16 — the email\nand phone, which are internal, are left out)."
+      },
+      "OrganisationParentLinkResponse": {
+        "required": [
+          "id",
+          "parent",
+          "validFrom",
+          "validTo",
+          "reason",
+          "actorKind",
+          "actorId",
+          "setAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "parent": {
+            "$ref": "#/components/schemas/OrganisationParentSummary"
+          },
+          "validFrom": {
+            "type": "string",
+            "format": "date"
+          },
+          "validTo": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "actorKind": {
+            "$ref": "#/components/schemas/ActorKind"
+          },
+          "actorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "setAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "One link of an organisation to a parent (S07 D5, D19; D16: the links and their reasons are internal). The parent is a\nsummary of the tenant's organisation, whatever its status now; `validTo` is null on the current link."
+      },
+      "OrganisationParentSummary": {
+        "required": [
+          "id",
+          "displayName",
+          "slug",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/OrganisationStatus"
+          }
+        },
+        "description": "An organisation another points at (S07 D16: id, display name, slug), with its status now."
       },
       "OrganisationResponse": {
         "required": [
@@ -17864,6 +18173,37 @@
           "BUTTONS",
           "DELIVERY_PAD"
         ]
+      },
+      "SetOrganisationParentRequest": {
+        "required": [
+          "parentId",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "parentId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "version": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "uint32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "The organisation's new parent, or null for none, and why (S07 D5; audit `REQUIRED_WITH_REASON`). The reason is\nkept permanently on the parent link and in the audit trail and is not redacted: it must not contain personal data.\n`version`, when sent, must be the organisation's current one (or `If-Match`)."
       },
       "SiteResponse": {
         "required": [

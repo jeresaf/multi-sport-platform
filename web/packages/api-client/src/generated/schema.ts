@@ -1354,6 +1354,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/v1/organisations/{organisationId}/parent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Set or clear an organisation's parent
+         * @description Sets the organisation this one belongs to (body `{ "parentId": …, "reason": … }`; `parentId: null` clears it; the reason is required). The current parent link ends today (the tenant's date) and the new one starts today; every link is kept with its dates (GET /organisations/{organisationId}/parent-links). The parent must be another organisation of the tenant that isn't dissolved or archived (ORGANISATION_PARENT_UNAVAILABLE), and not the organisation itself or any organisation below it (ORGANISATION_PARENT_CYCLE). A dissolved or archived organisation takes no new parent (ORGANISATION_DISSOLVED, ORGANISATION_ARCHIVED) but can have its parent cleared. Setting the parent it already has changes nothing. Statuses don't follow the parent. The reason is kept permanently on the link and in the audit trail: don't include personal data. Send `version` or `If-Match` from the last read to get 409 ORGANISATION_CONCURRENCY_CONFLICT if the organisation changed since; a change saved to the new parent at the same moment answers it too. Answers the organisation as GET /organisations/{organisationId} does.
+         */
+        post: operations["SetOrganisationParent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/organisations/{organisationId}/parent-links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List an organisation's parent history
+         * @description Every parent the organisation has had, newest first, with the dates of each link (the tenant's dates; `validTo` is null on the current one), who set it, when and why. A link opened and ended on the same day keeps both dates.
+         */
+        get: operations["ListOrganisationParentLinks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/v1/venues/duplicate-check": {
         parameters: {
             query?: never;
@@ -3050,6 +3090,9 @@ export interface components {
             items: components["schemas"]["MemberResponse"][];
             page: components["schemas"]["PageInfo"];
         };
+        ListOrganisationParentLinksResponse: {
+            items: components["schemas"]["OrganisationParentLinkResponse"][];
+        };
         ListOrganisationsResponse: {
             items: components["schemas"]["OrganisationListItem"][];
             page: components["schemas"]["PageInfo"];
@@ -3296,6 +3339,33 @@ export interface components {
             type: components["schemas"]["OrganisationType"];
             city: null | string;
             country: string;
+            status: components["schemas"]["OrganisationStatus"];
+        };
+        /**
+         * @description One link of an organisation to a parent (S07 D5, D19; D16: the links and their reasons are internal). The parent is a
+         *     summary of the tenant's organisation, whatever its status now; `validTo` is null on the current link.
+         */
+        OrganisationParentLinkResponse: {
+            /** Format: uuid */
+            id: string;
+            parent: components["schemas"]["OrganisationParentSummary"];
+            /** Format: date */
+            validFrom: string;
+            /** Format: date */
+            validTo: null | string;
+            reason: string;
+            actorKind: components["schemas"]["ActorKind"];
+            /** Format: uuid */
+            actorId: string;
+            /** Format: date-time */
+            setAt: string;
+        };
+        /** @description An organisation another points at (S07 D16: id, display name, slug), with its status now. */
+        OrganisationParentSummary: {
+            /** Format: uuid */
+            id: string;
+            displayName: string;
+            slug: string;
             status: components["schemas"]["OrganisationStatus"];
         };
         /**
@@ -3870,6 +3940,18 @@ export interface components {
         };
         /** @enum {unknown} */
         ScorerPadKind: "BUTTONS" | "DELIVERY_PAD";
+        /**
+         * @description The organisation's new parent, or null for none, and why (S07 D5; audit `REQUIRED_WITH_REASON`). The reason is
+         *     kept permanently on the parent link and in the audit trail and is not redacted: it must not contain personal data.
+         *     `version`, when sent, must be the organisation's current one (or `If-Match`).
+         */
+        SetOrganisationParentRequest: {
+            /** Format: uuid */
+            parentId: null | string;
+            reason: null | string;
+            /** Format: uint32 */
+            version?: null | number;
+        };
         /**
          * @description The public site's identity: `PUBLIC` fields only. PrimaryDomain is the host the site
          *     prefers, which may differ from the host the request came in on.
@@ -9327,6 +9409,140 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ListOrganisationStatusChangesResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `ORGANISATION_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    SetOrganisationParent: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too. */
+                "If-Match"?: string;
+            };
+            path: {
+                organisationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetOrganisationParentRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganisationResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST`, `VALIDATION_REASON_REQUIRED` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `ORGANISATION_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `ORGANISATION_ARCHIVED`, `ORGANISATION_CONCURRENCY_CONFLICT`, `ORGANISATION_DISSOLVED` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `ORGANISATION_PARENT_CYCLE`, `ORGANISATION_PARENT_UNAVAILABLE` */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListOrganisationParentLinks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organisationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListOrganisationParentLinksResponse"];
                 };
             };
             /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
