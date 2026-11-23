@@ -253,6 +253,12 @@
       "owner": "Registry"
     },
     {
+      "code": "ORGANISATION_STATUS_INVALID",
+      "status": 409,
+      "message": "The organisation's current status doesn't allow this change.",
+      "owner": "Registry"
+    },
+    {
       "code": "PERSON_ALIAS_EXISTS",
       "status": 409,
       "message": "The person is already known by this name: their own name or a current alias gives the same name key.",

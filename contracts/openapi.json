@@ -7435,6 +7435,357 @@
             ]
           }
         }
+      },
+      "put": {
+        "tags": [
+          "Organisations"
+        ],
+        "summary": "Change an organisation",
+        "description": "Replaces the fields of an organisation of the tenant named by `X-Tenant-Id`, whatever its status: a field left out is cleared, `country` left out is the tenant's, and `slug` left out keeps the organisation's (a slug another organisation has is ORGANISATION_SLUG_TAKEN). The status changes through POST /organisations/{organisationId}/status. A new `primaryVenueId` must be a venue of the tenant that isn't closed or archived (ORGANISATION_PRIMARY_VENUE_UNAVAILABLE); the current one is kept whatever its status. When a name (as the duplicate check compares it: case, accents, punctuation and word order aside), the type or the city changes, the duplicate check runs again, the organisation itself left out: organisations that look like the changed one answer ORGANISATION_DUPLICATE_REVIEW_REQUIRED with `candidates` until the request says `duplicatesReviewed: true`, with an optional `duplicateReason`; the audit entry names the organisations shown. The reason is kept permanently in the audit trail: don't include personal data. Send `version` or `If-Match` from the last read to get 409 ORGANISATION_CONCURRENCY_CONFLICT if the organisation changed since. Answers the organisation as GET /organisations/{organisationId} does.",
+        "operationId": "UpdateOrganisation",
+        "parameters": [
+          {
+            "name": "organisationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOrganisationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganisationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_REQUEST",
+              "VALIDATION_MALFORMED_REQUEST"
+            ]
+          },
+          "404": {
+            "description": "Problem Details; `code`: `ORGANISATION_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "ORGANISATION_NOT_FOUND"
+            ]
+          },
+          "409": {
+            "description": "Problem Details; `code`: `ORGANISATION_CONCURRENCY_CONFLICT`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "ORGANISATION_CONCURRENCY_CONFLICT"
+            ]
+          },
+          "422": {
+            "description": "Problem Details; `code`: `ORGANISATION_DUPLICATE_REVIEW_REQUIRED`, `ORGANISATION_NAME_INVALID`, `ORGANISATION_PRIMARY_VENUE_UNAVAILABLE`, `ORGANISATION_SLUG_TAKEN`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganisationDuplicateReviewProblem"
+                }
+              }
+            },
+            "x-error-codes": [
+              "ORGANISATION_DUPLICATE_REVIEW_REQUIRED",
+              "ORGANISATION_NAME_INVALID",
+              "ORGANISATION_PRIMARY_VENUE_UNAVAILABLE",
+              "ORGANISATION_SLUG_TAKEN"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING",
+              "TENANT_READ_ONLY"
+            ]
+          }
+        }
+      }
+    },
+    "/api/admin/v1/organisations/{organisationId}/status": {
+      "post": {
+        "tags": [
+          "Organisations"
+        ],
+        "summary": "Change an organisation's status",
+        "description": "Moves the organisation, with a reason (body `{ \"status\": …, \"reason\": … }`, both required): ACTIVE, INACTIVE and SUSPENDED move between each other and to DISSOLVED or ARCHIVED; DISSOLVED → ARCHIVED only; ARCHIVED → the status it had before archiving (unarchive), and no other, so a dissolved organisation stays dissolved. Any other move is ORGANISATION_STATUS_INVALID. The organisation's teams keep their statuses. Nothing is deleted: each move is kept in the organisation's history (GET /organisations/{organisationId}/status-changes). The reason is kept permanently in that history and the audit trail: don't include personal data. Send `version` or `If-Match` from the last read to get 409 ORGANISATION_CONCURRENCY_CONFLICT if the organisation changed since. Answers the organisation as GET /organisations/{organisationId} does.",
+        "operationId": "ChangeOrganisationStatus",
+        "parameters": [
+          {
+            "name": "organisationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeOrganisationStatusRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganisationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST`, `VALIDATION_REASON_REQUIRED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_REQUEST",
+              "VALIDATION_MALFORMED_REQUEST",
+              "VALIDATION_REASON_REQUIRED"
+            ]
+          },
+          "404": {
+            "description": "Problem Details; `code`: `ORGANISATION_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "ORGANISATION_NOT_FOUND"
+            ]
+          },
+          "409": {
+            "description": "Problem Details; `code`: `ORGANISATION_CONCURRENCY_CONFLICT`, `ORGANISATION_STATUS_INVALID`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "ORGANISATION_CONCURRENCY_CONFLICT",
+              "ORGANISATION_STATUS_INVALID"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING",
+              "TENANT_READ_ONLY"
+            ]
+          }
+        }
+      }
+    },
+    "/api/admin/v1/organisations/{organisationId}/status-changes": {
+      "get": {
+        "tags": [
+          "Organisations"
+        ],
+        "summary": "List an organisation's status history",
+        "description": "Every status the organisation has had, newest first, with who changed it, when and why.",
+        "operationId": "ListOrganisationStatusChanges",
+        "parameters": [
+          {
+            "name": "organisationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListOrganisationStatusChangesResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Problem Details; `code`: `ORGANISATION_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "ORGANISATION_NOT_FOUND"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING"
+            ]
+          }
+        }
       }
     },
     "/api/admin/v1/venues/duplicate-check": {
@@ -12776,6 +13127,40 @@
         "additionalProperties": false,
         "description": "The body of `suspend` and `remove` (audit `REQUIRED_WITH_REASON`). The reason is kept permanently on\nthe membership and in the audit trail and is not redacted: it must not contain personal data."
       },
+      "ChangeOrganisationStatusRequest": {
+        "required": [
+          "status",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/OrganisationStatus"
+              }
+            ]
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "version": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "uint32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "The status to move an organisation to and why (S07 D12; audit `REQUIRED_WITH_REASON`). The reason is kept\npermanently in the status history and the audit trail and is not redacted: it must not contain personal data.\n`version`, when sent, must be the organisation's current one (or `If-Match`)."
+      },
       "ChangePasswordRequest": {
         "required": [
           "currentPassword",
@@ -14714,6 +15099,20 @@
           }
         }
       },
+      "ListOrganisationStatusChangesResponse": {
+        "required": [
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrganisationStatusChangeResponse"
+            }
+          }
+        }
+      },
       "ListOutboxMessagesResponse": {
         "required": [
           "items",
@@ -15551,6 +15950,55 @@
           "ARCHIVED"
         ],
         "description": "An organisation's states (docs/domain/state-machines.md, Registry; S07 D12)."
+      },
+      "OrganisationStatusChangeResponse": {
+        "required": [
+          "id",
+          "fromStatus",
+          "toStatus",
+          "reason",
+          "actorKind",
+          "actorId",
+          "occurredAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fromStatus": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/OrganisationStatus"
+              }
+            ]
+          },
+          "toStatus": {
+            "$ref": "#/components/schemas/OrganisationStatus"
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "actorKind": {
+            "$ref": "#/components/schemas/ActorKind"
+          },
+          "actorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "One row of an organisation's status history (S07 D12, D16: the reasons and the history are internal)."
       },
       "OrganisationType": {
         "enum": [
@@ -18988,6 +19436,118 @@
         },
         "additionalProperties": false,
         "description": "An athlete profile's details, replaced as a whole (a field left out is cleared); the variant never changes.\n`version`, when sent, must be the person's current one."
+      },
+      "UpdateOrganisationRequest": {
+        "required": [
+          "type",
+          "displayName"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/OrganisationType"
+              }
+            ]
+          },
+          "displayName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "legalName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "shortName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "country": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "city": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "foundedYear": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "website": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "phone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "primaryVenueId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "slug": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "duplicatesReviewed": {
+            "type": "boolean",
+            "default": false
+          },
+          "duplicateReason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "version": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "uint32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "An organisation's editable fields, replaced whole (S07 D11): a field left out is cleared; `country` left out is\nthe tenant's, as on create; `slug` left out keeps the organisation's (D9; owner, T2b plan, as venues'). After the\nduplicate warning (a change to a name, the type or the city, D13), `duplicatesReviewed` with an optional reason.\n`version`, when sent, must be the organisation's current one (or `If-Match`)."
       },
       "UpdatePersonRequest": {
         "required": [
