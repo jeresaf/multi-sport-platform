@@ -180,7 +180,7 @@ public sealed class OrganisationAliasesAndIdentifiersTests(PostgresFixture fixtu
     }
 
     [Fact]
-    public async Task A_stale_If_Match_is_a_organisation_conflict_for_every_child_change()
+    public async Task A_stale_If_Match_is_an_organisation_conflict_for_every_child_change()
     {
         var (kmsa, registrar) = await TenantAsync("kmsa", IdentityRoles.Registrar);
         var organisation = await SaveOrganisationAsync(App.Services, kmsa, "Naguru Nightjars Club", alias: ("The Nightjars", AliasKind.Nickname), identifier: (_clubNo, "KMSA-0147"));
@@ -373,7 +373,7 @@ public sealed class OrganisationAliasesAndIdentifiersTests(PostgresFixture fixtu
     [Theory]
     [InlineData("KMSA-0147")]
     [InlineData("0147")]
-    public async Task The_directory_finds_a_organisation_by_an_identifiers_exact_value_ended_ones_included(string q)
+    public async Task The_directory_finds_an_organisation_by_an_identifiers_exact_value_ended_ones_included(string q)
     {
         var (kmsa, registrar) = await TenantAsync("kmsa", IdentityRoles.Registrar);
         var organisation = await SaveOrganisationAsync(App.Services, kmsa, "Naguru Nightjars Club", identifier: (_clubNo, q));
