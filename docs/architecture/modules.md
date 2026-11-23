@@ -207,7 +207,8 @@ slug). A primary venue is the tenant's own (composite foreign key). `ORGANISATIO
 per-root conflicts. S07-T2b-1: the update (`PUT`, a correction in every status; the warning again when a name, the
 type or the city changes, under the same lock), the lifecycle (`POST …/status`, state-machines.md) and the status
 history (`GET …/status-changes`). S07-T2c-1: the parent (`POST …/parent`, `registry.organisation_parent_links` with
-dated links; the cycle check under the same lock) and its history (`GET …/parent-links`).
+dated links; the cycle check under the same lock) and its history (`GET …/parent-links`). S07-T2c-2: the record shows
+the current `parent` and `children` (archived children left out); the directory takes `parentId` (direct children).
 **Absorbs:** pack specs 08–14. Owner's systems: **Player Management System**, the identity half of
 **Team Management System**. Owner's rule "duplicate players within the same tenant should be avoided at all
 costs" is implemented here (docs/build/slices/S06-people-registry.md).

@@ -541,3 +541,13 @@ The rest of S06's tech debt has its own trigger in PROGRESS.md ("From S06").
   the new parent's, not the earlier parent's (owner; the S06 carry-over). The reason for clearing a parent is in the
   audit trail only (D5's columns have one reason, the link's). The link's `parent_id` is `PUBLIC`, its dates and reason
   `INTERNAL` (owner, review #124 Q1).
+- **T2c-2 (organisations: parent and children in the reads):** `GET /organisations/{id}` (and every endpoint that
+  answers the organisation) gains `parent`, the current parent in any status (null without one), and `children`, the
+  organisations whose open link points at it, archived ones left out, sorted by sort key and ID, not paged (owner, plan
+  2026-11-23); both are `OrganisationSummaryResponse` (id, display name, slug, status; `PUBLIC`), which the parent-link
+  history shares. The organisation's version doesn't move when a child leaves (T2c-1), so it is no freshness marker for
+  `children`. `GET /organisations?parentId=` keeps the direct children (an open link to it), with the other filters, the
+  default status filter and the cursor; an unknown ID or another tenant's keeps none; a value that isn't a UUID in the
+  `D` form is `400 VALIDATION_INVALID_QUERY`. `DocumentsQueryUuid(name)` documents an ID query parameter as a `uuid`
+  string (for T3's `organisationId` too). No migration: T2c-1's index on the open links' `(tenant_id, parent_id)` serves
+  both.
