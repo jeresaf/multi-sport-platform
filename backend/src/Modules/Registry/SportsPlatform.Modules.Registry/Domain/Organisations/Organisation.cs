@@ -9,13 +9,14 @@ namespace SportsPlatform.Modules.Registry.Domain.Organisations;
 /// A club, school, federation or other body of a tenant (<c>registry.organisations</c>, tenant-owned, S07 D4). Its ID
 /// never changes (AR-23); its slug is unique in the tenant (D9). The display, legal and short names are kept as entered
 /// and as normalised keys (<see cref="NameNormaliser"/>) for the duplicate check (D13), as is the city. The status
-/// history and the parent links (D5) are its children: a new or changed row changes the organisation's version (S06
+/// history, the parent links (D5) and the aliases (D10) are its children: a new or changed row changes the organisation's version (S06
 /// D11). No named contact person: people belong to the person registry (D4).
 /// </summary>
 public sealed class Organisation : AggregateRoot, ITenantOwned
 {
     private readonly List<OrganisationStatusChange> _statusHistory = [];
     private readonly List<OrganisationParentLink> _parentLinks = [];
+    private readonly List<OrganisationAlias> _aliases = [];
 
     private Organisation()
     {
@@ -91,6 +92,9 @@ public sealed class Organisation : AggregateRoot, ITenantOwned
 
     /// <summary>The links to its parents (S07 D5), the current one open; loaded by the commands that change them.</summary>
     public IReadOnlyList<OrganisationParentLink> ParentLinks => _parentLinks;
+
+    /// <summary>Its aliases (S07 D10), removed ones included; loaded by the commands that change them.</summary>
+    public IReadOnlyList<OrganisationAlias> Aliases => _aliases;
 
     /// <summary>
     /// A new <c>ACTIVE</c> organisation in the scope's tenant (stamped on save), with the first row of its status
@@ -185,7 +189,7 @@ public sealed class Organisation : AggregateRoot, ITenantOwned
     }
 
     /// <summary>
-    /// Whether the organisation takes a new child row, such as a parent link (S07 D10): not when it is <c>ARCHIVED</c>
+    /// Whether the organisation takes a new child row, such as a parent link, an alias or an identifier (S07 D10): not when it is <c>ARCHIVED</c>
     /// (<c>ORGANISATION_ARCHIVED</c>) or <c>DISSOLVED</c> (<c>ORGANISATION_DISSOLVED</c>). Ending or clearing one stays
     /// allowed in every status (S06's pattern).
     /// </summary>
@@ -247,6 +251,52 @@ public sealed class Organisation : AggregateRoot, ITenantOwned
             _parentLinks.Add(new OrganisationParentLink(Id, parent.Id, today, reason.Trim(), actor, now));
         }
 
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Adds an alias with its own name key, so the directory and the duplicate warning find the organisation under that
+    /// name too (S07 D10, D13). Refused on a dissolved or archived organisation, and when the alias's key is already one
+    /// of the organisation's (display, legal or short name, or a current alias: <c>ORGANISATION_ALIAS_EXISTS</c>). Needs
+    /// the aliases loaded. The use case has checked that the name has a letter or a digit.
+    /// </summary>
+    public Result<OrganisationAlias> AddAlias(string name, AliasKind kind)
+    {
+        var accepts = EnsureAcceptsNewChildren();
+        if (accepts.IsFailure)
+        {
+            return accepts.Error;
+        }
+
+        var alias = new OrganisationAlias(Id, name, kind);
+        if (alias.NameKey == DisplayNameKey || alias.NameKey == LegalNameKey || alias.NameKey == ShortNameKey
+            || _aliases.Any(existing => !existing.IsRemoved && existing.NameKey == alias.NameKey))
+        {
+            return RegistryErrors.OrganisationAliasExists;
+        }
+
+        _aliases.Add(alias);
+        return Result.Success(alias);
+    }
+
+    /// <summary>
+    /// Removes an alias, keeping it with who, when and why (S07 D10); allowed in every status. An alias of another
+    /// organisation is <c>ORGANISATION_ALIAS_NOT_FOUND</c>, one already removed <c>ORGANISATION_ALIAS_REMOVED</c>.
+    /// </summary>
+    public Result RemoveAlias(Guid aliasId, string reason, ICurrentActor actor, DateTimeOffset now)
+    {
+        var alias = _aliases.SingleOrDefault(existing => existing.Id == aliasId);
+        if (alias is null)
+        {
+            return Result.Failure(RegistryErrors.OrganisationAliasNotFound);
+        }
+
+        if (alias.IsRemoved)
+        {
+            return Result.Failure(RegistryErrors.OrganisationAliasRemoved);
+        }
+
+        alias.Remove(reason, actor, now);
         return Result.Success();
     }
 

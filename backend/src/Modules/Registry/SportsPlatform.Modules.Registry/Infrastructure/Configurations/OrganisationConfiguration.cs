@@ -5,6 +5,7 @@ using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Privacy;
 using SportsPlatform.Modules.Registry.Domain;
 using SportsPlatform.Modules.Registry.Domain.Organisations;
+using SportsPlatform.Modules.Registry.Domain.People;
 using SportsPlatform.Modules.Registry.Domain.Venues;
 
 namespace SportsPlatform.Modules.Registry.Infrastructure.Configurations;
@@ -88,6 +89,11 @@ internal sealed class OrganisationConfiguration : IEntityTypeConfiguration<Organ
             .HasPrincipalKey(o => new { o.TenantId, o.Id })
             .OnDelete(DeleteBehavior.Restrict);
         builder.Navigation(o => o.ParentLinks).HasField("_parentLinks").UsePropertyAccessMode(PropertyAccessMode.Field);
+        builder.HasMany(o => o.Aliases).WithOne()
+            .HasForeignKey(a => new { a.TenantId, a.OrganisationId })
+            .HasPrincipalKey(o => new { o.TenantId, o.Id })
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.Navigation(o => o.Aliases).HasField("_aliases").UsePropertyAccessMode(PropertyAccessMode.Field);
 
         // The tenant's own venue: a null venue isn't checked (MATCH SIMPLE).
         builder.HasOne<Venue>().WithMany()
@@ -175,5 +181,39 @@ internal sealed class OrganisationParentLinkConfiguration : IEntityTypeConfigura
             .HasDatabaseName(OpenLinkIndex);
         builder.HasIndex(l => new { l.TenantId, l.OrganisationId, l.SetAt });
         builder.HasIndex(l => new { l.TenantId, l.ParentId }).HasFilter("valid_to IS NULL");
+    }
+}
+
+/// <summary>
+/// <c>registry.organisation_aliases</c> (S07 D10): tenant-owned (RLS), each pointing at its tenant's organisation. A
+/// removed alias keeps its row (the three <c>remove</c> columns are set together). Aliases other than former names are
+/// <c>INTERNAL</c> (D16).
+/// </summary>
+internal sealed class OrganisationAliasConfiguration : IEntityTypeConfiguration<OrganisationAlias>
+{
+    public const string Table = "organisation_aliases";
+    public const string NameKeyIndex = "ix_organisation_aliases_name_key_trgm";
+
+    public void Configure(EntityTypeBuilder<OrganisationAlias> builder)
+    {
+        builder.ToTable(Table, table =>
+        {
+            table.HasCheckConstraint("ck_organisation_aliases_kind", $"kind IN ({EnumColumns.SqlList<AliasKind>()})");
+            table.HasCheckConstraint("ck_organisation_aliases_name_key", "name_key <> ''");
+            table.HasCheckConstraint(
+                "ck_organisation_aliases_removed",
+                "(removed_at IS NULL AND removed_by IS NULL AND remove_reason IS NULL) " +
+                "OR (removed_at IS NOT NULL AND removed_by IS NOT NULL AND remove_reason IS NOT NULL)");
+        });
+
+        builder.Property(a => a.Name).HasMaxLength(OrganisationAlias.NameMaxLength).IsPersonalData(PersonalDataClass.Internal);
+        builder.Property(a => a.NameKey).HasMaxLength(OrganisationAlias.NameMaxLength).IsPersonalData(PersonalDataClass.Internal);
+        builder.Property(a => a.Kind).HasConversion(EnumColumns.UpperSnake<AliasKind>()).HasMaxLength(20)
+            .IsPersonalData(PersonalDataClass.Internal);
+        builder.Property(a => a.RemoveReason).HasMaxLength(OrganisationAlias.ReasonMaxLength).IsPersonalData(PersonalDataClass.Internal);
+        builder.Ignore(a => a.IsRemoved);
+
+        builder.HasIndex(a => a.NameKey).HasMethod("gin").HasOperators("gin_trgm_ops").HasDatabaseName(NameKeyIndex);
+        builder.HasIndex(a => new { a.TenantId, a.OrganisationId });
     }
 }

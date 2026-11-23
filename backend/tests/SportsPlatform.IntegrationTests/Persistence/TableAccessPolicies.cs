@@ -113,6 +113,9 @@ public static class TableAccessPolicies
         // Organisation parent links (S07-T2c, RLS): ended by setting valid_to, never deleted.
         ["registry.organisation_parent_links"] = TableAccess.ReadWrite,
 
+        // Organisation aliases (S07-T2d, RLS): removed with a reason, never deleted.
+        ["registry.organisation_aliases"] = TableAccess.ReadWrite,
+
         ["identity.outbox_messages"] = TableAccess.ReadWrite,
         ["registry.outbox_messages"] = TableAccess.ReadWrite,
         ["registry.inbox_messages"] = TableAccess.ReadWrite,

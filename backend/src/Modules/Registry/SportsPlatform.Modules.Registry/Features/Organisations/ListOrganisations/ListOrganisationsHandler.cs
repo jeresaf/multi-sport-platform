@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using SportsPlatform.BuildingBlocks.Api;
 using SportsPlatform.BuildingBlocks.Privacy;
 using SportsPlatform.Modules.Registry.Domain.Organisations;
+using SportsPlatform.Modules.Registry.Domain.People;
 using SportsPlatform.Modules.Registry.Features.People.ListPeople;
 using SportsPlatform.Modules.Registry.Infrastructure;
 
@@ -31,7 +32,8 @@ public sealed record ListOrganisationsResponse(
 /// The organisation directory of the request's tenant (query filter and RLS), sorted by sort key (the normalised display
 /// name, word order kept, collation "C") and ID (S07 D19). <c>q</c> matches the display name by prefix (of the name or of
 /// one of its words), name-key prefix or trigram similarity, and the legal or short name by name-key prefix (owner, plan
-/// 2026-11-23); aliases and identifiers join in S07-T2d. Without a status, archived organisations are left out.
+/// 2026-11-23), a current alias as venues' (S07-T2d), and an external identifier's value exactly, ended ones included.
+/// Without a status, archived organisations are left out.
 /// <c>parentId</c> keeps the direct children: the organisations whose open parent link points at it (S07-T2c-2); an
 /// unknown ID or another tenant's keeps none.
 /// </summary>
@@ -82,19 +84,23 @@ public sealed class ListOrganisationsHandler(RegistryDbContext context)
         return new ListOrganisationsResponse(items, new PageInfo(next, hasMore));
     }
 
-    private static IQueryable<Organisation> Matching(IQueryable<Organisation> organisations, string search)
+    private IQueryable<Organisation> Matching(IQueryable<Organisation> organisations, string search)
     {
         // The normalised text as typed ("ntinda swi") for prefixes; its sorted tokens to compare with name keys. Text
-        // without a letter or a digit has no key and matches nothing (identifiers join in S07-T2d).
+        // without a letter or a digit has no key and can only be an identifier's value.
         var prefix = Organisation.SortKeyOf(search);
+        var key = Organisation.NameKeyOf(search);
+        var identifiers = context.Set<ExternalIdentifier>()
+            .Where(i => i.EntityType == ExternalIdentifierEntityType.Organisation && i.Value == search);
         if (prefix.Length == 0)
         {
-            return organisations.Where(_ => false);
+            return organisations.Where(o => identifiers.Any(i => i.EntityId == o.Id));
         }
 
-        // Keys hold letters, digits and spaces only, so no pattern has a wildcard of its own. The legal name is INTERNAL
-        // (D16): matching it is for this admin directory only; a public list (T5) must not reuse this to probe it.
-        var key = Organisation.NameKeyOf(search);
+        // Keys hold letters, digits and spaces only, so no pattern has a wildcard of its own. An alias has a name key
+        // only (sorted tokens): a prefix of the key or of one of its words finds it. The legal name, the aliases and the
+        // identifiers are INTERNAL (D16): matching them is for this admin directory only; a public list (T5) must not
+        // reuse this to probe them.
         var prefixPattern = prefix + "%";
         var wordPattern = "% " + prefix + "%";
         var keyPattern = key + "%";
@@ -104,7 +110,13 @@ public sealed class ListOrganisationsHandler(RegistryDbContext context)
             || EF.Functions.Like(o.DisplayNameKey, keyPattern)
             || EF.Functions.TrigramsSimilarity(o.DisplayNameKey, key) >= ListPeopleHandler.SearchSimilarity
             || (o.LegalNameKey != null && EF.Functions.Like(o.LegalNameKey, keyPattern))
-            || (o.ShortNameKey != null && EF.Functions.Like(o.ShortNameKey, keyPattern)));
+            || (o.ShortNameKey != null && EF.Functions.Like(o.ShortNameKey, keyPattern))
+            || o.Aliases.Any(a => a.RemovedAt == null
+                && (EF.Functions.Like(a.NameKey, keyPattern)
+                    || EF.Functions.Like(a.NameKey, prefixPattern)
+                    || EF.Functions.Like(a.NameKey, wordPattern)
+                    || EF.Functions.TrigramsSimilarity(a.NameKey, key) >= ListPeopleHandler.SearchSimilarity))
+            || identifiers.Any(i => i.EntityId == o.Id));
     }
 
     private sealed record Row(

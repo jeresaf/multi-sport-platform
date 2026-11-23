@@ -3,7 +3,9 @@ using Microsoft.AspNetCore.Mvc;
 using SportsPlatform.BuildingBlocks.Api;
 using SportsPlatform.BuildingBlocks.Privacy;
 using SportsPlatform.Modules.Registry.Domain.Organisations;
+using SportsPlatform.Modules.Registry.Domain.People;
 using SportsPlatform.Modules.Registry.Domain.People.Duplicates;
+using SportsPlatform.Modules.Registry.Features.People;
 
 namespace SportsPlatform.Modules.Registry.Features.Organisations;
 
@@ -13,7 +15,9 @@ namespace SportsPlatform.Modules.Registry.Features.Organisations;
 /// tenant's venue (null without one). <c>parent</c> is the current parent in any status (null without one); <c>children</c>
 /// are the organisations whose current parent this is, archived ones left out (owner, S07-T2c-2 plan), in the directory's
 /// order (the sort key); the directory's <c>parentId</c> pages them with filters. The version doesn't move when a child leaves (S07-T2c-1),
-/// so it is no freshness marker for <c>children</c>. Teams, aliases, identifiers and the logo join with S07-T2d, T3 and T4.
+/// so it is no freshness marker for <c>children</c>. Aliases are the ones not removed, oldest first; identifiers are all of
+/// them, ended ones included, by authority (as a venue's); both are <c>INTERNAL</c> (D16), and a change to one moves the
+/// version (S06 D11). Teams and the logo join with S07-T3 and T4.
 /// </summary>
 public sealed record OrganisationResponse(
     [property: PersonalData(PersonalDataClass.Public)] Guid Id,
@@ -33,6 +37,8 @@ public sealed record OrganisationResponse(
     [property: PersonalData(PersonalDataClass.Public)] OrganisationSummaryResponse? Parent,
     [property: PersonalData(PersonalDataClass.Public)] IReadOnlyList<OrganisationSummaryResponse> Children,
     [property: PersonalData(PersonalDataClass.Public)] OrganisationStatus Status,
+    [property: PersonalData(PersonalDataClass.Internal)] IReadOnlyList<OrganisationAliasResponse> Aliases,
+    [property: PersonalData(PersonalDataClass.Internal)] IReadOnlyList<ExternalIdentifierResponse> ExternalIdentifiers,
     [property: PersonalData(PersonalDataClass.Internal)] uint Version)
 {
     public void SetETag(HttpResponse response)
@@ -41,6 +47,12 @@ public sealed record OrganisationResponse(
         response.Headers.ETag = RowVersion.EntityTag(Version).ToString();
     }
 }
+
+/// <summary>A current alias of an organisation (S07 D10): <c>INTERNAL</c>, former names included (D16).</summary>
+public sealed record OrganisationAliasResponse(
+    [property: PersonalData(PersonalDataClass.Internal)] Guid Id,
+    [property: PersonalData(PersonalDataClass.Internal)] string Name,
+    [property: PersonalData(PersonalDataClass.Internal)] AliasKind Kind);
 
 /// <summary>A venue an organisation points at (S07 D16: id, name, slug), whatever the venue's status now.</summary>
 public sealed record OrganisationVenueResponse(

@@ -350,6 +350,26 @@ public static class RegistryActions
         scopableBy: [AssignmentScope.Tenant],
         grantedWith: ["organisation.read"]);
 
+    public static readonly ActionDefinition OrganisationAliasAdd = OrganisationChild(
+        "organisation.alias.add",
+        "Add another name an organisation is known by (former name, nickname, spelling), so the directory and the duplicate warning find it under it too; not for a dissolved or archived organisation.",
+        AuditRequirement.Required);
+
+    public static readonly ActionDefinition OrganisationAliasRemove = OrganisationChild(
+        "organisation.alias.remove",
+        "Remove an organisation's alias, with a reason; the alias is kept with who removed it, when and why.",
+        AuditRequirement.RequiredWithReason);
+
+    public static readonly ActionDefinition OrganisationExternalIdAdd = OrganisationChild(
+        "organisation.external_id.add",
+        "Add an identifier another authority gave an organisation (e.g. a registration number); a value any organisation has or had is refused; not for a dissolved or archived organisation.",
+        AuditRequirement.Required);
+
+    public static readonly ActionDefinition OrganisationExternalIdEnd = OrganisationChild(
+        "organisation.external_id.end",
+        "End an organisation's external identifier; it is kept, and its value is never given to another organisation.",
+        AuditRequirement.Required);
+
     // The lifecycle, alias, identifier, profile, photo, consent and public-profile actions answer the person as person.read does, so they are only
     // granted with that read.
     private static ActionDefinition Lifecycle(string code, string description, AuditRequirement audit) => new(
@@ -371,4 +391,15 @@ public static class RegistryActions
         since: "S07",
         scopableBy: [AssignmentScope.Tenant],
         grantedWith: ["venue.read"]);
+
+    // An organisation's alias and identifier actions (S07 D10) answer the organisation as organisation.read does, so they
+    // are only granted with that read.
+    private static ActionDefinition OrganisationChild(string code, string description, AuditRequirement audit) => new(
+        code,
+        description,
+        ActionScope.Tenant,
+        audit,
+        since: "S07",
+        scopableBy: [AssignmentScope.Tenant],
+        grantedWith: ["organisation.read"]);
 }

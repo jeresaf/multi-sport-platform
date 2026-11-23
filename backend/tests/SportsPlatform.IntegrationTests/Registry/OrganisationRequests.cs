@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.Modules.Registry.Domain;
 using SportsPlatform.Modules.Registry.Domain.Organisations;
+using SportsPlatform.Modules.Registry.Domain.People;
 
 namespace SportsPlatform.IntegrationTests.Registry;
 
@@ -27,6 +28,16 @@ internal static class OrganisationRequests
     public static string OrganisationParentPath(Guid organisationId) => $"{OrganisationPath(organisationId)}/parent";
 
     public static string OrganisationParentLinksPath(Guid organisationId) => $"{OrganisationPath(organisationId)}/parent-links";
+
+    public static string OrganisationAliasesPath(Guid organisationId) => $"{OrganisationPath(organisationId)}/aliases";
+
+    public static string OrganisationAliasPath(Guid organisationId, Guid aliasId, string command) =>
+        $"{OrganisationAliasesPath(organisationId)}/{aliasId}/{command}";
+
+    public static string OrganisationIdentifiersPath(Guid organisationId) => $"{OrganisationPath(organisationId)}/external-identifiers";
+
+    public static string OrganisationIdentifierPath(Guid organisationId, Guid identifierId, string command) =>
+        $"{OrganisationIdentifiersPath(organisationId)}/{identifierId}/{command}";
 
     /// <summary>The display names of a page of the organisation directory, in the order answered.</summary>
     public static List<string?> OrganisationNames(this JsonElement page) =>
@@ -60,7 +71,10 @@ internal static class OrganisationRequests
             .Select(candidate => (candidate.GetProperty("organisationId").GetGuid(), candidate.GetProperty("confidence").GetString())),
     ];
 
-    /// <summary>An organisation of <paramref name="tenantId"/>, saved without the warning (the test's starting point).</summary>
+    /// <summary>
+    /// An organisation of <paramref name="tenantId"/>, saved without the warning (the test's starting point), with an
+    /// alias and an identifier when given.
+    /// </summary>
     public static async Task<Organisation> SaveOrganisationAsync(
         IServiceProvider services,
         Guid tenantId,
@@ -70,7 +84,9 @@ internal static class OrganisationRequests
         string? legalName = null,
         string? shortName = null,
         Guid? primaryVenueId = null,
-        OrganisationStatus status = OrganisationStatus.Active)
+        OrganisationStatus status = OrganisationStatus.Active,
+        (string Name, AliasKind Kind)? alias = null,
+        (string Authority, string Value)? identifier = null)
     {
         await using var scope = RegistryTestData.ScopeFor(services, tenantId, out var context);
         var organisation = Organisation.Create(
@@ -79,6 +95,15 @@ internal static class OrganisationRequests
             OrganisationSource.Manual,
             SystemActor.Instance,
             RegistryTestData.Now);
+        if (alias is { } a)
+        {
+            organisation.AddAlias(a.Name, a.Kind).IsSuccess.ShouldBeTrue();
+        }
+
+        if (identifier is { } i)
+        {
+            context.Add(ExternalIdentifier.ForOrganisation(organisation.Id, i.Authority, i.Value));
+        }
 
         // Reached through the lifecycle, so the history knows what an archived organisation was before.
         if (status != OrganisationStatus.Active)

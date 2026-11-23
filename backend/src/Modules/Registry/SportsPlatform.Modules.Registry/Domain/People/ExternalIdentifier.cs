@@ -69,6 +69,10 @@ public sealed partial class ExternalIdentifier : Entity, ITenantOwned
     public static ExternalIdentifier ForVenue(Guid venueId, string authority, string value, DateOnly? validFrom = null) =>
         Create(ExternalIdentifierEntityType.Venue, venueId, authority, value, validFrom);
 
+    /// <summary>An identifier of an organisation (S07 D10); the use case has validated the authority and the value.</summary>
+    public static ExternalIdentifier ForOrganisation(Guid organisationId, string authority, string value, DateOnly? validFrom = null) =>
+        Create(ExternalIdentifierEntityType.Organisation, organisationId, authority, value, validFrom);
+
     public bool IsEnded => ValidTo is not null;
 
     /// <summary>
@@ -85,6 +89,7 @@ public sealed partial class ExternalIdentifier : Entity, ITenantOwned
             {
                 ExternalIdentifierEntityType.Person => RegistryErrors.ExternalIdEnded,
                 ExternalIdentifierEntityType.Venue => RegistryErrors.VenueExternalIdEnded,
+                ExternalIdentifierEntityType.Organisation => RegistryErrors.OrganisationExternalIdEnded,
                 _ => throw new UnreachableException($"No codes for {EntityType} identifiers."),
             });
         }
@@ -95,6 +100,7 @@ public sealed partial class ExternalIdentifier : Entity, ITenantOwned
             {
                 ExternalIdentifierEntityType.Person => RegistryErrors.ExternalIdValidityInvalid,
                 ExternalIdentifierEntityType.Venue => RegistryErrors.VenueExternalIdValidityInvalid,
+                ExternalIdentifierEntityType.Organisation => RegistryErrors.OrganisationExternalIdValidityInvalid,
                 _ => throw new UnreachableException($"No codes for {EntityType} identifiers."),
             });
         }
