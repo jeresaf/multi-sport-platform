@@ -14,6 +14,9 @@ public static class RegistryErrors
     public static readonly Error OrganisationConcurrencyConflict = new(
         "ORGANISATION_CONCURRENCY_CONFLICT", "The organisation was changed by someone else. Reload and try again.", ErrorKind.Conflict);
 
+    public static readonly Error TeamConcurrencyConflict = new(
+        "TEAM_CONCURRENCY_CONFLICT", "The team was changed by someone else. Reload and try again.", ErrorKind.Conflict);
+
     public static readonly Error PersonNotFound = new("PERSON_NOT_FOUND", "The person was not found.", ErrorKind.NotFound);
 
     public static readonly Error StatusInvalid = new(
@@ -236,5 +239,35 @@ public static class RegistryErrors
     public static readonly Error OrganisationExternalIdValidityInvalid = new(
         "ORGANISATION_EXTERNAL_ID_VALIDITY_INVALID",
         "An identifier's end date can't be before its start date or after today (the tenant's date).",
+        ErrorKind.Unprocessable);
+
+    public static readonly Error TeamNotFound = new("TEAM_NOT_FOUND", "The team was not found.", ErrorKind.NotFound);
+
+    public static readonly Error TeamNameInvalid = new(
+        "TEAM_NAME_INVALID", "A team's name needs at least one letter or digit.", ErrorKind.Unprocessable);
+
+    public static readonly Error TeamSportNotEnabled = new(
+        "TEAM_SPORT_NOT_ENABLED", "The sport isn't enabled for your organisation: a team can only be created for an enabled sport.",
+        ErrorKind.Unprocessable);
+
+    public static readonly Error TeamOrganisationUnavailable = new(
+        "TEAM_ORGANISATION_UNAVAILABLE",
+        "The organisation must be an organisation of the tenant that isn't dissolved or archived.",
+        ErrorKind.Unprocessable);
+
+    public static readonly Error TeamHomeVenueUnavailable = new(
+        "TEAM_HOME_VENUE_UNAVAILABLE", "The home venue must be a venue of the tenant that isn't closed or archived.",
+        ErrorKind.Unprocessable);
+
+    public static readonly Error TeamColoursInvalid = new(
+        "TEAM_COLOURS_INVALID", "A secondary colour needs a primary colour, and a tertiary colour a secondary one.",
+        ErrorKind.Unprocessable);
+
+    public static readonly Error TeamSlugTaken = new(
+        "TEAM_SLUG_TAKEN", "Another team of the tenant has this slug.", ErrorKind.Unprocessable);
+
+    public static readonly Error TeamDuplicateReviewRequired = new(
+        "TEAM_DUPLICATE_REVIEW_REQUIRED",
+        "Teams already in the registry look like this one: open one of them, or send duplicatesReviewed to add it anyway.",
         ErrorKind.Unprocessable);
 }
