@@ -111,6 +111,16 @@ public sealed class OrganisationParentTests(PostgresFixture fixture) : DatabaseT
         set.ShouldNotBe(before);
         again.GetProperty("version").GetUInt32().ShouldBe(set);
         (await LinksAsync(registrar, club.Id)).ShouldHaveSingleItem().GetProperty("reason").GetString().ShouldBe(_reason);
+
+        // The request is still audited, with its reason, though nothing was saved.
+        await AccountTestData.DeliverOutboxAsync(App.Services, Ct);
+        (await AuditTestData.EntriesAsync(App.Services, Ct))
+            .Where(entry => entry.Reason == "Affiliated again")
+            .ShouldHaveSingleItem()
+            .ShouldSatisfyAllConditions(
+                entry => entry.ActionCode.ShouldBe("organisation.parent.set"),
+                entry => entry.EntityId.ShouldBe(club.Id),
+                entry => entry.Outcome.ShouldBe(AuditOutcome.Success));
     }
 
     [Theory]
@@ -242,6 +252,26 @@ public sealed class OrganisationParentTests(PostgresFixture fixture) : DatabaseT
         {
             using var response = await registrar.PostAsJsonAsync(OrganisationParentPath(club.Id), new { parentId, reason = _reason }, Ct);
             await response.ShouldBeProblemAsync(HttpStatusCode.UnprocessableEntity, "ORGANISATION_PARENT_UNAVAILABLE");
+        }
+    }
+
+    // Both ends of a link are the tenant's own: each composite foreign key refuses another tenant's organisation,
+    // whichever end it is at (the isolation sample can only build one end).
+    [Fact]
+    public async Task A_link_to_or_from_another_tenants_organisation_is_refused_by_the_database()
+    {
+        var (kmsa, _) = await TenantAsync("kmsa", IdentityRoles.Registrar);
+        var (elssc, _) = await TenantAsync("elssc", IdentityRoles.TenantOwner);
+        var club = await SaveOrganisationAsync(App.Services, kmsa, "Ntinda Swifts SC");
+        var school = await SaveOrganisationAsync(App.Services, elssc, "Lakeshore High School", OrganisationType.School);
+
+        foreach (var (child, parent) in new[] { (school.Id, club.Id), (club.Id, school.Id) })
+        {
+            await using var scope = ScopeFor(App.Services, elssc, out var context);
+            context.Add(new OrganisationParentLink(
+                child, parent, new DateOnly(2026, 11, 16), _reason, BuildingBlocks.Actors.SystemActor.Instance, Now));
+            var refused = await Should.ThrowAsync<DbUpdateException>(() => context.SaveChangesAsync(Ct));
+            refused.InnerException.ShouldBeOfType<Npgsql.PostgresException>().SqlState.ShouldBe(Npgsql.PostgresErrorCodes.ForeignKeyViolation);
         }
     }
 
