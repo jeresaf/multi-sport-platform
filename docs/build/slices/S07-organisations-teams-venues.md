@@ -565,4 +565,6 @@ The rest of S06's tech debt has its own trigger in PROGRESS.md ("From S06").
   warning compares current aliases on both sides (owner, plan 2026-11-23): `SAME_NAME_KEY` when a name or alias key of
   one is a name or alias key of the other; an update brings the organisation's own aliases, a create and the live check
   have none. Adding an alias runs no warning (owner). `IOrganisationDirectory` with its own `OrganisationStatus` and
-  `OrganisationType` in Contracts, mapped from the domain's. One PR (owner).
+  `OrganisationType` in Contracts, mapped from the domain's. One PR (owner). The live check takes no `organisationId`: T6's edit forms
+  (organisations, and venues and teams alike) don't call it; the save's `…_DUPLICATE_REVIEW_REQUIRED` shows the
+  candidates (owner, review of #126, Q56).
