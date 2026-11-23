@@ -2,13 +2,14 @@ using SportsPlatform.BuildingBlocks.Results;
 using SportsPlatform.Modules.Registry.Domain.Organisations;
 using SportsPlatform.Modules.Registry.Domain.People;
 using SportsPlatform.Modules.Registry.Domain.People.Duplicates;
+using SportsPlatform.Modules.Registry.Domain.Teams;
 using SportsPlatform.Modules.Registry.Domain.Venues;
 
 namespace SportsPlatform.Modules.Registry.Infrastructure;
 
 /// <summary>
 /// Each Registry aggregate root's conflict code (S07 D2), in one place: a lost update answers the code of the root whose
-/// version failed. Organisations and teams join with S07-T2 and T3; a test fails for a root mapped in
+/// version failed. A test fails for a root mapped in
 /// <see cref="RegistryDbContext"/> without a code here.
 /// </summary>
 public static class RegistryConcurrencyConflicts
@@ -22,6 +23,7 @@ public static class RegistryConcurrencyConflicts
         return type == typeof(Person) || type == typeof(DuplicateDecision) ? RegistryErrors.PersonConcurrencyConflict
             : type == typeof(Venue) ? RegistryErrors.VenueConcurrencyConflict
             : type == typeof(Organisation) ? RegistryErrors.OrganisationConcurrencyConflict
+            : type == typeof(Team) ? RegistryErrors.TeamConcurrencyConflict
             : null;
     }
 }

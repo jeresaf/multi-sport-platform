@@ -116,6 +116,10 @@ public static class TableAccessPolicies
         // Organisation aliases (S07-T2d, RLS): removed with a reason, never deleted.
         ["registry.organisation_aliases"] = TableAccess.ReadWrite,
 
+        // Teams (S07-T3a, RLS): changed, disbanded and archived, never deleted; the status history is kept for ever.
+        ["registry.teams"] = TableAccess.ReadWrite,
+        ["registry.team_status_changes"] = TableAccess.AppendOnly,
+
         ["identity.outbox_messages"] = TableAccess.ReadWrite,
         ["registry.outbox_messages"] = TableAccess.ReadWrite,
         ["registry.inbox_messages"] = TableAccess.ReadWrite,

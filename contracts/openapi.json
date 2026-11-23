@@ -8719,6 +8719,284 @@
         }
       }
     },
+    "/api/admin/v1/teams/duplicate-check": {
+      "post": {
+        "tags": [
+          "Teams"
+        ],
+        "summary": "Check a team against the registry for duplicates",
+        "description": "Compares a new team's names, variant, category and organisation with the teams of the tenant named by `X-Tenant-Id`, archived ones included (see `status`), and answers those that look like it, strongest first, at most 10. Only teams of the same variant and the same category (gender, age group and level; `level` defaults to FIRST) are compared: a club's other categories are other teams. `LIKELY`: the name or short name is the same as the other's (the same words in any order; case, accents and punctuation aside). `POSSIBLE`: names at least 70 % similar, when both belong to the same organisation or either belongs to none. `evidence` says why. Nothing is saved: the create runs the same check, and refuses with TEAM_DUPLICATE_REVIEW_REQUIRED until it is sent with `duplicatesReviewed`. A name without a letter or a digit is TEAM_NAME_INVALID.",
+        "operationId": "CheckTeamDuplicates",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckTeamDuplicatesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckTeamDuplicatesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_REQUEST",
+              "VALIDATION_MALFORMED_REQUEST"
+            ]
+          },
+          "422": {
+            "description": "Problem Details; `code`: `TEAM_NAME_INVALID`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "TEAM_NAME_INVALID"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING",
+              "TENANT_READ_ONLY"
+            ]
+          }
+        }
+      }
+    },
+    "/api/admin/v1/teams": {
+      "post": {
+        "tags": [
+          "Teams"
+        ],
+        "summary": "Add a team",
+        "description": "Adds an ACTIVE team to the tenant named by `X-Tenant-Id`. `variant` must be a sport variant the tenant has enabled (else TEAM_SPORT_NOT_ENABLED); it never changes. `name`, `genderCategory` and `ageGroup` are required; `level` defaults to FIRST. `nameSince` is the day the name began (not after today, the tenant's date; today when left out). `organisationId` is an organisation of the tenant that isn't dissolved or archived (else TEAM_ORGANISATION_UNAVAILABLE); `homeVenueId` a venue of the tenant that isn't closed or archived (else TEAM_HOME_VENUE_UNAVAILABLE). `code` is three upper-case letters; colours are #RRGGBB, and a secondary needs a primary, a tertiary a secondary (else TEAM_COLOURS_INVALID). Without `slug`, one is proposed from the name and category, with -2, -3… when taken; a slug sent that another team has is TEAM_SLUG_TAKEN. Teams in ACTIVE, INACTIVE or SUSPENDED count toward the plan's MAX_TEAMS: at the limit, ENTITLEMENT_QUOTA_EXCEEDED. The duplicate check (POST /teams/duplicate-check) runs again: teams that look like this one answer TEAM_DUPLICATE_REVIEW_REQUIRED with `candidates` until the request says `duplicatesReviewed: true`, with an optional `duplicateReason`; the audit entry names the teams shown. The reason is kept permanently in the audit trail: don't include personal data. A name without a letter or a digit is TEAM_NAME_INVALID. Answers the team as GET /teams/{teamId} does.",
+        "operationId": "CreateTeam",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTeamRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "headers": {
+              "ETag": {
+                "description": "The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_REQUEST",
+              "VALIDATION_MALFORMED_REQUEST"
+            ]
+          },
+          "422": {
+            "description": "Problem Details; `code`: `TEAM_COLOURS_INVALID`, `TEAM_DUPLICATE_REVIEW_REQUIRED`, `TEAM_HOME_VENUE_UNAVAILABLE`, `TEAM_NAME_INVALID`, `TEAM_ORGANISATION_UNAVAILABLE`, `TEAM_SLUG_TAKEN`, `TEAM_SPORT_NOT_ENABLED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamDuplicateReviewProblem"
+                }
+              }
+            },
+            "x-error-codes": [
+              "TEAM_COLOURS_INVALID",
+              "TEAM_DUPLICATE_REVIEW_REQUIRED",
+              "TEAM_HOME_VENUE_UNAVAILABLE",
+              "TEAM_NAME_INVALID",
+              "TEAM_ORGANISATION_UNAVAILABLE",
+              "TEAM_SLUG_TAKEN",
+              "TEAM_SPORT_NOT_ENABLED"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `ENTITLEMENT_QUOTA_EXCEEDED`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_CSRF_REQUIRED",
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "ENTITLEMENT_QUOTA_EXCEEDED",
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING",
+              "TENANT_READ_ONLY"
+            ]
+          }
+        }
+      }
+    },
+    "/api/admin/v1/teams/{teamId}": {
+      "get": {
+        "tags": [
+          "Teams"
+        ],
+        "summary": "Get a team",
+        "description": "A team of the tenant named by `X-Tenant-Id`, whatever its status: variant, category (`genderCategory`, `ageGroup`, `level`), name and short name, `nameSince` (the day the name began), slug, code, motto, colours, founded year, organisation (id, display name, slug) and home venue (id, name, slug), each whatever its status now, status and `version` (also the `ETag`).",
+        "operationId": "GetTeam",
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Problem Details; `code`: `TEAM_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "TEAM_NOT_FOUND"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING"
+            ]
+          }
+        }
+      }
+    },
     "/api/admin/v1/venues/duplicate-check": {
       "post": {
         "tags": [
@@ -13667,6 +13945,31 @@
         "additionalProperties": false,
         "description": "A new external identifier of a venue (S07 D10): the authority's code, its value, and since when it is valid;\n`version`, when sent, must be the venue's current one."
       },
+      "AgeGroup": {
+        "enum": [
+          "SENIOR",
+          "U6",
+          "U7",
+          "U8",
+          "U9",
+          "U10",
+          "U11",
+          "U12",
+          "U13",
+          "U14",
+          "U15",
+          "U16",
+          "U17",
+          "U18",
+          "U19",
+          "U20",
+          "U21",
+          "U22",
+          "U23",
+          "VETERANS"
+        ],
+        "description": "The age part of a team's category (S07 D7, Q53). Descriptive only: an edition's age limits use its own rules and a\nreference date (S09), not the team's age group."
+      },
       "AgeStatus": {
         "enum": [
           "ADULT",
@@ -14499,6 +14802,89 @@
         },
         "description": "The organisations that look like the one checked, strongest first (none is an empty list)."
       },
+      "CheckTeamDuplicatesRequest": {
+        "required": [
+          "variant",
+          "name",
+          "genderCategory",
+          "ageGroup"
+        ],
+        "type": "object",
+        "properties": {
+          "variant": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "genderCategory": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/GenderCategory"
+              }
+            ]
+          },
+          "ageGroup": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AgeGroup"
+              }
+            ]
+          },
+          "level": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/TeamLevel"
+              }
+            ]
+          },
+          "shortName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "organisationId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false,
+        "description": "What the team duplicate warning compares (S07 D13): the names, variant, category and organisation a create would send."
+      },
+      "CheckTeamDuplicatesResponse": {
+        "required": [
+          "candidates"
+        ],
+        "type": "object",
+        "properties": {
+          "candidates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeamDuplicateCandidateResponse"
+            }
+          }
+        },
+        "description": "The teams that look like the one checked, strongest first (none is an empty list)."
+      },
       "CheckVenueDuplicatesRequest": {
         "required": [
           "name",
@@ -14999,6 +15385,141 @@
         },
         "additionalProperties": false,
         "description": "A new person (S06 D2, D6): the biodata, external identifiers, the duplicate check's token for the same details, and\nthe reason to proceed past the people the check found."
+      },
+      "CreateTeamRequest": {
+        "required": [
+          "variant",
+          "name",
+          "genderCategory",
+          "ageGroup"
+        ],
+        "type": "object",
+        "properties": {
+          "variant": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "genderCategory": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/GenderCategory"
+              }
+            ]
+          },
+          "ageGroup": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AgeGroup"
+              }
+            ]
+          },
+          "level": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/TeamLevel"
+              }
+            ]
+          },
+          "shortName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "organisationId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "code": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "motto": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "primaryColour": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "secondaryColour": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "tertiaryColour": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "homeVenueId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "foundedYear": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "nameSince": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "slug": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "duplicatesReviewed": {
+            "type": "boolean",
+            "default": false
+          },
+          "duplicateReason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "description": "A new team (S07 D6, D7, D8): its variant (enabled for the tenant), name, category and fields, when its name began\n(`nameSince`, the tenant's today when left out), an optional slug (proposed from the name and category when none\nis sent, D9), and, after the duplicate warning, `duplicatesReviewed` with an optional reason (D13)."
       },
       "CreateTenantRequest": {
         "required": [
@@ -15831,6 +16352,14 @@
           "MALE",
           null
         ]
+      },
+      "GenderCategory": {
+        "enum": [
+          "MEN",
+          "WOMEN",
+          "MIXED"
+        ],
+        "description": "The gender part of a team's category (S07 D7, Q53). Generic codes: the web app labels them (\"Men\", or \"Boys\" with an\nage group up to AgeGroup.U17), never a definition."
       },
       "GrantOverrideRequest": {
         "required": [
@@ -20124,6 +20653,348 @@
         ],
         "description": "A subscription period's status, derived from its stored dates on a given day (docs/domain/state-machines.md,\n\"Subscription period\"); never stored."
       },
+      "TeamDuplicateCandidateResponse": {
+        "required": [
+          "teamId",
+          "name",
+          "variant",
+          "genderCategory",
+          "ageGroup",
+          "level",
+          "organisationId",
+          "status",
+          "confidence",
+          "evidence"
+        ],
+        "type": "object",
+        "properties": {
+          "teamId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "variant": {
+            "type": "string"
+          },
+          "genderCategory": {
+            "$ref": "#/components/schemas/GenderCategory"
+          },
+          "ageGroup": {
+            "$ref": "#/components/schemas/AgeGroup"
+          },
+          "level": {
+            "$ref": "#/components/schemas/TeamLevel"
+          },
+          "organisationId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TeamStatus"
+          },
+          "confidence": {
+            "$ref": "#/components/schemas/DuplicateConfidence"
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeamDuplicateEvidence"
+            }
+          }
+        },
+        "description": "A team that looks like the one checked (S07 D13): enough to recognise it and open it. Its variant and category are\nthe checked team's (only those are compared); `status` marks an archived one."
+      },
+      "TeamDuplicateEvidence": {
+        "required": [
+          "code"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/TeamDuplicateEvidenceCode"
+          },
+          "value": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "TeamDuplicateEvidenceCode": {
+        "enum": [
+          "SAME_NAME_KEY",
+          "NAME_SIMILARITY",
+          "SAME_ORGANISATION"
+        ],
+        "description": "Why a team looks like the one checked (S07 D13). Every candidate has the same variant and category."
+      },
+      "TeamDuplicateReviewProblem": {
+        "required": [
+          "code",
+          "correlationId"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "detail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "instance": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "candidates": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/TeamDuplicateCandidateResponse"
+            }
+          },
+          "code": {
+            "type": "string",
+            "description": "Stable error code, `<AREA>_<CONDITION>` (contracts/errors.json). Clients branch on it."
+          },
+          "correlationId": {
+            "type": "string",
+            "description": "The request's correlation ID (also the `X-Correlation-Id` response header)."
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "required": [
+                "field",
+                "code"
+              ],
+              "type": "object",
+              "properties": {
+                "field": {
+                  "type": "string"
+                },
+                "code": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Validation failures, one per field: `field` (camelCase) and `code`."
+          }
+        },
+        "description": "The Problem Details of a team create refused with `422` (S07 D13), for the OpenAPI document and the generated\nclient: `candidates` is present only with `TEAM_DUPLICATE_REVIEW_REQUIRED`, the teams the warning found,\nstrongest first."
+      },
+      "TeamLevel": {
+        "enum": [
+          "FIRST",
+          "RESERVE",
+          "DEVELOPMENT",
+          "ACADEMY"
+        ],
+        "description": "The level part of a team's category (S07 D7, Q53): TeamLevel.First unless the request says otherwise."
+      },
+      "TeamOrganisationResponse": {
+        "required": [
+          "id",
+          "displayName",
+          "slug"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          }
+        },
+        "description": "The organisation a team belongs to (S07 D16: id, display name, slug), whatever its status now."
+      },
+      "TeamResponse": {
+        "required": [
+          "id",
+          "variant",
+          "genderCategory",
+          "ageGroup",
+          "level",
+          "name",
+          "shortName",
+          "nameSince",
+          "slug",
+          "code",
+          "motto",
+          "primaryColour",
+          "secondaryColour",
+          "tertiaryColour",
+          "foundedYear",
+          "organisation",
+          "homeVenue",
+          "status",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "variant": {
+            "type": "string"
+          },
+          "genderCategory": {
+            "$ref": "#/components/schemas/GenderCategory"
+          },
+          "ageGroup": {
+            "$ref": "#/components/schemas/AgeGroup"
+          },
+          "level": {
+            "$ref": "#/components/schemas/TeamLevel"
+          },
+          "name": {
+            "type": "string"
+          },
+          "shortName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "nameSince": {
+            "type": "string",
+            "format": "date"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "code": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "motto": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "primaryColour": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "secondaryColour": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "tertiaryColour": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "foundedYear": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "organisation": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/TeamOrganisationResponse"
+              }
+            ]
+          },
+          "homeVenue": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/TeamVenueResponse"
+              }
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/TeamStatus"
+          },
+          "version": {
+            "type": "integer",
+            "format": "uint32"
+          }
+        },
+        "description": "A team as the admin reads it (S07 D19). Every field but the version is one the public reads may show (D16). The\norganisation and the home venue are summaries of the tenant's records, whatever their status now (null without\none). `nameSince` is when the current name began (D8). Aliases, identifiers and images join with S07-T3c, T3d\nand T4."
+      },
+      "TeamStatus": {
+        "enum": [
+          "ACTIVE",
+          "INACTIVE",
+          "SUSPENDED",
+          "DISBANDED",
+          "ARCHIVED"
+        ],
+        "description": "A team's states (docs/domain/state-machines.md, Registry; S07 D12)."
+      },
+      "TeamVenueResponse": {
+        "required": [
+          "id",
+          "name",
+          "slug"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          }
+        },
+        "description": "A team's home venue (S07 D16: id, name, slug), whatever the venue's status now."
+      },
       "TenantAccessMode": {
         "enum": [
           "FULL",
@@ -21680,6 +22551,9 @@
     },
     {
       "name": "Organisations"
+    },
+    {
+      "name": "Teams"
     },
     {
       "name": "Venues"

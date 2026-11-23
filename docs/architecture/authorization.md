@@ -210,6 +210,11 @@ organisation.duplicate_check, organisation.read`), `organisation.update` (`PUT �
 `REQUIRED`, granted as the create) and `organisation.status.change` (`POST …/organisations/{id}/status`;
 `REQUIRED_WITH_REASON`, `grantedWith: organisation.read`) for `TENANT_OWNER`, `TENANT_ADMIN` and `REGISTRAR`. The
 status history is read with `organisation.read`. The other organisation actions join with S07-T2c–T2d.
+Teams (S07 D20; S07-T3a): `team.read` (the record; audit `NONE`, available while read-only) for the same roles as
+`venue.read`; `team.duplicate_check` (audit `NONE`, `grantedWith: team.read`) and `team.create` (audit `REQUIRED`, with the
+reason when the warning found teams; names `MAX_TEAMS`, checked under `registry.teams:<tenantId>`; `grantedWith:
+team.duplicate_check, team.read`) for `TENANT_OWNER`, `TENANT_ADMIN` and `REGISTRAR`, not available while read-only.
+`TEAM_MANAGER` gets its own team through the `TEAM` scope in S08. The other team actions join with S07-T3b–T3d.
 
 | Role | Typical scope | Includes (summary) |
 |---|---|---|
@@ -303,7 +308,7 @@ tests compare this table with the code and the seeded rows with the code. Platfo
 |---|---|---|---|---|
 | `MAX_ENABLED_SPORTS` | QUOTA | `tenant.sport.enable`. Counts distinct **sports**, not variants: `RUGBY_UNION_15` + `RUGBY_UNION_7` = 1 | 3 | unlimited |
 | `MAX_ACTIVE_EDITIONS` | QUOTA | `edition.create`; counts editions in `DRAFT`, `REGISTRATION_OPEN`, `REGISTRATION_CLOSED` or `IN_PROGRESS` | 8 | 60 |
-| `MAX_TEAMS` | QUOTA | `team.create`; active teams | 120 | 2,000 |
+| `MAX_TEAMS` | QUOTA | `team.create` (reform and unarchive from S07-T3b); teams `ACTIVE`, `INACTIVE` or `SUSPENDED` (Q50) | 120 | 2,000 |
 | `MAX_STAFF_USERS` | QUOTA | `membership.invite`; users with a tenant membership (admins, managers, scorers, officials with logins). Public accounts don't count | 100 | 1,000 |
 | `STORAGE_GB` | QUOTA | media upload (ADR-0014) | 10 | 100 |
 | `LIVE_SCORING` | BOOLEAN | `contest.start`, `timeline.event.record` | ✓ | ✓ |

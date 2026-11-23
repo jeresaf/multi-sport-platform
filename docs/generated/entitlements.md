@@ -15,7 +15,7 @@ Declared in Tenancy's `TenancyEntitlements`, valued per plan in `TenancyPlans` (
 | `MAX_ACTIVE_EDITIONS` | Active editions | QUOTA | editions | — | 0 | 8 | 60 | Competitions | — | S04 | Competition editions in DRAFT, REGISTRATION_OPEN, REGISTRATION_CLOSED or IN_PROGRESS. |
 | `MAX_ENABLED_SPORTS` | Enabled sports | QUOTA | sports | — | 0 | 3 | unlimited | Tenancy & Commercial | `tenant.sport.enable` | S04 | Sports the tenant can enable. Counts distinct sports, not variants: rugby union 15s and 7s are one sport. |
 | `MAX_STAFF_USERS` | Staff users | QUOTA | users | — | 0 | 100 | 1000 | Identity & Access | `membership.invite` | S04 | Users with a tenant membership (admins, managers, scorers, officials with logins), plus pending invitations: each reserves a seat. Public accounts don't count. |
-| `MAX_TEAMS` | Teams | QUOTA | teams | — | 0 | 120 | 2000 | Registry | — | S04 | Active teams in the registry. |
+| `MAX_TEAMS` | Teams | QUOTA | teams | — | 0 | 120 | 2000 | Registry | `team.create` | S04 | Teams in the registry that are ACTIVE, INACTIVE or SUSPENDED; disbanded and archived teams don't count. |
 | `OFFLINE_SCORING` | Offline scoring | BOOLEAN | — | — | no | yes | yes | Match Operations | — | S04 | Score on the mobile app without a connection and sync later. |
 | `PUBLIC_NOTIFICATIONS` | Public notifications | BOOLEAN | — | — | no | no | yes | Engagement | — | S04 | Email and push alerts to the public. Staff notifications are never gated. |
 | `PUBLIC_SITE` | Public site | BOOLEAN | — | — | no | yes | yes | Tenancy & Commercial | — | S04 | The tenant's public site on its platform subdomain. |

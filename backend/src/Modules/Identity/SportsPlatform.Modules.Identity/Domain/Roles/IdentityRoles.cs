@@ -79,6 +79,10 @@ public static class IdentityRoles
             "organisation.external_id.end",
         ];
 
+    // Teams (S07 D20): as venues. Each S07 task adds the actions it builds.
+    private const string _teamRead = "team.read";
+    private static readonly string[] _teamChanges = ["team.duplicate_check", "team.create"];
+
     // Venues (S07 D20): read by every role that reads people; changed by those who change people. The duplicate check
     // is its own unaudited action, granted with the create.
     private const string _venueRead = "venue.read";
@@ -90,7 +94,7 @@ public static class IdentityRoles
 
     private static readonly string[] _tenantAdministration =
     [
-        _personRead, _personReadPrivate, .. _personChanges, _organisationRead, .. _organisationChanges, _venueRead, .. _venueChanges,
+        _personRead, _personReadPrivate, .. _personChanges, _organisationRead, .. _organisationChanges, _teamRead, .. _teamChanges, _venueRead, .. _venueChanges,
         _tenantSettingsRead, _tenantSettingsUpdate, _capabilitiesRead, _sportRead, _formatRead, _rulesetRead, _tenantSportRead,
         "tenant.sport.enable", "tenant.sport.disable", _membershipRead, "membership.suspend", "membership.restore", "membership.remove", "role.assign", "role.revoke",
         "membership.invite", "invitation.revoke", _subscriptionRead,
@@ -143,13 +147,13 @@ public static class IdentityRoles
             _tenantAdministration, [AssignmentScope.Tenant]),
         new(Registrar, RoleScope.Tenant,
             "People, organisations, teams and venues: create, update, duplicate review; no merges.",
-            [.. _tenantContext, _personRead, _personReadPrivate, .. _personChanges, _organisationRead, .. _organisationChanges, _venueRead, .. _venueChanges], [AssignmentScope.Tenant]),
+            [.. _tenantContext, _personRead, _personReadPrivate, .. _personChanges, _organisationRead, .. _organisationChanges, _teamRead, .. _teamChanges, _venueRead, .. _venueChanges], [AssignmentScope.Tenant]),
         new(CompetitionManager, RoleScope.Tenant,
             "Competitions, editions, registrations, roster approval, stages, fixtures, officials, contest admin, standings recalculation.",
-            [.. _tenantContext, _personRead, _organisationRead, _venueRead], [AssignmentScope.Tenant, AssignmentScope.Competition]),
+            [.. _tenantContext, _personRead, _organisationRead, _teamRead, _venueRead], [AssignmentScope.Tenant, AssignmentScope.Competition]),
         new(ResultsOfficer, RoleScope.Tenant,
             "Result approve, reject, reopen and correct; progression overrides with a reason.",
-            [.. _tenantContext, _personRead, _organisationRead, _venueRead], [AssignmentScope.Tenant, AssignmentScope.Competition]),
+            [.. _tenantContext, _personRead, _organisationRead, _teamRead, _venueRead], [AssignmentScope.Tenant, AssignmentScope.Competition]),
         new(Scorer, RoleScope.Tenant,
             "Contest check-in, start, periods and clock; timeline record and correct; result submit.",
             _tenantContext, [AssignmentScope.Tenant, AssignmentScope.Competition, AssignmentScope.Contest]),
@@ -161,9 +165,9 @@ public static class IdentityRoles
             [], [AssignmentScope.Team]),
         new(DataEntry, RoleScope.Tenant,
             "Historical results entry and import dry runs (running an import needs COMPETITION_MANAGER or TENANT_ADMIN).",
-            [.. _tenantContext, _personRead, _organisationRead, _venueRead], [AssignmentScope.Tenant, AssignmentScope.Competition]),
+            [.. _tenantContext, _personRead, _organisationRead, _teamRead, _venueRead], [AssignmentScope.Tenant, AssignmentScope.Competition]),
         new(Viewer, RoleScope.Tenant,
             "Read-only admin.",
-            [.. _tenantContext, _membershipRead, _subscriptionRead, _personRead, _organisationRead, _venueRead], [AssignmentScope.Tenant]),
+            [.. _tenantContext, _membershipRead, _subscriptionRead, _personRead, _organisationRead, _teamRead, _venueRead], [AssignmentScope.Tenant]),
     ];
 }

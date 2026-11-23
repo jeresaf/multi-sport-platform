@@ -118,7 +118,10 @@ public sealed class StaffUserQuotaTests(PostgresFixture fixture) : DatabaseTest(
         read.StatusCode.ShouldBe(HttpStatusCode.OK);
         var usage = (await read.Content.ReadFromJsonAsync<JsonElement>(Ct)).GetProperty("usage");
         UsageOf(usage, "MAX_STAFF_USERS").ShouldBe(new QuotaUsageResponse("MAX_STAFF_USERS", Measured: true, Used: 2, Limit: 1, Warning: true));
-        UsageOf(usage, "MAX_TEAMS").ShouldBe(new QuotaUsageResponse("MAX_TEAMS", Measured: false, Used: null, Limit: 120, Warning: false));
+        UsageOf(usage, "MAX_TEAMS").ShouldBe(new QuotaUsageResponse("MAX_TEAMS", Measured: true, Used: 0, Limit: 120, Warning: false));
+
+        // A quota no module counts yet (Competitions comes with S09) is shown as not measured.
+        UsageOf(usage, "MAX_ACTIVE_EDITIONS").ShouldBe(new QuotaUsageResponse("MAX_ACTIVE_EDITIONS", Measured: false, Used: null, Limit: 8, Warning: false));
     }
 
     // S04 D15: every member who runs the tenant or reads it as a viewer sees the plan, its values and usage, never the
@@ -160,7 +163,8 @@ public sealed class StaffUserQuotaTests(PostgresFixture fixture) : DatabaseTest(
         (staff.GetProperty("value").GetProperty("limit").GetInt32(), staff.GetProperty("source").GetString()).ShouldBe((5, "OVERRIDE"));
         UsageOf(body.GetProperty("usage"), "MAX_STAFF_USERS").ShouldBe(new QuotaUsageResponse("MAX_STAFF_USERS", true, 2, 5, Warning: false));
         UsageOf(body.GetProperty("usage"), "STORAGE_GB").ShouldBe(new QuotaUsageResponse("STORAGE_GB", true, 0, 10, Warning: false));
-        UsageOf(body.GetProperty("usage"), "MAX_TEAMS").Measured.ShouldBeFalse();
+        UsageOf(body.GetProperty("usage"), "MAX_TEAMS").ShouldBe(new QuotaUsageResponse("MAX_TEAMS", true, 0, 120, Warning: false));
+        UsageOf(body.GetProperty("usage"), "MAX_ACTIVE_EDITIONS").Measured.ShouldBeFalse();
     }
 
     // Reads go on while read-only (S04 D8): the page says why, and an invitation is refused by step 1 first.

@@ -233,7 +233,7 @@
       "code": "MAX_TEAMS",
       "module": "Tenancy",
       "name": "Teams",
-      "description": "Active teams in the registry.",
+      "description": "Teams in the registry that are ACTIVE, INACTIVE or SUSPENDED; disbanded and archived teams don't count.",
       "type": "QUOTA",
       "unit": "teams",
       "levels": [],
@@ -249,7 +249,9 @@
         }
       },
       "enforcedBy": "Registry",
-      "actions": [],
+      "actions": [
+        "team.create"
+      ],
       "since": "S04"
     },
     {
