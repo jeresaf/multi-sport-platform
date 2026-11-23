@@ -106,6 +106,15 @@ the message is the default title and may change.
 | `RULESET_UNKNOWN_TIEBREAKER` | 422 | A tiebreaker is not in the catalogue, doesn't apply to the sport, or is listed twice. | SportsConfiguration |
 | `SPORT_CONCURRENCY_CONFLICT` | 409 | The configuration was changed by someone else. Reload and try again. | SportsConfiguration |
 | `SPORT_DEFINITION_NOT_FOUND` | 404 | No published sport definition matches this variant, or this version of it. | SportsConfiguration |
+| `TEAM_COLOURS_INVALID` | 422 | A secondary colour needs a primary colour, and a tertiary colour a secondary one. | Registry |
+| `TEAM_CONCURRENCY_CONFLICT` | 409 | The team was changed by someone else. Reload and try again. | Registry |
+| `TEAM_DUPLICATE_REVIEW_REQUIRED` | 422 | Teams already in the registry look like this one: open one of them, or send duplicatesReviewed to add it anyway. | Registry |
+| `TEAM_HOME_VENUE_UNAVAILABLE` | 422 | The home venue must be a venue of the tenant that isn't closed or archived. | Registry |
+| `TEAM_NAME_INVALID` | 422 | A team's name needs at least one letter or digit. | Registry |
+| `TEAM_NOT_FOUND` | 404 | The team was not found. | Registry |
+| `TEAM_ORGANISATION_UNAVAILABLE` | 422 | The organisation must be an organisation of the tenant that isn't dissolved or archived. | Registry |
+| `TEAM_SLUG_TAKEN` | 422 | Another team of the tenant has this slug. | Registry |
+| `TEAM_SPORT_NOT_ENABLED` | 422 | The sport isn't enabled for your organisation: a team can only be created for an enabled sport. | Registry |
 | `TENANT_BLOCKED` | 403 | This tenant is suspended or archived. | Tenancy |
 | `TENANT_CONCURRENCY_CONFLICT` | 409 | The tenant was changed by someone else. Reload and try again. | Tenancy |
 | `TENANT_INVALID_TRANSITION` | 409 | The tenant's status does not allow this change. | Tenancy |

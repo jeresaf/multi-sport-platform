@@ -30,7 +30,7 @@ public static class TenancyEntitlements
     public static readonly EntitlementDefinition MaxTeams = new(
         "MAX_TEAMS",
         "Teams",
-        "Active teams in the registry.",
+        "Teams in the registry that are ACTIVE, INACTIVE or SUSPENDED; disbanded and archived teams don't count.",
         EntitlementType.Quota,
         enforcedBy: "Registry",
         since: "S04",

@@ -79,6 +79,9 @@ admin endpoint requires one of these; the code is stable and is what roles grant
 | `subscription.change_plan` | Tenancy | PLATFORM | — | REQUIRED | — | no | no | no | no | S04 | Move a tenant to a higher plan now, until the current period ends; a lower plan waits for the renewal. |
 | `subscription.read` | Tenancy | PLATFORM | — | REQUIRED | — | no | no | no | no | S04 | View a tenant's subscription periods, with their status today and the current period. |
 | `subscription.renew` | Tenancy | PLATFORM | — | REQUIRED | — | no | no | no | no | S04 | Renew a tenant's subscription: a new period from the day after the latest one ends, optionally on another plan. |
+| `team.create` | Registry | TENANT | TENANT | REQUIRED | `MAX_TEAMS` | no | no | no | no | S07 | Add a team in one of the tenant's enabled sports, within the plan's team limit; possible duplicates are shown first, and creating it anyway is recorded with the teams shown. |
+| `team.duplicate_check` | Registry | TENANT | TENANT | NONE | — | no | no | no | no | S07 | Check a new team's names, sport, category and organisation against the teams already in the registry. |
+| `team.read` | Registry | TENANT | TENANT | NONE | — | no | no | no | yes | S07 | View the teams directory and a team's record: sport, category, organisation, names, code, colours, home venue and status. |
 | `tenant.access.read` | Tenancy | TENANT | TENANT | REQUIRED | — | no | no | yes | yes | S03 | View the tenant's status, access mode and subscription, and why: available while the tenant is suspended, archived or read-only. |
 | `tenant.activate` | Tenancy | PLATFORM | — | REQUIRED | — | no | no | no | no | S02 | Activate a provisioned tenant (PROVISIONING → ACTIVE). |
 | `tenant.archive` | Tenancy | PLATFORM | — | REQUIRED_WITH_REASON | — | no | no | no | no | S02 | Archive a tenant, with a reason (ACTIVE or SUSPENDED → ARCHIVED). |

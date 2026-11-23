@@ -1474,6 +1474,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/v1/teams/duplicate-check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Check a team against the registry for duplicates
+         * @description Compares a new team's names, variant, category and organisation with the teams of the tenant named by `X-Tenant-Id`, archived ones included (see `status`), and answers those that look like it, strongest first, at most 10. Only teams of the same variant and the same category (gender, age group and level; `level` defaults to FIRST) are compared: a club's other categories are other teams. `LIKELY`: the name or short name is the same as the other's (the same words in any order; case, accents and punctuation aside). `POSSIBLE`: names at least 70 % similar, when both belong to the same organisation or either belongs to none. `evidence` says why. Nothing is saved: the create runs the same check, and refuses with TEAM_DUPLICATE_REVIEW_REQUIRED until it is sent with `duplicatesReviewed`. A name without a letter or a digit is TEAM_NAME_INVALID.
+         */
+        post: operations["CheckTeamDuplicates"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/teams": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add a team
+         * @description Adds an ACTIVE team to the tenant named by `X-Tenant-Id`. `variant` must be a sport variant the tenant has enabled (else TEAM_SPORT_NOT_ENABLED); it never changes. `name`, `genderCategory` and `ageGroup` are required; `level` defaults to FIRST. `nameSince` is the day the name began (not after today, the tenant's date; today when left out). `organisationId` is an organisation of the tenant that isn't dissolved or archived (else TEAM_ORGANISATION_UNAVAILABLE); `homeVenueId` a venue of the tenant that isn't closed or archived (else TEAM_HOME_VENUE_UNAVAILABLE). `code` is three upper-case letters; colours are #RRGGBB, and a secondary needs a primary, a tertiary a secondary (else TEAM_COLOURS_INVALID). Without `slug`, one is proposed from the name and category, with -2, -3… when taken; a slug sent that another team has is TEAM_SLUG_TAKEN. Teams in ACTIVE, INACTIVE or SUSPENDED count toward the plan's MAX_TEAMS: at the limit, ENTITLEMENT_QUOTA_EXCEEDED. The duplicate check (POST /teams/duplicate-check) runs again: teams that look like this one answer TEAM_DUPLICATE_REVIEW_REQUIRED with `candidates` until the request says `duplicatesReviewed: true`, with an optional `duplicateReason`; the audit entry names the teams shown. The reason is kept permanently in the audit trail: don't include personal data. A name without a letter or a digit is TEAM_NAME_INVALID. Answers the team as GET /teams/{teamId} does.
+         */
+        post: operations["CreateTeam"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/teams/{teamId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a team
+         * @description A team of the tenant named by `X-Tenant-Id`, whatever its status: variant, category (`genderCategory`, `ageGroup`, `level`), name and short name, `nameSince` (the day the name began), slug, code, motto, colours, founded year, organisation (id, display name, slug) and home venue (id, name, slug), each whatever its status now, status and `version` (also the `ETag`).
+         */
+        get: operations["GetTeam"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/v1/venues/duplicate-check": {
         parameters: {
             query?: never;
@@ -2448,6 +2508,12 @@ export interface components {
             version?: null | number;
         };
         /**
+         * @description The age part of a team's category (S07 D7, Q53). Descriptive only: an edition's age limits use its own rules and a
+         *     reference date (S09), not the team's age group.
+         * @enum {unknown}
+         */
+        AgeGroup: "SENIOR" | "U6" | "U7" | "U8" | "U9" | "U10" | "U11" | "U12" | "U13" | "U14" | "U15" | "U16" | "U17" | "U18" | "U19" | "U20" | "U21" | "U22" | "U23" | "VETERANS";
+        /**
          * @description Whether a person is an adult on the tenant's date (S06 D13): computed from the date of birth on every read, never
          *     stored. AgeStatus.Unknown means no date of birth is recorded; such a person is treated as a minor wherever data
          *     is shown publicly.
@@ -2713,6 +2779,21 @@ export interface components {
         CheckOrganisationDuplicatesResponse: {
             candidates: components["schemas"]["OrganisationDuplicateCandidateResponse"][];
         };
+        /** @description What the team duplicate warning compares (S07 D13): the names, variant, category and organisation a create would send. */
+        CheckTeamDuplicatesRequest: {
+            variant: null | string;
+            name: null | string;
+            genderCategory: null | components["schemas"]["GenderCategory"];
+            ageGroup: null | components["schemas"]["AgeGroup"];
+            level?: null | components["schemas"]["TeamLevel"];
+            shortName?: null | string;
+            /** Format: uuid */
+            organisationId?: null | string;
+        };
+        /** @description The teams that look like the one checked, strongest first (none is an empty list). */
+        CheckTeamDuplicatesResponse: {
+            candidates: components["schemas"]["TeamDuplicateCandidateResponse"][];
+        };
         /** @description What the venue duplicate warning compares (S07 D13): the name, the city and the coordinates a save would send. */
         CheckVenueDuplicatesRequest: {
             name: null | string;
@@ -2854,6 +2935,36 @@ export interface components {
             externalIdentifiers?: null | components["schemas"]["NewExternalIdentifier"][];
             checkToken?: null | string;
             overrideReason?: null | string;
+        };
+        /**
+         * @description A new team (S07 D6, D7, D8): its variant (enabled for the tenant), name, category and fields, when its name began
+         *     (`nameSince`, the tenant's today when left out), an optional slug (proposed from the name and category when none
+         *     is sent, D9), and, after the duplicate warning, `duplicatesReviewed` with an optional reason (D13).
+         */
+        CreateTeamRequest: {
+            variant: null | string;
+            name: null | string;
+            genderCategory: null | components["schemas"]["GenderCategory"];
+            ageGroup: null | components["schemas"]["AgeGroup"];
+            level?: null | components["schemas"]["TeamLevel"];
+            shortName?: null | string;
+            /** Format: uuid */
+            organisationId?: null | string;
+            code?: null | string;
+            motto?: null | string;
+            primaryColour?: null | string;
+            secondaryColour?: null | string;
+            tertiaryColour?: null | string;
+            /** Format: uuid */
+            homeVenueId?: null | string;
+            /** Format: int32 */
+            foundedYear?: null | number;
+            /** Format: date */
+            nameSince?: null | string;
+            slug?: null | string;
+            /** @default false */
+            duplicatesReviewed: boolean;
+            duplicateReason?: null | string;
         };
         /**
          * @description A new tenant. Every field but `publicEnabled` (default false) is required; unknown members are rejected,
@@ -3118,6 +3229,12 @@ export interface components {
         };
         /** @enum {unknown} */
         Gender: "FEMALE" | "MALE" | null;
+        /**
+         * @description The gender part of a team's category (S07 D7, Q53). Generic codes: the web app labels them ("Men", or "Boys" with an
+         *     age group up to AgeGroup.U17), never a definition.
+         * @enum {unknown}
+         */
+        GenderCategory: "MEN" | "WOMEN" | "MIXED";
         /**
          * @description The body of `entitlement.override` (audit `REQUIRED_WITH_REASON`): `value` in place of the plan's for
          *     `entitlementCode`, until `effectiveUntil` (the tenant's date, included; none = until removed). The reason
@@ -4417,6 +4534,111 @@ export interface components {
          * @enum {unknown}
          */
         SubscriptionStatus: "SCHEDULED" | "ACTIVE" | "EXPIRING" | "GRACE" | "EXPIRED" | "CANCELLED";
+        /**
+         * @description A team that looks like the one checked (S07 D13): enough to recognise it and open it. Its variant and category are
+         *     the checked team's (only those are compared); `status` marks an archived one.
+         */
+        TeamDuplicateCandidateResponse: {
+            /** Format: uuid */
+            teamId: string;
+            name: string;
+            variant: string;
+            genderCategory: components["schemas"]["GenderCategory"];
+            ageGroup: components["schemas"]["AgeGroup"];
+            level: components["schemas"]["TeamLevel"];
+            /** Format: uuid */
+            organisationId: null | string;
+            status: components["schemas"]["TeamStatus"];
+            confidence: components["schemas"]["DuplicateConfidence"];
+            evidence: components["schemas"]["TeamDuplicateEvidence"][];
+        };
+        TeamDuplicateEvidence: {
+            code: components["schemas"]["TeamDuplicateEvidenceCode"];
+            value?: null | string;
+        };
+        /**
+         * @description Why a team looks like the one checked (S07 D13). Every candidate has the same variant and category.
+         * @enum {unknown}
+         */
+        TeamDuplicateEvidenceCode: "SAME_NAME_KEY" | "NAME_SIMILARITY" | "SAME_ORGANISATION";
+        /**
+         * @description The Problem Details of a team create refused with `422` (S07 D13), for the OpenAPI document and the generated
+         *     client: `candidates` is present only with `TEAM_DUPLICATE_REVIEW_REQUIRED`, the teams the warning found,
+         *     strongest first.
+         */
+        TeamDuplicateReviewProblem: {
+            type?: null | string;
+            title?: null | string;
+            /** Format: int32 */
+            status?: null | number;
+            detail?: null | string;
+            instance?: null | string;
+            candidates?: null | components["schemas"]["TeamDuplicateCandidateResponse"][];
+            /** @description Stable error code, `<AREA>_<CONDITION>` (contracts/errors.json). Clients branch on it. */
+            code: string;
+            /** @description The request's correlation ID (also the `X-Correlation-Id` response header). */
+            correlationId: string;
+            /** @description Validation failures, one per field: `field` (camelCase) and `code`. */
+            errors?: {
+                field: string;
+                code: string;
+            }[];
+        };
+        /**
+         * @description The level part of a team's category (S07 D7, Q53): TeamLevel.First unless the request says otherwise.
+         * @enum {unknown}
+         */
+        TeamLevel: "FIRST" | "RESERVE" | "DEVELOPMENT" | "ACADEMY";
+        /** @description The organisation a team belongs to (S07 D16: id, display name, slug), whatever its status now. */
+        TeamOrganisationResponse: {
+            /** Format: uuid */
+            id: string;
+            displayName: string;
+            slug: string;
+        };
+        /**
+         * @description A team as the admin reads it (S07 D19). Every field but the version is one the public reads may show (D16). The
+         *     organisation and the home venue are summaries of the tenant's records, whatever their status now (null without
+         *     one). `nameSince` is when the current name began (D8). Aliases, identifiers and images join with S07-T3c, T3d
+         *     and T4.
+         */
+        TeamResponse: {
+            /** Format: uuid */
+            id: string;
+            variant: string;
+            genderCategory: components["schemas"]["GenderCategory"];
+            ageGroup: components["schemas"]["AgeGroup"];
+            level: components["schemas"]["TeamLevel"];
+            name: string;
+            shortName: null | string;
+            /** Format: date */
+            nameSince: string;
+            slug: string;
+            code: null | string;
+            motto: null | string;
+            primaryColour: null | string;
+            secondaryColour: null | string;
+            tertiaryColour: null | string;
+            /** Format: int32 */
+            foundedYear: null | number;
+            organisation: null | components["schemas"]["TeamOrganisationResponse"];
+            homeVenue: null | components["schemas"]["TeamVenueResponse"];
+            status: components["schemas"]["TeamStatus"];
+            /** Format: uint32 */
+            version: number;
+        };
+        /**
+         * @description A team's states (docs/domain/state-machines.md, Registry; S07 D12).
+         * @enum {unknown}
+         */
+        TeamStatus: "ACTIVE" | "INACTIVE" | "SUSPENDED" | "DISBANDED" | "ARCHIVED";
+        /** @description A team's home venue (S07 D16: id, name, slug), whatever the venue's status now. */
+        TeamVenueResponse: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            slug: string;
+        };
         /**
          * @description What a tenant may do, derived from its status and its current subscription period: state-machines.md.
          * @enum {unknown}
@@ -10030,6 +10252,179 @@ export interface operations {
             };
             /** @description Problem Details; `code`: `ORGANISATION_EXTERNAL_ID_VALIDITY_INVALID` */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    CheckTeamDuplicates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CheckTeamDuplicatesRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckTeamDuplicatesResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TEAM_NAME_INVALID` */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    CreateTeam: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateTeamRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `ENTITLEMENT_QUOTA_EXCEEDED`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TEAM_COLOURS_INVALID`, `TEAM_DUPLICATE_REVIEW_REQUIRED`, `TEAM_HOME_VENUE_UNAVAILABLE`, `TEAM_NAME_INVALID`, `TEAM_ORGANISATION_UNAVAILABLE`, `TEAM_SLUG_TAKEN`, `TEAM_SPORT_NOT_ENABLED` */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["TeamDuplicateReviewProblem"];
+                };
+            };
+        };
+    };
+    GetTeam: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                teamId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TEAM_NOT_FOUND` */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

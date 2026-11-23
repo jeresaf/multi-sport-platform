@@ -1125,6 +1125,54 @@
       "since": "S04"
     },
     {
+      "code": "team.create",
+      "module": "Registry",
+      "description": "Add a team in one of the tenant's enabled sports, within the plan's team limit; possible duplicates are shown first, and creating it anyway is recorded with the teams shown.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED",
+      "entitlement": "MAX_TEAMS",
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S07"
+    },
+    {
+      "code": "team.duplicate_check",
+      "module": "Registry",
+      "description": "Check a new team's names, sport, category and organisation against the teams already in the registry.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "NONE",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S07"
+    },
+    {
+      "code": "team.read",
+      "module": "Registry",
+      "description": "View the teams directory and a team's record: sport, category, organisation, names, code, colours, home venue and status.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "NONE",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": true,
+      "since": "S07"
+    },
+    {
       "code": "tenant.access.read",
       "module": "Tenancy",
       "description": "View the tenant's status, access mode and subscription, and why: available while the tenant is suspended, archived or read-only.",

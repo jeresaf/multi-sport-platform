@@ -601,6 +601,60 @@
       "owner": "SportsConfiguration"
     },
     {
+      "code": "TEAM_COLOURS_INVALID",
+      "status": 422,
+      "message": "A secondary colour needs a primary colour, and a tertiary colour a secondary one.",
+      "owner": "Registry"
+    },
+    {
+      "code": "TEAM_CONCURRENCY_CONFLICT",
+      "status": 409,
+      "message": "The team was changed by someone else. Reload and try again.",
+      "owner": "Registry"
+    },
+    {
+      "code": "TEAM_DUPLICATE_REVIEW_REQUIRED",
+      "status": 422,
+      "message": "Teams already in the registry look like this one: open one of them, or send duplicatesReviewed to add it anyway.",
+      "owner": "Registry"
+    },
+    {
+      "code": "TEAM_HOME_VENUE_UNAVAILABLE",
+      "status": 422,
+      "message": "The home venue must be a venue of the tenant that isn't closed or archived.",
+      "owner": "Registry"
+    },
+    {
+      "code": "TEAM_NAME_INVALID",
+      "status": 422,
+      "message": "A team's name needs at least one letter or digit.",
+      "owner": "Registry"
+    },
+    {
+      "code": "TEAM_NOT_FOUND",
+      "status": 404,
+      "message": "The team was not found.",
+      "owner": "Registry"
+    },
+    {
+      "code": "TEAM_ORGANISATION_UNAVAILABLE",
+      "status": 422,
+      "message": "The organisation must be an organisation of the tenant that isn't dissolved or archived.",
+      "owner": "Registry"
+    },
+    {
+      "code": "TEAM_SLUG_TAKEN",
+      "status": 422,
+      "message": "Another team of the tenant has this slug.",
+      "owner": "Registry"
+    },
+    {
+      "code": "TEAM_SPORT_NOT_ENABLED",
+      "status": 422,
+      "message": "The sport isn't enabled for your organisation: a team can only be created for an enabled sport.",
+      "owner": "Registry"
+    },
+    {
       "code": "TENANT_BLOCKED",
       "status": 403,
       "message": "This tenant is suspended or archived.",
