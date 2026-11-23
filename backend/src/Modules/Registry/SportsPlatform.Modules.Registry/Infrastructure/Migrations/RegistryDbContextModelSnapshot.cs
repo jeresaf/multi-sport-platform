@@ -383,6 +383,97 @@ namespace SportsPlatform.Modules.Registry.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("SportsPlatform.Modules.Registry.Domain.Organisations.OrganisationParentLink", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("ActorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("actor_id");
+
+                    b.Property<string>("ActorKind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("actor_kind");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<Guid>("OrganisationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organisation_id");
+
+                    b.Property<Guid>("ParentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("parent_id")
+                        .HasAnnotation("pii", "INTERNAL");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("reason")
+                        .HasAnnotation("pii", "INTERNAL");
+
+                    b.Property<DateTimeOffset>("SetAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("set_at");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<DateOnly>("ValidFrom")
+                        .HasColumnType("date")
+                        .HasColumnName("valid_from")
+                        .HasAnnotation("pii", "INTERNAL");
+
+                    b.Property<DateOnly?>("ValidTo")
+                        .HasColumnType("date")
+                        .HasColumnName("valid_to")
+                        .HasAnnotation("pii", "INTERNAL");
+
+                    b.HasKey("Id")
+                        .HasName("pk_organisation_parent_links");
+
+                    b.HasIndex("TenantId", "OrganisationId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_organisation_parent_links_tenant_id_organisation_id_open")
+                        .HasFilter("valid_to IS NULL");
+
+                    b.HasIndex("TenantId", "ParentId")
+                        .HasDatabaseName("ix_organisation_parent_links_tenant_id_parent_id")
+                        .HasFilter("valid_to IS NULL");
+
+                    b.HasIndex("TenantId", "OrganisationId", "SetAt")
+                        .HasDatabaseName("ix_organisation_parent_links_tenant_id_organisation_id_set_at");
+
+                    b.ToTable("organisation_parent_links", "registry", t =>
+                        {
+                            t.HasCheckConstraint("ck_organisation_parent_links_actor_kind", "actor_kind IN ('USER', 'SYSTEM', 'ANONYMOUS')");
+
+                            t.HasCheckConstraint("ck_organisation_parent_links_not_self", "organisation_id <> parent_id");
+
+                            t.HasCheckConstraint("ck_organisation_parent_links_validity", "valid_to IS NULL OR valid_to >= valid_from");
+                        });
+                });
+
             modelBuilder.Entity("SportsPlatform.Modules.Registry.Domain.Organisations.OrganisationStatusChange", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1894,6 +1985,25 @@ namespace SportsPlatform.Modules.Registry.Infrastructure.Migrations
                         .HasConstraintName("fk_organisations_venue_tenant_id_primary_venue_id");
                 });
 
+            modelBuilder.Entity("SportsPlatform.Modules.Registry.Domain.Organisations.OrganisationParentLink", b =>
+                {
+                    b.HasOne("SportsPlatform.Modules.Registry.Domain.Organisations.Organisation", null)
+                        .WithMany("ParentLinks")
+                        .HasForeignKey("TenantId", "OrganisationId")
+                        .HasPrincipalKey("TenantId", "Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_organisation_parent_links_organisations_tenant_id_organisat");
+
+                    b.HasOne("SportsPlatform.Modules.Registry.Domain.Organisations.Organisation", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId", "ParentId")
+                        .HasPrincipalKey("TenantId", "Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_organisation_parent_links_organisations_tenant_id_parent_id");
+                });
+
             modelBuilder.Entity("SportsPlatform.Modules.Registry.Domain.Organisations.OrganisationStatusChange", b =>
                 {
                     b.HasOne("SportsPlatform.Modules.Registry.Domain.Organisations.Organisation", null)
@@ -2054,6 +2164,8 @@ namespace SportsPlatform.Modules.Registry.Infrastructure.Migrations
 
             modelBuilder.Entity("SportsPlatform.Modules.Registry.Domain.Organisations.Organisation", b =>
                 {
+                    b.Navigation("ParentLinks");
+
                     b.Navigation("StatusHistory");
                 });
 

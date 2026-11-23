@@ -83,6 +83,11 @@ internal sealed class OrganisationConfiguration : IEntityTypeConfiguration<Organ
             .HasPrincipalKey(o => new { o.TenantId, o.Id })
             .OnDelete(DeleteBehavior.Restrict);
         builder.Navigation(o => o.StatusHistory).HasField("_statusHistory").UsePropertyAccessMode(PropertyAccessMode.Field);
+        builder.HasMany(o => o.ParentLinks).WithOne()
+            .HasForeignKey(l => new { l.TenantId, l.OrganisationId })
+            .HasPrincipalKey(o => new { o.TenantId, o.Id })
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.Navigation(o => o.ParentLinks).HasField("_parentLinks").UsePropertyAccessMode(PropertyAccessMode.Field);
 
         // The tenant's own venue: a null venue isn't checked (MATCH SIMPLE).
         builder.HasOne<Venue>().WithMany()
@@ -127,5 +132,47 @@ internal sealed class OrganisationStatusChangeConfiguration : IEntityTypeConfigu
         builder.Property(c => c.ActorKind).HasConversion(EnumColumns.UpperSnake<ActorKind>()).HasMaxLength(20);
 
         builder.HasIndex(c => new { c.TenantId, c.OrganisationId, c.OccurredAt });
+    }
+}
+
+/// <summary>
+/// <c>registry.organisation_parent_links</c> (S07 D5): tenant-owned (RLS). Not append-only: ending a link sets
+/// <c>valid_to</c>, nothing else changes and nothing is deleted. Both ends are the tenant's organisations (composite
+/// foreign keys); at most one link of an organisation is open (partial unique index), and the open links are indexed by
+/// parent for the children and the cycle check. The link and its reason are <c>INTERNAL</c> (D16).
+/// </summary>
+internal sealed class OrganisationParentLinkConfiguration : IEntityTypeConfiguration<OrganisationParentLink>
+{
+    public const string Table = "organisation_parent_links";
+    public const string OpenLinkIndex = "ux_organisation_parent_links_tenant_id_organisation_id_open";
+
+    public void Configure(EntityTypeBuilder<OrganisationParentLink> builder)
+    {
+        builder.ToTable(Table, table =>
+        {
+            table.HasCheckConstraint("ck_organisation_parent_links_not_self", "organisation_id <> parent_id");
+            table.HasCheckConstraint("ck_organisation_parent_links_validity", "valid_to IS NULL OR valid_to >= valid_from");
+            table.HasCheckConstraint(
+                "ck_organisation_parent_links_actor_kind", $"actor_kind IN ({EnumColumns.SqlList<ActorKind>()})");
+        });
+
+        builder.Property(l => l.ParentId).IsPersonalData(PersonalDataClass.Internal);
+        builder.Property(l => l.ValidFrom).IsPersonalData(PersonalDataClass.Internal);
+        builder.Property(l => l.ValidTo).IsPersonalData(PersonalDataClass.Internal);
+        builder.Property(l => l.Reason).HasMaxLength(OrganisationParentLink.ReasonMaxLength)
+            .IsPersonalData(PersonalDataClass.Internal);
+        builder.Property(l => l.ActorKind).HasConversion(EnumColumns.UpperSnake<ActorKind>()).HasMaxLength(20);
+        builder.Ignore(l => l.IsOpen);
+
+        // The parent is the tenant's own organisation; the link names it without a navigation.
+        builder.HasOne<Organisation>().WithMany()
+            .HasForeignKey(l => new { l.TenantId, l.ParentId })
+            .HasPrincipalKey(o => new { o.TenantId, o.Id })
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(l => new { l.TenantId, l.OrganisationId }).IsUnique().HasFilter("valid_to IS NULL")
+            .HasDatabaseName(OpenLinkIndex);
+        builder.HasIndex(l => new { l.TenantId, l.OrganisationId, l.SetAt });
+        builder.HasIndex(l => new { l.TenantId, l.ParentId }).HasFilter("valid_to IS NULL");
     }
 }
