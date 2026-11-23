@@ -210,6 +210,11 @@ organisation.duplicate_check, organisation.read`), `organisation.update` (`PUT �
 `REQUIRED`, granted as the create) and `organisation.status.change` (`POST …/organisations/{id}/status`;
 `REQUIRED_WITH_REASON`, `grantedWith: organisation.read`) for `TENANT_OWNER`, `TENANT_ADMIN` and `REGISTRAR`. The
 status history is read with `organisation.read`. The other organisation actions join with S07-T2c–T2d.
+Teams (S07 D20; S07-T3a): `team.read` (the record; audit `NONE`, available while read-only) for the same roles as
+`venue.read`; `team.duplicate_check` (audit `NONE`, `grantedWith: team.read`) and `team.create` (audit `REQUIRED`, with the
+reason when the warning found teams; names `MAX_TEAMS`, checked under `registry.teams:<tenantId>`; `grantedWith:
+team.duplicate_check, team.read`) for `TENANT_OWNER`, `TENANT_ADMIN` and `REGISTRAR`, not available while read-only.
+`TEAM_MANAGER` gets its own team through the `TEAM` scope in S08. The other team actions join with S07-T3b–T3d.
 
 | Role | Typical scope | Includes (summary) |
 |---|---|---|

@@ -364,7 +364,7 @@ Deliver:
 - Likely T3a (model, create, quota, update, reads) and T3b (rename and aliases, lifecycle, identifiers, directory).
 
 Acceptance:
-- [ ] A team can't be created for a variant the tenant hasn't enabled (`TEAM_SPORT_NOT_ENABLED`); one organisation
+- [x] A team can't be created for a variant the tenant hasn't enabled (`TEAM_SPORT_NOT_ENABLED`); one organisation
       runs teams in two sports (two test variants of two test sports) and in several categories of one (tests).
 - [ ] Renaming keeps the old name as a `FORMER_NAME` alias with its dates (from `name_since`); `ITeamDirectory`
       answers the old name on a date before the rename, the new one after and the first name before `name_since`
