@@ -221,6 +221,11 @@ enabled for the tenant (`IEnabledSports`) and never changes; the category is thr
 registered with `AddQuotaUsage`: teams `ACTIVE`, `INACTIVE` or `SUSPENDED`) and the lighter warning (the same variant and
 category only). The organisation and home venue are the tenant's own (composite foreign keys).
 `TEAM_CONCURRENCY_CONFLICT` joins the per-root conflicts.
+**As built (S07-T3b-1):** update (`PUT`, every status, not the variant or the name: another name is
+`TEAM_RENAME_REQUIRED`; a change to the short name, the category or the organisation runs the warning again under the
+lock), the lifecycle (`POST …/status`, `TeamTransitions`; a reform or an unarchive to a status that counts checks
+`MAX_TEAMS` under `registry.teams:<tenantId>`) and the status history read. A variant disabled since doesn't stop
+either. Duplicate candidates carry the organisation (id, display name, slug).
 **Absorbs:** pack specs 08–14. Owner's systems: **Player Management System**, the identity half of
 **Team Management System**. Owner's rule "duplicate players within the same tenant should be avoided at all
 costs" is implemented here (docs/build/slices/S06-people-registry.md).

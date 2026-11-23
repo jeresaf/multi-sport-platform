@@ -7,8 +7,8 @@ at the start of every review.
 
 - **Current slice:** S07 — Organisations, teams and venues (docs/build/slices/S07-organisations-teams-venues.md,
   written by the S06 slice review). S00–S06 are done
-- **Current task:** — (S07-T3a in review: #127)
-- **Next:** S07-T3b-1 — Teams: update, lifecycle, status history
+- **Current task:** S07-T3b-1 — Teams: update, lifecycle (the quota on reform and unarchive), status history (plan approved 2026-11-23)
+- **Next:** S07-T3b-2 — Teams: the directory, and the teams in the organisation read
 - **Blocked on:** —
 
 ## Next up
