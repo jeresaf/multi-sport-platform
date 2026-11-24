@@ -230,6 +230,14 @@ either. Duplicate candidates carry the organisation (id, display name, slug).
 category codes, `status`; sorted by name, then category — age group, gender, level in declared order — then ID; the
 cursor carries the category rank, `TeamOrder`). The organisation record lists its teams (archived ones left out) in the
 same order.
+**As built (S07-T3c):** `registry.team_aliases` (former names, nicknames, spellings). `POST …/{id}/rename`
+(`effectiveOn` after the current name's start, not after the tenant's today) keeps the old name, with its short name and
+code, as a `FORMER_NAME` alias dated from the old `name_since` to the day before; the slug stays; a change to the name's or
+short name's key runs the warning again under `registry.teams:<tenantId>`. `…/{id}/aliases` adds and removes nicknames
+and spellings; former names are never removed. `Team.NameOn(date)` answers the name, short name and code on a date (the
+first name before `name_since`); `ITeamDirectory` exposes it with S07-T3d. The record shows `formerNames` (`PUBLIC`) and
+`aliases` (`INTERNAL`); the directory's `q` matches current aliases, former names included. Disbanded and archived teams
+take no new name or alias (`TEAM_DISBANDED`, `TEAM_ARCHIVED`).
 **Absorbs:** pack specs 08–14. Owner's systems: **Player Management System**, the identity half of
 **Team Management System**. Owner's rule "duplicate players within the same tenant should be avoided at all
 costs" is implemented here (docs/build/slices/S06-people-registry.md).
