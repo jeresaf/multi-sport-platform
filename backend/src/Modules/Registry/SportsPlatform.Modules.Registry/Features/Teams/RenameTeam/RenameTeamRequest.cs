@@ -19,7 +19,7 @@ public sealed class RenameTeamRequest
 
     public string? Name { get; init; }
 
-    /// <summary>The short name from <see cref="EffectiveOn"/>; left out keeps the current one, <c>null</c> clears it.</summary>
+    /// <summary>The short name from <c>effectiveOn</c>; left out keeps the current one, <c>null</c> clears it.</summary>
     public string? ShortName
     {
         get => _shortName;
@@ -30,7 +30,7 @@ public sealed class RenameTeamRequest
         }
     }
 
-    /// <summary>The code from <see cref="EffectiveOn"/>; left out keeps the current one, <c>null</c> clears it.</summary>
+    /// <summary>The code from <c>effectiveOn</c>; left out keeps the current one, <c>null</c> clears it.</summary>
     public string? Code
     {
         get => _code;

@@ -79,7 +79,7 @@ public sealed class TeamAlias : Entity, ITenantOwned
     public bool Covers(DateOnly date) => IsFormerName && ValidFrom <= date && date <= ValidTo;
 
     /// <summary>A former name, written by <see cref="Team.Rename"/>: the name, short name and code it had from <paramref name="from"/> to <paramref name="to"/>.</summary>
-    internal static TeamAlias FormerName(Guid teamId, string name, string? shortName, string? code, DateOnly from, DateOnly to)
+    public static TeamAlias FormerName(Guid teamId, string name, string? shortName, string? code, DateOnly from, DateOnly to)
     {
         if (to < from)
         {
@@ -97,8 +97,8 @@ public sealed class TeamAlias : Entity, ITenantOwned
         };
     }
 
-    /// <summary>A nickname or a spelling, added through <see cref="Team.AddAlias"/>.</summary>
-    internal static TeamAlias Other(Guid teamId, string name, AliasKind kind)
+    /// <summary>A nickname or a spelling of a team; commands add one through <see cref="Team.AddAlias"/>.</summary>
+    public static TeamAlias Other(Guid teamId, string name, AliasKind kind)
     {
         if (kind == AliasKind.FormerName)
         {

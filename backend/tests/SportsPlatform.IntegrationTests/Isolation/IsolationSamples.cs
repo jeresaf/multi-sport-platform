@@ -90,6 +90,7 @@ public static class IsolationSamples
         new OrganisationAliasSample(),
         new TeamSample(),
         new TeamStatusChangeSample(),
+        new TeamAliasSample(),
         new MediaAssetSample(),
     ];
 
@@ -713,6 +714,25 @@ public static class IsolationSamples
         public Entity? Referencing(IForeignKey foreignKey, Guid principalId) =>
             foreignKey.PrincipalEntityType.ClrType == typeof(Team)
                 ? new TeamStatusChange(principalId, TeamStatus.Active, TeamStatus.Disbanded, "Folded into the first team", SystemActor.Instance, RegistrySamples.Now)
+                : null;
+    }
+
+    /// <summary>Registry: a former name a rename leaves; it points at its team.</summary>
+    private sealed class TeamAliasSample : IIsolationSample
+    {
+        public Type EntityType => typeof(TeamAlias);
+
+        public Entity Add(DbContext context)
+        {
+            var team = RegistrySamples.NewTeam("Bunga Lakeside FC");
+            context.Add(team);
+            team.Rename("Bunga Breakers FC", null, null, team.NameSince.AddDays(1), team.NameSince.AddDays(1)).IsSuccess.ShouldBeTrue();
+            return team.Aliases.Single();
+        }
+
+        public Entity? Referencing(IForeignKey foreignKey, Guid principalId) =>
+            foreignKey.PrincipalEntityType.ClrType == typeof(Team)
+                ? TeamAlias.Other(principalId, "The Breakers", AliasKind.Nickname)
                 : null;
     }
 
