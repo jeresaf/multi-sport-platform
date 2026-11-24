@@ -173,7 +173,8 @@ As built for people (S06-T1a):
   Teams (S07-T3c) follow them under `team.alias.*` with `TEAM_…` codes, but a `FORMER_NAME` comes only from
   `team.rename` and keeps the name's dates (`valid_from`, `valid_to`) and the short name and code it went with; it is
   never removed (`TEAM_ALIAS_FORMER_NAME`). Nicknames and spellings take no dates. A disbanded or archived team takes
-  no new alias. As venues', a team's aliases are searched by the directory, not compared by the duplicate warning.
+  no new alias. As organisations', a team's current aliases (former names included) are searched by the directory
+  and feed the duplicate warning (D13).
 
 As built for people (S06-T2a), the duplicate check (`DuplicateMatcher`, Registry Domain; `DuplicateFinder`):
 

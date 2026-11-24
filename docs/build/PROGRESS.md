@@ -149,9 +149,10 @@ at the start of every review.
   current one; an explicit `null` clears it. Archived and disbanded teams can't be renamed (`TEAM_ARCHIVED`,
   `TEAM_DISBANDED`, as D10's other new children). Former names come only from rename: `team.alias.add` takes `NICKNAME`
   or `SPELLING`, and `team.alias.remove` refuses a former name (`TEAM_ALIAS_FORMER_NAME`, 409). Builder defaults: the
-  same name exactly is `TEAM_NAME_UNCHANGED`; renaming back to an earlier name is allowed; aliases don't feed the
-  duplicate warning (Q57 as built); the read splits `formerNames` (`PUBLIC`) from `aliases` (`INTERNAL`, D16).
-  `Team.NameOn(date)` comes with T3c; `ITeamDirectory` (T3d) answers it.
+  same name exactly is `TEAM_NAME_UNCHANGED`; renaming back to an earlier name is allowed; the read splits `formerNames` (`PUBLIC`) from `aliases` (`INTERNAL`, D16).
+  `Team.NameOn(date)` comes with T3c; `ITeamDirectory` (T3d) answers it. Pre-review (owner): current aliases, former
+  names included, feed the `LIKELY` warning on both sides as D13 says (the plan had said they wouldn't; that was wrong,
+  Q57 only added the same-category rule); the team being changed brings its saved aliases.
 
 - **S07-T3b-2 (owner, plan 2026-11-24):** teams with the same name sort by category: age group in declared order
   (`SENIOR`, `U6` … `U23`, `VETERANS`), then gender (`MEN`, `WOMEN`, `MIXED`), then level (`FIRST`, `RESERVE`,

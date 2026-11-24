@@ -629,8 +629,9 @@ The rest of S06's tech debt has its own trigger in PROGRESS.md ("From S06").
   `registry.teams:<tenantId>` and runs the warning again for the new names (the team left out). The slug stays.
   Renaming back to an earlier name is allowed. `POST /teams/{id}/aliases` (`team.alias.add`: `NICKNAME` or `SPELLING`
   only, a `FORMER_NAME` is `400` on `kind`) and `…/aliases/{aliasId}/remove` (`team.alias.remove`,
-  `REQUIRED_WITH_REASON`; a former name is `409 TEAM_ALIAS_FORMER_NAME`) as organisations'; aliases don't feed the
-  warning (Q57 as built). Both alias actions and the rename answer the team with its `ETag`. The read gains
+  `REQUIRED_WITH_REASON`; a former name is `409 TEAM_ALIAS_FORMER_NAME`) as organisations'. Current aliases, former
+  names included, feed the `LIKELY` warning on both sides (D13; owner, pre-review): the team being changed brings its
+  saved aliases, so a rename compares those it had before. Both alias actions and the rename answer the team with its `ETag`. The read gains
   `formerNames` (`PUBLIC`, newest first: id, name, short name, code, `validFrom`, `validTo`) and `aliases` (current
   nicknames and spellings, `INTERNAL`). `GET /teams?q=` adds a current alias's key, former names included (prefix of
   the key or of a word, similarity ≥ 0.3). `Team.NameOn(date)`: the current names from `name_since`, the former name

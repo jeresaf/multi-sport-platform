@@ -236,7 +236,8 @@ code, as a `FORMER_NAME` alias dated from the old `name_since` to the day before
 short name's key runs the warning again under `registry.teams:<tenantId>`. `…/{id}/aliases` adds and removes nicknames
 and spellings; former names are never removed. `Team.NameOn(date)` answers the name, short name and code on a date (the
 first name before `name_since`); `ITeamDirectory` exposes it with S07-T3d. The record shows `formerNames` (`PUBLIC`) and
-`aliases` (`INTERNAL`); the directory's `q` matches current aliases, former names included. Disbanded and archived teams
+`aliases` (`INTERNAL`); the directory's `q` and the duplicate warning (`LIKELY`, both sides) match current aliases,
+former names included. Disbanded and archived teams
 take no new name or alias (`TEAM_DISBANDED`, `TEAM_ARCHIVED`).
 **Absorbs:** pack specs 08–14. Owner's systems: **Player Management System**, the identity half of
 **Team Management System**. Owner's rule "duplicate players within the same tenant should be avoided at all
