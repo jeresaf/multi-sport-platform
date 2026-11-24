@@ -663,7 +663,8 @@ docs/build/slices/S07-organisations-teams-venues.md, "Carried over from S06")
 - The teams directory (S07-T3b-2, review of #129) sorts by a category rank computed with a `CASE` per part, so
   `ix_teams_tenant_id_sort_key_id` serves only the name part of the order. (Trigger: a tenant's teams directory passes a
   few thousand rows, or a slow-query report: a stored `category_rank` column in that index.)
-- The organisation's version doesn't move when a team or a child changes (S07-T2c-1, T3b-2). The public organisation
+- The organisation's version doesn't move when a child leaves or changes, or when a team changes (S07-T2c-1, T3b-2;
+  a new child's link does move it). The public organisation
   read (D17, `CacheableJson` with `ETag` and `304`) must hash its body for the `ETag`, not use the version, or it keeps
   serving stale `teams` and `children` (review of #129). (S07-T5, the public reads)
 
