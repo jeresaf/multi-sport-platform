@@ -21,8 +21,8 @@ public static class TeamDuplicateThresholds
 public enum TeamDuplicateEvidenceCode
 {
     /// <summary>
-    /// The name or short name of one has the same key as the name or short name of the other: the same words in any
-    /// order, case, accents and punctuation aside.
+    /// The name, short name or a current alias (former names included) of one has the same key as one of the other's: the
+    /// same words in any order, case, accents and punctuation aside.
     /// </summary>
     SameNameKey,
 
@@ -73,8 +73,9 @@ public sealed record TeamDuplicateCandidate(
 /// <summary>
 /// Finds the teams of the scope's tenant (query filter and RLS) that look like a <see cref="TeamDuplicateInput"/> (S07
 /// D13), archived ones included. Only teams of the same variant and category are compared (owner, S07-T3a: a club's
-/// other categories are other teams, so neither confidence warns about them): <c>LIKELY</c> when the name or short name
-/// of one has a key of the other's; <c>POSSIBLE</c> when the names are at least 0.7 similar and they share an
+/// other categories are other teams, so neither confidence warns about them): <c>LIKELY</c> when a key of one (its name,
+/// short name or a current alias, former names included) is a key of the other's (D13; owner, S07-T3c pre-review: aliases on
+/// both sides, as organisations'; the team being changed brings its own saved aliases, a new one has none); <c>POSSIBLE</c> when the names are at least 0.7 similar and they share an
 /// organisation, or either has none. The variant narrows the rows first (<c>(tenant_id, variant)</c> is indexed), so
 /// the similarity is measured only within them. Strongest first, then the most similar, then by name; at most
 /// <see cref="TeamDuplicateThresholds.MaxCandidates"/>.
@@ -91,11 +92,20 @@ public sealed class TeamDuplicateFinder(RegistryDbContext context)
         ArgumentNullException.ThrowIfNull(input);
 
         var key = input.NameKey;
-        var keys = input.NameKeys.ToList();
         var variant = input.Variant;
         var (gender, ageGroup, level) = input.Category;
         var organisationId = input.OrganisationId;
         var self = input.TeamId;
+
+        // The team being changed is known by its current aliases too: those saved, so a rename compares the aliases it
+        // had before (its new former name is the name it is leaving).
+        var ownAliasKeys = self is null
+            ? []
+            : await context.Set<TeamAlias>().AsNoTracking()
+                .Where(a => a.TeamId == self && a.RemovedAt == null)
+                .Select(a => a.NameKey)
+                .ToListAsync(cancellationToken);
+        var keys = input.NameKeys.Concat(ownAliasKeys).Distinct(StringComparer.Ordinal).ToList();
 
         var rows = await context.Set<Team>().AsNoTracking()
             .Where(t => t.Variant == variant && t.GenderCategory == gender && t.AgeGroup == ageGroup && t.Level == level)
@@ -114,7 +124,9 @@ public sealed class TeamDuplicateFinder(RegistryDbContext context)
                     .Select(o => new TeamDuplicateOrganisation(o.Id, o.DisplayName, o.Slug))
                     .FirstOrDefault(),
                 t.Status,
-                SameNameKey = keys.Contains(t.NameKey) || (t.ShortNameKey != null && keys.Contains(t.ShortNameKey)),
+                SameNameKey = keys.Contains(t.NameKey)
+                    || (t.ShortNameKey != null && keys.Contains(t.ShortNameKey))
+                    || t.Aliases.Any(a => a.RemovedAt == null && keys.Contains(a.NameKey)),
                 Similarity = EF.Functions.TrigramsSimilarity(t.NameKey, key),
             })
             .Where(row => row.SameNameKey

@@ -17,7 +17,18 @@ public sealed class RenameTeamRequest
     private readonly string? _shortName;
     private readonly string? _code;
 
-    public string? Name { get; init; }
+    /// <summary>
+    /// <paramref name="name"/> and <paramref name="effectiveOn"/> are constructor parameters so OpenAPI lists them as
+    /// required, as a positional record's; one left out still binds as null and the validator names it.
+    /// </summary>
+    [JsonConstructor]
+    public RenameTeamRequest(string? name, DateOnly? effectiveOn)
+    {
+        Name = name;
+        EffectiveOn = effectiveOn;
+    }
+
+    public string? Name { get; }
 
     /// <summary>The short name from <c>effectiveOn</c>; left out keeps the current one, <c>null</c> clears it.</summary>
     public string? ShortName
@@ -42,7 +53,7 @@ public sealed class RenameTeamRequest
     }
 
     /// <summary>The new name's first day: after the current name's first day, not after today (the tenant's date).</summary>
-    public DateOnly? EffectiveOn { get; init; }
+    public DateOnly? EffectiveOn { get; }
 
     public bool DuplicatesReviewed { get; init; }
 

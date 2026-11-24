@@ -12,7 +12,7 @@ namespace SportsPlatform.Modules.Registry.Features.Teams.Aliases;
 /// <summary>
 /// Adds a nickname or spelling to a team (S07 D8, D10): refused on a disbanded or archived team and when the team is
 /// already known by the same name key (<c>TEAM_ALIAS_EXISTS</c>). No duplicate warning runs (as organisations' and
-/// venues'), and aliases don't feed later warnings (Q57 as built). The new alias row moves the team's version (S06 D11).
+/// venues'); later warnings compare the alias (D13). The new alias row moves the team's version (S06 D11).
 /// </summary>
 public sealed class AddTeamAliasHandler(RegistryDbContext context, AuditScope audit)
 {

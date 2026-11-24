@@ -18,8 +18,8 @@ internal static class UpdateTeamEndpoint
             "Replaces the fields of a team of the tenant named by `X-Tenant-Id`, whatever its status and whether or not its " +
             "sport is still enabled: a field left out is cleared, `level` left out is FIRST, and `slug` left out keeps the " +
             "team's (a slug another team has is TEAM_SLUG_TAKEN). The sport never changes and can't be sent. `name` may be " +
-            "sent, but only as the current name: a new name is a rename (TEAM_RENAME_REQUIRED), so the old one is kept with " +
-            "its dates. The status changes through POST /teams/{teamId}/status. A new `organisationId` must be an " +
+            "sent, but only as the current name: a new name is a rename (POST /teams/{teamId}/rename; TEAM_RENAME_REQUIRED), " +
+            "so the old one is kept with its dates. The status changes through POST /teams/{teamId}/status. A new `organisationId` must be an " +
             "organisation of the tenant that isn't dissolved or archived (TEAM_ORGANISATION_UNAVAILABLE), a new " +
             "`homeVenueId` a venue that isn't closed or archived (TEAM_HOME_VENUE_UNAVAILABLE); the current ones are kept " +
             "whatever their status. When the short name (as the duplicate check compares it: case, accents, punctuation " +

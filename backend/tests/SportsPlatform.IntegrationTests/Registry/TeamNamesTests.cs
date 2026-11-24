@@ -150,6 +150,41 @@ public sealed class TeamNamesTests(PostgresFixture fixture) : DatabaseTest(fixtu
         JsonDocument.Parse(saved.Metadata!).RootElement.GetProperty("candidates")[0].GetProperty("teamId").GetGuid().ShouldBe(other.Id);
     }
 
+    // D13 (owner, pre-review): a current alias, former names included, is a name key on both sides for LIKELY; removed
+    // aliases and other categories don't count.
+    [Fact]
+    public async Task A_former_name_or_nickname_makes_a_likely_duplicate_on_either_side()
+    {
+        var (kmsa, registrar) = await TenantAsync("kmsa", IdentityRoles.Registrar);
+        var renamed = await SaveTeamAsync(App.Services, kmsa, "Bunga Lakeside FC");
+        await OkAsync(await registrar.PostAsJsonAsync(TeamRenamePath(renamed.Id), new { name = "Bunga Breakers FC", effectiveOn = TenantToday() }, Ct));
+        var nicknamed = await SaveTeamAsync(App.Services, kmsa, "Ntinda Swifts FC");
+        var nickname = await OkAsync(await registrar.PostAsJsonAsync(TeamAliasesPath(nicknamed.Id), new { name = "The Swallows", kind = "NICKNAME" }, Ct));
+
+        // The other side's former name and nickname.
+        TeamCandidates(await CheckTeamAsync(registrar, new { variant = TestballFull, name = "Lakeside, Bunga FC", genderCategory = "MEN", ageGroup = "SENIOR" }))
+            .ShouldBe([(renamed.Id, "LIKELY")]);
+        TeamCandidates(await CheckTeamAsync(registrar, new { variant = TestballFull, name = "Kisaasi FC", shortName = "Swallows, The", genderCategory = "MEN", ageGroup = "SENIOR" }))
+            .ShouldBe([(nicknamed.Id, "LIKELY")]);
+        TeamCandidates(await CheckTeamAsync(registrar, new { variant = TestballFull, name = "Bunga Lakeside FC", genderCategory = "MEN", ageGroup = "U17" }))
+            .ShouldBeEmpty();
+
+        // This side's own nickname: a rename of a team known as "The Breakers" is warned about the Bunga team.
+        var kiwatule = await SaveTeamAsync(App.Services, kmsa, "Kiwatule Athletic FC");
+        await OkAsync(await registrar.PostAsJsonAsync(TeamAliasesPath(kiwatule.Id), new { name = "Bunga Breakers F.C.", kind = "SPELLING" }, Ct));
+        using (var refused = await registrar.PostAsJsonAsync(TeamRenamePath(kiwatule.Id), new { name = "Kiwatule Kites FC", effectiveOn = TenantToday() }, Ct))
+        {
+            TeamCandidates(await refused.ShouldBeProblemAsync(HttpStatusCode.UnprocessableEntity, "TEAM_DUPLICATE_REVIEW_REQUIRED"))
+                .ShouldBe([(renamed.Id, "LIKELY")]);
+        }
+
+        // A removed alias no longer counts.
+        var aliasId = nickname.GetProperty("aliases")[0].GetProperty("id").GetGuid();
+        await OkAsync(await registrar.PostAsJsonAsync(TeamAliasPath(nicknamed.Id, aliasId, "remove"), new { reason = "Never used" }, Ct));
+        TeamCandidates(await CheckTeamAsync(registrar, new { variant = TestballFull, name = "Kisaasi FC", shortName = "The Swallows", genderCategory = "MEN", ageGroup = "SENIOR" }))
+            .ShouldBeEmpty();
+    }
+
     [Fact]
     public async Task A_nickname_or_spelling_is_shown_and_searched_until_it_is_removed_and_a_former_name_stays()
     {
