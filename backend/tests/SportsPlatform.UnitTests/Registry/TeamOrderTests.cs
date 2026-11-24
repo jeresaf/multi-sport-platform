@@ -8,7 +8,8 @@ namespace SportsPlatform.UnitTests.Registry;
 
 /// <summary>
 /// The teams' order (S07-T3b-2; owner, plan 2026-11-24): category by age group in declared order, then gender, then
-/// level; the SQL rank agrees with the C# one for every category; the directory's cursor carries a real rank.
+/// level; the rank expression (compiled here; run through PostgreSQL in the integration tests) computes the C# rank for
+/// every category; the directory's cursor carries a real rank.
 /// </summary>
 public sealed class TeamOrderTests
 {
@@ -43,7 +44,7 @@ public sealed class TeamOrderTests
     }
 
     [Fact]
-    public void Every_category_has_its_own_rank_and_the_query_computes_the_same_one()
+    public void Every_category_has_its_own_rank_and_the_expression_computes_the_same_one()
     {
         var rankOf = TeamOrder.CategoryRank.Compile();
         var ranks = new HashSet<int>();

@@ -660,6 +660,12 @@ docs/build/slices/S07-organisations-teams-venues.md, "Carried over from S06")
   `organisation_aliases.name` (and `OrganisationAliasResponse`) are classified `INTERNAL` for every alias kind (S07-T1c,
   review of #120 Q1; S07-T2d, review of #126 R2): one column carries one `pii` class; T3's team aliases join this. T5's plan chooses between a public read of former
   names only (`kind = FORMER_NAME`, its own public DTO) and reclassifying the column. (S07-T5.)
+- The teams directory (S07-T3b-2, review of #129) sorts by a category rank computed with a `CASE` per part, so
+  `ix_teams_tenant_id_sort_key_id` serves only the name part of the order. (Trigger: a tenant's teams directory passes a
+  few thousand rows, or a slow-query report: a stored `category_rank` column in that index.)
+- The organisation's version doesn't move when a team or a child changes (S07-T2c-1, T3b-2). The public organisation
+  read (D17, `CacheableJson` with `ETag` and `304`) must hash its body for the `ETag`, not use the version, or it keeps
+  serving stale `teams` and `children` (review of #129). (S07-T5, the public reads)
 
 **From S06** (regrouped by the S06 slice review, 2026-11-21; each names its trigger)
 - Consent's `givenOn` has no lower bound when the date of birth is unknown (S06-T6a pre-review N3; as T4b2's

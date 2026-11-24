@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 using SportsPlatform.IntegrationTests.Api;
 using SportsPlatform.IntegrationTests.Identity;
 using SportsPlatform.IntegrationTests.Infrastructure;
@@ -7,6 +8,7 @@ using SportsPlatform.IntegrationTests.Tenancy;
 using SportsPlatform.Modules.Identity.Domain.Roles;
 using SportsPlatform.Modules.Registry.Domain.Organisations;
 using SportsPlatform.Modules.Registry.Domain.Teams;
+using SportsPlatform.Modules.Registry.Features.Teams;
 using SportsPlatform.Modules.Tenancy.Contracts.Tenants;
 using static SportsPlatform.IntegrationTests.Identity.MembershipTestData;
 using static SportsPlatform.IntegrationTests.Registry.OrganisationRequests;
@@ -79,6 +81,30 @@ public sealed class TeamDirectoryTests(PostgresFixture fixture) : DatabaseTest(f
             ("SENIOR", "MIXED", "FIRST"), ("U6", "MEN", "FIRST"), ("U17", "MEN", "FIRST"), ("U17", "WOMEN", "FIRST"),
             ("VETERANS", "MEN", "FIRST"),
         ]);
+    }
+
+    // Review #129 R1: PostgreSQL computes the rank C# computes for every age group, gender and level (20 teams: each age
+    // group once, cycling through the genders and levels), so the SQL CASE covers each code, not only the sorted few.
+    [Fact]
+    public async Task The_database_ranks_every_age_group_gender_and_level_as_the_code_does()
+    {
+        var (kmsa, _) = await TenantAsync("kmsa", IdentityRoles.Registrar);
+        var genders = Enum.GetValues<GenderCategory>();
+        var levels = Enum.GetValues<TeamLevel>();
+        var expected = new Dictionary<Guid, int>();
+        foreach (var (ageGroup, index) in Enum.GetValues<AgeGroup>().Select((ageGroup, index) => (ageGroup, index)))
+        {
+            var category = new TeamCategory(genders[index % genders.Length], ageGroup, levels[index % levels.Length]);
+            var team = await SaveTeamAsync(App.Services, kmsa, "Ntinda Swifts FC", category: category);
+            expected[team.Id] = TeamOrder.CategoryRankOf(category);
+        }
+
+        await using var scope = RegistryTestData.ScopeFor(App.Services, kmsa, out var context);
+        var ranked = await TeamOrder.Ranked(context.Set<Team>().AsNoTracking())
+            .Select(t => new { t.Team.Id, t.CategoryRank })
+            .ToDictionaryAsync(t => t.Id, t => t.CategoryRank, Ct);
+
+        ranked.ShouldBe(expected, ignoreOrder: true);
     }
 
     [Fact]
