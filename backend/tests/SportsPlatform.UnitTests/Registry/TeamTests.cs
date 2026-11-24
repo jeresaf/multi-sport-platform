@@ -8,9 +8,9 @@ using SportsPlatform.Modules.Registry.Infrastructure;
 namespace SportsPlatform.UnitTests.Registry;
 
 /// <summary>
-/// Teams (S07-T3a): the record's keys, name's start and first history row (D6, D8, D13), the colours' order, the slug
-/// proposed from the name and category (D9; owner, T3a plan), the warning's input, the places the quota counts (D14,
-/// Q50) and the conflict code (D2).
+/// Teams (S07-T3a, T3b-1): the record's keys, name's start and first history row (D6, D8, D13), the colours' order, the
+/// slug proposed from the name and category (D9; owner, T3a plan), the warning's input, the places the quota counts (D14,
+/// Q50), the conflict code (D2), the update that keeps the name (D8, D11) and the lifecycle (D12, Q55).
 /// </summary>
 public sealed class TeamTests
 {
@@ -118,4 +118,116 @@ public sealed class TeamTests
         RegistryConcurrencyConflicts.For(typeof(Team))!.Code.ShouldBe("TEAM_CONCURRENCY_CONFLICT");
         RegistryConcurrencyConflicts.For(typeof(TeamStatusChange)).ShouldBeNull();
     }
+
+    // D12's team table: every pair from a status that isn't archived.
+    private static readonly HashSet<(TeamStatus, TeamStatus)> _allowed =
+    [
+        .. new[] { TeamStatus.Active, TeamStatus.Inactive, TeamStatus.Suspended }.SelectMany(from =>
+            Enum.GetValues<TeamStatus>().Where(to => to != from).Select(to => (from, to))),
+        (TeamStatus.Disbanded, TeamStatus.Active),
+        (TeamStatus.Disbanded, TeamStatus.Archived),
+    ];
+
+    public static TheoryData<TeamStatus, TeamStatus, bool> Moves()
+    {
+        var data = new TheoryData<TeamStatus, TeamStatus, bool>();
+        foreach (var from in Enum.GetValues<TeamStatus>())
+        {
+            foreach (var to in Enum.GetValues<TeamStatus>())
+            {
+                data.Add(from, to, _allowed.Contains((from, to)));
+            }
+        }
+
+        return data;
+    }
+
+    [Theory]
+    [MemberData(nameof(Moves))]
+    public void The_lifecycle_allows_only_its_moves(TeamStatus from, TeamStatus to, bool allowed) =>
+        TeamTransitions.IsAllowed(from, to).ShouldBe(allowed);
+
+    [Fact]
+    public void The_moves_are_the_specs_table()
+    {
+        // Spelled out once, so the generated table above can't drift from D12 unnoticed.
+        TeamTransitions.IsAllowed(TeamStatus.Disbanded, TeamStatus.Active).ShouldBeTrue();
+        TeamTransitions.IsAllowed(TeamStatus.Disbanded, TeamStatus.Inactive).ShouldBeFalse();
+        TeamTransitions.IsAllowed(TeamStatus.Disbanded, TeamStatus.Suspended).ShouldBeFalse();
+        TeamTransitions.IsAllowed(TeamStatus.Suspended, TeamStatus.Disbanded).ShouldBeTrue();
+        TeamTransitions.IsAllowed(TeamStatus.Inactive, TeamStatus.Archived).ShouldBeTrue();
+    }
+
+    // Q55: unarchiving goes back to the status before archiving and nowhere else.
+    [Theory]
+    [InlineData(TeamStatus.Active)]
+    [InlineData(TeamStatus.Inactive)]
+    [InlineData(TeamStatus.Suspended)]
+    [InlineData(TeamStatus.Disbanded)]
+    public void An_archived_team_goes_back_only_to_the_status_it_had(TeamStatus before)
+    {
+        foreach (var to in Enum.GetValues<TeamStatus>())
+        {
+            TeamTransitions.IsAllowed(TeamStatus.Archived, to, before).ShouldBe(to == before, $"{before} → ARCHIVED → {to}");
+        }
+
+        TeamTransitions.IsAllowed(TeamStatus.Archived, TeamStatus.Active).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void A_disbanded_team_archived_and_unarchived_stays_disbanded_and_each_move_is_kept()
+    {
+        var team = NewTeam();
+
+        team.ChangeStatus(TeamStatus.Disbanded, " Not enough players ", SystemActor.Instance, _now.AddMinutes(1)).IsSuccess.ShouldBeTrue();
+        team.ChangeStatus(TeamStatus.Archived, "Folded into the first team", SystemActor.Instance, _now.AddMinutes(2)).IsSuccess.ShouldBeTrue();
+        team.StatusBeforeArchive().ShouldBe(TeamStatus.Disbanded);
+        team.ChangeStatus(TeamStatus.Active, "Archived by mistake", SystemActor.Instance, _now.AddMinutes(3))
+            .Error!.Code.ShouldBe("TEAM_STATUS_INVALID");
+        team.ChangeStatus(TeamStatus.Disbanded, "Archived by mistake", SystemActor.Instance, _now.AddMinutes(3)).IsSuccess.ShouldBeTrue();
+
+        team.Status.ShouldBe(TeamStatus.Disbanded);
+        team.StatusBeforeArchive().ShouldBeNull();
+        team.StatusHistory.Select(c => (c.FromStatus, c.ToStatus, c.Reason)).ShouldBe(
+        [
+            (null, TeamStatus.Active, null),
+            (TeamStatus.Active, TeamStatus.Disbanded, "Not enough players"),
+            (TeamStatus.Disbanded, TeamStatus.Archived, "Folded into the first team"),
+            (TeamStatus.Archived, TeamStatus.Disbanded, "Archived by mistake"),
+        ]);
+    }
+
+    [Fact]
+    public void A_move_needs_the_history_loaded()
+    {
+        // As EF materialises a team without its history: no rows at all.
+        var team = (Team)System.Runtime.CompilerServices.RuntimeHelpers.GetUninitializedObject(typeof(Team));
+        typeof(Team).GetField("_statusHistory", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .SetValue(team, new List<TeamStatusChange>());
+
+        Should.Throw<InvalidOperationException>(() => team.ChangeStatus(TeamStatus.Inactive, "No fixtures", SystemActor.Instance, _now));
+    }
+
+    [Fact]
+    public void An_update_keeps_the_name_and_variant_and_says_whether_a_compared_field_changed()
+    {
+        var team = NewTeam();
+        var same = NtindaSwifts() with { Motto = "By the lake", Code = "NSW" };
+
+        team.ChangesComparedFields(same).ShouldBeFalse();
+        team.ChangesComparedFields(same with { ShortName = "  ntinda SWIFTS " }).ShouldBeFalse();
+        team.ChangesComparedFields(same with { ShortName = "Swifts" }).ShouldBeTrue();
+        team.ChangesComparedFields(same with { ShortName = null }).ShouldBeTrue();
+        team.ChangesComparedFields(same with { Category = _seniorMen with { Level = TeamLevel.Reserve } }).ShouldBeTrue();
+        team.ChangesComparedFields(same with { OrganisationId = Guid.CreateVersion7() }).ShouldBeTrue();
+
+        team.Update(same with { ShortName = "Swifts" }, "ntinda-swifts");
+        (team.Name, team.NameKey, team.Variant, team.Slug, team.ShortName, team.ShortNameKey, team.Code, team.Motto)
+            .ShouldBe(("Ntinda Swifts FC", "fc ntinda swifts", "TESTBALL_FULL", "ntinda-swifts", "Swifts", "swifts", "NSW", "By the lake"));
+        Should.Throw<ArgumentException>(() => team.Update(same with { Name = "Bunga Lakeside FC" }, "ntinda-swifts"));
+        Should.Throw<ArgumentException>(() => team.Update(same, "Ntinda Swifts"));
+    }
+
+    private static Team NewTeam() =>
+        Team.Create("TESTBALL_FULL", NtindaSwifts(), new DateOnly(2020, 1, 1), "ntinda-swifts-fc-senior-men", TeamSource.Manual, SystemActor.Instance, _now);
 }

@@ -230,6 +230,25 @@ changes its teams' (pack RULE-ORG-005). Every move writes a row to `registry.org
 creation), read newest first at `GET …/organisations/{id}/status-changes`. An organisation's details can be corrected in
 every status. Nothing is deleted (AR-18).
 
+### Team (stored, as built in S07-T3b-1)
+
+```text
+ACTIVE ⇄ INACTIVE ⇄ SUSPENDED ⇄ ACTIVE   (every pair, each way, with a reason)
+ACTIVE | INACTIVE | SUSPENDED ──disband (reason)──► DISBANDED ──reform (reason)──► ACTIVE
+ACTIVE | INACTIVE | SUSPENDED | DISBANDED ──archive (reason)──► ARCHIVED ──unarchive (reason)──► the status before archiving
+```
+
+One endpoint, `POST …/teams/{id}/status` with `{status, reason}` (`team.status.change`); any other move is
+`409 TEAM_STATUS_INVALID`. Unarchiving goes back only to the status the team had before it was archived (as venues'),
+so archiving a disbanded team and unarchiving it never reforms it (Q55). Teams in `ACTIVE`, `INACTIVE` or `SUSPENDED`
+count toward `MAX_TEAMS` (S07 D14): disbanding or archiving frees a place; a reform, or an unarchive to one of those
+statuses, checks the quota under `registry.teams:<tenantId>` (`403 ENTITLEMENT_QUOTA_EXCEEDED`), which every move to a
+counting status takes before reading the team. A team whose variant
+the tenant has disabled since still moves. `SUSPENDED` is an administrative stop set by staff. Every move writes a row to
+`registry.team_status_changes` (the first at creation), read newest first at `GET …/teams/{id}/status-changes`. A
+team's details can be corrected in every status (not its variant, nor its name, which changes by rename). Nothing is
+deleted (AR-18).
+
 ---
 
 ## Team Operations

@@ -25,9 +25,9 @@ internal static class TeamsEndpoints
 internal static class TeamChanges
 {
     /// <summary>
-    /// Holds <c>registry.teams:&lt;tenantId&gt;</c> until the transaction ends: creates (and, with S07-T3b, changes to a
-    /// compared field or the slug, reforms and unarchives) queue on it while they check slugs, duplicates and the quota
-    /// and save.
+    /// Holds <c>registry.teams:&lt;tenantId&gt;</c> until the transaction ends: creates, updates that change a compared
+    /// field or the slug, and moves to a status that counts toward <c>MAX_TEAMS</c> queue on it while they check slugs,
+    /// duplicates and the quota and save.
     /// </summary>
     public static async Task LockTeamsAsync(RegistryDbContext context, Guid tenantId, CancellationToken cancellationToken)
     {

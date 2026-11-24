@@ -1,6 +1,7 @@
 using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using SportsPlatform.BuildingBlocks.Privacy;
+using SportsPlatform.Modules.Registry.Domain.Organisations;
 using SportsPlatform.Modules.Registry.Domain.People.Duplicates;
 using SportsPlatform.Modules.Registry.Domain.Teams;
 using SportsPlatform.Modules.Registry.Infrastructure;
@@ -54,13 +55,16 @@ public sealed record TeamDuplicateInput(
         [.. new[] { NameKey, ShortNameKey }.OfType<string>().Distinct(StringComparer.Ordinal)];
 }
 
-/// <summary>An existing team that looks like the one checked, strongest first.</summary>
+/// <summary>The organisation of a candidate (owner, review #127 Q1): enough to tell two clubs' teams apart.</summary>
+public sealed record TeamDuplicateOrganisation(Guid Id, string DisplayName, string Slug);
+
+/// <summary>An existing team that looks like the one checked, strongest first; its organisation is null when it has none.</summary>
 public sealed record TeamDuplicateCandidate(
     Guid TeamId,
     string Name,
     string Variant,
     TeamCategory Category,
-    Guid? OrganisationId,
+    TeamDuplicateOrganisation? Organisation,
     TeamStatus Status,
     DuplicateConfidence Confidence,
     IReadOnlyList<TeamDuplicateEvidence> Evidence,
@@ -105,6 +109,10 @@ public sealed class TeamDuplicateFinder(RegistryDbContext context)
                 t.AgeGroup,
                 t.Level,
                 t.OrganisationId,
+                Organisation = context.Set<Organisation>()
+                    .Where(o => o.Id == t.OrganisationId)
+                    .Select(o => new TeamDuplicateOrganisation(o.Id, o.DisplayName, o.Slug))
+                    .FirstOrDefault(),
                 t.Status,
                 SameNameKey = keys.Contains(t.NameKey) || (t.ShortNameKey != null && keys.Contains(t.ShortNameKey)),
                 Similarity = EF.Functions.TrigramsSimilarity(t.NameKey, key),
@@ -122,6 +130,7 @@ public sealed class TeamDuplicateFinder(RegistryDbContext context)
                 row.Variant,
                 new TeamCategory(row.GenderCategory, row.AgeGroup, row.Level),
                 row.OrganisationId,
+                row.Organisation,
                 row.Status,
                 row.SameNameKey,
                 row.Similarity))
@@ -167,7 +176,7 @@ public sealed class TeamDuplicateFinder(RegistryDbContext context)
 
         var confidence = row.SameNameKey ? DuplicateConfidence.Likely : DuplicateConfidence.Possible;
         return new TeamDuplicateCandidate(
-            row.Id, row.Name, row.Variant, row.Category, row.OrganisationId, row.Status, confidence, evidence,
+            row.Id, row.Name, row.Variant, row.Category, row.Organisation, row.Status, confidence, evidence,
             row.SameNameKey ? 1 : similarity);
     }
 
@@ -177,6 +186,7 @@ public sealed class TeamDuplicateFinder(RegistryDbContext context)
         string Variant,
         TeamCategory Category,
         Guid? OrganisationId,
+        TeamDuplicateOrganisation? Organisation,
         TeamStatus Status,
         bool SameNameKey,
         double Similarity);

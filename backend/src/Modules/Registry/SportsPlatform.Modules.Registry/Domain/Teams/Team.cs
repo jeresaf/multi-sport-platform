@@ -1,6 +1,7 @@
 using System.Globalization;
 using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.BuildingBlocks.Domain;
+using SportsPlatform.BuildingBlocks.Results;
 using SportsPlatform.Modules.Registry.Domain.People;
 
 namespace SportsPlatform.Modules.Registry.Domain.Teams;
@@ -131,6 +132,80 @@ public sealed class Team : AggregateRoot, ITenantOwned
         team.Apply(details);
         team._statusHistory.Add(new TeamStatusChange(team.Id, null, team.Status, null, actor, now));
         return team;
+    }
+
+    /// <summary>
+    /// Replaces the editable fields (S07 D11) whatever the status: not the variant, which never changes, nor the name,
+    /// which changes by rename (D8; <paramref name="details"/> carries the current name). The use case has checked the
+    /// details, the slug and, when a compared field changes, the duplicate warning.
+    /// </summary>
+    public void Update(TeamDetails details, string slug)
+    {
+        ArgumentNullException.ThrowIfNull(details);
+        if (!Slugs.IsValid(slug))
+        {
+            throw new ArgumentException("The slug is not valid.", nameof(slug));
+        }
+
+        if (!string.Equals(details.Name, Name, StringComparison.Ordinal))
+        {
+            throw new ArgumentException("An update keeps the team's name: a new name is a rename.", nameof(details));
+        }
+
+        SetName(Name, details.ShortName);
+        Apply(details);
+        Slug = slug;
+    }
+
+    /// <summary>
+    /// Whether <paramref name="details"/> change what the duplicate warning compares (S07 D13): the short name's key,
+    /// the category or the organisation (the name and the variant don't change by update).
+    /// </summary>
+    public bool ChangesComparedFields(TeamDetails details)
+    {
+        ArgumentNullException.ThrowIfNull(details);
+        return OptionalNameKeyOf(details.ShortName) != ShortNameKey
+            || details.Category != Category
+            || details.OrganisationId != OrganisationId;
+    }
+
+    /// <summary>
+    /// The status the team had before it was archived (the source row of the latest move to <c>ARCHIVED</c>, Q55); null
+    /// unless it is archived. Rows are ordered by time, then by ID.
+    /// </summary>
+    public TeamStatus? StatusBeforeArchive() => Status != TeamStatus.Archived
+        ? null
+        : _statusHistory
+            .Where(change => change.ToStatus == TeamStatus.Archived)
+            .OrderBy(change => change.OccurredAt).ThenBy(change => change.Id)
+            .LastOrDefault()?.FromStatus;
+
+    /// <summary>
+    /// Moves the team to <paramref name="to"/> with a reason (S07 D12, <see cref="TeamTransitions"/>) and writes the row
+    /// of its history; a move the current status doesn't allow is <c>TEAM_STATUS_INVALID</c>. Needs the history loaded
+    /// (it throws otherwise): unarchiving reads the status before archiving from it. The quota (reform, unarchive) is
+    /// the use case's.
+    /// </summary>
+    public Result ChangeStatus(TeamStatus to, string reason, ICurrentActor actor, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(actor);
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+
+        // Every team has its creation row: an empty history means the caller didn't load it (a bug, not a refusal).
+        if (_statusHistory.Count == 0)
+        {
+            throw new InvalidOperationException("The team's status history is not loaded.");
+        }
+
+        if (!TeamTransitions.IsAllowed(Status, to, StatusBeforeArchive()))
+        {
+            return Result.Failure(RegistryErrors.TeamStatusInvalid);
+        }
+
+        var from = Status;
+        Status = to;
+        _statusHistory.Add(new TeamStatusChange(Id, from, to, reason.Trim(), actor, now));
+        return Result.Success();
     }
 
     /// <summary>

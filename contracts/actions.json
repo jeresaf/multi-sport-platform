@@ -1173,6 +1173,38 @@
       "since": "S07"
     },
     {
+      "code": "team.status.change",
+      "module": "Registry",
+      "description": "Mark a team inactive, suspended, disbanded or archived, reactivate or reform it, or unarchive it, with a reason; reforming or unarchiving needs a free place within the plan's team limit.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED_WITH_REASON",
+      "entitlement": "MAX_TEAMS",
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S07"
+    },
+    {
+      "code": "team.update",
+      "module": "Registry",
+      "description": "Change a team's details (not its sport or name: a new name is a rename); a change to its short name, category or organisation shows possible duplicates first, and saving it anyway is recorded with the teams shown.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S07"
+    },
+    {
       "code": "tenant.access.read",
       "module": "Tenancy",
       "description": "View the tenant's status, access mode and subscription, and why: available while the tenant is suspended, archived or read-only.",

@@ -643,6 +643,12 @@
       "owner": "Registry"
     },
     {
+      "code": "TEAM_RENAME_REQUIRED",
+      "status": 422,
+      "message": "An update keeps the team's name: rename the team instead, so the old name is kept with its dates.",
+      "owner": "Registry"
+    },
+    {
       "code": "TEAM_SLUG_TAKEN",
       "status": 422,
       "message": "Another team of the tenant has this slug.",
@@ -652,6 +658,12 @@
       "code": "TEAM_SPORT_NOT_ENABLED",
       "status": 422,
       "message": "The sport isn't enabled for your organisation: a team can only be created for an enabled sport.",
+      "owner": "Registry"
+    },
+    {
+      "code": "TEAM_STATUS_INVALID",
+      "status": 409,
+      "message": "The team's current status doesn't allow this change.",
       "owner": "Registry"
     },
     {

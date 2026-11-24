@@ -350,7 +350,7 @@ Deliver:
 Acceptance:
 - [x] Setting a descendant as parent is refused with `ORGANISATION_PARENT_CYCLE`, also when two requests would close a
       cycle at once (test holding the lock); the parent history keeps both links with their dates.
-- [ ] Suspending or dissolving an organisation leaves its teams' statuses alone, and a team's update that keeps its
+- [x] Suspending or dissolving an organisation leaves its teams' statuses alone, and a team's update that keeps its
       dissolved organisation succeeds (tests, with T3's teams).
 - [x] Unarchiving returns to the status before archiving; a dissolved organisation stays dissolved (test).
 - [x] Duplicate warnings for organisations behave as D13 says (table-driven tests).
@@ -370,9 +370,9 @@ Acceptance:
       answers the old name on a date before the rename, the new one after and the first name before `name_since`
       (tests); an `effectiveOn` on or before the current name's start or after today is `TEAM_RENAME_DATE_INVALID`;
       `PUT` can't rename.
-- [ ] At `MAX_TEAMS` create, reform and unarchive are refused with "Your plan allows N teams."; disbanding frees a
+- [x] At `MAX_TEAMS` create, reform and unarchive are refused with "Your plan allows N teams."; disbanding frees a
       place; two creates at the limit don't both pass (tests).
-- [ ] A disabled variant keeps its teams, which can still be updated and change status (test).
+- [x] A disabled variant keeps its teams, which can still be updated and change status (test).
 
 ### T4 — Logos, badges and public assets (~1 PR, about 700 lines; if larger, T4a Platform purposes and route, T4b Registry endpoints)
 Deliver:
@@ -588,3 +588,16 @@ The rest of S06's tech debt has its own trigger in PROGRESS.md ("From S06").
   the other's; `POSSIBLE` when the names are at least 0.7 similar and the two share an organisation or either has none.
   The finder filters on `(tenant_id, variant)` and the category first. Candidates carry the team's variant, category,
   organisation ID and status (teams have no city). `TEAM_MANAGER` reads no team yet (S08's `TEAM` scope).
+- **T3b-1 (teams: update, lifecycle, status history):** `PUT /teams/{id}` (`team.update`) replaces the details in every
+  status, whatever the variant's state now; `slug` left out keeps the team's, `level` left out is `FIRST`. The variant
+  can't be sent (an unknown key, `400`). `name` may be sent, but only as the current name (trimmed, exact): another one
+  is `422 TEAM_RENAME_REQUIRED` on `name`, a blank one `400` (owner, plan 2026-11-23); the short name and the code change
+  by `PUT`. The organisation and home venue are checked only when they change (D6): a kept dissolved organisation or
+  closed venue stays. A change to the short name's key, the category or the organisation runs the warning again (the
+  team left out); it, or a slug change, holds `registry.teams:<tenantId>`. `POST /teams/{id}/status`
+  (`team.status.change`, names `MAX_TEAMS`; owner) with `{status, reason}`; `TEAM_STATUS_INVALID` (409);
+  `TeamTransitions` is D12's table. Every move to a status that counts takes the lock before the team is read (review #128 R1:
+  two moves of one team queue, so the second gets the version's conflict, not the quota); a move from a status that
+  doesn't count (`DISBANDED`, `ARCHIVED`) to one that does checks the quota under it; other moves take no lock. `GET /teams/{id}/status-changes`
+  (`team.read`), newest first. Duplicate candidates carry `organisation` (id, display name, slug; null when
+  independent) instead of `organisationId` (owner, review #127 Q1 and plan). No migration.

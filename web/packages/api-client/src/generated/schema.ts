@@ -1526,6 +1526,50 @@ export interface paths {
          * @description A team of the tenant named by `X-Tenant-Id`, whatever its status: variant, category (`genderCategory`, `ageGroup`, `level`), name and short name, `nameSince` (the day the name began), slug, code, motto, colours, founded year, organisation (id, display name, slug) and home venue (id, name, slug), each whatever its status now, status and `version` (also the `ETag`).
          */
         get: operations["GetTeam"];
+        /**
+         * Change a team
+         * @description Replaces the fields of a team of the tenant named by `X-Tenant-Id`, whatever its status and whether or not its sport is still enabled: a field left out is cleared, `level` left out is FIRST, and `slug` left out keeps the team's (a slug another team has is TEAM_SLUG_TAKEN). The sport never changes and can't be sent. `name` may be sent, but only as the current name: a new name is a rename (TEAM_RENAME_REQUIRED), so the old one is kept with its dates. The status changes through POST /teams/{teamId}/status. A new `organisationId` must be an organisation of the tenant that isn't dissolved or archived (TEAM_ORGANISATION_UNAVAILABLE), a new `homeVenueId` a venue that isn't closed or archived (TEAM_HOME_VENUE_UNAVAILABLE); the current ones are kept whatever their status. When the short name (as the duplicate check compares it: case, accents, punctuation and word order aside), the category or the organisation changes, the duplicate check runs again, the team itself left out: teams that look like the changed one answer TEAM_DUPLICATE_REVIEW_REQUIRED with `candidates` until the request says `duplicatesReviewed: true`, with an optional `duplicateReason`; the audit entry names the teams shown. The reason is kept permanently in the audit trail: don't include personal data. Send `version` or `If-Match` from the last read to get 409 TEAM_CONCURRENCY_CONFLICT if the team changed since. Answers the team as GET /teams/{teamId} does.
+         */
+        put: operations["UpdateTeam"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/teams/{teamId}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Change a team's status
+         * @description Moves the team, with a reason (body `{ "status": …, "reason": … }`, both required): ACTIVE, INACTIVE and SUSPENDED move between each other and to DISBANDED or ARCHIVED; DISBANDED → ACTIVE (reform) or ARCHIVED; ARCHIVED → the status it had before archiving (unarchive), and no other. Any other move is TEAM_STATUS_INVALID. Teams in ACTIVE, INACTIVE or SUSPENDED count toward the plan's MAX_TEAMS: disbanding or archiving frees a place, and reforming or unarchiving to one of them needs a free place (ENTITLEMENT_QUOTA_EXCEEDED otherwise). A team whose sport is no longer enabled still changes status. Nothing is deleted: each move is kept in the team's history (GET /teams/{teamId}/status-changes). The reason is kept permanently in that history and the audit trail: don't include personal data. Send `version` or `If-Match` from the last read to get 409 TEAM_CONCURRENCY_CONFLICT if the team changed since. Answers the team as GET /teams/{teamId} does.
+         */
+        post: operations["ChangeTeamStatus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/teams/{teamId}/status-changes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List a team's status history
+         * @description Every status the team has had, newest first, with who changed it, when and why.
+         */
+        get: operations["ListTeamStatusChanges"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2716,6 +2760,17 @@ export interface components {
             /** Format: uint32 */
             version?: null | number;
         };
+        /**
+         * @description The status to move a team to and why (S07 D12; audit `REQUIRED_WITH_REASON`). The reason is kept permanently
+         *     in the status history and the audit trail and is not redacted: it must not contain personal data. `version`,
+         *     when sent, must be the team's current one (or `If-Match`).
+         */
+        ChangeTeamStatusRequest: {
+            status: null | components["schemas"]["TeamStatus"];
+            reason: null | string;
+            /** Format: uint32 */
+            version?: null | number;
+        };
         /** @description The optional body of `activate` and `restore`: `version`, when sent, must be the tenant's current one. */
         ChangeTenantStatusRequest: {
             /** Format: uint32 */
@@ -3349,6 +3404,9 @@ export interface components {
         };
         ListSportsResponse: {
             items: components["schemas"]["SportVariantResponse"][];
+        };
+        ListTeamStatusChangesResponse: {
+            items: components["schemas"]["TeamStatusChangeResponse"][];
         };
         ListTenantsResponse: {
             items: components["schemas"]["TenantListItem"][];
@@ -4536,7 +4594,8 @@ export interface components {
         SubscriptionStatus: "SCHEDULED" | "ACTIVE" | "EXPIRING" | "GRACE" | "EXPIRED" | "CANCELLED";
         /**
          * @description A team that looks like the one checked (S07 D13): enough to recognise it and open it. Its variant and category are
-         *     the checked team's (only those are compared); `status` marks an archived one.
+         *     the checked team's (only those are compared); `organisation` is its organisation, whatever its status now, or
+         *     null for an independent team (owner, review #127 Q1); `status` marks an archived one.
          */
         TeamDuplicateCandidateResponse: {
             /** Format: uuid */
@@ -4546,8 +4605,7 @@ export interface components {
             genderCategory: components["schemas"]["GenderCategory"];
             ageGroup: components["schemas"]["AgeGroup"];
             level: components["schemas"]["TeamLevel"];
-            /** Format: uuid */
-            organisationId: null | string;
+            organisation: null | components["schemas"]["TeamOrganisationResponse"];
             status: components["schemas"]["TeamStatus"];
             confidence: components["schemas"]["DuplicateConfidence"];
             evidence: components["schemas"]["TeamDuplicateEvidence"][];
@@ -4562,7 +4620,7 @@ export interface components {
          */
         TeamDuplicateEvidenceCode: "SAME_NAME_KEY" | "NAME_SIMILARITY" | "SAME_ORGANISATION";
         /**
-         * @description The Problem Details of a team create refused with `422` (S07 D13), for the OpenAPI document and the generated
+         * @description The Problem Details of a team create or update refused with `422` (S07 D13), for the OpenAPI document and the generated
          *     client: `candidates` is present only with `TEAM_DUPLICATE_REVIEW_REQUIRED`, the teams the warning found,
          *     strongest first.
          */
@@ -4632,6 +4690,19 @@ export interface components {
          * @enum {unknown}
          */
         TeamStatus: "ACTIVE" | "INACTIVE" | "SUSPENDED" | "DISBANDED" | "ARCHIVED";
+        /** @description One row of a team's status history (S07 D12, D16: the reasons and the history are internal). */
+        TeamStatusChangeResponse: {
+            /** Format: uuid */
+            id: string;
+            fromStatus: null | components["schemas"]["TeamStatus"];
+            toStatus: components["schemas"]["TeamStatus"];
+            reason: null | string;
+            actorKind: components["schemas"]["ActorKind"];
+            /** Format: uuid */
+            actorId: string;
+            /** Format: date-time */
+            occurredAt: string;
+        };
         /** @description A team's home venue (S07 D16: id, name, slug), whatever the venue's status now. */
         TeamVenueResponse: {
             /** Format: uuid */
@@ -4910,6 +4981,38 @@ export interface components {
             weightKg?: null | number;
             checkToken?: null | string;
             overrideReason?: null | string;
+            /** Format: uint32 */
+            version?: null | number;
+        };
+        /**
+         * @description A team's editable fields, replaced whole (S07 D11): a field left out is cleared, `level` left out is
+         *     `FIRST`, `slug` left out keeps the team's (D9). The variant can't be sent (it never changes). `name` may
+         *     be sent so a form can post the whole team, but only as the current name: another one is
+         *     `TEAM_RENAME_REQUIRED` (D8; owner, T3b-1 plan). After the duplicate warning (a change to the short name, the
+         *     category or the organisation, D13), `duplicatesReviewed` with an optional reason. `version`, when sent,
+         *     must be the team's current one (or `If-Match`).
+         */
+        UpdateTeamRequest: {
+            genderCategory: null | components["schemas"]["GenderCategory"];
+            ageGroup: null | components["schemas"]["AgeGroup"];
+            level?: null | components["schemas"]["TeamLevel"];
+            name?: null | string;
+            shortName?: null | string;
+            /** Format: uuid */
+            organisationId?: null | string;
+            code?: null | string;
+            motto?: null | string;
+            primaryColour?: null | string;
+            secondaryColour?: null | string;
+            tertiaryColour?: null | string;
+            /** Format: uuid */
+            homeVenueId?: null | string;
+            /** Format: int32 */
+            foundedYear?: null | number;
+            slug?: null | string;
+            /** @default false */
+            duplicatesReviewed: boolean;
+            duplicateReason?: null | string;
             /** Format: uint32 */
             version?: null | number;
         };
@@ -10403,6 +10506,216 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TeamResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TEAM_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    UpdateTeam: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too. */
+                "If-Match"?: string;
+            };
+            path: {
+                teamId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateTeamRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TEAM_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TEAM_CONCURRENCY_CONFLICT` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TEAM_COLOURS_INVALID`, `TEAM_DUPLICATE_REVIEW_REQUIRED`, `TEAM_HOME_VENUE_UNAVAILABLE`, `TEAM_ORGANISATION_UNAVAILABLE`, `TEAM_RENAME_REQUIRED`, `TEAM_SLUG_TAKEN` */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["TeamDuplicateReviewProblem"];
+                };
+            };
+        };
+    };
+    ChangeTeamStatus: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too. */
+                "If-Match"?: string;
+            };
+            path: {
+                teamId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeTeamStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST`, `VALIDATION_REASON_REQUIRED` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `ENTITLEMENT_QUOTA_EXCEEDED`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TEAM_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TEAM_CONCURRENCY_CONFLICT`, `TEAM_STATUS_INVALID` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListTeamStatusChanges: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                teamId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListTeamStatusChangesResponse"];
                 };
             };
             /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */

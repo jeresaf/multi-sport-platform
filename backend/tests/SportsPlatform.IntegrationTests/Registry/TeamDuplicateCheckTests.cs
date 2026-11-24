@@ -6,6 +6,7 @@ using SportsPlatform.IntegrationTests.Identity;
 using SportsPlatform.IntegrationTests.Infrastructure;
 using SportsPlatform.IntegrationTests.Tenancy;
 using SportsPlatform.Modules.Identity.Domain.Roles;
+using SportsPlatform.Modules.Registry.Domain.Organisations;
 using SportsPlatform.Modules.Registry.Domain.Teams;
 using SportsPlatform.Modules.Tenancy.Contracts.Tenants;
 using static SportsPlatform.IntegrationTests.Identity.MembershipTestData;
@@ -83,6 +84,25 @@ public sealed class TeamDuplicateCheckTests(PostgresFixture fixture) : DatabaseT
             registrar, new { variant = TestballFull, name = "Bunga Breakers Youth", genderCategory = "MEN", ageGroup = "SENIOR", organisationId = club.Id });
 
         TeamCandidates(answer).ShouldBe([(independent.Id, "POSSIBLE")]);
+        answer.GetProperty("candidates")[0].GetProperty("organisation").ValueKind.ShouldBe(JsonValueKind.Null);
+    }
+
+    // Review #127 Q1 (owner): a candidate names its organisation (id, display name, slug), whatever its status now.
+    [Fact]
+    public async Task A_candidate_names_its_organisation_even_a_dissolved_one()
+    {
+        var (kmsa, registrar) = await TenantAsync();
+        var club = await SaveOrganisationAsync(
+            App.Services, kmsa, "Bunga Breakers SC", status: OrganisationStatus.Dissolved);
+        var existing = await SaveTeamAsync(App.Services, kmsa, _existing, organisationId: club.Id);
+
+        var answer = await CheckTeamAsync(registrar, new { variant = TestballFull, name = _existing, genderCategory = "MEN", ageGroup = "SENIOR" });
+
+        TeamCandidates(answer).ShouldBe([(existing.Id, "LIKELY")]);
+        var organisation = answer.GetProperty("candidates")[0].GetProperty("organisation");
+        (organisation.GetProperty("id").GetGuid(), organisation.GetProperty("displayName").GetString(), organisation.GetProperty("slug").GetString())
+            .ShouldBe((club.Id, "Bunga Breakers SC", club.Slug));
+        organisation.EnumerateObject().Count().ShouldBe(3);
     }
 
     [Fact]
@@ -101,7 +121,8 @@ public sealed class TeamDuplicateCheckTests(PostgresFixture fixture) : DatabaseT
         var candidates = answer.GetProperty("candidates").EnumerateArray().ToList();
         candidates.Count.ShouldBe(10);
         candidates[0].EnumerateObject().Select(property => property.Name).ShouldBe(
-            ["teamId", "name", "variant", "genderCategory", "ageGroup", "level", "organisationId", "status", "confidence", "evidence"]);
+            ["teamId", "name", "variant", "genderCategory", "ageGroup", "level", "organisation", "status", "confidence", "evidence"]);
+        candidates[0].GetProperty("organisation").ValueKind.ShouldBe(JsonValueKind.Null);
         (candidates[0].GetProperty("teamId").GetGuid(), candidates[0].GetProperty("name").GetString(), candidates[0].GetProperty("variant").GetString(),
                 candidates[0].GetProperty("genderCategory").GetString(), candidates[0].GetProperty("ageGroup").GetString(),
                 candidates[0].GetProperty("level").GetString(), candidates[0].GetProperty("status").GetString(),
