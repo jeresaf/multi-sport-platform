@@ -121,7 +121,7 @@ the message is the default title and may change.
 | `TEAM_NOT_FOUND` | 404 | The team was not found. | Registry |
 | `TEAM_ORGANISATION_UNAVAILABLE` | 422 | The organisation must be an organisation of the tenant that isn't dissolved or archived. | Registry |
 | `TEAM_RENAME_DATE_INVALID` | 422 | A rename takes effect after the current name's first day and not after today (the tenant's date). | Registry |
-| `TEAM_RENAME_REQUIRED` | 422 | An update keeps the team's name: rename the team instead, so the old name is kept with its dates. | Registry |
+| `TEAM_RENAME_REQUIRED` | 422 | An update keeps the team's name: rename the team (POST /teams/{teamId}/rename) instead, so the old name is kept with its dates. | Registry |
 | `TEAM_SLUG_TAKEN` | 422 | Another team of the tenant has this slug. | Registry |
 | `TEAM_SPORT_NOT_ENABLED` | 422 | The sport isn't enabled for your organisation: a team can only be created for an enabled sport. | Registry |
 | `TEAM_STATUS_INVALID` | 409 | The team's current status doesn't allow this change. | Registry |
