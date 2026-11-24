@@ -226,6 +226,10 @@ category only). The organisation and home venue are the tenant's own (composite 
 lock), the lifecycle (`POST …/status`, `TeamTransitions`; a reform or an unarchive to a status that counts checks
 `MAX_TEAMS` under `registry.teams:<tenantId>`) and the status history read. A variant disabled since doesn't stop
 either. Duplicate candidates carry the organisation (id, display name, slug).
+**As built (S07-T3b-2):** the directory (`GET /teams`: `q` by name or short name, `variant`, `organisationId`, the three
+category codes, `status`; sorted by name, then category — age group, gender, level in declared order — then ID; the
+cursor carries the category rank, `TeamOrder`). The organisation record lists its teams (archived ones left out) in the
+same order.
 **Absorbs:** pack specs 08–14. Owner's systems: **Player Management System**, the identity half of
 **Team Management System**. Owner's rule "duplicate players within the same tenant should be avoided at all
 costs" is implemented here (docs/build/slices/S06-people-registry.md).

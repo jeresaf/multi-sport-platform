@@ -216,7 +216,7 @@ reason when the warning found teams; names `MAX_TEAMS`, checked under `registry.
 team.duplicate_check, team.read`) for `TENANT_OWNER`, `TENANT_ADMIN` and `REGISTRAR`, not available while read-only.
 `team.update` (audit `REQUIRED`, `grantedWith: team.duplicate_check, team.read`) and `team.status.change`
 (`REQUIRED_WITH_REASON`, names `MAX_TEAMS` for reform and unarchive, `grantedWith: team.read`; S07-T3b-1) for the same
-three roles; the status history is read with `team.read`. `TEAM_MANAGER` gets its own team through the `TEAM` scope in
+three roles; the status history and the directory (S07-T3b-2) are read with `team.read`. `TEAM_MANAGER` gets its own team through the `TEAM` scope in
 S08. The other team actions join with S07-T3c–T3d.
 
 | Role | Typical scope | Includes (summary) |

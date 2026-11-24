@@ -1299,7 +1299,7 @@ export interface paths {
         };
         /**
          * Get an organisation
-         * @description An organisation of the tenant named by `X-Tenant-Id`, whatever its status: type, names, country, city, founded year, website, the body's own email and phone, description, primary venue (id, name, slug), the current `parent` (id, display name, slug, status; null without one), the current `children` (the same summary, archived ones left out, sorted by display name ignoring case, accents and punctuation, as the directory; `GET /organisations?parentId=` pages them), status and `version` (also the `ETag`; it doesn't move when a child leaves).
+         * @description An organisation of the tenant named by `X-Tenant-Id`, whatever its status: type, names, country, city, founded year, website, the body's own email and phone, description, primary venue (id, name, slug), the current `parent` (id, display name, slug, status; null without one), the current `children` (the same summary, archived ones left out, sorted by display name ignoring case, accents and punctuation, as the directory; `GET /organisations?parentId=` pages them), its `teams` (id, name, slug, variant, category, status; archived ones left out, in the teams directory's order; `GET /teams?organisationId=` pages them), status and `version` (also the `ETag`; it doesn't move when a child leaves or when a team changes).
          */
         get: operations["GetOrganisation"];
         /**
@@ -1501,7 +1501,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * List the tenant's teams
+         * @description The teams of the tenant named by `X-Tenant-Id`, sorted by name (ignoring case, accents and punctuation), then category (age group `SENIOR`, `U6` … `U23`, `VETERANS`; then gender `MEN`, `WOMEN`, `MIXED`; then level `FIRST`, `RESERVE`, `DEVELOPMENT`, `ACADEMY`), then ID. `q` matches the name or one of its words by prefix and by similarity, and the short name by prefix (word order and punctuation aside). `variant`, `organisationId`, `genderCategory`, `ageGroup` and `level` keep the teams that have them (an unknown variant or organisation keeps none); `status` filters by status (without it, archived teams are left out). Each item carries its organisation (id, display name, slug), whatever its status now. `limit` is 1–100 (25). Available while the tenant is read-only.
+         */
+        get: operations["ListTeams"];
         put?: never;
         /**
          * Add a team
@@ -3405,6 +3409,10 @@ export interface components {
         ListSportsResponse: {
             items: components["schemas"]["SportVariantResponse"][];
         };
+        ListTeamsResponse: {
+            items: components["schemas"]["TeamListItem"][];
+            page: components["schemas"]["PageInfo"];
+        };
         ListTeamStatusChangesResponse: {
             items: components["schemas"]["TeamStatusChangeResponse"][];
         };
@@ -3663,7 +3671,10 @@ export interface components {
          *     order (the sort key); the directory's `parentId` pages them with filters. The version doesn't move when a child leaves (S07-T2c-1),
          *     so it is no freshness marker for `children`. Aliases are the ones not removed, oldest first; identifiers are all of
          *     them, ended ones included, by authority (as a venue's); both are `INTERNAL` (D16), and a change to one moves the
-         *     version (S06 D11). Teams and the logo join with S07-T3 and T4.
+         *     version (S06 D11). `teams` are the organisation's teams, archived ones left out, in the teams directory's order (name,
+         *     category, ID; owner, S07-T3b-2 plan), not paged; the directory's `organisationId` pages them with filters. A team's
+         *     changes don't move the organisation's version, so it is no freshness marker for `teams` either. The logo joins with
+         *     S07-T4.
          */
         OrganisationResponse: {
             /** Format: uuid */
@@ -3684,6 +3695,7 @@ export interface components {
             primaryVenue: null | components["schemas"]["OrganisationVenueResponse"];
             parent: null | components["schemas"]["OrganisationSummaryResponse"];
             children: components["schemas"]["OrganisationSummaryResponse"][];
+            teams: components["schemas"]["OrganisationTeamResponse"][];
             status: components["schemas"]["OrganisationStatus"];
             aliases: components["schemas"]["OrganisationAliasResponse"][];
             externalIdentifiers: components["schemas"]["ExternalIdentifierResponse"][];
@@ -3718,6 +3730,18 @@ export interface components {
             displayName: string;
             slug: string;
             status: components["schemas"]["OrganisationStatus"];
+        };
+        /** @description A team of an organisation (S07 D16, D19): enough to recognise it and open it, with its status now. */
+        OrganisationTeamResponse: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            slug: string;
+            variant: string;
+            genderCategory: components["schemas"]["GenderCategory"];
+            ageGroup: components["schemas"]["AgeGroup"];
+            level: components["schemas"]["TeamLevel"];
+            status: components["schemas"]["TeamStatus"];
         };
         /**
          * @description What kind of body an organisation is (S07 D4). Generic codes: none names a sport (AR-11).
@@ -4647,6 +4671,23 @@ export interface components {
          * @enum {unknown}
          */
         TeamLevel: "FIRST" | "RESERVE" | "DEVELOPMENT" | "ACADEMY";
+        /**
+         * @description A team in the directory: enough to recognise it and open it (S07 D19; every field is public, D16). The organisation
+         *     is the team's, whatever its status now, or null for an independent team.
+         */
+        TeamListItem: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            shortName: null | string;
+            slug: string;
+            variant: string;
+            genderCategory: components["schemas"]["GenderCategory"];
+            ageGroup: components["schemas"]["AgeGroup"];
+            level: components["schemas"]["TeamLevel"];
+            organisation: null | components["schemas"]["TeamOrganisationResponse"];
+            status: components["schemas"]["TeamStatus"];
+        };
         /** @description The organisation a team belongs to (S07 D16: id, display name, slug), whatever its status now. */
         TeamOrganisationResponse: {
             /** Format: uuid */
@@ -10415,6 +10456,63 @@ export interface operations {
             };
             /** @description Problem Details; `code`: `TEAM_NAME_INVALID` */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListTeams: {
+        parameters: {
+            query?: {
+                q?: string;
+                variant?: string;
+                organisationId?: string;
+                genderCategory?: "MEN" | "WOMEN" | "MIXED";
+                ageGroup?: "SENIOR" | "U6" | "U7" | "U8" | "U9" | "U10" | "U11" | "U12" | "U13" | "U14" | "U15" | "U16" | "U17" | "U18" | "U19" | "U20" | "U21" | "U22" | "U23" | "VETERANS";
+                level?: "FIRST" | "RESERVE" | "DEVELOPMENT" | "ACADEMY";
+                status?: "ACTIVE" | "INACTIVE" | "SUSPENDED" | "DISBANDED" | "ARCHIVED";
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListTeamsResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_QUERY` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING` */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

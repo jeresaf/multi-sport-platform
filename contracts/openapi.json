@@ -7489,7 +7489,7 @@
           "Organisations"
         ],
         "summary": "Get an organisation",
-        "description": "An organisation of the tenant named by `X-Tenant-Id`, whatever its status: type, names, country, city, founded year, website, the body's own email and phone, description, primary venue (id, name, slug), the current `parent` (id, display name, slug, status; null without one), the current `children` (the same summary, archived ones left out, sorted by display name ignoring case, accents and punctuation, as the directory; `GET /organisations?parentId=` pages them), status and `version` (also the `ETag`; it doesn't move when a child leaves).",
+        "description": "An organisation of the tenant named by `X-Tenant-Id`, whatever its status: type, names, country, city, founded year, website, the body's own email and phone, description, primary venue (id, name, slug), the current `parent` (id, display name, slug, status; null without one), the current `children` (the same summary, archived ones left out, sorted by display name ignoring case, accents and punctuation, as the directory; `GET /organisations?parentId=` pages them), its `teams` (id, name, slug, variant, category, status; archived ones left out, in the teams directory's order; `GET /teams?organisationId=` pages them), status and `version` (also the `ETag`; it doesn't move when a child leaves or when a team changes).",
         "operationId": "GetOrganisation",
         "parameters": [
           {
@@ -8909,6 +8909,177 @@
               "TENANT_BLOCKED",
               "TENANT_PROVISIONING",
               "TENANT_READ_ONLY"
+            ]
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Teams"
+        ],
+        "summary": "List the tenant's teams",
+        "description": "The teams of the tenant named by `X-Tenant-Id`, sorted by name (ignoring case, accents and punctuation), then category (age group `SENIOR`, `U6` … `U23`, `VETERANS`; then gender `MEN`, `WOMEN`, `MIXED`; then level `FIRST`, `RESERVE`, `DEVELOPMENT`, `ACADEMY`), then ID. `q` matches the name or one of its words by prefix and by similarity, and the short name by prefix (word order and punctuation aside). `variant`, `organisationId`, `genderCategory`, `ageGroup` and `level` keep the teams that have them (an unknown variant or organisation keeps none); `status` filters by status (without it, archived teams are left out). Each item carries its organisation (id, display name, slug), whatever its status now. `limit` is 1–100 (25). Available while the tenant is read-only.",
+        "operationId": "ListTeams",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "variant",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "organisationId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "genderCategory",
+            "in": "query",
+            "schema": {
+              "enum": [
+                "MEN",
+                "WOMEN",
+                "MIXED"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "ageGroup",
+            "in": "query",
+            "schema": {
+              "enum": [
+                "SENIOR",
+                "U6",
+                "U7",
+                "U8",
+                "U9",
+                "U10",
+                "U11",
+                "U12",
+                "U13",
+                "U14",
+                "U15",
+                "U16",
+                "U17",
+                "U18",
+                "U19",
+                "U20",
+                "U21",
+                "U22",
+                "U23",
+                "VETERANS"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "level",
+            "in": "query",
+            "schema": {
+              "enum": [
+                "FIRST",
+                "RESERVE",
+                "DEVELOPMENT",
+                "ACADEMY"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "enum": [
+                "ACTIVE",
+                "INACTIVE",
+                "SUSPENDED",
+                "DISBANDED",
+                "ARCHIVED"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer",
+              "default": 25
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListTeamsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_QUERY`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_QUERY"
+            ]
+          },
+          "401": {
+            "description": "Problem Details; `code`: `AUTH_UNAUTHENTICATED`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_UNAUTHENTICATED"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "AUTH_FORBIDDEN",
+              "AUTH_TENANT_FORBIDDEN",
+              "TENANT_BLOCKED",
+              "TENANT_PROVISIONING"
             ]
           }
         }
@@ -17183,6 +17354,24 @@
           }
         }
       },
+      "ListTeamsResponse": {
+        "required": [
+          "items",
+          "page"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeamListItem"
+            }
+          },
+          "page": {
+            "$ref": "#/components/schemas/PageInfo"
+          }
+        }
+      },
       "ListTeamStatusChangesResponse": {
         "required": [
           "items"
@@ -17961,6 +18150,7 @@
           "primaryVenue",
           "parent",
           "children",
+          "teams",
           "status",
           "aliases",
           "externalIdentifiers",
@@ -18059,6 +18249,12 @@
               "$ref": "#/components/schemas/OrganisationSummaryResponse"
             }
           },
+          "teams": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrganisationTeamResponse"
+            }
+          },
           "status": {
             "$ref": "#/components/schemas/OrganisationStatus"
           },
@@ -18079,7 +18275,7 @@
             "format": "uint32"
           }
         },
-        "description": "An organisation as the admin reads it (S07 D19). The legal name, the body's own email and phone and the version are\n`INTERNAL`; every other field is one the public reads may show (D16). The primary venue is a summary of the\ntenant's venue (null without one). `parent` is the current parent in any status (null without one); `children`\nare the organisations whose current parent this is, archived ones left out (owner, S07-T2c-2 plan), in the directory's\norder (the sort key); the directory's `parentId` pages them with filters. The version doesn't move when a child leaves (S07-T2c-1),\nso it is no freshness marker for `children`. Aliases are the ones not removed, oldest first; identifiers are all of\nthem, ended ones included, by authority (as a venue's); both are `INTERNAL` (D16), and a change to one moves the\nversion (S06 D11). Teams and the logo join with S07-T3 and T4."
+        "description": "An organisation as the admin reads it (S07 D19). The legal name, the body's own email and phone and the version are\n`INTERNAL`; every other field is one the public reads may show (D16). The primary venue is a summary of the\ntenant's venue (null without one). `parent` is the current parent in any status (null without one); `children`\nare the organisations whose current parent this is, archived ones left out (owner, S07-T2c-2 plan), in the directory's\norder (the sort key); the directory's `parentId` pages them with filters. The version doesn't move when a child leaves (S07-T2c-1),\nso it is no freshness marker for `children`. Aliases are the ones not removed, oldest first; identifiers are all of\nthem, ended ones included, by authority (as a venue's); both are `INTERNAL` (D16), and a change to one moves the\nversion (S06 D11). `teams` are the organisation's teams, archived ones left out, in the teams directory's order (name,\ncategory, ID; owner, S07-T3b-2 plan), not paged; the directory's `organisationId` pages them with filters. A team's\nchanges don't move the organisation's version, so it is no freshness marker for `teams` either. The logo joins with\nS07-T4."
       },
       "OrganisationStatus": {
         "enum": [
@@ -18164,6 +18360,47 @@
           }
         },
         "description": "An organisation another points at, as its parent or as one of its children (S07 D16: id, display name, slug), with its\nstatus now."
+      },
+      "OrganisationTeamResponse": {
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "variant",
+          "genderCategory",
+          "ageGroup",
+          "level",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "variant": {
+            "type": "string"
+          },
+          "genderCategory": {
+            "$ref": "#/components/schemas/GenderCategory"
+          },
+          "ageGroup": {
+            "$ref": "#/components/schemas/AgeGroup"
+          },
+          "level": {
+            "$ref": "#/components/schemas/TeamLevel"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TeamStatus"
+          }
+        },
+        "description": "A team of an organisation (S07 D16, D19): enough to recognise it and open it, with its status now."
       },
       "OrganisationType": {
         "enum": [
@@ -21224,6 +21461,65 @@
           "ACADEMY"
         ],
         "description": "The level part of a team's category (S07 D7, Q53): TeamLevel.First unless the request says otherwise."
+      },
+      "TeamListItem": {
+        "required": [
+          "id",
+          "name",
+          "shortName",
+          "slug",
+          "variant",
+          "genderCategory",
+          "ageGroup",
+          "level",
+          "organisation",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "shortName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "slug": {
+            "type": "string"
+          },
+          "variant": {
+            "type": "string"
+          },
+          "genderCategory": {
+            "$ref": "#/components/schemas/GenderCategory"
+          },
+          "ageGroup": {
+            "$ref": "#/components/schemas/AgeGroup"
+          },
+          "level": {
+            "$ref": "#/components/schemas/TeamLevel"
+          },
+          "organisation": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/TeamOrganisationResponse"
+              }
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/TeamStatus"
+          }
+        },
+        "description": "A team in the directory: enough to recognise it and open it (S07 D19; every field is public, D16). The organisation\nis the team's, whatever its status now, or null for an independent team."
       },
       "TeamOrganisationResponse": {
         "required": [

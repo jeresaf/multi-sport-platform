@@ -3,8 +3,10 @@ using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Results;
 using SportsPlatform.Modules.Registry.Domain.Organisations;
 using SportsPlatform.Modules.Registry.Domain.People;
+using SportsPlatform.Modules.Registry.Domain.Teams;
 using SportsPlatform.Modules.Registry.Domain.Venues;
 using SportsPlatform.Modules.Registry.Features.People;
+using SportsPlatform.Modules.Registry.Features.Teams;
 using SportsPlatform.Modules.Registry.Infrastructure;
 
 namespace SportsPlatform.Modules.Registry.Features.Organisations.GetOrganisation;
@@ -13,7 +15,8 @@ namespace SportsPlatform.Modules.Registry.Features.Organisations.GetOrganisation
 /// One organisation of the request's tenant, whatever its status, with its primary venue, its current parent and its
 /// current children (archived ones left out) as summaries; another tenant's organisation is not found (RLS). The parent
 /// and the children come from the open links (S07 D5; the index on the open links' parent serves the children). Its
-/// current aliases and its external identifiers, ended ones included, come with it (S07 D10).
+/// current aliases and its external identifiers, ended ones included, come with it (S07 D10); so do its teams, archived ones
+/// left out, in <see cref="TeamOrder"/> (S07-T3b-2; the index on the teams' organisation serves them).
 /// </summary>
 public sealed class GetOrganisationHandler(RegistryDbContext context)
 {
@@ -50,6 +53,13 @@ public sealed class GetOrganisationHandler(RegistryDbContext context)
             .Select(c => new OrganisationSummaryResponse(c.Id, c.DisplayName, c.Slug, c.Status))
             .ToListAsync(cancellationToken);
 
+        var teams = await TeamOrder.Ordered(TeamOrder.Ranked(context.Set<Team>().AsNoTracking()
+                .Where(t => t.OrganisationId == organisationId && t.Status != TeamStatus.Archived)))
+            .Select(t => new OrganisationTeamResponse(
+                t.Team.Id, t.Team.Name, t.Team.Slug, t.Team.Variant, t.Team.GenderCategory, t.Team.AgeGroup, t.Team.Level,
+                t.Team.Status))
+            .ToListAsync(cancellationToken);
+
         var aliases = await context.Set<OrganisationAlias>().AsNoTracking()
             .Where(a => a.OrganisationId == organisationId && a.RemovedAt == null)
             .OrderBy(a => a.Id)
@@ -64,6 +74,6 @@ public sealed class GetOrganisationHandler(RegistryDbContext context)
 
         return Result.Success(new OrganisationResponse(
             o.Id, o.Type, o.DisplayName, o.LegalName, o.ShortName, o.Slug, o.Country, o.City, o.FoundedYear, o.Website, o.Email,
-            o.Phone, o.Description, venue, parent, children, o.Status, aliases, identifiers, found.Version));
+            o.Phone, o.Description, venue, parent, children, teams, o.Status, aliases, identifiers, found.Version));
     }
 }

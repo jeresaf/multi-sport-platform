@@ -40,6 +40,7 @@ using SportsPlatform.Modules.Registry.Features.Teams.ChangeTeamStatus;
 using SportsPlatform.Modules.Registry.Features.Teams.CheckTeamDuplicates;
 using SportsPlatform.Modules.Registry.Features.Teams.CreateTeam;
 using SportsPlatform.Modules.Registry.Features.Teams.GetTeam;
+using SportsPlatform.Modules.Registry.Features.Teams.ListTeams;
 using SportsPlatform.Modules.Registry.Features.Teams.ListTeamStatusChanges;
 using SportsPlatform.Modules.Registry.Features.Teams.UpdateTeam;
 using SportsPlatform.Modules.Registry.Features.Venues;
@@ -143,6 +144,7 @@ public sealed class RegistryModule : IModule
         services.AddScoped<UpdateTeamHandler>();
         services.AddScoped<ChangeTeamStatusHandler>();
         services.AddScoped<ListTeamStatusChangesHandler>();
+        services.AddScoped<ListTeamsHandler>();
         services.AddQuotaUsage<TeamCount>(TeamCount.Code);
         services.AddScoped<VenueDetailsRules>();
         services.AddScoped<VenueDuplicateFinder>();
@@ -195,6 +197,7 @@ public sealed class RegistryModule : IModule
         services.AddSingleton<IValidator<ChangeVenueStatusRequest>, ChangeVenueStatusRequestValidator>();
         services.AddSingleton<IValidator<ListOrganisationsRequest>, ListOrganisationsRequestValidator>();
         services.AddSingleton<IValidator<ListVenuesRequest>, ListVenuesRequestValidator>();
+        services.AddSingleton<IValidator<ListTeamsRequest>, ListTeamsRequestValidator>();
         services.AddSingleton<IValidator<AddVenueAliasRequest>, AddVenueAliasRequestValidator>();
         services.AddSingleton<IValidator<RemoveVenueAliasRequest>, RemoveVenueAliasRequestValidator>();
         services.AddSingleton<IValidator<AddVenueExternalIdentifierRequest>, AddVenueExternalIdentifierRequestValidator>();
@@ -241,6 +244,7 @@ public sealed class RegistryModule : IModule
         var teams = TeamsEndpoints.Group(groups.Admin);
         CheckTeamDuplicatesEndpoint.Map(teams);
         CreateTeamEndpoint.Map(teams);
+        ListTeamsEndpoint.Map(teams);
         GetTeamEndpoint.Map(teams);
         UpdateTeamEndpoint.Map(teams);
         ChangeTeamStatusEndpoint.Map(teams);

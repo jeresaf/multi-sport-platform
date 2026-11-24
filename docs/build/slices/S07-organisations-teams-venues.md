@@ -601,3 +601,19 @@ The rest of S06's tech debt has its own trigger in PROGRESS.md ("From S06").
   doesn't count (`DISBANDED`, `ARCHIVED`) to one that does checks the quota under it; other moves take no lock. `GET /teams/{id}/status-changes`
   (`team.read`), newest first. Duplicate candidates carry `organisation` (id, display name, slug; null when
   independent) instead of `organisationId` (owner, review #127 Q1 and plan). No migration.
+- **T3b-2 (teams: the directory and the organisation's teams):** `GET /teams` (`team.read`): `q`, `variant`,
+  `organisationId`, `genderCategory`, `ageGroup`, `level`, `status`, `limit` (1–100, 25), `cursor`; without `status`,
+  archived teams are left out. Sorted by `sort_key`, then category, then ID. The category ranks by age group in declared
+  order (`SENIOR`, `U6` … `U23`, `VETERANS`), then gender (`MEN`, `WOMEN`, `MIXED`), then level (`FIRST`, `RESERVE`,
+  `DEVELOPMENT`, `ACADEMY`) (owner, plan 2026-11-24): the columns hold the codes as text, whose order isn't this one, so
+  `TeamOrder.CategoryRank` computes age group × 100 + gender × 10 + level in SQL (a `CASE` per part) and the cursor
+  (`TeamDirectoryCursor`: sort key, rank, ID) carries it; `DirectoryCursor`'s decoding is shared (`CursorText`). `q`
+  matches the name as organisations' display name (prefix of the sort key or of a word, name-key prefix, similarity ≥
+  0.3) and the short name by name-key prefix; aliases join with T3c and identifiers with T3d (text without a letter or
+  digit matches nothing until then). An unknown variant or organisation, or another tenant's, keeps none; an
+  `organisationId` that isn't a UUID in the `D` form is `400 VALIDATION_INVALID_QUERY`. Items: id, name, short name,
+  slug, variant, the category codes, organisation (id, display name, slug, whatever its status; null when independent;
+  one query for the page) and status, all `PUBLIC`. The organisation record (and every endpoint that answers it) gains
+  `teams`: its teams but archived ones, in the same order, not paged (owner), each `OrganisationTeamResponse` (id, name,
+  slug, variant, category codes, status). A team's changes don't move the organisation's version. No migration: the
+  `(tenant_id, sort_key, id)` and `(tenant_id, organisation_id)` indexes serve both reads.
