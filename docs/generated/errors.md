@@ -106,13 +106,21 @@ the message is the default title and may change.
 | `RULESET_UNKNOWN_TIEBREAKER` | 422 | A tiebreaker is not in the catalogue, doesn't apply to the sport, or is listed twice. | SportsConfiguration |
 | `SPORT_CONCURRENCY_CONFLICT` | 409 | The configuration was changed by someone else. Reload and try again. | SportsConfiguration |
 | `SPORT_DEFINITION_NOT_FOUND` | 404 | No published sport definition matches this variant, or this version of it. | SportsConfiguration |
+| `TEAM_ALIAS_EXISTS` | 409 | The team is already known by this name: its name or short name or a current alias gives the same name key. | Registry |
+| `TEAM_ALIAS_FORMER_NAME` | 409 | A former name is the team's name history and can't be removed: only nicknames and spellings can. | Registry |
+| `TEAM_ALIAS_NOT_FOUND` | 404 | The team has no such alias. | Registry |
+| `TEAM_ALIAS_REMOVED` | 409 | The alias is already removed. | Registry |
+| `TEAM_ARCHIVED` | 409 | The team is archived: it takes no new name, alias, identifier or image until it is unarchived. | Registry |
 | `TEAM_COLOURS_INVALID` | 422 | A secondary colour needs a primary colour, and a tertiary colour a secondary one. | Registry |
 | `TEAM_CONCURRENCY_CONFLICT` | 409 | The team was changed by someone else. Reload and try again. | Registry |
+| `TEAM_DISBANDED` | 409 | The team is disbanded: it takes no new name, alias, identifier or image unless it is reformed. | Registry |
 | `TEAM_DUPLICATE_REVIEW_REQUIRED` | 422 | Teams already in the registry look like this one: open one of them, or send duplicatesReviewed to add it anyway. | Registry |
 | `TEAM_HOME_VENUE_UNAVAILABLE` | 422 | The home venue must be a venue of the tenant that isn't closed or archived. | Registry |
 | `TEAM_NAME_INVALID` | 422 | A team's name needs at least one letter or digit. | Registry |
+| `TEAM_NAME_UNCHANGED` | 422 | The team already has this name: a rename needs a new name. | Registry |
 | `TEAM_NOT_FOUND` | 404 | The team was not found. | Registry |
 | `TEAM_ORGANISATION_UNAVAILABLE` | 422 | The organisation must be an organisation of the tenant that isn't dissolved or archived. | Registry |
+| `TEAM_RENAME_DATE_INVALID` | 422 | A rename takes effect after the current name's first day and not after today (the tenant's date). | Registry |
 | `TEAM_RENAME_REQUIRED` | 422 | An update keeps the team's name: rename the team instead, so the old name is kept with its dates. | Registry |
 | `TEAM_SLUG_TAKEN` | 422 | Another team of the tenant has this slug. | Registry |
 | `TEAM_SPORT_NOT_ENABLED` | 422 | The sport isn't enabled for your organisation: a team can only be created for an enabled sport. | Registry |

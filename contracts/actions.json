@@ -1125,6 +1125,38 @@
       "since": "S04"
     },
     {
+      "code": "team.alias.add",
+      "module": "Registry",
+      "description": "Add a nickname or another spelling a team is known by, so the directory finds it under it too; not for a disbanded or archived team.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S07"
+    },
+    {
+      "code": "team.alias.remove",
+      "module": "Registry",
+      "description": "Remove a team's nickname or spelling, with a reason; the alias is kept with who removed it, when and why. Former names stay.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED_WITH_REASON",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S07"
+    },
+    {
       "code": "team.create",
       "module": "Registry",
       "description": "Add a team in one of the tenant's enabled sports, within the plan's team limit; possible duplicates are shown first, and creating it anyway is recorded with the teams shown.",
@@ -1170,6 +1202,22 @@
       "allowsAnonymous": false,
       "availableWhenBlocked": false,
       "availableWhenReadOnly": true,
+      "since": "S07"
+    },
+    {
+      "code": "team.rename",
+      "module": "Registry",
+      "description": "Rename a team from a date: the old name, short name and code are kept as a former name with their dates, shown on results of that time; possible duplicates are shown first.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
       "since": "S07"
     },
     {
