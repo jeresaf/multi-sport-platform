@@ -1299,7 +1299,7 @@ export interface paths {
         };
         /**
          * Get an organisation
-         * @description An organisation of the tenant named by `X-Tenant-Id`, whatever its status: type, names, country, city, founded year, website, the body's own email and phone, description, primary venue (id, name, slug), the current `parent` (id, display name, slug, status; null without one), the current `children` (the same summary, archived ones left out, sorted by display name ignoring case, accents and punctuation, as the directory; `GET /organisations?parentId=` pages them), status and `version` (also the `ETag`; it doesn't move when a child leaves).
+         * @description An organisation of the tenant named by `X-Tenant-Id`, whatever its status: type, names, country, city, founded year, website, the body's own email and phone, description, primary venue (id, name, slug), the current `parent` (id, display name, slug, status; null without one), the current `children` (the same summary, archived ones left out, sorted by display name ignoring case, accents and punctuation, as the directory; `GET /organisations?parentId=` pages them), its `teams` (id, name, slug, variant, category, status; archived ones left out, in the teams directory's order; `GET /teams?organisationId=` pages them), status and `version` (also the `ETag`; it doesn't move when a child leaves or when a team changes).
          */
         get: operations["GetOrganisation"];
         /**

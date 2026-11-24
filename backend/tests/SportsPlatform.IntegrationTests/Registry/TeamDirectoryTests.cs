@@ -112,20 +112,19 @@ public sealed class TeamDirectoryTests(PostgresFixture fixture) : DatabaseTest(f
         var (kmsa, registrar) = await TenantAsync("kmsa", IdentityRoles.Registrar);
         var women = new TeamCategory(GenderCategory.Women, AgeGroup.Senior, TeamLevel.First);
         var under17 = new TeamCategory(GenderCategory.Men, AgeGroup.U17, TeamLevel.First);
-        var expected = new List<Guid>
-        {
-            (await SaveTeamAsync(App.Services, kmsa, "Bukoto Comets FC")).Id,
-        };
+        // The women and under-17 teams are saved first, so their IDs are smaller than the senior men's while their
+        // ranks are larger: a cursor without the rank (sort key and ID only) would skip them after page 2.
+        var womenId = (await SaveTeamAsync(App.Services, kmsa, "Ntinda Swifts FC", category: women)).Id;
+        var under17Id = (await SaveTeamAsync(App.Services, kmsa, "Ntinda Swifts FC", category: under17)).Id;
+        var bukotoId = (await SaveTeamAsync(App.Services, kmsa, "Bukoto Comets FC")).Id;
         var tiedMen = new List<Guid>();
         foreach (var name in new[] { "Ntinda Swifts FC", "NTINDA SWIFTS FC", "Ntinda Swifts F.C" })
         {
             tiedMen.Add((await SaveTeamAsync(App.Services, kmsa, name)).Id);
         }
 
-        expected.AddRange(tiedMen.Order());
-        expected.Add((await SaveTeamAsync(App.Services, kmsa, "Ntinda Swifts FC", category: women)).Id);
-        expected.Add((await SaveTeamAsync(App.Services, kmsa, "Ntinda Swifts FC", category: under17)).Id);
-        expected.Add((await SaveTeamAsync(App.Services, kmsa, "Seeta Sparrows FC")).Id);
+        var seetaId = (await SaveTeamAsync(App.Services, kmsa, "Seeta Sparrows FC")).Id;
+        List<Guid> expected = [bukotoId, .. tiedMen.Order(), womenId, under17Id, seetaId];
 
         var ids = new List<Guid>();
         string? cursor = null;
