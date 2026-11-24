@@ -5,6 +5,7 @@ using SportsPlatform.BuildingBlocks.Privacy;
 using SportsPlatform.Modules.Registry.Domain.Organisations;
 using SportsPlatform.Modules.Registry.Domain.People;
 using SportsPlatform.Modules.Registry.Domain.People.Duplicates;
+using SportsPlatform.Modules.Registry.Domain.Teams;
 using SportsPlatform.Modules.Registry.Features.People;
 
 namespace SportsPlatform.Modules.Registry.Features.Organisations;
@@ -17,7 +18,10 @@ namespace SportsPlatform.Modules.Registry.Features.Organisations;
 /// order (the sort key); the directory's <c>parentId</c> pages them with filters. The version doesn't move when a child leaves (S07-T2c-1),
 /// so it is no freshness marker for <c>children</c>. Aliases are the ones not removed, oldest first; identifiers are all of
 /// them, ended ones included, by authority (as a venue's); both are <c>INTERNAL</c> (D16), and a change to one moves the
-/// version (S06 D11). Teams and the logo join with S07-T3 and T4.
+/// version (S06 D11). <c>teams</c> are the organisation's teams, archived ones left out, in the teams directory's order (name,
+/// category, ID; owner, S07-T3b-2 plan), not paged; the directory's <c>organisationId</c> pages them with filters. A team's
+/// changes don't move the organisation's version, so it is no freshness marker for <c>teams</c> either. The logo joins with
+/// S07-T4.
 /// </summary>
 public sealed record OrganisationResponse(
     [property: PersonalData(PersonalDataClass.Public)] Guid Id,
@@ -36,6 +40,7 @@ public sealed record OrganisationResponse(
     [property: PersonalData(PersonalDataClass.Public)] OrganisationVenueResponse? PrimaryVenue,
     [property: PersonalData(PersonalDataClass.Public)] OrganisationSummaryResponse? Parent,
     [property: PersonalData(PersonalDataClass.Public)] IReadOnlyList<OrganisationSummaryResponse> Children,
+    [property: PersonalData(PersonalDataClass.Public)] IReadOnlyList<OrganisationTeamResponse> Teams,
     [property: PersonalData(PersonalDataClass.Public)] OrganisationStatus Status,
     [property: PersonalData(PersonalDataClass.Internal)] IReadOnlyList<OrganisationAliasResponse> Aliases,
     [property: PersonalData(PersonalDataClass.Internal)] IReadOnlyList<ExternalIdentifierResponse> ExternalIdentifiers,
@@ -69,6 +74,17 @@ public sealed record OrganisationSummaryResponse(
     [property: PersonalData(PersonalDataClass.Public)] string DisplayName,
     [property: PersonalData(PersonalDataClass.Public)] string Slug,
     [property: PersonalData(PersonalDataClass.Public)] OrganisationStatus Status);
+
+/// <summary>A team of an organisation (S07 D16, D19): enough to recognise it and open it, with its status now.</summary>
+public sealed record OrganisationTeamResponse(
+    [property: PersonalData(PersonalDataClass.Public)] Guid Id,
+    [property: PersonalData(PersonalDataClass.Public)] string Name,
+    [property: PersonalData(PersonalDataClass.Public)] string Slug,
+    [property: PersonalData(PersonalDataClass.Public)] string Variant,
+    [property: PersonalData(PersonalDataClass.Public)] GenderCategory GenderCategory,
+    [property: PersonalData(PersonalDataClass.Public)] AgeGroup AgeGroup,
+    [property: PersonalData(PersonalDataClass.Public)] TeamLevel Level,
+    [property: PersonalData(PersonalDataClass.Public)] TeamStatus Status);
 
 /// <summary>
 /// An organisation that looks like the one checked (S07 D13): enough to recognise it and open it. <c>status</c> marks an
