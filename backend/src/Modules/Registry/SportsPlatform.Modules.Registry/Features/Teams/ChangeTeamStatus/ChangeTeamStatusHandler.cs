@@ -15,10 +15,12 @@ namespace SportsPlatform.Modules.Registry.Features.Teams.ChangeTeamStatus;
 /// Moves a team along its lifecycle (S07 D12): the status-history row and the audit entry (with the reason) commit
 /// together. A move the current status doesn't allow is <c>TEAM_STATUS_INVALID</c>; unarchiving goes back only to the
 /// status before archiving (Q55). A move into a status that counts toward <c>MAX_TEAMS</c> from one that doesn't
-/// (reform, or unarchiving to <c>ACTIVE</c>, <c>INACTIVE</c> or <c>SUSPENDED</c>) holds <c>registry.teams:&lt;tenantId&gt;</c>
-/// and checks the quota, as a create does (D14): at the limit <c>ENTITLEMENT_QUOTA_EXCEEDED</c> ("Your plan allows N
-/// teams."). Other moves take no lock. Whether the variant is still enabled doesn't matter (T3 acceptance). The version
-/// guards the move: a team changed since the read is a conflict.
+/// (reform, or unarchiving to <c>ACTIVE</c>, <c>INACTIVE</c> or <c>SUSPENDED</c>) checks the quota under
+/// <c>registry.teams:&lt;tenantId&gt;</c>, as a create does (D14): at the limit <c>ENTITLEMENT_QUOTA_EXCEEDED</c> ("Your
+/// plan allows N teams."). Every move to a status that counts takes the lock before the team is read (review #128 R1):
+/// two moves of one team then queue, and the second reads the first's result, so it is answered with the version's
+/// conflict, never with the quota the first one used. Other moves take no lock. Whether the variant is still enabled
+/// doesn't matter (T3 acceptance). The version guards the move: a team changed since the read is a conflict.
 /// </summary>
 public sealed class ChangeTeamStatusHandler(
     RegistryDbContext context,
@@ -41,7 +43,13 @@ public sealed class ChangeTeamStatusHandler(
         audit.Describe(TeamsEndpoints.EntityType, teamId, reason);
 
         await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
+        var to = request.Status!.Value;
+        if (TeamCount.Counts(to))
+        {
+            await TeamChanges.LockTeamsAsync(context, tenantId, cancellationToken);
+        }
 
+        // Read after the lock (when taken): a new statement, so in READ COMMITTED it sees every move committed before it.
         // The history is read whole: unarchiving needs the status before archiving, and a team has few rows.
         var team = await context.Set<Team>()
             .Include(t => t.StatusHistory)
@@ -57,7 +65,6 @@ public sealed class ChangeTeamStatusHandler(
         }
 
         var from = team.Status;
-        var to = request.Status!.Value;
         var changed = team.ChangeStatus(to, reason, actor, timeProvider.GetUtcNow());
         if (changed.IsFailure)
         {
@@ -66,9 +73,7 @@ public sealed class ChangeTeamStatusHandler(
 
         if (!TeamCount.Counts(from) && TeamCount.Counts(to))
         {
-            // Counted after the lock: a new statement, so in READ COMMITTED it sees every team committed before it. The
-            // team itself doesn't count yet (its new status isn't saved).
-            await TeamChanges.LockTeamsAsync(context, tenantId, cancellationToken);
+            // Counted under the lock taken above. The team itself doesn't count yet (its new status isn't saved).
             if (await TeamChanges.CheckQuotaAsync(teams, entitlements, cancellationToken) is { } quota)
             {
                 return quota.ToProblem();

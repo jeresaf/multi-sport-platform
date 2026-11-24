@@ -596,7 +596,8 @@ The rest of S06's tech debt has its own trigger in PROGRESS.md ("From S06").
   closed venue stays. A change to the short name's key, the category or the organisation runs the warning again (the
   team left out); it, or a slug change, holds `registry.teams:<tenantId>`. `POST /teams/{id}/status`
   (`team.status.change`, names `MAX_TEAMS`; owner) with `{status, reason}`; `TEAM_STATUS_INVALID` (409);
-  `TeamTransitions` is D12's table. A move from a status that doesn't count (`DISBANDED`, `ARCHIVED`) to one that does
-  holds the lock and checks the quota after the version; other moves take no lock. `GET /teams/{id}/status-changes`
+  `TeamTransitions` is D12's table. Every move to a status that counts takes the lock before the team is read (review #128 R1:
+  two moves of one team queue, so the second gets the version's conflict, not the quota); a move from a status that
+  doesn't count (`DISBANDED`, `ARCHIVED`) to one that does checks the quota under it; other moves take no lock. `GET /teams/{id}/status-changes`
   (`team.read`), newest first. Duplicate candidates carry `organisation` (id, display name, slug; null when
   independent) instead of `organisationId` (owner, review #127 Q1 and plan). No migration.

@@ -15,6 +15,7 @@ using SportsPlatform.Modules.Registry.Domain.Teams;
 using SportsPlatform.Modules.Tenancy.Contracts.Tenants;
 using SportsPlatform.Modules.Tenancy.Features.Access;
 using static SportsPlatform.IntegrationTests.Identity.MembershipTestData;
+using static SportsPlatform.IntegrationTests.Registry.PeopleRequests;
 using static SportsPlatform.IntegrationTests.Registry.RegistryTestData;
 using static SportsPlatform.IntegrationTests.Registry.TeamRequests;
 using static SportsPlatform.IntegrationTests.Tenancy.TestSportDefinitions;
@@ -167,13 +168,76 @@ public sealed class TeamQuotaTests(PostgresFixture fixture) : DatabaseTest(fixtu
             owner.PostAsJsonAsync(TeamStatusPath(kestrels.Id), new { status = "ACTIVE", reason = "Reformed" }, Ct));
 
         responses.Select(r => r.StatusCode).OrderBy(s => s).ShouldBe([HttpStatusCode.OK, HttpStatusCode.Forbidden]);
-        foreach (var response in responses)
+        try
         {
-            response.Dispose();
+            // Review #128 R2: the refusal is the quota's, not any other 403.
+            var problem = await responses.Single(r => r.StatusCode == HttpStatusCode.Forbidden)
+                .ShouldBeProblemAsync(HttpStatusCode.Forbidden, "ENTITLEMENT_QUOTA_EXCEEDED");
+            problem.GetProperty("detail").GetString().ShouldBe("Your plan allows 1 teams.");
+        }
+        finally
+        {
+            foreach (var response in responses)
+            {
+                response.Dispose();
+            }
         }
 
         await using var scope = ScopeFor(App.Services, kmsa, out var context);
         (await context.Set<Team>().CountAsync(t => t.Status == TeamStatus.Active, Ct)).ShouldBe(1);
+    }
+
+    // Review #128 R1: two reforms of the same team from the same read, with one place left. Both queue on the teams' lock
+    // before reading the team (the test holds it until both wait), so the second reads the first's move and answers the
+    // version's conflict, not the quota the first one took.
+    [Fact]
+    public async Task Two_reforms_of_one_team_from_one_read_conflict_rather_than_hit_the_quota()
+    {
+        var (kmsa, owner) = await KmsaAsync(limit: 1);
+        var swifts = await SaveTeamAsync(App.Services, kmsa, "Ntinda Swifts FC", status: TeamStatus.Disbanded);
+        var version = (await owner.ReadJsonAsync(TeamPath(swifts.Id), Ct)).GetProperty("version").GetUInt32();
+
+        HttpResponseMessage[] responses;
+        await using (var holder = ScopeFor(App.Services, kmsa, out var holding))
+        {
+            await using var held = await holding.Database.BeginTransactionAsync(Ct);
+            var key = $"registry.teams:{kmsa}";
+            await holding.Database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock(hashtextextended({key}, 0))", Ct);
+            var moves = new[]
+            {
+                owner.PostAsJsonAsync(TeamStatusPath(swifts.Id), new { status = "ACTIVE", reason = "Reformed", version }, Ct),
+                owner.PostAsJsonAsync(TeamStatusPath(swifts.Id), new { status = "ACTIVE", reason = "Reformed", version }, Ct),
+            };
+
+            var deadline = DateTimeOffset.UtcNow.AddSeconds(30);
+            while (await WaitingOnAdvisoryLocksAsync(holding) < 2)
+            {
+                moves.ShouldAllBe(move => !move.IsCompleted, "A move finished without waiting for the teams' lock.");
+                DateTimeOffset.UtcNow.ShouldBeLessThan(deadline, "The two moves never both waited on the teams' lock.");
+                await Task.Delay(TimeSpan.FromMilliseconds(20), Ct);
+            }
+
+            await held.CommitAsync(Ct);
+            responses = await Task.WhenAll(moves);
+        }
+
+        try
+        {
+            responses.Select(r => r.StatusCode).ShouldBe([HttpStatusCode.OK, HttpStatusCode.Conflict], ignoreOrder: true);
+            await responses.Single(r => r.StatusCode == HttpStatusCode.Conflict)
+                .ShouldBeProblemAsync(HttpStatusCode.Conflict, "TEAM_CONCURRENCY_CONFLICT");
+        }
+        finally
+        {
+            foreach (var response in responses)
+            {
+                response.Dispose();
+            }
+        }
+
+        await using var scope = ScopeFor(App.Services, kmsa, out var context);
+        var saved = await context.Set<Team>().AsNoTracking().Include(t => t.StatusHistory).SingleAsync(Ct);
+        (saved.Status, saved.StatusHistory.Count).ShouldBe((TeamStatus.Active, 3));
     }
 
     /// <summary>KMSA with <see cref="TestballFull"/> enabled, <c>MAX_TEAMS</c> overridden to <paramref name="limit"/>, and its owner's client.</summary>

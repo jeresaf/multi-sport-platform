@@ -242,7 +242,8 @@ One endpoint, `POST …/teams/{id}/status` with `{status, reason}` (`team.status
 `409 TEAM_STATUS_INVALID`. Unarchiving goes back only to the status the team had before it was archived (as venues'),
 so archiving a disbanded team and unarchiving it never reforms it (Q55). Teams in `ACTIVE`, `INACTIVE` or `SUSPENDED`
 count toward `MAX_TEAMS` (S07 D14): disbanding or archiving frees a place; a reform, or an unarchive to one of those
-statuses, checks the quota under `registry.teams:<tenantId>` (`403 ENTITLEMENT_QUOTA_EXCEEDED`). A team whose variant
+statuses, checks the quota under `registry.teams:<tenantId>` (`403 ENTITLEMENT_QUOTA_EXCEEDED`), which every move to a
+counting status takes before reading the team. A team whose variant
 the tenant has disabled since still moves. `SUSPENDED` is an administrative stop set by staff. Every move writes a row to
 `registry.team_status_changes` (the first at creation), read newest first at `GET …/teams/{id}/status-changes`. A
 team's details can be corrected in every status (not its variant, nor its name, which changes by rename). Nothing is
