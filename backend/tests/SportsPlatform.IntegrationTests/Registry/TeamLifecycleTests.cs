@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using SportsPlatform.BuildingBlocks.Actions;
 using SportsPlatform.BuildingBlocks.Auditing;
 using SportsPlatform.IntegrationTests.Api;
 using SportsPlatform.IntegrationTests.Audit;
@@ -331,6 +332,25 @@ public sealed class TeamLifecycleTests(PostgresFixture fixture) : DatabaseTest(f
 
         await move.ShouldBeProblemAsync(HttpStatusCode.Forbidden, "TENANT_READ_ONLY");
         history.StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
+
+    // D20, review #128 R3: a team manager, even of this very team, changes and moves no team in S07 (S08's TEAM scope).
+    [Fact]
+    public async Task A_team_manager_of_the_team_changes_moves_and_reads_nothing()
+    {
+        var (kmsa, _) = await TenantAsync("kmsa", IdentityRoles.Registrar);
+        var team = await SaveTeamAsync(App.Services, kmsa, "Ntinda Swifts FC");
+        var manager = await CreateMemberAsync(
+            App.Services, kmsa, MailboxOf(IdentityRoles.TeamManager, "kmsa.example"), Ct, (IdentityRoles.TeamManager, AssignmentScope.Team, team.Id));
+        var client = App.ClientFor(manager.UserId, kmsa);
+
+        using var update = await client.PutAsJsonAsync(TeamPath(team.Id), new { genderCategory = "MEN", ageGroup = "SENIOR" }, Ct);
+        using var move = await client.PostAsJsonAsync(TeamStatusPath(team.Id), new { status = "SUSPENDED", reason = _reason }, Ct);
+        using var history = await client.GetAsync(TeamStatusChangesPath(team.Id), Ct);
+
+        await update.ShouldBeProblemAsync(HttpStatusCode.Forbidden, "AUTH_FORBIDDEN");
+        await move.ShouldBeProblemAsync(HttpStatusCode.Forbidden, "AUTH_FORBIDDEN");
+        await history.ShouldBeProblemAsync(HttpStatusCode.Forbidden, "AUTH_FORBIDDEN");
     }
 
     // T3 acceptance 4: a variant disabled since keeps its teams, which still change status.
