@@ -7,15 +7,14 @@ at the start of every review.
 
 - **Current slice:** S07 — Organisations, teams and venues (docs/build/slices/S07-organisations-teams-venues.md,
   written by the S06 slice review). S00–S06 are done
-- **Current task:** — (S07-T3b-1 in review: #128)
-- **Next:** S07-T3b-2 — Teams: the directory, and the teams in the organisation read
+- **Current task:** S07-T3b-2 — Teams: the directory, and the teams in the organisation read
+- **Next:** S07-T3c — Teams: rename, aliases (former names), the name on a date
 - **Blocked on:** —
 
 ## Next up
 
-1. S07-T3b-2 — Teams: the directory, and the teams in the organisation read
-2. S07-T3c — Teams: rename, aliases (former names), the name on a date
-3. S07-T3d — Teams: external identifiers, `ITeamDirectory`
+1. S07-T3c — Teams: rename, aliases (former names), the name on a date
+2. S07-T3d — Teams: external identifiers, `ITeamDirectory`
 
 ## Log
 
@@ -144,6 +143,11 @@ at the start of every review.
 | 2026-11-23 | S07-T3b-1 | #128 | Teams: update, lifecycle, status history. `PUT /teams/{id}` (`team.update`, `REQUIRED`, `If-Match`) replaces the details in every status, whatever the variant's state; `slug` left out keeps the team's; a change to the short name's key, the category or the organisation (or the slug) holds `registry.teams:<tenantId>` and runs D13's warning again, the team left out; a kept organisation or venue isn't checked again (T2 acceptance 2). `POST /teams/{id}/status` (`team.status.change`, `REQUIRED_WITH_REASON`, names `MAX_TEAMS`): `TeamTransitions` (D12), unarchive to the status before archiving; a move from `DISBANDED`/`ARCHIVED` to a counting status checks the quota under the lock. `GET /teams/{id}/status-changes` (`team.read`). New errors `TEAM_RENAME_REQUIRED` (422), `TEAM_STATUS_INVALID` (409). Duplicate candidates carry `organisation` (id, display name, slug) instead of `organisationId` (owner, review #127 Q1). T3 acceptance 3 and 4 and T2 acceptance 2 ticked. Backend 4074 tests pass (after the role catalogue test gained the two actions); web lint, typecheck and tests pass | Owner (plan 2026-11-23): `name` optional in PUT and only as the current name (trimmed, exact), else `TEAM_RENAME_REQUIRED`; a blank one `400`; `variant` not in the body; `organisation` replaces `organisationId`; `team.status.change` names `MAX_TEAMS`. No migration, events or dependencies. About 700 production and 900 test lines without generated files. `SaveTeamAsync` (tests) now moves the status through the domain, writing a history row. Pre-review (ready): MINOR this row; NIT the rename error no longer names T3c's route; NIT the details' rules run before the version check, as organisations' and venues'. Web client generated with Node 22. Review #128 (subagent, approve with nits): R1 two reforms of one team from one read gave the second `ENTITLEMENT_QUOTA_EXCEEDED` instead of `TEAM_CONCURRENCY_CONFLICT`: every move to a counting status now takes the teams' lock before reading the team (lock-first, the reviewer's first option), with a test holding the lock; R2 the two-reforms test asserts the quota code; R3 a `TEAM_MANAGER` of the team is denied update, move and history |
 
 ## Deviations from spec (agreed)
+
+- **S07-T3b-2 (owner, plan 2026-11-24):** teams with the same name sort by category: age group in declared order
+  (`SENIOR`, `U6` … `U23`, `VETERANS`), then gender (`MEN`, `WOMEN`, `MIXED`), then level (`FIRST`, `RESERVE`,
+  `DEVELOPMENT`, `ACADEMY`), then ID; the teams directory's cursor carries that rank. The organisation read's `teams`
+  lists every team but archived ones, in the directory's order, not paged.
 
 - **S07-T3 (owner, plan 2026-11-23):** T3 is five PRs: T3a (model, create with the warning and `MAX_TEAMS`, the check,
   the read), T3b-1 (update, lifecycle, status history), T3b-2 (directory, teams in the organisation read), T3c (rename,
