@@ -7,14 +7,13 @@ at the start of every review.
 
 - **Current slice:** S07 — Organisations, teams and venues (docs/build/slices/S07-organisations-teams-venues.md,
   written by the S06 slice review). S00–S06 are done
-- **Current task:** — (S07-T3b-2 in review: #129)
-- **Next:** S07-T3c — Teams: rename, aliases (former names), the name on a date
+- **Current task:** S07-T3c — Teams: rename, aliases (former names), the name on a date
+- **Next:** S07-T3d — Teams: external identifiers, `ITeamDirectory`
 - **Blocked on:** —
 
 ## Next up
 
-1. S07-T3c — Teams: rename, aliases (former names), the name on a date
-2. S07-T3d — Teams: external identifiers, `ITeamDirectory`
+1. S07-T3d — Teams: external identifiers, `ITeamDirectory`
 
 ## Log
 
@@ -144,6 +143,15 @@ at the start of every review.
 | 2026-11-24 | S07-T3b-2 | #129 | Teams: the directory and the organisation's teams. `GET /teams` (`team.read`): `q` (name: prefix of the sort key or a word, name-key prefix, similarity ≥ 0.3; short name: name-key prefix), `variant`, `organisationId`, `genderCategory`, `ageGroup`, `level`, `status` (archived left out by default), `limit` (1–100, 25), `cursor`; items carry the organisation (id, display name, slug). Sorted by name, then category, then ID: `TeamOrder.CategoryRank` computes the rank in SQL (the codes are text) and `TeamDirectoryCursor` carries sort key, rank and ID; `DirectoryCursor`'s decoding is shared (`CursorText`, same limits). `GET /organisations/{id}` (and every endpoint answering the organisation) gains `teams` (`OrganisationTeamResponse`: id, name, slug, variant, category, status), archived ones left out, in the directory's order, not paged. Backend 4142 tests pass; web lint, typecheck, tests and build pass | Owner (plan 2026-11-24): category order age group (declared order), gender, level; the organisation's `teams` all but archived. No migration (existing indexes), no actions, errors, events or dependencies. About 550 production and 560 test lines without generated files. Web client generated with Node 22. Pre-review (ready, no blockers): MINOR the paging test now saves the women and under-17 teams first, so their IDs disagree with their ranks and a cursor without the rank would skip them; MINOR the organisation read's OpenAPI description names `teams` and that the version doesn't move when a team changes; NIT Teams reuses `ListPeopleHandler.SearchSimilarity` and `AthleteProfileDetailsRules.IsCode` as venues and organisations do (left as is). Review #129 (subagent, approve with nits): R1 the database ranks every age group, gender and level as `CategoryRankOf` does (integration test; the unit test only compiles the expression); two follow-ups recorded under "From S07" (the category rank's index; the public organisation read's `ETag` hashes its body) |
 
 ## Deviations from spec (agreed)
+
+- **S07-T3c (owner, plan 2026-11-24):** one PR. A `FORMER_NAME` row keeps the short name and code that went with the
+  old name, so the name on a date answers all three (D18). A rename that leaves out `shortName` or `code` keeps the
+  current one; an explicit `null` clears it. Archived and disbanded teams can't be renamed (`TEAM_ARCHIVED`,
+  `TEAM_DISBANDED`, as D10's other new children). Former names come only from rename: `team.alias.add` takes `NICKNAME`
+  or `SPELLING`, and `team.alias.remove` refuses a former name (`TEAM_ALIAS_FORMER_NAME`, 409). Builder defaults: the
+  same name exactly is `TEAM_NAME_UNCHANGED`; renaming back to an earlier name is allowed; aliases don't feed the
+  duplicate warning (Q57 as built); the read splits `formerNames` (`PUBLIC`) from `aliases` (`INTERNAL`, D16).
+  `Team.NameOn(date)` comes with T3c; `ITeamDirectory` (T3d) answers it.
 
 - **S07-T3b-2 (owner, plan 2026-11-24):** teams with the same name sort by category: age group in declared order
   (`SENIOR`, `U6` … `U23`, `VETERANS`), then gender (`MEN`, `WOMEN`, `MIXED`), then level (`FIRST`, `RESERVE`,
