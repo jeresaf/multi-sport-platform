@@ -435,6 +435,40 @@ public static class RegistryActions
         entitlement: "MAX_TEAMS",
         grantedWith: ["team.read"]);
 
+    /// <summary>
+    /// Renames a team from a date (S07 D8): the old name is kept as a former name with its dates. The new name runs the
+    /// duplicate check itself (D13), so it is granted with the check; it answers the team as <c>team.read</c> does.
+    /// </summary>
+    public static readonly ActionDefinition TeamRename = new(
+        "team.rename",
+        "Rename a team from a date: the old name, short name and code are kept as a former name with their dates, shown on results of that time; possible duplicates are shown first.",
+        ActionScope.Tenant,
+        AuditRequirement.Required,
+        since: "S07",
+        scopableBy: [AssignmentScope.Tenant],
+        grantedWith: ["team.duplicate_check", "team.read"]);
+
+    public static readonly ActionDefinition TeamAliasAdd = TeamChild(
+        "team.alias.add",
+        "Add a nickname or another spelling a team is known by, so the directory finds it under it too; not for a disbanded or archived team.",
+        AuditRequirement.Required);
+
+    public static readonly ActionDefinition TeamAliasRemove = TeamChild(
+        "team.alias.remove",
+        "Remove a team's nickname or spelling, with a reason; the alias is kept with who removed it, when and why. Former names stay.",
+        AuditRequirement.RequiredWithReason);
+
+    // A team's alias (and, with S07-T3d, identifier) actions answer the team as team.read does, so they are only granted
+    // with that read.
+    private static ActionDefinition TeamChild(string code, string description, AuditRequirement audit) => new(
+        code,
+        description,
+        ActionScope.Tenant,
+        audit,
+        since: "S07",
+        scopableBy: [AssignmentScope.Tenant],
+        grantedWith: ["team.read"]);
+
     // The lifecycle, alias, identifier, profile, photo, consent and public-profile actions answer the person as person.read does, so they are only
     // granted with that read.
     private static ActionDefinition Lifecycle(string code, string description, AuditRequirement audit) => new(

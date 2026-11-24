@@ -39,8 +39,24 @@ public sealed class GetTeamHandler(RegistryDbContext context)
                 .SingleOrDefaultAsync(cancellationToken)
             : null;
 
+        // Former names are never removed; a nickname or spelling shows while it is current (S07 D10).
+        var aliases = await context.Set<TeamAlias>().AsNoTracking()
+            .Where(a => a.TeamId == teamId && a.RemovedAt == null)
+            .ToListAsync(cancellationToken);
+        var formerNames = aliases
+            .Where(a => a.IsFormerName)
+            .OrderByDescending(a => a.ValidFrom)
+            .Select(a => new TeamFormerNameResponse(a.Id, a.Name, a.ShortName, a.Code, a.ValidFrom!.Value, a.ValidTo!.Value))
+            .ToList();
+        var others = aliases
+            .Where(a => !a.IsFormerName)
+            .OrderBy(a => a.Id)
+            .Select(a => new TeamAliasResponse(a.Id, a.Name, a.Kind))
+            .ToList();
+
         return Result.Success(new TeamResponse(
             t.Id, t.Variant, t.GenderCategory, t.AgeGroup, t.Level, t.Name, t.ShortName, t.NameSince, t.Slug, t.Code, t.Motto,
-            t.PrimaryColour, t.SecondaryColour, t.TertiaryColour, t.FoundedYear, organisation, venue, t.Status, found.Version));
+            t.PrimaryColour, t.SecondaryColour, t.TertiaryColour, t.FoundedYear, organisation, venue, t.Status, formerNames, others,
+            found.Version));
     }
 }

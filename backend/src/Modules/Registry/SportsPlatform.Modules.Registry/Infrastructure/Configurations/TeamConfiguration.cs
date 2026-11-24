@@ -5,6 +5,7 @@ using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Privacy;
 using SportsPlatform.Modules.Registry.Domain;
 using SportsPlatform.Modules.Registry.Domain.Organisations;
+using SportsPlatform.Modules.Registry.Domain.People;
 using SportsPlatform.Modules.Registry.Domain.Teams;
 using SportsPlatform.Modules.Registry.Domain.Venues;
 
@@ -95,6 +96,11 @@ internal sealed class TeamConfiguration : IEntityTypeConfiguration<Team>
             .HasPrincipalKey(t => new { t.TenantId, t.Id })
             .OnDelete(DeleteBehavior.Restrict);
         builder.Navigation(t => t.StatusHistory).HasField("_statusHistory").UsePropertyAccessMode(PropertyAccessMode.Field);
+        builder.HasMany(t => t.Aliases).WithOne()
+            .HasForeignKey(a => new { a.TenantId, a.TeamId })
+            .HasPrincipalKey(t => new { t.TenantId, t.Id })
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.Navigation(t => t.Aliases).HasField("_aliases").UsePropertyAccessMode(PropertyAccessMode.Field);
 
         // The tenant's own organisation and venue: a null one isn't checked (MATCH SIMPLE).
         builder.HasOne<Organisation>().WithMany()
@@ -139,5 +145,52 @@ internal sealed class TeamStatusChangeConfiguration : IEntityTypeConfiguration<T
         builder.Property(c => c.ActorKind).HasConversion(EnumColumns.UpperSnake<ActorKind>()).HasMaxLength(20);
 
         builder.HasIndex(c => new { c.TenantId, c.TeamId, c.OccurredAt });
+    }
+}
+
+/// <summary>
+/// <c>registry.team_aliases</c> (S07 D8, D10): tenant-owned (RLS), each pointing at its tenant's team. A former name
+/// carries its dates (and the short name and code it went with; owner, S07-T3c plan), other aliases none; a former name
+/// is never removed, and a removed alias keeps its row (the three <c>remove</c> columns are set together). Former names
+/// with their dates are <c>PUBLIC</c>, nicknames and spellings <c>INTERNAL</c> (D16): the name and kind columns hold
+/// both, so they are classified by the most private value they can hold; the columns only former names fill are
+/// <c>PUBLIC</c>. The responses split the two (<c>formerNames</c>, <c>aliases</c>).
+/// </summary>
+internal sealed class TeamAliasConfiguration : IEntityTypeConfiguration<TeamAlias>
+{
+    public const string Table = "team_aliases";
+    public const string NameKeyIndex = "ix_team_aliases_name_key_trgm";
+
+    public void Configure(EntityTypeBuilder<TeamAlias> builder)
+    {
+        builder.ToTable(Table, table =>
+        {
+            table.HasCheckConstraint("ck_team_aliases_kind", $"kind IN ({EnumColumns.SqlList<AliasKind>()})");
+            table.HasCheckConstraint("ck_team_aliases_name_key", "name_key <> ''");
+            table.HasCheckConstraint("ck_team_aliases_code", "code ~ '^[A-Z]{3}$'");
+            table.HasCheckConstraint(
+                "ck_team_aliases_former_name",
+                "(kind = 'FORMER_NAME' AND valid_from IS NOT NULL AND valid_to IS NOT NULL AND valid_from <= valid_to AND removed_at IS NULL) " +
+                "OR (kind <> 'FORMER_NAME' AND valid_from IS NULL AND valid_to IS NULL AND short_name IS NULL AND code IS NULL)");
+            table.HasCheckConstraint(
+                "ck_team_aliases_removed",
+                "(removed_at IS NULL AND removed_by IS NULL AND remove_reason IS NULL) " +
+                "OR (removed_at IS NOT NULL AND removed_by IS NOT NULL AND remove_reason IS NOT NULL)");
+        });
+
+        builder.Property(a => a.Name).HasMaxLength(TeamAlias.NameMaxLength).IsPersonalData(PersonalDataClass.Internal);
+        builder.Property(a => a.NameKey).HasMaxLength(TeamAlias.NameMaxLength).IsPersonalData(PersonalDataClass.Internal);
+        builder.Property(a => a.Kind).HasConversion(EnumColumns.UpperSnake<AliasKind>()).HasMaxLength(20)
+            .IsPersonalData(PersonalDataClass.Internal);
+        builder.Property(a => a.ShortName).HasMaxLength(TeamDetails.ShortNameMaxLength).IsPersonalData(PersonalDataClass.Public);
+        builder.Property(a => a.Code).HasMaxLength(TeamDetails.CodeLength).IsPersonalData(PersonalDataClass.Public);
+        builder.Property(a => a.ValidFrom).IsPersonalData(PersonalDataClass.Public);
+        builder.Property(a => a.ValidTo).IsPersonalData(PersonalDataClass.Public);
+        builder.Property(a => a.RemoveReason).HasMaxLength(TeamAlias.ReasonMaxLength).IsPersonalData(PersonalDataClass.Internal);
+        builder.Ignore(a => a.IsRemoved);
+        builder.Ignore(a => a.IsFormerName);
+
+        builder.HasIndex(a => a.NameKey).HasMethod("gin").HasOperators("gin_trgm_ops").HasDatabaseName(NameKeyIndex);
+        builder.HasIndex(a => new { a.TenantId, a.TeamId });
     }
 }

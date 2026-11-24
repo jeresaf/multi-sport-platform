@@ -33,8 +33,8 @@ public sealed record ListTeamsResponse(
 /// <summary>
 /// The team directory of the request's tenant (query filter and RLS), in <see cref="TeamOrder"/>: name (the sort key,
 /// collation "C"), category, ID (S07 D19; owner, plan 2026-11-24). <c>q</c> matches the name by prefix (of the name or
-/// of one of its words), name-key prefix or trigram similarity, and the short name by name-key prefix; aliases and
-/// identifiers join with S07-T3c and T3d. Without a status, archived teams are left out. An unknown variant or
+/// of one of its words), name-key prefix or trigram similarity, the short name by name-key prefix, and a current alias
+/// (former names included, S07-T3c) as organisations' aliases; identifiers join with S07-T3d. Without a status, archived teams are left out. An unknown variant or
 /// organisation keeps none.
 /// </summary>
 public sealed class ListTeamsHandler(RegistryDbContext context)
@@ -126,7 +126,9 @@ public sealed class ListTeamsHandler(RegistryDbContext context)
             return teams.Where(_ => false);
         }
 
-        // Keys hold letters, digits and spaces only, so no pattern has a wildcard of its own.
+        // Keys hold letters, digits and spaces only, so no pattern has a wildcard of its own. An alias has a name key
+        // only (sorted tokens): a prefix of the key or of one of its words finds it. Nicknames and spellings are INTERNAL
+        // (D16): matching them is for this admin directory only; a public list (T5) must not reuse this to probe them.
         var prefixPattern = prefix + "%";
         var wordPattern = "% " + prefix + "%";
         var keyPattern = key + "%";
@@ -135,7 +137,12 @@ public sealed class ListTeamsHandler(RegistryDbContext context)
             || EF.Functions.Like(t.SortKey, wordPattern)
             || EF.Functions.Like(t.NameKey, keyPattern)
             || EF.Functions.TrigramsSimilarity(t.NameKey, key) >= ListPeopleHandler.SearchSimilarity
-            || (t.ShortNameKey != null && EF.Functions.Like(t.ShortNameKey, keyPattern)));
+            || (t.ShortNameKey != null && EF.Functions.Like(t.ShortNameKey, keyPattern))
+            || t.Aliases.Any(a => a.RemovedAt == null
+                && (EF.Functions.Like(a.NameKey, keyPattern)
+                    || EF.Functions.Like(a.NameKey, prefixPattern)
+                    || EF.Functions.Like(a.NameKey, wordPattern)
+                    || EF.Functions.TrigramsSimilarity(a.NameKey, key) >= ListPeopleHandler.SearchSimilarity)));
     }
 
     private sealed record Row(

@@ -278,4 +278,34 @@ public static class RegistryErrors
 
     public static readonly Error TeamStatusInvalid = new(
         "TEAM_STATUS_INVALID", "The team's current status doesn't allow this change.", ErrorKind.Conflict);
+
+    public static readonly Error TeamRenameDateInvalid = new(
+        "TEAM_RENAME_DATE_INVALID",
+        "A rename takes effect after the current name's first day and not after today (the tenant's date).",
+        ErrorKind.Unprocessable);
+
+    public static readonly Error TeamNameUnchanged = new(
+        "TEAM_NAME_UNCHANGED", "The team already has this name: a rename needs a new name.", ErrorKind.Unprocessable);
+
+    public static readonly Error TeamArchived = new(
+        "TEAM_ARCHIVED", "The team is archived: it takes no new name, alias, identifier or image until it is unarchived.",
+        ErrorKind.Conflict);
+
+    public static readonly Error TeamDisbanded = new(
+        "TEAM_DISBANDED", "The team is disbanded: it takes no new name, alias, identifier or image unless it is reformed.",
+        ErrorKind.Conflict);
+
+    public static readonly Error TeamAliasExists = new(
+        "TEAM_ALIAS_EXISTS",
+        "The team is already known by this name: its name or short name or a current alias gives the same name key.",
+        ErrorKind.Conflict);
+
+    public static readonly Error TeamAliasNotFound = new("TEAM_ALIAS_NOT_FOUND", "The team has no such alias.", ErrorKind.NotFound);
+
+    public static readonly Error TeamAliasRemoved = new("TEAM_ALIAS_REMOVED", "The alias is already removed.", ErrorKind.Conflict);
+
+    public static readonly Error TeamAliasFormerName = new(
+        "TEAM_ALIAS_FORMER_NAME",
+        "A former name is the team's name history and can't be removed: only nicknames and spellings can.",
+        ErrorKind.Conflict);
 }
