@@ -150,6 +150,63 @@ public sealed class TeamNamesTests(PostgresFixture fixture) : DatabaseTest(fixtu
         JsonDocument.Parse(saved.Metadata!).RootElement.GetProperty("candidates")[0].GetProperty("teamId").GetGuid().ShouldBe(other.Id);
     }
 
+    // D21 (review #130 R1): a rename that changes the name's key holds the teams' lock while the warning runs and it
+    // saves, so two teams renamed to one name at once queue (the test holds the lock until both wait) and the second is
+    // warned about the first. A new spelling with the same key takes no lock.
+    [Fact]
+    public async Task Renames_to_one_new_name_queue_on_the_teams_lock_and_the_second_is_warned()
+    {
+        var (kmsa, registrar) = await TenantAsync("kmsa", IdentityRoles.Registrar);
+        var bunga = await SaveTeamAsync(App.Services, kmsa, "Bunga Lakeside FC");
+        var kisaasi = await SaveTeamAsync(App.Services, kmsa, "Kisaasi Kestrels FC");
+        var effectiveOn = TenantToday();
+
+        HttpResponseMessage[] responses;
+        await using (var holder = ScopeFor(App.Services, kmsa, out var holding))
+        {
+            await using var held = await holding.Database.BeginTransactionAsync(Ct);
+            var key = $"registry.teams:{kmsa}";
+            await holding.Database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock(hashtextextended({key}, 0))", Ct);
+
+            // A new spelling of the same name doesn't wait for the lock.
+            await OkAsync(await registrar.PostAsJsonAsync(TeamRenamePath(kisaasi.Id), new { name = "Kisaasi Kestrels F.C.", effectiveOn = effectiveOn.AddDays(-1) }, Ct));
+
+            var renames = new[]
+            {
+                registrar.PostAsJsonAsync(TeamRenamePath(bunga.Id), new { name = "Kawempe Lions FC", effectiveOn }, Ct),
+                registrar.PostAsJsonAsync(TeamRenamePath(kisaasi.Id), new { name = "Kawempe Lions FC", effectiveOn }, Ct),
+            };
+
+            var deadline = DateTimeOffset.UtcNow.AddSeconds(30);
+            while (await WaitingOnAdvisoryLocksAsync(holding) < 2)
+            {
+                renames.ShouldAllBe(rename => !rename.IsCompleted, "A rename finished without waiting for the teams' lock.");
+                DateTimeOffset.UtcNow.ShouldBeLessThan(deadline, "The two renames never both waited on the teams' lock.");
+                await Task.Delay(TimeSpan.FromMilliseconds(20), Ct);
+            }
+
+            await held.CommitAsync(Ct);
+            responses = await Task.WhenAll(renames);
+        }
+
+        try
+        {
+            responses.Select(r => r.StatusCode).ShouldBe([HttpStatusCode.OK, HttpStatusCode.UnprocessableEntity], ignoreOrder: true);
+            var refused = responses.Single(r => r.StatusCode == HttpStatusCode.UnprocessableEntity);
+            var saved = responses.Single(r => r.StatusCode == HttpStatusCode.OK);
+            var savedId = (await saved.Content.ReadFromJsonAsync<JsonElement>(Ct)).GetProperty("id").GetGuid();
+            TeamCandidates(await refused.ShouldBeProblemAsync(HttpStatusCode.UnprocessableEntity, "TEAM_DUPLICATE_REVIEW_REQUIRED"))
+                .ShouldBe([(savedId, "LIKELY")]);
+        }
+        finally
+        {
+            foreach (var response in responses)
+            {
+                response.Dispose();
+            }
+        }
+    }
+
     // D13 (owner, pre-review): a current alias, former names included, is a name key on both sides for LIKELY; removed
     // aliases and other categories don't count.
     [Fact]
@@ -169,7 +226,7 @@ public sealed class TeamNamesTests(PostgresFixture fixture) : DatabaseTest(fixtu
         TeamCandidates(await CheckTeamAsync(registrar, new { variant = TestballFull, name = "Bunga Lakeside FC", genderCategory = "MEN", ageGroup = "U17" }))
             .ShouldBeEmpty();
 
-        // This side's own nickname: a rename of a team known as "The Breakers" is warned about the Bunga team.
+        // This side's own alias: a rename of a team with the spelling "Bunga Breakers F.C." is warned about the Bunga team.
         var kiwatule = await SaveTeamAsync(App.Services, kmsa, "Kiwatule Athletic FC");
         await OkAsync(await registrar.PostAsJsonAsync(TeamAliasesPath(kiwatule.Id), new { name = "Bunga Breakers F.C.", kind = "SPELLING" }, Ct));
         using (var refused = await registrar.PostAsJsonAsync(TeamRenamePath(kiwatule.Id), new { name = "Kiwatule Kites FC", effectiveOn = TenantToday() }, Ct))
