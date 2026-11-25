@@ -124,6 +124,19 @@ public sealed class PublicAssetsTests(PostgresFixture fixture) : DatabaseTest(fi
     }
 
     [Theory]
+    [InlineData(MediaVariant.Large)]
+    [InlineData(MediaVariant.Original)]
+    public async Task Only_a_thumbnail_or_a_medium_has_a_public_path(MediaVariant variant)
+    {
+        var kmsa = await TenantAsync("kmsa");
+
+        await using var scope = Scope(kmsa);
+        var media = scope.ServiceProvider.GetRequiredService<IMediaAssets>();
+
+        Should.Throw<ArgumentOutOfRangeException>(() => media.GetPublicPath(Guid.CreateVersion7(), variant));
+    }
+
+    [Theory]
     [InlineData("large")]
     [InlineData("original")]
     [InlineData("MEDIUM")]
