@@ -9,7 +9,8 @@ using SportsPlatform.Modules.Registry.Domain.Teams;
 namespace SportsPlatform.Modules.Registry.Features.Teams;
 
 /// <summary>
-/// A team as the admin reads it (S07 D19). Every field but the version is one the public reads may show (D16). The
+/// A team as the admin reads it (S07 D19). Every field but <c>aliases</c> (nicknames and spellings, <c>INTERNAL</c>) and the
+/// version is one the public reads may show (D16): a public read must not reuse this DTO whole (review #130 R2). The
 /// organisation and the home venue are summaries of the tenant's records, whatever their status now (null without
 /// one). <c>nameSince</c> is when the current name began (D8); <c>formerNames</c> are the earlier ones with their dates,
 /// newest first (<c>PUBLIC</c>, D16), and <c>aliases</c> the current nicknames and spellings (<c>INTERNAL</c>).
