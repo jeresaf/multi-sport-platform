@@ -264,6 +264,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/public/v1/teams": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List teams on the public site
+         * @description The teams of the tenant whose site this host serves, sorted by name (ignoring case, accents and punctuation), then category (age group `SENIOR`, `U6` … `U23`, `VETERANS`; then gender `MEN`, `WOMEN`, `MIXED`; then level `FIRST`, `RESERVE`, `DEVELOPMENT`, `ACADEMY`), then ID. `status` keeps one status (`ACTIVE` when left out; archived teams aren't public). `variant`, `organisationId`, `genderCategory`, `ageGroup` and `level` keep the teams that have them (an unknown variant, or an unknown or archived organisation, keeps none). `q` matches the name or one of its words by prefix and by similarity, the short name by prefix, and a former name by prefix and by similarity (word order and punctuation aside). Each item carries its organisation (id, display name, slug; null when independent or archived). `limit` is 1–100 (25). `logo` and `badge` hold the public asset route's paths (null without one). Cacheable for a minute.
+         */
+        get: operations["ListPublicTeams"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/public/v1/teams/{idOrSlug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a team on the public site
+         * @description A team of the tenant whose site this host serves, by ID or slug, in any status but `ARCHIVED` (TEAM_NOT_FOUND). Its public fields only: variant, category, names and when the current name began, slug, code, motto, colours, founded year, `organisation` (id, display name, slug) and `homeVenue` (id, name, slug), status, `logo`, `badge` and `formerNames` (with the short name and code that went with each, and its first and last day; newest first). An archived organisation or home venue is null. Cacheable for a minute; send the `ETag` back as `If-None-Match` to get 304.
+         */
+        get: operations["GetPublicTeam"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/v1/tenant/settings": {
         parameters: {
             query?: never;
@@ -3712,6 +3752,10 @@ export interface components {
             items: components["schemas"]["PublicOrganisationListItem"][];
             page: components["schemas"]["PublicPageInfo"];
         };
+        ListPublicTeamsResponse: {
+            items: components["schemas"]["PublicTeamListItem"][];
+            page: components["schemas"]["PublicPageInfo"];
+        };
         /**
          * @description The public venue directory's page (S07 D17): the admin directory's items (every field is public, D16) and a public
          *     page whose cursor carries only the name's sort key and an ID.
@@ -4377,6 +4421,56 @@ export interface components {
             nationality: null | string;
             photo: null | components["schemas"]["PublicPersonPhotoResponse"];
             athleteProfiles: components["schemas"]["PublicAthleteProfileResponse"][];
+        };
+        /**
+         * @description A team in the public directory (S07 D17): the admin directory's fields, its organisation null when archived, and the
+         *     logo's and badge's paths.
+         */
+        PublicTeamListItem: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            shortName: null | string;
+            slug: string;
+            variant: string;
+            genderCategory: components["schemas"]["GenderCategory"];
+            ageGroup: components["schemas"]["AgeGroup"];
+            level: components["schemas"]["TeamLevel"];
+            organisation: null | components["schemas"]["TeamOrganisationResponse"];
+            status: components["schemas"]["TeamStatus"];
+            logo: null | components["schemas"]["PublicImageResponse"];
+            badge: null | components["schemas"]["PublicImageResponse"];
+        };
+        /**
+         * @description A team on the public site (S07 D17): its `PUBLIC` fields only (D16; no nicknames, spellings or identifiers).
+         *     `organisation` and `homeVenue` are null without one or when that record is archived. `formerNames` are
+         *     the earlier names with their dates, newest first. `logo` and `badge` hold the public asset route's paths.
+         */
+        PublicTeamResponse: {
+            /** Format: uuid */
+            id: string;
+            variant: string;
+            genderCategory: components["schemas"]["GenderCategory"];
+            ageGroup: components["schemas"]["AgeGroup"];
+            level: components["schemas"]["TeamLevel"];
+            name: string;
+            shortName: null | string;
+            /** Format: date */
+            nameSince: string;
+            slug: string;
+            code: null | string;
+            motto: null | string;
+            primaryColour: null | string;
+            secondaryColour: null | string;
+            tertiaryColour: null | string;
+            /** Format: int32 */
+            foundedYear: null | number;
+            organisation: null | components["schemas"]["TeamOrganisationResponse"];
+            homeVenue: null | components["schemas"]["TeamVenueResponse"];
+            status: components["schemas"]["TeamStatus"];
+            logo: null | components["schemas"]["PublicImageResponse"];
+            badge: null | components["schemas"]["PublicImageResponse"];
+            formerNames: components["schemas"]["TeamFormerNameResponse"][];
         };
         /** @description A venue on the public site (S07 D17): its `PUBLIC` fields only (D16; no aliases or identifiers). */
         PublicVenueResponse: {
@@ -6270,6 +6364,117 @@ export interface operations {
                 };
             };
             /** @description Problem Details; `code`: `TENANT_NOT_FOUND`, `VENUE_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListPublicTeams: {
+        parameters: {
+            query?: {
+                q?: string;
+                variant?: string;
+                organisationId?: string;
+                genderCategory?: "MEN" | "WOMEN" | "MIXED";
+                ageGroup?: "SENIOR" | "U6" | "U7" | "U8" | "U9" | "U10" | "U11" | "U12" | "U13" | "U14" | "U15" | "U16" | "U17" | "U18" | "U19" | "U20" | "U21" | "U22" | "U23" | "VETERANS";
+                level?: "FIRST" | "RESERVE" | "DEVELOPMENT" | "ACADEMY";
+                status?: "ACTIVE" | "INACTIVE" | "SUSPENDED" | "DISBANDED";
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListPublicTeamsResponse"];
+                };
+            };
+            /** @description Not Modified */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_QUERY` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TENANT_UNAVAILABLE` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TENANT_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetPublicTeam: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idOrSlug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicTeamResponse"];
+                };
+            };
+            /** @description Not Modified */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Problem Details; `code`: `TENANT_UNAVAILABLE` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TEAM_NOT_FOUND`, `TENANT_NOT_FOUND` */
             404: {
                 headers: {
                     [name: string]: unknown;

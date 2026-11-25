@@ -261,6 +261,12 @@ works in any status. The organisation and team reads carry the images' signed UR
 names only) and `…/{idOrSlug}` (a UUID is an ID, anything else a slug), `PUBLIC` fields only, cacheable for a minute.
 An archived record is not found; an archived primary venue or parent is embedded as null. Logos are linked by the
 public asset route's paths (`PublicImages`, through `IMediaAssets.GetPublicPath`), in the directory too.
+
+**As built (S07-T5b):** public reads of teams, as organisations' and venues': `GET /api/public/v1/teams` (`q`,
+`variant`, `organisationId`, `genderCategory`, `ageGroup`, `level`, `status`, `limit`, `cursor`; the admin directory's
+order) and `…/teams/{idOrSlug}` with the organisation and home venue (null when archived), the former names with their
+dates, and the logo and badge as public paths. `q` matches the name, the short name and a former name; never a
+nickname, a spelling or an identifier.
 **Absorbs:** pack specs 08–14. Owner's systems: **Player Management System**, the identity half of
 **Team Management System**. Owner's rule "duplicate players within the same tenant should be avoided at all
 costs" is implemented here (docs/build/slices/S06-people-registry.md).

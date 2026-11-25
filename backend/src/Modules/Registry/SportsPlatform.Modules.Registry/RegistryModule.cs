@@ -49,6 +49,7 @@ using SportsPlatform.Modules.Registry.Features.Teams.GetTeam;
 using SportsPlatform.Modules.Registry.Features.Teams.Images;
 using SportsPlatform.Modules.Registry.Features.Teams.ListTeams;
 using SportsPlatform.Modules.Registry.Features.Teams.ListTeamStatusChanges;
+using SportsPlatform.Modules.Registry.Features.Teams.PublicTeams;
 using SportsPlatform.Modules.Registry.Features.Teams.RenameTeam;
 using SportsPlatform.Modules.Registry.Features.Teams.UpdateTeam;
 using SportsPlatform.Modules.Registry.Features.Venues;
@@ -186,6 +187,8 @@ public sealed class RegistryModule : IModule
         services.AddScoped<ListPublicOrganisationsHandler>();
         services.AddScoped<GetPublicVenueHandler>();
         services.AddScoped<ListPublicVenuesHandler>();
+        services.AddScoped<GetPublicTeamHandler>();
+        services.AddScoped<ListPublicTeamsHandler>();
         services.AddSingleton<IValidator<ListPeopleRequest>, ListPeopleRequestValidator>();
         services.AddScoped<IValidator<CheckDuplicatesRequest>, CheckDuplicatesRequestValidator>();
         services.AddScoped<IValidator<CreatePersonRequest>, CreatePersonRequestValidator>();
@@ -226,6 +229,7 @@ public sealed class RegistryModule : IModule
         services.AddSingleton<IValidator<ListTeamsRequest>, ListTeamsRequestValidator>();
         services.AddSingleton<IValidator<ListPublicOrganisationsRequest>, ListPublicOrganisationsRequestValidator>();
         services.AddSingleton<IValidator<ListPublicVenuesRequest>, ListPublicVenuesRequestValidator>();
+        services.AddSingleton<IValidator<ListPublicTeamsRequest>, ListPublicTeamsRequestValidator>();
         services.AddSingleton<IValidator<RenameTeamRequest>, RenameTeamRequestValidator>();
         services.AddSingleton<IValidator<AddTeamAliasRequest>, AddTeamAliasRequestValidator>();
         services.AddSingleton<IValidator<RemoveTeamAliasRequest>, RemoveTeamAliasRequestValidator>();
@@ -302,5 +306,6 @@ public sealed class RegistryModule : IModule
         PublicPersonEndpoints.Map(groups.Public);
         PublicOrganisationEndpoints.Map(groups.Public);
         PublicVenueEndpoints.Map(groups.Public);
+        PublicTeamEndpoints.Map(groups.Public);
     }
 }
