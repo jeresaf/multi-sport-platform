@@ -4351,11 +4351,7 @@ export interface components {
             status: components["schemas"]["OrganisationStatus"];
             logo: null | components["schemas"]["PublicImageResponse"];
         };
-        /**
-         * @description PageInfo of a public list (S07-T5): the same members, classified `PUBLIC`, so a public response
-         *             passes the classification test. Use it only where the cursor is built from public fields alone (a public name's sort
-         *             key and an ID); an admin list's cursor may carry what isn't public, so PageInfo stays unclassified.
-         */
+        /** @description The page of a public list: the cursor to send for the next page (null on the last) and whether there is one. */
         PublicPageInfo: {
             nextCursor: null | string;
             hasMore: boolean;
