@@ -7,13 +7,14 @@ at the start of every review.
 
 - **Current slice:** S07 — Organisations, teams and venues (docs/build/slices/S07-organisations-teams-venues.md,
   written by the S06 slice review). S00–S06 are done
-- **Current task:** — (S07-T4b in review: #133)
-- **Next:** S07-T5 — Public reads
+- **Current task:** S07-T5a — Public reads: organisations and venues (T5 is two PRs, owner, plan 2026-11-25)
+- **Next:** S07-T5b — Public reads: teams
 - **Blocked on:** —
 
 ## Next up
 
-1. S07-T5 — Public reads (organisations, teams, venues)
+1. S07-T5b — Public reads: teams
+2. S07-T6 — Screens
 
 ## Log
 
