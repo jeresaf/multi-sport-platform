@@ -89,6 +89,10 @@
             "in": "path",
             "required": true,
             "schema": {
+              "enum": [
+                "thumbnail",
+                "medium"
+              ],
               "type": "string"
             }
           }

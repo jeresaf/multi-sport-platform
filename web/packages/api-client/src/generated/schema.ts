@@ -5515,7 +5515,7 @@ export interface operations {
             header?: never;
             path: {
                 assetId: string;
-                variant: string;
+                variant: "thumbnail" | "medium";
             };
             cookie?: never;
         };

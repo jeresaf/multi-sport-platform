@@ -303,15 +303,18 @@ public static class ApiDocumentation
     private static Task DescribeQueryValues(
         OpenApiOperation operation, OpenApiOperationTransformerContext context, CancellationToken cancellationToken)
     {
-        foreach (var declared in context.Description.ActionDescriptor.EndpointMetadata.OfType<QueryValuesMetadata>())
+        var metadata = context.Description.ActionDescriptor.EndpointMetadata;
+        var declared = metadata.OfType<QueryValuesMetadata>().Select(d => (ParameterLocation.Query, d.Name, d.Values))
+            .Concat(metadata.OfType<PathValuesMetadata>().Select(d => (ParameterLocation.Path, d.Name, d.Values)));
+        foreach (var (location, name, values) in declared)
         {
             var parameter = operation.Parameters?.OfType<OpenApiParameter>()
-                .SingleOrDefault(p => p.In == ParameterLocation.Query && p.Name == declared.Name)
-                ?? throw new InvalidOperationException($"{context.Description.RelativePath} has no query parameter {declared.Name}.");
+                .SingleOrDefault(p => p.In == location && p.Name == name)
+                ?? throw new InvalidOperationException($"{context.Description.RelativePath} has no {location} parameter {name}.");
             parameter.Schema = new OpenApiSchema
             {
                 Type = JsonSchemaType.String,
-                Enum = [.. declared.Values.Select(value => (JsonNode)JsonValue.Create(value))],
+                Enum = [.. values.Select(value => (JsonNode)JsonValue.Create(value))],
             };
         }
 

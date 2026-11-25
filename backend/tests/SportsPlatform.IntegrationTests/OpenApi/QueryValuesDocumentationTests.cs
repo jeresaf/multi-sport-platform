@@ -66,4 +66,17 @@ public sealed class QueryValuesDocumentationTests(HostOnlyApp factory) : IClassF
 
         (schema["type"]!.GetValue<string>(), schema["format"]!.GetValue<string>()).ShouldBe(("string", "uuid"));
     }
+
+    // S07-T4a (pre-review): the public asset route's variant, a path segment bound as text, lists its values.
+    [Fact]
+    public async Task The_public_asset_routes_variant_lists_thumbnail_and_medium()
+    {
+        var document = JsonNode.Parse(await ApiDocumentation.ExportAsync(factory.Services, TestContext.Current.CancellationToken))!;
+
+        var parameters = document["paths"]!["/api/public/v1/assets/{assetId}/{variant}"]!["get"]!["parameters"]!.AsArray();
+        var variant = parameters.Single(parameter => parameter!["name"]!.GetValue<string>() == "variant")!;
+
+        variant["in"]!.GetValue<string>().ShouldBe("path");
+        variant["schema"]!["enum"]!.AsArray().Select(value => value!.GetValue<string>()).ShouldBe(["thumbnail", "medium"]);
+    }
 }

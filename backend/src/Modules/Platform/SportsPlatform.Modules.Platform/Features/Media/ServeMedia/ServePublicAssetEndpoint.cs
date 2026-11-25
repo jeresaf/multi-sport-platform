@@ -50,6 +50,7 @@ internal static class ServePublicAssetEndpoint
             "anything else (a private file, a removed or unknown image, another tenant's, another variant) is " +
             "MEDIA_NOT_FOUND. `Cache-Control: public, max-age=86400`.")
         .RequirePublicTenant()
+        .DocumentsPathValues("variant", _variants.Keys)
         .Produces<Stream>(StatusCodes.Status200OK, "image/webp")
         .ProducesErrors(PlatformErrors.MediaNotFound);
 
