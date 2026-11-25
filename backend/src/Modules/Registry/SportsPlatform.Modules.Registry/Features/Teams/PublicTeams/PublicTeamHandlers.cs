@@ -67,7 +67,8 @@ public sealed class GetPublicTeamHandler(RegistryDbContext context, PublicImages
 /// (<see cref="TeamOrder"/>) and with its cursor. Only one status at a time, <c>ACTIVE</c> by default, never
 /// <c>ARCHIVED</c>. <c>q</c> matches only <c>PUBLIC</c> text (D16): the name and short name as the admin directory does,
 /// and a former name (owner, plan 2026-11-25); never a nickname, a spelling or an identifier, so the public list can't be
-/// used to probe them. An item's organisation is null when it is archived, as on the read.
+/// used to probe them. An item's organisation is null when it is archived, as on the read, and an archived
+/// organisation's ID keeps no teams (review #135 Q1, owner).
 /// </summary>
 public sealed class ListPublicTeamsHandler(RegistryDbContext context, PublicImages images)
 {
@@ -84,7 +85,11 @@ public sealed class ListPublicTeamsHandler(RegistryDbContext context, PublicImag
 
         if (filters.OrganisationId is { } organisationId)
         {
-            teams = teams.Where(t => t.OrganisationId == organisationId);
+            // An archived organisation keeps no teams, as an unknown one: no public read ties teams to it (review #135
+            // Q1, owner).
+            var listed = context.Set<Organisation>()
+                .Where(o => o.Id == organisationId && o.Status != OrganisationStatus.Archived);
+            teams = teams.Where(t => t.OrganisationId == organisationId && listed.Any());
         }
 
         if (filters.GenderCategory is { } gender)

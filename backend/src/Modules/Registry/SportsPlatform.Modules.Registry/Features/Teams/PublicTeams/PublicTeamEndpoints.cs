@@ -32,7 +32,8 @@ internal static class PublicTeamEndpoints
                 "punctuation), then category (age group `SENIOR`, `U6` … `U23`, `VETERANS`; then gender `MEN`, `WOMEN`, " +
                 "`MIXED`; then level `FIRST`, `RESERVE`, `DEVELOPMENT`, `ACADEMY`), then ID. `status` keeps one status " +
                 "(`ACTIVE` when left out; archived teams aren't public). `variant`, `organisationId`, `genderCategory`, " +
-                "`ageGroup` and `level` keep the teams that have them (an unknown variant or organisation keeps none). `q` " +
+                "`ageGroup` and `level` keep the teams that have them (an unknown variant, or an unknown or archived organisation, keeps " +
+                "none). `q` " +
                 "matches the name or one of its words by prefix and by similarity, the short name by prefix, and a former " +
                 "name by prefix and by similarity (word order and punctuation aside). Each item carries its organisation " +
                 "(id, display name, slug; null when independent or archived). `limit` is 1–100 (25). `logo` and `badge` " +
@@ -53,7 +54,8 @@ internal static class PublicTeamEndpoints
             .WithDescription(
                 "A team of the tenant whose site this host serves, by ID or slug, in any status but `ARCHIVED` " +
                 "(TEAM_NOT_FOUND). Its public fields only: variant, category, names and when the current name began, " +
-                "slug, code, motto, colours, founded year, `organisation` and `homeVenue` (id, name, slug), status, " +
+                "slug, code, motto, colours, founded year, `organisation` (id, display name, slug) and `homeVenue` (id, " +
+                "name, slug), status, " +
                 "`logo`, `badge` and `formerNames` (with the short name and code that went with each, and its first and " +
                 "last day; newest first). An archived organisation or home venue is null. Cacheable for a minute; send " +
                 "the `ETag` back as `If-None-Match` to get 304.")

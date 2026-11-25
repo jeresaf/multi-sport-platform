@@ -109,7 +109,7 @@ public sealed class PublicTeamReadTests(PostgresFixture fixture) : RegistryImage
     }
 
     // T5 acceptance 2, D17: an archived organisation or home venue is null, on the read and in the directory; a dissolved
-    // organisation still shows.
+    // organisation still shows; an archived organisation's ID filters out every team (review #135 Q1).
     [Fact]
     public async Task An_archived_organisation_or_home_venue_is_embedded_as_null()
     {
@@ -128,8 +128,11 @@ public sealed class PublicTeamReadTests(PostgresFixture fixture) : RegistryImage
 
         await ChangeOrganisationStatusAsync(kmsa, kestrels.Id, OrganisationStatus.Archived);
         (await PublicAsync($"{_teams}/{team.Id}")).Json.GetProperty("organisation").ValueKind.ShouldBe(JsonValueKind.Null);
-        var item = (await PublicAsync($"{_teams}?organisationId={kestrels.Id}")).Json.GetProperty("items").EnumerateArray().ShouldHaveSingleItem();
+        var item = (await PublicAsync(_teams)).Json.GetProperty("items").EnumerateArray().ShouldHaveSingleItem();
         item.GetProperty("organisation").ValueKind.ShouldBe(JsonValueKind.Null);
+
+        // Review #135 Q1 (owner): an archived organisation's ID keeps no teams, as an unknown one.
+        Ids((await PublicAsync($"{_teams}?organisationId={kestrels.Id}")).Json).ShouldBeEmpty();
     }
 
     // T5 acceptance 2, D15 (owner, 2026-11-25): the logo and the badge are linked by their two public paths in the read

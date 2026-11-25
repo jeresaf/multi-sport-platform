@@ -150,6 +150,11 @@ at the start of every review.
 
 ## Deviations from spec (agreed)
 
+- **S07-T5b (owner, plan 2026-11-25):** the public team directory's `q` also matches a current former name (`PUBLIC`,
+  D16), as the admin directory does, where T5a's public `q` matches no alias; nicknames, spellings and identifiers stay
+  unmatched. `level` is a public filter beyond D17's list. A directory item's organisation is null when it is archived,
+  as on the read (D17's rule for embedded records), and `organisationId` naming an archived organisation keeps no
+  teams (review #135 Q1). Team `logo` and `badge` take T5a's `{ thumbnailUrl, mediumUrl }`.
 - **S07-T5a (owner, plan 2026-11-25):** T5 is two PRs: T5a organisations and venues, T5b teams. Public images are
   `logo: { thumbnailUrl, mediumUrl }` (both public variants; null without one), not D15's single `logoUrl`. Public
   directory items carry the logo too (the public paths cost no query). A public directory lists one status, `ACTIVE`
