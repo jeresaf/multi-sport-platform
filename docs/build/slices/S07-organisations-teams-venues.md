@@ -392,10 +392,10 @@ Deliver:
 - D17's six endpoints with `idOrSlug`, the filters and caching; OpenAPI and the client.
 
 Acceptance:
-- [ ] Public reads answer only `PUBLIC` fields (the classification test covers the new DTOs); an archived record is
-      `404`; another tenant's host never sees the record (tests). Organisations and venues: T5a (`PublicOrganisationAndVenueReadTests`); teams: T5b.
-- [ ] A team read shows its former names with dates, its organisation and home venue, and its logo URL on the
-      tenant's host; an archived organisation or venue is embedded as `null` (tests).
+- [x] Public reads answer only `PUBLIC` fields (the classification test covers the new DTOs); an archived record is
+      `404`; another tenant's host never sees the record (tests). Organisations and venues: T5a (`PublicOrganisationAndVenueReadTests`); teams: T5b (`PublicTeamReadTests`).
+- [x] A team read shows its former names with dates, its organisation and home venue, and its logo URL on the
+      tenant's host; an archived organisation or venue is embedded as `null` (tests). (T5b `PublicTeamReadTests`.)
 
 ### T6 — Screens (~4 PRs, about 2,200 lines)
 Deliver:
@@ -681,3 +681,14 @@ The rest of S06's tech debt has its own trigger in PROGRESS.md ("From S06").
   cost no query). Public DTOs are separate from the admin ones (review #130 R2); the venue directory reuses
   `VenueListItem` (every field public). A public list's `page` is the new `PublicPageInfo` (BuildingBlocks; `PageInfo`
   members classified `PUBLIC`), which `PublicDtoClassificationTests` required. No migration, actions, errors or events.
+- **T5b (public reads: teams):** `GET /api/public/v1/teams` (`q`, `variant`, `organisationId`, `genderCategory`,
+  `ageGroup`, `level`, `status`, `limit`, `cursor`) and `…/teams/{idOrSlug}`, as T5a's: `.RequirePublicTenant()`,
+  `CacheableJson` 60 s, one status (`ACTIVE` by default, `ARCHIVED` refused), `IdOrSlug`, `PublicPageInfo`, the admin
+  directory's order and `TeamDirectoryCursor`. `level` is beyond D17's list (owner, plan 2026-11-25). `q` matches the
+  name and short name as the admin directory and a current former name (`kind = FORMER_NAME`; `PUBLIC`, D16) as its
+  aliases; never a nickname, a spelling or an identifier (owner, plan 2026-11-25). The read embeds `organisation` and
+  `homeVenue` only while they aren't archived; a directory item's organisation is null when archived too (owner, plan
+  2026-11-25). `formerNames` reuses `TeamFormerNameResponse` (newest first); nicknames, spellings and identifiers aren't
+  read. `logo` and `badge` are `{ thumbnailUrl, mediumUrl }` through `PublicImages`, in the items too (owner,
+  2026-11-25). Separate public DTOs (`PublicTeamResponse`, `PublicTeamListItem`). No migration, actions, errors or
+  events.

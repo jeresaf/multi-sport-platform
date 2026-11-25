@@ -710,7 +710,7 @@ docs/build/slices/S07-organisations-teams-venues.md, "Carried over from S06")
   serving stale `teams` and `children` (review of #129). (S07-T5, the public reads)~~ Done in S07-T5a: the public reads
   answer with `CacheableJson`, whose `ETag` is the body's SHA-256; the version isn't in the public response.
 - The public directories' `q` (S07-T5a, review of #134 N3) copies the public half of the admin directories' name
-  matching (`ListPublicOrganisationsHandler.Matching`, `ListPublicVenuesHandler.Matching`; T5b adds teams'), so a
+  matching (`ListPublicOrganisationsHandler.Matching`, `ListPublicVenuesHandler.Matching`, and since S07-T5b `ListPublicTeamsHandler.Matching`), so a
   change to the admin patterns or the similarity threshold must be made in both. Sharing one predicate needs combining
   EF expressions (an `OR` of the public and the internal parts), more code than the copy saves now. (Trigger: the
   first change to how a directory matches names.)
