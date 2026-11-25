@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.Modules.Registry.Domain;
+using SportsPlatform.Modules.Registry.Domain.People;
 using SportsPlatform.Modules.Registry.Domain.Teams;
 using static SportsPlatform.IntegrationTests.Tenancy.TestSportDefinitions;
 
@@ -86,7 +87,8 @@ internal static class TeamRequests
 
     /// <summary>
     /// A team of <paramref name="tenantId"/>, saved without the warning or the quota (the test's starting point), in
-    /// <paramref name="status"/> through the domain's move (a second history row).
+    /// <paramref name="status"/> through the domain's move (a second history row), with a home venue, a rename (the first
+    /// name becomes a former name), an alias and an identifier when given.
     /// </summary>
     public static async Task<Team> SaveTeamAsync(
         IServiceProvider services,
@@ -96,18 +98,38 @@ internal static class TeamRequests
         TeamCategory? category = null,
         Guid? organisationId = null,
         string? shortName = null,
-        TeamStatus status = TeamStatus.Active)
+        TeamStatus status = TeamStatus.Active,
+        Guid? homeVenueId = null,
+        (string Name, AliasKind Kind)? alias = null,
+        (string Authority, string Value)? identifier = null,
+        (string Name, DateOnly EffectiveOn)? renamedTo = null)
     {
         await using var scope = RegistryTestData.ScopeFor(services, tenantId, out var context);
         category ??= SeniorMen;
         var team = Team.Create(
             variant,
-            new TeamDetails(name, shortName, category, organisationId, null, null, null, null, null, null, null),
+            new TeamDetails(name, shortName, category, organisationId, null, null, null, null, null, homeVenueId, null),
             new DateOnly(2020, 1, 1),
             Slugs.WithSuffix(Team.ProposeSlug(name, category), Interlocked.Increment(ref _nextSlug)),
             TeamSource.Manual,
             SystemActor.Instance,
             RegistryTestData.Now);
+        if (renamedTo is { } rename)
+        {
+            team.Rename(rename.Name, shortName, null, rename.EffectiveOn, DateOnly.FromDateTime(RegistryTestData.Now.UtcDateTime))
+                .IsSuccess.ShouldBeTrue();
+        }
+
+        if (alias is { } a)
+        {
+            team.AddAlias(a.Name, a.Kind).IsSuccess.ShouldBeTrue();
+        }
+
+        if (identifier is { } i)
+        {
+            context.Add(ExternalIdentifier.ForTeam(team.Id, i.Authority, i.Value));
+        }
+
         if (status != TeamStatus.Active)
         {
             team.ChangeStatus(status, "Set up by the test", SystemActor.Instance, RegistryTestData.Now).IsSuccess.ShouldBeTrue();
