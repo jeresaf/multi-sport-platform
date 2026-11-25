@@ -815,6 +815,240 @@
         }
       }
     },
+    "/api/public/v1/teams": {
+      "get": {
+        "tags": [
+          "Public teams"
+        ],
+        "summary": "List teams on the public site",
+        "description": "The teams of the tenant whose site this host serves, sorted by name (ignoring case, accents and punctuation), then category (age group `SENIOR`, `U6` … `U23`, `VETERANS`; then gender `MEN`, `WOMEN`, `MIXED`; then level `FIRST`, `RESERVE`, `DEVELOPMENT`, `ACADEMY`), then ID. `status` keeps one status (`ACTIVE` when left out; archived teams aren't public). `variant`, `organisationId`, `genderCategory`, `ageGroup` and `level` keep the teams that have them (an unknown variant or organisation keeps none). `q` matches the name or one of its words by prefix and by similarity, the short name by prefix, and a former name by prefix and by similarity (word order and punctuation aside). Each item carries its organisation (id, display name, slug; null when independent or archived). `limit` is 1–100 (25). `logo` and `badge` hold the public asset route's paths (null without one). Cacheable for a minute.",
+        "operationId": "ListPublicTeams",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "variant",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "organisationId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "genderCategory",
+            "in": "query",
+            "schema": {
+              "enum": [
+                "MEN",
+                "WOMEN",
+                "MIXED"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "ageGroup",
+            "in": "query",
+            "schema": {
+              "enum": [
+                "SENIOR",
+                "U6",
+                "U7",
+                "U8",
+                "U9",
+                "U10",
+                "U11",
+                "U12",
+                "U13",
+                "U14",
+                "U15",
+                "U16",
+                "U17",
+                "U18",
+                "U19",
+                "U20",
+                "U21",
+                "U22",
+                "U23",
+                "VETERANS"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "level",
+            "in": "query",
+            "schema": {
+              "enum": [
+                "FIRST",
+                "RESERVE",
+                "DEVELOPMENT",
+                "ACADEMY"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "enum": [
+                "ACTIVE",
+                "INACTIVE",
+                "SUSPENDED",
+                "DISBANDED"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer",
+              "default": 25
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListPublicTeamsResponse"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Not Modified"
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_QUERY`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_QUERY"
+            ]
+          },
+          "404": {
+            "description": "Problem Details; `code`: `TENANT_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "TENANT_NOT_FOUND"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `TENANT_UNAVAILABLE`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "TENANT_UNAVAILABLE"
+            ]
+          }
+        }
+      }
+    },
+    "/api/public/v1/teams/{idOrSlug}": {
+      "get": {
+        "tags": [
+          "Public teams"
+        ],
+        "summary": "Get a team on the public site",
+        "description": "A team of the tenant whose site this host serves, by ID or slug, in any status but `ARCHIVED` (TEAM_NOT_FOUND). Its public fields only: variant, category, names and when the current name began, slug, code, motto, colours, founded year, `organisation` and `homeVenue` (id, name, slug), status, `logo`, `badge` and `formerNames` (with the short name and code that went with each, and its first and last day; newest first). An archived organisation or home venue is null. Cacheable for a minute; send the `ETag` back as `If-None-Match` to get 304.",
+        "operationId": "GetPublicTeam",
+        "parameters": [
+          {
+            "name": "idOrSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicTeamResponse"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Not Modified"
+          },
+          "404": {
+            "description": "Problem Details; `code`: `TEAM_NOT_FOUND`, `TENANT_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "TEAM_NOT_FOUND",
+              "TENANT_NOT_FOUND"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `TENANT_UNAVAILABLE`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "TENANT_UNAVAILABLE"
+            ]
+          }
+        }
+      }
+    },
     "/api/admin/v1/tenant/settings": {
       "get": {
         "tags": [
@@ -19450,6 +19684,24 @@
           }
         }
       },
+      "ListPublicTeamsResponse": {
+        "required": [
+          "items",
+          "page"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicTeamListItem"
+            }
+          },
+          "page": {
+            "$ref": "#/components/schemas/PublicPageInfo"
+          }
+        }
+      },
       "ListPublicVenuesResponse": {
         "required": [
           "items",
@@ -21656,6 +21908,234 @@
           }
         },
         "description": "A person on the tenant's public site (S06 D18): only `PUBLIC` fields. For a person who isn't an adult on the\ntenant's date, the display name only, plus the photo with `PHOTO` consent (ADR-0015): `nationality` is null and\n`athleteProfiles` is empty."
+      },
+      "PublicTeamListItem": {
+        "required": [
+          "id",
+          "name",
+          "shortName",
+          "slug",
+          "variant",
+          "genderCategory",
+          "ageGroup",
+          "level",
+          "organisation",
+          "status",
+          "logo",
+          "badge"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "shortName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "slug": {
+            "type": "string"
+          },
+          "variant": {
+            "type": "string"
+          },
+          "genderCategory": {
+            "$ref": "#/components/schemas/GenderCategory"
+          },
+          "ageGroup": {
+            "$ref": "#/components/schemas/AgeGroup"
+          },
+          "level": {
+            "$ref": "#/components/schemas/TeamLevel"
+          },
+          "organisation": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/TeamOrganisationResponse"
+              }
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/TeamStatus"
+          },
+          "logo": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PublicImageResponse"
+              }
+            ]
+          },
+          "badge": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PublicImageResponse"
+              }
+            ]
+          }
+        },
+        "description": "A team in the public directory (S07 D17): the admin directory's fields, its organisation null when archived, and the\nlogo's and badge's paths."
+      },
+      "PublicTeamResponse": {
+        "required": [
+          "id",
+          "variant",
+          "genderCategory",
+          "ageGroup",
+          "level",
+          "name",
+          "shortName",
+          "nameSince",
+          "slug",
+          "code",
+          "motto",
+          "primaryColour",
+          "secondaryColour",
+          "tertiaryColour",
+          "foundedYear",
+          "organisation",
+          "homeVenue",
+          "status",
+          "logo",
+          "badge",
+          "formerNames"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "variant": {
+            "type": "string"
+          },
+          "genderCategory": {
+            "$ref": "#/components/schemas/GenderCategory"
+          },
+          "ageGroup": {
+            "$ref": "#/components/schemas/AgeGroup"
+          },
+          "level": {
+            "$ref": "#/components/schemas/TeamLevel"
+          },
+          "name": {
+            "type": "string"
+          },
+          "shortName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "nameSince": {
+            "type": "string",
+            "format": "date"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "code": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "motto": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "primaryColour": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "secondaryColour": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "tertiaryColour": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "foundedYear": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "organisation": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/TeamOrganisationResponse"
+              }
+            ]
+          },
+          "homeVenue": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/TeamVenueResponse"
+              }
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/TeamStatus"
+          },
+          "logo": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PublicImageResponse"
+              }
+            ]
+          },
+          "badge": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PublicImageResponse"
+              }
+            ]
+          },
+          "formerNames": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeamFormerNameResponse"
+            }
+          }
+        },
+        "description": "A team on the public site (S07 D17): its `PUBLIC` fields only (D16; no nicknames, spellings or identifiers).\n`organisation` and `homeVenue` are null without one or when that record is archived. `formerNames` are\nthe earlier names with their dates, newest first. `logo` and `badge` hold the public asset route's paths."
       },
       "PublicVenueResponse": {
         "required": [
@@ -26068,6 +26548,9 @@
     },
     {
       "name": "Public venues"
+    },
+    {
+      "name": "Public teams"
     },
     {
       "name": "Tenant settings"
