@@ -217,7 +217,9 @@ team.duplicate_check, team.read`) for `TENANT_OWNER`, `TENANT_ADMIN` and `REGIST
 `team.update` (audit `REQUIRED`, `grantedWith: team.duplicate_check, team.read`) and `team.status.change`
 (`REQUIRED_WITH_REASON`, names `MAX_TEAMS` for reform and unarchive, `grantedWith: team.read`; S07-T3b-1) for the same
 three roles; the status history and the directory (S07-T3b-2) are read with `team.read`. `TEAM_MANAGER` gets its own team through the `TEAM` scope in
-S08. The other team actions join with S07-T3c–T3d.
+S08. `team.rename` (audit `REQUIRED`, `grantedWith: team.duplicate_check, team.read`), `team.alias.add` (`REQUIRED`)
+and `team.alias.remove` (`REQUIRED_WITH_REASON`; both `grantedWith: team.read`; S07-T3c) for the same three roles. The
+identifier actions join with S07-T3d.
 
 | Role | Typical scope | Includes (summary) |
 |---|---|---|

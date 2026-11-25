@@ -2,16 +2,19 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using SportsPlatform.BuildingBlocks.Api;
 using SportsPlatform.BuildingBlocks.Privacy;
+using SportsPlatform.Modules.Registry.Domain.People;
 using SportsPlatform.Modules.Registry.Domain.People.Duplicates;
 using SportsPlatform.Modules.Registry.Domain.Teams;
 
 namespace SportsPlatform.Modules.Registry.Features.Teams;
 
 /// <summary>
-/// A team as the admin reads it (S07 D19). Every field but the version is one the public reads may show (D16). The
+/// A team as the admin reads it (S07 D19). Every field but <c>aliases</c> (nicknames and spellings, <c>INTERNAL</c>) and the
+/// version is one the public reads may show (D16): a public read must not reuse this DTO whole (review #130 R2). The
 /// organisation and the home venue are summaries of the tenant's records, whatever their status now (null without
-/// one). <c>nameSince</c> is when the current name began (D8). Aliases, identifiers and images join with S07-T3c, T3d
-/// and T4.
+/// one). <c>nameSince</c> is when the current name began (D8); <c>formerNames</c> are the earlier ones with their dates,
+/// newest first (<c>PUBLIC</c>, D16), and <c>aliases</c> the current nicknames and spellings (<c>INTERNAL</c>).
+/// Identifiers and images join with S07-T3d and T4.
 /// </summary>
 public sealed record TeamResponse(
     [property: PersonalData(PersonalDataClass.Public)] Guid Id,
@@ -32,6 +35,8 @@ public sealed record TeamResponse(
     [property: PersonalData(PersonalDataClass.Public)] TeamOrganisationResponse? Organisation,
     [property: PersonalData(PersonalDataClass.Public)] TeamVenueResponse? HomeVenue,
     [property: PersonalData(PersonalDataClass.Public)] TeamStatus Status,
+    [property: PersonalData(PersonalDataClass.Public)] IReadOnlyList<TeamFormerNameResponse> FormerNames,
+    [property: PersonalData(PersonalDataClass.Internal)] IReadOnlyList<TeamAliasResponse> Aliases,
     [property: PersonalData(PersonalDataClass.Internal)] uint Version)
 {
     public void SetETag(HttpResponse response)
@@ -40,6 +45,24 @@ public sealed record TeamResponse(
         response.Headers.ETag = RowVersion.EntityTag(Version).ToString();
     }
 }
+
+/// <summary>
+/// A name the team had before a rename (S07 D8), with the short name and code it went with and its first and last day:
+/// <c>PUBLIC</c> (D16), so results of that time can show it.
+/// </summary>
+public sealed record TeamFormerNameResponse(
+    [property: PersonalData(PersonalDataClass.Public)] Guid Id,
+    [property: PersonalData(PersonalDataClass.Public)] string Name,
+    [property: PersonalData(PersonalDataClass.Public)] string? ShortName,
+    [property: PersonalData(PersonalDataClass.Public)] string? Code,
+    [property: PersonalData(PersonalDataClass.Public)] DateOnly ValidFrom,
+    [property: PersonalData(PersonalDataClass.Public)] DateOnly ValidTo);
+
+/// <summary>A current nickname or spelling of a team (S07 D10): <c>INTERNAL</c> (D16).</summary>
+public sealed record TeamAliasResponse(
+    [property: PersonalData(PersonalDataClass.Internal)] Guid Id,
+    [property: PersonalData(PersonalDataClass.Internal)] string Name,
+    [property: PersonalData(PersonalDataClass.Internal)] AliasKind Kind);
 
 /// <summary>The organisation a team belongs to (S07 D16: id, display name, slug), whatever its status now.</summary>
 public sealed record TeamOrganisationResponse(

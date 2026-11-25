@@ -10,13 +10,15 @@ namespace SportsPlatform.Modules.Registry.Domain.Teams;
 /// A team of a tenant in one sport variant (<c>registry.teams</c>, tenant-owned, S07 D6): its ID never changes (AR-23),
 /// nor does its variant (another sport is another team). Its category (D7) is three generic codes. The name is the
 /// playing name, kept as entered and as a normalised key (<see cref="NameNormaliser"/>) for the duplicate check (D13);
-/// it changes only by rename (D8, S07-T3c), and <see cref="NameSince"/> is when the current name began. The slug is
-/// unique in the tenant (D9). The status history is its child: a new row changes the team's version (S06 D11).
+/// it changes only by rename (D8, S07-T3c), and <see cref="NameSince"/> is when the current name began; each earlier name
+/// is a <see cref="AliasKind.FormerName"/> alias with its dates. The slug is unique in the tenant (D9). The status history
+/// and the aliases are its children: a new or changed row changes the team's version (S06 D11).
 /// Competition entries are not on the team (S09).
 /// </summary>
 public sealed class Team : AggregateRoot, ITenantOwned
 {
     private readonly List<TeamStatusChange> _statusHistory = [];
+    private readonly List<TeamAlias> _aliases = [];
 
     private Team()
     {
@@ -97,6 +99,9 @@ public sealed class Team : AggregateRoot, ITenantOwned
     public TeamSource Source { get; private set; }
 
     public IReadOnlyList<TeamStatusChange> StatusHistory => _statusHistory;
+
+    /// <summary>Former names, nicknames and spellings, removed ones included (S07 D8, D10).</summary>
+    public IReadOnlyList<TeamAlias> Aliases => _aliases;
 
     /// <summary>
     /// A new <c>ACTIVE</c> team in the scope's tenant (stamped on save), with the first row of its status history. The
@@ -205,6 +210,123 @@ public sealed class Team : AggregateRoot, ITenantOwned
         var from = Status;
         Status = to;
         _statusHistory.Add(new TeamStatusChange(Id, from, to, reason.Trim(), actor, now));
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Whether the team takes a new child (S07 D10): an alias, an identifier, a logo, or a rename (its former name is a new
+    /// alias; owner, S07-T3c plan). An archived team is <c>TEAM_ARCHIVED</c>, a disbanded one <c>TEAM_DISBANDED</c>;
+    /// removing and ending stay allowed.
+    /// </summary>
+    public Result EnsureAcceptsNewChildren() => Status switch
+    {
+        TeamStatus.Archived => Result.Failure(RegistryErrors.TeamArchived),
+        TeamStatus.Disbanded => Result.Failure(RegistryErrors.TeamDisbanded),
+        _ => Result.Success(),
+    };
+
+    /// <summary>
+    /// Renames the team from <paramref name="effectiveOn"/> (S07 D8): the current name, with its short name and code,
+    /// becomes a <see cref="AliasKind.FormerName"/> alias from <see cref="NameSince"/> to the day before
+    /// <paramref name="effectiveOn"/>, and the new name starts then. <paramref name="shortName"/> and
+    /// <paramref name="code"/> are the values from then on (the use case keeps the current ones when the request left
+    /// them out). The slug doesn't change (D9). Refused on an archived or disbanded team (<see cref="EnsureAcceptsNewChildren"/>);
+    /// <paramref name="effectiveOn"/> on or before the current name's start, or after <paramref name="today"/> (the
+    /// tenant's date), is <c>TEAM_RENAME_DATE_INVALID</c>; the same name exactly is <c>TEAM_NAME_UNCHANGED</c>. Needs the
+    /// aliases loaded. The use case has checked that the name has a letter or a digit and run the duplicate warning.
+    /// </summary>
+    public Result Rename(string name, string? shortName, string? code, DateOnly effectiveOn, DateOnly today)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        var accepts = EnsureAcceptsNewChildren();
+        if (accepts.IsFailure)
+        {
+            return accepts;
+        }
+
+        if (effectiveOn <= NameSince || effectiveOn > today)
+        {
+            return Result.Failure(RegistryErrors.TeamRenameDateInvalid);
+        }
+
+        if (string.Equals(name, Name, StringComparison.Ordinal))
+        {
+            return Result.Failure(RegistryErrors.TeamNameUnchanged);
+        }
+
+        _aliases.Add(TeamAlias.FormerName(Id, Name, ShortName, Code, NameSince, effectiveOn.AddDays(-1)));
+        SetName(name, shortName);
+        Code = code;
+        NameSince = effectiveOn;
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// The team's name, short name and code on <paramref name="date"/> (S07 D8, D18): the current ones from
+    /// <see cref="NameSince"/>, the former name whose dates cover the day before that, and the first name (the earliest
+    /// former name, or the current one if it was never renamed) before the first name's start. Needs the aliases loaded.
+    /// </summary>
+    public TeamNameOnDate NameOn(DateOnly date)
+    {
+        if (date >= NameSince)
+        {
+            return new(Name, ShortName, Code);
+        }
+
+        var former = _aliases.Where(alias => alias.IsFormerName).OrderBy(alias => alias.ValidFrom).ToList();
+        var match = former.FirstOrDefault(alias => alias.Covers(date)) ?? former.FirstOrDefault();
+        return match is null ? new(Name, ShortName, Code) : new(match.Name, match.ShortName, match.Code);
+    }
+
+    /// <summary>
+    /// Adds a nickname or a spelling (S07 D8, D10; a former name comes only from a rename), so the directory finds the
+    /// team under it too. Refused on an archived or disbanded team, and when the alias's key is already one of the
+    /// team's (its name or short name, or a current alias, former names included: <c>TEAM_ALIAS_EXISTS</c>). Needs the
+    /// aliases loaded. The use case has checked that the name has a letter or a digit.
+    /// </summary>
+    public Result<TeamAlias> AddAlias(string name, AliasKind kind)
+    {
+        var accepts = EnsureAcceptsNewChildren();
+        if (accepts.IsFailure)
+        {
+            return accepts.Error;
+        }
+
+        var alias = TeamAlias.Other(Id, name, kind);
+        if (alias.NameKey == NameKey || alias.NameKey == ShortNameKey
+            || _aliases.Any(existing => !existing.IsRemoved && existing.NameKey == alias.NameKey))
+        {
+            return RegistryErrors.TeamAliasExists;
+        }
+
+        _aliases.Add(alias);
+        return Result.Success(alias);
+    }
+
+    /// <summary>
+    /// Removes a nickname or a spelling, keeping it with who, when and why (S07 D10); allowed in every status. An alias of
+    /// another team is <c>TEAM_ALIAS_NOT_FOUND</c>, a former name <c>TEAM_ALIAS_FORMER_NAME</c> (the name's history stays;
+    /// owner, S07-T3c plan), one already removed <c>TEAM_ALIAS_REMOVED</c>.
+    /// </summary>
+    public Result RemoveAlias(Guid aliasId, string reason, ICurrentActor actor, DateTimeOffset now)
+    {
+        var alias = _aliases.SingleOrDefault(existing => existing.Id == aliasId);
+        if (alias is null)
+        {
+            return Result.Failure(RegistryErrors.TeamAliasNotFound);
+        }
+
+        if (alias.IsFormerName)
+        {
+            return Result.Failure(RegistryErrors.TeamAliasFormerName);
+        }
+
+        if (alias.IsRemoved)
+        {
+            return Result.Failure(RegistryErrors.TeamAliasRemoved);
+        }
+
+        alias.Remove(reason, actor, now);
         return Result.Success();
     }
 

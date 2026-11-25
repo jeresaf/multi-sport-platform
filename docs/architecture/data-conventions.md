@@ -170,6 +170,11 @@ As built for people (S06-T1a):
   `ORGANISATION_…` codes; a dissolved or archived organisation takes no new alias or identifier; an alias whose key is
   already the organisation's display, legal or short name key or a current alias's is `ORGANISATION_ALIAS_EXISTS`.
   Unlike venues', their current aliases feed the duplicate warning (D13).
+  Teams (S07-T3c) follow them under `team.alias.*` with `TEAM_…` codes, but a `FORMER_NAME` comes only from
+  `team.rename` and keeps the name's dates (`valid_from`, `valid_to`) and the short name and code it went with; it is
+  never removed (`TEAM_ALIAS_FORMER_NAME`). Nicknames and spellings take no dates. A disbanded or archived team takes
+  no new alias. As organisations', a team's current aliases (former names included) are searched by the directory
+  and feed the duplicate warning (D13).
 
 As built for people (S06-T2a), the duplicate check (`DuplicateMatcher`, Registry Domain; `DuplicateFinder`):
 

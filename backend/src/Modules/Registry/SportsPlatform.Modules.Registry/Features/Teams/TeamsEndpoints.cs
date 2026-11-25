@@ -1,8 +1,13 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using SportsPlatform.BuildingBlocks.Api;
+using SportsPlatform.BuildingBlocks.Persistence;
+using SportsPlatform.Modules.Registry.Domain.Teams;
 using SportsPlatform.Modules.Registry.Features.People;
+using SportsPlatform.Modules.Registry.Features.Teams.GetTeam;
 using SportsPlatform.Modules.Registry.Infrastructure;
 using SportsPlatform.Modules.Tenancy.Contracts.Entitlements;
 
@@ -21,7 +26,7 @@ internal static class TeamsEndpoints
     public static string PathOf(Guid teamId) => $"/api/admin/v1/teams/{teamId}";
 }
 
-/// <summary>What every change to the tenant's teams shares (S07 D21): the lock and the quota.</summary>
+/// <summary>What every change to the tenant's teams shares (S07 D21): the lock, the quota, loading and answering.</summary>
 internal static class TeamChanges
 {
     /// <summary>
@@ -50,5 +55,49 @@ internal static class TeamChanges
 
         var limit = await entitlements.GetLimitAsync(TeamCount.Code, cancellationToken);
         return new(quota.Error, Detail: $"Your plan allows {limit} teams.");
+    }
+
+    /// <summary>
+    /// The team with its aliases, or <c>TEAM_NOT_FOUND</c>, or <c>TEAM_CONCURRENCY_CONFLICT</c> when
+    /// <paramref name="version"/> or <paramref name="ifMatch"/> names another version.
+    /// </summary>
+    public static async Task<(Team? Team, FieldRefusal? Refusal)> LoadAsync(
+        RegistryDbContext context, Guid teamId, uint? version, IfMatch ifMatch, CancellationToken cancellationToken)
+    {
+        var team = await context.Set<Team>()
+            .Include(t => t.Aliases)
+            .SingleOrDefaultAsync(t => t.Id == teamId, cancellationToken);
+        if (team is null)
+        {
+            return (null, new(RegistryErrors.TeamNotFound));
+        }
+
+        return RowVersion.IsSatisfied(context.Entry(team).Property<uint>(AuditColumns.Version).CurrentValue, version, ifMatch)
+            ? (team, null)
+            : (null, new(RegistryErrors.TeamConcurrencyConflict));
+    }
+
+    /// <summary>Reads <c>If-Match</c>, runs <paramref name="change"/>, and answers the refusal or the saved team.</summary>
+    public static async Task<Results<Ok<TeamResponse>, ProblemHttpResult>> AnswerAsync(
+        Guid teamId,
+        GetTeamHandler read,
+        HttpRequest httpRequest,
+        HttpResponse response,
+        Func<IfMatch, Task<ProblemHttpResult?>> change)
+    {
+        if (!RowVersion.TryReadIfMatch(httpRequest, out var ifMatch, out var malformed))
+        {
+            return malformed;
+        }
+
+        if (await change(ifMatch) is { } refusal)
+        {
+            return refusal;
+        }
+
+        // Saved and committed: the read is not cancelled with the request.
+        var team = await read.HandleAsync(teamId, CancellationToken.None);
+        team.Value.SetETag(response);
+        return TypedResults.Ok(team.Value);
     }
 }

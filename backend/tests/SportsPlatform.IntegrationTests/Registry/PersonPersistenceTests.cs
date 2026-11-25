@@ -158,7 +158,7 @@ public sealed class PersonPersistenceTests(PostgresFixture fixture) : DatabaseTe
         indexes.Select(index => index.Name).Order().ShouldBe(
             [
                 "ix_organisation_aliases_name_key_trgm", "ix_organisations_display_name_key_trgm", "ix_person_aliases_name_key_trgm",
-                "ix_persons_name_key_trgm", "ix_teams_name_key_trgm", "ix_venue_aliases_name_key_trgm", "ix_venues_name_key_trgm",
+                "ix_persons_name_key_trgm", "ix_team_aliases_name_key_trgm", "ix_teams_name_key_trgm", "ix_venue_aliases_name_key_trgm", "ix_venues_name_key_trgm",
             ]);
         indexes.ShouldAllBe(index => index.Definition.Contains(
             index.Name == "ix_organisations_display_name_key_trgm" ? "USING gin (display_name_key gin_trgm_ops)" : "USING gin (name_key gin_trgm_ops)",

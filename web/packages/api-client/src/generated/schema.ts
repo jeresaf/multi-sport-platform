@@ -1532,7 +1532,7 @@ export interface paths {
         get: operations["GetTeam"];
         /**
          * Change a team
-         * @description Replaces the fields of a team of the tenant named by `X-Tenant-Id`, whatever its status and whether or not its sport is still enabled: a field left out is cleared, `level` left out is FIRST, and `slug` left out keeps the team's (a slug another team has is TEAM_SLUG_TAKEN). The sport never changes and can't be sent. `name` may be sent, but only as the current name: a new name is a rename (TEAM_RENAME_REQUIRED), so the old one is kept with its dates. The status changes through POST /teams/{teamId}/status. A new `organisationId` must be an organisation of the tenant that isn't dissolved or archived (TEAM_ORGANISATION_UNAVAILABLE), a new `homeVenueId` a venue that isn't closed or archived (TEAM_HOME_VENUE_UNAVAILABLE); the current ones are kept whatever their status. When the short name (as the duplicate check compares it: case, accents, punctuation and word order aside), the category or the organisation changes, the duplicate check runs again, the team itself left out: teams that look like the changed one answer TEAM_DUPLICATE_REVIEW_REQUIRED with `candidates` until the request says `duplicatesReviewed: true`, with an optional `duplicateReason`; the audit entry names the teams shown. The reason is kept permanently in the audit trail: don't include personal data. Send `version` or `If-Match` from the last read to get 409 TEAM_CONCURRENCY_CONFLICT if the team changed since. Answers the team as GET /teams/{teamId} does.
+         * @description Replaces the fields of a team of the tenant named by `X-Tenant-Id`, whatever its status and whether or not its sport is still enabled: a field left out is cleared, `level` left out is FIRST, and `slug` left out keeps the team's (a slug another team has is TEAM_SLUG_TAKEN). The sport never changes and can't be sent. `name` may be sent, but only as the current name: a new name is a rename (POST /teams/{teamId}/rename; TEAM_RENAME_REQUIRED), so the old one is kept with its dates. The status changes through POST /teams/{teamId}/status. A new `organisationId` must be an organisation of the tenant that isn't dissolved or archived (TEAM_ORGANISATION_UNAVAILABLE), a new `homeVenueId` a venue that isn't closed or archived (TEAM_HOME_VENUE_UNAVAILABLE); the current ones are kept whatever their status. When the short name (as the duplicate check compares it: case, accents, punctuation and word order aside), the category or the organisation changes, the duplicate check runs again, the team itself left out: teams that look like the changed one answer TEAM_DUPLICATE_REVIEW_REQUIRED with `candidates` until the request says `duplicatesReviewed: true`, with an optional `duplicateReason`; the audit entry names the teams shown. The reason is kept permanently in the audit trail: don't include personal data. Send `version` or `If-Match` from the last read to get 409 TEAM_CONCURRENCY_CONFLICT if the team changed since. Answers the team as GET /teams/{teamId} does.
          */
         put: operations["UpdateTeam"];
         post?: never;
@@ -1576,6 +1576,66 @@ export interface paths {
         get: operations["ListTeamStatusChanges"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/teams/{teamId}/rename": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rename a team
+         * @description Gives a team of the tenant named by `X-Tenant-Id` a new `name` from `effectiveOn`, which must be after the current name's first day (`nameSince`) and not after today, the tenant's date (TEAM_RENAME_DATE_INVALID). The old name, with the short name and code it had, is kept as a former name from its first day to the day before `effectiveOn`: results of that time show it. `shortName` and `code` are the values from `effectiveOn`: left out, the current one is kept; sent as null, it is cleared. The same name exactly is TEAM_NAME_UNCHANGED; a name without a letter or digit TEAM_NAME_INVALID. The slug doesn't change. A disbanded or archived team can't be renamed (TEAM_DISBANDED, TEAM_ARCHIVED). When the name or short name changes as the duplicate check compares it (case, accents, punctuation and word order aside), the check runs again, the team itself left out: teams that look like the renamed one answer TEAM_DUPLICATE_REVIEW_REQUIRED with `candidates` until the request says `duplicatesReviewed: true`, with an optional `duplicateReason`; the audit entry names the teams shown. The reason is kept permanently in the audit trail: don't include personal data. Send `version` or `If-Match` from the last read to get 409 TEAM_CONCURRENCY_CONFLICT if the team changed since. Answers the team as GET /teams/{teamId} does; its version moves.
+         */
+        post: operations["RenameTeam"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/teams/{teamId}/aliases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add a nickname or spelling to a team
+         * @description Adds another name the team is known by (`NICKNAME` or `SPELLING`; a former name comes from POST /teams/{teamId}/rename): the directory search finds the team under it too. Adding one runs no duplicate warning. A name the team is already known by (the same name key as its name or short name or a current alias, former names included: word order, case, accents and punctuation aside) is TEAM_ALIAS_EXISTS; a name without a letter or a digit TEAM_NAME_INVALID. A disbanded or archived team takes no new alias (TEAM_DISBANDED, TEAM_ARCHIVED). Send `version` or `If-Match` from the last read to get 409 TEAM_CONCURRENCY_CONFLICT if the team changed since; without them, a change to the same team saved at the same moment can still answer it. Answers the team as GET /teams/{teamId} does; its version moves.
+         */
+        post: operations["AddTeamAlias"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/teams/{teamId}/aliases/{aliasId}/remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Remove a team's nickname or spelling
+         * @description Removes a nickname or spelling, whatever the team's status, with a reason (body `{ "reason": … }`, required): the alias is kept with who removed it, when and why, and is no longer shown or searched. The reason is kept permanently on the alias and in the audit trail: don't include personal data. A former name is the team's name history and can't be removed (TEAM_ALIAS_FORMER_NAME); an alias already removed is TEAM_ALIAS_REMOVED. Send `version` or `If-Match` from the last read to get 409 TEAM_CONCURRENCY_CONFLICT if the team changed since; without them, a change to the same team saved at the same moment can still answer it. Answers the team as GET /teams/{teamId} does; its version moves.
+         */
+        post: operations["RemoveTeamAlias"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2528,6 +2588,16 @@ export interface components {
          *     person's current one.
          */
         AddPersonAliasRequest: {
+            name: null | string;
+            kind: null | components["schemas"]["AliasKind"];
+            /** Format: uint32 */
+            version?: null | number;
+        };
+        /**
+         * @description A new nickname or spelling of a team (S07 D8, D10): a former name comes only from a rename. `version`, when sent,
+         *     must be the team's current one.
+         */
+        AddTeamAliasRequest: {
             name: null | string;
             kind: null | components["schemas"]["AliasKind"];
             /** Format: uint32 */
@@ -4075,11 +4145,42 @@ export interface components {
             version?: null | number;
         };
         /**
+         * @description The removal of a team's nickname or spelling (audit `REQUIRED_WITH_REASON`). The reason is kept permanently on the
+         *     alias and in the audit trail and is not redacted: it must not contain personal data.
+         */
+        RemoveTeamAliasRequest: {
+            reason: null | string;
+            /** Format: uint32 */
+            version?: null | number;
+        };
+        /**
          * @description The removal of a venue's alias (audit `REQUIRED_WITH_REASON`). The reason is kept permanently on the alias and
          *     in the audit trail and is not redacted: it must not contain personal data.
          */
         RemoveVenueAliasRequest: {
             reason: null | string;
+            /** Format: uint32 */
+            version?: null | number;
+        };
+        /**
+         * @description A team's new name from a date (S07 D8). `shortName` and `code` are the values from then on: left out, the
+         *     team keeps its current one; sent as `null`, it is cleared (owner, S07-T3c plan). After the duplicate warning,
+         *     `duplicatesReviewed` with an optional reason. `version`, when sent, must be the team's current one (or
+         *     `If-Match`).
+         */
+        RenameTeamRequest: {
+            name: null | string;
+            /** @description The short name from `effectiveOn`; left out keeps the current one, `null` clears it. */
+            shortName?: null | string;
+            /** @description The code from `effectiveOn`; left out keeps the current one, `null` clears it. */
+            code?: null | string;
+            /**
+             * Format: date
+             * @description The new name's first day: after the current name's first day, not after today (the tenant's date).
+             */
+            effectiveOn: null | string;
+            duplicatesReviewed?: boolean;
+            duplicateReason?: null | string;
             /** Format: uint32 */
             version?: null | number;
         };
@@ -4616,6 +4717,13 @@ export interface components {
          * @enum {unknown}
          */
         SubscriptionStatus: "SCHEDULED" | "ACTIVE" | "EXPIRING" | "GRACE" | "EXPIRED" | "CANCELLED";
+        /** @description A current nickname or spelling of a team (S07 D10): `INTERNAL` (D16). */
+        TeamAliasResponse: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            kind: components["schemas"]["AliasKind"];
+        };
         /**
          * @description A team that looks like the one checked (S07 D13): enough to recognise it and open it. Its variant and category are
          *     the checked team's (only those are compared); `organisation` is its organisation, whatever its status now, or
@@ -4667,6 +4775,21 @@ export interface components {
             }[];
         };
         /**
+         * @description A name the team had before a rename (S07 D8), with the short name and code it went with and its first and last day:
+         *     `PUBLIC` (D16), so results of that time can show it.
+         */
+        TeamFormerNameResponse: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            shortName: null | string;
+            code: null | string;
+            /** Format: date */
+            validFrom: string;
+            /** Format: date */
+            validTo: string;
+        };
+        /**
          * @description The level part of a team's category (S07 D7, Q53): TeamLevel.First unless the request says otherwise.
          * @enum {unknown}
          */
@@ -4696,10 +4819,12 @@ export interface components {
             slug: string;
         };
         /**
-         * @description A team as the admin reads it (S07 D19). Every field but the version is one the public reads may show (D16). The
+         * @description A team as the admin reads it (S07 D19). Every field but `aliases` (nicknames and spellings, `INTERNAL`) and the
+         *     version is one the public reads may show (D16): a public read must not reuse this DTO whole (review #130 R2). The
          *     organisation and the home venue are summaries of the tenant's records, whatever their status now (null without
-         *     one). `nameSince` is when the current name began (D8). Aliases, identifiers and images join with S07-T3c, T3d
-         *     and T4.
+         *     one). `nameSince` is when the current name began (D8); `formerNames` are the earlier ones with their dates,
+         *     newest first (`PUBLIC`, D16), and `aliases` the current nicknames and spellings (`INTERNAL`).
+         *     Identifiers and images join with S07-T3d and T4.
          */
         TeamResponse: {
             /** Format: uuid */
@@ -4723,6 +4848,8 @@ export interface components {
             organisation: null | components["schemas"]["TeamOrganisationResponse"];
             homeVenue: null | components["schemas"]["TeamVenueResponse"];
             status: components["schemas"]["TeamStatus"];
+            formerNames: components["schemas"]["TeamFormerNameResponse"][];
+            aliases: components["schemas"]["TeamAliasResponse"][];
             /** Format: uint32 */
             version: number;
         };
@@ -10836,6 +10963,253 @@ export interface operations {
             };
             /** @description Problem Details; `code`: `TEAM_NOT_FOUND` */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    RenameTeam: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too. */
+                "If-Match"?: string;
+            };
+            path: {
+                teamId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RenameTeamRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TEAM_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TEAM_ARCHIVED`, `TEAM_CONCURRENCY_CONFLICT`, `TEAM_DISBANDED` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TEAM_DUPLICATE_REVIEW_REQUIRED`, `TEAM_NAME_INVALID`, `TEAM_NAME_UNCHANGED`, `TEAM_RENAME_DATE_INVALID` */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["TeamDuplicateReviewProblem"];
+                };
+            };
+        };
+    };
+    AddTeamAlias: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too. */
+                "If-Match"?: string;
+            };
+            path: {
+                teamId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddTeamAliasRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TEAM_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TEAM_ALIAS_EXISTS`, `TEAM_ARCHIVED`, `TEAM_CONCURRENCY_CONFLICT`, `TEAM_DISBANDED` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TEAM_NAME_INVALID` */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    RemoveTeamAlias: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too. */
+                "If-Match"?: string;
+            };
+            path: {
+                teamId: string;
+                aliasId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RemoveTeamAliasRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_MALFORMED_REQUEST`, `VALIDATION_REASON_REQUIRED` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TEAM_ALIAS_NOT_FOUND`, `TEAM_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TEAM_ALIAS_FORMER_NAME`, `TEAM_ALIAS_REMOVED`, `TEAM_CONCURRENCY_CONFLICT` */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

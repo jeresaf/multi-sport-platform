@@ -120,6 +120,9 @@ public static class TableAccessPolicies
         ["registry.teams"] = TableAccess.ReadWrite,
         ["registry.team_status_changes"] = TableAccess.AppendOnly,
 
+        // Team aliases (S07-T3c, RLS): former names are kept for ever, nicknames and spellings removed with a reason; never deleted.
+        ["registry.team_aliases"] = TableAccess.ReadWrite,
+
         ["identity.outbox_messages"] = TableAccess.ReadWrite,
         ["registry.outbox_messages"] = TableAccess.ReadWrite,
         ["registry.inbox_messages"] = TableAccess.ReadWrite,

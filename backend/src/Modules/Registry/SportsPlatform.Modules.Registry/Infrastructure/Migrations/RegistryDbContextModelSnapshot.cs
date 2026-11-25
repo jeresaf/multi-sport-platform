@@ -1939,6 +1939,119 @@ namespace SportsPlatform.Modules.Registry.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("SportsPlatform.Modules.Registry.Domain.Teams.TeamAlias", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Code")
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)")
+                        .HasColumnName("code")
+                        .HasAnnotation("pii", "PUBLIC");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("kind")
+                        .HasAnnotation("pii", "INTERNAL");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("name")
+                        .HasAnnotation("pii", "INTERNAL");
+
+                    b.Property<string>("NameKey")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("name_key")
+                        .HasAnnotation("pii", "INTERNAL");
+
+                    b.Property<string>("RemoveReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("remove_reason")
+                        .HasAnnotation("pii", "INTERNAL");
+
+                    b.Property<DateTimeOffset?>("RemovedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("removed_at");
+
+                    b.Property<Guid?>("RemovedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("removed_by");
+
+                    b.Property<string>("ShortName")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("short_name")
+                        .HasAnnotation("pii", "PUBLIC");
+
+                    b.Property<Guid>("TeamId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("team_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<DateOnly?>("ValidFrom")
+                        .HasColumnType("date")
+                        .HasColumnName("valid_from")
+                        .HasAnnotation("pii", "PUBLIC");
+
+                    b.Property<DateOnly?>("ValidTo")
+                        .HasColumnType("date")
+                        .HasColumnName("valid_to")
+                        .HasAnnotation("pii", "PUBLIC");
+
+                    b.HasKey("Id")
+                        .HasName("pk_team_aliases");
+
+                    b.HasIndex("NameKey")
+                        .HasDatabaseName("ix_team_aliases_name_key_trgm");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("NameKey"), "gin");
+                    NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex("NameKey"), new[] { "gin_trgm_ops" });
+
+                    b.HasIndex("TenantId", "TeamId")
+                        .HasDatabaseName("ix_team_aliases_tenant_id_team_id");
+
+                    b.ToTable("team_aliases", "registry", t =>
+                        {
+                            t.HasCheckConstraint("ck_team_aliases_code", "code ~ '^[A-Z]{3}$'");
+
+                            t.HasCheckConstraint("ck_team_aliases_former_name", "(kind = 'FORMER_NAME' AND valid_from IS NOT NULL AND valid_to IS NOT NULL AND valid_from <= valid_to AND removed_at IS NULL) OR (kind <> 'FORMER_NAME' AND valid_from IS NULL AND valid_to IS NULL AND short_name IS NULL AND code IS NULL)");
+
+                            t.HasCheckConstraint("ck_team_aliases_kind", "kind IN ('FORMER_NAME', 'NICKNAME', 'SPELLING')");
+
+                            t.HasCheckConstraint("ck_team_aliases_name_key", "name_key <> ''");
+
+                            t.HasCheckConstraint("ck_team_aliases_removed", "(removed_at IS NULL AND removed_by IS NULL AND remove_reason IS NULL) OR (removed_at IS NOT NULL AND removed_by IS NOT NULL AND remove_reason IS NOT NULL)");
+                        });
+                });
+
             modelBuilder.Entity("SportsPlatform.Modules.Registry.Domain.Teams.TeamStatusChange", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2571,6 +2684,17 @@ namespace SportsPlatform.Modules.Registry.Infrastructure.Migrations
                         .HasConstraintName("fk_teams_organisations_tenant_id_organisation_id");
                 });
 
+            modelBuilder.Entity("SportsPlatform.Modules.Registry.Domain.Teams.TeamAlias", b =>
+                {
+                    b.HasOne("SportsPlatform.Modules.Registry.Domain.Teams.Team", null)
+                        .WithMany("Aliases")
+                        .HasForeignKey("TenantId", "TeamId")
+                        .HasPrincipalKey("TenantId", "Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_team_aliases_teams_tenant_id_team_id");
+                });
+
             modelBuilder.Entity("SportsPlatform.Modules.Registry.Domain.Teams.TeamStatusChange", b =>
                 {
                     b.HasOne("SportsPlatform.Modules.Registry.Domain.Teams.Team", null)
@@ -2642,6 +2766,8 @@ namespace SportsPlatform.Modules.Registry.Infrastructure.Migrations
 
             modelBuilder.Entity("SportsPlatform.Modules.Registry.Domain.Teams.Team", b =>
                 {
+                    b.Navigation("Aliases");
+
                     b.Navigation("StatusHistory");
                 });
 

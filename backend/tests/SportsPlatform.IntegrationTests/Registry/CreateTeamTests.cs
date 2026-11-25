@@ -63,8 +63,10 @@ public sealed class CreateTeamTests(PostgresFixture fixture) : DatabaseTest(fixt
         team.EnumerateObject().Select(property => property.Name).ShouldBe(
         [
             "id", "variant", "genderCategory", "ageGroup", "level", "name", "shortName", "nameSince", "slug", "code", "motto",
-            "primaryColour", "secondaryColour", "tertiaryColour", "foundedYear", "organisation", "homeVenue", "status", "version",
+            "primaryColour", "secondaryColour", "tertiaryColour", "foundedYear", "organisation", "homeVenue", "status", "formerNames",
+            "aliases", "version",
         ]);
+        (team.GetProperty("formerNames").GetArrayLength(), team.GetProperty("aliases").GetArrayLength()).ShouldBe((0, 0));
         (team.GetProperty("variant").GetString(), team.GetProperty("genderCategory").GetString(), team.GetProperty("ageGroup").GetString(),
                 team.GetProperty("level").GetString())
             .ShouldBe((TestballFull, "MEN", "SENIOR", "RESERVE"));

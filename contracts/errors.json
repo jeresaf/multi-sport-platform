@@ -601,6 +601,36 @@
       "owner": "SportsConfiguration"
     },
     {
+      "code": "TEAM_ALIAS_EXISTS",
+      "status": 409,
+      "message": "The team is already known by this name: its name or short name or a current alias gives the same name key.",
+      "owner": "Registry"
+    },
+    {
+      "code": "TEAM_ALIAS_FORMER_NAME",
+      "status": 409,
+      "message": "A former name is the team's name history and can't be removed: only nicknames and spellings can.",
+      "owner": "Registry"
+    },
+    {
+      "code": "TEAM_ALIAS_NOT_FOUND",
+      "status": 404,
+      "message": "The team has no such alias.",
+      "owner": "Registry"
+    },
+    {
+      "code": "TEAM_ALIAS_REMOVED",
+      "status": 409,
+      "message": "The alias is already removed.",
+      "owner": "Registry"
+    },
+    {
+      "code": "TEAM_ARCHIVED",
+      "status": 409,
+      "message": "The team is archived: it takes no new name, alias, identifier or image until it is unarchived.",
+      "owner": "Registry"
+    },
+    {
       "code": "TEAM_COLOURS_INVALID",
       "status": 422,
       "message": "A secondary colour needs a primary colour, and a tertiary colour a secondary one.",
@@ -610,6 +640,12 @@
       "code": "TEAM_CONCURRENCY_CONFLICT",
       "status": 409,
       "message": "The team was changed by someone else. Reload and try again.",
+      "owner": "Registry"
+    },
+    {
+      "code": "TEAM_DISBANDED",
+      "status": 409,
+      "message": "The team is disbanded: it takes no new name, alias, identifier or image unless it is reformed.",
       "owner": "Registry"
     },
     {
@@ -631,6 +667,12 @@
       "owner": "Registry"
     },
     {
+      "code": "TEAM_NAME_UNCHANGED",
+      "status": 422,
+      "message": "The team already has this name: a rename needs a new name.",
+      "owner": "Registry"
+    },
+    {
       "code": "TEAM_NOT_FOUND",
       "status": 404,
       "message": "The team was not found.",
@@ -643,9 +685,15 @@
       "owner": "Registry"
     },
     {
+      "code": "TEAM_RENAME_DATE_INVALID",
+      "status": 422,
+      "message": "A rename takes effect after the current name's first day and not after today (the tenant's date).",
+      "owner": "Registry"
+    },
+    {
       "code": "TEAM_RENAME_REQUIRED",
       "status": 422,
-      "message": "An update keeps the team's name: rename the team instead, so the old name is kept with its dates.",
+      "message": "An update keeps the team's name: rename the team (POST /teams/{teamId}/rename) instead, so the old name is kept with its dates.",
       "owner": "Registry"
     },
     {

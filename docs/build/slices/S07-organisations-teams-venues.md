@@ -617,3 +617,22 @@ The rest of S06's tech debt has its own trigger in PROGRESS.md ("From S06").
   `teams`: its teams but archived ones, in the same order, not paged (owner), each `OrganisationTeamResponse` (id, name,
   slug, variant, category codes, status). A team's changes don't move the organisation's version. No migration: the
   `(tenant_id, sort_key, id)` and `(tenant_id, organisation_id)` indexes serve both reads.
+- **T3c (teams: rename, aliases, the name on a date):** `registry.team_aliases` (migration `AddTeamAliases`, RLS,
+  composite foreign key to the team; names 1–120, `AliasKind` reused). A `FORMER_NAME` row also keeps the short name
+  and code that went with the name, so the name on a date answers all three (D18); its `valid_from`/`valid_to` are set
+  and it is never removed; nicknames and spellings have no dates or short name or code (check constraint). `POST
+  /teams/{id}/rename` (`team.rename`, audit `REQUIRED`, `If-Match`): `name`, `effectiveOn`, optional `shortName` and
+  `code` (left out keeps the current one, `null` clears it; owner, plan 2026-11-24), `duplicatesReviewed` with an
+  optional reason. Order: a name without a letter or digit (`TEAM_NAME_INVALID`), the version, then `Team.Rename`:
+  `TEAM_DISBANDED`/`TEAM_ARCHIVED` (409; owner), `TEAM_RENAME_DATE_INVALID` on `effectiveOn`, the same name exactly
+  `TEAM_NAME_UNCHANGED` on `name`. When the name's or short name's key changes, the rename holds
+  `registry.teams:<tenantId>` and runs the warning again for the new names (the team left out). The slug stays.
+  Renaming back to an earlier name is allowed. `POST /teams/{id}/aliases` (`team.alias.add`: `NICKNAME` or `SPELLING`
+  only, a `FORMER_NAME` is `400` on `kind`) and `…/aliases/{aliasId}/remove` (`team.alias.remove`,
+  `REQUIRED_WITH_REASON`; a former name is `409 TEAM_ALIAS_FORMER_NAME`) as organisations'. Current aliases, former
+  names included, feed the `LIKELY` warning on both sides (D13; owner, pre-review): the team being changed brings its
+  saved aliases, so a rename compares those it had before. Both alias actions and the rename answer the team with its `ETag`. The read gains
+  `formerNames` (`PUBLIC`, newest first: id, name, short name, code, `validFrom`, `validTo`) and `aliases` (current
+  nicknames and spellings, `INTERNAL`). `GET /teams?q=` adds a current alias's key, former names included (prefix of
+  the key or of a word, similarity ≥ 0.3). `Team.NameOn(date)`: the current names from `name_since`, the former name
+  covering the date before it, the first name before the first start; T3d's `ITeamDirectory` calls it.
