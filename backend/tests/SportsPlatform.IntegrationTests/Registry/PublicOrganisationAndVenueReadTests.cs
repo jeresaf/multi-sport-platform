@@ -225,6 +225,8 @@ public sealed class PublicOrganisationAndVenueReadTests(PostgresFixture fixture)
         }
 
         byId.Headers.CacheControl.ToString().ShouldBe("public, max-age=60");
+        (await PublicAsync($"{_venues}/{meadow.Id}", ("If-None-Match", byId.Headers.ETag.ToString()))).Status
+            .ShouldBe(StatusCodes.Status304NotModified);
         (await PublicAsync($"{_venues}/{closed.Slug}")).Json.GetProperty("status").GetString().ShouldBe("CLOSED");
         foreach (var key in new[] { archived.Id.ToString(), archived.Slug, "Kiwatule Meadow" })
         {
