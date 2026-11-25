@@ -380,10 +380,10 @@ Deliver:
   `STORAGE_GB` checked; the public asset route; signed URLs in admin reads.
 
 Acceptance:
-- [ ] An SVG, a file over 2 MB or an image under 64 px is refused (`MEDIA_TYPE_NOT_ALLOWED`, `MEDIA_TOO_LARGE`,
+- [x] An SVG, a file over 2 MB or an image under 64 px is refused (`MEDIA_TYPE_NOT_ALLOWED`, `MEDIA_TOO_LARGE`,
       `MEDIA_IMAGE_TOO_SMALL`); a PNG with transparency
       keeps it in the WebP variants (tests).
-- [ ] The public asset route serves another tenant's asset, a `PRIVATE` asset (a person photo) or a removed one as
+- [x] The public asset route serves another tenant's asset, a `PRIVATE` asset (a person photo) or a removed one as
       `404` (tests); its response is cacheable as D15 says.
 - [ ] At the storage limit a logo upload is refused (test).
 
@@ -650,3 +650,11 @@ The rest of S06's tech debt has its own trigger in PROGRESS.md ("From S06").
   from the domain's; `onDate` null is the current names, a date before the first name began is the first name
   (`Team.NameOn`); the aliases are loaded only when a date is asked for (owner, plan 2026-11-25). The identifier
   table already has an isolation sample (the person's); no new sample. One PR (owner).
+- **T4a (public images, Platform):** T4 is two PRs (owner, plan 2026-11-25): T4a Platform, T4b the Registry endpoints.
+  `MediaPurpose.OrgLogo`/`TeamLogo`/`TeamBadge` (`ORG_LOGO`, `TEAM_LOGO`, `TEAM_BADGE`); `MediaRules` gives each purpose its
+  limit, types, variants (`VariantSizes`), shorter-side minimum and visibility; `ImageVariants.Create(bytes, purpose)`
+  refuses a small image from the header (`MEDIA_IMAGE_TOO_SMALL`) and keeps the alpha channel.
+  `ck_media_assets_public_purpose` ties `PUBLIC` to the three purposes. The route is
+  `GET /api/public/v1/assets/{assetId}/{thumbnail|medium}` (lowercase segments; another value is `MEDIA_NOT_FOUND`); a
+  site that isn't public is `403 TENANT_UNAVAILABLE`, as every public route. `GetPublicPath` throws for any other
+  variant. T5's public reads link images through `GetPublicPath`; T4b's admin reads use signed URLs.

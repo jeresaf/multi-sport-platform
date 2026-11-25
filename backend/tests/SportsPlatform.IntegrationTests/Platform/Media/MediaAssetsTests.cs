@@ -361,7 +361,7 @@ public sealed class MediaAssetsTests(PostgresFixture fixture) : DatabaseTest(fix
         var id = MediaAsset.NewAssetId();
         var context = scope.ServiceProvider.GetRequiredService<PlatformDbContext>();
         context.Add(MediaAsset.Create(
-            id, MediaPurpose.ConsentEvidence, "application/pdf", $"{tenantId:N}/{id:N}",
+            id, MediaPurpose.ConsentEvidence, MediaVisibility.Private, "application/pdf", $"{tenantId:N}/{id:N}",
             [new MediaAssetFile(MediaVariant.Original, $"{tenantId:N}/{id:N}/original.pdf", "application/pdf", null, null, bytes)],
             SystemActor.Instance, App.Clock.GetUtcNow()));
         await context.SaveChangesAsync(Ct);

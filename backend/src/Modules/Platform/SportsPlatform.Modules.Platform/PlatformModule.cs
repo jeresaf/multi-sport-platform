@@ -103,6 +103,7 @@ public sealed class PlatformModule : IModule
         RedriveOutboxMessageEndpoint.Map(groups.Platform);
         ListAuditEntriesEndpoint.Map(groups.Platform);
         ServeMediaEndpoint.Map(groups.Public);
+        ServePublicAssetEndpoint.Map(groups.Public);
 
         var reference = ReferenceEndpoints.Group(groups.Public);
         ListCountriesEndpoint.Map(reference);

@@ -44,7 +44,7 @@ directly.
 (append-only, tenant RLS; written and read across tenants by `PlatformAuditDbContext` on `sp_platform`); media assets (`platform.media_assets`, tenant RLS; files through `IFileStorage`; ADR-0014, ADR-0017); product analytics events; seed runner bookkeeping; transactional email transport (`IEmailSender` and its adapter).
 **Provides (Contracts):** `IReferenceData`, `IAuditLog` (also used automatically by AuditScope and the audit middleware),
 `IEmailSender` (from integration event consumers only, S03 D13), `IMediaAssets` (store, remove, open, signed URLs,
-stored bytes), analytics recording.
+public paths, stored bytes), analytics recording.
 **Also lives here (code, not data):** action catalogue export, error catalogue export, outbox processor host,
 seed framework.
 **Does not own:** domain statuses, rules, permissions — those stay in their modules (no "constants" bucket).
@@ -59,6 +59,12 @@ stays `ACTIVE` and unreferenced (owner, T5a plan). `RemoveAsync` marks it `REMOV
 `GetSignedUrlAsync` answers a 10-minute URL; `GetStoredBytesAsync` sums active assets. The only `IFileStorage` adapter
 is `LocalDiskFileStorage` (`Media:LocalRoot`; Azure Blob with the first deployment, Q41). SkiaSharp is used only in
 `Infrastructure/Media` (architecture test). The owning module checks its permission and `STORAGE_GB` before calling.
+**Public images as built (S07-T4a, D15).** `ORG_LOGO`, `TEAM_LOGO` and `TEAM_BADGE` are stored `PUBLIC` (visibility
+follows the purpose; `ck_media_assets_public_purpose` keeps every other purpose `PRIVATE`): JPEG, PNG or WebP up to
+2 MB, at least 64 px on the shorter side (`MEDIA_IMAGE_TOO_SMALL`, checked from the header), WebP `THUMBNAIL`/`MEDIUM`
+only, transparency kept. `GetPublicPath(assetId, variant)` builds `/api/public/v1/assets/{assetId}/{thumbnail|medium}`
+without a read; that route (`.RequirePublicTenant()`, `OpenPublicAsync`) streams only an active `PUBLIC` asset of the
+host's tenant, else `404 MEDIA_NOT_FOUND`, with `Cache-Control: public, max-age=86400`.
 **First slice:** S01.
 **Absorbs:** pack specs 40 (Audit), 41 (Analytics), 42 (Seed), 43 (Data Governance → enforced as
 conventions/tests), Reference Data. Owner's managers: **Constant, Seed, Audit, Data Integrity, Analytics**.

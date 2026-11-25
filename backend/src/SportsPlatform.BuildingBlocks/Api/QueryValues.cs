@@ -6,6 +6,11 @@ namespace SportsPlatform.BuildingBlocks.Api;
 public sealed record QueryValuesMetadata(string Name, IReadOnlyList<string> Values);
 
 /// <summary>
+/// The values a path parameter bound as text accepts, for OpenAPI: <see cref="QueryValues.DocumentsPathValues"/>.
+/// </summary>
+public sealed record PathValuesMetadata(string Name, IReadOnlyList<string> Values);
+
+/// <summary>
 /// A query parameter that takes a whole number, for OpenAPI: <see cref="QueryValues.DocumentsQueryInteger"/>. A null
 /// <paramref name="Maximum"/> has no upper bound; a null <paramref name="Default"/> means the parameter has no default.
 /// </summary>
@@ -20,7 +25,8 @@ public sealed record QueryUuidMetadata(string Name);
 /// <c>.DocumentsQueryValues(name, values)</c> so the document shows the parameter's <c>enum</c> (S03 follow-up, S04 D14), or
 /// <c>.DocumentsQueryInteger(name, minimum, maximum, @default)</c> for an integer with its bounds and the value used
 /// without it (a list's <c>limit</c>: 1, 100, 25), or <c>.DocumentsQueryUuid(name)</c> for an ID (a string in the
-/// <c>uuid</c> format).
+/// <c>uuid</c> format). <c>.DocumentsPathValues(name, values)</c> does the same as the first for a path segment that
+/// the handler checks itself (the public asset route's variant, S07-T4a).
 /// </summary>
 public static class QueryValues
 {
@@ -30,6 +36,14 @@ public static class QueryValues
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         ArgumentNullException.ThrowIfNull(values);
         return builder.WithMetadata(new QueryValuesMetadata(name, [.. values]));
+    }
+
+    public static RouteHandlerBuilder DocumentsPathValues(this RouteHandlerBuilder builder, string name, IEnumerable<string> values)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentNullException.ThrowIfNull(values);
+        return builder.WithMetadata(new PathValuesMetadata(name, [.. values]));
     }
 
     public static RouteHandlerBuilder DocumentsQueryInteger(

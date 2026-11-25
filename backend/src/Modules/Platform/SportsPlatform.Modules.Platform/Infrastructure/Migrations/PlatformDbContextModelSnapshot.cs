@@ -390,7 +390,9 @@ namespace SportsPlatform.Modules.Platform.Infrastructure.Migrations
 
                     b.ToTable("media_assets", "platform", t =>
                         {
-                            t.HasCheckConstraint("ck_media_assets_purpose", "purpose IN ('PERSON_PHOTO', 'CONSENT_EVIDENCE')");
+                            t.HasCheckConstraint("ck_media_assets_public_purpose", "(visibility = 'PUBLIC') = (purpose IN ('ORG_LOGO', 'TEAM_LOGO', 'TEAM_BADGE'))");
+
+                            t.HasCheckConstraint("ck_media_assets_purpose", "purpose IN ('PERSON_PHOTO', 'CONSENT_EVIDENCE', 'ORG_LOGO', 'TEAM_LOGO', 'TEAM_BADGE')");
 
                             t.HasCheckConstraint("ck_media_assets_removed", "(status = 'REMOVED') = (removed_at IS NOT NULL AND removed_by_kind IS NOT NULL AND removed_by_id IS NOT NULL)");
 

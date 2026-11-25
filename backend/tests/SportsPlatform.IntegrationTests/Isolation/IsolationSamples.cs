@@ -806,7 +806,7 @@ public static class IsolationSamples
         {
             var id = MediaAsset.NewAssetId();
             var asset = MediaAsset.Create(
-                id, MediaPurpose.PersonPhoto, "image/webp", $"isolation/{id:N}",
+                id, MediaPurpose.PersonPhoto, MediaVisibility.Private, "image/webp", $"isolation/{id:N}",
                 [new MediaAssetFile(MediaVariant.Thumbnail, $"isolation/{id:N}/thumbnail.webp", "image/webp", 160, 120, 4_096)],
                 SystemActor.Instance, RegistrySamples.Now);
             context.Add(asset);

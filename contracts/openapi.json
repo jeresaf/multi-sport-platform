@@ -66,6 +66,78 @@
         }
       }
     },
+    "/api/public/v1/assets/{assetId}/{variant}": {
+      "get": {
+        "tags": [
+          "Public assets"
+        ],
+        "summary": "Get a public image (a logo or badge)",
+        "description": "A variant (`thumbnail` 160 px or `medium` 640 px on the longest side) of a public image (an organisation's logo, a team's logo or badge) of the tenant whose site this host serves, as WebP. Public reads link it; anything else (a private file, a removed or unknown image, another tenant's, another variant) is MEDIA_NOT_FOUND. `Cache-Control: public, max-age=86400`.",
+        "operationId": "GetPublicAsset",
+        "parameters": [
+          {
+            "name": "assetId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "variant",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "enum": [
+                "thumbnail",
+                "medium"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "image/webp": {
+                "schema": {
+                  "$ref": "#/components/schemas/Stream"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Problem Details; `code`: `MEDIA_NOT_FOUND`, `TENANT_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "MEDIA_NOT_FOUND",
+              "TENANT_NOT_FOUND"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `TENANT_UNAVAILABLE`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "TENANT_UNAVAILABLE"
+            ]
+          }
+        }
+      }
+    },
     "/api/public/v1/site": {
       "get": {
         "tags": [
@@ -24371,6 +24443,9 @@
   "tags": [
     {
       "name": "Media"
+    },
+    {
+      "name": "Public assets"
     },
     {
       "name": "Site"
