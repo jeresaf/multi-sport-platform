@@ -214,7 +214,7 @@ public sealed class PublicTeamReadTests(PostgresFixture fixture) : RegistryImage
     }
 
     // D16, owner (plan 2026-11-25): q matches the name, the short name and a former name; never a nickname, a spelling or
-    // an identifier.
+    // an identifier (pre-review: a spelling too, so a filter on the kind can't let one through).
     [Fact]
     public async Task The_team_directory_searches_public_names_and_former_names_only()
     {
@@ -223,13 +223,14 @@ public sealed class PublicTeamReadTests(PostgresFixture fixture) : RegistryImage
             App.Services, kmsa, "Bunga Breakers FC", shortName: "BBFC", renamedTo: ("Bunga Lakeside FC", _renamedOn),
             alias: ("Lake Wanderers", AliasKind.Nickname), identifier: ("FUFA", "BLF-0031"));
         await SaveTeamAsync(App.Services, kmsa, "Seeta Sparrows FC");
+        await SaveTeamAsync(App.Services, kmsa, "Kireka Kingfishers FC", alias: ("Kyreka Kingfisherz", AliasKind.Spelling));
 
         foreach (var q in new[] { "bunga", "lakesi", "Bunga Lakeside", "bbfc", "breakers", "Bunga Breakers FC" })
         {
             Ids((await PublicAsync($"{_teams}?q={Uri.EscapeDataString(q)}")).Json).ShouldBe([team.Id], q);
         }
 
-        foreach (var q in new[] { "wanderers", "BLF-0031", "--" })
+        foreach (var q in new[] { "wanderers", "kyreka", "BLF-0031", "--" })
         {
             Ids((await PublicAsync($"{_teams}?q={Uri.EscapeDataString(q)}")).Json).ShouldBeEmpty(q);
         }

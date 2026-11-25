@@ -33,7 +33,6 @@ public sealed record ListPublicTeamsRequest(
     public static bool TryParseStatus(string value, out TeamStatus status) =>
         ListTeamsRequest.TryParseStatus(value, out status) && status != TeamStatus.Archived;
 
-
     /// <summary>The query; call it only after the validator accepted the request.</summary>
     public PublicTeamsQuery ToQuery()
     {
