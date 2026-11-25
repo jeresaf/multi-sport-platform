@@ -366,7 +366,7 @@ Deliver:
 Acceptance:
 - [x] A team can't be created for a variant the tenant hasn't enabled (`TEAM_SPORT_NOT_ENABLED`); one organisation
       runs teams in two sports (two test variants of two test sports) and in several categories of one (tests).
-- [ ] Renaming keeps the old name as a `FORMER_NAME` alias with its dates (from `name_since`); `ITeamDirectory`
+- [x] Renaming keeps the old name as a `FORMER_NAME` alias with its dates (from `name_since`); `ITeamDirectory`
       answers the old name on a date before the rename, the new one after and the first name before `name_since`
       (tests); an `effectiveOn` on or before the current name's start or after today is `TEAM_RENAME_DATE_INVALID`;
       `PUT` can't rename.
@@ -431,7 +431,7 @@ The rest of S06's tech debt has its own trigger in PROGRESS.md ("From S06").
 
 ## Slice acceptance
 
-- [ ] An organisation can run teams in several sports and categories; renaming a team keeps the old name as a dated
+- [x] An organisation can run teams in several sports and categories; renaming a team keeps the old name as a dated
       alias; a team can't be created for a sport the tenant hasn't enabled.
 - [ ] Lifecycles follow the machines in state-machines.md; an organisation's status never changes its teams'; nothing
       is deleted.
@@ -636,3 +636,17 @@ The rest of S06's tech debt has its own trigger in PROGRESS.md ("From S06").
   nicknames and spellings, `INTERNAL`). `GET /teams?q=` adds a current alias's key, former names included (prefix of
   the key or of a word, similarity ≥ 0.3). `Team.NameOn(date)`: the current names from `name_since`, the former name
   covering the date before it, the first name before the first start; T3d's `ITeamDirectory` calls it.
+- **T3d (teams: identifiers, directory contract):** migration `AddTeamIdentifiers` allows `TEAM` in
+  `ck_external_identifiers_entity_type` (no new table). `POST /teams/{id}/external-identifiers` and
+  `…/external-identifiers/{identifierId}/end` (`team.external_id.add`, `team.external_id.end`, audit `REQUIRED`, granted
+  with `team.read`; `TENANT_OWNER`, `TENANT_ADMIN`, `REGISTRAR`) answer the team with its `ETag`, as organisations'
+  (T2d). `TEAM_DISBANDED` and `TEAM_ARCHIVED` refuse a new identifier; ending stays allowed. The add holds
+  `registry.teams:<tenantId>`; a value any team has or had with the authority is `409 TEAM_EXTERNAL_ID_EXISTS` on
+  `value`; a person's, venue's or organisation's identifier doesn't clash. `TEAM_EXTERNAL_ID_NOT_FOUND`, `…_ENDED`,
+  `…_VALIDITY_INVALID` (on `validTo`) as people's. The read (and every endpoint answering the team) gains
+  `externalIdentifiers` (`INTERNAL`; ended ones included, by authority). `GET /teams?q=` adds an identifier's exact
+  value, ended ones included; text without a letter or digit finds identifiers only. `ITeamDirectory.GetSummariesAsync
+  (ids, onDate?, …)` (D18) with its own `TeamStatus`, `GenderCategory`, `AgeGroup` and `TeamLevel` in Contracts, mapped
+  from the domain's; `onDate` null is the current names, a date before the first name began is the first name
+  (`Team.NameOn`); the aliases are loaded only when a date is asked for (owner, plan 2026-11-25). The identifier
+  table already has an isolation sample (the person's); no new sample. One PR (owner).

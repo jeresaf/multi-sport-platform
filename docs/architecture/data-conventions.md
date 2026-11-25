@@ -155,7 +155,7 @@ As built for people (S06-T1a):
   with a GIN `gin_trgm_ops` index on both name keys; queries use `EF.Functions.TrigramsSimilarity`. These two
   indexes don't start with `tenant_id` (GIN can't without `btree_gin`); RLS and the query filter still apply.
 - **External identifiers:** `registry.external_identifiers` has no foreign key to its entity (one table for every
-  registry entity type; `entity_type` is `PERSON`, `VENUE` (S07-T1c) or `ORGANISATION` (S07-T2d), with `TEAM` to come) and
+  registry entity type; `entity_type` is `PERSON`, `VENUE` (S07-T1c), `ORGANISATION` (S07-T2d) or `TEAM` (S07-T3d)) and
   a unique index on `(tenant_id, authority,
   entity_type, value)` that includes ended rows. As built (S06-T3b): `person.external_id.add` refuses a value with the
   same authority that any person has or had, this one included (`PERSON_EXTERNAL_ID_EXISTS`); one person may hold two
@@ -174,7 +174,9 @@ As built for people (S06-T1a):
   `team.rename` and keeps the name's dates (`valid_from`, `valid_to`) and the short name and code it went with; it is
   never removed (`TEAM_ALIAS_FORMER_NAME`). Nicknames and spellings take no dates. A disbanded or archived team takes
   no new alias. As organisations', a team's current aliases (former names included) are searched by the directory
-  and feed the duplicate warning (D13).
+  and feed the duplicate warning (D13). Their identifiers (S07-T3d) follow the same rules under `team.external_id.*`
+  with `TEAM_…` codes: a value any team has or had with that authority is `TEAM_EXTERNAL_ID_EXISTS`, checked under
+  `registry.teams:<tenantId>`; a disbanded or archived team takes no new identifier; ending stays allowed.
 
 As built for people (S06-T2a), the duplicate check (`DuplicateMatcher`, Registry Domain; `DuplicateFinder`):
 

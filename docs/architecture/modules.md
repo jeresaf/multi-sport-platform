@@ -235,10 +235,16 @@ same order.
 code, as a `FORMER_NAME` alias dated from the old `name_since` to the day before; the slug stays; a change to the name's or
 short name's key runs the warning again under `registry.teams:<tenantId>`. `…/{id}/aliases` adds and removes nicknames
 and spellings; former names are never removed. `Team.NameOn(date)` answers the name, short name and code on a date (the
-first name before `name_since`); `ITeamDirectory` exposes it with S07-T3d. The record shows `formerNames` (`PUBLIC`) and
+first name before `name_since`). The record shows `formerNames` (`PUBLIC`) and
 `aliases` (`INTERNAL`); the directory's `q` and the duplicate warning (`LIKELY`, both sides) match current aliases,
 former names included. Disbanded and archived teams
 take no new name or alias (`TEAM_DISBANDED`, `TEAM_ARCHIVED`).
+**As built (S07-T3d):** team external identifiers (`…/{id}/external-identifiers`, add and end; `TEAM` in
+`registry.external_identifiers`), shown on the record (`INTERNAL`) and matched exactly by the directory's `q`, ended
+ones included. `ITeamDirectory.GetSummariesAsync(ids, onDate?)` in Contracts: id, the name, short name and code on that
+date (`Team.NameOn`; the current ones without a date), variant, category codes, organisation id, status, slug, logo and
+badge asset IDs, with its own `TeamStatus`, `GenderCategory`, `AgeGroup` and `TeamLevel`; the scope's tenant only, any
+status, no action checked.
 **Absorbs:** pack specs 08–14. Owner's systems: **Player Management System**, the identity half of
 **Team Management System**. Owner's rule "duplicate players within the same tenant should be avoided at all
 costs" is implemented here (docs/build/slices/S06-people-registry.md).
