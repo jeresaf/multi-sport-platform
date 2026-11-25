@@ -125,6 +125,7 @@ public sealed class PublicTeamReadTests(PostgresFixture fixture) : RegistryImage
         await ChangeOrganisationStatusAsync(kmsa, kestrels.Id, OrganisationStatus.Dissolved);
         (await PublicAsync($"{_teams}/{team.Id}")).Json.GetProperty("organisation").GetProperty("id").GetGuid().ShouldBe(kestrels.Id);
         (await PublicAsync(_teams)).Json.GetProperty("items")[0].GetProperty("organisation").GetProperty("id").GetGuid().ShouldBe(kestrels.Id);
+        Ids((await PublicAsync($"{_teams}?organisationId={kestrels.Id}")).Json).ShouldBe([team.Id]); // only ARCHIVED hides it (re-review N1)
 
         await ChangeOrganisationStatusAsync(kmsa, kestrels.Id, OrganisationStatus.Archived);
         (await PublicAsync($"{_teams}/{team.Id}")).Json.GetProperty("organisation").ValueKind.ShouldBe(JsonValueKind.Null);

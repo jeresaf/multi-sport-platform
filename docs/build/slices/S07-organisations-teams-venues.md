@@ -688,7 +688,7 @@ The rest of S06's tech debt has its own trigger in PROGRESS.md ("From S06").
   name and short name as the admin directory and a current former name (`kind = FORMER_NAME`; `PUBLIC`, D16) as its
   aliases; never a nickname, a spelling or an identifier (owner, plan 2026-11-25). The read embeds `organisation` and
   `homeVenue` only while they aren't archived; a directory item's organisation is null when archived too (owner, plan
-  2026-11-25), and `organisationId` naming an archived organisation keeps no teams (owner, review #135 Q1). `formerNames` reuses `TeamFormerNameResponse` (newest first); nicknames, spellings and identifiers aren't
-  read. `logo` and `badge` are `{ thumbnailUrl, mediumUrl }` through `PublicImages`, in the items too (owner,
-  2026-11-25). Separate public DTOs (`PublicTeamResponse`, `PublicTeamListItem`). No migration, actions, errors or
-  events.
+  2026-11-25), and `organisationId` naming an archived organisation keeps no teams (owner, review #135 Q1).
+  `formerNames` reuses `TeamFormerNameResponse` (newest first); nicknames, spellings and identifiers aren't read. `logo`
+  and `badge` are `{ thumbnailUrl, mediumUrl }` through `PublicImages`, in the items too (owner, 2026-11-25). Separate
+  public DTOs (`PublicTeamResponse`, `PublicTeamListItem`). No migration, actions, errors or events.

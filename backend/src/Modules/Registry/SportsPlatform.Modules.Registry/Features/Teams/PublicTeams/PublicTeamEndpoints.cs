@@ -32,12 +32,12 @@ internal static class PublicTeamEndpoints
                 "punctuation), then category (age group `SENIOR`, `U6` … `U23`, `VETERANS`; then gender `MEN`, `WOMEN`, " +
                 "`MIXED`; then level `FIRST`, `RESERVE`, `DEVELOPMENT`, `ACADEMY`), then ID. `status` keeps one status " +
                 "(`ACTIVE` when left out; archived teams aren't public). `variant`, `organisationId`, `genderCategory`, " +
-                "`ageGroup` and `level` keep the teams that have them (an unknown variant, or an unknown or archived organisation, keeps " +
-                "none). `q` " +
-                "matches the name or one of its words by prefix and by similarity, the short name by prefix, and a former " +
-                "name by prefix and by similarity (word order and punctuation aside). Each item carries its organisation " +
-                "(id, display name, slug; null when independent or archived). `limit` is 1–100 (25). `logo` and `badge` " +
-                "hold the public asset route's paths (null without one). Cacheable for a minute.")
+                "`ageGroup` and `level` keep the teams that have them (an unknown variant, or an unknown or archived " +
+                "organisation, keeps none). `q` matches the name or one of its words by prefix and by similarity, the " +
+                "short name by prefix, and a former name by prefix and by similarity (word order and punctuation aside). " +
+                "Each item carries its organisation (id, display name, slug; null when independent or archived). `limit` " +
+                "is 1–100 (25). `logo` and `badge` hold the public asset route's paths (null without one). Cacheable for " +
+                "a minute.")
             .RequirePublicTenant()
             .ValidateRequest<ListPublicTeamsRequest>(CommonErrors.InvalidQuery)
             .DocumentsQueryUuid("organisationId")
