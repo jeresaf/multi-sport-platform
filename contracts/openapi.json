@@ -460,6 +460,361 @@
         }
       }
     },
+    "/api/public/v1/organisations": {
+      "get": {
+        "tags": [
+          "Public organisations"
+        ],
+        "summary": "List organisations on the public site",
+        "description": "The organisations of the tenant whose site this host serves, sorted by display name (ignoring case, accents and punctuation) and ID. `status` keeps one status (`ACTIVE` when left out; archived organisations aren't public). `type` keeps that type. `q` matches the display name or one of its words by prefix and by similarity, and the short name by prefix (word order and punctuation aside). `limit` is 1–100 (25). `logo` holds the public asset route's paths (null without one). Cacheable for a minute.",
+        "operationId": "ListPublicOrganisations",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "schema": {
+              "enum": [
+                "CLUB",
+                "SCHOOL",
+                "UNIVERSITY",
+                "ACADEMY",
+                "FEDERATION",
+                "ASSOCIATION",
+                "COMPANY",
+                "COMMUNITY",
+                "GOVERNMENT",
+                "OTHER"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "enum": [
+                "ACTIVE",
+                "INACTIVE",
+                "SUSPENDED",
+                "DISSOLVED"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer",
+              "default": 25
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListPublicOrganisationsResponse"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Not Modified"
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_QUERY`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_QUERY"
+            ]
+          },
+          "404": {
+            "description": "Problem Details; `code`: `TENANT_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "TENANT_NOT_FOUND"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `TENANT_UNAVAILABLE`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "TENANT_UNAVAILABLE"
+            ]
+          }
+        }
+      }
+    },
+    "/api/public/v1/organisations/{idOrSlug}": {
+      "get": {
+        "tags": [
+          "Public organisations"
+        ],
+        "summary": "Get an organisation on the public site",
+        "description": "An organisation of the tenant whose site this host serves, by ID or slug, in any status but `ARCHIVED` (ORGANISATION_NOT_FOUND). Its public fields only: type, names, country, city, founded year, website, description, `primaryVenue` (id, name, slug), `parent` (id, display name, slug, status), `children` and `teams` (as the admin read's), status and `logo`. An archived primary venue or parent is null; archived children and teams are left out. Cacheable for a minute; send the `ETag` back as `If-None-Match` to get 304.",
+        "operationId": "GetPublicOrganisation",
+        "parameters": [
+          {
+            "name": "idOrSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicOrganisationResponse"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Not Modified"
+          },
+          "404": {
+            "description": "Problem Details; `code`: `ORGANISATION_NOT_FOUND`, `TENANT_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "ORGANISATION_NOT_FOUND",
+              "TENANT_NOT_FOUND"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `TENANT_UNAVAILABLE`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "TENANT_UNAVAILABLE"
+            ]
+          }
+        }
+      }
+    },
+    "/api/public/v1/venues": {
+      "get": {
+        "tags": [
+          "Public venues"
+        ],
+        "summary": "List venues on the public site",
+        "description": "The venues of the tenant whose site this host serves, sorted by name (ignoring case, accents and punctuation) and ID. `status` keeps one status (`ACTIVE` when left out; archived venues aren't public). `variant` keeps venues that support that sport variant (a code). `q` matches the name or one of its words by prefix and by similarity. `limit` is 1–100 (25). Cacheable for a minute.",
+        "operationId": "ListPublicVenues",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "variant",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "enum": [
+                "ACTIVE",
+                "TEMPORARILY_UNAVAILABLE",
+                "CLOSED"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer",
+              "default": 25
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListPublicVenuesResponse"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Not Modified"
+          },
+          "400": {
+            "description": "Problem Details; `code`: `VALIDATION_INVALID_QUERY`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "VALIDATION_INVALID_QUERY"
+            ]
+          },
+          "404": {
+            "description": "Problem Details; `code`: `TENANT_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "TENANT_NOT_FOUND"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `TENANT_UNAVAILABLE`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "TENANT_UNAVAILABLE"
+            ]
+          }
+        }
+      }
+    },
+    "/api/public/v1/venues/{idOrSlug}": {
+      "get": {
+        "tags": [
+          "Public venues"
+        ],
+        "summary": "Get a venue on the public site",
+        "description": "A venue of the tenant whose site this host serves, by ID or slug, in any status but `ARCHIVED` (VENUE_NOT_FOUND). Its public fields only: names, type, address, city, region, country, coordinates, time zone, capacity, surfaces, supported variants and status. Cacheable for a minute; send the `ETag` back as `If-None-Match` to get 304.",
+        "operationId": "GetPublicVenue",
+        "parameters": [
+          {
+            "name": "idOrSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicVenueResponse"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Not Modified"
+          },
+          "404": {
+            "description": "Problem Details; `code`: `TENANT_NOT_FOUND`, `VENUE_NOT_FOUND`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "TENANT_NOT_FOUND",
+              "VENUE_NOT_FOUND"
+            ]
+          },
+          "403": {
+            "description": "Problem Details; `code`: `TENANT_UNAVAILABLE`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "x-error-codes": [
+              "TENANT_UNAVAILABLE"
+            ]
+          }
+        }
+      }
+    },
     "/api/admin/v1/tenant/settings": {
       "get": {
         "tags": [
@@ -19077,6 +19432,43 @@
           }
         }
       },
+      "ListPublicOrganisationsResponse": {
+        "required": [
+          "items",
+          "page"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicOrganisationListItem"
+            }
+          },
+          "page": {
+            "$ref": "#/components/schemas/PublicPageInfo"
+          }
+        }
+      },
+      "ListPublicVenuesResponse": {
+        "required": [
+          "items",
+          "page"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VenueListItem"
+            }
+          },
+          "page": {
+            "$ref": "#/components/schemas/PublicPageInfo"
+          }
+        },
+        "description": "The public venue directory's page (S07 D17): the admin directory's items (every field is public, D16) and a public\npage whose cursor carries only the name's sort key and an ID."
+      },
       "ListRulesetTemplatesResponse": {
         "required": [
           "items"
@@ -20994,6 +21386,215 @@
         },
         "description": "An active athlete profile: the definition's codes (labels from `GET /sports/{variant}`, AR-29)."
       },
+      "PublicImageResponse": {
+        "required": [
+          "thumbnailUrl",
+          "mediumUrl"
+        ],
+        "type": "object",
+        "properties": {
+          "thumbnailUrl": {
+            "type": "string"
+          },
+          "mediumUrl": {
+            "type": "string"
+          }
+        },
+        "description": "A logo or badge as the public reads link it (S07 D15; owner, plan 2026-11-25): the paths of its two variants on the\npublic asset route, relative to the API's origin on the tenant's host. They don't expire; the route answers only while\nthe asset is active and public."
+      },
+      "PublicOrganisationListItem": {
+        "required": [
+          "id",
+          "displayName",
+          "shortName",
+          "slug",
+          "type",
+          "city",
+          "country",
+          "status",
+          "logo"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "shortName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "slug": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/OrganisationType"
+          },
+          "city": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "country": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/OrganisationStatus"
+          },
+          "logo": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PublicImageResponse"
+              }
+            ]
+          }
+        },
+        "description": "An organisation in the public directory (S07 D17): the admin directory's fields and the logo's paths."
+      },
+      "PublicOrganisationResponse": {
+        "required": [
+          "id",
+          "type",
+          "displayName",
+          "shortName",
+          "slug",
+          "country",
+          "city",
+          "foundedYear",
+          "website",
+          "description",
+          "primaryVenue",
+          "parent",
+          "children",
+          "teams",
+          "status",
+          "logo"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "$ref": "#/components/schemas/OrganisationType"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "shortName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "slug": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          },
+          "city": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "foundedYear": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "website": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "primaryVenue": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/OrganisationVenueResponse"
+              }
+            ]
+          },
+          "parent": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/OrganisationSummaryResponse"
+              }
+            ]
+          },
+          "children": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrganisationSummaryResponse"
+            }
+          },
+          "teams": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrganisationTeamResponse"
+            }
+          },
+          "status": {
+            "$ref": "#/components/schemas/OrganisationStatus"
+          },
+          "logo": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PublicImageResponse"
+              }
+            ]
+          }
+        },
+        "description": "An organisation on the public site (S07 D17): its `PUBLIC` fields only (D16; no legal name, email, phone, aliases\nor identifiers). `primaryVenue` and `parent` are null without one or when that record is archived; children\nand teams leave archived ones out. `logo` holds the public asset route's paths."
+      },
+      "PublicPageInfo": {
+        "required": [
+          "nextCursor",
+          "hasMore"
+        ],
+        "type": "object",
+        "properties": {
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        },
+        "description": "The page of a public list: the cursor to send for the next page (null on the last) and whether there is one."
+      },
       "PublicPersonPhotoResponse": {
         "required": [
           "thumbnailUrl",
@@ -21055,6 +21656,106 @@
           }
         },
         "description": "A person on the tenant's public site (S06 D18): only `PUBLIC` fields. For a person who isn't an adult on the\ntenant's date, the display name only, plus the photo with `PHOTO` consent (ADR-0015): `nationality` is null and\n`athleteProfiles` is empty."
+      },
+      "PublicVenueResponse": {
+        "required": [
+          "id",
+          "name",
+          "shortName",
+          "slug",
+          "type",
+          "addressLine",
+          "city",
+          "region",
+          "country",
+          "latitude",
+          "longitude",
+          "timeZone",
+          "capacity",
+          "surfaces",
+          "supportedVariants",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "shortName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "slug": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/VenueType"
+          },
+          "addressLine": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "city": {
+            "type": "string"
+          },
+          "region": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "country": {
+            "type": "string"
+          },
+          "latitude": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "longitude": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "timeZone": {
+            "type": "string"
+          },
+          "capacity": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "surfaces": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VenueSurface"
+            }
+          },
+          "supportedVariants": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "status": {
+            "$ref": "#/components/schemas/VenueStatus"
+          }
+        },
+        "description": "A venue on the public site (S07 D17): its `PUBLIC` fields only (D16; no aliases or identifiers)."
       },
       "QuotaUsageResponse": {
         "required": [
@@ -25361,6 +26062,12 @@
     },
     {
       "name": "Public people"
+    },
+    {
+      "name": "Public organisations"
+    },
+    {
+      "name": "Public venues"
     },
     {
       "name": "Tenant settings"

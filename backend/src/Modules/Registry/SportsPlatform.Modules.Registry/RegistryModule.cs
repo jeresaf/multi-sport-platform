@@ -20,6 +20,7 @@ using SportsPlatform.Modules.Registry.Features.Organisations.ListOrganisationPar
 using SportsPlatform.Modules.Registry.Features.Organisations.ListOrganisations;
 using SportsPlatform.Modules.Registry.Features.Organisations.ListOrganisationStatusChanges;
 using SportsPlatform.Modules.Registry.Features.Organisations.Logo;
+using SportsPlatform.Modules.Registry.Features.Organisations.PublicOrganisations;
 using SportsPlatform.Modules.Registry.Features.Organisations.SetOrganisationParent;
 using SportsPlatform.Modules.Registry.Features.Organisations.UpdateOrganisation;
 using SportsPlatform.Modules.Registry.Features.People;
@@ -59,6 +60,7 @@ using SportsPlatform.Modules.Registry.Features.Venues.ExternalIdentifiers;
 using SportsPlatform.Modules.Registry.Features.Venues.GetVenue;
 using SportsPlatform.Modules.Registry.Features.Venues.ListVenues;
 using SportsPlatform.Modules.Registry.Features.Venues.ListVenueStatusChanges;
+using SportsPlatform.Modules.Registry.Features.Venues.PublicVenues;
 using SportsPlatform.Modules.Registry.Features.Venues.UpdateVenue;
 using SportsPlatform.Modules.Registry.Infrastructure;
 using SportsPlatform.Modules.Registry.Seed.Demo;
@@ -179,6 +181,11 @@ public sealed class RegistryModule : IModule
         services.AddScoped<AddVenueExternalIdentifierHandler>();
         services.AddScoped<EndVenueExternalIdentifierHandler>();
         services.AddScoped<IVenueDirectory, VenueDirectory>();
+        services.AddScoped<PublicImages>();
+        services.AddScoped<GetPublicOrganisationHandler>();
+        services.AddScoped<ListPublicOrganisationsHandler>();
+        services.AddScoped<GetPublicVenueHandler>();
+        services.AddScoped<ListPublicVenuesHandler>();
         services.AddSingleton<IValidator<ListPeopleRequest>, ListPeopleRequestValidator>();
         services.AddScoped<IValidator<CheckDuplicatesRequest>, CheckDuplicatesRequestValidator>();
         services.AddScoped<IValidator<CreatePersonRequest>, CreatePersonRequestValidator>();
@@ -217,6 +224,8 @@ public sealed class RegistryModule : IModule
         services.AddSingleton<IValidator<ListOrganisationsRequest>, ListOrganisationsRequestValidator>();
         services.AddSingleton<IValidator<ListVenuesRequest>, ListVenuesRequestValidator>();
         services.AddSingleton<IValidator<ListTeamsRequest>, ListTeamsRequestValidator>();
+        services.AddSingleton<IValidator<ListPublicOrganisationsRequest>, ListPublicOrganisationsRequestValidator>();
+        services.AddSingleton<IValidator<ListPublicVenuesRequest>, ListPublicVenuesRequestValidator>();
         services.AddSingleton<IValidator<RenameTeamRequest>, RenameTeamRequestValidator>();
         services.AddSingleton<IValidator<AddTeamAliasRequest>, AddTeamAliasRequestValidator>();
         services.AddSingleton<IValidator<RemoveTeamAliasRequest>, RemoveTeamAliasRequestValidator>();
@@ -291,5 +300,7 @@ public sealed class RegistryModule : IModule
         VenueExternalIdentifierEndpoints.Map(venues);
 
         PublicPersonEndpoints.Map(groups.Public);
+        PublicOrganisationEndpoints.Map(groups.Public);
+        PublicVenueEndpoints.Map(groups.Public);
     }
 }

@@ -256,6 +256,11 @@ status, no action checked.
 `STORAGE_GB` check (`RegistryMedia`, shared with person photos and consent evidence), name the new asset, then mark the
 old one `REMOVED`. A dissolved or archived organisation, or a disbanded or archived team, takes no new image; removing
 works in any status. The organisation and team reads carry the images' signed URLs (`RegistryImageUrls`).
+**As built (S07-T5a):** public reads of organisations and venues under the request host's tenant (D17):
+`GET /api/public/v1/organisations` and `…/venues` (one status, `ACTIVE` by default, never `ARCHIVED`; search on public
+names only) and `…/{idOrSlug}` (a UUID is an ID, anything else a slug), `PUBLIC` fields only, cacheable for a minute.
+An archived record is not found; an archived primary venue or parent is embedded as null. Logos are linked by the
+public asset route's paths (`PublicImages`, through `IMediaAssets.GetPublicPath`), in the directory too.
 **Absorbs:** pack specs 08–14. Owner's systems: **Player Management System**, the identity half of
 **Team Management System**. Owner's rule "duplicate players within the same tenant should be avoided at all
 costs" is implemented here (docs/build/slices/S06-people-registry.md).

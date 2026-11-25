@@ -184,6 +184,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/public/v1/organisations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List organisations on the public site
+         * @description The organisations of the tenant whose site this host serves, sorted by display name (ignoring case, accents and punctuation) and ID. `status` keeps one status (`ACTIVE` when left out; archived organisations aren't public). `type` keeps that type. `q` matches the display name or one of its words by prefix and by similarity, and the short name by prefix (word order and punctuation aside). `limit` is 1–100 (25). `logo` holds the public asset route's paths (null without one). Cacheable for a minute.
+         */
+        get: operations["ListPublicOrganisations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/public/v1/organisations/{idOrSlug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get an organisation on the public site
+         * @description An organisation of the tenant whose site this host serves, by ID or slug, in any status but `ARCHIVED` (ORGANISATION_NOT_FOUND). Its public fields only: type, names, country, city, founded year, website, description, `primaryVenue` (id, name, slug), `parent` (id, display name, slug, status), `children` and `teams` (as the admin read's), status and `logo`. An archived primary venue or parent is null; archived children and teams are left out. Cacheable for a minute; send the `ETag` back as `If-None-Match` to get 304.
+         */
+        get: operations["GetPublicOrganisation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/public/v1/venues": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List venues on the public site
+         * @description The venues of the tenant whose site this host serves, sorted by name (ignoring case, accents and punctuation) and ID. `status` keeps one status (`ACTIVE` when left out; archived venues aren't public). `variant` keeps venues that support that sport variant (a code). `q` matches the name or one of its words by prefix and by similarity. `limit` is 1–100 (25). Cacheable for a minute.
+         */
+        get: operations["ListPublicVenues"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/public/v1/venues/{idOrSlug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a venue on the public site
+         * @description A venue of the tenant whose site this host serves, by ID or slug, in any status but `ARCHIVED` (VENUE_NOT_FOUND). Its public fields only: names, type, address, city, region, country, coordinates, time zone, capacity, surfaces, supported variants and status. Cacheable for a minute; send the `ETag` back as `If-None-Match` to get 304.
+         */
+        get: operations["GetPublicVenue"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/v1/tenant/settings": {
         parameters: {
             query?: never;
@@ -3628,6 +3708,18 @@ export interface components {
         ListPlansResponse: {
             items: components["schemas"]["PlanResponse"][];
         };
+        ListPublicOrganisationsResponse: {
+            items: components["schemas"]["PublicOrganisationListItem"][];
+            page: components["schemas"]["PublicPageInfo"];
+        };
+        /**
+         * @description The public venue directory's page (S07 D17): the admin directory's items (every field is public, D16) and a public
+         *     page whose cursor carries only the name's sort key and an ID.
+         */
+        ListPublicVenuesResponse: {
+            items: components["schemas"]["VenueListItem"][];
+            page: components["schemas"]["PublicPageInfo"];
+        };
         ListRulesetTemplatesResponse: {
             items: components["schemas"]["RulesetTemplateResponse"][];
         };
@@ -4213,6 +4305,58 @@ export interface components {
             publicName: null | string;
         };
         /**
+         * @description A logo or badge as the public reads link it (S07 D15; owner, plan 2026-11-25): the paths of its two variants on the
+         *     public asset route, relative to the API's origin on the tenant's host. They don't expire; the route answers only while
+         *     the asset is active and public.
+         */
+        PublicImageResponse: {
+            thumbnailUrl: string;
+            mediumUrl: string;
+        };
+        /** @description An organisation in the public directory (S07 D17): the admin directory's fields and the logo's paths. */
+        PublicOrganisationListItem: {
+            /** Format: uuid */
+            id: string;
+            displayName: string;
+            shortName: null | string;
+            slug: string;
+            type: components["schemas"]["OrganisationType"];
+            city: null | string;
+            country: string;
+            status: components["schemas"]["OrganisationStatus"];
+            logo: null | components["schemas"]["PublicImageResponse"];
+        };
+        /**
+         * @description An organisation on the public site (S07 D17): its `PUBLIC` fields only (D16; no legal name, email, phone, aliases
+         *     or identifiers). `primaryVenue` and `parent` are null without one or when that record is archived; children
+         *     and teams leave archived ones out. `logo` holds the public asset route's paths.
+         */
+        PublicOrganisationResponse: {
+            /** Format: uuid */
+            id: string;
+            type: components["schemas"]["OrganisationType"];
+            displayName: string;
+            shortName: null | string;
+            slug: string;
+            country: string;
+            city: null | string;
+            /** Format: int32 */
+            foundedYear: null | number;
+            website: null | string;
+            description: null | string;
+            primaryVenue: null | components["schemas"]["OrganisationVenueResponse"];
+            parent: null | components["schemas"]["OrganisationSummaryResponse"];
+            children: components["schemas"]["OrganisationSummaryResponse"][];
+            teams: components["schemas"]["OrganisationTeamResponse"][];
+            status: components["schemas"]["OrganisationStatus"];
+            logo: null | components["schemas"]["PublicImageResponse"];
+        };
+        /** @description The page of a public list: the cursor to send for the next page (null on the last) and whether there is one. */
+        PublicPageInfo: {
+            nextCursor: null | string;
+            hasMore: boolean;
+        };
+        /**
          * @description The photo's public routes (`GET /people/{personId}/photo?variant=`): stable paths, relative to the API's origin,
          *     that check the person's exposure on every request.
          */
@@ -4233,6 +4377,29 @@ export interface components {
             nationality: null | string;
             photo: null | components["schemas"]["PublicPersonPhotoResponse"];
             athleteProfiles: components["schemas"]["PublicAthleteProfileResponse"][];
+        };
+        /** @description A venue on the public site (S07 D17): its `PUBLIC` fields only (D16; no aliases or identifiers). */
+        PublicVenueResponse: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            shortName: null | string;
+            slug: string;
+            type: components["schemas"]["VenueType"];
+            addressLine: null | string;
+            city: string;
+            region: null | string;
+            country: string;
+            /** Format: double */
+            latitude: null | number;
+            /** Format: double */
+            longitude: null | number;
+            timeZone: string;
+            /** Format: int32 */
+            capacity: null | number;
+            surfaces: components["schemas"]["VenueSurface"][];
+            supportedVariants: string[];
+            status: components["schemas"]["VenueStatus"];
         };
         /**
          * @description One quota's usage (S04 D15): `used` of `limit` (null = unlimited) when a module measures it
@@ -5889,6 +6056,220 @@ export interface operations {
                 };
             };
             /** @description Problem Details; `code`: `PERSON_NOT_FOUND`, `PERSON_PHOTO_NOT_FOUND`, `TENANT_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListPublicOrganisations: {
+        parameters: {
+            query?: {
+                q?: string;
+                type?: "CLUB" | "SCHOOL" | "UNIVERSITY" | "ACADEMY" | "FEDERATION" | "ASSOCIATION" | "COMPANY" | "COMMUNITY" | "GOVERNMENT" | "OTHER";
+                status?: "ACTIVE" | "INACTIVE" | "SUSPENDED" | "DISSOLVED";
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListPublicOrganisationsResponse"];
+                };
+            };
+            /** @description Not Modified */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_QUERY` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TENANT_UNAVAILABLE` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TENANT_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetPublicOrganisation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idOrSlug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicOrganisationResponse"];
+                };
+            };
+            /** @description Not Modified */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Problem Details; `code`: `TENANT_UNAVAILABLE` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `ORGANISATION_NOT_FOUND`, `TENANT_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListPublicVenues: {
+        parameters: {
+            query?: {
+                q?: string;
+                variant?: string;
+                status?: "ACTIVE" | "TEMPORARILY_UNAVAILABLE" | "CLOSED";
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListPublicVenuesResponse"];
+                };
+            };
+            /** @description Not Modified */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_QUERY` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TENANT_UNAVAILABLE` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TENANT_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetPublicVenue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idOrSlug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicVenueResponse"];
+                };
+            };
+            /** @description Not Modified */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Problem Details; `code`: `TENANT_UNAVAILABLE` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TENANT_NOT_FOUND`, `VENUE_NOT_FOUND` */
             404: {
                 headers: {
                     [name: string]: unknown;

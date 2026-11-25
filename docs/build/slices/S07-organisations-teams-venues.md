@@ -393,7 +393,7 @@ Deliver:
 
 Acceptance:
 - [ ] Public reads answer only `PUBLIC` fields (the classification test covers the new DTOs); an archived record is
-      `404`; another tenant's host never sees the record (tests).
+      `404`; another tenant's host never sees the record (tests). Organisations and venues: T5a (`PublicOrganisationAndVenueReadTests`); teams: T5b.
 - [ ] A team read shows its former names with dates, its organisation and home venue, and its logo URL on the
       tenant's host; an archived organisation or venue is embedded as `null` (tests).
 
@@ -667,3 +667,17 @@ The rest of S06's tech debt has its own trigger in PROGRESS.md ("From S06").
   `404 ORGANISATION_LOGO_NOT_FOUND`, `TEAM_LOGO_NOT_FOUND` or `TEAM_BADGE_NOT_FOUND` (new). The organisation and team
   reads gain `logo` (and `badge`): `{ thumbnailUrl, mediumUrl, expiresAt }` (`INTERNAL`, signed), null without one or when
   Platform doesn't serve it (logged). Directories and summaries carry no URLs (D19). `PersonMedia` became `RegistryMedia`.
+- **T5a (public reads: organisations and venues):** T5 is two PRs (owner, plan 2026-11-25): T5a organisations and
+  venues, T5b teams. `GET /api/public/v1/organisations` (`q`, `type`, `status`, `limit`, `cursor`) and `…/venues` (`q`,
+  `variant`, `status`, `limit`, `cursor`; no `city`, as D17 lists) and `…/{idOrSlug}`: `.RequirePublicTenant()`,
+  `CacheableJson` 60 s. `{idOrSlug}` is an ID when it is a UUID in the `D` form, else a slug; a value that is neither
+  finds nothing without a query (`IdOrSlug`). Directories list one status, `ACTIVE` when none is sent; `status=ARCHIVED`
+  is `400 VALIDATION_INVALID_QUERY` and OpenAPI lists the other statuses (owner). `q` matches public text only (D16):
+  an organisation's display name as the admin directory does and its short name by name-key prefix, a venue's name; never
+  a legal name, an alias or an identifier; text without a letter or digit matches nothing. The organisation read embeds
+  `primaryVenue` and `parent` only while they aren't archived (null otherwise); children and teams leave archived ones
+  out, as the admin read. Images are `logo: { thumbnailUrl, mediumUrl }` (null without one; owner: both variants, not
+  D15's single `logoUrl`) built by `PublicImages` through `GetPublicPath`, in the directory items too (owner: the paths
+  cost no query). Public DTOs are separate from the admin ones (review #130 R2); the venue directory reuses
+  `VenueListItem` (every field public). A public list's `page` is the new `PublicPageInfo` (BuildingBlocks; `PageInfo`
+  members classified `PUBLIC`), which `PublicDtoClassificationTests` required. No migration, actions, errors or events.
