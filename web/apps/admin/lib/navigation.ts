@@ -9,6 +9,7 @@ import {
   CreditCard,
   LayoutDashboard,
   ListChecks,
+  MapPin,
   Network,
   Package,
   ScrollText,
@@ -39,6 +40,7 @@ export function tenantNavigation(slug: string): NavItem[] {
   return [
     { label: "Overview", href: root, icon: LayoutDashboard },
     { label: "People", href: `${root}/people`, icon: UserRound, action: "person.read", group: registry },
+    { label: "Venues", href: `${root}/venues`, icon: MapPin, action: "venue.read", group: registry },
     { label: "Sports", href: `${root}/sports`, icon: Trophy, action: "sport.read", group: sportsConfiguration },
     { label: "Formats", href: `${root}/formats`, icon: Network, action: "format.read", group: sportsConfiguration },
     {
