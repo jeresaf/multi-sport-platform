@@ -1,16 +1,20 @@
 using SportsPlatform.BuildingBlocks.Actors;
+using SportsPlatform.Modules.Registry;
 using SportsPlatform.Modules.Registry.Domain;
+using SportsPlatform.Modules.Registry.Domain.People;
 using SportsPlatform.Modules.Registry.Domain.Teams;
 using SportsPlatform.Modules.Registry.Features.Teams;
 using SportsPlatform.Modules.Registry.Features.Teams.CreateTeam;
 using SportsPlatform.Modules.Registry.Infrastructure;
+using Contracts = SportsPlatform.Modules.Registry.Contracts.Teams;
 
 namespace SportsPlatform.UnitTests.Registry;
 
 /// <summary>
 /// Teams (S07-T3a, T3b-1): the record's keys, name's start and first history row (D6, D8, D13), the colours' order, the
 /// slug proposed from the name and category (D9; owner, T3a plan), the warning's input, the places the quota counts (D14,
-/// Q50), the conflict code (D2), the update that keeps the name (D8, D11) and the lifecycle (D12, Q55).
+/// Q50), the conflict code (D2), the update that keeps the name (D8, D11), the lifecycle (D12, Q55), and (T3d) the
+/// identifier's codes and the directory's mappings (D10, D18).
 /// </summary>
 public sealed class TeamTests
 {
@@ -226,6 +230,35 @@ public sealed class TeamTests
             .ShouldBe(("Ntinda Swifts FC", "fc ntinda swifts", "TESTBALL_FULL", "ntinda-swifts", "Swifts", "swifts", "NSW", "By the lake"));
         Should.Throw<ArgumentException>(() => team.Update(same with { Name = "Bunga Lakeside FC" }, "ntinda-swifts"));
         Should.Throw<ArgumentException>(() => team.Update(same, "Ntinda Swifts"));
+    }
+
+    // S07 D10 (T3d): ending a team's identifier answers in the team's area.
+    [Fact]
+    public void Ending_a_teams_identifier_answers_with_the_team_codes()
+    {
+        var today = new DateOnly(2026, 11, 25);
+        var identifier = ExternalIdentifier.ForTeam(Guid.CreateVersion7(), "KMSA_TEAM_NO", " KMSA-T-0147 ", today.AddDays(-5));
+
+        (identifier.EntityType, identifier.Value).ShouldBe((ExternalIdentifierEntityType.Team, "KMSA-T-0147"));
+        identifier.End(today.AddDays(1), today).Error.ShouldBe(RegistryErrors.TeamExternalIdValidityInvalid);
+        identifier.End(today.AddDays(-6), today).Error.ShouldBe(RegistryErrors.TeamExternalIdValidityInvalid);
+        identifier.End(today, today).IsSuccess.ShouldBeTrue();
+        identifier.End(today, today).Error.ShouldBe(RegistryErrors.TeamExternalIdEnded);
+        Should.Throw<ArgumentException>(() => ExternalIdentifier.ForTeam(Guid.Empty, "KMSA_TEAM_NO", "KMSA-T-0147"));
+    }
+
+    // S07 D18 (T3d): every domain value has the contract value of its name (the mappings are written by hand).
+    [Fact]
+    public void The_directory_maps_every_status_and_category_code_to_the_contract_value_of_its_name()
+    {
+        Enum.GetValues<TeamStatus>().Select(value => TeamDirectory.Map(value).ToString()).ShouldBe(Enum.GetNames<TeamStatus>());
+        Enum.GetValues<GenderCategory>().Select(value => TeamDirectory.Map(value).ToString()).ShouldBe(Enum.GetNames<GenderCategory>());
+        Enum.GetValues<AgeGroup>().Select(value => TeamDirectory.Map(value).ToString()).ShouldBe(Enum.GetNames<AgeGroup>());
+        Enum.GetValues<TeamLevel>().Select(value => TeamDirectory.Map(value).ToString()).ShouldBe(Enum.GetNames<TeamLevel>());
+        Enum.GetNames<Contracts.TeamStatus>().ShouldBe(Enum.GetNames<TeamStatus>());
+        Enum.GetNames<Contracts.GenderCategory>().ShouldBe(Enum.GetNames<GenderCategory>());
+        Enum.GetNames<Contracts.AgeGroup>().ShouldBe(Enum.GetNames<AgeGroup>());
+        Enum.GetNames<Contracts.TeamLevel>().ShouldBe(Enum.GetNames<TeamLevel>());
     }
 
     private static Team NewTeam() =>

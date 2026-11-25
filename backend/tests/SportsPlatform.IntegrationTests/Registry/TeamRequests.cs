@@ -30,6 +30,11 @@ internal static class TeamRequests
 
     public static string TeamAliasPath(Guid teamId, Guid aliasId, string action) => $"{TeamsPath}/{teamId}/aliases/{aliasId}/{action}";
 
+    public static string TeamIdentifiersPath(Guid teamId) => $"{TeamsPath}/{teamId}/external-identifiers";
+
+    public static string TeamIdentifierPath(Guid teamId, Guid identifierId, string action) =>
+        $"{TeamsPath}/{teamId}/external-identifiers/{identifierId}/{action}";
+
     /// <summary>Moves a team over HTTP and answers the team; <paramref name="ifMatch"/> is sent when given.</summary>
     public static async Task<JsonElement> MoveTeamAsync(HttpClient client, Guid teamId, string status, string reason, string? ifMatch = null)
     {
