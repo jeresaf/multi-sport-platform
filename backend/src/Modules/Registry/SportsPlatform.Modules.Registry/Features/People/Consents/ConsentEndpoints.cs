@@ -99,7 +99,7 @@ internal static class ConsentEndpoints
                 "since. Answers the person as GET /people/{personId} does; its version moves.")
             .RequireAction(RegistryActions.PersonConsentEvidenceUpload)
             .DisableAntiforgery()
-            .WithMetadata(new StoresMediaMetadata())
+            .WithMetadata(new StoresMediaMetadata(MediaPurpose.ConsentEvidence))
             .AcceptsIfMatch()
             .ReturnsETag()
             .ProducesErrors(

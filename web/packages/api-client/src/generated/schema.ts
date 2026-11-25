@@ -10830,7 +10830,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description Problem Details; `code`: `MEDIA_IMAGE_UNREADABLE`, `MEDIA_TYPE_NOT_ALLOWED` */
+            /** @description Problem Details; `code`: `MEDIA_IMAGE_TOO_SMALL`, `MEDIA_IMAGE_UNREADABLE`, `MEDIA_TYPE_NOT_ALLOWED` */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -11847,7 +11847,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description Problem Details; `code`: `MEDIA_IMAGE_UNREADABLE`, `MEDIA_TYPE_NOT_ALLOWED` */
+            /** @description Problem Details; `code`: `MEDIA_IMAGE_TOO_SMALL`, `MEDIA_IMAGE_UNREADABLE`, `MEDIA_TYPE_NOT_ALLOWED` */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -12015,7 +12015,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description Problem Details; `code`: `MEDIA_IMAGE_UNREADABLE`, `MEDIA_TYPE_NOT_ALLOWED` */
+            /** @description Problem Details; `code`: `MEDIA_IMAGE_TOO_SMALL`, `MEDIA_IMAGE_UNREADABLE`, `MEDIA_TYPE_NOT_ALLOWED` */
             422: {
                 headers: {
                     [name: string]: unknown;

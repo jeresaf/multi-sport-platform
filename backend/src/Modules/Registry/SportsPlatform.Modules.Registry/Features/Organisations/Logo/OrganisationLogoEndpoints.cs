@@ -32,7 +32,7 @@ internal static class OrganisationLogoEndpoints
                 _versionNote)
             .RequireAction(RegistryActions.OrganisationLogoSet)
             .DisableAntiforgery()
-            .WithMetadata(new StoresMediaMetadata())
+            .WithMetadata(new StoresMediaMetadata(MediaPurpose.OrgLogo))
             .AcceptsIfMatch()
             .ReturnsETag()
             .ProducesErrors(

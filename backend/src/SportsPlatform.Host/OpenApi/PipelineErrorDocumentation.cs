@@ -7,6 +7,7 @@ using SportsPlatform.BuildingBlocks.Results;
 using SportsPlatform.Host.Authorization;
 using SportsPlatform.Modules.Platform;
 using SportsPlatform.Modules.Platform.Contracts.Media;
+using SportsPlatform.Modules.Platform.Features.Media;
 using SportsPlatform.Modules.Tenancy;
 
 namespace SportsPlatform.Host.OpenApi;
@@ -58,9 +59,13 @@ internal static class PipelineErrorDocumentation
                 errors.Add(CommonErrors.MalformedRequest);
             }
 
-            if (endpoint.Metadata.OfType<StoresMediaMetadata>().Any())
+            if (endpoint.Metadata.OfType<StoresMediaMetadata>().LastOrDefault() is { } stores)
             {
                 errors.AddRange([PlatformErrors.MediaTypeNotAllowed, PlatformErrors.MediaTooLarge, PlatformErrors.MediaImageUnreadable]);
+                if (MediaRules.MinShorterSide(stores.Purpose) > 1)
+                {
+                    errors.Add(PlatformErrors.MediaImageTooSmall);
+                }
             }
 
             if (endpoint.Metadata.OfType<RunsUnderRouteTenantMetadata>().Any())

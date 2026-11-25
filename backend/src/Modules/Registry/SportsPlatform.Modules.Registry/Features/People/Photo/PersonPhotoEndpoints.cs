@@ -40,7 +40,7 @@ internal static class PersonPhotoEndpoints
                 _versionNote)
             .RequireAction(RegistryActions.PersonPhotoSet)
             .DisableAntiforgery()
-            .WithMetadata(new StoresMediaMetadata())
+            .WithMetadata(new StoresMediaMetadata(MediaPurpose.PersonPhoto))
             .AcceptsIfMatch()
             .ReturnsETag()
             .ProducesErrors(

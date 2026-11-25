@@ -61,7 +61,7 @@ internal static class TeamImageEndpoints
                 "TEAM_ARCHIVED). " + _versionNote)
             .RequireAction(set)
             .DisableAntiforgery()
-            .WithMetadata(new StoresMediaMetadata())
+            .WithMetadata(new StoresMediaMetadata(image == TeamImage.Logo ? MediaPurpose.TeamLogo : MediaPurpose.TeamBadge))
             .AcceptsIfMatch()
             .ReturnsETag()
             .ProducesErrors(
