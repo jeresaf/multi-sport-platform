@@ -181,6 +181,8 @@ Modules call each other in-process through Contracts, never over HTTP.
 ```
 
 - Cursor pagination for large/growing lists (timeline, audit, people); `limit` default 25, max 100.
+- A public list's `page` is `PublicPageInfo` (the same members, classified `PUBLIC`): use it only when the cursor
+  is built from public fields alone. Admin lists keep `PageInfo`, whose cursor may carry what isn't public.
 - Filters as query params with documented names (`status=LIVE&date=2027-03-14&sport=FOOTBALL_ASSOCIATION`).
 - Sorting via `sort=-scheduledStart,name`.
 
