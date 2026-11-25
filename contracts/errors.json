@@ -655,6 +655,30 @@
       "owner": "Registry"
     },
     {
+      "code": "TEAM_EXTERNAL_ID_ENDED",
+      "status": 409,
+      "message": "The external identifier has already ended.",
+      "owner": "Registry"
+    },
+    {
+      "code": "TEAM_EXTERNAL_ID_EXISTS",
+      "status": 409,
+      "message": "A team already has this external identifier (the same authority and value), or had it: a value is never reused.",
+      "owner": "Registry"
+    },
+    {
+      "code": "TEAM_EXTERNAL_ID_NOT_FOUND",
+      "status": 404,
+      "message": "The team has no such external identifier.",
+      "owner": "Registry"
+    },
+    {
+      "code": "TEAM_EXTERNAL_ID_VALIDITY_INVALID",
+      "status": 422,
+      "message": "An identifier's end date can't be before its start date or after today (the tenant's date).",
+      "owner": "Registry"
+    },
+    {
       "code": "TEAM_HOME_VENUE_UNAVAILABLE",
       "status": 422,
       "message": "The home venue must be a venue of the tenant that isn't closed or archived.",

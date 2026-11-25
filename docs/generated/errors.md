@@ -115,6 +115,10 @@ the message is the default title and may change.
 | `TEAM_CONCURRENCY_CONFLICT` | 409 | The team was changed by someone else. Reload and try again. | Registry |
 | `TEAM_DISBANDED` | 409 | The team is disbanded: it takes no new name, alias, identifier or image unless it is reformed. | Registry |
 | `TEAM_DUPLICATE_REVIEW_REQUIRED` | 422 | Teams already in the registry look like this one: open one of them, or send duplicatesReviewed to add it anyway. | Registry |
+| `TEAM_EXTERNAL_ID_ENDED` | 409 | The external identifier has already ended. | Registry |
+| `TEAM_EXTERNAL_ID_EXISTS` | 409 | A team already has this external identifier (the same authority and value), or had it: a value is never reused. | Registry |
+| `TEAM_EXTERNAL_ID_NOT_FOUND` | 404 | The team has no such external identifier. | Registry |
+| `TEAM_EXTERNAL_ID_VALIDITY_INVALID` | 422 | An identifier's end date can't be before its start date or after today (the tenant's date). | Registry |
 | `TEAM_HOME_VENUE_UNAVAILABLE` | 422 | The home venue must be a venue of the tenant that isn't closed or archived. | Registry |
 | `TEAM_NAME_INVALID` | 422 | A team's name needs at least one letter or digit. | Registry |
 | `TEAM_NAME_UNCHANGED` | 422 | The team already has this name: a rename needs a new name. | Registry |
