@@ -4,6 +4,7 @@ using SportsPlatform.BuildingBlocks.Results;
 using SportsPlatform.BuildingBlocks.Tenancy;
 using SportsPlatform.Modules.Platform.Contracts.Media;
 using SportsPlatform.Modules.Platform.Domain.Media;
+using SportsPlatform.Modules.Platform.Features.Media.ServeMedia;
 using SportsPlatform.Modules.Platform.Infrastructure;
 using SportsPlatform.Modules.Platform.Infrastructure.Media;
 
@@ -56,7 +57,7 @@ public sealed class MediaAssets(
             }
 
             var asset = MediaAsset.Create(
-                id, purpose, contentType, storageKey, [.. files.Select(f => f.File)], actor, timeProvider.GetUtcNow());
+                id, purpose, MediaRules.Visibility(purpose), contentType, storageKey, [.. files.Select(f => f.File)], actor, timeProvider.GetUtcNow());
             context.Add(asset);
             var saved = await context.SaveChangesWithoutScopeAuditAsync(cancellationToken);
             if (saved.IsFailure)
@@ -99,9 +100,7 @@ public sealed class MediaAssets(
             return PlatformErrors.MediaNotFound;
         }
 
-        var stream = await storage.OpenAsync(file.Key, cancellationToken)
-            ?? throw new InvalidOperationException($"Media asset {assetId} has no stored {variant} file.");
-        return Result.Success(new MediaContent(stream, file.ContentType, file.Bytes));
+        return Result.Success(await OpenFileAsync(assetId, file, cancellationToken));
     }
 
     public async Task<Result<SignedMediaUrl>> GetSignedUrlAsync(Guid assetId, MediaVariant variant, CancellationToken cancellationToken)
@@ -116,21 +115,42 @@ public sealed class MediaAssets(
         return Result.Success(storage.GetSignedReadUrl(new StoredMediaFile(tenantId, assetId, variant, file.Key, file.ContentType)));
     }
 
+    public string GetPublicPath(Guid assetId, MediaVariant variant) =>
+        ServePublicAssetEndpoint.PathOf(assetId, variant);
+
+    public async Task<Result<MediaContent>> OpenPublicAsync(Guid assetId, MediaVariant variant, CancellationToken cancellationToken)
+    {
+        var file = await ActiveFileAsync(assetId, variant, cancellationToken, MediaVisibility.Public);
+        return file is null ? PlatformErrors.MediaNotFound : Result.Success(await OpenFileAsync(assetId, file, cancellationToken));
+    }
+
     public async Task<long> GetStoredBytesAsync(CancellationToken cancellationToken) =>
         await context.Set<MediaAsset>()
             .Where(a => a.Status == MediaAssetStatus.Active)
             .SumAsync(a => (long?)a.SizeBytes, cancellationToken) ?? 0;
 
-    /// <summary>The stored file of an active asset of the scope's tenant (RLS), if it has that variant.</summary>
-    private async Task<MediaAssetFile?> ActiveFileAsync(Guid assetId, MediaVariant variant, CancellationToken cancellationToken)
+    /// <summary>
+    /// The stored file of an active asset of the scope's tenant (RLS), if it has that variant (and, when asked, that
+    /// visibility).
+    /// </summary>
+    private async Task<MediaAssetFile?> ActiveFileAsync(
+        Guid assetId, MediaVariant variant, CancellationToken cancellationToken, MediaVisibility? visibility = null)
     {
         var asset = await context.Set<MediaAsset>().AsNoTracking()
+            .Where(a => visibility == null || a.Visibility == visibility)
             .SingleOrDefaultAsync(a => a.Id == assetId && a.Status == MediaAssetStatus.Active, cancellationToken);
         return asset?.FileOf(variant);
     }
 
+    private async Task<MediaContent> OpenFileAsync(Guid assetId, MediaAssetFile file, CancellationToken cancellationToken)
+    {
+        var stream = await storage.OpenAsync(file.Key, cancellationToken)
+            ?? throw new InvalidOperationException($"Media asset {assetId} has no stored {file.Variant} file.");
+        return new MediaContent(stream, file.ContentType, file.Bytes);
+    }
+
     /// <summary>
-    /// The asset's content type and files: a photo's WebP variants, a PDF as uploaded, or a document image re-encoded.
+    /// The asset's content type and files: an image's WebP variants, a PDF as uploaded, or a document image re-encoded.
     /// </summary>
     private static Result<(string ContentType, IReadOnlyList<(MediaAssetFile File, byte[] Bytes)> Files)> Prepare(
         byte[] bytes, MediaFileType type, MediaPurpose purpose, string storageKey)
@@ -157,7 +177,7 @@ public sealed class MediaAssets(
                 (contentType, [(new MediaAssetFile(MediaVariant.Original, key, contentType, image.Width, image.Height, image.Bytes.LongLength), image.Bytes)]));
         }
 
-        var variants = ImageVariants.Create(bytes);
+        var variants = ImageVariants.Create(bytes, purpose);
         if (variants.IsFailure)
         {
             return variants.Error;

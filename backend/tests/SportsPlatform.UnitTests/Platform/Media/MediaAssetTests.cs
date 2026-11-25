@@ -37,7 +37,7 @@ public sealed class MediaAssetTests
     [Fact]
     public void An_asset_has_one_file_per_variant() =>
         Should.Throw<ArgumentException>(() => MediaAsset.Create(
-            MediaAsset.NewAssetId(), MediaPurpose.PersonPhoto, "image/webp", "t/a",
+            MediaAsset.NewAssetId(), MediaPurpose.PersonPhoto, MediaVisibility.Private, "image/webp", "t/a",
             [File(MediaVariant.Large, 1), File(MediaVariant.Large, 2)], SystemActor.Instance, _now));
 
     [Theory]
@@ -49,7 +49,7 @@ public sealed class MediaAssetTests
         StorageQuota.WholeGigabytes(bytes).ShouldBe(gigabytes);
 
     private static MediaAsset Photo() => MediaAsset.Create(
-        MediaAsset.NewAssetId(), MediaPurpose.PersonPhoto, "image/webp", "t/a",
+        MediaAsset.NewAssetId(), MediaPurpose.PersonPhoto, MediaVisibility.Private, "image/webp", "t/a",
         [File(MediaVariant.Thumbnail, 1_000), File(MediaVariant.Medium, 20_000), File(MediaVariant.Large, 90_000)],
         SystemActor.Instance, _now);
 

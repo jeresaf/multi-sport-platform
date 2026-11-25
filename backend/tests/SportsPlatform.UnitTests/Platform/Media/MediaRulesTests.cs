@@ -1,6 +1,7 @@
 using System.Text;
 using SportsPlatform.Modules.Platform;
 using SportsPlatform.Modules.Platform.Contracts.Media;
+using SportsPlatform.Modules.Platform.Domain.Media;
 using SportsPlatform.Modules.Platform.Features.Media;
 
 namespace SportsPlatform.UnitTests.Platform.Media;
@@ -38,6 +39,11 @@ public sealed class MediaRulesTests
     [InlineData(MediaPurpose.ConsentEvidence, "jpeg", true)]
     [InlineData(MediaPurpose.ConsentEvidence, "png", true)]
     [InlineData(MediaPurpose.ConsentEvidence, "webp", false)]
+    [InlineData(MediaPurpose.OrgLogo, "png", true)]
+    [InlineData(MediaPurpose.TeamLogo, "jpeg", true)]
+    [InlineData(MediaPurpose.TeamBadge, "webp", true)]
+    [InlineData(MediaPurpose.TeamBadge, "pdf", false)]
+    [InlineData(MediaPurpose.OrgLogo, "svg", false)]
     public void Each_purpose_accepts_its_types(MediaPurpose purpose, string kind, bool accepted)
     {
         var result = MediaRules.CheckType(File(kind), purpose);
@@ -52,6 +58,9 @@ public sealed class MediaRulesTests
     [Theory]
     [InlineData(MediaPurpose.PersonPhoto, 5)]
     [InlineData(MediaPurpose.ConsentEvidence, 10)]
+    [InlineData(MediaPurpose.OrgLogo, 2)]
+    [InlineData(MediaPurpose.TeamLogo, 2)]
+    [InlineData(MediaPurpose.TeamBadge, 2)]
     public async Task Reads_up_to_the_limit_and_refuses_one_byte_more(MediaPurpose purpose, int megabytes)
     {
         var limit = megabytes * MediaRules.Megabyte;
@@ -64,11 +73,21 @@ public sealed class MediaRulesTests
         over.Error!.Code.ShouldBe(PlatformErrors.MediaTooLarge.Code);
     }
 
+    [Theory]
+    [InlineData(MediaPurpose.PersonPhoto, MediaVisibility.Private)]
+    [InlineData(MediaPurpose.ConsentEvidence, MediaVisibility.Private)]
+    [InlineData(MediaPurpose.OrgLogo, MediaVisibility.Public)]
+    [InlineData(MediaPurpose.TeamLogo, MediaVisibility.Public)]
+    [InlineData(MediaPurpose.TeamBadge, MediaVisibility.Public)]
+    public void Only_logos_and_badges_are_public(MediaPurpose purpose, MediaVisibility visibility) =>
+        MediaRules.Visibility(purpose).ShouldBe(visibility);
+
     private static byte[] File(string kind) => kind switch
     {
         "jpeg" => TestImages.Jpeg(4, 4),
         "png" => TestImages.Png(4, 4),
         "webp" => TestImages.WebP(4, 4),
+        "svg" => Encoding.UTF8.GetBytes("<svg xmlns=\"http://www.w3.org/2000/svg\"><script>alert(1)</script></svg>"),
         _ => TestImages.Pdf(),
     };
 }

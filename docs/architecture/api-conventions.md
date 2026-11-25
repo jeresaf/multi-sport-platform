@@ -163,6 +163,14 @@ Modules call each other in-process through Contracts, never over HTTP.
 - The token is a credential for its lifetime: the endpoint is marked `.RedactPathInTelemetry()`, so the request log,
   the events logged during the request once it is routed and the trace record `/api/public/v1/media/{token}`.
 
+- Public images (S07 D15, as built in S07-T4a): logos and badges are `PUBLIC` assets. Public reads link them through
+  `IMediaAssets.GetPublicPath` (a module never writes Platform's route): `GET /api/public/v1/assets/{assetId}/{variant}`
+  with `variant` `thumbnail` or `medium` (lowercase path segments, for edge caches). The tenant comes from the host
+  (`.RequirePublicTenant()`: a site that isn't public is `403 TENANT_UNAVAILABLE`); a private, removed, unknown or
+  another tenant's asset, or another variant, is `404 MEDIA_NOT_FOUND`. Served as WebP with `Cache-Control: public,
+  max-age=86400` (no `immutable`: a new image has a new ID, and a removed one leaves caches within a day) and
+  `nosniff`. Admin reads still carry signed URLs for them.
+
 ## Pagination, filtering, sorting
 
 ```json

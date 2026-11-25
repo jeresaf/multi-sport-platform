@@ -89,6 +89,22 @@ public static class TestImages
         return chunks;
     }
 
+    /// <summary>A PNG whose left half is fully transparent and right half opaque red (a logo on no background).</summary>
+    public static byte[] TransparentPng(int width, int height)
+    {
+        using var bitmap = new SKBitmap(new SKImageInfo(width, height, SKColorType.Rgba8888, SKAlphaType.Unpremul));
+        using (var canvas = new SKCanvas(bitmap))
+        {
+            canvas.Clear(SKColors.Transparent);
+            using var paint = new SKPaint { Color = SKColors.Red };
+            canvas.DrawRect(new SKRect(width / 2f, 0, width, height), paint);
+        }
+
+        using var image = SKImage.FromBitmap(bitmap);
+        using var encoded = image.Encode(SKEncodedImageFormat.Png, 100);
+        return encoded.ToArray();
+    }
+
     /// <summary>The colour of a pixel of an encoded image.</summary>
     public static SKColor PixelAt(byte[] encoded, int x, int y)
     {

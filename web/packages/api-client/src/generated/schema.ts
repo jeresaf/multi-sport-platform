@@ -24,6 +24,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/public/v1/assets/{assetId}/{variant}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a public image (a logo or badge)
+         * @description A variant (`thumbnail` 160 px or `medium` 640 px on the longest side) of a public image (an organisation's logo, a team's logo or badge) of the tenant whose site this host serves, as WebP. Public reads link it; anything else (a private file, a removed or unknown image, another tenant's, another variant) is MEDIA_NOT_FOUND. `Cache-Control: public, max-age=86400`.
+         */
+        get: operations["GetPublicAsset"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/public/v1/site": {
         parameters: {
             query?: never;
@@ -5479,6 +5499,47 @@ export interface operations {
                 };
             };
             /** @description Problem Details; `code`: `MEDIA_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetPublicAsset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assetId: string;
+                variant: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/webp": components["schemas"]["Stream"];
+                };
+            };
+            /** @description Problem Details; `code`: `TENANT_UNAVAILABLE` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `MEDIA_NOT_FOUND`, `TENANT_NOT_FOUND` */
             404: {
                 headers: {
                     [name: string]: unknown;

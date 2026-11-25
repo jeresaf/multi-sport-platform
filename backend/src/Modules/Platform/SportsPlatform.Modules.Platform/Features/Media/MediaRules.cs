@@ -1,5 +1,6 @@
 using SportsPlatform.BuildingBlocks.Results;
 using SportsPlatform.Modules.Platform.Contracts.Media;
+using SportsPlatform.Modules.Platform.Domain.Media;
 
 namespace SportsPlatform.Modules.Platform.Features.Media;
 
@@ -13,9 +14,9 @@ public enum MediaFileType
 }
 
 /// <summary>
-/// What each purpose accepts (S06 D16): the types, judged by the file's first bytes and never by the client's content
-/// type or file name, and the size limit. A photo is re-encoded into variants; a PDF is stored as uploaded and a
-/// document image re-encoded once, without its metadata.
+/// What each purpose accepts (S06 D16, S07 D15): the types, judged by the file's first bytes and never by the client's content
+/// type or file name, the size limit, the variants and who may get it. A photo, logo or badge is re-encoded into
+/// variants; a PDF is stored as uploaded and a document image re-encoded once, without its metadata.
 /// </summary>
 public static class MediaRules
 {
@@ -25,25 +26,63 @@ public static class MediaRules
     {
         MediaPurpose.PersonPhoto => 5 * Megabyte,
         MediaPurpose.ConsentEvidence => 10 * Megabyte,
+        MediaPurpose.OrgLogo or MediaPurpose.TeamLogo or MediaPurpose.TeamBadge => 2 * Megabyte,
         _ => throw new ArgumentOutOfRangeException(nameof(purpose)),
     };
 
     public static IReadOnlySet<MediaFileType> AllowedTypes(MediaPurpose purpose) => purpose switch
     {
-        MediaPurpose.PersonPhoto => new HashSet<MediaFileType> { MediaFileType.Jpeg, MediaFileType.Png, MediaFileType.WebP },
+        MediaPurpose.PersonPhoto or MediaPurpose.OrgLogo or MediaPurpose.TeamLogo or MediaPurpose.TeamBadge =>
+            new HashSet<MediaFileType> { MediaFileType.Jpeg, MediaFileType.Png, MediaFileType.WebP },
         MediaPurpose.ConsentEvidence => new HashSet<MediaFileType> { MediaFileType.Pdf, MediaFileType.Jpeg, MediaFileType.Png },
         _ => throw new ArgumentOutOfRangeException(nameof(purpose)),
     };
 
-    /// <summary>Whether the purpose's files are images re-encoded into <see cref="ImageVariantSizes"/>.</summary>
-    public static bool MakesVariants(MediaPurpose purpose) => purpose == MediaPurpose.PersonPhoto;
+    /// <summary>Whether the purpose's files are images re-encoded into <see cref="VariantSizes"/>.</summary>
+    public static bool MakesVariants(MediaPurpose purpose) => purpose != MediaPurpose.ConsentEvidence;
 
-    /// <summary>A photo's variants and the longest side of each, in pixels (ADR-0017).</summary>
-    public static IReadOnlyList<(MediaVariant Variant, int LongestSide)> ImageVariantSizes { get; } =
+    /// <summary>
+    /// The variants of an image purpose and the longest side of each, in pixels (ADR-0017): a photo's thumbnail, medium
+    /// and large; a logo's or badge's thumbnail and medium (S07 D15).
+    /// </summary>
+    public static IReadOnlyList<(MediaVariant Variant, int LongestSide)> VariantSizes(MediaPurpose purpose) => purpose switch
+    {
+        MediaPurpose.PersonPhoto => _photoSizes,
+        MediaPurpose.OrgLogo or MediaPurpose.TeamLogo or MediaPurpose.TeamBadge => _logoSizes,
+        _ => throw new ArgumentOutOfRangeException(nameof(purpose), purpose, "The purpose has no image variants."),
+    };
+
+    /// <summary>
+    /// The shortest side, in pixels, an image of the purpose must have (<c>MEDIA_IMAGE_TOO_SMALL</c> below it): 64 for a
+    /// logo or badge (S07 D15), none (1) for a photo.
+    /// </summary>
+    public static int MinShorterSide(MediaPurpose purpose) => purpose switch
+    {
+        MediaPurpose.OrgLogo or MediaPurpose.TeamLogo or MediaPurpose.TeamBadge => 64,
+        _ => 1,
+    };
+
+    /// <summary>
+    /// Who may get the purpose's assets: a logo or badge is <c>PUBLIC</c> (S07 D15, the public asset route); a person's
+    /// photo and a document are <c>PRIVATE</c> (signed URLs only).
+    /// </summary>
+    public static MediaVisibility Visibility(MediaPurpose purpose) => purpose switch
+    {
+        MediaPurpose.OrgLogo or MediaPurpose.TeamLogo or MediaPurpose.TeamBadge => MediaVisibility.Public,
+        _ => MediaVisibility.Private,
+    };
+
+    private static readonly IReadOnlyList<(MediaVariant, int)> _photoSizes =
     [
         (MediaVariant.Thumbnail, 160),
         (MediaVariant.Medium, 640),
         (MediaVariant.Large, 1600),
+    ];
+
+    private static readonly IReadOnlyList<(MediaVariant, int)> _logoSizes =
+    [
+        (MediaVariant.Thumbnail, 160),
+        (MediaVariant.Medium, 640),
     ];
 
     public static string ContentType(MediaFileType type) => type switch

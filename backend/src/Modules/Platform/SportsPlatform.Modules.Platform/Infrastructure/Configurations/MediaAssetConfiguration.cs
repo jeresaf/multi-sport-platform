@@ -7,17 +7,23 @@ using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Persistence.Messaging;
 using SportsPlatform.Modules.Platform.Contracts.Media;
 using SportsPlatform.Modules.Platform.Domain.Media;
+using SportsPlatform.Modules.Platform.Features.Media;
 
 namespace SportsPlatform.Modules.Platform.Infrastructure.Configurations;
 
 /// <summary>
 /// <c>platform.media_assets</c> (ADR-0014, S06 D16): tenant-owned (RLS), enums as UPPER_SNAKE text, the stored files in
 /// <c>variants</c> (<c>jsonb</c>: variant, key, contentType, width, height, bytes). Nothing personal is stored here:
-/// the files are reached only through the owning module's checks.
+/// the files are reached only through the owning module's checks, or (a logo or badge, S07 D15) the public asset route.
 /// </summary>
 internal sealed class MediaAssetConfiguration : IEntityTypeConfiguration<MediaAsset>
 {
     public const string Table = "media_assets";
+
+    /// <summary>The SQL list of the purposes stored <c>PUBLIC</c> (<see cref="MediaRules.Visibility"/>).</summary>
+    private static string PublicPurposes => string.Join(", ", Enum.GetValues<MediaPurpose>()
+        .Where(purpose => MediaRules.Visibility(purpose) == MediaVisibility.Public)
+        .Select(purpose => $"'{MessageSerialization.EnumNamingPolicy.ConvertName(purpose.ToString())}'"));
 
     public void Configure(EntityTypeBuilder<MediaAsset> builder)
     {
@@ -25,6 +31,8 @@ internal sealed class MediaAssetConfiguration : IEntityTypeConfiguration<MediaAs
         {
             table.HasCheckConstraint("ck_media_assets_purpose", $"purpose IN ({EnumColumns.SqlList<MediaPurpose>()})");
             table.HasCheckConstraint("ck_media_assets_visibility", $"visibility IN ({EnumColumns.SqlList<MediaVisibility>()})");
+            // Only a logo or badge is ever public (S07 D15): a person's photo can't be served by the public route.
+            table.HasCheckConstraint("ck_media_assets_public_purpose", $"(visibility = 'PUBLIC') = (purpose IN ({PublicPurposes}))");
             table.HasCheckConstraint("ck_media_assets_status", $"status IN ({EnumColumns.SqlList<MediaAssetStatus>()})");
             table.HasCheckConstraint("ck_media_assets_uploaded_by_kind", $"uploaded_by_kind IN ({EnumColumns.SqlList<ActorKind>()})");
             table.HasCheckConstraint("ck_media_assets_removed_by_kind", $"removed_by_kind IN ({EnumColumns.SqlList<ActorKind>()})");

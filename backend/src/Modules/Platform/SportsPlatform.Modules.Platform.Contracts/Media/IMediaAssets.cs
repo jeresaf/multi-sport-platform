@@ -13,7 +13,8 @@ public interface IMediaAssets
     /// Checks the file by its bytes (type and size for <paramref name="purpose"/>), stores it (a photo as its resized
     /// variants, a PDF as uploaded, a JPEG or PNG document re-encoded without its metadata) and returns the new asset's
     /// ID. Refusals: <c>MEDIA_TYPE_NOT_ALLOWED</c>,
-    /// <c>MEDIA_TOO_LARGE</c>, <c>MEDIA_IMAGE_UNREADABLE</c>. The asset is saved at once, in Platform's own unit of work,
+    /// <c>MEDIA_TOO_LARGE</c>, <c>MEDIA_IMAGE_UNREADABLE</c>, <c>MEDIA_IMAGE_TOO_SMALL</c> (a logo or badge). A logo or
+    /// badge is stored <c>PUBLIC</c>, anything else <c>PRIVATE</c>. The asset is saved at once, in Platform's own unit of work,
     /// without the request's audit entry: the calling module's save records that (so a refused save still audits as a
     /// failure). If the caller's save then fails, the asset stays <c>ACTIVE</c> and unreferenced.
     /// </summary>
@@ -40,6 +41,22 @@ public interface IMediaAssets
     /// </summary>
     Task<Result<SignedMediaUrl>> GetSignedUrlAsync(Guid assetId, MediaVariant variant, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// The path of a variant of a public asset (a logo or badge: S07 D15) on the public API, relative to the API's
+    /// origin, for a public read on the tenant's host: <c>/api/public/v1/assets/{assetId}/{variant}</c>. Nothing is read:
+    /// the route answers only while the asset is active, public and the host's tenant's, so a caller links only an asset
+    /// it names. The owning module never builds the path itself (ADR-0014). Only <see cref="MediaVariant.Thumbnail"/> and
+    /// <see cref="MediaVariant.Medium"/> are public; any other variant throws.
+    /// </summary>
+    string GetPublicPath(Guid assetId, MediaVariant variant);
+
+    /// <summary>
+    /// Opens a variant of an active <c>PUBLIC</c> asset of the scope's tenant (the public asset route). Anything else
+    /// (private, removed, another tenant's, a variant the asset hasn't) is <c>MEDIA_NOT_FOUND</c>. The caller disposes the
+    /// stream.
+    /// </summary>
+    Task<Result<MediaContent>> OpenPublicAsync(Guid assetId, MediaVariant variant, CancellationToken cancellationToken);
+
     /// <summary>The bytes the tenant stores: every variant of its active assets (<c>STORAGE_GB</c>, S06 D20).</summary>
     Task<long> GetStoredBytesAsync(CancellationToken cancellationToken);
 }
@@ -55,6 +72,18 @@ public enum MediaPurpose
     /// at its own size and type without its metadata (a GPS position, the device).
     /// </summary>
     ConsentEvidence,
+
+    /// <summary>
+    /// An organisation's logo (<c>ORG_LOGO</c>, S07 D15), public: PNG, JPEG or WebP up to 2 MB, at least 64 px on the
+    /// shorter side, stored as WebP thumbnail and medium with its transparency.
+    /// </summary>
+    OrgLogo,
+
+    /// <summary>A team's logo (S07 D15), public, with the rules of <see cref="OrgLogo"/>.</summary>
+    TeamLogo,
+
+    /// <summary>A team's badge (S07 D15), public, with the rules of <see cref="OrgLogo"/>.</summary>
+    TeamBadge,
 }
 
 /// <summary>A stored form of an asset.</summary>
@@ -65,13 +94,13 @@ public enum MediaVariant
     /// </summary>
     Original,
 
-    /// <summary>A photo at most 160 px on its longest side.</summary>
+    /// <summary>A photo, logo or badge at most 160 px on its longest side.</summary>
     Thumbnail,
 
-    /// <summary>A photo at most 640 px on its longest side.</summary>
+    /// <summary>A photo, logo or badge at most 640 px on its longest side.</summary>
     Medium,
 
-    /// <summary>A photo at most 1600 px on its longest side.</summary>
+    /// <summary>A photo at most 1600 px on its longest side (logos and badges have none).</summary>
     Large,
 }
 

@@ -11,7 +11,10 @@ public enum MediaAssetStatus
     Removed,
 }
 
-/// <summary>Who may get the asset: <c>PRIVATE</c> through signed URLs only (every asset in S06); <c>PUBLIC</c> later.</summary>
+/// <summary>
+/// Who may get the asset: <c>PRIVATE</c> through signed URLs only (a person's photo, a document); <c>PUBLIC</c> also
+/// through the public asset route on the tenant's host (a logo or badge, S07 D15). Set from the purpose when stored.
+/// </summary>
 public enum MediaVisibility
 {
     Private,
@@ -33,8 +36,8 @@ public sealed class MediaAsset : AggregateRoot, ITenantOwned
     }
 
     private MediaAsset(
-        Guid id, MediaPurpose purpose, string contentType, string storageKey, IReadOnlyList<MediaAssetFile> files,
-        ICurrentActor actor, DateTimeOffset uploadedAt)
+        Guid id, MediaPurpose purpose, MediaVisibility visibility, string contentType, string storageKey,
+        IReadOnlyList<MediaAssetFile> files, ICurrentActor actor, DateTimeOffset uploadedAt)
         : base(id)
     {
         Purpose = purpose;
@@ -42,7 +45,7 @@ public sealed class MediaAsset : AggregateRoot, ITenantOwned
         StorageKey = storageKey;
         Files = files;
         SizeBytes = files.Sum(file => file.Bytes);
-        Visibility = MediaVisibility.Private;
+        Visibility = visibility;
         Status = MediaAssetStatus.Active;
         UploadedByKind = actor.Kind;
         UploadedById = actor.ActorId;
@@ -86,8 +89,8 @@ public sealed class MediaAsset : AggregateRoot, ITenantOwned
     /// (<see cref="NewAssetId"/>), because the storage key names it.
     /// </summary>
     public static MediaAsset Create(
-        Guid id, MediaPurpose purpose, string contentType, string storageKey, IReadOnlyList<MediaAssetFile> files,
-        ICurrentActor actor, DateTimeOffset uploadedAt)
+        Guid id, MediaPurpose purpose, MediaVisibility visibility, string contentType, string storageKey,
+        IReadOnlyList<MediaAssetFile> files, ICurrentActor actor, DateTimeOffset uploadedAt)
     {
         ArgumentNullException.ThrowIfNull(files);
         ArgumentNullException.ThrowIfNull(actor);
@@ -103,7 +106,7 @@ public sealed class MediaAsset : AggregateRoot, ITenantOwned
             throw new ArgumentException("An asset has at least one file and one file per variant.", nameof(files));
         }
 
-        return new MediaAsset(id, purpose, contentType, storageKey, [.. files], actor, uploadedAt);
+        return new MediaAsset(id, purpose, visibility, contentType, storageKey, [.. files], actor, uploadedAt);
     }
 
     /// <summary>A new asset's ID (UUIDv7), taken before its files are stored.</summary>

@@ -9,9 +9,11 @@ namespace SportsPlatform.Modules.Platform.Infrastructure.Media;
 public sealed record EncodedImage(MediaVariant Variant, byte[] Bytes, int Width, int Height);
 
 /// <summary>
-/// A photo's variants (ADR-0017): the header is read first and an image over <see cref="MaxPixels"/> is refused before
-/// it is decoded; a file that doesn't decode completely (truncated) is refused; the EXIF orientation is applied; each size in <see cref="MediaRules.ImageVariantSizes"/> is scaled
-/// down (never up) and encoded as WebP. Encoding writes pixels only, so no EXIF, GPS or XMP data reaches a variant.
+/// An image's variants (ADR-0017): the header is read first and an image over <see cref="MaxPixels"/>, or (a logo or
+/// badge) under the purpose's <see cref="MediaRules.MinShorterSide"/>, is refused before it is decoded; a file that
+/// doesn't decode completely (truncated) is refused; the EXIF orientation is applied; each size in
+/// <see cref="MediaRules.VariantSizes"/> is scaled down (never up) and encoded as WebP with its alpha channel, so a
+/// transparent logo stays transparent. Encoding writes pixels only, so no EXIF, GPS or XMP data reaches a variant.
 /// A document image (consent evidence, JPEG or PNG) is re-encoded once, at its own size and type, for the same reason
 /// (review #104 Q1, owner).
 /// </summary>
@@ -25,19 +27,25 @@ public static class ImageVariants
     /// <summary>A re-encoded document JPEG's quality: high, since a form must stay legible.</summary>
     public const int DocumentJpegQuality = 92;
 
-    public static Result<IReadOnlyList<EncodedImage>> Create(byte[] file)
+    public static Result<IReadOnlyList<EncodedImage>> Create(byte[] file, MediaPurpose purpose)
     {
         ArgumentNullException.ThrowIfNull(file);
+        var sizes = MediaRules.VariantSizes(purpose);
         using var data = SKData.CreateCopy(file);
         using var codec = OpenCodec(data);
-        using var oriented = codec is null ? null : DecodeOriented(codec, MediaRules.ImageVariantSizes.Max(size => size.LongestSide));
+        if (codec is not null && Math.Min(codec.Info.Width, codec.Info.Height) < MediaRules.MinShorterSide(purpose))
+        {
+            return PlatformErrors.MediaImageTooSmall;
+        }
+
+        using var oriented = codec is null ? null : DecodeOriented(codec, sizes.Max(size => size.LongestSide));
         if (oriented is null)
         {
             return PlatformErrors.MediaImageUnreadable;
         }
 
         var variants = new List<EncodedImage>();
-        foreach (var (variant, longestSide) in MediaRules.ImageVariantSizes)
+        foreach (var (variant, longestSide) in sizes)
         {
             var (width, height) = ScaledSize(oriented.Width, oriented.Height, longestSide);
             using var resized = new SKBitmap(new SKImageInfo(width, height, SKColorType.Rgba8888, SKAlphaType.Premul));

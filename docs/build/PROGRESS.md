@@ -7,13 +7,14 @@ at the start of every review.
 
 - **Current slice:** S07 — Organisations, teams and venues (docs/build/slices/S07-organisations-teams-venues.md,
   written by the S06 slice review). S00–S06 are done
-- **Current task:** — (S07-T3d in review: #131)
-- **Next:** S07-T4 — Logos, badges and public assets
+- **Current task:** S07-T4a — Platform: logo and badge purposes, public images, the public asset route (T4 is two
+  PRs, owner, plan 2026-11-25: T4a Platform, T4b Registry endpoints)
+- **Next:** S07-T4b — Logo and badge endpoints, `STORAGE_GB`, signed URLs in admin reads
 - **Blocked on:** —
 
 ## Next up
 
-1. S07-T4 — Logos, badges and public assets
+1. S07-T4b — Logo and badge endpoints (Registry)
 
 ## Log
 
