@@ -82,9 +82,9 @@ public interface ITeamDirectory
     /// <summary>
     /// The summaries of the teams among <paramref name="teamIds"/> that exist in the scope's tenant, whatever their
     /// status, in no particular order; unknown IDs and other tenants' teams are left out. With <paramref name="onDate"/>
-    /// (a date in the tenant's calendar), each team's name, short name and code are the ones it had that day: the
-    /// current ones from the day the current name began, the former name whose dates cover the day before that, and the
-    /// first name for a day before any name began (S07 D8). Without it, the current ones.
+    /// (a date in the tenant's calendar), each team's name, short name and code are the ones it had that day: on or
+    /// after the day the current name began, the current ones; before it, the former name whose dates cover the date;
+    /// before the first name began, the first name (S07 D8). Without it, the current ones.
     /// </summary>
     Task<IReadOnlyList<TeamSummary>> GetSummariesAsync(
         IReadOnlyCollection<Guid> teamIds, DateOnly? onDate, CancellationToken cancellationToken);

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SportsPlatform.Modules.Registry.Contracts.Teams;
+using SportsPlatform.Modules.Registry.Domain.People;
 using SportsPlatform.Modules.Registry.Domain.Teams;
 using SportsPlatform.Modules.Registry.Infrastructure;
 using AgeGroup = SportsPlatform.Modules.Registry.Contracts.Teams.AgeGroup;
@@ -15,7 +16,8 @@ namespace SportsPlatform.Modules.Registry.Features.Teams;
 
 /// <summary>
 /// <see cref="ITeamDirectory"/> over the scope's tenant (query filter and RLS). The name on a date is
-/// <see cref="Team.NameOn"/>'s, so the teams are loaded with their aliases only when a date is asked for; without one,
+/// <see cref="Team.NameOn"/>'s, so the teams are loaded with their former names (not their nicknames or spellings) only
+/// when a date is asked for; without one,
 /// only the summary's columns are read (as <c>OrganisationDirectory</c>).
 /// </summary>
 public sealed class TeamDirectory(RegistryDbContext context) : ITeamDirectory
@@ -57,7 +59,7 @@ public sealed class TeamDirectory(RegistryDbContext context) : ITeamDirectory
         }
 
         var teams = await context.Set<Team>().AsNoTracking()
-            .Include(t => t.Aliases)
+            .Include(t => t.Aliases.Where(a => a.Kind == AliasKind.FormerName))
             .Where(t => ids.Contains(t.Id))
             .ToListAsync(cancellationToken);
         return [.. teams.Select(team =>
