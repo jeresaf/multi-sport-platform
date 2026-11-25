@@ -147,8 +147,10 @@ public sealed class PublicAssetsTests(PostgresFixture fixture) : DatabaseTest(fi
         var kmsa = await TenantAsync("kmsa");
         var id = await StoreAsync(kmsa, TestImages.Png(300, 300), MediaPurpose.OrgLogo);
 
-        (await App.Server.GetAsync($"/api/public/v1/assets/{id}/{variant}", _kmsaHost))
-            .ShouldBeProblem(StatusCodes.Status404NotFound, "MEDIA_NOT_FOUND");
+        var response = await App.Server.GetAsync($"/api/public/v1/assets/{id}/{variant}", _kmsaHost);
+
+        response.ShouldBeProblem(StatusCodes.Status404NotFound, "MEDIA_NOT_FOUND");
+        response.Headers.CacheControl.ToString().ShouldBe("no-store"); // review #132 R3
     }
 
     [Fact]
