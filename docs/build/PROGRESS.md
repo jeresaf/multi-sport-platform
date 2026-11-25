@@ -150,6 +150,11 @@ at the start of every review.
 
 ## Deviations from spec (agreed)
 
+- **S07-T5a (owner, plan 2026-11-25):** T5 is two PRs: T5a organisations and venues, T5b teams. Public images are
+  `logo: { thumbnailUrl, mediumUrl }` (both public variants; null without one), not D15's single `logoUrl`. Public
+  directory items carry the logo too (the public paths cost no query). A public directory lists one status, `ACTIVE`
+  when none is sent; `status=ARCHIVED` is `400 VALIDATION_INVALID_QUERY`.
+
 - **S07-T4a (owner, plan 2026-11-25):** T4 is two PRs: T4a Platform (purposes, limits, variants, the public route),
   T4b Registry (the six endpoints, actions, `STORAGE_GB`, signed URLs in admin reads). The public route's variant is a
   lowercase path segment (`thumbnail`, `medium`), not `?variant=` as the public person photo. A host whose site isn't

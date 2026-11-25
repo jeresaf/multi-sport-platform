@@ -393,7 +393,7 @@ Deliver:
 
 Acceptance:
 - [ ] Public reads answer only `PUBLIC` fields (the classification test covers the new DTOs); an archived record is
-      `404`; another tenant's host never sees the record (tests).
+      `404`; another tenant's host never sees the record (tests). Organisations and venues: T5a (`PublicOrganisationAndVenueReadTests`); teams: T5b.
 - [ ] A team read shows its former names with dates, its organisation and home venue, and its logo URL on the
       tenant's host; an archived organisation or venue is embedded as `null` (tests).
 
