@@ -37,7 +37,7 @@ public sealed record ListTeamsResponse(
 /// of one of its words), name-key prefix or trigram similarity, the short name by name-key prefix, and a current alias
 /// (former names included, S07-T3c) as organisations' aliases, and an external identifier's value exactly, ended ones
 /// included (S07-T3d). <c>homeVenueId</c> keeps the teams whose home venue it is (the venue's Teams tab,
-/// S07-T6a). Without a status, archived teams are left out. An unknown variant or organisation keeps none.
+/// S07-T6a). Without a status, archived teams are left out. An unknown variant, organisation or venue keeps none.
 /// </summary>
 public sealed class ListTeamsHandler(RegistryDbContext context)
 {

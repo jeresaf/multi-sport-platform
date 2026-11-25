@@ -177,7 +177,8 @@ public sealed class PublicTeamReadTests(PostgresFixture fixture) : RegistryImage
         var (kmsa, _) = await PublicTenantAsync("kmsa");
         await TenantTestData.EnableSportAsync(App.Services, kmsa, Testhoop, Ct);
         var swifts = await SaveOrganisationAsync(App.Services, kmsa, "Ntinda Swifts SC");
-        var men = await SaveTeamAsync(App.Services, kmsa, "Ntinda Swifts FC", organisationId: swifts.Id);
+        var meadow = await VenueRequests.SaveVenueAsync(App.Services, kmsa, "Kiwatule Meadow Ground");
+        var men = await SaveTeamAsync(App.Services, kmsa, "Ntinda Swifts FC", organisationId: swifts.Id, homeVenueId: meadow.Id);
         var women = await SaveTeamAsync(
             App.Services, kmsa, "Ntinda Swifts FC", category: new(GenderCategory.Women, AgeGroup.Senior, TeamLevel.First),
             organisationId: swifts.Id);
@@ -206,6 +207,8 @@ public sealed class PublicTeamReadTests(PostgresFixture fixture) : RegistryImage
         Ids((await PublicAsync($"{_teams}?ageGroup=U17")).Json).ShouldBe([under17.Id]);
         Ids((await PublicAsync($"{_teams}?level=RESERVE")).Json).ShouldBe([reserves.Id]);
         Ids((await PublicAsync($"{_teams}?organisationId={Guid.NewGuid()}")).Json).ShouldBeEmpty();
+        // The admin directory's homeVenueId (S07-T6a-1) isn't a public filter: the public list ignores it.
+        Ids((await PublicAsync($"{_teams}?homeVenueId={meadow.Id}")).Json).ShouldBe([men.Id, reserves.Id, women.Id, under17.Id, hoops.Id]);
 
         foreach (var query in new[]
                  {

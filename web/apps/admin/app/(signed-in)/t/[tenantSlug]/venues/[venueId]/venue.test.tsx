@@ -34,14 +34,14 @@ const created = {
 
 const homeTeam = {
   id: "0199a3f0-0000-7000-8000-0000000000d1",
-  name: "Bukoto Comets FC",
-  shortName: "Bukoto Comets",
-  slug: "bukoto-comets-fc",
+  name: "Ntinda Swifts FC",
+  shortName: "Ntinda Swifts",
+  slug: "ntinda-swifts-fc",
   variant: "RINGBALL_SEVENS",
   genderCategory: "WOMEN",
   ageGroup: "U17",
   level: "FIRST",
-  organisation: { id: "0199a3f0-0000-7000-8000-0000000000e1", displayName: "Bukoto Comets SC", slug: "bukoto-comets-sc" },
+  organisation: { id: "0199a3f0-0000-7000-8000-0000000000e1", displayName: "Ntinda Swifts SC", slug: "ntinda-swifts-sc" },
   status: "ACTIVE",
 };
 
@@ -111,9 +111,9 @@ describe("Venue page", () => {
     navigation.search = "tab=teams";
     const requests = open();
     await loaded();
-    const row = (await screen.findByText("Bukoto Comets FC")).closest("tr")!;
+    const row = (await screen.findByText("Ntinda Swifts FC")).closest("tr")!;
     const cells = within(row).getAllByRole("cell").map((cell) => cell.textContent);
-    expect(cells).toEqual(["Under-17 Girls", "Ringball sevens", "Bukoto Comets SC", "Active"]);
+    expect(cells).toEqual(["Under-17 Girls", "Ringball sevens", "Ntinda Swifts SC", "Active"]);
     const teams = requests.find((request) => request.path === "/api/admin/v1/teams")!;
     expect(new URLSearchParams(teams.search).get("homeVenueId")).toBe(bukoto.id);
   });
@@ -185,10 +185,10 @@ describe("Venue status moves", () => {
     expect(await within(dialog()).findByText("Give a reason: it is kept in the audit trail.")).toBeTruthy();
     expect(requests.some((request) => request.method === "POST")).toBe(false);
 
-    fireEvent.change(within(dialog()).getByLabelText("Reason"), { target: { value: "The pitch is being rebuilt." } });
+    fireEvent.change(within(dialog()).getByLabelText("Reason"), { target: { value: "The main stand is being rebuilt." } });
     fireEvent.click(within(dialog()).getByRole("button", { name: "Close venue" }));
     const request = await sentTo(requests, statusPath);
-    expect(request.body).toEqual({ status: "CLOSED", reason: "The pitch is being rebuilt." });
+    expect(request.body).toEqual({ status: "CLOSED", reason: "The main stand is being rebuilt." });
     expect(request.headers.get("If-Match")).toBe('"4"');
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect(screen.getAllByRole("status").map((item) => item.textContent)).toContain("Bukoto Community Stadium: closed.");

@@ -236,6 +236,8 @@ either. Duplicate candidates carry the organisation (id, display name, slug).
 category codes, `status`; sorted by name, then category — age group, gender, level in declared order — then ID; the
 cursor carries the category rank, `TeamOrder`). The organisation record lists its teams (archived ones left out) in the
 same order.
+**As built (S07-T6a-1):** the admin directory also takes `homeVenueId` (the teams whose home venue it is, for the venue's
+Teams tab; beyond D19, owner); the public team list doesn't.
 **As built (S07-T3c):** `registry.team_aliases` (former names, nicknames, spellings). `POST …/{id}/rename`
 (`effectiveOn` after the current name's start, not after the tenant's today) keeps the old name, with its short name and
 code, as a `FORMER_NAME` alias dated from the old `name_since` to the day before; the slug stays; a change to the name's or
