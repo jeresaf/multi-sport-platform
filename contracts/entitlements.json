@@ -397,8 +397,11 @@
       },
       "enforcedBy": "Registry",
       "actions": [
+        "organisation.logo.set",
         "person.consent_evidence.upload",
-        "person.photo.set"
+        "person.photo.set",
+        "team.badge.set",
+        "team.logo.set"
       ],
       "since": "S04"
     },

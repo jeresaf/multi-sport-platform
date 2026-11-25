@@ -18,7 +18,8 @@ namespace SportsPlatform.IntegrationTests.OpenApi;
 
 /// <summary>
 /// Platform's media refusals in the OpenAPI document (S06-T5b): an endpoint that stores an upload
-/// (<see cref="StoresMediaMetadata"/>) documents them, though its module can't name Platform's errors; others don't.
+/// (<see cref="StoresMediaMetadata"/>) documents them, though its module can't name Platform's errors; others don't. Only a
+/// purpose with a minimum size documents <c>MEDIA_IMAGE_TOO_SMALL</c> (S07-T4b, review #133 R1).
 /// </summary>
 public sealed class MediaErrorDocumentationTests
 {
@@ -45,6 +46,8 @@ public sealed class MediaErrorDocumentationTests
         var rename = document["paths"]!["/api/admin/v1/badges/name"]!["put"]!["responses"]!.AsObject();
         rename.Select(response => response.Key).ShouldNotContain("422");
         rename.Select(response => response.Key).ShouldNotContain("413");
+        var logo = document["paths"]!["/api/admin/v1/badges/logo"]!["put"]!["responses"]!;
+        Codes(logo, "422").ShouldBe(["MEDIA_IMAGE_TOO_SMALL", "MEDIA_IMAGE_UNREADABLE", "MEDIA_TYPE_NOT_ALLOWED"]);
     }
 
     private static List<string> Codes(JsonNode responses, string status) =>
@@ -63,7 +66,9 @@ public sealed class MediaErrorDocumentationTests
         public void MapEndpoints(ApiEndpointGroups groups)
         {
             groups.Admin.MapPut("/badges/image", () => TypedResults.Ok()).RequireAction(Action("badge.image.set"))
-                .WithMetadata(new StoresMediaMetadata());
+                .WithMetadata(new StoresMediaMetadata(MediaPurpose.PersonPhoto));
+            groups.Admin.MapPut("/badges/logo", () => TypedResults.Ok()).RequireAction(Action("badge.logo.set"))
+                .WithMetadata(new StoresMediaMetadata(MediaPurpose.TeamBadge));
             groups.Admin.MapPut("/badges/name", () => TypedResults.Ok()).RequireAction(Action("badge.rename"));
         }
 

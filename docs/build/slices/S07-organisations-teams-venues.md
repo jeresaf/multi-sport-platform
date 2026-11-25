@@ -385,7 +385,7 @@ Acceptance:
       keeps it in the WebP variants (tests).
 - [x] The public asset route serves another tenant's asset, a `PRIVATE` asset (a person photo) or a removed one as
       `404` (tests); its response is cacheable as D15 says.
-- [ ] At the storage limit a logo upload is refused (test).
+- [x] At the storage limit a logo upload is refused (test).
 
 ### T5 — Public reads (~1 PR, about 700 lines; if larger, T5a organisations and venues, T5b teams)
 Deliver:
@@ -436,8 +436,8 @@ The rest of S06's tech debt has its own trigger in PROGRESS.md ("From S06").
 - [ ] Lifecycles follow the machines in state-machines.md; an organisation's status never changes its teams'; nothing
       is deleted.
 - [ ] Duplicate warnings for the three registries behave as D13 says; exact external identifiers are refused.
-- [ ] `MAX_TEAMS` is counted and enforced; logos and badges are stored through Platform media and count toward
-      `STORAGE_GB`.
+- [x] `MAX_TEAMS` is counted and enforced; logos and badges are stored through Platform media and count toward
+      `STORAGE_GB`. (T3b-1 `TeamQuotaTests`; T4b `OrganisationLogoTests`, `TeamImageTests` at the storage limit.)
 - [ ] Every new tenant table is covered by the isolation harness; the RLS exception list is unchanged; every new
       endpoint has allowed and denied authorization tests; public reads answer only `PUBLIC` fields.
 - [ ] No sport code in generic backend or web code; the DEMO seed and the slice demo run.
@@ -658,3 +658,12 @@ The rest of S06's tech debt has its own trigger in PROGRESS.md ("From S06").
   `GET /api/public/v1/assets/{assetId}/{thumbnail|medium}` (lowercase segments; another value is `MEDIA_NOT_FOUND`); a
   site that isn't public is `403 TENANT_UNAVAILABLE`, as every public route. `GetPublicPath` throws for any other
   variant. T5's public reads link images through `GetPublicPath`; T4b's admin reads use signed URLs.
+- **T4b (images, Registry):** one PR (owner, plan 2026-11-25). `PUT`/`DELETE …/organisations/{id}/logo`,
+  `…/teams/{id}/logo`, `…/teams/{id}/badge` with `organisation.logo.set`/`.remove`, `team.logo.set`/`.remove`,
+  `team.badge.set`/`.remove` (audit `REQUIRED`; the set actions name `STORAGE_GB`; granted with the area's read;
+  `TENANT_OWNER`, `TENANT_ADMIN`, `REGISTRAR`). Uploads as person photos (one file in `file`, `If-Match`, `X-CSRF`, no
+  lock: an image isn't a compared field, D21); the storage check, then Platform's checks on `file`, then the record names
+  the asset and the replaced one is marked `REMOVED` after the save. Remove works in any status; without an image it is
+  `404 ORGANISATION_LOGO_NOT_FOUND`, `TEAM_LOGO_NOT_FOUND` or `TEAM_BADGE_NOT_FOUND` (new). The organisation and team
+  reads gain `logo` (and `badge`): `{ thumbnailUrl, mediumUrl, expiresAt }` (`INTERNAL`, signed), null without one or when
+  Platform doesn't serve it (logged). Directories and summaries carry no URLs (D19). `PersonMedia` became `RegistryMedia`.

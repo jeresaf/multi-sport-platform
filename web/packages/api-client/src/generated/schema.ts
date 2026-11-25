@@ -1494,6 +1494,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/v1/organisations/{organisationId}/logo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set an organisation's logo
+         * @description Uploads the logo as `multipart/form-data` with one file in the field `file` and nothing else (VALIDATION_INVALID_REQUEST otherwise). The file's bytes decide its type, not the content type sent: JPEG, PNG or WebP up to 2 MB (MEDIA_TYPE_NOT_ALLOWED, MEDIA_TOO_LARGE; no SVG), at least 64 px on the shorter side (MEDIA_IMAGE_TOO_SMALL; an image that can't be decoded is MEDIA_IMAGE_UNREADABLE). It is stored as a public WebP image at 160 and 640 px, transparency kept, and replaces the logo it had. At the plan's storage limit the upload is ENTITLEMENT_QUOTA_EXCEEDED ("Your plan allows N GB of storage."). A dissolved or archived organisation takes no new logo (ORGANISATION_DISSOLVED, ORGANISATION_ARCHIVED). Send `If-Match` from the last read to get 409 ORGANISATION_CONCURRENCY_CONFLICT if the organisation changed since. Answers the organisation as GET /organisations/{organisationId} does; its version moves.
+         */
+        put: operations["SetOrganisationLogo"];
+        post?: never;
+        /**
+         * Remove an organisation's logo
+         * @description Removes the organisation's logo, whatever its status; an organisation without one is ORGANISATION_LOGO_NOT_FOUND. Send `If-Match` from the last read to get 409 ORGANISATION_CONCURRENCY_CONFLICT if the organisation changed since. Answers the organisation as GET /organisations/{organisationId} does; its version moves.
+         */
+        delete: operations["RemoveOrganisationLogo"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/v1/teams/duplicate-check": {
         parameters: {
             query?: never;
@@ -1697,6 +1721,54 @@ export interface paths {
          */
         post: operations["EndTeamExternalIdentifier"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/teams/{teamId}/logo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set a team's logo
+         * @description Uploads the logo as `multipart/form-data` with one file in the field `file` and nothing else (VALIDATION_INVALID_REQUEST otherwise). The file's bytes decide its type, not the content type sent: JPEG, PNG or WebP up to 2 MB (MEDIA_TYPE_NOT_ALLOWED, MEDIA_TOO_LARGE; no SVG), at least 64 px on the shorter side (MEDIA_IMAGE_TOO_SMALL; an image that can't be decoded is MEDIA_IMAGE_UNREADABLE). It is stored as a public WebP image at 160 and 640 px, transparency kept, and replaces the logo it had. At the plan's storage limit the upload is ENTITLEMENT_QUOTA_EXCEEDED ("Your plan allows N GB of storage."). The team's other image doesn't change. A disbanded or archived team takes no new logo (TEAM_DISBANDED, TEAM_ARCHIVED). Send `If-Match` from the last read to get 409 TEAM_CONCURRENCY_CONFLICT if the team changed since. Answers the team as GET /teams/{teamId} does; its version moves.
+         */
+        put: operations["SetTeamLogo"];
+        post?: never;
+        /**
+         * Remove a team's logo
+         * @description Removes the team's logo, whatever its status; a team without one is TEAM_LOGO_NOT_FOUND. Send `If-Match` from the last read to get 409 TEAM_CONCURRENCY_CONFLICT if the team changed since. Answers the team as GET /teams/{teamId} does; its version moves.
+         */
+        delete: operations["RemoveTeamLogo"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/teams/{teamId}/badge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set a team's badge
+         * @description Uploads the badge as `multipart/form-data` with one file in the field `file` and nothing else (VALIDATION_INVALID_REQUEST otherwise). The file's bytes decide its type, not the content type sent: JPEG, PNG or WebP up to 2 MB (MEDIA_TYPE_NOT_ALLOWED, MEDIA_TOO_LARGE; no SVG), at least 64 px on the shorter side (MEDIA_IMAGE_TOO_SMALL; an image that can't be decoded is MEDIA_IMAGE_UNREADABLE). It is stored as a public WebP image at 160 and 640 px, transparency kept, and replaces the badge it had. At the plan's storage limit the upload is ENTITLEMENT_QUOTA_EXCEEDED ("Your plan allows N GB of storage."). The team's other image doesn't change. A disbanded or archived team takes no new badge (TEAM_DISBANDED, TEAM_ARCHIVED). Send `If-Match` from the last read to get 409 TEAM_CONCURRENCY_CONFLICT if the team changed since. Answers the team as GET /teams/{teamId} does; its version moves.
+         */
+        put: operations["SetTeamBadge"];
+        post?: never;
+        /**
+         * Remove a team's badge
+         * @description Removes the team's badge, whatever its status; a team without one is TEAM_BADGE_NOT_FOUND. Send `If-Match` from the last read to get 409 TEAM_CONCURRENCY_CONFLICT if the team changed since. Answers the team as GET /teams/{teamId} does; its version moves.
+         */
+        delete: operations["RemoveTeamBadge"];
         options?: never;
         head?: never;
         patch?: never;
@@ -3826,8 +3898,8 @@ export interface components {
          *     them, ended ones included, by authority (as a venue's); both are `INTERNAL` (D16), and a change to one moves the
          *     version (S06 D11). `teams` are the organisation's teams, archived ones left out, in the teams directory's order (name,
          *     category, ID; owner, S07-T3b-2 plan), not paged; the directory's `organisationId` pages them with filters. A team's
-         *     changes don't move the organisation's version, so it is no freshness marker for `teams` either. The logo joins with
-         *     S07-T4.
+         *     changes don't move the organisation's version, so it is no freshness marker for `teams` either. `logo` is its
+         *     signed URLs (S07 D15; null without one); a new or removed logo moves the version.
          */
         OrganisationResponse: {
             /** Format: uuid */
@@ -3850,6 +3922,7 @@ export interface components {
             children: components["schemas"]["OrganisationSummaryResponse"][];
             teams: components["schemas"]["OrganisationTeamResponse"][];
             status: components["schemas"]["OrganisationStatus"];
+            logo: null | components["schemas"]["RegistryImageResponse"];
             aliases: components["schemas"]["OrganisationAliasResponse"][];
             externalIdentifiers: components["schemas"]["ExternalIdentifierResponse"][];
             /** Format: uint32 */
@@ -4201,6 +4274,17 @@ export interface components {
          */
         RedriveOutboxMessageRequest: {
             reason: null | string;
+        };
+        /**
+         * @description A logo or badge as the admin reads it (S07 D15): signed URLs of its two variants (no `large`), valid until
+         *     `expiresAt`, as a person's photo. `INTERNAL`: the URLs are signed for the admin; public reads link the public
+         *     asset route instead (S07-T5).
+         */
+        RegistryImageResponse: {
+            thumbnailUrl: string;
+            mediumUrl: string;
+            /** Format: date-time */
+            expiresAt: string;
         };
         /**
          * @description The removal of an organisation's alias (audit `REQUIRED_WITH_REASON`). The reason is kept permanently on the alias and
@@ -4908,7 +4992,8 @@ export interface components {
          *     one). `nameSince` is when the current name began (D8); `formerNames` are the earlier ones with their dates,
          *     newest first (`PUBLIC`, D16), and `aliases` the current nicknames and spellings (`INTERNAL`).
          *     `externalIdentifiers` are all of the team's, ended ones included, by authority (as an organisation's; S07-T3d); a
-         *     change to one moves the version (S06 D11). Images join with S07-T4.
+         *     change to one moves the version (S06 D11). `logo` and `badge` are their signed URLs (S07 D15; null without
+         *     one); a new or removed image moves the version.
          */
         TeamResponse: {
             /** Format: uuid */
@@ -4932,6 +5017,8 @@ export interface components {
             organisation: null | components["schemas"]["TeamOrganisationResponse"];
             homeVenue: null | components["schemas"]["TeamVenueResponse"];
             status: components["schemas"]["TeamStatus"];
+            logo: null | components["schemas"]["RegistryImageResponse"];
+            badge: null | components["schemas"]["RegistryImageResponse"];
             formerNames: components["schemas"]["TeamFormerNameResponse"][];
             aliases: components["schemas"]["TeamAliasResponse"][];
             externalIdentifiers: components["schemas"]["ExternalIdentifierResponse"][];
@@ -10658,6 +10745,174 @@ export interface operations {
             };
         };
     };
+    SetOrganisationLogo: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too. */
+                "If-Match"?: string;
+            };
+            path: {
+                organisationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    file?: components["schemas"]["IFormFile"];
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganisationResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `ENTITLEMENT_QUOTA_EXCEEDED`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `ORGANISATION_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `ORGANISATION_ARCHIVED`, `ORGANISATION_CONCURRENCY_CONFLICT`, `ORGANISATION_DISSOLVED` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `MEDIA_TOO_LARGE` */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `MEDIA_IMAGE_TOO_SMALL`, `MEDIA_IMAGE_UNREADABLE`, `MEDIA_TYPE_NOT_ALLOWED` */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    RemoveOrganisationLogo: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too. */
+                "If-Match"?: string;
+            };
+            path: {
+                organisationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganisationResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_MALFORMED_REQUEST` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `ORGANISATION_LOGO_NOT_FOUND`, `ORGANISATION_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `ORGANISATION_CONCURRENCY_CONFLICT` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     CheckTeamDuplicates: {
         parameters: {
             query?: never;
@@ -11498,6 +11753,342 @@ export interface operations {
             };
             /** @description Problem Details; `code`: `TEAM_EXTERNAL_ID_VALIDITY_INVALID` */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    SetTeamLogo: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too. */
+                "If-Match"?: string;
+            };
+            path: {
+                teamId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    file?: components["schemas"]["IFormFile"];
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `ENTITLEMENT_QUOTA_EXCEEDED`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TEAM_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TEAM_ARCHIVED`, `TEAM_CONCURRENCY_CONFLICT`, `TEAM_DISBANDED` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `MEDIA_TOO_LARGE` */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `MEDIA_IMAGE_TOO_SMALL`, `MEDIA_IMAGE_UNREADABLE`, `MEDIA_TYPE_NOT_ALLOWED` */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    RemoveTeamLogo: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too. */
+                "If-Match"?: string;
+            };
+            path: {
+                teamId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_MALFORMED_REQUEST` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TEAM_LOGO_NOT_FOUND`, `TEAM_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TEAM_CONCURRENCY_CONFLICT` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    SetTeamBadge: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too. */
+                "If-Match"?: string;
+            };
+            path: {
+                teamId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    file?: components["schemas"]["IFormFile"];
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `ENTITLEMENT_QUOTA_EXCEEDED`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TEAM_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TEAM_ARCHIVED`, `TEAM_CONCURRENCY_CONFLICT`, `TEAM_DISBANDED` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `MEDIA_TOO_LARGE` */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `MEDIA_IMAGE_TOO_SMALL`, `MEDIA_IMAGE_UNREADABLE`, `MEDIA_TYPE_NOT_ALLOWED` */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    RemoveTeamBadge: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too. */
+                "If-Match"?: string;
+            };
+            path: {
+                teamId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_MALFORMED_REQUEST` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TEAM_BADGE_NOT_FOUND`, `TEAM_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TEAM_CONCURRENCY_CONFLICT` */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

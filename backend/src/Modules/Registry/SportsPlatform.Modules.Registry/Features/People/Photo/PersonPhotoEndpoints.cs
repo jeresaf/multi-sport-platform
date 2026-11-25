@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Routing;
 using SportsPlatform.BuildingBlocks.Api;
 using SportsPlatform.BuildingBlocks.Results;
 using SportsPlatform.Modules.Platform.Contracts.Media;
+using SportsPlatform.Modules.Registry.Features.Media;
 using SportsPlatform.Modules.Registry.Features.People.GetPerson;
 
 namespace SportsPlatform.Modules.Registry.Features.People.Photo;
@@ -16,7 +17,7 @@ namespace SportsPlatform.Modules.Registry.Features.People.Photo;
 internal static class PersonPhotoEndpoints
 {
     /// <summary>The form field that carries the photo.</summary>
-    public const string FileField = PersonMedia.FileField;
+    public const string FileField = RegistryMedia.FileField;
 
     private const string _versionNote =
         "Send `If-Match` from the last read to get 409 PERSON_CONCURRENCY_CONFLICT if the person changed since. Answers the " +
@@ -39,7 +40,7 @@ internal static class PersonPhotoEndpoints
                 _versionNote)
             .RequireAction(RegistryActions.PersonPhotoSet)
             .DisableAntiforgery()
-            .WithMetadata(new StoresMediaMetadata())
+            .WithMetadata(new StoresMediaMetadata(MediaPurpose.PersonPhoto))
             .AcceptsIfMatch()
             .ReturnsETag()
             .ProducesErrors(
@@ -68,7 +69,7 @@ internal static class PersonPhotoEndpoints
         HttpResponse response,
         CancellationToken cancellationToken)
     {
-        if (PersonMedia.RefuseUnlessOneFile(file, httpRequest) is { } malformed)
+        if (RegistryMedia.RefuseUnlessOneFile(file, httpRequest) is { } malformed)
         {
             return malformed.ToProblem();
         }

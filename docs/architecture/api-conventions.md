@@ -169,7 +169,10 @@ Modules call each other in-process through Contracts, never over HTTP.
   (`.RequirePublicTenant()`: a site that isn't public is `403 TENANT_UNAVAILABLE`); a private, removed, unknown or
   another tenant's asset, or another variant, is `404 MEDIA_NOT_FOUND` (`no-store`). Served as WebP with `Cache-Control: public,
   max-age=86400` (no `immutable`: a new image has a new ID, and a removed one leaves caches within a day) and
-  `nosniff`. Admin reads still carry signed URLs for them.
+  `nosniff`. Admin reads still carry signed URLs for them (S07-T4b: `logo` and `badge` as `{ thumbnailUrl, mediumUrl,
+  expiresAt }`, null without one or when Platform doesn't serve the asset). Their uploads (`PUT …/organisations/{id}/logo`,
+  `…/teams/{id}/logo`, `…/teams/{id}/badge`) follow the uploads above; `DELETE` on the same paths removes one in any status
+  (`404 <AREA>_LOGO_NOT_FOUND`, `TEAM_BADGE_NOT_FOUND` without one).
 
 ## Pagination, filtering, sorting
 

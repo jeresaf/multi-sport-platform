@@ -370,6 +370,25 @@ public static class RegistryActions
         "End an organisation's external identifier; it is kept, and its value is never given to another organisation.",
         AuditRequirement.Required);
 
+    /// <summary>
+    /// Uploads a <c>PUBLIC</c> logo (S07 D15) and names <c>STORAGE_GB</c>, checked as a person's photo is (S06 D20); it
+    /// answers the organisation as <c>organisation.read</c> does.
+    /// </summary>
+    public static readonly ActionDefinition OrganisationLogoSet = new(
+        "organisation.logo.set",
+        "Upload an organisation's logo (JPEG, PNG or WebP up to 2 MB, at least 64 px), shown on the public site, replacing the one it had; not for a dissolved or archived organisation.",
+        ActionScope.Tenant,
+        AuditRequirement.Required,
+        since: "S07",
+        scopableBy: [AssignmentScope.Tenant],
+        entitlement: "STORAGE_GB",
+        grantedWith: ["organisation.read"]);
+
+    public static readonly ActionDefinition OrganisationLogoRemove = OrganisationChild(
+        "organisation.logo.remove",
+        "Remove an organisation's logo, whatever its status.",
+        AuditRequirement.Required);
+
     public static readonly ActionDefinition TeamRead = new(
         "team.read",
         "View the teams directory and a team's record: sport, category, organisation, names, code, colours, home venue and status.",
@@ -468,6 +487,29 @@ public static class RegistryActions
         "End a team's external identifier; it is kept, and its value is never given to another team.",
         AuditRequirement.Required);
 
+    /// <summary>
+    /// Uploads a <c>PUBLIC</c> logo (S07 D15) and names <c>STORAGE_GB</c>, checked as a person's photo is (S06 D20); it
+    /// answers the team as <c>team.read</c> does.
+    /// </summary>
+    public static readonly ActionDefinition TeamLogoSet = TeamImageSet(
+        "team.logo.set",
+        "Upload a team's logo (JPEG, PNG or WebP up to 2 MB, at least 64 px), shown on the public site, replacing the one it had; not for a disbanded or archived team.");
+
+    public static readonly ActionDefinition TeamLogoRemove = TeamChild(
+        "team.logo.remove",
+        "Remove a team's logo, whatever its status.",
+        AuditRequirement.Required);
+
+    /// <summary>The badge as the logo (S07 D15): a separate image, set and removed on its own.</summary>
+    public static readonly ActionDefinition TeamBadgeSet = TeamImageSet(
+        "team.badge.set",
+        "Upload a team's badge (JPEG, PNG or WebP up to 2 MB, at least 64 px), shown on the public site, replacing the one it had; not for a disbanded or archived team.");
+
+    public static readonly ActionDefinition TeamBadgeRemove = TeamChild(
+        "team.badge.remove",
+        "Remove a team's badge, whatever its status.",
+        AuditRequirement.Required);
+
     // A team's alias and identifier actions (S07 D10) answer the team as team.read does, so they are only granted with
     // that read.
     private static ActionDefinition TeamChild(string code, string description, AuditRequirement audit) => new(
@@ -477,6 +519,17 @@ public static class RegistryActions
         audit,
         since: "S07",
         scopableBy: [AssignmentScope.Tenant],
+        grantedWith: ["team.read"]);
+
+    // A team's image uploads (S07 D15) name STORAGE_GB and answer the team as team.read does.
+    private static ActionDefinition TeamImageSet(string code, string description) => new(
+        code,
+        description,
+        ActionScope.Tenant,
+        AuditRequirement.Required,
+        since: "S07",
+        scopableBy: [AssignmentScope.Tenant],
+        entitlement: "STORAGE_GB",
         grantedWith: ["team.read"]);
 
     // The lifecycle, alias, identifier, profile, photo, consent and public-profile actions answer the person as person.read does, so they are only

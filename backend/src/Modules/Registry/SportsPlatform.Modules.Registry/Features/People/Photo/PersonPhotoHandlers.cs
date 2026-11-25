@@ -3,6 +3,7 @@ using SportsPlatform.BuildingBlocks.Api;
 using SportsPlatform.BuildingBlocks.Auditing;
 using SportsPlatform.BuildingBlocks.Privacy;
 using SportsPlatform.Modules.Platform.Contracts.Media;
+using SportsPlatform.Modules.Registry.Features.Media;
 using SportsPlatform.Modules.Registry.Infrastructure;
 using SportsPlatform.Modules.Tenancy.Contracts.Entitlements;
 
@@ -38,7 +39,7 @@ public sealed class SetPersonPhotoHandler(
             return new(accepts.Error);
         }
 
-        if (await PersonMedia.CheckStorageAsync(media, entitlements, cancellationToken) is { } overQuota)
+        if (await RegistryMedia.CheckStorageAsync(media, entitlements, cancellationToken) is { } overQuota)
         {
             return overQuota;
         }
@@ -64,7 +65,7 @@ public sealed class SetPersonPhotoHandler(
 
         if (set.Value is { } previous)
         {
-            await PersonMedia.RemoveUnreferencedAsync(media, logger, previous);
+            await RegistryMedia.RemoveUnreferencedAsync(media, logger, previous);
         }
 
         return null;
@@ -101,7 +102,7 @@ public sealed class RemovePersonPhotoHandler(
             return new(saved.Error);
         }
 
-        await PersonMedia.RemoveUnreferencedAsync(media, logger, removed.Value);
+        await RegistryMedia.RemoveUnreferencedAsync(media, logger, removed.Value);
         return null;
     }
 }

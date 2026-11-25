@@ -251,6 +251,11 @@ ones included. `ITeamDirectory.GetSummariesAsync(ids, onDate?)` in Contracts: id
 date (`Team.NameOn`; the current ones without a date), variant, category codes, organisation id, status, slug, logo and
 badge asset IDs, with its own `TeamStatus`, `GenderCategory`, `AgeGroup` and `TeamLevel`; the scope's tenant only, any
 status, no action checked.
+**As built (S07-T4b):** logos and badges (D15) through Platform media: `PUT`/`DELETE …/organisations/{id}/logo`,
+`…/teams/{id}/logo`, `…/teams/{id}/badge` store `ORG_LOGO`, `TEAM_LOGO`, `TEAM_BADGE` assets (`PUBLIC`) after the
+`STORAGE_GB` check (`RegistryMedia`, shared with person photos and consent evidence), name the new asset, then mark the
+old one `REMOVED`. A dissolved or archived organisation, or a disbanded or archived team, takes no new image; removing
+works in any status. The organisation and team reads carry the images' signed URLs (`RegistryImageUrls`).
 **Absorbs:** pack specs 08–14. Owner's systems: **Player Management System**, the identity half of
 **Team Management System**. Owner's rule "duplicate players within the same tenant should be avoided at all
 costs" is implemented here (docs/build/slices/S06-people-registry.md).

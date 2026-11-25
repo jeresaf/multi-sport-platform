@@ -219,6 +219,9 @@ public static class RegistryErrors
         "The organisation is already known by this name: its display, legal or short name or a current alias gives the same name key.",
         ErrorKind.Conflict);
 
+    public static readonly Error OrganisationLogoNotFound = new(
+        "ORGANISATION_LOGO_NOT_FOUND", "The organisation has no logo.", ErrorKind.NotFound);
+
     public static readonly Error OrganisationAliasNotFound = new(
         "ORGANISATION_ALIAS_NOT_FOUND", "The organisation has no such alias.", ErrorKind.NotFound);
 
@@ -299,6 +302,10 @@ public static class RegistryErrors
         "TEAM_ALIAS_EXISTS",
         "The team is already known by this name: its name or short name or a current alias gives the same name key.",
         ErrorKind.Conflict);
+
+    public static readonly Error TeamLogoNotFound = new("TEAM_LOGO_NOT_FOUND", "The team has no logo.", ErrorKind.NotFound);
+
+    public static readonly Error TeamBadgeNotFound = new("TEAM_BADGE_NOT_FOUND", "The team has no badge.", ErrorKind.NotFound);
 
     public static readonly Error TeamAliasNotFound = new("TEAM_ALIAS_NOT_FOUND", "The team has no such alias.", ErrorKind.NotFound);
 

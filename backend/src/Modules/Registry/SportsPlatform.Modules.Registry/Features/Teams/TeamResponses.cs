@@ -5,6 +5,7 @@ using SportsPlatform.BuildingBlocks.Privacy;
 using SportsPlatform.Modules.Registry.Domain.People;
 using SportsPlatform.Modules.Registry.Domain.People.Duplicates;
 using SportsPlatform.Modules.Registry.Domain.Teams;
+using SportsPlatform.Modules.Registry.Features.Media;
 using SportsPlatform.Modules.Registry.Features.People;
 
 namespace SportsPlatform.Modules.Registry.Features.Teams;
@@ -16,7 +17,8 @@ namespace SportsPlatform.Modules.Registry.Features.Teams;
 /// one). <c>nameSince</c> is when the current name began (D8); <c>formerNames</c> are the earlier ones with their dates,
 /// newest first (<c>PUBLIC</c>, D16), and <c>aliases</c> the current nicknames and spellings (<c>INTERNAL</c>).
 /// <c>externalIdentifiers</c> are all of the team's, ended ones included, by authority (as an organisation's; S07-T3d); a
-/// change to one moves the version (S06 D11). Images join with S07-T4.
+/// change to one moves the version (S06 D11). <c>logo</c> and <c>badge</c> are their signed URLs (S07 D15; null without
+/// one); a new or removed image moves the version.
 /// </summary>
 public sealed record TeamResponse(
     [property: PersonalData(PersonalDataClass.Public)] Guid Id,
@@ -37,6 +39,8 @@ public sealed record TeamResponse(
     [property: PersonalData(PersonalDataClass.Public)] TeamOrganisationResponse? Organisation,
     [property: PersonalData(PersonalDataClass.Public)] TeamVenueResponse? HomeVenue,
     [property: PersonalData(PersonalDataClass.Public)] TeamStatus Status,
+    [property: PersonalData(PersonalDataClass.Internal)] RegistryImageResponse? Logo,
+    [property: PersonalData(PersonalDataClass.Internal)] RegistryImageResponse? Badge,
     [property: PersonalData(PersonalDataClass.Public)] IReadOnlyList<TeamFormerNameResponse> FormerNames,
     [property: PersonalData(PersonalDataClass.Internal)] IReadOnlyList<TeamAliasResponse> Aliases,
     [property: PersonalData(PersonalDataClass.Internal)] IReadOnlyList<ExternalIdentifierResponse> ExternalIdentifiers,
