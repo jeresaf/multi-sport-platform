@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using SportsPlatform.BuildingBlocks.Actions;
 using SportsPlatform.BuildingBlocks.Auditing;
 using SportsPlatform.IntegrationTests.Api;
 using SportsPlatform.IntegrationTests.Audit;
@@ -11,6 +12,7 @@ using SportsPlatform.Modules.Identity.Domain.Roles;
 using SportsPlatform.Modules.Platform.Domain.Media;
 using SportsPlatform.Modules.Registry.Domain.Teams;
 using SportsPlatform.UnitTests.Platform.Media;
+using static SportsPlatform.IntegrationTests.Identity.MembershipTestData;
 using static SportsPlatform.IntegrationTests.Registry.RegistryTestData;
 using static SportsPlatform.IntegrationTests.Registry.TeamRequests;
 
@@ -128,7 +130,6 @@ public sealed class TeamImageTests(PostgresFixture fixture) : RegistryImageTest(
     [MemberData(nameof(Images))]
     public async Task At_the_storage_limit_an_upload_is_refused(string image, string purpose)
     {
-        _ = purpose;
         var (kmsa, owner) = await TenantAsync("kmsa", IdentityRoles.TenantOwner);
         var team = await SaveTeamAsync(App.Services, kmsa, "Bunga Lakeside FC");
         await OkAsync(await owner.PutAsync(ImagePath(team.Id, image), Form(TestImages.Png(128, 128)), Ct));
@@ -139,6 +140,8 @@ public sealed class TeamImageTests(PostgresFixture fixture) : RegistryImageTest(
         var problem = await refused.ShouldBeProblemAsync(HttpStatusCode.Forbidden, "ENTITLEMENT_QUOTA_EXCEEDED");
         problem.GetProperty("detail").GetString().ShouldBe("Your plan allows 0 GB of storage.");
         (await AssetCountAsync(kmsa)).ShouldBe(1);
+        var (logo, badge) = await ImageAssetIdsAsync(kmsa, team.Id);
+        (await AssetAsync(kmsa, (logo ?? badge).ShouldNotBeNull())).ShouldBe((MediaAssetStatus.Active, purpose, "PUBLIC"));
         await OkAsync(await owner.DeleteAsync(ImagePath(team.Id, image), Ct));
     }
 
@@ -195,6 +198,29 @@ public sealed class TeamImageTests(PostgresFixture fixture) : RegistryImageTest(
                 }
             }
         }
+    }
+
+    // D20: a team manager gets none of the team's actions in S07, not even for their own team (review #133 R2).
+    [Fact]
+    public async Task A_team_manager_changes_no_image_of_their_team()
+    {
+        var (kmsa, registrar) = await TenantAsync("kmsa", IdentityRoles.Registrar);
+        var team = await SaveTeamAsync(App.Services, kmsa, "Bunga Lakeside FC");
+        await OkAsync(await registrar.PutAsync(ImagePath(team.Id, "logo"), Form(TestImages.Png(64, 64)), Ct));
+        var before = await ImageAssetIdsAsync(kmsa, team.Id);
+        var manager = await CreateMemberAsync(
+            App.Services, kmsa, MailboxOf(IdentityRoles.TeamManager, "kmsa.example"), Ct, (IdentityRoles.TeamManager, AssignmentScope.Team, team.Id));
+        using var client = App.ClientFor(manager.UserId, kmsa);
+
+        foreach (var image in new[] { "logo", "badge" })
+        {
+            using var set = await client.PutAsync(ImagePath(team.Id, image), Form(TestImages.Png(64, 64)), Ct);
+            await set.ShouldBeProblemAsync(HttpStatusCode.Forbidden, "AUTH_FORBIDDEN");
+            using var remove = await client.DeleteAsync(ImagePath(team.Id, image), Ct);
+            await remove.ShouldBeProblemAsync(HttpStatusCode.Forbidden, "AUTH_FORBIDDEN");
+        }
+
+        (await ImageAssetIdsAsync(kmsa, team.Id)).ShouldBe(before);
     }
 
     [Fact]
