@@ -7,8 +7,8 @@ at the start of every review.
 
 - **Current slice:** S07 — Organisations, teams and venues (docs/build/slices/S07-organisations-teams-venues.md,
   written by the S06 slice review). S00–S06 are done
-- **Current task:** — (S07-T3c in review: #130)
-- **Next:** S07-T3d — Teams: external identifiers, `ITeamDirectory`
+- **Current task:** S07-T3d — Teams: external identifiers, `ITeamDirectory` (plan approved 2026-11-25: one PR)
+- **Next:** S07-T4 — Logos, badges and public assets
 - **Blocked on:** —
 
 ## Next up

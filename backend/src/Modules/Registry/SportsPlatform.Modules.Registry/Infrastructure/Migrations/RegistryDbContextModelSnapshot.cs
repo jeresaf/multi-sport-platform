@@ -921,7 +921,7 @@ namespace SportsPlatform.Modules.Registry.Infrastructure.Migrations
                         {
                             t.HasCheckConstraint("ck_external_identifiers_authority", "authority ~ '^[A-Z][A-Z0-9_]{1,39}$'");
 
-                            t.HasCheckConstraint("ck_external_identifiers_entity_type", "entity_type IN ('PERSON', 'VENUE', 'ORGANISATION')");
+                            t.HasCheckConstraint("ck_external_identifiers_entity_type", "entity_type IN ('PERSON', 'VENUE', 'ORGANISATION', 'TEAM')");
 
                             t.HasCheckConstraint("ck_external_identifiers_validity", "valid_from IS NULL OR valid_to IS NULL OR valid_to >= valid_from");
 

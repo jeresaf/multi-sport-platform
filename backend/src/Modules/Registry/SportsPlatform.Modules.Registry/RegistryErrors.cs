@@ -308,4 +308,20 @@ public static class RegistryErrors
         "TEAM_ALIAS_FORMER_NAME",
         "A former name is the team's name history and can't be removed: only nicknames and spellings can.",
         ErrorKind.Conflict);
+
+    public static readonly Error TeamExternalIdExists = new(
+        "TEAM_EXTERNAL_ID_EXISTS",
+        "A team already has this external identifier (the same authority and value), or had it: a value is never reused.",
+        ErrorKind.Conflict);
+
+    public static readonly Error TeamExternalIdNotFound = new(
+        "TEAM_EXTERNAL_ID_NOT_FOUND", "The team has no such external identifier.", ErrorKind.NotFound);
+
+    public static readonly Error TeamExternalIdEnded = new(
+        "TEAM_EXTERNAL_ID_ENDED", "The external identifier has already ended.", ErrorKind.Conflict);
+
+    public static readonly Error TeamExternalIdValidityInvalid = new(
+        "TEAM_EXTERNAL_ID_VALIDITY_INVALID",
+        "An identifier's end date can't be before its start date or after today (the tenant's date).",
+        ErrorKind.Unprocessable);
 }

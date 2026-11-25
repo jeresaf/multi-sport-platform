@@ -37,4 +37,5 @@ public enum ExternalIdentifierEntityType
     Person,
     Venue,
     Organisation,
+    Team,
 }

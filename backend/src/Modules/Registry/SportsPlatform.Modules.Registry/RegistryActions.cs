@@ -458,8 +458,18 @@ public static class RegistryActions
         "Remove a team's nickname or spelling, with a reason; the alias is kept with who removed it, when and why. Former names stay.",
         AuditRequirement.RequiredWithReason);
 
-    // A team's alias (and, with S07-T3d, identifier) actions answer the team as team.read does, so they are only granted
-    // with that read.
+    public static readonly ActionDefinition TeamExternalIdAdd = TeamChild(
+        "team.external_id.add",
+        "Add an identifier another authority gave a team (e.g. a league registration number); a value any team has or had is refused; not for a disbanded or archived team.",
+        AuditRequirement.Required);
+
+    public static readonly ActionDefinition TeamExternalIdEnd = TeamChild(
+        "team.external_id.end",
+        "End a team's external identifier; it is kept, and its value is never given to another team.",
+        AuditRequirement.Required);
+
+    // A team's alias and identifier actions (S07 D10) answer the team as team.read does, so they are only granted with
+    // that read.
     private static ActionDefinition TeamChild(string code, string description, AuditRequirement audit) => new(
         code,
         description,
