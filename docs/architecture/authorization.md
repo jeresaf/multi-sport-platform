@@ -219,7 +219,10 @@ team.duplicate_check, team.read`) for `TENANT_OWNER`, `TENANT_ADMIN` and `REGIST
 three roles; the status history and the directory (S07-T3b-2) are read with `team.read`. `TEAM_MANAGER` gets its own team through the `TEAM` scope in
 S08. `team.rename` (audit `REQUIRED`, `grantedWith: team.duplicate_check, team.read`), `team.alias.add` (`REQUIRED`)
 and `team.alias.remove` (`REQUIRED_WITH_REASON`; both `grantedWith: team.read`; S07-T3c) for the same three roles. The
-identifier actions join with S07-T3d.
+identifier actions join with S07-T3d. Images (S07-T4b, D15): `organisation.logo.set`, `team.logo.set` and
+`team.badge.set` (audit `REQUIRED`, name `STORAGE_GB`, checked as photos are) and `organisation.logo.remove`,
+`team.logo.remove`, `team.badge.remove` (audit `REQUIRED`, any status), granted with the area's read, for the same
+three roles.
 
 | Role | Typical scope | Includes (summary) |
 |---|---|---|
