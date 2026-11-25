@@ -7,6 +7,7 @@ using SportsPlatform.BuildingBlocks.Results;
 using SportsPlatform.Modules.Platform.Contracts.Media;
 using SportsPlatform.Modules.Registry.Domain.People;
 using SportsPlatform.Modules.Registry.Domain.People.Consents;
+using SportsPlatform.Modules.Registry.Features.Media;
 using SportsPlatform.Modules.Registry.Infrastructure;
 using SportsPlatform.Modules.Tenancy.Contracts.Entitlements;
 
@@ -143,7 +144,7 @@ public sealed class UploadConsentEvidenceHandler(
             return new(found.Error);
         }
 
-        if (await PersonMedia.CheckStorageAsync(media, entitlements, cancellationToken) is { } overQuota)
+        if (await RegistryMedia.CheckStorageAsync(media, entitlements, cancellationToken) is { } overQuota)
         {
             return overQuota;
         }
@@ -151,7 +152,7 @@ public sealed class UploadConsentEvidenceHandler(
         var stored = await media.StoreAsync(file, MediaPurpose.ConsentEvidence, cancellationToken);
         if (stored.IsFailure)
         {
-            return new(stored.Error, PersonMedia.FileField);
+            return new(stored.Error, RegistryMedia.FileField);
         }
 
         var attached = person.AttachConsentEvidence(consentId, stored.Value);
@@ -169,7 +170,7 @@ public sealed class UploadConsentEvidenceHandler(
 
         if (attached.Value is { } previous && !person.Consents.Any(c => c.EvidenceAssetId == previous))
         {
-            await PersonMedia.RemoveUnreferencedAsync(media, logger, previous);
+            await RegistryMedia.RemoveUnreferencedAsync(media, logger, previous);
         }
 
         return null;

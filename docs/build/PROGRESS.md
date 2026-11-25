@@ -7,14 +7,13 @@ at the start of every review.
 
 - **Current slice:** S07 — Organisations, teams and venues (docs/build/slices/S07-organisations-teams-venues.md,
   written by the S06 slice review). S00–S06 are done
-- **Current task:** — (S07-T4a in review: #132; T4 is two PRs, owner, plan 2026-11-25: T4a Platform, T4b Registry
-  endpoints)
-- **Next:** S07-T4b — Logo and badge endpoints, `STORAGE_GB`, signed URLs in admin reads
+- **Current task:** S07-T4b — Logo and badge endpoints (Registry), one PR (owner, plan 2026-11-25)
+- **Next:** S07-T5 — Public reads
 - **Blocked on:** —
 
 ## Next up
 
-1. S07-T4b — Logo and badge endpoints (Registry)
+1. S07-T5 — Public reads (organisations, teams, venues)
 
 ## Log
 

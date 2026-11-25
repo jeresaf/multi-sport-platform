@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Routing;
 using SportsPlatform.BuildingBlocks.Api;
 using SportsPlatform.BuildingBlocks.Results;
 using SportsPlatform.Modules.Platform.Contracts.Media;
+using SportsPlatform.Modules.Registry.Features.Media;
 using SportsPlatform.Modules.Registry.Features.People.GetPerson;
 
 namespace SportsPlatform.Modules.Registry.Features.People.Consents;
@@ -87,7 +88,7 @@ internal static class ConsentEndpoints
             .WithSummary("Upload the evidence of a guardian's consent")
             .WithDescription(
                 $"Uploads the evidence of an active consent (a signed form, say) as `multipart/form-data` with one file in " +
-                $"the field `{PersonMedia.FileField}` and nothing else (VALIDATION_INVALID_REQUEST otherwise). The file's " +
+                $"the field `{RegistryMedia.FileField}` and nothing else (VALIDATION_INVALID_REQUEST otherwise). The file's " +
                 "bytes decide its type, not the content type sent: PDF, JPEG or PNG up to 10 MB (MEDIA_TYPE_NOT_ALLOWED, " +
                 "MEDIA_TOO_LARGE, MEDIA_IMAGE_UNREADABLE). A PDF is stored as uploaded; an image is re-encoded without " +
                 "its metadata (a GPS position, the device). It replaces the evidence the consent had. At the plan's " +
@@ -117,7 +118,7 @@ internal static class ConsentEndpoints
         HttpResponse response,
         CancellationToken cancellationToken)
     {
-        if (PersonMedia.RefuseUnlessOneFile(file, httpRequest) is { } malformed)
+        if (RegistryMedia.RefuseUnlessOneFile(file, httpRequest) is { } malformed)
         {
             return malformed.ToProblem();
         }

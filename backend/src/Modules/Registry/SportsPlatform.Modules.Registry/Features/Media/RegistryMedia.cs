@@ -2,15 +2,16 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using SportsPlatform.BuildingBlocks.Results;
 using SportsPlatform.Modules.Platform.Contracts.Media;
+using SportsPlatform.Modules.Registry.Features.People;
 using SportsPlatform.Modules.Tenancy.Contracts.Entitlements;
 
-namespace SportsPlatform.Modules.Registry.Features.People;
+namespace SportsPlatform.Modules.Registry.Features.Media;
 
 /// <summary>
-/// What a person's uploads share (S06 D19, D20): the one-file form, the <c>STORAGE_GB</c> check before storing, and
-/// marking a replaced asset <c>REMOVED</c> after the person's save.
+/// What the Registry's uploads share (S06 D19, D20; S07 D15): the one-file form, the <c>STORAGE_GB</c> check before
+/// storing, and marking a replaced asset <c>REMOVED</c> after the record's save.
 /// </summary>
-internal static partial class PersonMedia
+internal static partial class RegistryMedia
 {
     /// <summary>The form field that carries the file.</summary>
     public const string FileField = "file";
@@ -48,7 +49,8 @@ internal static partial class PersonMedia
     }
 
     /// <summary>
-    /// Marks an asset the person no longer names <c>REMOVED</c>. The person is saved already, so a failure doesn't fail
+    /// Marks an asset its record (a person, an organisation, a team) no longer names <c>REMOVED</c>. The record is saved
+    /// already, so a failure doesn't fail
     /// the request: the asset stays active and unreferenced (still counted toward storage) and is logged for the
     /// retention job (Later). Not cancelled with the request, for the same reason.
     /// </summary>
@@ -62,7 +64,7 @@ internal static partial class PersonMedia
                 LogNotRemoved(logger, assetId, removed.Error.Code);
             }
         }
-#pragma warning disable CA1031 // The person's change is saved: any failure here is logged, not answered.
+#pragma warning disable CA1031 // The record's change is saved: any failure here is logged, not answered.
         catch (Exception exception)
 #pragma warning restore CA1031
         {
@@ -70,9 +72,9 @@ internal static partial class PersonMedia
         }
     }
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Media asset {AssetId}, no longer named by its person, was not removed: {ErrorCode}")]
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Media asset {AssetId}, no longer named by its record, was not removed: {ErrorCode}")]
     private static partial void LogNotRemoved(ILogger logger, Guid assetId, string errorCode);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Removing media asset {AssetId}, no longer named by its person, failed")]
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Removing media asset {AssetId}, no longer named by its record, failed")]
     private static partial void LogRemoveFailed(ILogger logger, Exception exception, Guid assetId);
 }
