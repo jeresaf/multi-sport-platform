@@ -33,7 +33,24 @@ public sealed class PublicOrganisationAndVenueReadTests(PostgresFixture fixture)
     private const string _organisations = "/api/public/v1/organisations";
     private const string _venues = "/api/public/v1/venues";
 
-    private static readonly string[] _internalOrganisationFields = ["legalName", "email", "phone", "aliases", "externalIdentifiers", "version"];
+    // Allow-lists (review #134 N2): a new field must be added here on purpose, and nothing INTERNAL is among them (D16).
+    private static readonly string[] _organisationFields =
+    [
+        "id", "type", "displayName", "shortName", "slug", "country", "city", "foundedYear", "website", "description",
+        "primaryVenue", "parent", "children", "teams", "status", "logo",
+    ];
+
+    private static readonly string[] _organisationItemFields =
+        ["id", "displayName", "shortName", "slug", "type", "city", "country", "status", "logo"];
+
+    private static readonly string[] _venueFields =
+    [
+        "id", "name", "shortName", "slug", "type", "addressLine", "city", "region", "country", "latitude", "longitude",
+        "timeZone", "capacity", "surfaces", "supportedVariants", "status",
+    ];
+
+    private static readonly string[] _venueItemFields =
+        ["id", "name", "shortName", "slug", "type", "city", "country", "supportedVariants", "status"];
 
     // T5 acceptance 1: PUBLIC fields only; by ID and by slug; cacheable for a minute with a strong ETag.
     [Fact]
@@ -57,10 +74,8 @@ public sealed class PublicOrganisationAndVenueReadTests(PostgresFixture fixture)
         read.GetProperty("type").GetString().ShouldBe("CLUB");
         read.GetProperty("primaryVenue").GetProperty("id").GetGuid().ShouldBe(meadow.Id);
         read.GetProperty("logo").ValueKind.ShouldBe(JsonValueKind.Null);
-        foreach (var field in _internalOrganisationFields)
-        {
-            read.TryGetProperty(field, out _).ShouldBeFalse(field);
-        }
+        FieldsOf(read).ShouldBe(_organisationFields, ignoreOrder: true);
+        FieldsOf((await PublicAsync(_organisations)).Json.GetProperty("items")[0]).ShouldBe(_organisationItemFields, ignoreOrder: true);
 
         byId.Headers.CacheControl.ToString().ShouldBe("public, max-age=60");
         var etag = byId.Headers.ETag.ToString();
@@ -219,10 +234,8 @@ public sealed class PublicOrganisationAndVenueReadTests(PostgresFixture fixture)
         read.GetProperty("name").GetString().ShouldBe("Kiwatule Meadow Ground");
         read.GetProperty("timeZone").GetString().ShouldBe("Africa/Kampala");
         read.GetProperty("supportedVariants").EnumerateArray().Select(v => v.GetString()).ShouldBe([TestballFull]);
-        foreach (var field in new[] { "aliases", "externalIdentifiers", "version" })
-        {
-            read.TryGetProperty(field, out _).ShouldBeFalse(field);
-        }
+        FieldsOf(read).ShouldBe(_venueFields, ignoreOrder: true);
+        FieldsOf((await PublicAsync(_venues)).Json.GetProperty("items")[0]).ShouldBe(_venueItemFields, ignoreOrder: true);
 
         byId.Headers.CacheControl.ToString().ShouldBe("public, max-age=60");
         (await PublicAsync($"{_venues}/{meadow.Id}", ("If-None-Match", byId.Headers.ETag.ToString()))).Status
@@ -270,6 +283,8 @@ public sealed class PublicOrganisationAndVenueReadTests(PostgresFixture fixture)
             (await PublicAsync($"{_venues}?{query}")).ShouldBeProblem(StatusCodes.Status400BadRequest, "VALIDATION_INVALID_QUERY");
         }
     }
+
+    private static string[] FieldsOf(JsonElement element) => [.. element.EnumerateObject().Select(property => property.Name)];
 
     private static string?[] Names(JsonElement page) =>
         [.. page.GetProperty("items").EnumerateArray().Select(item => item.GetProperty("displayName").GetString())];
