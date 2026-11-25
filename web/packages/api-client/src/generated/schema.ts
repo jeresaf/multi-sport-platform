@@ -4819,7 +4819,8 @@ export interface components {
             slug: string;
         };
         /**
-         * @description A team as the admin reads it (S07 D19). Every field but the version is one the public reads may show (D16). The
+         * @description A team as the admin reads it (S07 D19). Every field but `aliases` (nicknames and spellings, `INTERNAL`) and the
+         *     version is one the public reads may show (D16): a public read must not reuse this DTO whole (review #130 R2). The
          *     organisation and the home venue are summaries of the tenant's records, whatever their status now (null without
          *     one). `nameSince` is when the current name began (D8); `formerNames` are the earlier ones with their dates,
          *     newest first (`PUBLIC`, D16), and `aliases` the current nicknames and spellings (`INTERNAL`).
