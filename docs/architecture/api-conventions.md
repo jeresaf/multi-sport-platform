@@ -167,7 +167,7 @@ Modules call each other in-process through Contracts, never over HTTP.
   `IMediaAssets.GetPublicPath` (a module never writes Platform's route): `GET /api/public/v1/assets/{assetId}/{variant}`
   with `variant` `thumbnail` or `medium` (lowercase path segments, for edge caches). The tenant comes from the host
   (`.RequirePublicTenant()`: a site that isn't public is `403 TENANT_UNAVAILABLE`); a private, removed, unknown or
-  another tenant's asset, or another variant, is `404 MEDIA_NOT_FOUND`. Served as WebP with `Cache-Control: public,
+  another tenant's asset, or another variant, is `404 MEDIA_NOT_FOUND` (`no-store`). Served as WebP with `Cache-Control: public,
   max-age=86400` (no `immutable`: a new image has a new ID, and a removed one leaves caches within a day) and
   `nosniff`. Admin reads still carry signed URLs for them.
 

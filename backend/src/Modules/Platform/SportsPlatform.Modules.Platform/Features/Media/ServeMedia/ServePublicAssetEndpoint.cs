@@ -13,7 +13,8 @@ namespace SportsPlatform.Modules.Platform.Features.Media.ServeMedia;
 /// tenant whose site the host serves. It streams only an active <c>PUBLIC</c> asset of that tenant (read under RLS);
 /// anything else (a private photo, a removed or unknown asset, another tenant's, a variant the asset hasn't) is the same
 /// <c>404 MEDIA_NOT_FOUND</c>. The route doesn't know the owner: the owning module's public reads decide what they link.
-/// Cached for a day, without <c>immutable</c>: a removed logo, or a site turned off, leaves caches within that time.
+/// Cached for a day, without <c>immutable</c>: a removed logo, or a site turned off, leaves caches within that time; a
+/// refusal is <c>no-store</c>.
 /// </summary>
 internal static class ServePublicAssetEndpoint
 {
@@ -61,6 +62,8 @@ internal static class ServePublicAssetEndpoint
         HttpContext httpContext,
         CancellationToken cancellationToken)
     {
+        // A refusal is never cached (review #132 R2): a shared cache may otherwise keep a 404 by heuristics.
+        httpContext.Response.Headers.CacheControl = "no-store";
         if (!_variants.TryGetValue(variant, out var mediaVariant))
         {
             return PlatformErrors.MediaNotFound.ToProblem();

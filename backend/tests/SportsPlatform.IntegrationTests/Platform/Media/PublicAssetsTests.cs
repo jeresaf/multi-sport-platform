@@ -92,6 +92,8 @@ public sealed class PublicAssetsTests(PostgresFixture fixture) : DatabaseTest(fi
         headers.CacheControl?.ToString().ShouldBe("public, max-age=86400");
         headers.GetValues("X-Content-Type-Options").ShouldBe(["nosniff"]);
         TestImages.SizeOf(body).ShouldBe((width, height));
+        // Review #132 Q1: the server sends the stored file's length (read as the server wrote it, not the client's count).
+        (await App.Server.GetAsync(path, _kmsaHost)).Headers.ContentLength.ShouldBe(body.LongLength);
     }
 
     // T4 acceptance 2: another tenant's asset, a private one (a person's photo) and a removed one are 404.
@@ -116,7 +118,7 @@ public sealed class PublicAssetsTests(PostgresFixture fixture) : DatabaseTest(fi
         {
             var response = await App.Server.GetAsync(path, _kmsaHost);
             response.ShouldBeProblem(StatusCodes.Status404NotFound, "MEDIA_NOT_FOUND");
-            response.Headers.CacheControl.ToString().ShouldNotContain("public");
+            response.Headers.CacheControl.ToString().ShouldBe("no-store");
         }
 
         // The other tenant's own host serves it.
