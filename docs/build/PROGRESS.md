@@ -7,13 +7,16 @@ at the start of every review.
 
 - **Current slice:** S07 — Organisations, teams and venues (docs/build/slices/S07-organisations-teams-venues.md,
   written by the S06 slice review). S00–S06 are done
-- **Current task:** — (S07-T5b in review: #135)
-- **Next:** S07-T6 — Screens
+- **Current task:** S07-T6a-1 — Venue screens: directory, detail, status (T6a is two PRs: T6a-1, T6a-2; owner, plan
+  2026-11-25)
+- **Next:** S07-T6a-2 — Venue forms and Names & IDs
 - **Blocked on:** —
 
 ## Next up
 
-1. S07-T6 — Screens
+1. S07-T6a-2 — Venue forms (add, edit, the duplicate panel) and Names & IDs
+2. S07-T6b — Organisation screens
+3. S07-T6c — Team screens (T6c-1, T6c-2)
 
 ## Log
 

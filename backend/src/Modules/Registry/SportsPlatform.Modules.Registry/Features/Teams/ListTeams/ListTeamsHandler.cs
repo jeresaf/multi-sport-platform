@@ -36,7 +36,8 @@ public sealed record ListTeamsResponse(
 /// collation "C"), category, ID (S07 D19; owner, plan 2026-11-24). <c>q</c> matches the name by prefix (of the name or
 /// of one of its words), name-key prefix or trigram similarity, the short name by name-key prefix, and a current alias
 /// (former names included, S07-T3c) as organisations' aliases, and an external identifier's value exactly, ended ones
-/// included (S07-T3d). Without a status, archived teams are left out. An unknown variant or organisation keeps none.
+/// included (S07-T3d). <c>homeVenueId</c> keeps the teams whose home venue it is (the venue's Teams tab,
+/// S07-T6a). Without a status, archived teams are left out. An unknown variant or organisation keeps none.
 /// </summary>
 public sealed class ListTeamsHandler(RegistryDbContext context)
 {
@@ -57,6 +58,11 @@ public sealed class ListTeamsHandler(RegistryDbContext context)
         if (query.OrganisationId is { } organisationId)
         {
             teams = teams.Where(t => t.OrganisationId == organisationId);
+        }
+
+        if (query.HomeVenueId is { } homeVenueId)
+        {
+            teams = teams.Where(t => t.HomeVenueId == homeVenueId);
         }
 
         if (query.GenderCategory is { } gender)

@@ -43,7 +43,8 @@ public sealed record ListPublicTeamsRequest(
         }
 
         // The admin request parses the shared parameters; the status is checked here.
-        var shared = new ListTeamsRequest(Q, Variant, OrganisationId, GenderCategory, AgeGroup, Level, Status: null, Limit, Cursor);
+        var shared = new ListTeamsRequest(
+            Q, Variant, OrganisationId, HomeVenueId: null, GenderCategory, AgeGroup, Level, Status: null, Limit, Cursor);
         return new PublicTeamsQuery(shared.ToQuery(), status);
     }
 }

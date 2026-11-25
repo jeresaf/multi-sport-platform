@@ -21,6 +21,9 @@ public sealed class ListTeamsRequestValidator : AbstractValidator<ListTeamsReque
         RuleFor(request => request.OrganisationId)
             .Must(id => id is null || ListTeamsRequest.TryParseOrganisationId(id, out _))
             .WithMessage("'organisationId' must be an organisation ID (a UUID).");
+        RuleFor(request => request.HomeVenueId)
+            .Must(id => id is null || ListTeamsRequest.TryParseHomeVenueId(id, out _))
+            .WithMessage("'homeVenueId' must be a venue ID (a UUID).");
         RuleFor(request => request.GenderCategory)
             .Must(gender => gender is null || ListTeamsRequest.TryParseGenderCategory(gender, out _))
             .WithMessage($"'genderCategory' must be one of: {string.Join(", ", ListTeamsRequest.GenderCategories)}.");

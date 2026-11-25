@@ -13,6 +13,7 @@ public sealed record TeamsQuery(
     string? Search,
     string? Variant,
     Guid? OrganisationId,
+    Guid? HomeVenueId,
     GenderCategory? GenderCategory,
     AgeGroup? AgeGroup,
     TeamLevel? Level,
@@ -25,6 +26,7 @@ public sealed record ListTeamsRequest(
     [FromQuery(Name = "q")] string? Q,
     [FromQuery(Name = "variant")] string? Variant,
     [FromQuery(Name = "organisationId")] string? OrganisationId,
+    [FromQuery(Name = "homeVenueId")] string? HomeVenueId,
     [FromQuery(Name = "genderCategory")] string? GenderCategory,
     [FromQuery(Name = "ageGroup")] string? AgeGroup,
     [FromQuery(Name = "level")] string? Level,
@@ -61,6 +63,10 @@ public sealed record ListTeamsRequest(
     public static bool TryParseOrganisationId(string value, out Guid organisationId) =>
         Guid.TryParseExact(value, "D", out organisationId);
 
+    /// <summary>A UUID in its usual form, as <see cref="TryParseOrganisationId"/>.</summary>
+    public static bool TryParseHomeVenueId(string value, out Guid homeVenueId) =>
+        Guid.TryParseExact(value, "D", out homeVenueId);
+
     public static bool TryParseLimit(string value, out int limit) =>
         int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out limit) && limit is >= 1 and <= MaxLimit;
 
@@ -71,6 +77,12 @@ public sealed record ListTeamsRequest(
         if (OrganisationId is not null)
         {
             organisationId = TryParseOrganisationId(OrganisationId, out var parsed) ? parsed : throw NotValidated();
+        }
+
+        Guid? homeVenueId = null;
+        if (HomeVenueId is not null)
+        {
+            homeVenueId = TryParseHomeVenueId(HomeVenueId, out var parsed) ? parsed : throw NotValidated();
         }
 
         var limit = DefaultLimit;
@@ -89,6 +101,7 @@ public sealed record ListTeamsRequest(
             string.IsNullOrWhiteSpace(Q) ? null : Q.Trim(),
             Variant,
             organisationId,
+            homeVenueId,
             Parsed<GenderCategory>(GenderCategory, TryParseGenderCategory),
             Parsed<AgeGroup>(AgeGroup, TryParseAgeGroup),
             Parsed<TeamLevel>(Level, TryParseLevel),
