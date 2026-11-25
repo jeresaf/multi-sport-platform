@@ -6,6 +6,7 @@ using SportsPlatform.Modules.Registry.Domain.Organisations;
 using SportsPlatform.Modules.Registry.Domain.People;
 using SportsPlatform.Modules.Registry.Domain.People.Duplicates;
 using SportsPlatform.Modules.Registry.Domain.Teams;
+using SportsPlatform.Modules.Registry.Features.Media;
 using SportsPlatform.Modules.Registry.Features.People;
 
 namespace SportsPlatform.Modules.Registry.Features.Organisations;
@@ -20,8 +21,8 @@ namespace SportsPlatform.Modules.Registry.Features.Organisations;
 /// them, ended ones included, by authority (as a venue's); both are <c>INTERNAL</c> (D16), and a change to one moves the
 /// version (S06 D11). <c>teams</c> are the organisation's teams, archived ones left out, in the teams directory's order (name,
 /// category, ID; owner, S07-T3b-2 plan), not paged; the directory's <c>organisationId</c> pages them with filters. A team's
-/// changes don't move the organisation's version, so it is no freshness marker for <c>teams</c> either. The logo joins with
-/// S07-T4.
+/// changes don't move the organisation's version, so it is no freshness marker for <c>teams</c> either. <c>logo</c> is its
+/// signed URLs (S07 D15; null without one); a new or removed logo moves the version.
 /// </summary>
 public sealed record OrganisationResponse(
     [property: PersonalData(PersonalDataClass.Public)] Guid Id,
@@ -42,6 +43,7 @@ public sealed record OrganisationResponse(
     [property: PersonalData(PersonalDataClass.Public)] IReadOnlyList<OrganisationSummaryResponse> Children,
     [property: PersonalData(PersonalDataClass.Public)] IReadOnlyList<OrganisationTeamResponse> Teams,
     [property: PersonalData(PersonalDataClass.Public)] OrganisationStatus Status,
+    [property: PersonalData(PersonalDataClass.Internal)] RegistryImageResponse? Logo,
     [property: PersonalData(PersonalDataClass.Internal)] IReadOnlyList<OrganisationAliasResponse> Aliases,
     [property: PersonalData(PersonalDataClass.Internal)] IReadOnlyList<ExternalIdentifierResponse> ExternalIdentifiers,
     [property: PersonalData(PersonalDataClass.Internal)] uint Version)

@@ -16,6 +16,15 @@ internal static partial class RegistryMedia
     /// <summary>The form field that carries the file.</summary>
     public const string FileField = "file";
 
+    /// <summary>What a logo or badge upload's description says about the file (S07 D15), for <paramref name="image"/>.</summary>
+    public static string ImageUploadNote(string image) =>
+        $"Uploads the {image} as `multipart/form-data` with one file in the field `{FileField}` and nothing else " +
+        "(VALIDATION_INVALID_REQUEST otherwise). The file's bytes decide its type, not the content type sent: JPEG, PNG or " +
+        "WebP up to 2 MB (MEDIA_TYPE_NOT_ALLOWED, MEDIA_TOO_LARGE; no SVG), at least 64 px on the shorter side " +
+        "(MEDIA_IMAGE_TOO_SMALL; an image that can't be decoded is MEDIA_IMAGE_UNREADABLE). It is stored as a public WebP " +
+        $"image at 160 and 640 px, transparency kept, and replaces the {image} it had. At the plan's storage limit the " +
+        "upload is ENTITLEMENT_QUOTA_EXCEEDED (\"Your plan allows N GB of storage.\"). ";
+
     /// <summary>
     /// The refusal of a form that isn't one file in <see cref="FileField"/> and nothing else. <paramref name="file"/> is
     /// bound as optional, so a missing or misnamed file is refused here with the field, not by the binder; it binds the

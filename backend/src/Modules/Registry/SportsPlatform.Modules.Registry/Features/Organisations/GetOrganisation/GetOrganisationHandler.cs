@@ -5,6 +5,7 @@ using SportsPlatform.Modules.Registry.Domain.Organisations;
 using SportsPlatform.Modules.Registry.Domain.People;
 using SportsPlatform.Modules.Registry.Domain.Teams;
 using SportsPlatform.Modules.Registry.Domain.Venues;
+using SportsPlatform.Modules.Registry.Features.Media;
 using SportsPlatform.Modules.Registry.Features.People;
 using SportsPlatform.Modules.Registry.Features.Teams;
 using SportsPlatform.Modules.Registry.Infrastructure;
@@ -16,9 +17,10 @@ namespace SportsPlatform.Modules.Registry.Features.Organisations.GetOrganisation
 /// current children (archived ones left out) as summaries; another tenant's organisation is not found (RLS). The parent
 /// and the children come from the open links (S07 D5; the index on the open links' parent serves the children). Its
 /// current aliases and its external identifiers, ended ones included, come with it (S07 D10); so do its teams, archived ones
-/// left out, in <see cref="TeamOrder"/> (S07-T3b-2; the index on the teams' organisation serves them).
+/// left out, in <see cref="TeamOrder"/> (S07-T3b-2; the index on the teams' organisation serves them), and its logo's
+/// signed URLs (S07 D15).
 /// </summary>
-public sealed class GetOrganisationHandler(RegistryDbContext context)
+public sealed class GetOrganisationHandler(RegistryDbContext context, RegistryImageUrls images)
 {
     public async Task<Result<OrganisationResponse>> HandleAsync(Guid organisationId, CancellationToken cancellationToken)
     {
@@ -72,8 +74,10 @@ public sealed class GetOrganisationHandler(RegistryDbContext context)
             .Select(i => new ExternalIdentifierResponse(i.Id, i.Authority, i.Value, i.ValidFrom, i.ValidTo))
             .ToListAsync(cancellationToken);
 
+        var logo = await images.SignAsync(OrganisationsEndpoints.EntityType, o.Id, o.LogoAssetId, cancellationToken);
+
         return Result.Success(new OrganisationResponse(
             o.Id, o.Type, o.DisplayName, o.LegalName, o.ShortName, o.Slug, o.Country, o.City, o.FoundedYear, o.Website, o.Email,
-            o.Phone, o.Description, venue, parent, children, teams, o.Status, aliases, identifiers, found.Version));
+            o.Phone, o.Description, venue, parent, children, teams, o.Status, logo, aliases, identifiers, found.Version));
     }
 }

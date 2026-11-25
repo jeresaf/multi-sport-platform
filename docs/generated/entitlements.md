@@ -21,5 +21,5 @@ Declared in Tenancy's `TenancyEntitlements`, valued per plan in `TenancyPlans` (
 | `PUBLIC_SITE` | Public site | BOOLEAN | — | — | no | yes | yes | Tenancy & Commercial | — | S04 | The tenant's public site on its platform subdomain. |
 | `REPORTS` | Reports | LEVEL | — | `BASIC` < `ADVANCED` | none | BASIC | ADVANCED | Insights | — | S04 | BASIC: CSV. ADVANCED: XLSX and PDF, scheduled. |
 | `SPONSORSHIP` | Sponsorship | LEVEL | — | `BASIC` < `FULL` | none | BASIC | FULL | Branding & Sponsorship | — | S04 | BASIC: up to 5 sponsor logos in a site-wide strip. FULL: campaigns, placements, scheduling, impression reports. |
-| `STORAGE_GB` | Media storage | QUOTA | GB | — | 0 | 10 | 100 | Registry | `person.consent_evidence.upload`, `person.photo.set` | S04 | Storage for uploaded media. |
+| `STORAGE_GB` | Media storage | QUOTA | GB | — | 0 | 10 | 100 | Registry | `organisation.logo.set`, `person.consent_evidence.upload`, `person.photo.set`, `team.badge.set`, `team.logo.set` | S04 | Storage for uploaded media. |
 | `TRANSFERS` | Transfers | BOOLEAN | — | — | no | no | yes | Team Operations | — | S04 | Player transfers between teams. |

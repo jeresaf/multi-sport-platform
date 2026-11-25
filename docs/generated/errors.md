@@ -54,6 +54,7 @@ the message is the default title and may change.
 | `ORGANISATION_EXTERNAL_ID_EXISTS` | 409 | An organisation already has this external identifier (the same authority and value), or had it: a value is never reused. | Registry |
 | `ORGANISATION_EXTERNAL_ID_NOT_FOUND` | 404 | The organisation has no such external identifier. | Registry |
 | `ORGANISATION_EXTERNAL_ID_VALIDITY_INVALID` | 422 | An identifier's end date can't be before its start date or after today (the tenant's date). | Registry |
+| `ORGANISATION_LOGO_NOT_FOUND` | 404 | The organisation has no logo. | Registry |
 | `ORGANISATION_NAME_INVALID` | 422 | An organisation's display name needs at least one letter or digit. | Registry |
 | `ORGANISATION_NOT_FOUND` | 404 | The organisation was not found. | Registry |
 | `ORGANISATION_PARENT_CYCLE` | 422 | The parent can't be the organisation itself or one of the organisations below it: the links would close a cycle. | Registry |
@@ -112,6 +113,7 @@ the message is the default title and may change.
 | `TEAM_ALIAS_NOT_FOUND` | 404 | The team has no such alias. | Registry |
 | `TEAM_ALIAS_REMOVED` | 409 | The alias is already removed. | Registry |
 | `TEAM_ARCHIVED` | 409 | The team is archived: it takes no new name, alias, identifier or image until it is unarchived. | Registry |
+| `TEAM_BADGE_NOT_FOUND` | 404 | The team has no badge. | Registry |
 | `TEAM_COLOURS_INVALID` | 422 | A secondary colour needs a primary colour, and a tertiary colour a secondary one. | Registry |
 | `TEAM_CONCURRENCY_CONFLICT` | 409 | The team was changed by someone else. Reload and try again. | Registry |
 | `TEAM_DISBANDED` | 409 | The team is disbanded: it takes no new name, alias, identifier or image unless it is reformed. | Registry |
@@ -121,6 +123,7 @@ the message is the default title and may change.
 | `TEAM_EXTERNAL_ID_NOT_FOUND` | 404 | The team has no such external identifier. | Registry |
 | `TEAM_EXTERNAL_ID_VALIDITY_INVALID` | 422 | An identifier's end date can't be before its start date or after today (the tenant's date). | Registry |
 | `TEAM_HOME_VENUE_UNAVAILABLE` | 422 | The home venue must be a venue of the tenant that isn't closed or archived. | Registry |
+| `TEAM_LOGO_NOT_FOUND` | 404 | The team has no logo. | Registry |
 | `TEAM_NAME_INVALID` | 422 | A team's name needs at least one letter or digit. | Registry |
 | `TEAM_NAME_UNCHANGED` | 422 | The team already has this name: a rename needs a new name. | Registry |
 | `TEAM_NOT_FOUND` | 404 | The team was not found. | Registry |

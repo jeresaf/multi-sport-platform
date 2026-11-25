@@ -5,6 +5,7 @@ using SportsPlatform.Modules.Registry.Domain.Organisations;
 using SportsPlatform.Modules.Registry.Domain.People;
 using SportsPlatform.Modules.Registry.Domain.Teams;
 using SportsPlatform.Modules.Registry.Domain.Venues;
+using SportsPlatform.Modules.Registry.Features.Media;
 using SportsPlatform.Modules.Registry.Features.People;
 using SportsPlatform.Modules.Registry.Infrastructure;
 
@@ -14,7 +15,7 @@ namespace SportsPlatform.Modules.Registry.Features.Teams.GetTeam;
 /// One team of the request's tenant, whatever its status, with its organisation and home venue as summaries, its former
 /// names, current aliases and external identifiers (ended ones included); another tenant's team is not found (RLS).
 /// </summary>
-public sealed class GetTeamHandler(RegistryDbContext context)
+public sealed class GetTeamHandler(RegistryDbContext context, RegistryImageUrls images)
 {
     public async Task<Result<TeamResponse>> HandleAsync(Guid teamId, CancellationToken cancellationToken)
     {
@@ -62,9 +63,12 @@ public sealed class GetTeamHandler(RegistryDbContext context)
             .Select(i => new ExternalIdentifierResponse(i.Id, i.Authority, i.Value, i.ValidFrom, i.ValidTo))
             .ToListAsync(cancellationToken);
 
+        var logo = await images.SignAsync(TeamsEndpoints.EntityType, t.Id, t.LogoAssetId, cancellationToken);
+        var badge = await images.SignAsync(TeamsEndpoints.EntityType, t.Id, t.BadgeAssetId, cancellationToken);
+
         return Result.Success(new TeamResponse(
             t.Id, t.Variant, t.GenderCategory, t.AgeGroup, t.Level, t.Name, t.ShortName, t.NameSince, t.Slug, t.Code, t.Motto,
-            t.PrimaryColour, t.SecondaryColour, t.TertiaryColour, t.FoundedYear, organisation, venue, t.Status, formerNames, others,
-            identifiers, found.Version));
+            t.PrimaryColour, t.SecondaryColour, t.TertiaryColour, t.FoundedYear, organisation, venue, t.Status, logo, badge,
+            formerNames, others, identifiers, found.Version));
     }
 }

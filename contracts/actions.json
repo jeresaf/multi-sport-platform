@@ -445,6 +445,38 @@
       "since": "S07"
     },
     {
+      "code": "organisation.logo.remove",
+      "module": "Registry",
+      "description": "Remove an organisation's logo, whatever its status.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S07"
+    },
+    {
+      "code": "organisation.logo.set",
+      "module": "Registry",
+      "description": "Upload an organisation's logo (JPEG, PNG or WebP up to 2 MB, at least 64 px), shown on the public site, replacing the one it had; not for a dissolved or archived organisation.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED",
+      "entitlement": "STORAGE_GB",
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S07"
+    },
+    {
       "code": "organisation.parent.set",
       "module": "Registry",
       "description": "Set or clear the organisation an organisation belongs to (its parent), with a reason; the earlier parent is kept in its history.",
@@ -1157,6 +1189,38 @@
       "since": "S07"
     },
     {
+      "code": "team.badge.remove",
+      "module": "Registry",
+      "description": "Remove a team's badge, whatever its status.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S07"
+    },
+    {
+      "code": "team.badge.set",
+      "module": "Registry",
+      "description": "Upload a team's badge (JPEG, PNG or WebP up to 2 MB, at least 64 px), shown on the public site, replacing the one it had; not for a disbanded or archived team.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED",
+      "entitlement": "STORAGE_GB",
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S07"
+    },
+    {
       "code": "team.create",
       "module": "Registry",
       "description": "Add a team in one of the tenant's enabled sports, within the plan's team limit; possible duplicates are shown first, and creating it anyway is recorded with the teams shown.",
@@ -1214,6 +1278,38 @@
       ],
       "audit": "REQUIRED",
       "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S07"
+    },
+    {
+      "code": "team.logo.remove",
+      "module": "Registry",
+      "description": "Remove a team's logo, whatever its status.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S07"
+    },
+    {
+      "code": "team.logo.set",
+      "module": "Registry",
+      "description": "Upload a team's logo (JPEG, PNG or WebP up to 2 MB, at least 64 px), shown on the public site, replacing the one it had; not for a disbanded or archived team.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED",
+      "entitlement": "STORAGE_GB",
       "idempotent": false,
       "allowsAnonymous": false,
       "availableWhenBlocked": false,

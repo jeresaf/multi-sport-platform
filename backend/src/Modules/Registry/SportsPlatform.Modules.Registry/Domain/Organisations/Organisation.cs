@@ -81,7 +81,7 @@ public sealed class Organisation : AggregateRoot, ITenantOwned
     /// <summary>A venue of the tenant (S07 D4); checked only when a request sets or changes it.</summary>
     public Guid? PrimaryVenueId { get; private set; }
 
-    /// <summary>A <c>PUBLIC</c> media asset of Platform (S07 D15); set by S07-T4's logo actions.</summary>
+    /// <summary>A <c>PUBLIC</c> media asset of Platform (S07 D15), set and removed by the logo actions.</summary>
     public Guid? LogoAssetId { get; private set; }
 
     public OrganisationStatus Status { get; private set; }
@@ -199,6 +199,37 @@ public sealed class Organisation : AggregateRoot, ITenantOwned
         OrganisationStatus.Dissolved => Result.Failure(RegistryErrors.OrganisationDissolved),
         _ => Result.Success(),
     };
+
+    /// <summary>
+    /// Names <paramref name="assetId"/> as the logo (S07 D15) and returns the asset it named before, if any; refused as a
+    /// new child (<see cref="EnsureAcceptsNewChildren"/>).
+    /// </summary>
+    public Result<Guid?> SetLogo(Guid assetId)
+    {
+        var accepts = EnsureAcceptsNewChildren();
+        if (accepts.IsFailure)
+        {
+            return accepts.Error;
+        }
+
+        var previous = LogoAssetId;
+        LogoAssetId = assetId;
+        return Result.Success(previous);
+    }
+
+    /// <summary>
+    /// Clears the logo in any status (S07 D10) and returns the asset it named: <c>ORGANISATION_LOGO_NOT_FOUND</c> without one.
+    /// </summary>
+    public Result<Guid> RemoveLogo()
+    {
+        if (LogoAssetId is not { } assetId)
+        {
+            return RegistryErrors.OrganisationLogoNotFound;
+        }
+
+        LogoAssetId = null;
+        return Result.Success(assetId);
+    }
 
     /// <summary>Whether an organisation in <paramref name="status"/> may become a parent (S07 D5): not dissolved or archived.</summary>
     public static bool CanBeParent(OrganisationStatus status) =>

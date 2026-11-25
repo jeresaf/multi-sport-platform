@@ -8,6 +8,7 @@ using SportsPlatform.Modules.Registry.Contracts.Organisations;
 using SportsPlatform.Modules.Registry.Contracts.People;
 using SportsPlatform.Modules.Registry.Contracts.Teams;
 using SportsPlatform.Modules.Registry.Contracts.Venues;
+using SportsPlatform.Modules.Registry.Features.Media;
 using SportsPlatform.Modules.Registry.Features.Organisations;
 using SportsPlatform.Modules.Registry.Features.Organisations.Aliases;
 using SportsPlatform.Modules.Registry.Features.Organisations.ChangeOrganisationStatus;
@@ -18,6 +19,7 @@ using SportsPlatform.Modules.Registry.Features.Organisations.GetOrganisation;
 using SportsPlatform.Modules.Registry.Features.Organisations.ListOrganisationParentLinks;
 using SportsPlatform.Modules.Registry.Features.Organisations.ListOrganisations;
 using SportsPlatform.Modules.Registry.Features.Organisations.ListOrganisationStatusChanges;
+using SportsPlatform.Modules.Registry.Features.Organisations.Logo;
 using SportsPlatform.Modules.Registry.Features.Organisations.SetOrganisationParent;
 using SportsPlatform.Modules.Registry.Features.Organisations.UpdateOrganisation;
 using SportsPlatform.Modules.Registry.Features.People;
@@ -43,6 +45,7 @@ using SportsPlatform.Modules.Registry.Features.Teams.CheckTeamDuplicates;
 using SportsPlatform.Modules.Registry.Features.Teams.CreateTeam;
 using SportsPlatform.Modules.Registry.Features.Teams.ExternalIdentifiers;
 using SportsPlatform.Modules.Registry.Features.Teams.GetTeam;
+using SportsPlatform.Modules.Registry.Features.Teams.Images;
 using SportsPlatform.Modules.Registry.Features.Teams.ListTeams;
 using SportsPlatform.Modules.Registry.Features.Teams.ListTeamStatusChanges;
 using SportsPlatform.Modules.Registry.Features.Teams.RenameTeam;
@@ -103,6 +106,11 @@ public sealed class RegistryModule : IModule
         services.AddScoped<ChangePersonStatusHandler>();
         services.AddScoped<AddPersonAliasHandler>();
         services.AddScoped<RemovePersonAliasHandler>();
+        services.AddScoped<RegistryImageUrls>();
+        services.AddScoped<SetOrganisationLogoHandler>();
+        services.AddScoped<RemoveOrganisationLogoHandler>();
+        services.AddScoped<SetTeamImageHandler>();
+        services.AddScoped<RemoveTeamImageHandler>();
         services.AddScoped<SetPersonPhotoHandler>();
         services.AddScoped<RemovePersonPhotoHandler>();
         services.AddScoped<RecordConsentHandler>();
@@ -256,6 +264,7 @@ public sealed class RegistryModule : IModule
         ListOrganisationParentLinksEndpoint.Map(organisations);
         OrganisationAliasEndpoints.Map(organisations);
         OrganisationExternalIdentifierEndpoints.Map(organisations);
+        OrganisationLogoEndpoints.Map(organisations);
 
         var teams = TeamsEndpoints.Group(groups.Admin);
         CheckTeamDuplicatesEndpoint.Map(teams);
@@ -268,6 +277,7 @@ public sealed class RegistryModule : IModule
         RenameTeamEndpoint.Map(teams);
         TeamAliasEndpoints.Map(teams);
         TeamExternalIdentifierEndpoints.Map(teams);
+        TeamImageEndpoints.Map(teams);
 
         var venues = VenuesEndpoints.Group(groups.Admin);
         CheckVenueDuplicatesEndpoint.Map(venues);

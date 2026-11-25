@@ -289,6 +289,12 @@
       "owner": "Registry"
     },
     {
+      "code": "ORGANISATION_LOGO_NOT_FOUND",
+      "status": 404,
+      "message": "The organisation has no logo.",
+      "owner": "Registry"
+    },
+    {
       "code": "ORGANISATION_NAME_INVALID",
       "status": 422,
       "message": "An organisation's display name needs at least one letter or digit.",
@@ -637,6 +643,12 @@
       "owner": "Registry"
     },
     {
+      "code": "TEAM_BADGE_NOT_FOUND",
+      "status": 404,
+      "message": "The team has no badge.",
+      "owner": "Registry"
+    },
+    {
       "code": "TEAM_COLOURS_INVALID",
       "status": 422,
       "message": "A secondary colour needs a primary colour, and a tertiary colour a secondary one.",
@@ -688,6 +700,12 @@
       "code": "TEAM_HOME_VENUE_UNAVAILABLE",
       "status": 422,
       "message": "The home venue must be a venue of the tenant that isn't closed or archived.",
+      "owner": "Registry"
+    },
+    {
+      "code": "TEAM_LOGO_NOT_FOUND",
+      "status": 404,
+      "message": "The team has no logo.",
       "owner": "Registry"
     },
     {

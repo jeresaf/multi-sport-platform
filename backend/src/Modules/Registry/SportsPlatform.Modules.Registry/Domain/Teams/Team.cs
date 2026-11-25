@@ -88,10 +88,10 @@ public sealed class Team : AggregateRoot, ITenantOwned
 
     public int? FoundedYear { get; private set; }
 
-    /// <summary>A <c>PUBLIC</c> media asset of Platform (S07 D15); set by S07-T4's logo actions.</summary>
+    /// <summary>A <c>PUBLIC</c> media asset of Platform (S07 D15), set and removed by the logo actions.</summary>
     public Guid? LogoAssetId { get; private set; }
 
-    /// <summary>A <c>PUBLIC</c> media asset of Platform (S07 D15); set by S07-T4's badge actions.</summary>
+    /// <summary>A <c>PUBLIC</c> media asset of Platform (S07 D15), set and removed by the badge actions.</summary>
     public Guid? BadgeAssetId { get; private set; }
 
     public TeamStatus Status { get; private set; }
@@ -214,7 +214,7 @@ public sealed class Team : AggregateRoot, ITenantOwned
     }
 
     /// <summary>
-    /// Whether the team takes a new child (S07 D10): an alias, an identifier, a logo, or a rename (its former name is a new
+    /// Whether the team takes a new child (S07 D10): an alias, an identifier, a logo or badge, or a rename (its former name is a new
     /// alias; owner, S07-T3c plan). An archived team is <c>TEAM_ARCHIVED</c>, a disbanded one <c>TEAM_DISBANDED</c>;
     /// removing and ending stay allowed.
     /// </summary>
@@ -224,6 +224,64 @@ public sealed class Team : AggregateRoot, ITenantOwned
         TeamStatus.Disbanded => Result.Failure(RegistryErrors.TeamDisbanded),
         _ => Result.Success(),
     };
+
+    /// <summary>
+    /// Names <paramref name="assetId"/> as the logo (S07 D15) and returns the asset it named before, if any; refused as a
+    /// new child (<see cref="EnsureAcceptsNewChildren"/>).
+    /// </summary>
+    public Result<Guid?> SetLogo(Guid assetId)
+    {
+        var accepts = EnsureAcceptsNewChildren();
+        if (accepts.IsFailure)
+        {
+            return accepts.Error;
+        }
+
+        var previous = LogoAssetId;
+        LogoAssetId = assetId;
+        return Result.Success(previous);
+    }
+
+    /// <summary>Clears the logo in any status (S07 D10) and returns its asset: <c>TEAM_LOGO_NOT_FOUND</c> without one.</summary>
+    public Result<Guid> RemoveLogo()
+    {
+        if (LogoAssetId is not { } assetId)
+        {
+            return RegistryErrors.TeamLogoNotFound;
+        }
+
+        LogoAssetId = null;
+        return Result.Success(assetId);
+    }
+
+    /// <summary>
+    /// Names <paramref name="assetId"/> as the badge (S07 D15) and returns the asset it named before, if any; refused as a
+    /// new child (<see cref="EnsureAcceptsNewChildren"/>).
+    /// </summary>
+    public Result<Guid?> SetBadge(Guid assetId)
+    {
+        var accepts = EnsureAcceptsNewChildren();
+        if (accepts.IsFailure)
+        {
+            return accepts.Error;
+        }
+
+        var previous = BadgeAssetId;
+        BadgeAssetId = assetId;
+        return Result.Success(previous);
+    }
+
+    /// <summary>Clears the badge in any status (S07 D10) and returns its asset: <c>TEAM_BADGE_NOT_FOUND</c> without one.</summary>
+    public Result<Guid> RemoveBadge()
+    {
+        if (BadgeAssetId is not { } assetId)
+        {
+            return RegistryErrors.TeamBadgeNotFound;
+        }
+
+        BadgeAssetId = null;
+        return Result.Success(assetId);
+    }
 
     /// <summary>
     /// Renames the team from <paramref name="effectiveOn"/> (S07 D8): the current name, with its short name and code,
