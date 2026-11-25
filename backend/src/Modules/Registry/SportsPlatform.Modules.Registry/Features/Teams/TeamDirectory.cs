@@ -15,7 +15,8 @@ namespace SportsPlatform.Modules.Registry.Features.Teams;
 
 /// <summary>
 /// <see cref="ITeamDirectory"/> over the scope's tenant (query filter and RLS). The name on a date is
-/// <see cref="Team.NameOn"/>'s, so the teams are loaded with their aliases only when a date is asked for.
+/// <see cref="Team.NameOn"/>'s, so the teams are loaded with their aliases only when a date is asked for; without one,
+/// only the summary's columns are read (as <c>OrganisationDirectory</c>).
 /// </summary>
 public sealed class TeamDirectory(RegistryDbContext context) : ITeamDirectory
 {
@@ -29,22 +30,43 @@ public sealed class TeamDirectory(RegistryDbContext context) : ITeamDirectory
         }
 
         var ids = teamIds.Distinct().ToArray();
-        IQueryable<Team> teams = context.Set<Team>().AsNoTracking();
-        if (onDate is not null)
+        if (onDate is not { } date)
         {
-            teams = teams.Include(t => t.Aliases);
+            var rows = await context.Set<Team>().AsNoTracking()
+                .Where(t => ids.Contains(t.Id))
+                .Select(t => new
+                {
+                    t.Id,
+                    t.Name,
+                    t.ShortName,
+                    t.Code,
+                    t.Variant,
+                    t.GenderCategory,
+                    t.AgeGroup,
+                    t.Level,
+                    t.OrganisationId,
+                    t.Status,
+                    t.Slug,
+                    t.LogoAssetId,
+                    t.BadgeAssetId,
+                })
+                .ToListAsync(cancellationToken);
+            return [.. rows.Select(t => new TeamSummary(
+                t.Id, t.Name, t.ShortName, t.Code, t.Variant, Map(t.GenderCategory), Map(t.AgeGroup), Map(t.Level),
+                t.OrganisationId, Map(t.Status), t.Slug, t.LogoAssetId, t.BadgeAssetId))];
         }
 
-        var found = await teams.Where(t => ids.Contains(t.Id)).ToListAsync(cancellationToken);
-        return [.. found.Select(team => Summarise(team, onDate))];
-    }
-
-    private static TeamSummary Summarise(Team team, DateOnly? onDate)
-    {
-        var name = onDate is { } date ? team.NameOn(date) : new TeamNameOnDate(team.Name, team.ShortName, team.Code);
-        return new(
-            team.Id, name.Name, name.ShortName, name.Code, team.Variant, Map(team.GenderCategory), Map(team.AgeGroup),
-            Map(team.Level), team.OrganisationId, Map(team.Status), team.Slug, team.LogoAssetId, team.BadgeAssetId);
+        var teams = await context.Set<Team>().AsNoTracking()
+            .Include(t => t.Aliases)
+            .Where(t => ids.Contains(t.Id))
+            .ToListAsync(cancellationToken);
+        return [.. teams.Select(team =>
+        {
+            var name = team.NameOn(date);
+            return new TeamSummary(
+                team.Id, name.Name, name.ShortName, name.Code, team.Variant, Map(team.GenderCategory), Map(team.AgeGroup),
+                Map(team.Level), team.OrganisationId, Map(team.Status), team.Slug, team.LogoAssetId, team.BadgeAssetId);
+        })];
     }
 
     public static TeamStatus Map(DomainStatus status) => status switch

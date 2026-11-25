@@ -646,6 +646,12 @@ docs/build/slices/S07-organisations-teams-venues.md, "Carried over from S06")
   and teams join in T2 and T3) through `ModuleDbContext.ConcurrencyConflictErrorFor`.
 
 **From S07** (each names its trigger)
+- The directories' identifier match (S07-T3d pre-review; organisations since T2d, venues since T1c): `q` looks up
+  `registry.external_identifiers` by `entity_type` and `value` without `authority`, and the only index is the unique
+  `(tenant_id, authority, entity_type, value)`, so the lookup uses only its `tenant_id` prefix and scans the tenant's
+  identifiers. Fine at a tenant's few thousand identifiers; add `(tenant_id, entity_type, value)` when a tenant's
+  identifiers reach the tens of thousands or a directory query is slow. (First slow directory query, or Data Exchange's
+  bulk import of identifiers.)
 - Integration tests share one `TestApp.Clock` (`FakeTimeProvider`) for the whole run and nothing resets it (S07-T1b-1):
   a test that advances it by days moves every later test's "now" (an official's licence expired, the demo seeder's
   history reordered). Reset the clock in `DatabaseTest` before each test, or give date-sensitive tests their own
