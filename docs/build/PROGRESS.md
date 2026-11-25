@@ -154,6 +154,8 @@ at the start of every review.
   `logo: { thumbnailUrl, mediumUrl }` (both public variants; null without one), not D15's single `logoUrl`. Public
   directory items carry the logo too (the public paths cost no query). A public directory lists one status, `ACTIVE`
   when none is sent; `status=ARCHIVED` is `400 VALIDATION_INVALID_QUERY`.
+  For T5b the team's `logo` and `badge` take the same shape, `{ thumbnailUrl, mediumUrl }`, not D15's `badgeUrl`
+  (owner, 2026-11-25).
 
 - **S07-T4a (owner, plan 2026-11-25):** T4 is two PRs: T4a Platform (purposes, limits, variants, the public route),
   T4b Registry (the six endpoints, actions, `STORAGE_GB`, signed URLs in admin reads). The public route's variant is a
