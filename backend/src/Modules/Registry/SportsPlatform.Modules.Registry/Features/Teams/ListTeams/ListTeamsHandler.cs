@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using SportsPlatform.BuildingBlocks.Api;
 using SportsPlatform.BuildingBlocks.Privacy;
 using SportsPlatform.Modules.Registry.Domain.Organisations;
+using SportsPlatform.Modules.Registry.Domain.People;
 using SportsPlatform.Modules.Registry.Domain.Teams;
 using SportsPlatform.Modules.Registry.Features.People.ListPeople;
 using SportsPlatform.Modules.Registry.Infrastructure;
@@ -34,8 +35,8 @@ public sealed record ListTeamsResponse(
 /// The team directory of the request's tenant (query filter and RLS), in <see cref="TeamOrder"/>: name (the sort key,
 /// collation "C"), category, ID (S07 D19; owner, plan 2026-11-24). <c>q</c> matches the name by prefix (of the name or
 /// of one of its words), name-key prefix or trigram similarity, the short name by name-key prefix, and a current alias
-/// (former names included, S07-T3c) as organisations' aliases; identifiers join with S07-T3d. Without a status, archived teams are left out. An unknown variant or
-/// organisation keeps none.
+/// (former names included, S07-T3c) as organisations' aliases, and an external identifier's value exactly, ended ones
+/// included (S07-T3d). Without a status, archived teams are left out. An unknown variant or organisation keeps none.
 /// </summary>
 public sealed class ListTeamsHandler(RegistryDbContext context)
 {
@@ -115,20 +116,23 @@ public sealed class ListTeamsHandler(RegistryDbContext context)
         return new ListTeamsResponse(items, new PageInfo(next, hasMore));
     }
 
-    private static IQueryable<Team> Matching(IQueryable<Team> teams, string search)
+    private IQueryable<Team> Matching(IQueryable<Team> teams, string search)
     {
         // The normalised text as typed ("ntinda swi") for prefixes; its sorted tokens to compare with name keys. Text
-        // without a letter or a digit has no key and matches nothing until identifiers join (S07-T3d).
+        // without a letter or a digit has no key and can only be an identifier's value.
         var prefix = Team.SortKeyOf(search);
         var key = Team.NameKeyOf(search);
+        var identifiers = context.Set<ExternalIdentifier>()
+            .Where(i => i.EntityType == ExternalIdentifierEntityType.Team && i.Value == search);
         if (prefix.Length == 0)
         {
-            return teams.Where(_ => false);
+            return teams.Where(t => identifiers.Any(i => i.EntityId == t.Id));
         }
 
         // Keys hold letters, digits and spaces only, so no pattern has a wildcard of its own. An alias has a name key
-        // only (sorted tokens): a prefix of the key or of one of its words finds it. Nicknames and spellings are INTERNAL
-        // (D16): matching them is for this admin directory only; a public list (T5) must not reuse this to probe them.
+        // only (sorted tokens): a prefix of the key or of one of its words finds it. Nicknames, spellings and identifiers
+        // are INTERNAL (D16): matching them is for this admin directory only; a public list (T5) must not reuse this to
+        // probe them.
         var prefixPattern = prefix + "%";
         var wordPattern = "% " + prefix + "%";
         var keyPattern = key + "%";
@@ -142,7 +146,8 @@ public sealed class ListTeamsHandler(RegistryDbContext context)
                 && (EF.Functions.Like(a.NameKey, keyPattern)
                     || EF.Functions.Like(a.NameKey, prefixPattern)
                     || EF.Functions.Like(a.NameKey, wordPattern)
-                    || EF.Functions.TrigramsSimilarity(a.NameKey, key) >= ListPeopleHandler.SearchSimilarity)));
+                    || EF.Functions.TrigramsSimilarity(a.NameKey, key) >= ListPeopleHandler.SearchSimilarity))
+            || identifiers.Any(i => i.EntityId == t.Id));
     }
 
     private sealed record Row(

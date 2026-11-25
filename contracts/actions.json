@@ -1189,6 +1189,38 @@
       "since": "S07"
     },
     {
+      "code": "team.external_id.add",
+      "module": "Registry",
+      "description": "Add an identifier another authority gave a team (e.g. a league registration number); a value any team has or had is refused; not for a disbanded or archived team.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S07"
+    },
+    {
+      "code": "team.external_id.end",
+      "module": "Registry",
+      "description": "End a team's external identifier; it is kept, and its value is never given to another team.",
+      "scope": "TENANT",
+      "scopableBy": [
+        "TENANT"
+      ],
+      "audit": "REQUIRED",
+      "entitlement": null,
+      "idempotent": false,
+      "allowsAnonymous": false,
+      "availableWhenBlocked": false,
+      "availableWhenReadOnly": false,
+      "since": "S07"
+    },
+    {
       "code": "team.read",
       "module": "Registry",
       "description": "View the teams directory and a team's record: sport, category, organisation, names, code, colours, home venue and status.",

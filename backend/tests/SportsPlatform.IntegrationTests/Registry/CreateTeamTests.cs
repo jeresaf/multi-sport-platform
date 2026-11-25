@@ -64,7 +64,7 @@ public sealed class CreateTeamTests(PostgresFixture fixture) : DatabaseTest(fixt
         [
             "id", "variant", "genderCategory", "ageGroup", "level", "name", "shortName", "nameSince", "slug", "code", "motto",
             "primaryColour", "secondaryColour", "tertiaryColour", "foundedYear", "organisation", "homeVenue", "status", "formerNames",
-            "aliases", "version",
+            "aliases", "externalIdentifiers", "version",
         ]);
         (team.GetProperty("formerNames").GetArrayLength(), team.GetProperty("aliases").GetArrayLength()).ShouldBe((0, 0));
         (team.GetProperty("variant").GetString(), team.GetProperty("genderCategory").GetString(), team.GetProperty("ageGroup").GetString(),

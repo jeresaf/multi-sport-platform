@@ -17,7 +17,8 @@ internal static class ListTeamsEndpoint
             "The teams of the tenant named by `X-Tenant-Id`, sorted by name (ignoring case, accents and punctuation), then " +
             "category (age group `SENIOR`, `U6` … `U23`, `VETERANS`; then gender `MEN`, `WOMEN`, `MIXED`; then level " +
             "`FIRST`, `RESERVE`, `DEVELOPMENT`, `ACADEMY`), then ID. `q` matches the name or one of its words by prefix " +
-            "and by similarity, and the short name by prefix (word order and punctuation aside). `variant`, " +
+            "and by similarity, the short name by prefix (word order and punctuation aside), a current nickname, spelling or " +
+            "former name by prefix and by similarity, and an external identifier's value exactly (ended ones included). `variant`, " +
             "`organisationId`, `genderCategory`, `ageGroup` and `level` keep the teams that have them (an unknown variant " +
             "or organisation keeps none); `status` filters by status (without it, archived teams are left out). Each item " +
             "carries its organisation (id, display name, slug), whatever its status now. `limit` is 1–100 (25). " +

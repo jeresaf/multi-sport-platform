@@ -262,9 +262,10 @@ public sealed class Team : AggregateRoot, ITenantOwned
     }
 
     /// <summary>
-    /// The team's name, short name and code on <paramref name="date"/> (S07 D8, D18): the current ones from
-    /// <see cref="NameSince"/>, the former name whose dates cover the day before that, and the first name (the earliest
-    /// former name, or the current one if it was never renamed) before the first name's start. Needs the aliases loaded.
+    /// The team's name, short name and code on <paramref name="date"/> (S07 D8, D18): on or after
+    /// <see cref="NameSince"/>, the current ones; before it, the former name whose dates cover <paramref name="date"/>;
+    /// before the first name's start, the first name (the earliest former name, or the current one if it was never
+    /// renamed). Needs the former names loaded.
     /// </summary>
     public TeamNameOnDate NameOn(DateOnly date)
     {

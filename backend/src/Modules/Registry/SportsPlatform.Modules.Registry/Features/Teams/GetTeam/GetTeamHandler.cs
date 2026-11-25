@@ -2,15 +2,17 @@ using Microsoft.EntityFrameworkCore;
 using SportsPlatform.BuildingBlocks.Persistence;
 using SportsPlatform.BuildingBlocks.Results;
 using SportsPlatform.Modules.Registry.Domain.Organisations;
+using SportsPlatform.Modules.Registry.Domain.People;
 using SportsPlatform.Modules.Registry.Domain.Teams;
 using SportsPlatform.Modules.Registry.Domain.Venues;
+using SportsPlatform.Modules.Registry.Features.People;
 using SportsPlatform.Modules.Registry.Infrastructure;
 
 namespace SportsPlatform.Modules.Registry.Features.Teams.GetTeam;
 
 /// <summary>
-/// One team of the request's tenant, whatever its status, with its organisation and home venue as summaries; another
-/// tenant's team is not found (RLS).
+/// One team of the request's tenant, whatever its status, with its organisation and home venue as summaries, its former
+/// names, current aliases and external identifiers (ended ones included); another tenant's team is not found (RLS).
 /// </summary>
 public sealed class GetTeamHandler(RegistryDbContext context)
 {
@@ -54,9 +56,15 @@ public sealed class GetTeamHandler(RegistryDbContext context)
             .Select(a => new TeamAliasResponse(a.Id, a.Name, a.Kind))
             .ToList();
 
+        var identifiers = await context.Set<ExternalIdentifier>().AsNoTracking()
+            .Where(i => i.EntityType == ExternalIdentifierEntityType.Team && i.EntityId == teamId)
+            .OrderBy(i => i.Authority).ThenBy(i => i.Id)
+            .Select(i => new ExternalIdentifierResponse(i.Id, i.Authority, i.Value, i.ValidFrom, i.ValidTo))
+            .ToListAsync(cancellationToken);
+
         return Result.Success(new TeamResponse(
             t.Id, t.Variant, t.GenderCategory, t.AgeGroup, t.Level, t.Name, t.ShortName, t.NameSince, t.Slug, t.Code, t.Motto,
             t.PrimaryColour, t.SecondaryColour, t.TertiaryColour, t.FoundedYear, organisation, venue, t.Status, formerNames, others,
-            found.Version));
+            identifiers, found.Version));
     }
 }

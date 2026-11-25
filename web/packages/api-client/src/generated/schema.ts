@@ -1503,7 +1503,7 @@ export interface paths {
         };
         /**
          * List the tenant's teams
-         * @description The teams of the tenant named by `X-Tenant-Id`, sorted by name (ignoring case, accents and punctuation), then category (age group `SENIOR`, `U6` … `U23`, `VETERANS`; then gender `MEN`, `WOMEN`, `MIXED`; then level `FIRST`, `RESERVE`, `DEVELOPMENT`, `ACADEMY`), then ID. `q` matches the name or one of its words by prefix and by similarity, and the short name by prefix (word order and punctuation aside). `variant`, `organisationId`, `genderCategory`, `ageGroup` and `level` keep the teams that have them (an unknown variant or organisation keeps none); `status` filters by status (without it, archived teams are left out). Each item carries its organisation (id, display name, slug), whatever its status now. `limit` is 1–100 (25). Available while the tenant is read-only.
+         * @description The teams of the tenant named by `X-Tenant-Id`, sorted by name (ignoring case, accents and punctuation), then category (age group `SENIOR`, `U6` … `U23`, `VETERANS`; then gender `MEN`, `WOMEN`, `MIXED`; then level `FIRST`, `RESERVE`, `DEVELOPMENT`, `ACADEMY`), then ID. `q` matches the name or one of its words by prefix and by similarity, the short name by prefix (word order and punctuation aside), a current nickname, spelling or former name by prefix and by similarity, and an external identifier's value exactly (ended ones included). `variant`, `organisationId`, `genderCategory`, `ageGroup` and `level` keep the teams that have them (an unknown variant or organisation keeps none); `status` filters by status (without it, archived teams are left out). Each item carries its organisation (id, display name, slug), whatever its status now. `limit` is 1–100 (25). Available while the tenant is read-only.
          */
         get: operations["ListTeams"];
         put?: never;
@@ -1636,6 +1636,46 @@ export interface paths {
          * @description Removes a nickname or spelling, whatever the team's status, with a reason (body `{ "reason": … }`, required): the alias is kept with who removed it, when and why, and is no longer shown or searched. The reason is kept permanently on the alias and in the audit trail: don't include personal data. A former name is the team's name history and can't be removed (TEAM_ALIAS_FORMER_NAME); an alias already removed is TEAM_ALIAS_REMOVED. Send `version` or `If-Match` from the last read to get 409 TEAM_CONCURRENCY_CONFLICT if the team changed since; without them, a change to the same team saved at the same moment can still answer it. Answers the team as GET /teams/{teamId} does; its version moves.
          */
         post: operations["RemoveTeamAlias"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/teams/{teamId}/external-identifiers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add an external identifier to a team
+         * @description Adds an identifier another authority gave the team: `authority` is a code the tenant chooses (e.g. `KMSA_TEAM_NO`), `value` is trimmed. A value with this authority that any team has or had, ended ones and this team's included, is TEAM_EXTERNAL_ID_EXISTS: a value is never reused (a person's, venue's or organisation's identifier with the same authority and value doesn't count). The directory finds the team by the exact value. A disbanded or archived team takes no new identifier (TEAM_DISBANDED, TEAM_ARCHIVED). Send `version` or `If-Match` from the last read to get 409 TEAM_CONCURRENCY_CONFLICT if the team changed since; without them, a change to the same team saved at the same moment can still answer it. Answers the team as GET /teams/{teamId} does; its version moves.
+         */
+        post: operations["AddTeamExternalIdentifier"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/teams/{teamId}/external-identifiers/{identifierId}/end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * End a team's external identifier
+         * @description Ends an identifier, whatever the team's status: it is kept with its `validTo`, and its value is never given to another team. The body is optional: `validTo` defaults to today (the tenant's date) and can't be after it or before `validFrom` (TEAM_EXTERNAL_ID_VALIDITY_INVALID); `reason` (1–500 characters) is kept permanently in the audit trail: don't include personal data. An identifier already ended is TEAM_EXTERNAL_ID_ENDED. Send `version` or `If-Match` from the last read to get 409 TEAM_CONCURRENCY_CONFLICT if the team changed since; without them, a change to the same team saved at the same moment can still answer it. Answers the team as GET /teams/{teamId} does; its version moves.
+         */
+        post: operations["EndTeamExternalIdentifier"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2604,6 +2644,18 @@ export interface components {
             version?: null | number;
         };
         /**
+         * @description A new external identifier of a team (S07 D10): the authority's code, its value, and since when it is valid;
+         *     `version`, when sent, must be the team's current one.
+         */
+        AddTeamExternalIdentifierRequest: {
+            authority: null | string;
+            value: null | string;
+            /** Format: date */
+            validFrom?: null | string;
+            /** Format: uint32 */
+            version?: null | number;
+        };
+        /**
          * @description A new alias of a venue (S07 D10): the name the venue is known by and its kind; `version`, when sent, must be the
          *     venue's current one.
          */
@@ -3212,6 +3264,17 @@ export interface components {
          *     in the audit trail and is not redacted: it must not contain personal data.
          */
         EndOrganisationExternalIdentifierRequest: {
+            /** Format: date */
+            validTo?: null | string;
+            reason?: null | string;
+            /** Format: uint32 */
+            version?: null | number;
+        };
+        /**
+         * @description The end of a team's external identifier: `validTo` defaults to the tenant's today. The optional reason is kept in
+         *     the audit trail and is not redacted: it must not contain personal data.
+         */
+        EndTeamExternalIdentifierRequest: {
             /** Format: date */
             validTo?: null | string;
             reason?: null | string;
@@ -4819,12 +4882,13 @@ export interface components {
             slug: string;
         };
         /**
-         * @description A team as the admin reads it (S07 D19). Every field but `aliases` (nicknames and spellings, `INTERNAL`) and the
-         *     version is one the public reads may show (D16): a public read must not reuse this DTO whole (review #130 R2). The
+         * @description A team as the admin reads it (S07 D19). Every field but `aliases` (nicknames and spellings, `INTERNAL`),
+         *     `externalIdentifiers` (`INTERNAL`) and the version is one the public reads may show (D16): a public read must not reuse this DTO whole (review #130 R2). The
          *     organisation and the home venue are summaries of the tenant's records, whatever their status now (null without
          *     one). `nameSince` is when the current name began (D8); `formerNames` are the earlier ones with their dates,
          *     newest first (`PUBLIC`, D16), and `aliases` the current nicknames and spellings (`INTERNAL`).
-         *     Identifiers and images join with S07-T3d and T4.
+         *     `externalIdentifiers` are all of the team's, ended ones included, by authority (as an organisation's; S07-T3d); a
+         *     change to one moves the version (S06 D11). Images join with S07-T4.
          */
         TeamResponse: {
             /** Format: uuid */
@@ -4850,6 +4914,7 @@ export interface components {
             status: components["schemas"]["TeamStatus"];
             formerNames: components["schemas"]["TeamFormerNameResponse"][];
             aliases: components["schemas"]["TeamAliasResponse"][];
+            externalIdentifiers: components["schemas"]["ExternalIdentifierResponse"][];
             /** Format: uint32 */
             version: number;
         };
@@ -11210,6 +11275,168 @@ export interface operations {
             };
             /** @description Problem Details; `code`: `TEAM_ALIAS_FORMER_NAME`, `TEAM_ALIAS_REMOVED`, `TEAM_CONCURRENCY_CONFLICT` */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    AddTeamExternalIdentifier: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too. */
+                "If-Match"?: string;
+            };
+            path: {
+                teamId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddTeamExternalIdentifierRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TEAM_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TEAM_ARCHIVED`, `TEAM_CONCURRENCY_CONFLICT`, `TEAM_DISBANDED`, `TEAM_EXTERNAL_ID_EXISTS` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    EndTeamExternalIdentifier: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The `ETag` of the last read (or `*`). If the resource changed since, the change fails with 409 `*_CONCURRENCY_CONFLICT`; a body `version`, if also sent, must match too. */
+                "If-Match"?: string;
+            };
+            path: {
+                teamId: string;
+                identifierId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["EndTeamExternalIdentifierRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The resource's `version`, quoted (a strong entity tag). Send it back as `If-Match`. */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamResponse"];
+                };
+            };
+            /** @description Problem Details; `code`: `VALIDATION_INVALID_REQUEST`, `VALIDATION_MALFORMED_REQUEST` */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_UNAUTHENTICATED` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `AUTH_CSRF_REQUIRED`, `AUTH_FORBIDDEN`, `AUTH_TENANT_FORBIDDEN`, `TENANT_BLOCKED`, `TENANT_PROVISIONING`, `TENANT_READ_ONLY` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TEAM_EXTERNAL_ID_NOT_FOUND`, `TEAM_NOT_FOUND` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TEAM_CONCURRENCY_CONFLICT`, `TEAM_EXTERNAL_ID_ENDED` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Problem Details; `code`: `TEAM_EXTERNAL_ID_VALIDITY_INVALID` */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
