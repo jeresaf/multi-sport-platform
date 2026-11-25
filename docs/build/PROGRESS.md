@@ -681,6 +681,10 @@ docs/build/slices/S07-organisations-teams-venues.md, "Carried over from S06")
   nicknames and spellings, so a nickname can end up with the current name's key (which `team.alias.add` would refuse).
   Harmless for search and the warning; decide with the screens whether the rename should remove or refuse it. (S07-T6,
   the team screens.)
+- No test proves that a team update changing a compared field (short name, category, organisation) or the slug takes
+  the teams' lock (S07-T3b-1; review of #130 R1, which added the rename's lock test). Add one as
+  `Renames_to_one_new_name_queue_on_the_teams_lock_and_the_second_is_warned` does. (Next task that touches team updates,
+  or S07-T7.)
 
 **From S06** (regrouped by the S06 slice review, 2026-11-21; each names its trigger)
 - Consent's `givenOn` has no lower bound when the date of birth is unknown (S06-T6a pre-review N3; as T4b2's
