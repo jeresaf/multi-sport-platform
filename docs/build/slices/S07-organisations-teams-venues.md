@@ -692,3 +692,10 @@ The rest of S06's tech debt has its own trigger in PROGRESS.md ("From S06").
   `formerNames` reuses `TeamFormerNameResponse` (newest first); nicknames, spellings and identifiers aren't read. `logo`
   and `badge` are `{ thumbnailUrl, mediumUrl }` through `PublicImages`, in the items too (owner, 2026-11-25). Separate
   public DTOs (`PublicTeamResponse`, `PublicTeamListItem`). No migration, actions, errors or events.
+- **T6a-1 (venue screens: directory, detail, status):** T6 is split per area; T6a is two PRs (owner, plan 2026-11-25):
+  T6a-1 the navigation entry, the directory, the detail (Overview, Teams, History) and the status moves; T6a-2 Add and
+  Edit with the duplicate panel, and Names & IDs. The Teams tab reads `GET /teams?homeVenueId=` (a filter beyond D19's
+  list, owner: rather than a missing tab); the public team list doesn't take it. The status dialog names the moves
+  ("Mark unavailable", "Close venue", "Reopen", …) and sends the target status; unarchive sends the status before the
+  latest archiving, read from the history. Team names aren't links until T6c. `components/registry/status-history.tsx`
+  is shared with People's Overview; `lib/team-category.ts` labels categories (Q53).

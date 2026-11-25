@@ -162,7 +162,7 @@ Rugby Club** (`ibis-rugby`), **Lark Basketball Club** (`lark-basketball`), **Egr
 **Musizi Athletics Club** (`musizi-athletics`), **Cassia Community Games** (`cassia-games`), **Bee-eater Sports
 Club** (`bee-eater-sports`), **Crane Netball Club** (`crane-netball`), **Hammerkop Sports Club**
 (`hammerkop-sports`), **Wagtail Junior Sports Club** (`wagtail-juniors`), **Bulbul Sports Club**
-(`bulbul-sports`) and **Barbet Sports Club** (`barbet-sports`); the S06 slice demo uses **Coucal Sports Club** (`coucal-sports`) and
+(`bulbul-sports`), **Barbet Sports Club** (`barbet-sports`) and **Hoopoe Sports Club** (`hoopoe-sports`); the S06 slice demo uses **Coucal Sports Club** (`coucal-sports`) and
 **Francolin Schools Sports Circle** (`francolin-schools`). They are never seeded; e2e runs make each slug and name run-unique.
 
 ## Privacy notes for this persona

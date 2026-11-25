@@ -435,3 +435,64 @@ test("screenshots of the people screens", async ({ page, request }) => {
   await expect(page.getByRole("dialog").getByLabel("Reason")).toBeVisible();
   await shoot(page, "person-status-dialog", [phone, ...widths]);
 });
+
+test("screenshots of the venue screens", async ({ page, request }) => {
+  // Two venues and a home team made through the API on a tenant of this run's own (the demo data is S07-T7's): a
+  // stadium with coordinates and the tenant's first sport, a ground with only what is required.
+  test.slow();
+  const tenant = await ownTenant(request, "hoopoe-sports", "Hoopoe Sports Club");
+  const owner = { email: personEmail("brian.ssemakula", tenant.slug), password: newPassword() };
+  await acceptByApi(request, await inviteOwnerOf(request, tenant.id, owner.email), owner.password);
+  await signInByApi(request, owner.email, owner.password);
+  const headers = { "X-CSRF": "1", "X-Tenant-Id": tenant.id };
+  const sport = await enableFirstSport(request, { tenantId: tenant.id });
+  const post = async (path: string, data: Record<string, unknown>) => {
+    const created = await request.post(path, { data, headers });
+    expect(created.status(), `${path}: ${await created.text()}`).toBe(201);
+    return (await created.json()) as { id: string };
+  };
+  const stadium = await post("/api/admin/v1/venues", {
+    name: "Bukoto Community Stadium",
+    shortName: "Bukoto Stadium",
+    type: "STADIUM",
+    addressLine: "Plot 12, Bukoto Street",
+    city: "Kampala",
+    region: "Central",
+    latitude: 0.3476,
+    longitude: 32.5925,
+    timeZone: "Africa/Kampala",
+    capacity: 3000,
+    surfaces: ["NATURAL_GRASS"],
+    supportedVariants: [sport.variant],
+  });
+  await post("/api/admin/v1/venues", { name: "Kisaasi Recreation Ground", type: "SPORTS_GROUND", city: "Kampala", timeZone: "Africa/Kampala" });
+  await post("/api/admin/v1/teams", {
+    variant: sport.variant,
+    name: "Bukoto Comets FC",
+    genderCategory: "WOMEN",
+    ageGroup: "U17",
+    homeVenueId: stadium.id,
+  });
+
+  await signIn(page, owner.email, owner.password);
+  await expect(page.getByRole("heading", { level: 1, name: tenant.name })).toBeVisible();
+  await page.getByRole("navigation", { name: "Workspace" }).getByRole("link", { name: "Venues" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Venues" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Kisaasi Recreation Ground" })).toBeVisible();
+  await expect(loading(page)).toHaveCount(0);
+  await shoot(page, "venues", [phone, ...widths]);
+
+  await page.getByRole("link", { name: "Bukoto Community Stadium" }).click();
+  await expect(page.getByRole("link", { name: /Open in a map/ })).toBeVisible();
+  await expect(loading(page)).toHaveCount(0);
+  await shoot(page, "venue-overview", [phone, ...widths]);
+  await page.getByRole("tab", { name: "Teams" }).click();
+  await expect(page.getByText("Bukoto Comets FC")).toBeVisible();
+  await shoot(page, "venue-teams", [phone, ...widths]);
+  await page.getByRole("tab", { name: "History" }).click();
+  await expect(page.getByText("Recorded as active")).toBeVisible();
+  await shoot(page, "venue-history", [phone, ...widths]);
+  await page.getByRole("button", { name: "Close venue" }).click();
+  await expect(page.getByRole("dialog").getByLabel("Reason")).toBeVisible();
+  await shoot(page, "venue-status-dialog", [phone, ...widths]);
+});

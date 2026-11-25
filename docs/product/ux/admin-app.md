@@ -442,6 +442,24 @@ Members & roles (invite, assign roles with scopes) · Sports (enable within enti
   the API), and the second tenant's owner (Francolin Schools Sports Circle) seeing none of the people. The audit
   trail keeps the reasons. Screenshots `add-person-likely-match` and `person-archived-roles`.
 
+#### As built (S07-T6a-1, Venues: directory, detail, status)
+
+- **Venues** (`/t/{slug}/venues`, `venue.read`), in the Registry group after People: sorted by name, 25 a page with
+  **Show more**. **Search** (name or alias by prefix or similarity, an external identifier exactly) and **City** follow
+  the typing after a 300 ms pause; **Status** (default "All but archived") and **Sport** (every published variant: a
+  ground can host a sport the tenant doesn't run yet, S07 D3) change at once. All four are in the address. Columns:
+  name, type, city and country, sports (named from their definitions), status; on a phone they stack under the name.
+- **A venue** (`/t/{slug}/venues/{id}`): the header (name, status, type and city, the status moves), then the tabs
+  in `?tab=`: **Overview** (name, short name, type, capacity, surfaces, sports; address, city, region, country,
+  coordinates with **Open in a map** (OpenStreetMap, a new tab), time zone), **Teams** (the teams whose home venue it
+  is, archived ones left out, with category, sport, organisation and status; needs `team.read`; the names become links
+  with the team screens, T6c), **History** (the status changes, newest first, as People's).
+- **Status moves** (`venue.status.change`, a reason required): from Active **Mark unavailable**, **Close venue**,
+  **Archive**; from Temporarily unavailable **Mark available**, **Close venue**, **Archive**; from Closed **Reopen**,
+  **Archive**; from Archived **Unarchive**, which names the status it goes back to (the one before archiving, from the
+  history). A viewer sees no control; on a read-only tenant the moves are disabled with the reason.
+- Add venue, Edit details and Names & IDs come with T6a-2.
+
 ### Competitions
 - **Competition list** and **competition detail** (Overview · Editions · History).
 - **New competition wizard** — short, because operating happens in the edition dashboard:
