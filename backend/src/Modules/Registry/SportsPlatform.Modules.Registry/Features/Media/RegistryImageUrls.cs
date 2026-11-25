@@ -14,7 +14,10 @@ public sealed record RegistryImageResponse(
     [property: PersonalData(PersonalDataClass.Internal)] string MediumUrl,
     [property: PersonalData(PersonalDataClass.Internal)] DateTimeOffset ExpiresAt);
 
-/// <summary>The audit metadata of an image change: the new and the replaced asset by ID.</summary>
+/// <summary>
+/// The audit metadata of an image change: the new and the replaced asset by ID, as a person's photo. A removal has no new
+/// asset, and the removed one is <c>replacedAssetId</c>.
+/// </summary>
 public sealed record RegistryImageAuditMetadata(
     [property: PersonalData(PersonalDataClass.Internal)] Guid? AssetId,
     [property: PersonalData(PersonalDataClass.Internal)] Guid? ReplacedAssetId);

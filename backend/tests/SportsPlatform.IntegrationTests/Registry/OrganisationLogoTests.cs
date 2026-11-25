@@ -3,12 +3,15 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using SportsPlatform.BuildingBlocks.Auditing;
+using SportsPlatform.BuildingBlocks.Tenancy;
 using SportsPlatform.IntegrationTests.Api;
 using SportsPlatform.IntegrationTests.Audit;
 using SportsPlatform.IntegrationTests.Identity;
 using SportsPlatform.IntegrationTests.Infrastructure;
 using SportsPlatform.Modules.Identity.Domain.Roles;
+using SportsPlatform.Modules.Platform.Contracts.Media;
 using SportsPlatform.Modules.Platform.Domain.Media;
 using SportsPlatform.Modules.Registry.Domain.Organisations;
 using SportsPlatform.UnitTests.Platform.Media;
@@ -54,6 +57,26 @@ public sealed class OrganisationLogoTests(PostgresFixture fixture) : RegistryIma
         entries.Select(e => JsonDocument.Parse(e.Metadata!).RootElement)
             .Select(m => (m.GetProperty("assetId").GetGuid(), m.GetProperty("replacedAssetId").GetString()))
             .ShouldBe([(first.Value, null), (second, first.Value.ToString())], ignoreOrder: true);
+    }
+
+    // Owner (plan 2026-11-25): a logo Platform doesn't serve reads as null; the read still answers.
+    [Fact]
+    public async Task A_logo_whose_asset_Platform_no_longer_serves_reads_as_null()
+    {
+        var (kmsa, registrar) = await TenantAsync("kmsa", IdentityRoles.Registrar);
+        var organisation = await SaveOrganisationAsync(App.Services, kmsa, "Ntinda Swifts SC");
+        await OkAsync(await registrar.PutAsync(LogoPath(organisation.Id), Form(TestImages.Png(128, 128)), Ct));
+        var asset = (await LogoAssetIdAsync(kmsa, organisation.Id)).ShouldNotBeNull();
+        await using (var scope = App.Services.CreateAsyncScope())
+        {
+            scope.ServiceProvider.GetRequiredService<TenantContext>().Set(kmsa);
+            (await scope.ServiceProvider.GetRequiredService<IMediaAssets>().RemoveAsync(asset, Ct)).IsSuccess.ShouldBeTrue();
+        }
+
+        var read = await registrar.ReadJsonAsync(OrganisationPath(organisation.Id), Ct);
+
+        read.GetProperty("logo").ValueKind.ShouldBe(JsonValueKind.Null);
+        (await LogoAssetIdAsync(kmsa, organisation.Id)).ShouldBe(asset);
     }
 
     [Fact]

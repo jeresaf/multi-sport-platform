@@ -146,8 +146,11 @@ public sealed class TeamImageTests(PostgresFixture fixture) : RegistryImageTest(
     public async Task Another_tenants_team_is_not_found()
     {
         var (_, registrar) = await TenantAsync("kmsa", IdentityRoles.Registrar);
-        var (elssc, _) = await TenantAsync("elssc", IdentityRoles.Registrar);
+        var (elssc, theirRegistrar) = await TenantAsync("elssc", IdentityRoles.Registrar);
         var theirs = await SaveTeamAsync(App.Services, elssc, "Lakeshore High School");
+        await OkAsync(await theirRegistrar.PutAsync(ImagePath(theirs.Id, "logo"), Form(TestImages.Png(64, 64)), Ct));
+        await OkAsync(await theirRegistrar.PutAsync(ImagePath(theirs.Id, "badge"), Form(TestImages.Png(64, 64)), Ct));
+        var images = await ImageAssetIdsAsync(elssc, theirs.Id);
 
         foreach (var image in new[] { "logo", "badge" })
         {
@@ -157,7 +160,8 @@ public sealed class TeamImageTests(PostgresFixture fixture) : RegistryImageTest(
             await remove.ShouldBeProblemAsync(HttpStatusCode.NotFound, "TEAM_NOT_FOUND");
         }
 
-        (await AssetCountAsync(elssc)).ShouldBe(0);
+        (await ImageAssetIdsAsync(elssc, theirs.Id)).ShouldBe(images);
+        (await AssetCountAsync(elssc)).ShouldBe(2);
     }
 
     // D20: images are changed by the owner, the admin and the registrar.

@@ -107,11 +107,11 @@ public sealed class RoleCatalogueTests
             "athlete_profile.create", "athlete_profile.status.change", "athlete_profile.update", "format.read", "invitation.revoke", "membership.invite", "membership.read", "membership.remove", "membership.restore",
             "membership.suspend", "official_profile.create", "official_profile.status.change", "official_profile.update", "organisation.alias.add",
             "organisation.alias.remove", "organisation.create", "organisation.duplicate_check", "organisation.external_id.add",
-            "organisation.external_id.end", "organisation.parent.set", "organisation.read", "organisation.status.change", "organisation.update", "person.alias.add", "person.alias.remove", "person.archive", "person.consent.record", "person.consent.withdraw",
+            "organisation.external_id.end", "organisation.logo.remove", "organisation.logo.set", "organisation.parent.set", "organisation.read", "organisation.status.change", "organisation.update", "person.alias.add", "person.alias.remove", "person.archive", "person.consent.record", "person.consent.withdraw",
             "person.consent_evidence.upload", "person.create", "person.deactivate", "person.duplicate_check", "person.external_id.add",
             "person.external_id.end", "person.mark_deceased", "person.photo.remove", "person.photo.set", "person.public_profile.disable",
             "person.public_profile.enable", "person.reactivate", "person.read", "person.read_private", "person.unarchive", "person.update", "role.assign", "role.revoke", "ruleset.read", "sport.read", "staff_profile.create", "staff_profile.status.change",
-            "staff_profile.update", "team.alias.add", "team.alias.remove", "team.create", "team.duplicate_check", "team.external_id.add", "team.external_id.end", "team.read", "team.rename", "team.status.change", "team.update", "tenant.access.read", "tenant.capabilities.read", "tenant.settings.read", "tenant.settings.update", "tenant.sport.disable", "tenant.sport.enable", "tenant.sport.read",
+            "staff_profile.update", "team.alias.add", "team.alias.remove", "team.badge.remove", "team.badge.set", "team.create", "team.duplicate_check", "team.external_id.add", "team.external_id.end", "team.logo.remove", "team.logo.set", "team.read", "team.rename", "team.status.change", "team.update", "tenant.access.read", "tenant.capabilities.read", "tenant.settings.read", "tenant.settings.update", "tenant.sport.disable", "tenant.sport.enable", "tenant.sport.read",
             "tenant.subscription.read", "venue.alias.add", "venue.alias.remove", "venue.create", "venue.duplicate_check", "venue.external_id.add",
             "venue.external_id.end", "venue.read", "venue.status.change", "venue.update",
         ]);
