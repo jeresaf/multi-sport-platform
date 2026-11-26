@@ -40,11 +40,10 @@ export function PrimaryVenueField({
       noAccess="Choosing a venue needs access to the venues."
       useChoices={useVenueChoices}
       nameOf={(item) => item.name}
-      describe={(item) =>
-        choosableVenue(item.status)
-          ? { available: true, detail: [humanizeCode(item.type), item.city].filter(Boolean).join(" · ") }
-          : { available: false, detail: "Closed: it can't be a primary venue." }
-      }
+      describe={(item) => ({
+        facts: [humanizeCode(item.type), item.city].filter(Boolean).join(" · "),
+        unavailable: choosableVenue(item.status) ? null : "Closed: it can't be a primary venue.",
+      })}
       clearLabel="No primary venue"
       chosenMessage={(name) => `${name} chosen as the primary venue.`}
     />

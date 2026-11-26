@@ -189,4 +189,12 @@ describe("Rename a team", () => {
     open({}, reads);
     expect(await screen.findByText("You can't open this page")).toBeTruthy();
   });
+
+  it("isn't offered on the day the team's name began: the new name's first day must come after it", async () => {
+    open({}, registrar, { ...meteors, nameSince: "2026-11-26" });
+    expect(
+      await screen.findByText(`${meteors.name} has had its name since 26 Nov 2026: it can be renamed from 27 Nov 2026.`),
+    ).toBeTruthy();
+    expect(screen.queryByLabelText("New name")).toBeNull();
+  });
 });

@@ -38,8 +38,8 @@ import {
   type RenameValues,
 } from "../../team-form";
 import {
-  acceptsRename,
-  renameClosedReason,
+  nextDay,
+  renameRefusal,
   renameTeamActions,
   reviewCandidates,
   teamDuplicatesQueryName,
@@ -55,7 +55,7 @@ import {
  * on (prefilled with the current ones, kept unless changed). The old name becomes a former name with its dates
  * (History), so earlier results keep showing it. The day is after the current name's first day and not after today;
  * a future rename waits for scheduled jobs (Later). New names run the duplicate warning, the team itself left out. A
- * disbanded or archived team isn't renamed (`TEAM_DISBANDED`, `TEAM_ARCHIVED`).
+ * disbanded or archived team isn't renamed (`TEAM_DISBANDED`, `TEAM_ARCHIVED`), nor one whose name began today.
  */
 export default function RenameTeamPage() {
   const { teamId } = useParams<{ teamId: string }>();
@@ -63,6 +63,7 @@ export default function RenameTeamPage() {
   const { allowed, reason } = actionAccess(renameTeamActions, can, unavailable);
   const queryClient = useQueryClient();
   const team = useTeam(teamId, true);
+  const today = todayIn(useTenantTimeZone());
   // As Edit details: the form starts from the team as read since the page opened; only Reload starts it over.
   const [started, setStarted] = useState(false);
   const [reloading, setReloading] = useState(false);
@@ -109,12 +110,13 @@ export default function RenameTeamPage() {
       </section>
     );
   }
-  if (!acceptsRename(team.data.status)) {
+  const refusal = renameRefusal(team.data, today);
+  if (refusal) {
     return (
       <section className="grid gap-4">
         {back}
         <h1 className="text-2xl font-semibold">Rename</h1>
-        <p className="text-muted-foreground">{renameClosedReason(team.data)}</p>
+        <p className="text-muted-foreground">{refusal}</p>
       </section>
     );
   }
@@ -287,11 +289,4 @@ function RenameForm({ team, teamHref, onReload }: Readonly<{ team: Team; teamHre
       </form>
     </section>
   );
-}
-
-/** The day after an ISO day (the earliest new name's first day). */
-function nextDay(day: string): string {
-  const date = new Date(`${day}T00:00:00Z`);
-  date.setUTCDate(date.getUTCDate() + 1);
-  return date.toISOString().slice(0, 10);
 }

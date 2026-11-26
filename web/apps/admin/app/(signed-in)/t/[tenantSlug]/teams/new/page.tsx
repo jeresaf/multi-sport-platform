@@ -87,13 +87,9 @@ export default function AddTeamPage() {
       ) : sports.length === 0 ? (
         <p className="text-muted-foreground">
           No sport is enabled for your organisation yet. A team is for a sport: enable one in{" "}
-          {can("tenant.sport.read") ? (
-            <Link href={`${root}/settings/sports`} className="text-primary underline-offset-4 hover:underline">
-              Settings → Enabled sports
-            </Link>
-          ) : (
-            "Settings → Enabled sports"
-          )}
+          <Link href={`${root}/settings/sports`} className="text-primary underline-offset-4 hover:underline">
+            Settings → Enabled sports
+          </Link>
           .
         </p>
       ) : (

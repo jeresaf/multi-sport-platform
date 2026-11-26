@@ -7,6 +7,7 @@ import type { components } from "@msp/api-client";
 import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { call, isApiProblem } from "@/lib/api";
 import { ifMatch } from "@/lib/concurrency";
+import { formatDay } from "@/lib/entitlements";
 import {
   ageGroups,
   genderCategories,
@@ -94,8 +95,7 @@ export function useTeamStatusChanges(teamId: string) {
   const { tenant, client, can } = useTenantWorkspace();
   return useQuery({
     queryKey: teamStatusChangesQueryKey(tenant.tenantId, teamId),
-    queryFn: () =>
-      call(client.GET("/api/admin/v1/teams/{teamId}/status-changes", { params: { path: { teamId } } })),
+    queryFn: () => call(client.GET("/api/admin/v1/teams/{teamId}/status-changes", { params: { path: { teamId } } })),
     enabled: can("team.read"),
   });
 }
@@ -190,16 +190,28 @@ export const editTeamActions = ["team.update", "team.duplicate_check"] as const;
 /** Rename: the rename and the live check of the new names. */
 export const renameTeamActions = ["team.rename", "team.duplicate_check"] as const;
 
-/** Whether a team may be renamed: not while disbanded or archived (`TEAM_DISBANDED`, `TEAM_ARCHIVED`). */
-export function acceptsRename(status: TeamStatus): boolean {
-  return status !== "DISBANDED" && status !== "ARCHIVED";
+/** The day after an ISO day ("2026-11-26" → "2026-11-27"). */
+export function nextDay(day: string): string {
+  const date = new Date(`${day}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + 1);
+  return date.toISOString().slice(0, 10);
 }
 
-/** Why a team can't be renamed now (`acceptsRename`). */
-export function renameClosedReason(team: Pick<Team, "name" | "status">): string {
-  return team.status === "ARCHIVED"
-    ? `${team.name} is archived: unarchive it before renaming it.`
-    : `${team.name} is disbanded: reform it before renaming it.`;
+/**
+ * Why a team can't be renamed today (the tenant's date), or null: not while disbanded or archived (`TEAM_DISBANDED`,
+ * `TEAM_ARCHIVED`), and not on the day its name began, as the new name's first day must come after it (D8).
+ */
+export function renameRefusal(team: Pick<Team, "name" | "status" | "nameSince">, today: string): string | null {
+  if (team.status === "ARCHIVED") {
+    return `${team.name} is archived: unarchive it before renaming it.`;
+  }
+  if (team.status === "DISBANDED") {
+    return `${team.name} is disbanded: reform it before renaming it.`;
+  }
+  if (team.nameSince >= today) {
+    return `${team.name} has had its name since ${formatDay(team.nameSince)}: it can be renamed from ${formatDay(nextDay(team.nameSince))}.`;
+  }
+  return null;
 }
 
 /** The live warning's cache (`useDuplicateReview`): a save marks it stale. */
@@ -232,17 +244,6 @@ export function useOrganisationChoices(q: string) {
     queryKey: ["organisations", tenant.tenantId, { q, purpose: "team-organisation" }],
     queryFn: () => call(client.GET("/api/admin/v1/organisations", { params: { query: { q } } })),
     enabled: q !== "" && can("organisation.read"),
-    placeholderData: keepPreviousData,
-  });
-}
-
-/** The venues a search for the team's home venue finds, as the organisation's primary venue's (with `venue.read`). */
-export function useHomeVenueChoices(q: string) {
-  const { tenant, client, can } = useTenantWorkspace();
-  return useQuery({
-    queryKey: ["venues", tenant.tenantId, { q, purpose: "home-venue" }],
-    queryFn: () => call(client.GET("/api/admin/v1/venues", { params: { query: { q } } })),
-    enabled: q !== "" && can("venue.read"),
     placeholderData: keepPreviousData,
   });
 }

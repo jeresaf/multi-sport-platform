@@ -1,5 +1,6 @@
 "use client";
 
+import type { components } from "@msp/api-client";
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import { Controller, useWatch, type UseFormReturn } from "react-hook-form";
@@ -19,9 +20,10 @@ import {
   type AgeGroup,
 } from "@/lib/team-category";
 import { useTenantWorkspace } from "@/lib/tenant-workspace";
+import { useVenueChoices } from "../organisations/organisations-data";
 import { choosableVenue } from "../organisations/primary-venue-field";
 import { limits, type TeamValues } from "./team-form";
-import { useHomeVenueChoices, useOrganisationChoices, type Team } from "./teams-data";
+import { useOrganisationChoices, type Team } from "./teams-data";
 
 function Section({ title, children }: Readonly<{ title: string; children: ReactNode }>) {
   return (
@@ -35,14 +37,7 @@ function Section({ title, children }: Readonly<{ title: string; children: ReactN
 /** A sport the tenant has enabled, named from its definition (AR-29). */
 export type SportChoice = { variant: string; name: string };
 
-type VenueItem = {
-  id: string;
-  name: string;
-  status: string;
-  type: string;
-  city: string | null;
-  supportedVariants: string[];
-};
+type VenueItem = components["schemas"]["VenueListItem"];
 
 /** Whether an organisation may take a new team: not dissolved or archived (D6, `TEAM_ORGANISATION_UNAVAILABLE`). */
 const choosableOrganisation = (status: string) => status !== "DISSOLVED" && status !== "ARCHIVED";
@@ -65,9 +60,12 @@ export function TeamFields({
   team,
   presetOrganisation,
   renameHref,
+  today,
   warning,
 }: Readonly<{
   form: UseFormReturn<TeamValues>;
+  /** The tenant's date: the latest day a name can have begun. */
+  today: string;
   /** Add from an organisation's Teams tab: that organisation, chosen to start with. */
   presetOrganisation?: { id: string; name: string } | null;
   /** Add: the enabled sports to choose from. */
@@ -210,6 +208,7 @@ export function TeamFields({
               label="Name used since (optional)"
               hint="The first day it played under this name. Left empty, today."
               type="date"
+              max={today}
               error={errors.nameSince?.message}
               {...register("nameSince")}
             />
@@ -217,7 +216,7 @@ export function TeamFields({
         </div>
       </Section>
 
-      <Section title="Organisation and ground">
+      <Section title="Organisation and home venue">
         <Controller
           control={control}
           name="organisationId"
@@ -242,17 +241,10 @@ export function TeamFields({
               noAccess="Choosing an organisation needs access to the organisations."
               useChoices={useOrganisationChoices}
               nameOf={(item) => item.displayName}
-              describe={(item) =>
-                choosableOrganisation(item.status)
-                  ? {
-                      available: true,
-                      detail: [humanizeCode(item.type), item.city].filter(Boolean).join(" · "),
-                    }
-                  : {
-                      available: false,
-                      detail: "Dissolved: it can't take a team.",
-                    }
-              }
+              describe={(item) => ({
+                facts: [humanizeCode(item.type), item.city].filter(Boolean).join(" · "),
+                unavailable: choosableOrganisation(item.status) ? null : "Dissolved: it can't take a team.",
+              })}
               clearLabel="Independent team"
               chosenMessage={(name) => `${name} chosen as the organisation.`}
             />
@@ -276,19 +268,12 @@ export function TeamFields({
               error={fieldState.error?.message}
               canSearch={can("venue.read")}
               noAccess="Choosing a venue needs access to the venues."
-              useChoices={useHomeVenueChoices}
+              useChoices={useVenueChoices}
               nameOf={(item) => item.name}
-              describe={(item) =>
-                choosableVenue(item.status)
-                  ? {
-                      available: true,
-                      detail: [humanizeCode(item.type), item.city].filter(Boolean).join(" · "),
-                    }
-                  : {
-                      available: false,
-                      detail: "Closed: it can't be a home venue.",
-                    }
-              }
+              describe={(item) => ({
+                facts: [humanizeCode(item.type), item.city].filter(Boolean).join(" · "),
+                unavailable: choosableVenue(item.status) ? null : "Closed: it can't be a home venue.",
+              })}
               clearLabel="No home venue"
               chosenMessage={(name) => `${name} chosen as the home venue.`}
               // A venue that doesn't list the sport is accepted (D6): the form says so.

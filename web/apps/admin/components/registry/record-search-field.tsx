@@ -43,8 +43,11 @@ export type RecordSearchFieldProps<T extends Found> = Readonly<{
   /** The directory's first page for the text (asked only with text: "" asks nothing). */
   useChoices: (q: string) => UseQueryResult<{ items: readonly T[] }>;
   nameOf: (item: T) => string;
-  /** Whether a found record may be chosen, and the words beside it (its facts, or why it can't be chosen). */
-  describe: (item: T) => { available: boolean; detail: string };
+  /**
+   * A found record's facts, and why it can't be chosen (null: it can). The record saved before is choosable whatever
+   * its status, so its facts are shown, not the reason (#140 Q1).
+   */
+  describe: (item: T) => { facts: string; unavailable: string | null };
   /** The removal button's words ("No primary venue"), also announced once it is pressed. */
   clearLabel: string;
   /** Announced when a record is chosen ("Bukoto Community Stadium chosen as the primary venue."). */
@@ -156,9 +159,11 @@ export function RecordSearchField<T extends Found>({
           {found.length > 0 ? (
             <ul className="grid gap-2" aria-label={plural}>
               {found.map((item) => {
-                const { available: choosable, detail } = describe(item);
+                const { facts, unavailable } = describe(item);
                 // The saved record isn't checked again by the server, whatever its status now.
-                const available = choosable || item.id === saved?.id;
+                const refusal = item.id === saved?.id ? null : unavailable;
+                const available = refusal === null;
+                const detail = refusal ?? facts;
                 const detailId = `${id}-${item.id}-detail`;
                 const itemName = nameOf(item);
                 return (

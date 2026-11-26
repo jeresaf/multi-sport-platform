@@ -47,7 +47,7 @@ export function OverviewTab({ team }: Readonly<{ team: Team }>) {
           ]}
         />
       </ViewerSection>
-      <ViewerSection title="Organisation and ground">
+      <ViewerSection title="Organisation and home venue">
         <Facts
           items={[
             [

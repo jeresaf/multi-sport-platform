@@ -5,7 +5,7 @@
 // to the status it had before it was archived, read from its history. Reforming a disbanded team and unarchiving one
 // take a place under the plan's team limit (D14): at the limit the dialog shows the refusal with the limit and stays
 // open. Edit details (D11) opens its own page in any status; Rename (D8) its own page while the team isn't disbanded or
-// archived.
+// archived and its name didn't begin today.
 import { Button } from "@msp/ui/components/button";
 import { PenLine, Pencil } from "lucide-react";
 import Link from "next/link";
@@ -14,12 +14,12 @@ import { ActionDialog } from "@/components/action-dialog";
 import { UnavailableNote } from "@/components/unavailable-note";
 import { actionAccess } from "@/lib/action-access";
 import { humanizeCode } from "@/lib/codes";
+import { todayIn, useTenantTimeZone } from "@/lib/tenant-settings";
 import { useTenantWorkspace } from "@/lib/tenant-workspace";
 import { tenantPath } from "@/lib/workspace";
 import {
-  acceptsRename,
   editTeamActions,
-  renameClosedReason,
+  renameRefusal,
   renameTeamActions,
   teamMovesFrom,
   unarchiveTo,
@@ -134,6 +134,7 @@ export function TeamActions({ team }: Readonly<{ team: Team }>) {
   const [open, setOpen] = useState<TeamMove | null>(null);
   const [announcement, setAnnouncement] = useState("");
   const moved = useRef(false);
+  const today = todayIn(useTenantTimeZone());
 
   // A viewer holds none of the actions nor a reason one is unavailable: no control at all.
   const refusal = can(statusAction) ? null : unavailable(statusAction);
@@ -148,8 +149,9 @@ export function TeamActions({ team }: Readonly<{ team: Team }>) {
   const disabled = refusal === null ? {} : { disabled: true, "aria-describedby": noteId };
   // Each disabled control points at its own reason; one note when several are unavailable for the same one.
   const editNote = edit.reason !== null && edit.reason !== refusal ? edit.reason : null;
-  const renameReason = rename.reason ?? (acceptsRename(team.status) ? null : renameClosedReason(team));
-  const renameNote = renameReason !== null && renameReason !== refusal && renameReason !== editNote ? renameReason : null;
+  const renameReason = rename.reason ?? renameRefusal(team, today);
+  const renameNote =
+    renameReason !== null && renameReason !== refusal && renameReason !== editNote ? renameReason : null;
   const renameNoteFor =
     renameReason === null ? undefined : renameNote ? renameNoteId : renameReason === editNote ? editNoteId : noteId;
   const teamHref = `${tenantPath(tenant.slug)}/teams/${team.id}`;
@@ -270,7 +272,10 @@ function MoveDialog({
       confirmDisabled={target === null || (move === "unarchive" && history.isFetching)}
       onConfirm={(reason) => {
         if (target) {
-          change.mutate({ status: target, reason: reason ?? "" }, { onSuccess: () => onSaved(`${team.name}: ${words.done}.`) });
+          change.mutate(
+            { status: target, reason: reason ?? "" },
+            { onSuccess: () => onSaved(`${team.name}: ${words.done}.`) },
+          );
         }
       }}
       onReload={() => {

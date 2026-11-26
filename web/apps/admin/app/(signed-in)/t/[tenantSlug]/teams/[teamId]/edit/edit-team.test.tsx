@@ -60,7 +60,7 @@ afterEach(() => {
 });
 
 describe("Edit team details", () => {
-  it("saves every detail from the version it opened on, with the current name and the web address", async () => {
+  it("saves every detail from the version it opened on, with the web address and without the name", async () => {
     const requests = open();
     await type("Motto (optional)", "Higher together, always");
     // eslint-disable-next-line no-restricted-syntax -- a team's own colour, typed as data
@@ -75,8 +75,8 @@ describe("Edit team details", () => {
     await waitFor(() => expect(puts(requests)).toHaveLength(1));
     const sent = puts(requests)[0]!;
     expect(sent.headers.get("If-Match")).toBe('"5"');
+    // No name: the server keeps it, so a rename made meanwhile is the version conflict (pre-review 1).
     expect(sent.body).toEqual({
-      name: meteors.name,
       genderCategory: "MEN",
       ageGroup: "SENIOR",
       level: "FIRST",
@@ -150,6 +150,23 @@ describe("Edit team details", () => {
     const second = puts(requests)[1]!;
     expect(second.headers.get("If-Match")).toBe('"6"');
     expect(second.body).toMatchObject({ motto: "Together we rise", foundedYear: 2017 });
+  });
+
+  it("answers a rename made while it was open as a conflict, and Reload shows the new name", async () => {
+    let current = meteors;
+    open({
+      [`GET ${teamPath}`]: () => ({ status: 200, body: current }),
+      [`PUT ${teamPath}`]: (request) =>
+        (request.headers.get("If-Match") ?? "") === `"${current.version}"`
+          ? { status: 200, body: { ...current, ...(request.body as object), version: current.version + 1 } }
+          : { status: 409, body: problem("TEAM_CONCURRENCY_CONFLICT", 409) },
+    });
+    await type("Motto (optional)", "Onward");
+    current = { ...meteors, name: "Mutundwe Mighty Meteors FC", version: 6 };
+    save();
+    expect(await screen.findByText("This record changed since you opened it")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Reload" }));
+    expect(await screen.findByText("Mutundwe Mighty Meteors FC", { selector: "dd" })).toBeTruthy();
   });
 
   it("keeps the organisation and home venue it has until they are removed, then sends none", async () => {

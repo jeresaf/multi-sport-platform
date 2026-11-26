@@ -12,14 +12,15 @@ import { actionAccess } from "@/lib/action-access";
 import { call, isApiProblem } from "@/lib/api";
 import { humanizeCode } from "@/lib/codes";
 import { ifMatch } from "@/lib/concurrency";
+import { todayIn, useTenantTimeZone } from "@/lib/tenant-settings";
 import { useTenantWorkspace } from "@/lib/tenant-workspace";
 import { tenantPath } from "@/lib/workspace";
 import { useSportVariants } from "../../../sports/sports-data";
 import { TeamEditor, type TeamSave } from "../../team-editor";
 import { fromTeam, toUpdateRequest } from "../../team-form";
 import {
-  acceptsRename,
   editTeamActions,
+  renameRefusal,
   renameTeamActions,
   teamQueryKey,
   useKeepTeam,
@@ -30,7 +31,7 @@ import {
 /**
  * Registry → Teams → a team → Edit details (S07 D6, D7, D11, D23): every detail but the sport and the name, the web
  * address included, in any status (a correction). The `PUT` replaces them all from the version the page opened on
- * (`If-Match`) and sends the current name (D8: another is a rename); a change to the short name, the category or the
+ * (`If-Match`); it sends no name (the server keeps it, D8); a change to the short name, the category or the
  * organisation runs the duplicate warning again. The status, aliases, identifiers and images have their own actions.
  */
 export default function EditTeamPage() {
@@ -94,6 +95,7 @@ function EditDetails({ team, teamHref, onReload }: Readonly<{ team: Team; teamHr
   const router = useRouter();
   const keep = useKeepTeam();
   const published = useSportVariants();
+  const timeZone = useTenantTimeZone();
   // The team as the page opened on it: the change's basis and what the warning compares with.
   const [opened] = useState(() => ({ team, values: fromTeam(team) }));
   const save = useMutation({
@@ -104,7 +106,7 @@ function EditDetails({ team, teamHref, onReload }: Readonly<{ team: Team; teamHr
             path: { teamId: team.id },
             header: ifMatch(opened.team.version),
           },
-          body: toUpdateRequest(opened.team, values, decision),
+          body: toUpdateRequest(values, decision),
         }),
       ),
     onSuccess: (saved) => {
@@ -118,7 +120,9 @@ function EditDetails({ team, teamHref, onReload }: Readonly<{ team: Team; teamHr
   }));
   const sportName = (code: string) => sports.find((sport) => sport.variant === code)?.name ?? humanizeCode(code);
   const renameHref =
-    acceptsRename(team.status) && renameTeamActions.every((action) => can(action)) ? `${teamHref}/rename` : null;
+    renameRefusal(opened.team, todayIn(timeZone)) === null && renameTeamActions.every((action) => can(action))
+      ? `${teamHref}/rename`
+      : null;
 
   return (
     <section className="grid grid-cols-[minmax(0,1fr)] gap-6">
@@ -133,7 +137,7 @@ function EditDetails({ team, teamHref, onReload }: Readonly<{ team: Team; teamHr
       </header>
       <TeamEditor
         initial={opened.values}
-        team={team}
+        team={opened.team}
         sports={sports}
         sportName={sportName}
         renameHref={renameHref}

@@ -47,14 +47,12 @@ const code = z
   .string()
   .refine((value) => !value.trim() || codeLetters.test(value.trim()), "Use three letters, such as NTS.");
 
-const colour = z
-  .string()
-  .refine(
-    (value) => !value.trim() || hexColour.test(value.trim()),
-    // An example of the form a team's own colour (data, not a design token) is typed in.
-    // eslint-disable-next-line no-restricted-syntax
-    "Enter a colour as # and six digits or letters A–F, such as #1A3D7C.",
-  );
+const colour = z.string().refine(
+  (value) => !value.trim() || hexColour.test(value.trim()),
+  // An example of the form a team's own colour (data, not a design token) is typed in.
+  // eslint-disable-next-line no-restricted-syntax
+  "Enter a colour as # and six digits or letters A–F, such as #1A3D7C.",
+);
 
 const oneOf = <T extends string>(codes: readonly T[], message: string) =>
   z.string().refine((value) => (codes as readonly string[]).includes(value), message);
@@ -201,10 +199,12 @@ export function toCreateRequest(values: TeamValues, review: DuplicateDecision): 
   };
 }
 
-/** Edit details' request: the current name (never another: that is a rename, D8) and the slug, always sent. */
-export function toUpdateRequest(team: Team, values: TeamValues, review: DuplicateDecision): UpdateTeamRequest {
+/**
+ * Edit details' request, with the slug always sent. No name: the server keeps the team's (D8), so a rename made while
+ * the page was open is answered as the concurrency conflict it is, not as `TEAM_RENAME_REQUIRED` (pre-review 1).
+ */
+export function toUpdateRequest(values: TeamValues, review: DuplicateDecision): UpdateTeamRequest {
   return {
-    name: team.name,
     ...details(values),
     slug: values.slug.trim(),
     ...reviewFields(review),

@@ -224,7 +224,7 @@ export function TeamEditor({
     <form className="grid gap-5" noValidate onSubmit={(event) => void submit(event)}>
       {/* The warning appears while typing: a screen reader hears it then, not only when the save stops. */}
       <p role="status" className="sr-only">
-        {shown.length > 0 ? `${count} may be the same as this one. The list is under "Organisation and ground".` : ""}
+        {shown.length > 0 ? `${count} may be the same as this one. The list is under "Organisation and home venue".` : ""}
       </p>
       {isConcurrencyConflict(save.error) && onReload ? (
         <ConflictAlert onReload={onReload} />
@@ -237,6 +237,7 @@ export function TeamEditor({
         team={team}
         presetOrganisation={presetOrganisation}
         renameHref={renameHref}
+        today={today}
         warning={warning}
       />
       <div className="flex flex-wrap gap-3">
