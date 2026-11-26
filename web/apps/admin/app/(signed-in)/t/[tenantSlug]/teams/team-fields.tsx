@@ -20,7 +20,7 @@ import {
   type AgeGroup,
 } from "@/lib/team-category";
 import { useTenantWorkspace } from "@/lib/tenant-workspace";
-import { useVenueChoices } from "../organisations/organisations-data";
+import { acceptsNewChildren, useVenueChoices } from "../organisations/organisations-data";
 import { choosableVenue } from "../organisations/primary-venue-field";
 import { limits, type TeamValues } from "./team-form";
 import { useOrganisationChoices, type Team } from "./teams-data";
@@ -39,8 +39,6 @@ export type SportChoice = { variant: string; name: string };
 
 type VenueItem = components["schemas"]["VenueListItem"];
 
-/** Whether an organisation may take a new team: not dissolved or archived (D6, `TEAM_ORGANISATION_UNAVAILABLE`). */
-const choosableOrganisation = (status: string) => status !== "DISSOLVED" && status !== "ARCHIVED";
 
 const colourFields = [
   ["primaryColour", "Primary colour (optional)"],
@@ -243,7 +241,8 @@ export function TeamFields({
               nameOf={(item) => item.displayName}
               describe={(item) => ({
                 facts: [humanizeCode(item.type), item.city].filter(Boolean).join(" · "),
-                unavailable: choosableOrganisation(item.status) ? null : "Dissolved: it can't take a team.",
+                // A dissolved or archived organisation takes no team (D6, `TEAM_ORGANISATION_UNAVAILABLE`).
+                unavailable: acceptsNewChildren(item.status) ? null : "Dissolved: it can't take a team.",
               })}
               clearLabel="Independent team"
               chosenMessage={(name) => `${name} chosen as the organisation.`}

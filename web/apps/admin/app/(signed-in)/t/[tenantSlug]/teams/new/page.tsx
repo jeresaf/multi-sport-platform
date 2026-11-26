@@ -13,6 +13,7 @@ import { call } from "@/lib/api";
 import { humanizeCode } from "@/lib/codes";
 import { useTenantWorkspace } from "@/lib/tenant-workspace";
 import { tenantPath } from "@/lib/workspace";
+import { acceptsNewChildren } from "../../organisations/organisations-data";
 import { useTenantSports } from "../../settings/sports/sports-settings-data";
 import { useSportVariants } from "../../sports/sports-data";
 import { TeamEditor, type TeamSave } from "../team-editor";
@@ -61,7 +62,7 @@ export default function AddTeamPage() {
     humanizeCode(code);
   // The organisation chosen to start with, once read; an unknown one, or one that can't take a team (D6), none.
   const presetOrganisation =
-    preset.data && preset.data.status !== "DISSOLVED" && preset.data.status !== "ARCHIVED"
+    preset.data && acceptsNewChildren(preset.data.status)
       ? { id: preset.data.id, name: preset.data.displayName }
       : null;
   const waiting = tenantSports.isPending || (preset.wanted && preset.isPending);
