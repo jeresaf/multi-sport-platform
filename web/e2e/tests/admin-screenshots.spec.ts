@@ -527,3 +527,76 @@ test("screenshots of the venue screens", async ({ page, request }) => {
   await warning.scrollIntoViewIfNeeded();
   await shoot(page, "add-venue-duplicates", [phone, ...widths]);
 });
+
+test("screenshots of the organisation screens", async ({ page, request }) => {
+  // Three organisations, a team and a parent link made through the API on a tenant of this run's own (the demo data is
+  // S07-T7's): a club with every field, the academy under it and a school with only what is required.
+  test.slow();
+  const tenant = await ownTenant(request, "firefinch-sports", "Firefinch Sports Club");
+  const owner = { email: personEmail("brian.ssemakula", tenant.slug), password: newPassword() };
+  await acceptByApi(request, await inviteOwnerOf(request, tenant.id, owner.email), owner.password);
+  await signInByApi(request, owner.email, owner.password);
+  const headers = { "X-CSRF": "1", "X-Tenant-Id": tenant.id };
+  const sport = await enableFirstSport(request, { tenantId: tenant.id });
+  const post = async (path: string, data: Record<string, unknown>, status = 201) => {
+    const created = await request.post(path, { data, headers });
+    expect(created.status(), `${path}: ${await created.text()}`).toBe(status);
+    return (await created.json()) as { id: string; version: number };
+  };
+  const club = await post("/api/admin/v1/organisations", {
+    type: "CLUB",
+    displayName: "Ntinda Swifts SC",
+    legalName: "Ntinda Swifts Sports Club Limited",
+    shortName: "Ntinda Swifts",
+    city: "Kampala",
+    foundedYear: 1998,
+    website: "https://ntinda-swifts.example",
+    email: "secretary@ntinda-swifts.example",
+    description: "A multi-sport community club in Ntinda.",
+  });
+  const academy = await post("/api/admin/v1/organisations", { type: "ACADEMY", displayName: "Ntinda Swifts Academy", city: "Kampala" });
+  await post("/api/admin/v1/organisations", { type: "SCHOOL", displayName: "Kisaasi Kestrels College" });
+  const linked = await request.post(`/api/admin/v1/organisations/${academy.id}/parent`, {
+    data: { parentId: club.id, reason: "The academy trains the club's juniors." },
+    headers: { ...headers, "If-Match": `"${academy.version}"` },
+  });
+  expect(linked.status(), await linked.text()).toBe(200);
+  for (const [genderCategory, ageGroup] of [["MEN", "SENIOR"], ["WOMEN", "SENIOR"], ["MIXED", "U17"]] as const) {
+    await post("/api/admin/v1/teams", { variant: sport.variant, name: "Ntinda Swifts FC", organisationId: club.id, genderCategory, ageGroup });
+  }
+
+  await signIn(page, owner.email, owner.password);
+  await expect(page.getByRole("heading", { level: 1, name: tenant.name })).toBeVisible();
+  await page.getByRole("navigation", { name: "Workspace" }).getByRole("link", { name: "Organisations" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Organisations" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Kisaasi Kestrels College" })).toBeVisible();
+  await expect(loading(page)).toHaveCount(0);
+  await shoot(page, "organisations", [phone, ...widths]);
+
+  await page.getByRole("link", { name: "Ntinda Swifts SC" }).click();
+  await expect(page.getByRole("list", { name: "Organisations under Ntinda Swifts SC" })).toBeVisible();
+  await expect(loading(page)).toHaveCount(0);
+  await shoot(page, "organisation-overview", [phone, ...widths]);
+  await page.getByRole("tab", { name: "Teams" }).click();
+  await expect(page.getByRole("cell", { name: "Senior Women" })).toBeVisible();
+  await shoot(page, "organisation-teams", [phone, ...widths]);
+  await page.getByRole("button", { name: "Suspend" }).click();
+  await expect(page.getByRole("dialog").getByLabel("Reason")).toBeVisible();
+  await shoot(page, "organisation-status-dialog", [phone, ...widths]);
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+
+  await page.getByRole("tab", { name: "Overview" }).click();
+  await page.getByRole("link", { name: "Ntinda Swifts Academy" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Ntinda Swifts Academy" })).toBeVisible();
+  await page.getByRole("tab", { name: "History" }).click();
+  await expect(page.getByRole("cell", { name: "The academy trains the club's juniors." })).toBeVisible();
+  await expect(page.getByText("Recorded as active")).toBeVisible();
+  await expect(loading(page)).toHaveCount(0);
+  await shoot(page, "organisation-history", [phone, ...widths]);
+  await page.getByRole("tab", { name: "Overview" }).click();
+  await page.getByRole("button", { name: "Change parent" }).click();
+  await page.getByRole("dialog").getByLabel("Find the parent").fill("Kisaasi");
+  await expect(page.getByRole("dialog").getByLabel("Kisaasi Kestrels College")).toBeVisible();
+  await shoot(page, "organisation-parent-dialog", [phone, ...widths]);
+});
