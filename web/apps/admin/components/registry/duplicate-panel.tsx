@@ -139,7 +139,7 @@ export const DuplicatePanel = forwardRef<
             variant="outline"
             className="justify-self-start"
             aria-describedby={error ? `${headingId}-error` : undefined}
-            onClick={() => onDecisionChange({ reviewed: true, reason: "" })}
+            onClick={() => onDecisionChange({ reviewed: true, reason: decision.reason })}
           >
             This is a different one
           </Button>

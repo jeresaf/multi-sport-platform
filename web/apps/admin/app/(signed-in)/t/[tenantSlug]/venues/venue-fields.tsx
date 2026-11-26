@@ -49,6 +49,11 @@ export function VenueFields({
       sportOptions.push({ value: variant, label: humanizeCode(variant) });
     }
   }
+  const countryOptions = (countries.data?.items ?? []).map((country) => ({ code: country.code, name: country.name }));
+  const savedCountry = getValues("country");
+  if (savedCountry && !countryOptions.some((country) => country.code === savedCountry)) {
+    countryOptions.unshift({ code: savedCountry, name: savedCountry });
+  }
   const zones = (timeZones.data?.items ?? []).map((zone) => zone.code);
   const savedZone = getValues("timeZone");
   if (savedZone && !zones.includes(savedZone)) {
@@ -136,7 +141,7 @@ export function VenueFields({
           />
           <SelectField id="venue-country" label="Country" error={errors.country?.message} {...register("country")}>
             {edit ? null : <option value="">Your organisation&apos;s country</option>}
-            {(countries.data?.items ?? []).map((country) => (
+            {countryOptions.map((country) => (
               <option key={country.code} value={country.code}>
                 {country.name}
               </option>

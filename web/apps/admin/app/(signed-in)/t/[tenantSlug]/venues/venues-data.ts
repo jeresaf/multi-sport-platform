@@ -200,6 +200,9 @@ export const addVenueActions = ["venue.create", "venue.duplicate_check"] as cons
 /** Edit details: the update and the live check of a changed name, city or coordinates. */
 export const editVenueActions = ["venue.update", "venue.duplicate_check"] as const;
 
+const duplicatesStaleTime = 60 * 1000;
+const duplicatesQueryKey = (tenantId: string, key: string) => ["venue-duplicates", tenantId, key] as const;
+
 /**
  * The venues that may be the one typed (D13), asked once `request` is set; `exceptId` leaves the venue being edited
  * out (the check doesn't know it). Kept for a minute: the same input asks again only after that.
@@ -207,14 +210,31 @@ export const editVenueActions = ["venue.update", "venue.duplicate_check"] as con
 export function useVenueDuplicates(request: CheckVenueDuplicatesRequest | null, key: string, exceptId?: string) {
   const { tenant, client, can } = useTenantWorkspace();
   return useQuery({
-    queryKey: ["venue-duplicates", tenant.tenantId, key],
+    queryKey: duplicatesQueryKey(tenant.tenantId, key),
     queryFn: () => call(client.POST("/api/admin/v1/venues/duplicate-check", { body: request! })),
     enabled: request !== null && can("venue.duplicate_check"),
-    staleTime: 60 * 1000,
+    staleTime: duplicatesStaleTime,
     // The list stays while the next input is checked, so the warning doesn't flicker away and back.
     placeholderData: keepPreviousData,
     select: (answer) => answer.candidates.filter((candidate) => candidate.venueId !== exceptId),
   });
+}
+
+/**
+ * The check for exactly this input, now (the save's: the live list may still answer earlier typing). Shares the live
+ * warning's cache, so an input already checked isn't asked again.
+ */
+export function useCheckVenueDuplicatesNow(exceptId?: string) {
+  const { tenant, client } = useTenantWorkspace();
+  const queryClient = useQueryClient();
+  return async (request: CheckVenueDuplicatesRequest, key: string): Promise<VenueDuplicateCandidate[]> => {
+    const answer = await queryClient.fetchQuery({
+      queryKey: duplicatesQueryKey(tenant.tenantId, key),
+      queryFn: () => call(client.POST("/api/admin/v1/venues/duplicate-check", { body: request })),
+      staleTime: duplicatesStaleTime,
+    });
+    return answer.candidates.filter((candidate) => candidate.venueId !== exceptId);
+  };
 }
 
 /** The venues the save's `VENUE_DUPLICATE_REVIEW_REQUIRED` names (its Problem Details' `candidates`), or null. */

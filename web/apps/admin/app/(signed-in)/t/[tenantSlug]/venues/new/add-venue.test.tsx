@@ -157,6 +157,42 @@ describe("Add venue", () => {
     expect(within(panel()).getByRole("button", { name: "This is a different one" })).toBeTruthy();
   });
 
+  it("never sends a decision made on an earlier list: the save checks exactly what it saves", async () => {
+    const requests = open({
+      "POST /api/admin/v1/venues/duplicate-check": (request) => ({
+        status: 200,
+        body: {
+          candidates: (request.body as { name: string }).name.startsWith("Kisaasi")
+            ? [candidate(kisaasi)]
+            : [candidate(bukoto)],
+        },
+      }),
+    });
+    await fill("Kisaasi Recreation Ground");
+    const warning = await screen.findByRole("region", { name: /already have/ });
+    fireEvent.click(within(warning).getByRole("button", { name: "This is a different one" }));
+
+    // Renamed to another venue's name and saved at once, before the live check catches up.
+    type("Name", "Bukoto Community Stadium");
+    save();
+    expect(await within(panel()).findByText(bukoto.name)).toBeTruthy();
+    expect(await within(panel()).findByRole("alert")).toBeTruthy();
+    expect(creates(requests)).toHaveLength(0);
+    const names = checks(requests).map((request) => (request.body as { name: string }).name);
+    expect(names).toContain("Bukoto Community Stadium");
+  });
+
+  it("tells a screen reader when venues may match, as the list appears", async () => {
+    open({
+      "POST /api/admin/v1/venues/duplicate-check": { status: 200, body: { candidates: [candidate(kisaasi)] } },
+    });
+    await fill("Kisaasi Recreation Ground");
+    const status = screen.getAllByRole("status").find((element) => element.closest("form"))!;
+    await waitFor(() =>
+      expect(status.textContent).toBe('1 venue may be the same as this one. The list is under "Where it is".'),
+    );
+  });
+
   it("shows the list the server sent back when someone added a matching venue just before the save", async () => {
     const requests = open({
       "POST /api/admin/v1/venues": (request) =>

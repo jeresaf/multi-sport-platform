@@ -30,6 +30,7 @@ import {
 } from "./venue-form";
 import {
   reviewCandidates,
+  useCheckVenueDuplicatesNow,
   useVenueDuplicates,
   type Venue,
   type VenueDuplicateCandidate,
@@ -110,8 +111,9 @@ export function VenueEditor({
   });
 
   // The check follows the typing once it pauses; Edit asks only about a changed name, city or coordinates.
-  const typed = { ...initial, name, city, latitude, longitude };
-  const request = edit && !changesComparedFields(initial, typed) ? null : toCheckRequest(typed);
+  const requestFor = (values: VenueValues) =>
+    edit && !changesComparedFields(initial, values) ? null : toCheckRequest(values);
+  const request = requestFor({ ...initial, name, city, latitude, longitude });
   const key = checkKey(request);
   const [asked, setAsked] = useState<{ key: string; request: typeof request }>({ key: "", request: null });
   useEffect(() => {
@@ -121,6 +123,8 @@ export function VenueEditor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
   const live = useVenueDuplicates(asked.request, asked.key, venue?.id);
+  const checkNow = useCheckVenueDuplicatesNow(venue?.id);
+  const [checking, setChecking] = useState(false);
 
   // The server's list, while the input it answered for is unchanged.
   const [refused, setRefused] = useState<{ key: string; candidates: VenueDuplicateCandidate[] } | null>(null);
@@ -130,8 +134,12 @@ export function VenueEditor({
   // "This is a different one" holds for the venues it was said about: a new one shows the choice again.
   const [decision, setDecision] = useState<DuplicateDecision>(undecided);
   const [decidedFor, setDecidedFor] = useState<readonly string[]>([]);
-  const reviewed = decision.reviewed && shown.every((candidate) => decidedFor.includes(candidate.venueId));
-  const [panelError, setPanelError] = useState<string | null>(null);
+  const decidedOn = (list: readonly VenueDuplicateCandidate[]) =>
+    decision.reviewed && list.every((candidate) => decidedFor.includes(candidate.venueId));
+  const reviewed = decidedOn(shown);
+  // A refusal under the panel belongs to the input it was said for: new typing clears it (pre-review 3).
+  const [panelError, setPanelError] = useState<{ key: string; message: string } | null>(null);
+  const panelMessage = panelError && panelError.key === asked.key ? panelError.message : null;
   const panel = useRef<HTMLElement>(null);
   // Each request moves the focus to the panel once it is shown (a refused save shows it in the same render).
   const [focusRequests, setFocusRequests] = useState(0);
@@ -140,6 +148,10 @@ export function VenueEditor({
       panel.current?.focus();
     }
   }, [focusRequests]);
+  const stop = (forKey: string, message: string) => {
+    setPanelError({ key: forKey, message });
+    setFocusRequests((count) => count + 1);
+  };
 
   const decide = (next: DuplicateDecision) => {
     setDecision(next);
@@ -147,26 +159,41 @@ export function VenueEditor({
     setPanelError(null);
   };
 
-  const submit = form.handleSubmit((values) => {
-    if (shown.length > 0 && !reviewed) {
-      setPanelError(reviewFirst);
-      setFocusRequests((count) => count + 1);
+  // The save decides on the list for exactly what is saved, never on a list for earlier typing (pre-review 1): a
+  // decision goes with the save only when every venue that input matches was decided on.
+  const submit = form.handleSubmit(async (values) => {
+    const current = requestFor(values);
+    const currentKey = checkKey(current);
+    let list: VenueDuplicateCandidate[] = [];
+    if (refused && refused.key === currentKey) {
+      list = refused.candidates;
+    } else if (current) {
+      setChecking(true);
+      try {
+        list = await checkNow(current, currentKey);
+      } catch {
+        // The save goes without a decision: the server checks again and sends back any match.
+        list = [];
+      } finally {
+        setChecking(false);
+      }
+    }
+    setAsked({ key: currentKey, request: current });
+    if (list.length > 0 && !decidedOn(list)) {
+      stop(currentKey, reviewFirst);
       return;
     }
     setPanelError(null);
     save.mutate(
-      { values, decision: shown.length > 0 ? { reviewed: true, reason: decision.reason } : undecided },
+      { values, decision: list.length > 0 ? { reviewed: true, reason: decision.reason } : undecided },
       {
         onError: (error) => {
           const candidates = reviewCandidates(error);
           if (candidates) {
-            const checkedKey = checkKey(toCheckRequest(values));
-            setAsked({ key: checkedKey, request: toCheckRequest(values) });
-            setRefused({ key: checkedKey, candidates });
+            setRefused({ key: currentKey, candidates });
             setDecision(undecided);
             setDecidedFor([]);
-            setPanelError("Someone added a venue that may match. Review the list before saving.");
-            setFocusRequests((count) => count + 1);
+            stop(currentKey, "Someone added a venue that may match. Review the list before saving.");
             return;
           }
           applyFieldErrors(error, venueApiFields, form.setError);
@@ -183,15 +210,22 @@ export function VenueEditor({
         ref={panel}
         noun="venue"
         candidates={shown.map((candidate) => toPanelCandidate(candidate, venueHref(candidate.venueId)))}
-        decision={reviewed ? decision : undecided}
+        // Undecided again (a new venue), the reason typed before is kept for the next decision.
+        decision={reviewed ? decision : { reviewed: false, reason: decision.reason }}
         onDecisionChange={decide}
         canOpen={can("venue.read")}
-        error={panelError}
+        error={panelMessage}
       />
     ) : null;
+  const busy = save.isPending || checking;
+  const count = shown.length === 1 ? "1 venue" : `${shown.length} venues`;
 
   return (
     <form className="grid gap-5" noValidate onSubmit={(event) => void submit(event)}>
+      {/* The warning appears while typing: a screen reader hears it then, not only when the save stops. */}
+      <p role="status" className="sr-only">
+        {shown.length > 0 ? `${count} may be the same as this one. The list is under "Where it is".` : ""}
+      </p>
       {isConcurrencyConflict(save.error) && onReload ? (
         <ConflictAlert onReload={onReload} />
       ) : save.isError && !reviewRefusal && needsAlert(save.error, venueApiFields) ? (
@@ -199,7 +233,7 @@ export function VenueEditor({
       ) : null}
       <VenueFields form={form} edit={edit} warning={warning} />
       <div className="flex flex-wrap gap-3">
-        <Button type="submit" disabled={save.isPending}>
+        <Button type="submit" disabled={busy}>
           {save.isPending ? pendingLabel : submitLabel}
         </Button>
         <Button asChild variant="outline">

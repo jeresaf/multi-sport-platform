@@ -221,7 +221,7 @@ export function changesComparedFields(opened: VenueValues, values: VenueValues):
   );
 }
 
-/** The API's names for the form's fields (`errors[].field`); a refused sport is named by its index. */
+/** The API's names for the form's fields (`errors[].field`); a refused sport or surface is named by its index. */
 export const venueApiFields: ApiFields<VenueValues> = {
   name: "name",
   shortName: "shortName",
@@ -237,7 +237,11 @@ export const venueApiFields: ApiFields<VenueValues> = {
   surfaces: "surfaces",
   supportedVariants: "supportedVariants",
   slug: "slug",
-  ...Object.fromEntries(
-    Array.from({ length: limits.supportedVariants }, (_, index) => [`supportedVariants[${index}]`, "supportedVariants"]),
-  ),
+  ...Object.fromEntries([
+    ...Array.from({ length: limits.supportedVariants }, (_, index) => [
+      `supportedVariants[${index}]`,
+      "supportedVariants",
+    ]),
+    ...Array.from({ length: limits.surfaces }, (_, index) => [`surfaces[${index}]`, "surfaces"]),
+  ]),
 };
