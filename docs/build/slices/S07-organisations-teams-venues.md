@@ -732,3 +732,11 @@ The rest of S06's tech debt has its own trigger in PROGRESS.md ("From S06").
   one is kept, and the server's `ORGANISATION_PRIMARY_VENUE_UNAVAILABLE` (on `primaryVenueId`) shows under the venue
   field. The email check is the server's own rule. Add sends no slug and no country
   unless chosen; Edit sends both. The duplicate panel's heading now says "an organisation". No backend change.
+- **T6b-2b (organisation screens: Names & IDs, the logo):** one PR (owner, plan 2026-11-26). Names & IDs is the shared
+  `NamesAndIdsTab` with the organisation's config (every alias kind; 120 characters; closed when dissolved or archived).
+  The logo control sits in the header under the actions, beside the logo it changes, as People's photo (owner, plan
+  2026-11-26; D23 lists the logo under Overview). It is the new shared `components/registry/image-control.tsx`
+  (`RecordImageControl`, configured by the image's word, the actions, the calls and the closed reason), for T6c-2's
+  team logo and badge too; a file over 2 MB is refused before sending, the 64 px minimum is the server's
+  (`MEDIA_IMAGE_TOO_SMALL` on `file`). The chosen-file preview moved to `components/use-chosen-file.ts`, which People's
+  photo control uses too; People's photo control is otherwise unchanged. No backend change.
