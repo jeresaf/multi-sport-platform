@@ -5,11 +5,12 @@
 // or deceased person gets no new photo (D9); removing works in any status (a correction).
 import { Button } from "@msp/ui/components/button";
 import { ImageUp, Trash2 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { ActionDialog } from "@/components/action-dialog";
 import { CommandDialog } from "@/components/command-dialog";
 import { clearFileInput, FileField, fileFields, fileRefused, fileSizeError } from "@/components/file-field";
 import { UnavailableNote } from "@/components/unavailable-note";
+import { useChosenFile } from "@/components/use-chosen-file";
 import { fieldError, needsAlert } from "@/lib/form-errors";
 import { useTenantWorkspace } from "@/lib/tenant-workspace";
 import type { Person } from "../people-data";
@@ -120,7 +121,7 @@ function PhotoDialog({ person, onOpenChange, onSaved, onCloseAutoFocus }: Dialog
   // The version the dialog opened on (#110 R1): the photo's URLs are read again while it is open.
   const [opened] = useState<OpenedPerson>(() => ({ id: person.id, version: person.version }));
   const [replacing] = useState(person.photo !== null);
-  const { file, preview, choose } = useChosenPhoto();
+  const { file, preview, choose } = useChosenFile();
   const [fileError, setFileError] = useState<string | undefined>();
   const save = useSetPhoto(opened);
   const reload = useReloadPerson(person.id);
@@ -184,31 +185,6 @@ function PhotoDialog({ person, onOpenChange, onSaved, onCloseAutoFocus }: Dialog
       ) : null}
     </CommandDialog>
   );
-}
-
-/**
- * The chosen file and a blob: URL to preview it. Each URL is released when another file is chosen and when the
- * dialog closes.
- */
-function useChosenPhoto() {
-  const [chosen, setChosen] = useState<{ file: File; preview: string } | undefined>();
-  const current = useRef<string | undefined>(undefined);
-  useEffect(
-    () => () => {
-      if (current.current) {
-        URL.revokeObjectURL(current.current);
-      }
-    },
-    [],
-  );
-  const choose = (file: File | undefined) => {
-    if (current.current) {
-      URL.revokeObjectURL(current.current);
-    }
-    current.current = file ? URL.createObjectURL(file) : undefined;
-    setChosen(file && current.current ? { file, preview: current.current } : undefined);
-  };
-  return { file: chosen?.file, preview: chosen?.preview, choose };
 }
 
 function RemovePhotoDialog({ person, onOpenChange, onSaved, onCloseAutoFocus }: DialogProps) {
