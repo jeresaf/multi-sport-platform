@@ -300,6 +300,8 @@ describe("Organisation parent", () => {
     });
     await loaded();
     fireEvent.click(screen.getByRole("button", { name: "Set parent" }));
+    // Nothing refused yet: no alert.
+    expect(within(dialog()).queryByRole("alert")).toBeNull();
     expect(within(dialog()).queryByLabelText("No parent")).toBeNull();
     await search("Kis");
     const choice = await within(dialog()).findByLabelText("Kisaasi Kestrels SC");

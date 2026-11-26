@@ -92,7 +92,7 @@ export function ParentDialog({ organisation, onClose }: Readonly<{ organisation:
       submitLabel="Save parent"
       pending={set.isPending}
       error={set.error}
-      showAlert={needsAlert(set.error, fields)}
+      showAlert={set.isError && needsAlert(set.error, fields)}
       onSubmit={() => void submit()}
       onOpenChange={(open) => !open && onClose()}
       onReload={() => {
