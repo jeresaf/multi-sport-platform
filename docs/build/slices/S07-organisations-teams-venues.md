@@ -750,3 +750,20 @@ The rest of S06's tech debt has its own trigger in PROGRESS.md ("From S06").
   with the hex as text. The venue and organisation Teams tabs now link each team. `lib/team-category.ts` gained the
   category code lists and `genderLabel` (the filter's "Men / Boys", "Women / Girls", "Mixed"; owner, #142). No backend
   change.
+- **T6c-2a (team screens: Add team, Edit details, Rename):** one PR (owner, plan 2026-11-26). `teams/team-editor.tsx`
+  (Add and Edit) uses `useDuplicateReview` and the duplicate panel; Add checks the names, sport, category and
+  organisation, Edit only once the short name, the category or the organisation changes (the server's
+  `ChangesComparedFields`), the team itself left out. Add lists only the enabled sports (`GET /tenant/sports`, named
+  from their definitions), starts from the only one when there is one, and says "No sport is enabled for your
+  organisation yet…" with no form otherwise; it sends no slug and no `nameSince` unless a day is chosen. Edit shows
+  the sport and the name (with a link to Rename) and sends the current name and the slug. Rename is its own page
+  (owner): the new name, the short name and code from then on (prefilled; a cleared one is sent as `null`) and the
+  day (after `nameSince`, not after the tenant's today); it is offered while the team isn't disbanded or archived and
+  opens History when saved. The organisation and home venue pickers and the organisation's primary venue use the new
+  shared `components/registry/record-search-field.tsx` (owner); a dissolved organisation and a closed venue are shown
+  but not offered, and a chosen venue that doesn't list the sport is noted (the saved one's sports aren't read:
+  `TeamVenueResponse` has none). The organisation's Teams tab has **Add team** (`?organisationId=`, owner) while it can
+  take a team. `TEAM_ORGANISATION_UNAVAILABLE`, `TEAM_HOME_VENUE_UNAVAILABLE`, `TEAM_SPORT_NOT_ENABLED`,
+  `TEAM_COLOURS_INVALID`, `TEAM_RENAME_DATE_INVALID` and `TEAM_NAME_UNCHANGED` show under their fields in the form's
+  words; `ENTITLEMENT_QUOTA_EXCEEDED` shows in the alert. `ColourSwatch` moved to `components/registry/colour-swatch.tsx`.
+  No backend change.
