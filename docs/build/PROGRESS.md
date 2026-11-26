@@ -7,14 +7,14 @@ at the start of every review.
 
 - **Current slice:** S07 — Organisations, teams and venues (docs/build/slices/S07-organisations-teams-venues.md,
   written by the S06 slice review). S00–S06 are done
-- **Current task:** — (S07-T6b-2a in review: #140; owner, plan 2026-11-26: T6b-2 in two PRs)
-- **Next:** S07-T6b-2b — Names & IDs and the logo control
+- **Current task:** S07-T6b-2b — Organisation screens: Names & IDs and the logo control (owner, plan 2026-11-26)
+- **Next:** S07-T6c-1 — Team screens
 - **Blocked on:** —
 
 ## Next up
 
-1. S07-T6b-2b — Organisation screens: Names & IDs and the logo control
-2. S07-T6c — Team screens (T6c-1, T6c-2)
+1. S07-T6c — Team screens (T6c-1, T6c-2)
+2. S07-T7 — Demo data and slice close
 
 ## Log
 
