@@ -117,3 +117,26 @@ export function statusChange(id: string, fromStatus: string, toStatus: string, r
 
 /** The answers every team screen needs, with these capabilities. */
 export const teamAnswers = venueAnswers;
+
+/** One of the tenant's sports as `GET /tenant/sports` lists it (S05 D15): only the test sports, named as their definitions. */
+export function tenantSport(variant: string, name: string, enabled = true) {
+  return { variant, sport: "RINGBALL", name, scoringFamily: "ADDITIVE", enabled, enabledSince: enabled ? "2026-01-01" : null };
+}
+
+/** The tenant's sports answer: Ringball sevens enabled unless other ones are given. */
+export function tenantSports(variants = [tenantSport("RINGBALL_SEVENS", "Ringball sevens")]) {
+  return { status: 200, body: { variants, sportQuota: null } };
+}
+
+/** A team the duplicate check answers (D13), from the team it names. */
+export function candidate(
+  shown: Team,
+  confidence: "LIKELY" | "POSSIBLE" = "LIKELY",
+  evidence: Array<{ code: string; value: string | null }> = [
+    { code: "SAME_NAME_KEY", value: null },
+    { code: "SAME_ORGANISATION", value: null },
+  ],
+) {
+  const { id: teamId, name, variant, genderCategory, ageGroup, level, organisation, status } = shown;
+  return { teamId, name, variant, genderCategory, ageGroup, level, organisation, status, confidence, evidence };
+}
