@@ -29,7 +29,7 @@ export function staleParentNote(parent: { displayName: string; status: string })
   if (parent.status !== "DISSOLVED" && parent.status !== "ARCHIVED") {
     return null;
   }
-  return `${parent.displayName} is ${humanizeCode(parent.status).toLowerCase()}. It stays the parent until you change or remove it.`;
+  return `${parent.displayName} is ${humanizeCode(parent.status).toLowerCase()}. It stays the parent until the parent is changed or removed.`;
 }
 
 /** A record's link with its status beside it when it isn't active (a suspended parent, a dissolved child). */
@@ -55,6 +55,7 @@ export function OverviewTab({ organisation }: Readonly<{ organisation: Organisat
   const [changing, setChanging] = useState(false);
   const [announcement, setAnnouncement] = useState("");
   const saved = useRef(false);
+  const opener = useRef<HTMLButtonElement>(null);
   const root = tenantPath(tenant.slug);
   const country = countries.data?.items.find((item) => item.code === organisation.country)?.name ?? organisation.country;
   const organisationHref = (id: string) => `${root}/organisations/${id}`;
@@ -153,6 +154,7 @@ export function OverviewTab({ organisation }: Readonly<{ organisation: Organisat
         {parentOffered ? (
           <div className="grid gap-2 justify-self-start">
             <Button
+              ref={opener}
               variant="outline"
               onClick={() => setChanging(true)}
               {...(parentNote ? { disabled: true, "aria-describedby": parentNoteId } : {})}
@@ -176,7 +178,10 @@ export function OverviewTab({ organisation }: Readonly<{ organisation: Organisat
             setChanging(false);
           }}
           onCloseAutoFocus={(event) => {
-            const target = saved.current ? document.getElementById(structureHeadingId) : null;
+            // Radix returns the focus only to a `DialogTrigger`, and this dialog is opened from a plain button: after a
+            // save the focus goes to the Structure heading (the button may be disabled now), otherwise back to the
+            // button (review #139 N1).
+            const target = saved.current ? document.getElementById(structureHeadingId) : opener.current;
             saved.current = false;
             if (target) {
               event.preventDefault();

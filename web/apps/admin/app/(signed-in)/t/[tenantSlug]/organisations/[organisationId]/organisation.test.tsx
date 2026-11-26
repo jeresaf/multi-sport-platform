@@ -133,7 +133,7 @@ describe("Organisation page", () => {
     await loaded();
     const overview = screen.getByRole("tabpanel");
     expect(
-      within(overview).getByText(`Kisaasi Kestrels SC is ${status.toLowerCase()}. It stays the parent until you change or remove it.`),
+      within(overview).getByText(`Kisaasi Kestrels SC is ${status.toLowerCase()}. It stays the parent until the parent is changed or removed.`),
     ).toBeTruthy();
     cleanup();
 
@@ -416,6 +416,51 @@ describe("Organisation parent", () => {
     fireEvent.change(within(dialog()).getByLabelText("Reason"), { target: { value: "Wound up." } });
     fireEvent.click(within(dialog()).getByRole("button", { name: "Save parent" }));
     expect((await sentTo(requests, parentPath)).body).toEqual({ parentId: null, reason: "Wound up." });
+    // Announced, and the focus on the Structure heading: Set parent is disabled now (review #139 N2).
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(screen.getAllByRole("status").map((item) => item.textContent)).toContain("Ntinda Swifts SC: parent removed.");
+    await waitFor(() => expect(document.activeElement?.id).toBe("organisation-structure"));
+    expect(screen.getByRole("button", { name: "Set parent" }).hasAttribute("disabled")).toBe(true);
+  });
+
+  it("returns the focus to Change parent when the dialog is cancelled", async () => {
+    open(organisation({ parent: summary(kisaasi) }));
+    await loaded();
+    const change = screen.getByRole("button", { name: "Change parent" });
+    fireEvent.click(change);
+    fireEvent.click(within(dialog()).getByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    await waitFor(() => expect(document.activeElement).toBe(change));
+    expect(screen.queryByText(/: parent (changed|removed)/)).toBeNull();
+  });
+
+  it("while a new search is asked, keeps the earlier list without announcing it as the answer", async () => {
+    open(organisation({ parent: summary(kisaasi) }));
+    // The search for "Seeta" is held until released: the dialog is seen while it is in flight.
+    const answer = globalThis.fetch;
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => (release = resolve));
+    vi.stubGlobal("fetch", async (request: Request) => {
+      if (new URL(request.url).searchParams.get("q") === "Seeta") {
+        await held;
+      }
+      return answer(request);
+    });
+    await loaded();
+    fireEvent.click(screen.getByRole("button", { name: "Change parent" }));
+    await search("Ntinda");
+    expect(await within(dialog()).findByText("2 found.")).toBeTruthy();
+
+    await search("Seeta");
+    expect(await within(dialog()).findByText("Loading…")).toBeTruthy();
+    // The earlier list stays (no flicker) but is neither announced nor described as the answer to "Seeta" (#139 N1).
+    expect(within(dialog()).getByLabelText(/Ntinda Swifts Academy/)).toBeTruthy();
+    expect(within(dialog()).queryByText(/found\./)).toBeNull();
+    expect(within(dialog()).queryByText(/No organisation found/)).toBeNull();
+
+    release();
+    expect(await within(dialog()).findByText("2 found.")).toBeTruthy();
+    expect(within(dialog()).queryByText("Loading…")).toBeNull();
   });
 
   it("offers Reload after a concurrency conflict", async () => {

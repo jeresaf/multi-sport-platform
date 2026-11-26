@@ -98,7 +98,8 @@ export function ParentDialog({
               ? `${organisation.displayName}: parent removed.`
               : `${organisation.displayName}: parent changed to ${chosenName ?? "the organisation chosen"}.`,
           ),
-        onError: (error) => applyFieldErrors(error, fields, form.setError) },
+        onError: (error) => applyFieldErrors(error, fields, form.setError),
+      },
     ),
   );
 
