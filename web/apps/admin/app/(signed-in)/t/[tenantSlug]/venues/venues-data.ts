@@ -3,7 +3,7 @@
 // Registry → Venues data (S07 D19, D23): the directory, a venue, its status history and the teams that call it home.
 // Every field a venue read answers is public or internal; none is personal, so nothing here is read on its own.
 import type { components } from "@msp/api-client";
-import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { NamesAndIdsApi } from "@/components/registry/names-and-ids/names-and-ids-data";
 import { call, isApiProblem } from "@/lib/api";
 import { ifMatch } from "@/lib/concurrency";
@@ -172,7 +172,7 @@ export function useKeepVenue() {
     void queryClient.invalidateQueries({ queryKey: ["venues", tenant.tenantId] });
     void queryClient.invalidateQueries({ queryKey: venueStatusChangesQueryKey(tenant.tenantId, venue.id) });
     // Stale, not read now: the next live check or save check asks again.
-    void queryClient.invalidateQueries({ queryKey: ["venue-duplicates", tenant.tenantId], refetchType: "none" });
+    void queryClient.invalidateQueries({ queryKey: [venueDuplicatesQueryName, tenant.tenantId], refetchType: "none" });
   };
 }
 
@@ -205,41 +205,14 @@ export const addVenueActions = ["venue.create", "venue.duplicate_check"] as cons
 /** Edit details: the update and the live check of a changed name, city or coordinates. */
 export const editVenueActions = ["venue.update", "venue.duplicate_check"] as const;
 
-const duplicatesStaleTime = 60 * 1000;
-const duplicatesQueryKey = (tenantId: string, key: string) => ["venue-duplicates", tenantId, key] as const;
+/** The live warning's cache (`useDuplicateReview`): a save marks it stale. */
+export const venueDuplicatesQueryName = "venue-duplicates";
 
-/**
- * The venues that may be the one typed (D13), asked once `request` is set; `exceptId` leaves the venue being edited
- * out (the check doesn't know it). Kept for a minute: the same input asks again only after that.
- */
-export function useVenueDuplicates(request: CheckVenueDuplicatesRequest | null, key: string, exceptId?: string) {
-  const { tenant, client, can } = useTenantWorkspace();
-  return useQuery({
-    queryKey: duplicatesQueryKey(tenant.tenantId, key),
-    queryFn: () => call(client.POST("/api/admin/v1/venues/duplicate-check", { body: request! })),
-    enabled: request !== null && can("venue.duplicate_check"),
-    staleTime: duplicatesStaleTime,
-    // The list stays while the next input is checked, so the warning doesn't flicker away and back.
-    placeholderData: keepPreviousData,
-    select: (answer) => answer.candidates.filter((candidate) => candidate.venueId !== exceptId),
-  });
-}
-
-/**
- * The check for exactly this input, now (the save's: the live list may still answer earlier typing). Shares the live
- * warning's cache, so an input already checked isn't asked again.
- */
-export function useCheckVenueDuplicatesNow(exceptId?: string) {
-  const { tenant, client } = useTenantWorkspace();
-  const queryClient = useQueryClient();
-  return async (request: CheckVenueDuplicatesRequest, key: string): Promise<VenueDuplicateCandidate[]> => {
-    const answer = await queryClient.fetchQuery({
-      queryKey: duplicatesQueryKey(tenant.tenantId, key),
-      queryFn: () => call(client.POST("/api/admin/v1/venues/duplicate-check", { body: request })),
-      staleTime: duplicatesStaleTime,
-    });
-    return answer.candidates.filter((candidate) => candidate.venueId !== exceptId);
-  };
+/** The venues that may be the one typed (D13): the check's answer, strongest first. */
+export function useCheckVenueDuplicates() {
+  const { client } = useTenantWorkspace();
+  return async (request: CheckVenueDuplicatesRequest): Promise<VenueDuplicateCandidate[]> =>
+    (await call(client.POST("/api/admin/v1/venues/duplicate-check", { body: request }))).candidates;
 }
 
 /** The venues the save's `VENUE_DUPLICATE_REVIEW_REQUIRED` names (its Problem Details' `candidates`), or null. */

@@ -14,6 +14,9 @@ import Link from "next/link";
 import { forwardRef, useId, type ReactNode } from "react";
 import { StatusBadge } from "@/components/status-badge";
 
+/** "a" or "an" before the record's noun ("an organisation"). */
+export const article = (noun: string) => (/^[aeiou]/i.test(noun) ? "an" : "a");
+
 /** DuplicateDecision's and the change requests' reason limit on the server. */
 export const duplicateReasonMaxLength = 500;
 
@@ -72,7 +75,7 @@ export const DuplicatePanel = forwardRef<
         <TriangleAlert aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-warning" />
         <div className="grid gap-1">
           <h2 id={headingId} className="font-semibold">
-            Is this a {noun} you already have?
+            Is this {article(noun)} {noun} you already have?
           </h2>
           <p className="text-sm text-muted-foreground">
             {count} may be the same. Open the existing one if it is, rather than adding it twice.

@@ -496,7 +496,7 @@ Members & roles (invite, assign roles with scopes) · Sports (enable within enti
   sorted by name, 25 a page with **Show more**. **Search** (name, alias or external identifier) follows the typing
   after a 300 ms pause; **Type** and **Status** (default "All but archived") change at once. All three are in the
   address. Columns: name (the short name under it), type, place (city and country, or the country alone), status; on
-  a phone they stack under the name. Add organisation comes with T6b-2.
+  a phone they stack under the name. **Add organisation** from T6b-2a (below).
 - **An organisation** (`/t/{slug}/organisations/{id}`): the header (logo, or its initials in a square without one;
   name, status, type and city; the status moves), then the tabs in `?tab=`: **Overview** (Organisation: name, legal
   name, short name, type, founded, description; Contact: city, country, website (a link only for an `http(s)` address,
@@ -525,6 +525,39 @@ Members & roles (invite, assign roles with scopes) · Sports (enable within enti
   offers only **No parent**, without the search.
 - Screenshots `organisations`, `organisation-overview`, `organisation-teams`, `organisation-status-dialog`,
   `organisation-history`, `organisation-parent-dialog`.
+
+#### As built (S07-T6b-2a, Add organisation and Edit details)
+
+- **Add organisation** (`/t/{slug}/organisations/new`, `organisation.create` and `organisation.duplicate_check`; the
+  directory's button, disabled with the reason on a read-only tenant, not shown to a viewer): three groups — the
+  organisation (name, legal name, short name, type, founded year from 1800 to the tenant's year), where it is (city or
+  town, country, **Primary venue**) and contact and description (website with `https://` or `http://`, email and phone
+  of the body itself, a plain-text description up to 2,000 characters). The country is the tenant's unless one is
+  chosen; no web address (the server proposes one from the name, D9). Saved, the organisation opens; its parent,
+  other names, identifiers and logo are set on its page.
+- **Primary venue** (optional): **Find a venue** searches the venue directory 300 ms after the typing pauses (needs
+  `venue.read`; without it the field says "Choosing a venue needs access to the venues."); archived venues aren't
+  listed and a closed one is shown with "Closed: it can't be a primary venue." and can't be chosen. **Choose {name}**
+  takes one, **No primary venue** clears it; each choice is announced and the focus goes back to the search. A venue
+  closed since it was found (`ORGANISATION_PRIMARY_VENUE_UNAVAILABLE` on `primaryVenueId`) is said under the field, as an
+  alert, in the form's own words: "This venue has been closed or archived since you chose it. Choose another venue, or
+  no primary venue." (owner, review #140 N5). On Edit, the saved venue removed by mistake can be chosen again from the search, closed or not (the server
+  doesn't check the venue an organisation already has; review #140 Q1). A long venue name wraps in its button.
+- **The duplicate warning** (D13, between "Where it is" and "Contact and description"): the venue form's, through the
+  shared `components/registry/use-duplicate-review.ts`. It asks once there is a type and a name with a letter or
+  digit, 300 ms after a name, the type or the city changes; the evidence reads "Same name", "Names N% alike", "Same
+  type", "Same city". A save sent back (`ORGANISATION_DUPLICATE_REVIEW_REQUIRED`) shows the server's list with
+  "Someone added an organisation that may match".
+- **Edit details** (`/t/{slug}/organisations/{id}/edit`, `organisation.update` and `organisation.duplicate_check`; the
+  header's button): every field of Add plus the **Web address**, in any status. The `PUT` sends the version the page
+  opened on (`If-Match`), the country and the slug; a conflict shows "This record changed since you opened it" with
+  **Reload**. The current primary venue stays chosen whatever its status until it is cleared or replaced. The warning
+  runs once a name, the type or the city changes (loosely, as venues': case and spacing), the organisation itself left
+  out (owner, T6b plan; against Q56's default). The email is checked as the server checks it (one `@` with text on
+  both sides, no spaces), so an address the server took can be saved again (review #140 R3). Add's country choice
+  reads "Your workspace's country".
+- Screenshots `organisation-edit`, `organisation-primary-venue`, `add-organisation-duplicates` (CI's `screenshots`
+  artifact).
 
 ### Competitions
 - **Competition list** and **competition detail** (Overview · Editions · History).

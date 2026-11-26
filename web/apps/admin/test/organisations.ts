@@ -78,3 +78,16 @@ export function listItem(shown: Organisation): OrganisationListItem {
 
 /** The answers every organisation screen needs, with these capabilities. */
 export const organisationAnswers = venueAnswers;
+
+/** An organisation the duplicate check answers (D13), from the organisation it names. */
+export function candidate(
+  shown: Organisation,
+  confidence: "LIKELY" | "POSSIBLE" = "LIKELY",
+  evidence: Array<{ code: string; value: string | null }> = [
+    { code: "SAME_NAME_KEY", value: null },
+    { code: "SAME_TYPE", value: null },
+  ],
+) {
+  const { id: organisationId, displayName, type, city, status } = shown;
+  return { organisationId, displayName, type, city, status, confidence, evidence };
+}

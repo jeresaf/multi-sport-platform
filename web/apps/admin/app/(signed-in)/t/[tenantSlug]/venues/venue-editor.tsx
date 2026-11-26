@@ -4,16 +4,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@msp/ui/components/button";
 import type { UseMutationResult } from "@tanstack/react-query";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { ConflictAlert } from "@/components/conflict-alert";
 import { ProblemAlert } from "@/components/problem-alert";
-import {
-  DuplicatePanel,
-  undecided,
-  type DuplicateDecision,
-  type PanelCandidate,
-} from "@/components/registry/duplicate-panel";
+import { DuplicatePanel, type DuplicateDecision, type PanelCandidate } from "@/components/registry/duplicate-panel";
+import { useDuplicateReview } from "@/components/registry/use-duplicate-review";
 import { isConcurrencyConflict } from "@/lib/concurrency";
 import { humanizeCode } from "@/lib/codes";
 import { applyFieldErrors, needsAlert } from "@/lib/form-errors";
@@ -30,15 +25,12 @@ import {
 } from "./venue-form";
 import {
   reviewCandidates,
-  useCheckVenueDuplicatesNow,
-  useVenueDuplicates,
+  useCheckVenueDuplicates,
+  venueDuplicatesQueryName,
   type Venue,
   type VenueDuplicateCandidate,
   type VenueDuplicateEvidence,
 } from "./venues-data";
-
-/** How long the live warning waits after the last key, as the directory's search does. */
-const checkDelay = 300;
 
 /** One sentence per piece of evidence: "Same name", "Names 86% alike", "Same city", "About 120 m away". */
 export function venueEvidenceText({ code, value }: VenueDuplicateEvidence): string {
@@ -68,8 +60,6 @@ export function toPanelCandidate(candidate: VenueDuplicateCandidate, href: strin
     href,
   };
 }
-
-const reviewFirst = "Open the existing venue, or say this is a different one.";
 
 export type VenueSave = { values: VenueValues; decision: DuplicateDecision };
 
@@ -112,96 +102,45 @@ export function VenueEditor({
   });
 
   // The check follows the typing once it pauses; Edit asks only about a changed name, city or coordinates.
-  const requestFor = (values: VenueValues) =>
-    edit && !changesComparedFields(initial, values) ? null : toCheckRequest(values);
-  const request = requestFor({ ...initial, name, city, latitude, longitude });
-  const key = checkKey(request);
-  const [asked, setAsked] = useState<{ key: string; request: typeof request }>({ key: "", request: null });
-  useEffect(() => {
-    const timer = setTimeout(() => setAsked({ key, request }), checkDelay);
-    return () => clearTimeout(timer);
-    // `request` follows `key`.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]);
-  const live = useVenueDuplicates(asked.request, asked.key, venue?.id);
-  const checkNow = useCheckVenueDuplicatesNow(venue?.id);
-  const [checking, setChecking] = useState(false);
+  const check = useCheckVenueDuplicates();
+  const {
+    shown,
+    checking,
+    panelRef,
+    panelMessage,
+    decide,
+    decision: panelDecision,
+    submit: submitReview,
+  } = useDuplicateReview(
+    { ...initial, name, city, latitude, longitude },
+    {
+      noun: "venue",
+      queryName: venueDuplicatesQueryName,
+      action: "venue.duplicate_check",
+      requestFor: (values: VenueValues) =>
+        edit && !changesComparedFields(initial, values) ? null : toCheckRequest(values),
+      keyOf: checkKey,
+      check,
+      idOf: (candidate) => candidate.venueId,
+      exceptId: venue?.id,
+      reviewCandidates,
+    },
+  );
 
-  // The server's list, while the input it answered for is unchanged.
-  const [refused, setRefused] = useState<{ key: string; candidates: VenueDuplicateCandidate[] } | null>(null);
-  const shown =
-    refused && refused.key === asked.key ? refused.candidates : asked.request ? (live.data ?? []) : [];
-
-  // "This is a different one" holds for the venues it was said about: a new one shows the choice again.
-  const [decision, setDecision] = useState<DuplicateDecision>(undecided);
-  const [decidedFor, setDecidedFor] = useState<readonly string[]>([]);
-  const decidedOn = (list: readonly VenueDuplicateCandidate[]) =>
-    decision.reviewed && list.every((candidate) => decidedFor.includes(candidate.venueId));
-  const reviewed = decidedOn(shown);
-  // A refusal under the panel belongs to the input it was said for: new typing clears it (pre-review 3).
-  const [panelError, setPanelError] = useState<{ key: string; message: string } | null>(null);
-  const panelMessage = panelError && panelError.key === asked.key ? panelError.message : null;
-  const panel = useRef<HTMLElement>(null);
-  // Each request moves the focus to the panel once it is shown (a refused save shows it in the same render).
-  const [focusRequests, setFocusRequests] = useState(0);
-  useEffect(() => {
-    if (focusRequests > 0) {
-      panel.current?.focus();
-    }
-  }, [focusRequests]);
-  const stop = (forKey: string, message: string) => {
-    setPanelError({ key: forKey, message });
-    setFocusRequests((count) => count + 1);
-  };
-
-  const decide = (next: DuplicateDecision) => {
-    setDecision(next);
-    setDecidedFor(next.reviewed ? shown.map((candidate) => candidate.venueId) : []);
-    setPanelError(null);
-  };
-
-  // The save decides on the list for exactly what is saved, never on a list for earlier typing (pre-review 1): a
-  // decision goes with the save only when every venue that input matches was decided on.
-  const submit = form.handleSubmit(async (values) => {
-    const current = requestFor(values);
-    const currentKey = checkKey(current);
-    let list: VenueDuplicateCandidate[] = [];
-    if (refused && refused.key === currentKey) {
-      list = refused.candidates;
-    } else if (current) {
-      setChecking(true);
-      try {
-        list = await checkNow(current, currentKey);
-      } catch {
-        // The save goes without a decision: the server checks again and sends back any match.
-        list = [];
-      } finally {
-        setChecking(false);
-      }
-    }
-    setAsked({ key: currentKey, request: current });
-    if (list.length > 0 && !decidedOn(list)) {
-      stop(currentKey, reviewFirst);
-      return;
-    }
-    setPanelError(null);
-    save.mutate(
-      { values, decision: list.length > 0 ? { reviewed: true, reason: decision.reason } : undecided },
-      {
-        onError: (error) => {
-          const candidates = reviewCandidates(error);
-          if (candidates) {
-            setRefused({ key: currentKey, candidates });
-            setDecision(undecided);
-            setDecidedFor([]);
-            stop(currentKey, "Someone added a venue that may match. Review the list before saving.");
-            return;
-          }
-          applyFieldErrors(error, apiFields, form.setError);
+  const submit = form.handleSubmit((values) =>
+    submitReview(values, (decision, refusedForReview) =>
+      save.mutate(
+        { values, decision },
+        {
+          onError: (error) => {
+            if (!refusedForReview(error)) {
+              applyFieldErrors(error, apiFields, form.setError);
+            }
+          },
         },
-      },
-    );
-  });
+      ),
+    ),
+  );
 
   const busy = save.isPending || checking;
   const venueHref = (id: string) => `${tenantPath(tenant.slug)}/venues/${id}`;
@@ -209,11 +148,10 @@ export function VenueEditor({
   const warning =
     shown.length > 0 ? (
       <DuplicatePanel
-        ref={panel}
+        ref={panelRef}
         noun="venue"
         candidates={shown.map((candidate) => toPanelCandidate(candidate, venueHref(candidate.venueId)))}
-        // Undecided again (a new venue), the reason typed before is kept for the next decision.
-        decision={reviewed ? decision : { reviewed: false, reason: decision.reason }}
+        decision={panelDecision}
         onDecisionChange={decide}
         canOpen={can("venue.read")}
         error={panelMessage}

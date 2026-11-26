@@ -3,14 +3,19 @@
 // The organisation header's status moves (S07 D12; state-machines.md, Organisation). Every move needs a reason (audit
 // `REQUIRED_WITH_REASON`). Only the moves the machine allows from the organisation's status are offered; unarchiving
 // goes back to the status it had before it was archived, read from its history. Its teams' statuses never follow.
-// Edit details joins these with T6b-2.
+// Edit details (D4) opens its own page, in any status.
 import { Button } from "@msp/ui/components/button";
+import { Pencil } from "lucide-react";
+import Link from "next/link";
 import { useRef, useState } from "react";
 import { ActionDialog } from "@/components/action-dialog";
 import { UnavailableNote } from "@/components/unavailable-note";
+import { actionAccess } from "@/lib/action-access";
 import { humanizeCode } from "@/lib/codes";
 import { useTenantWorkspace } from "@/lib/tenant-workspace";
+import { tenantPath } from "@/lib/workspace";
 import {
+  editOrganisationActions,
   organisationMovesFrom,
   unarchiveTo,
   useChangeOrganisationStatus,
@@ -101,26 +106,44 @@ const targets: Readonly<Record<Exclude<OrganisationMove, "unarchive">, Organisat
 };
 
 const noteId = "organisation-actions-note";
+const editNoteId = "organisation-edit-note";
 /** The header's status badge, focused after a move. */
 export const organisationStatusId = "organisation-status";
 
 export function OrganisationActions({ organisation }: Readonly<{ organisation: Organisation }>) {
-  const { can, unavailable } = useTenantWorkspace();
+  const { tenant, can, unavailable } = useTenantWorkspace();
   const [open, setOpen] = useState<OrganisationMove | null>(null);
   const [announcement, setAnnouncement] = useState("");
   const moved = useRef(false);
 
-  // A viewer holds neither the action nor a reason it is unavailable: no control at all.
+  // A viewer holds neither an action nor a reason it is unavailable: no control at all.
+  const edit = actionAccess(editOrganisationActions, can, unavailable);
   const refusal = can(statusAction) ? null : unavailable(statusAction);
-  if (!can(statusAction) && refusal === null) {
+  const movesOffered = can(statusAction) || refusal !== null;
+  if (!movesOffered && !edit.allowed && edit.reason === null) {
     return null;
   }
-  const moves = organisationMovesOffered(organisation.status);
+  const moves = movesOffered ? organisationMovesOffered(organisation.status) : [];
+  // Each disabled control points at its own reason; one note when both are unavailable for the same one.
+  const editNote = edit.reason !== null && edit.reason !== refusal ? edit.reason : null;
   const disabled = refusal === null ? {} : { disabled: true, "aria-describedby": noteId };
 
   return (
     <div className="grid gap-2">
       <div className="flex flex-wrap gap-2">
+        {edit.allowed ? (
+          <Button asChild variant="outline">
+            <Link href={`${tenantPath(tenant.slug)}/organisations/${organisation.id}/edit`}>
+              <Pencil aria-hidden="true" />
+              Edit details
+            </Link>
+          </Button>
+        ) : edit.reason ? (
+          <Button variant="outline" disabled aria-describedby={editNote ? editNoteId : noteId}>
+            <Pencil aria-hidden="true" />
+            Edit details
+          </Button>
+        ) : null}
         {moves.map((move) => (
           <Button
             key={move}
@@ -133,6 +156,7 @@ export function OrganisationActions({ organisation }: Readonly<{ organisation: O
         ))}
       </div>
       {refusal ? <UnavailableNote id={noteId} reason={refusal} /> : null}
+      {editNote ? <UnavailableNote id={editNoteId} reason={editNote} /> : null}
       <p role="status" className="sr-only">
         {announcement}
       </p>
