@@ -699,3 +699,15 @@ The rest of S06's tech debt has its own trigger in PROGRESS.md ("From S06").
   ("Mark unavailable", "Close venue", "Reopen", …) and sends the target status; unarchive sends the status before the
   latest archiving, read from the history. Team names aren't links until T6c. `components/registry/status-history.tsx`
   is shared with People's Overview; `lib/team-category.ts` labels categories (Q53).
+- **T6a-2 (venue screens: Add venue, Edit details, Names & IDs):** one PR (owner, plan 2026-11-26). Add venue and Edit
+  details share `VenueEditor` (form, live warning, save). The warning asks `duplicate-check` 300 ms after the name,
+  city or coordinates change (Edit: only once one differs from the venue as opened; the venue itself is filtered out
+  of the answer, which doesn't know it) and keeps the last list while the next is asked. The save waits for **Open**
+  or **This is a different one** (`duplicatesReviewed`, optional `duplicateReason`); the decision holds for the venues
+  it was said about, and a save answered `VENUE_DUPLICATE_REVIEW_REQUIRED` shows the Problem Details' `candidates`.
+  Add sends no slug (the server proposes one, owner) and no country unless one is chosen; Edit sends the slug and the
+  venue's country (#118 Q1). `components/registry/duplicate-panel.tsx` and `components/registry/names-and-ids/` (the
+  tab, four dialogs, `NamesAndIdsApi` for the calls and `NamesAndIdsConfig` for the words and actions) are for T6b
+  and T6c too; People's identifiers tab is unchanged (owner: moving it onto the shared one is tech debt).
+  `lib/action-access.ts` generalises Edit details' access rule; `components/checkbox-group.tsx` holds the surfaces
+  and sports. No backend change.

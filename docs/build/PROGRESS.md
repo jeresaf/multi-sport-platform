@@ -734,6 +734,10 @@ docs/build/slices/S07-organisations-teams-venues.md, "Carried over from S06")
   the teams' lock (S07-T3b-1; review of #130 R1, which added the rename's lock test). Add one as
   `Renames_to_one_new_name_queue_on_the_teams_lock_and_the_second_is_warned` does. (Next task that touches team updates,
   or S07-T7.)
+- People's identifiers tab (S06-T7c-2a) and the shared `components/registry/names-and-ids/` (S07-T6a-2) do the same
+  job: two copies of the tab and its four dialogs, the authority rule in both. Owner (T6a-2 plan, 2026-11-26): People
+  stays as built for now. Move People onto `NamesAndIdsTab` (its closed rule, its national-document hint and the
+  `person.*` actions through `NamesAndIdsConfig`). (Next task that changes People's identifiers or aliases screen.)
 
 **From S06** (regrouped by the S06 slice review, 2026-11-21; each names its trigger)
 - Consent's `givenOn` has no lower bound when the date of birth is unknown (S06-T6a pre-review N3; as T4b2's

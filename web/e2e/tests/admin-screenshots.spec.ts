@@ -466,6 +466,13 @@ test("screenshots of the venue screens", async ({ page, request }) => {
     supportedVariants: [sport.variant],
   });
   await post("/api/admin/v1/venues", { name: "Kisaasi Recreation Ground", type: "SPORTS_GROUND", city: "Kampala", timeZone: "Africa/Kampala" });
+  for (const [path, data] of [
+    [`/api/admin/v1/venues/${stadium.id}/aliases`, { name: "Bukoto Grounds", kind: "FORMER_NAME" }],
+    [`/api/admin/v1/venues/${stadium.id}/external-identifiers`, { authority: "METRO_COUNCIL_NO", value: "MC-0042" }],
+  ] as const) {
+    const added = await request.post(path, { data, headers });
+    expect(added.status(), `${path}: ${await added.text()}`).toBe(200);
+  }
   await post("/api/admin/v1/teams", {
     variant: sport.variant,
     name: "Bukoto Comets FC",
@@ -495,4 +502,28 @@ test("screenshots of the venue screens", async ({ page, request }) => {
   await page.getByRole("button", { name: "Close venue" }).click();
   await expect(page.getByRole("dialog").getByLabel("Reason")).toBeVisible();
   await shoot(page, "venue-status-dialog", [phone, ...widths]);
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+
+  await page.getByRole("tab", { name: "Names & IDs" }).click();
+  await expect(page.getByText("MC-0042").first()).toBeVisible();
+  await shoot(page, "venue-names", [phone, ...widths]);
+  await page.getByRole("button", { name: "Add identifier" }).click();
+  await expect(page.getByRole("dialog").getByLabel("Issued by (code)")).toBeVisible();
+  await shoot(page, "venue-identifier-dialog", [phone, ...widths]);
+  await page.keyboard.press("Escape");
+
+  await page.getByRole("link", { name: "Edit details" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Edit details" })).toBeVisible();
+  await expect(page.getByLabel("Web address")).toHaveValue("bukoto-community-stadium");
+  await shoot(page, "venue-edit", [phone, ...widths]);
+
+  // Add venue with a name the tenant already has: the live warning lists it.
+  await page.goto(`/t/${tenant.slug}/venues/new`);
+  await page.getByLabel("Name", { exact: true }).fill("Kisaasi Recreation Ground");
+  await page.getByLabel("City or town").fill("Kampala");
+  const warning = page.getByRole("region", { name: "Is this a venue you already have?" });
+  await expect(warning.getByRole("link", { name: "Open Kisaasi Recreation Ground" })).toBeVisible();
+  await warning.scrollIntoViewIfNeeded();
+  await shoot(page, "add-venue-duplicates", [phone, ...widths]);
 });
