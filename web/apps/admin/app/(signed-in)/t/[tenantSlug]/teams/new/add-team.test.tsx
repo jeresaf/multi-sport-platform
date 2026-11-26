@@ -367,6 +367,33 @@ describe("Add team", () => {
     expect(await screen.findByText(/Your plan allows 40 teams\./)).toBeTruthy();
   });
 
+  it.each([
+    ["TEAM_HOME_VENUE_UNAVAILABLE", "homeVenueId", "Home venue (optional)", "closed or archived since you chose it"],
+    ["TEAM_SPORT_NOT_ENABLED", "variant", null, "This sport is no longer enabled for your organisation."],
+    // The colour refusal names the colour out of order (`errors[].field`, TeamDetailsRules).
+    ["TEAM_COLOURS_INVALID", "tertiaryColour", null, "Enter the colours in order"],
+  ])("puts %s under its field (%s) in the form's words", async (code, field, group, words) => {
+    open({
+      "POST /api/admin/v1/teams": { status: 422, body: problem(code, 422, { errors: [{ field, code }] }) },
+    });
+    await fill();
+    if (group) {
+      type("Find a venue", "Bukoto");
+      fireEvent.click(await screen.findByRole("button", { name: `Choose ${bukoto.name}` }));
+    }
+    save();
+    const label = { homeVenueId: null, variant: "Sport", tertiaryColour: "Third colour (optional)" }[field];
+    if (label) {
+      expect(await screen.findByText(new RegExp(words))).toBeTruthy();
+      expect(screen.getByLabelText(label).getAttribute("aria-invalid")).toBe("true");
+    } else {
+      const venueGroup = screen.getByRole("group", { name: group! });
+      expect((await within(venueGroup).findByRole("alert")).textContent).toContain(words);
+    }
+    // Under the field, not in the form's alert as well.
+    expect(screen.queryByText("That didn't work")).toBeNull();
+  });
+
   it("starts with the organisation it was opened from, unless that one can't take a team", async () => {
     navigation.search = `organisationId=${ntinda.id}`;
     const requests = open({ [`GET /api/admin/v1/organisations/${ntinda.id}`]: { status: 200, body: ntinda } });
