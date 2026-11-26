@@ -516,7 +516,9 @@ Members & roles (invite, assign roles with scopes) · Sports (enable within enti
   type and city; the organisation itself, its current parent and its direct members aren't offered, and a dissolved one
   is shown unavailable ("Dissolved: it can't take member organisations."). With a parent, **No parent** clears it. A
   member further down is refused by the server and the refusal shows under the choice. The dialog sends the version it
-  opened on and offers **Reload** on a conflict.
+  opened on and offers **Reload** on a conflict. A dissolved or archived organisation takes no new parent: without one,
+  **Set parent** is disabled with "Dissolved: it can't take a parent." (or "Archived: …"); with one, **Remove parent**
+  offers only **No parent**, without the search.
 - Screenshots `organisations`, `organisation-overview`, `organisation-teams`, `organisation-status-dialog`,
   `organisation-history`, `organisation-parent-dialog`.
 

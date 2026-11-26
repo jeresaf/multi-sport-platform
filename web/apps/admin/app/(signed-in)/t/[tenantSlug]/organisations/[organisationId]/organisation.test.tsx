@@ -2,6 +2,7 @@
 // teams with their sport named from its definition, the status and parent history, the status moves the machine
 // allows and the parent dialog, each with a required reason and the version its dialog opened on; a conflict offers
 // Reload; a viewer sees everything without a change control.
+import { errorMessage } from "@msp/api-client/errors";
 import { act, cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readOnlyCapabilities } from "@/test/capabilities";
@@ -288,9 +289,11 @@ describe("Organisation status moves", () => {
 });
 
 describe("Organisation parent", () => {
+  // The search waits 300 ms after the last key: the clock is moved on, not waited for.
   const search = async (text: string) => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     fireEvent.change(within(dialog()).getByLabelText("Find the parent"), { target: { value: text } });
-    await act(() => new Promise((resolve) => setTimeout(resolve, 350)));
+    await act(() => vi.advanceTimersByTimeAsync(300));
   };
 
   it("finds a parent by search, leaves out itself and its members, and sends the choice, the reason and the version", async () => {
@@ -354,8 +357,32 @@ describe("Organisation parent", () => {
     fireEvent.change(within(dialog()).getByLabelText("Reason"), { target: { value: "Restructure." } });
     fireEvent.click(within(dialog()).getByRole("button", { name: "Save parent" }));
     await sentTo(requests, parentPath);
-    const error = await within(dialog()).findByText(/below this organisation|parent/i, { selector: "#parent-choice-error" });
-    expect(error).toBeTruthy();
+    await waitFor(() => expect(dialog().querySelector("#parent-choice-error")).toBeTruthy());
+    // The server's refusal of the field, not the form's own "Choose the parent…".
+    const shown = dialog().querySelector("#parent-choice-error")!.textContent;
+    expect([errorMessage("ORGANISATION_PARENT_CYCLE"), "It is below this organisation."]).toContain(shown);
+  });
+
+  it("offers a dissolved organisation no new parent, only removing the one it has", async () => {
+    open(organisation({ status: "DISSOLVED" }));
+    await loaded();
+    const set = screen.getByRole("button", { name: "Set parent" });
+    expect(set.hasAttribute("disabled")).toBe(true);
+    expect(document.getElementById(set.getAttribute("aria-describedby") ?? "")?.textContent).toMatch(
+      /Dissolved: it can't take a parent/,
+    );
+    cleanup();
+
+    const requests = open(organisation({ status: "DISSOLVED", parent: summary(kisaasi) }), registrar, {
+      [`POST ${parentPath}`]: { status: 200, body: organisation({ status: "DISSOLVED", version: 4 }) },
+    });
+    await loaded();
+    fireEvent.click(screen.getByRole("button", { name: "Remove parent" }));
+    expect(within(dialog()).queryByLabelText("Find the parent")).toBeNull();
+    fireEvent.click(within(dialog()).getByLabelText("No parent"));
+    fireEvent.change(within(dialog()).getByLabelText("Reason"), { target: { value: "Wound up." } });
+    fireEvent.click(within(dialog()).getByRole("button", { name: "Save parent" }));
+    expect((await sentTo(requests, parentPath)).body).toEqual({ parentId: null, reason: "Wound up." });
   });
 
   it("offers Reload after a concurrency conflict", async () => {

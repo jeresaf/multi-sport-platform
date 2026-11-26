@@ -80,15 +80,20 @@ export function ParentDialog({ organisation, onClose }: Readonly<{ organisation:
   const choiceError = errors.parentId?.message;
   const reasonError = errors.reason?.message;
   const current = organisation.parent;
+  // A dissolved or archived organisation can only have its parent cleared (D5): no search.
+  const clearOnly = !acceptsNewChildren(organisation.status);
+  const name = organisation.displayName;
+  const title = !current ? `Set the parent of ${name}` : clearOnly ? `Remove the parent of ${name}` : `Change the parent of ${name}`;
+  const description = !current
+    ? "The organisation it belongs to, such as the club a school's team plays for or a federation. Its status and its teams' don't change."
+    : clearOnly
+      ? `Its parent is ${current.displayName}. ${humanizeCode(organisation.status)}, it can't take another; the link ends today and stays in the history.`
+      : `Its parent is ${current.displayName}. The link ends today and stays in the history; its status and its teams' don't change.`;
 
   return (
     <CommandDialog
-      title={current ? `Change the parent of ${organisation.displayName}` : `Set the parent of ${organisation.displayName}`}
-      description={
-        current
-          ? `Its parent is ${current.displayName}. The link ends today and stays in the history; its status and its teams' don't change.`
-          : "The organisation it belongs to, such as the club a school's team plays for or a federation. Its status and its teams' don't change."
-      }
+      title={title}
+      description={description}
       submitLabel="Save parent"
       pending={set.isPending}
       error={set.error}
@@ -100,24 +105,26 @@ export function ParentDialog({ organisation, onClose }: Readonly<{ organisation:
         onClose();
       }}
     >
-      <div className="grid gap-2">
-        <Label htmlFor="parent-search">Find the parent</Label>
-        <Input
-          id="parent-search"
-          type="search"
-          value={typed}
-          onChange={(event) => setTyped(event.target.value)}
-          placeholder="Name, alias or identifier"
-          autoComplete="off"
-          aria-describedby="parent-search-hint"
-        />
-        <p id="parent-search-hint" className="text-sm text-muted-foreground">
-          Archived organisations aren&apos;t listed.
-        </p>
-        <p role="status" className="sr-only">
-          {announcement}
-        </p>
-      </div>
+      {clearOnly ? null : (
+        <div className="grid gap-2">
+          <Label htmlFor="parent-search">Find the parent</Label>
+          <Input
+            id="parent-search"
+            type="search"
+            value={typed}
+            onChange={(event) => setTyped(event.target.value)}
+            placeholder="Name, alias or identifier"
+            autoComplete="off"
+            aria-describedby="parent-search-hint"
+          />
+          <p id="parent-search-hint" className="text-sm text-muted-foreground">
+            Archived organisations aren&apos;t listed.
+          </p>
+          <p role="status" className="sr-only">
+            {announcement}
+          </p>
+        </div>
+      )}
       <Controller
         control={form.control}
         name="parentId"

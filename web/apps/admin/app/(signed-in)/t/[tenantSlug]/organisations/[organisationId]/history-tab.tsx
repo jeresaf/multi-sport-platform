@@ -27,13 +27,14 @@ export function linkPeriod(link: Pick<OrganisationParentLink, "validFrom" | "val
  */
 export function HistoryTab({ organisation }: Readonly<{ organisation: Organisation }>) {
   const { tenant } = useTenantWorkspace();
+  const statusChanges = useOrganisationStatusChanges(organisation.id);
   const links = useOrganisationParentLinks(organisation.id);
   const items = links.data?.items ?? [];
   const parentHref = (id: string) => `${tenantPath(tenant.slug)}/organisations/${id}`;
   return (
     <>
       <ViewerSection title="Status">
-        <StatusHistory history={useOrganisationStatusChanges(organisation.id)} />
+        <StatusHistory history={statusChanges} />
       </ViewerSection>
       <ViewerSection title="Parent organisations">
         {links.isPending ? <Loading /> : null}

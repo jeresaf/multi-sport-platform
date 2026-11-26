@@ -10,7 +10,7 @@ import { humanizeCode } from "@/lib/codes";
 import { useCountries } from "@/lib/reference-data";
 import { useTenantWorkspace } from "@/lib/tenant-workspace";
 import { tenantPath } from "@/lib/workspace";
-import type { Organisation } from "../organisations-data";
+import { acceptsNewChildren, type Organisation } from "../organisations-data";
 import { ParentDialog, parentAction } from "./parent-dialog";
 
 const notRecorded = "Not recorded";
@@ -46,6 +46,11 @@ export function OverviewTab({ organisation }: Readonly<{ organisation: Organisat
   // A viewer holds neither the action nor a reason it is unavailable: no control at all.
   const parentRefusal = can(parentAction) ? null : unavailable(parentAction);
   const parentOffered = can(parentAction) || parentRefusal !== null;
+  // A dissolved or archived organisation takes no new parent; one it has can still be cleared (D5).
+  const closed = acceptsNewChildren(organisation.status)
+    ? null
+    : `${humanizeCode(organisation.status)}: it can't take a parent.`;
+  const parentNote = parentRefusal ?? (organisation.parent ? null : closed);
 
   return (
     <>
@@ -130,11 +135,11 @@ export function OverviewTab({ organisation }: Readonly<{ organisation: Organisat
             <Button
               variant="outline"
               onClick={() => setChanging(true)}
-              {...(parentRefusal ? { disabled: true, "aria-describedby": parentNoteId } : {})}
+              {...(parentNote ? { disabled: true, "aria-describedby": parentNoteId } : {})}
             >
-              {organisation.parent ? "Change parent" : "Set parent"}
+              {organisation.parent ? (closed ? "Remove parent" : "Change parent") : "Set parent"}
             </Button>
-            {parentRefusal ? <UnavailableNote id={parentNoteId} reason={parentRefusal} /> : null}
+            {parentNote ? <UnavailableNote id={parentNoteId} reason={parentNote} /> : null}
           </div>
         ) : null}
       </ViewerSection>
