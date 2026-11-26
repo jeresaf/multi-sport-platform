@@ -785,7 +785,11 @@ test("screenshots of the team screens", async ({ page, request }) => {
   await page.getByRole("link", { name: "Rename" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Rename" })).toBeVisible();
   await expect(page.getByLabel("Short name (optional)")).toHaveValue("Meteors");
+  // The live check answers before the shot (no team matches: no panel), so every run shows the same page.
+  const checked = page.waitForResponse((response) => response.url().includes("/api/admin/v1/teams/duplicate-check"));
   await page.getByLabel("New name", { exact: true }).fill("Mutundwe Mighty Meteors FC");
+  await checked;
+  await expect(page.getByRole("region", { name: "Is this a team you already have?" })).toHaveCount(0);
   await shoot(page, "team-rename", [phone, ...widths]);
 
   // Add team from the club's Teams tab, the club chosen; the club's first team's name is warned of.
