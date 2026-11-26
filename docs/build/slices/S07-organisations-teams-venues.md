@@ -720,6 +720,7 @@ The rest of S06's tech debt has its own trigger in PROGRESS.md ("From S06").
   disabled, and a deeper descendant is the server's `ORGANISATION_PARENT_CYCLE`, shown under the choice. A parent
   change marks every kept organisation read stale (the new parent's children change too). The header's logo is
   `components/registry/record-logo.tsx` (initials without one), for teams too. A dissolved or archived parent stays linked (D5): the
-  Overview says so ("… is archived. It stays the parent until you change or remove it."; owner, review #139 Q1). A saved
+  Overview says so ("… is archived. It stays the parent until the parent is changed or removed."; owner, review #139
+  Q1). A saved
   parent change is announced and the focus goes to the Structure heading. Q56: the organisation's Edit runs the
   live check as venues' (owner, plan 2026-11-26; T6b-2). No backend change.

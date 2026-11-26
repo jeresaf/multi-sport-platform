@@ -502,8 +502,8 @@ Members & roles (invite, assign roles with scopes) · Sports (enable within enti
   name, short name, type, founded, description; Contact: city, country, website (a link only for an `http(s)` address,
   in a new tab), email, phone, primary venue (a link with `venue.read`); Structure: the parent and the member
   organisations, each a link with its status when not active, and **Set parent** or **Change parent**; a dissolved or
-  archived parent stays linked, and the Overview says so: "… is archived. It stays the parent until you change or
-  remove it."), **Teams** (its
+  archived parent stays linked, and the Overview says so: "… is archived. It stays the parent until the parent is
+  changed or removed."), **Teams** (its
   teams but archived ones, with category, sport named from its definition and status; the names become links with the
   team screens, T6c) and **History** (the status changes, then the parent links with their dates and reasons, the
   current one first).
