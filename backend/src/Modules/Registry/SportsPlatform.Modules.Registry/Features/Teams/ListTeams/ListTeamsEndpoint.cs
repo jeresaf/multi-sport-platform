@@ -19,13 +19,14 @@ internal static class ListTeamsEndpoint
             "`FIRST`, `RESERVE`, `DEVELOPMENT`, `ACADEMY`), then ID. `q` matches the name or one of its words by prefix " +
             "and by similarity, the short name by prefix (word order and punctuation aside), a current nickname, spelling or " +
             "former name by prefix and by similarity, and an external identifier's value exactly (ended ones included). `variant`, " +
-            "`organisationId`, `genderCategory`, `ageGroup` and `level` keep the teams that have them (an unknown variant " +
-            "or organisation keeps none); `status` filters by status (without it, archived teams are left out). Each item " +
+            "`organisationId`, `homeVenueId`, `genderCategory`, `ageGroup` and `level` keep the teams that have them (an " +
+            "unknown variant, organisation or venue keeps none); `status` filters by status (without it, archived teams are left out). Each item " +
             "carries its organisation (id, display name, slug), whatever its status now. `limit` is 1–100 (25). " +
             "Available while the tenant is read-only.")
         .RequireAction(RegistryActions.TeamRead)
         .ValidateRequest<ListTeamsRequest>(CommonErrors.InvalidQuery)
         .DocumentsQueryUuid("organisationId")
+        .DocumentsQueryUuid("homeVenueId")
         .DocumentsQueryValues("genderCategory", ListTeamsRequest.GenderCategories)
         .DocumentsQueryValues("ageGroup", ListTeamsRequest.AgeGroups)
         .DocumentsQueryValues("level", ListTeamsRequest.Levels)

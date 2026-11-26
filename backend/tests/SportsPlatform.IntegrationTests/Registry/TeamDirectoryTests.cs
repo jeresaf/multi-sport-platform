@@ -202,6 +202,29 @@ public sealed class TeamDirectoryTests(PostgresFixture fixture) : DatabaseTest(f
         (await IdsAsync($"organisationId={kestrels.Id}&level=FIRST")).ShouldBeEmpty();
     }
 
+    // The venue's Teams tab (S07-T6a): the teams whose home venue it is, in the directory's order and statuses.
+    [Fact]
+    public async Task HomeVenueId_keeps_the_teams_that_call_the_venue_home()
+    {
+        var (kmsa, registrar) = await TenantAsync("kmsa", IdentityRoles.Registrar);
+        var meadow = await VenueRequests.SaveVenueAsync(App.Services, kmsa, "Kiwatule Meadow Ground");
+        var ground = await VenueRequests.SaveVenueAsync(App.Services, kmsa, "Bunga Lakeside Ground");
+        var women = new TeamCategory(GenderCategory.Women, AgeGroup.Senior, TeamLevel.First);
+        var swifts = await SaveTeamAsync(App.Services, kmsa, "Ntinda Swifts FC", homeVenueId: meadow.Id);
+        var swiftsWomen = await SaveTeamAsync(App.Services, kmsa, "Ntinda Swifts FC", category: women, homeVenueId: meadow.Id);
+        var kestrels = await SaveTeamAsync(App.Services, kmsa, "Kisaasi Kestrels FC", homeVenueId: meadow.Id, status: TeamStatus.Archived);
+        await SaveTeamAsync(App.Services, kmsa, "Bunga Breakers FC", homeVenueId: ground.Id);
+        await SaveTeamAsync(App.Services, kmsa, "Seeta Sparrows FC");
+
+        async Task<List<Guid>> IdsAsync(string query) =>
+            [.. (await registrar.ReadJsonAsync($"{TeamsPath}?{query}", Ct)).GetProperty("items").EnumerateArray().Select(item => item.GetProperty("id").GetGuid())];
+
+        (await IdsAsync($"homeVenueId={meadow.Id}")).ShouldBe([swifts.Id, swiftsWomen.Id]);
+        (await IdsAsync($"homeVenueId={meadow.Id}&status=ARCHIVED")).ShouldBe([kestrels.Id]);
+        (await IdsAsync($"homeVenueId={meadow.Id}&genderCategory=WOMEN")).ShouldBe([swiftsWomen.Id]);
+        (await IdsAsync($"homeVenueId={Guid.CreateVersion7()}")).ShouldBeEmpty();
+    }
+
     [Theory]
     [InlineData("ntin", "Ntinda Swifts FC")] // a prefix of the name
     [InlineData("SPARROWS", "Seeta Sparrows FC")] // a word of it
@@ -263,6 +286,8 @@ public sealed class TeamDirectoryTests(PostgresFixture fixture) : DatabaseTest(f
     [InlineData("cursor=not-a-cursor", "cursor")]
     [InlineData("organisationId=not-an-id", "organisationId")]
     [InlineData("organisationId=0193c7a0f4e27b3c9d1e2f3a4b5c6d7e", "organisationId")]
+    [InlineData("homeVenueId=not-an-id", "homeVenueId")]
+    [InlineData("homeVenueId=0193c7a0f4e27b3c9d1e2f3a4b5c6d7e", "homeVenueId")]
     [InlineData("q=Ntinda%00", "q")]
     public async Task A_bad_query_value_is_refused_naming_its_parameter(string query, string field)
     {
@@ -296,13 +321,15 @@ public sealed class TeamDirectoryTests(PostgresFixture fixture) : DatabaseTest(f
         var (kmsa, kmsaRegistrar) = await TenantAsync("kmsa", IdentityRoles.Registrar);
         var (elssc, elsscOwner) = await TenantAsync("elssc", IdentityRoles.TenantOwner);
         var kmsaClub = await SaveOrganisationAsync(App.Services, kmsa, "Ntinda Swifts SC");
-        await SaveTeamAsync(App.Services, kmsa, "Ntinda Swifts FC", organisationId: kmsaClub.Id);
+        var kmsaGround = await VenueRequests.SaveVenueAsync(App.Services, kmsa, "Kiwatule Meadow Ground");
+        await SaveTeamAsync(App.Services, kmsa, "Ntinda Swifts FC", organisationId: kmsaClub.Id, homeVenueId: kmsaGround.Id);
         await SaveTeamAsync(App.Services, elssc, "Lakeshore High School FC");
 
         TeamNames(await kmsaRegistrar.ReadJsonAsync(TeamsPath, Ct)).ShouldBe(["Ntinda Swifts FC"]);
         TeamNames(await elsscOwner.ReadJsonAsync(TeamsPath, Ct)).ShouldBe(["Lakeshore High School FC"]);
         TeamNames(await elsscOwner.ReadJsonAsync($"{TeamsPath}?q=Ntinda", Ct)).ShouldBeEmpty();
         TeamNames(await elsscOwner.ReadJsonAsync($"{TeamsPath}?organisationId={kmsaClub.Id}", Ct)).ShouldBeEmpty();
+        TeamNames(await elsscOwner.ReadJsonAsync($"{TeamsPath}?homeVenueId={kmsaGround.Id}", Ct)).ShouldBeEmpty();
     }
 
     // D20: every read role lists teams; the scorer gets none in S07, nor does a team manager (S08's TEAM scope).
