@@ -663,3 +663,98 @@ test("screenshots of the organisation screens", async ({ page, request }) => {
   await warning.scrollIntoViewIfNeeded();
   await shoot(page, "add-organisation-duplicates", [phone, ...widths]);
 });
+
+test("screenshots of the team screens", async ({ page, request }) => {
+  // A club, its ground and three teams made through the API on a tenant of this run's own (the demo data is S07-T7's):
+  // a renamed team with every field and a status change, a youth team with only what is required, and a disbanded
+  // independent one.
+  test.slow();
+  const tenant = await ownTenant(request, "weaver-sports", "Mutundwe Weaver Sports Club");
+  const owner = { email: personEmail("brian.ssemakula", tenant.slug), password: newPassword() };
+  await acceptByApi(request, await inviteOwnerOf(request, tenant.id, owner.email), owner.password);
+  await signInByApi(request, owner.email, owner.password);
+  const headers = { "X-CSRF": "1", "X-Tenant-Id": tenant.id };
+  const sport = await enableFirstSport(request, { tenantId: tenant.id });
+  const send = async (path: string, data: Record<string, unknown>, status: number, version?: number) => {
+    const sent = await request.post(path, {
+      data,
+      headers: version === undefined ? headers : { ...headers, "If-Match": `"${version}"` },
+    });
+    expect(sent.status(), `${path}: ${await sent.text()}`).toBe(status);
+    return (await sent.json()) as { id: string; version: number };
+  };
+  const club = await send("/api/admin/v1/organisations", { type: "CLUB", displayName: "Mutundwe Meteors SC", city: "Kampala" }, 201);
+  const ground = await send("/api/admin/v1/venues", { name: "Mutundwe Hill Ground", type: "SPORTS_GROUND", city: "Kampala", timeZone: "Africa/Kampala" }, 201);
+  const weavers = await send(
+    "/api/admin/v1/teams",
+    {
+      variant: sport.variant,
+      name: "Mutundwe Weavers FC",
+      shortName: "Weavers",
+      code: "MWV",
+      genderCategory: "MEN",
+      ageGroup: "SENIOR",
+      organisationId: club.id,
+      homeVenueId: ground.id,
+      motto: "Higher together",
+      // The team's own colours: data the API stores, not design tokens.
+      // eslint-disable-next-line no-restricted-syntax
+      primaryColour: "#1A3D7C",
+      // eslint-disable-next-line no-restricted-syntax
+      secondaryColour: "#F2C230",
+      foundedYear: 2018,
+      nameSince: "2018-01-01",
+    },
+    201,
+  );
+  const renamed = await send(
+    `/api/admin/v1/teams/${weavers.id}/rename`,
+    { name: "Mutundwe Meteors FC", shortName: "Meteors", code: "MUT", effectiveOn: "2026-01-01" },
+    200,
+    weavers.version,
+  );
+  await send(`/api/admin/v1/teams/${weavers.id}/status`, { status: "SUSPENDED", reason: "Registration fees unpaid." }, 200, renamed.version);
+  await send(
+    "/api/admin/v1/teams",
+    { variant: sport.variant, name: "Mutundwe Meteors FC Under-17", genderCategory: "MEN", ageGroup: "U17", organisationId: club.id },
+    201,
+  );
+  const reserves = await send(
+    "/api/admin/v1/teams",
+    { variant: sport.variant, name: "Kireka Kingfishers FC Reserves", genderCategory: "MEN", ageGroup: "SENIOR", level: "RESERVE" },
+    201,
+  );
+  await send(`/api/admin/v1/teams/${reserves.id}/status`, { status: "DISBANDED", reason: "Folded into the first team." }, 200, reserves.version);
+
+  await signIn(page, owner.email, owner.password);
+  await expect(page.getByRole("heading", { level: 1, name: tenant.name })).toBeVisible();
+  await page.getByRole("navigation", { name: "Workspace" }).getByRole("link", { name: "Teams" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Teams" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Kireka Kingfishers FC Reserves" })).toBeVisible();
+  await expect(loading(page)).toHaveCount(0);
+  await shoot(page, "teams", [phone, ...widths]);
+
+  await page.getByRole("link", { name: "Mutundwe Meteors FC", exact: true }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Mutundwe Meteors FC" })).toBeVisible();
+  await expect(page.getByText("Higher together")).toBeVisible();
+  await expect(loading(page)).toHaveCount(0);
+  await shoot(page, "team-overview", [phone, ...widths]);
+  await page.getByRole("tab", { name: "History" }).click();
+  await expect(page.getByRole("cell", { name: "Registration fees unpaid." })).toBeVisible();
+  await expect(page.getByRole("cell", { name: "1 Jan 2018 to 31 Dec 2025" })).toBeVisible();
+  await expect(loading(page)).toHaveCount(0);
+  await shoot(page, "team-history", [phone, ...widths]);
+  await page.getByRole("button", { name: "Disband" }).click();
+  await expect(page.getByRole("dialog").getByLabel("Reason")).toBeVisible();
+  await shoot(page, "team-status-dialog", [phone, ...widths]);
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+
+  // From the club's Teams tab to a team's page.
+  await page.goto(`/t/${tenant.slug}/organisations/${club.id}?tab=teams`);
+  await page.getByRole("link", { name: "Mutundwe Meteors FC Under-17" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Mutundwe Meteors FC Under-17" })).toBeVisible();
+  await expect(page.getByText("Under-17 Boys", { exact: false }).first()).toBeVisible();
+  await expect(loading(page)).toHaveCount(0);
+  await shoot(page, "team-youth", [phone, ...widths]);
+});
