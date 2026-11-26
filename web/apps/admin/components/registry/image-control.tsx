@@ -90,8 +90,14 @@ export function RecordImageControl<R extends OpenedRecord>({
     setOpen(null);
   };
   const focusChanged = (event: Event) => {
-    const target = changed.current ? document.getElementById(setButtonId) : null;
+    if (!changed.current) {
+      return;
+    }
     changed.current = false;
+    // Add or Change when it can take the focus; else (a closed record's logo removed: Add is disabled, Remove gone)
+    // the control itself, so the focus isn't lost to the page (review #141 N1).
+    const button = document.getElementById(setButtonId);
+    const target = button && !button.hasAttribute("disabled") ? button : document.getElementById(config.id);
     if (target) {
       event.preventDefault();
       target.focus();
@@ -107,7 +113,13 @@ export function RecordImageControl<R extends OpenedRecord>({
   };
 
   return (
-    <div className="grid gap-2">
+    <div
+      id={config.id}
+      role="group"
+      aria-label={word}
+      tabIndex={-1}
+      className="grid gap-2 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
       <div className="flex flex-wrap gap-2">
         {setOffered ? (
           <Button id={setButtonId} variant="outline" onClick={() => setOpen("set")} {...describedBy(setReason)}>
@@ -201,7 +213,7 @@ function SetImageDialog<R extends OpenedRecord>({
         id={fileId}
         label={word}
         accept={imageAccept}
-        hint="A PNG, JPEG or WebP up to 2 MB, at least 64 pixels on its shorter side. A PNG keeps its transparent background."
+        hint={`A PNG, JPEG or WebP up to ${imageMaxBytes / (1024 * 1024)} MB, at least 64 pixels on its shorter side. A PNG keeps its transparent background.`}
         error={fileError ?? fieldError(save.error, "file")}
         onChange={(chosen) => {
           choose(chosen);

@@ -225,6 +225,18 @@ describe("Organisation logo", () => {
     expect(within(dialog()).getByText("The logo is no longer shown, here or on the public site.")).toBeTruthy();
   });
 
+  it("keeps the focus in the control when a dissolved organisation's logo is removed (Add logo stays disabled)", async () => {
+    render(organisation({ logo, status: "DISSOLVED" }), registrar, {
+      [`DELETE ${logoPath}`]: { status: 200, body: organisation({ logo: null, status: "DISSOLVED", version: 4 }) },
+    });
+    fireEvent.click(await screen.findByRole("button", { name: "Remove logo" }));
+    press("Remove logo");
+    await closed();
+    expect(screen.getByRole("button", { name: "Add logo" })).toHaveProperty("disabled", true);
+    await announced("Logo removed.");
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("group", { name: "Logo" })));
+  });
+
   it("disables both with the reason on a read-only tenant", async () => {
     render(withLogo, readOnlyCapabilities(reads, changes));
     const change = await screen.findByRole("button", { name: "Change logo" });
