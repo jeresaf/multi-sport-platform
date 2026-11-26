@@ -4,14 +4,23 @@
 // `REQUIRED_WITH_REASON`). Only the moves the machine allows from the team's status are offered; unarchiving goes back
 // to the status it had before it was archived, read from its history. Reforming a disbanded team and unarchiving one
 // take a place under the plan's team limit (D14): at the limit the dialog shows the refusal with the limit and stays
-// open. Edit details and Rename come with T6c-2a.
+// open. Edit details (D11) opens its own page in any status; Rename (D8) its own page while the team isn't disbanded or
+// archived.
 import { Button } from "@msp/ui/components/button";
+import { PenLine, Pencil } from "lucide-react";
+import Link from "next/link";
 import { useRef, useState } from "react";
 import { ActionDialog } from "@/components/action-dialog";
 import { UnavailableNote } from "@/components/unavailable-note";
+import { actionAccess } from "@/lib/action-access";
 import { humanizeCode } from "@/lib/codes";
 import { useTenantWorkspace } from "@/lib/tenant-workspace";
+import { tenantPath } from "@/lib/workspace";
 import {
+  acceptsRename,
+  editTeamActions,
+  renameClosedReason,
+  renameTeamActions,
   teamMovesFrom,
   unarchiveTo,
   useChangeTeamStatus,
@@ -110,6 +119,8 @@ const targets: Readonly<Record<Exclude<TeamMove, "unarchive">, TeamStatus>> = {
 };
 
 const noteId = "team-actions-note";
+const editNoteId = "team-edit-note";
+const renameNoteId = "team-rename-note";
 /** The header's status badge, focused after a move. */
 export const teamStatusId = "team-status";
 
@@ -119,22 +130,61 @@ function counted(status: TeamStatus | null): boolean {
 }
 
 export function TeamActions({ team }: Readonly<{ team: Team }>) {
-  const { can, unavailable } = useTenantWorkspace();
+  const { tenant, can, unavailable } = useTenantWorkspace();
   const [open, setOpen] = useState<TeamMove | null>(null);
   const [announcement, setAnnouncement] = useState("");
   const moved = useRef(false);
 
-  // A viewer holds neither the action nor a reason it is unavailable: no control at all.
+  // A viewer holds none of the actions nor a reason one is unavailable: no control at all.
   const refusal = can(statusAction) ? null : unavailable(statusAction);
-  if (!can(statusAction) && refusal === null) {
+  const movesOffered = can(statusAction) || refusal !== null;
+  const edit = actionAccess(editTeamActions, can, unavailable);
+  const rename = actionAccess(renameTeamActions, can, unavailable);
+  const renameOffered = rename.allowed || rename.reason !== null;
+  if (!movesOffered && !edit.allowed && edit.reason === null && !renameOffered) {
     return null;
   }
-  const moves = teamMovesOffered(team.status);
+  const moves = movesOffered ? teamMovesOffered(team.status) : [];
   const disabled = refusal === null ? {} : { disabled: true, "aria-describedby": noteId };
+  // Each disabled control points at its own reason; one note when several are unavailable for the same one.
+  const editNote = edit.reason !== null && edit.reason !== refusal ? edit.reason : null;
+  const renameReason = rename.reason ?? (acceptsRename(team.status) ? null : renameClosedReason(team));
+  const renameNote = renameReason !== null && renameReason !== refusal && renameReason !== editNote ? renameReason : null;
+  const renameNoteFor =
+    renameReason === null ? undefined : renameNote ? renameNoteId : renameReason === editNote ? editNoteId : noteId;
+  const teamHref = `${tenantPath(tenant.slug)}/teams/${team.id}`;
 
   return (
     <div className="grid gap-2">
       <div className="flex flex-wrap gap-2">
+        {edit.allowed ? (
+          <Button asChild variant="outline">
+            <Link href={`${teamHref}/edit`}>
+              <Pencil aria-hidden="true" />
+              Edit details
+            </Link>
+          </Button>
+        ) : edit.reason ? (
+          <Button variant="outline" disabled aria-describedby={editNote ? editNoteId : noteId}>
+            <Pencil aria-hidden="true" />
+            Edit details
+          </Button>
+        ) : null}
+        {renameOffered ? (
+          renameReason === null ? (
+            <Button asChild variant="outline">
+              <Link href={`${teamHref}/rename`}>
+                <PenLine aria-hidden="true" />
+                Rename
+              </Link>
+            </Button>
+          ) : (
+            <Button variant="outline" disabled aria-describedby={renameNoteFor}>
+              <PenLine aria-hidden="true" />
+              Rename
+            </Button>
+          )
+        ) : null}
         {moves.map((move) => (
           <Button
             key={move}
@@ -147,6 +197,8 @@ export function TeamActions({ team }: Readonly<{ team: Team }>) {
         ))}
       </div>
       {refusal ? <UnavailableNote id={noteId} reason={refusal} /> : null}
+      {editNote ? <UnavailableNote id={editNoteId} reason={editNote} /> : null}
+      {renameNote ? <UnavailableNote id={renameNoteId} reason={renameNote} /> : null}
       <p role="status" className="sr-only">
         {announcement}
       </p>

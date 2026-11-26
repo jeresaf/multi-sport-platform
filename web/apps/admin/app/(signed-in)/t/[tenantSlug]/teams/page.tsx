@@ -4,6 +4,7 @@ import { Button } from "@msp/ui/components/button";
 import { Input } from "@msp/ui/components/input";
 import { Label } from "@msp/ui/components/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@msp/ui/components/table";
+import { Plus } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -13,7 +14,9 @@ import { ProblemAlert } from "@/components/problem-alert";
 import { SelectField } from "@/components/select-field";
 import { StatusBadge } from "@/components/status-badge";
 import { ForbiddenView } from "@/components/status-page";
+import { UnavailableNote } from "@/components/unavailable-note";
 import { RowName, wide } from "@/components/viewer/facts";
+import { actionAccess } from "@/lib/action-access";
 import { humanizeCode } from "@/lib/codes";
 import {
   ageGroupLabel,
@@ -27,7 +30,7 @@ import {
 import { useTenantWorkspace } from "@/lib/tenant-workspace";
 import { tenantPath } from "@/lib/workspace";
 import { useSportVariants } from "../sports/sports-data";
-import { teamFilters, teamStatuses, useTeams, type TeamFilters } from "./teams-data";
+import { addTeamActions, teamFilters, teamStatuses, useTeams, type TeamFilters } from "./teams-data";
 
 /** How long the search waits after the last key before it asks. */
 const searchDelay = 300;
@@ -37,10 +40,11 @@ const linkClass = "break-words text-primary underline-offset-4 hover:underline";
  * Registry → Teams (S07 D23): the tenant's teams sorted by name and category, searched by name, alias or external
  * identifier and filtered by sport, category and status. The search and filters are in the address, so going back
  * from a team keeps them. The sport filter lists every published variant, named from its definition (AR-29): a team
- * stays listed under a sport the tenant has since disabled. **Add team** comes with the team form (T6c-2a).
+ * stays listed under a sport the tenant has since disabled. **Add team** needs the create and its live check.
  */
 export default function TeamsPage() {
-  const { tenant, can } = useTenantWorkspace();
+  const { tenant, can, unavailable } = useTenantWorkspace();
+  const add = actionAccess(addTeamActions, can, unavailable);
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
@@ -108,10 +112,26 @@ export default function TeamsPage() {
 
   return (
     <section className="grid grid-cols-[minmax(0,1fr)] gap-6">
-      <header className="grid gap-1">
-        <h1 className="text-2xl font-semibold">Teams</h1>
-        <p className="text-muted-foreground">The teams your organisation registers, in every sport and category.</p>
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div className="grid gap-1">
+          <h1 className="text-2xl font-semibold">Teams</h1>
+          <p className="text-muted-foreground">The teams your organisation registers, in every sport and category.</p>
+        </div>
+        {add.allowed ? (
+          <Button asChild>
+            <Link href={`${root}/teams/new`}>
+              <Plus aria-hidden="true" />
+              Add team
+            </Link>
+          </Button>
+        ) : add.reason ? (
+          <Button disabled aria-describedby="add-team-unavailable">
+            <Plus aria-hidden="true" />
+            Add team
+          </Button>
+        ) : null}
       </header>
+      {add.reason ? <UnavailableNote id="add-team-unavailable" reason={add.reason} /> : null}
 
       <form
         role="search"

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ColourSwatch } from "@/components/registry/colour-swatch";
 import { Facts, ViewerSection } from "@/components/viewer/facts";
 import { humanizeCode } from "@/lib/codes";
 import { formatDay } from "@/lib/entitlements";
@@ -12,26 +13,6 @@ import type { Team } from "../teams-data";
 
 const notRecorded = "Not recorded";
 const linkClass = "break-words text-primary underline-offset-4 hover:underline";
-/** The API's colour form (#RRGGBB, `TeamDetailsRequest`): only such a value is painted. */
-const hexColour = /^#[0-9A-Fa-f]{6}$/;
-
-/** A colour as a swatch with its hex beside it: the hex says it to a screen reader and to anyone the swatch fails. */
-export function ColourSwatch({ colour }: Readonly<{ colour: string }>) {
-  return (
-    <span className="flex items-center gap-2">
-      {hexColour.test(colour) ? (
-        <span
-          aria-hidden="true"
-          className="inline-block size-5 shrink-0 rounded-sm border"
-          // The team's own colour is data, not a design token.
-          style={{ backgroundColor: colour }}
-        />
-      ) : null}
-      <span className="font-mono text-sm">{colour.toUpperCase()}</span>
-    </span>
-  );
-}
-
 /**
  * Overview (S07 D23): what the team is (sport named from its definition, category, code, motto, founded, since when it
  * has its name), where it belongs (its organisation, or independent; its home venue) and its colours as swatches with
