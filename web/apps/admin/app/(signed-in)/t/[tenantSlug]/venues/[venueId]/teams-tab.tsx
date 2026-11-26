@@ -2,6 +2,7 @@
 
 import { Button } from "@msp/ui/components/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@msp/ui/components/table";
+import Link from "next/link";
 import { Loading } from "@/components/loading";
 import { ProblemAlert } from "@/components/problem-alert";
 import { StatusBadge } from "@/components/status-badge";
@@ -9,15 +10,16 @@ import { RowName, wide } from "@/components/viewer/facts";
 import { humanizeCode } from "@/lib/codes";
 import { teamCategoryLabel } from "@/lib/team-category";
 import { useTenantWorkspace } from "@/lib/tenant-workspace";
+import { tenantPath } from "@/lib/workspace";
 import { useSportVariants } from "../../sports/sports-data";
 import { useHomeTeams, type Venue } from "../venues-data";
 
 /**
  * Teams that call it home (S07 D23): the teams whose home venue this is, archived ones left out, in the team
- * directory's order. A team's own page comes with the team screens (T6c), so the names aren't links yet.
+ * directory's order. A team's name opens its page.
  */
 export function TeamsTab({ venue }: Readonly<{ venue: Venue }>) {
-  const { can } = useTenantWorkspace();
+  const { tenant, can } = useTenantWorkspace();
   const teams = useHomeTeams(venue.id);
   const sports = useSportVariants();
   if (!can("team.read")) {
@@ -53,7 +55,14 @@ export function TeamsTab({ venue }: Readonly<{ venue: Venue }>) {
                 <TableRow key={team.id}>
                   <TableHead scope="row" className="h-auto max-w-64 py-2 align-top whitespace-normal tablet:max-w-80">
                     <RowName
-                      name={team.name}
+                      name={
+                        <Link
+                          href={`${tenantPath(tenant.slug)}/teams/${team.id}`}
+                          className="break-words text-primary underline-offset-4 hover:underline"
+                        >
+                          {team.name}
+                        </Link>
+                      }
                       details={[
                         ["Category", category],
                         ["Sport", sport],
