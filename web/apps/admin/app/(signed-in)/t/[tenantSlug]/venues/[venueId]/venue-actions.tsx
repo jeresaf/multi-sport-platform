@@ -40,7 +40,7 @@ export const venueMoves: Readonly<Record<VenueMove, MoveWords>> = {
   close: {
     label: "Close venue",
     description:
-      "It no longer hosts contests: it can't be a team's home venue or take new aliases or identifiers. It can be reopened.",
+      "It no longer hosts contests: it can't become a team's home venue or take new aliases or identifiers (teams that already call it home keep it). It can be reopened.",
     done: "closed",
     destructive: true,
   },
@@ -184,7 +184,8 @@ function MoveDialog({
       reasonHint="Kept in the status history and the audit trail with your name. Don't include personal details."
       pending={change.isPending}
       error={change.error ?? (history.isError ? history.error : null)}
-      confirmDisabled={target === null}
+      // While the history is read again, an earlier archiving's status could still be shown (review #136 N2).
+      confirmDisabled={target === null || (move === "unarchive" && history.isFetching)}
       onConfirm={(reason) => {
         if (target) {
           change.mutate({ status: target, reason: reason ?? "" }, { onSuccess: () => onSaved(`${venue.name}: ${words.done}.`) });

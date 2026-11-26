@@ -181,6 +181,8 @@ describe("Venue status moves", () => {
     });
     await loaded();
     fireEvent.click(screen.getByRole("button", { name: "Close venue" }));
+    // A closed venue can't become a home venue; teams that call it home keep it (review #136 R1).
+    expect(within(dialog()).getByText(/can't become a team's home venue/).textContent).toMatch(/already call it home keep it/);
     fireEvent.click(within(dialog()).getByRole("button", { name: "Close venue" }));
     expect(await within(dialog()).findByText("Give a reason: it is kept in the audit trail.")).toBeTruthy();
     expect(requests.some((request) => request.method === "POST")).toBe(false);

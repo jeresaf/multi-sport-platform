@@ -287,6 +287,7 @@ public sealed class TeamDirectoryTests(PostgresFixture fixture) : DatabaseTest(f
     [InlineData("organisationId=not-an-id", "organisationId")]
     [InlineData("organisationId=0193c7a0f4e27b3c9d1e2f3a4b5c6d7e", "organisationId")]
     [InlineData("homeVenueId=not-an-id", "homeVenueId")]
+    [InlineData("homeVenueId=0193c7a0f4e27b3c9d1e2f3a4b5c6d7e", "homeVenueId")]
     [InlineData("q=Ntinda%00", "q")]
     public async Task A_bad_query_value_is_refused_naming_its_parameter(string query, string field)
     {
