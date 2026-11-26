@@ -7,7 +7,7 @@ at the start of every review.
 
 - **Current slice:** S07 — Organisations, teams and venues (docs/build/slices/S07-organisations-teams-venues.md,
   written by the S06 slice review). S00–S06 are done
-- **Current task:** — (S07-T6c-1 in review: PR to come)
+- **Current task:** S07-T6c-1 — Team screens: navigation, directory, team page, status moves (built; `/finish-task` next)
 - **Next:** S07-T6c-2a — Add team, Edit details, Rename
 - **Blocked on:** —
 
