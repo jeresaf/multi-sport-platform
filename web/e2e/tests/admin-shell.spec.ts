@@ -57,11 +57,11 @@ test("a tenant owner opens their workspace; the console and unknown tenants are 
 
   await workspaceNav(page).getByRole("link", { name: "Overview" }).click();
   await expect(page.getByRole("heading", { level: 1, name: tenant.name })).toBeVisible();
-  await expect(workspaceNav(page).getByRole("link", { name: "Organisation" })).toBeVisible();
+  await expect(workspaceNav(page).getByRole("link", { name: "Organisation", exact: true })).toBeVisible();
   await expect(workspaceNav(page).getByRole("link", { name: "Members & roles" })).toBeVisible();
   // The entries under their groups (S06-T7a).
   await expect(workspaceNav(page).getByRole("list", { name: "Registry" }).getByRole("link", { name: "People" })).toBeVisible();
-  await expect(workspaceNav(page).getByRole("list", { name: "Settings" }).getByRole("link", { name: "Organisation" })).toBeVisible();
+  await expect(workspaceNav(page).getByRole("list", { name: "Settings" }).getByRole("link", { name: "Organisation", exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: `Workspace: ${tenant.name}` }).click();
   await expect(page.getByRole("menuitem", { name: tenant.name })).toBeVisible();
@@ -113,7 +113,7 @@ test("a registrar sees only what their role allows, and the server refuses the r
 
   await signIn(page, registrar.email, registrar.password);
   await expect(page).toHaveURL(`/t/${tenant.slug}`);
-  await expect(workspaceNav(page).getByRole("link", { name: "Organisation" })).toBeVisible();
+  await expect(workspaceNav(page).getByRole("link", { name: "Organisation", exact: true })).toBeVisible();
   await expect(workspaceNav(page).getByRole("link", { name: "Members & roles" })).toHaveCount(0);
   await expect(workspaceNav(page).getByRole("link", { name: "People" })).toBeVisible();
 
