@@ -567,7 +567,8 @@ The rest of S06's tech debt has its own trigger in PROGRESS.md ("From S06").
   have none. Adding an alias runs no warning (owner). `IOrganisationDirectory` with its own `OrganisationStatus` and
   `OrganisationType` in Contracts, mapped from the domain's. One PR (owner). The live check takes no `organisationId`: T6's edit forms
   (organisations, and venues and teams alike) don't call it; the save's `…_DUPLICATE_REVIEW_REQUIRED` shows the
-  candidates (owner, review of #126, Q56).
+  candidates (owner, review of #126, Q56). Superseded for venues' and organisations' Edit: they call the live check once
+  a compared field changes and filter the record itself out (owner, T6a-2 and T6b plans; PROGRESS Deviations S07-T6b).
 - **T3a (teams, first part):** T3 is five PRs (owner, plan 2026-11-23): T3a the model, create with the warning and
   `MAX_TEAMS`, the check and the read; T3b-1 update, lifecycle (the quota on reform and unarchive) and the status
   history; T3b-2 the directory and the teams in the organisation read; T3c rename, aliases and the name on a date; T3d
@@ -718,5 +719,7 @@ The rest of S06's tech debt has its own trigger in PROGRESS.md ("From S06").
   listed); the organisation itself, its current parent and its direct members aren't offered, a dissolved one is shown
   disabled, and a deeper descendant is the server's `ORGANISATION_PARENT_CYCLE`, shown under the choice. A parent
   change marks every kept organisation read stale (the new parent's children change too). The header's logo is
-  `components/registry/record-logo.tsx` (initials without one), for teams too. Q56: the organisation's Edit runs the
+  `components/registry/record-logo.tsx` (initials without one), for teams too. A dissolved or archived parent stays linked (D5): the
+  Overview says so ("… is archived. It stays the parent until you change or remove it."; owner, review #139 Q1). A saved
+  parent change is announced and the focus goes to the Structure heading. Q56: the organisation's Edit runs the
   live check as venues' (owner, plan 2026-11-26; T6b-2). No backend change.

@@ -501,7 +501,9 @@ Members & roles (invite, assign roles with scopes) · Sports (enable within enti
   name, status, type and city; the status moves), then the tabs in `?tab=`: **Overview** (Organisation: name, legal
   name, short name, type, founded, description; Contact: city, country, website (a link only for an `http(s)` address,
   in a new tab), email, phone, primary venue (a link with `venue.read`); Structure: the parent and the member
-  organisations, each a link with its status when not active, and **Set parent** or **Change parent**), **Teams** (its
+  organisations, each a link with its status when not active, and **Set parent** or **Change parent**; a dissolved or
+  archived parent stays linked, and the Overview says so: "… is archived. It stays the parent until you change or
+  remove it."), **Teams** (its
   teams but archived ones, with category, sport named from its definition and status; the names become links with the
   team screens, T6c) and **History** (the status changes, then the parent links with their dates and reasons, the
   current one first).
@@ -515,8 +517,10 @@ Members & roles (invite, assign roles with scopes) · Sports (enable within enti
   directory 300 ms after the typing pauses (archived ones aren't listed) and lists the matches as choices with their
   type and city; the organisation itself, its current parent and its direct members aren't offered, and a dissolved one
   is shown unavailable ("Dissolved: it can't take member organisations."). With a parent, **No parent** clears it. A
-  member further down is refused by the server and the refusal shows under the choice. The dialog sends the version it
-  opened on and offers **Reload** on a conflict. A dissolved or archived organisation takes no new parent: without one,
+  member further down is refused by the server and the refusal shows under the choice. A cleared search lists nothing,
+  and while a new search is asked the earlier list stays without being announced as its answer. The dialog sends the
+  version it opened on and offers **Reload** on a conflict. A saved change is announced ("…: parent changed to …",
+  "…: parent removed.") and the focus goes to the Structure heading. A dissolved or archived organisation takes no new parent: without one,
   **Set parent** is disabled with "Dissolved: it can't take a parent." (or "Archived: …"); with one, **Remove parent**
   offers only **No parent**, without the search.
 - Screenshots `organisations`, `organisation-overview`, `organisation-teams`, `organisation-status-dialog`,
