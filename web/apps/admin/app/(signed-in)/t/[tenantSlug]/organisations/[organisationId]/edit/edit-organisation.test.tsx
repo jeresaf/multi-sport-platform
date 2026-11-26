@@ -6,8 +6,9 @@
 import { act, cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readOnlyCapabilities } from "@/test/capabilities";
-import { candidate, kisaasi, ntinda, organisationAnswers } from "@/test/organisations";
+import { candidate, kisaasi, listPage, ntinda, organisationAnswers } from "@/test/organisations";
 import { fakeApi, problem, renderWithQuery, type Answers, type RecordedRequest } from "@/test/render";
+import { bukoto, listItem as venueItem } from "@/test/venues";
 import TenantWorkspaceLayout from "../../../layout";
 import OrganisationPage from "../page";
 import EditOrganisationPage from "./page";
@@ -171,6 +172,26 @@ describe("Edit organisation details", () => {
     save();
     await waitFor(() => expect(puts(requests)).toHaveLength(1));
     expect(puts(requests)[0]!.body).toMatchObject({ primaryVenueId: null });
+  });
+
+  it("saves an email the server took although a stricter check would refuse it (an intranet address)", async () => {
+    const requests = open({ [`GET ${organisationPath}`]: { status: 200, body: { ...ntinda, email: "ofisi@kmsa" } } });
+    await type("Phone (optional)", "+256 700 000 103");
+    save();
+    await waitFor(() => expect(puts(requests)).toHaveLength(1));
+    expect(puts(requests)[0]!.body).toMatchObject({ email: "ofisi@kmsa" });
+  });
+
+  it("lets the saved venue, closed since, be chosen again after it was removed", async () => {
+    const closed = { ...venueItem(bukoto), status: "CLOSED" as const };
+    open({ "GET /api/admin/v1/venues": listPage([closed]) });
+    const venueField = await screen.findByRole("group", { name: "Primary venue (optional)" });
+    fireEvent.click(within(venueField).getByRole("button", { name: "No primary venue" }));
+    await type("Find a venue", "Bukoto");
+    const choose = await within(venueField).findByRole("button", { name: `Choose ${bukoto.name}` });
+    expect(choose).toHaveProperty("disabled", false);
+    fireEvent.click(choose);
+    expect(within(venueField).getByText(bukoto.name)).toBeTruthy();
   });
 
   it("shows a taken web address under it", async () => {

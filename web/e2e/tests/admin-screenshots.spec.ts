@@ -599,4 +599,34 @@ test("screenshots of the organisation screens", async ({ page, request }) => {
   await page.getByRole("dialog").getByLabel("Find the parent").fill("Kisaasi");
   await expect(page.getByRole("dialog").getByLabel("Kisaasi Kestrels College")).toBeVisible();
   await shoot(page, "organisation-parent-dialog", [phone, ...widths]);
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+
+  // Edit details of the club (S07-T6b-2a), then its primary venue found by a search: a long name wraps on a phone.
+  await post("/api/admin/v1/venues", {
+    name: "Ntinda Community Sports Ground and Recreation Centre",
+    type: "SPORTS_GROUND",
+    city: "Kampala",
+    timeZone: "Africa/Kampala",
+  });
+  await page.goto(`/t/${tenant.slug}/organisations/${club.id}`);
+  await page.getByRole("link", { name: "Edit details" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Edit details" })).toBeVisible();
+  await expect(page.getByLabel("Web address")).toHaveValue("ntinda-swifts-sc");
+  await shoot(page, "organisation-edit", [phone, ...widths]);
+  await page.getByLabel("Find a venue").fill("Ntinda Community");
+  const choose = page.getByRole("button", { name: "Choose Ntinda Community Sports Ground and Recreation Centre" });
+  await expect(choose).toBeVisible();
+  await choose.scrollIntoViewIfNeeded();
+  await shoot(page, "organisation-primary-venue", [phone, ...widths]);
+
+  // Add organisation with a name the tenant already has: the live warning lists it.
+  await page.goto(`/t/${tenant.slug}/organisations/new`);
+  await page.getByLabel("Name", { exact: true }).fill("Ntinda Swifts SC");
+  await page.getByLabel("Type").selectOption("CLUB");
+  await page.getByLabel("City or town (optional)").fill("Kampala");
+  const warning = page.getByRole("region", { name: "Is this an organisation you already have?" });
+  await expect(warning.getByRole("link", { name: "Open Ntinda Swifts SC" })).toBeVisible();
+  await warning.scrollIntoViewIfNeeded();
+  await shoot(page, "add-organisation-duplicates", [phone, ...widths]);
 });

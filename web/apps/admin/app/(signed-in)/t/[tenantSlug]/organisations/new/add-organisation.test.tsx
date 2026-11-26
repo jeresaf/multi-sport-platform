@@ -227,6 +227,7 @@ describe("Add organisation", () => {
     const year = 2027;
     type("Founded (optional)", String(year + 1));
     type("Website (optional)", "kiwatule-kites.example");
+    // The server's rule, no stricter: one @ with text on both sides and no whitespace (#140 R3).
     type("Email (optional)", "office at kites");
     save();
     expect(await screen.findByText(`Enter a year from 1800 to ${year}.`)).toBeTruthy();
@@ -237,9 +238,13 @@ describe("Add organisation", () => {
 
   it("puts a venue closed since it was found under the venue field, and a refused web address in the alert", async () => {
     open({
+      // The server's shape: the refusal names the field (`OrganisationDetailsRules`, #140 R2).
       "POST /api/admin/v1/organisations": {
         status: 422,
-        body: problem("ORGANISATION_PRIMARY_VENUE_UNAVAILABLE", 422),
+        body: problem("ORGANISATION_PRIMARY_VENUE_UNAVAILABLE", 422, {
+          detail: "The primary venue must be a venue of the tenant that isn't closed or archived.",
+          errors: [{ field: "primaryVenueId", code: "ORGANISATION_PRIMARY_VENUE_UNAVAILABLE" }],
+        }),
       },
     });
     await fill();
@@ -249,7 +254,7 @@ describe("Add organisation", () => {
     const venueField = screen.getByRole("group", { name: "Primary venue (optional)" });
     // Read out as an alert: the form's own alert isn't shown for it (pre-review 3).
     expect((await within(venueField).findByRole("alert")).textContent).toBe(
-      "This venue is closed or archived now. Choose another, or no primary venue.",
+      "The primary venue must be a venue of the tenant that isn't closed or archived.",
     );
     expect(screen.queryByText("That didn't work")).toBeNull();
     cleanup();

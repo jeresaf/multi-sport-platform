@@ -43,6 +43,15 @@ const isWebAddress = (value: string) => {
 };
 
 /**
+ * The server's own email rule (`OrganisationDetailsRequest.IsEmail`): one `@` with text on both sides, no whitespace.
+ * No stricter here, so an address the server took (an intranet or internationalised one) can be saved again (#140 R3).
+ */
+const isEmail = (value: string) => {
+  const at = value.indexOf("@");
+  return at > 0 && at === value.lastIndexOf("@") && at < value.length - 1 && !/\s/.test(value);
+};
+
+/**
  * The form's checks: Add's (`edit` false, no slug) or Edit details' (with the slug). `thisYear` is the tenant's year,
  * the latest founding year (the server checks it on its own date).
  */
@@ -71,7 +80,7 @@ export const organisationSchema = (edit: boolean, thisYear: number) =>
       "Enter the full address, starting with https:// or http://.",
     ),
     email: text(limits.email, "the email address").refine(
-      (value) => !value.trim() || z.email().safeParse(value.trim()).success,
+      (value) => !value.trim() || isEmail(value.trim()),
       "Enter an email address such as office@example.org.",
     ),
     phone: text(limits.phone, "the phone number"),

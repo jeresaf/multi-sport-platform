@@ -9,7 +9,6 @@ import { ConflictAlert } from "@/components/conflict-alert";
 import { ProblemAlert } from "@/components/problem-alert";
 import { DuplicatePanel, type DuplicateDecision, type PanelCandidate } from "@/components/registry/duplicate-panel";
 import { useDuplicateReview } from "@/components/registry/use-duplicate-review";
-import { isApiProblem } from "@/lib/api";
 import { humanizeCode } from "@/lib/codes";
 import { isConcurrencyConflict } from "@/lib/concurrency";
 import { applyFieldErrors, needsAlert } from "@/lib/form-errors";
@@ -62,8 +61,6 @@ function toPanelCandidate(candidate: OrganisationDuplicateCandidate, href: strin
     href,
   };
 }
-
-const venueRefused = (error: unknown) => isApiProblem(error, "ORGANISATION_PRIMARY_VENUE_UNAVAILABLE");
 
 export type OrganisationSave = { values: OrganisationValues; decision: DuplicateDecision };
 
@@ -137,18 +134,10 @@ export function OrganisationEditor({
         { values, decision },
         {
           onError: (error) => {
-            if (refusedForReview(error)) {
-              return;
+            // A venue closed or archived since it was found is refused on `primaryVenueId`: under the venue field.
+            if (!refusedForReview(error)) {
+              applyFieldErrors(error, apiFields, form.setError);
             }
-            if (venueRefused(error)) {
-              // The venue was closed or archived since it was found: the refusal names no field, but it is this one's.
-              form.setError("primaryVenueId", {
-                type: "server",
-                message: "This venue is closed or archived now. Choose another, or no primary venue.",
-              });
-              return;
-            }
-            applyFieldErrors(error, apiFields, form.setError);
           },
         },
       ),
@@ -157,7 +146,7 @@ export function OrganisationEditor({
 
   const busy = save.isPending || checking;
   const href = (id: string) => `${tenantPath(tenant.slug)}/organisations/${id}`;
-  const shownOnForm = save.isError && (reviewCandidates(save.error) !== null || venueRefused(save.error));
+  const reviewRefusal = save.isError && reviewCandidates(save.error) !== null;
   const warning =
     shown.length > 0 ? (
       <DuplicatePanel
@@ -182,7 +171,7 @@ export function OrganisationEditor({
       </p>
       {isConcurrencyConflict(save.error) && onReload ? (
         <ConflictAlert onReload={onReload} />
-      ) : save.isError && !shownOnForm && needsAlert(save.error, apiFields) ? (
+      ) : save.isError && !reviewRefusal && needsAlert(save.error, apiFields) ? (
         <ProblemAlert error={save.error} />
       ) : null}
       <OrganisationFields

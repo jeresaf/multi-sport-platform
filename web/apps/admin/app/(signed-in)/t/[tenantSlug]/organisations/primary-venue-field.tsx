@@ -3,7 +3,7 @@
 // The organisation's primary venue (S07 D4): optional, found by a search of the venue directory (`venue.read`). A
 // closed venue is shown but can't be chosen (`ORGANISATION_PRIMARY_VENUE_UNAVAILABLE`); archived ones aren't listed.
 // The venue the organisation already has stays chosen whatever its status (the update keeps it), until it is removed
-// or another is chosen.
+// or another is chosen; removed, it can be chosen again from the search, closed or not (#140 Q1).
 import { Button } from "@msp/ui/components/button";
 import { Input } from "@msp/ui/components/input";
 import { Label } from "@msp/ui/components/label";
@@ -117,7 +117,8 @@ export function PrimaryVenueField({
           {found.length > 0 ? (
             <ul className="grid gap-2" aria-label="Venues found">
               {found.map((item) => {
-                const available = choosable(item.status);
+                // The saved venue isn't checked again by the server (D4), whatever its status now.
+                const available = choosable(item.status) || item.id === saved?.id;
                 const detailId = `${id}-${item.id}-detail`;
                 return (
                   <li key={item.id} className="flex min-h-11 flex-wrap items-center gap-x-3 gap-y-1">
@@ -126,6 +127,8 @@ export function PrimaryVenueField({
                       variant="outline"
                       disabled={!available}
                       aria-describedby={detailId}
+                      // A long venue name wraps instead of widening the page on a phone (#140 R4).
+                      className="h-auto min-h-11 max-w-full text-left whitespace-normal break-words"
                       onClick={() => choose(item.id, item.name, `${item.name} chosen as the primary venue.`)}
                     >
                       Choose {item.name}

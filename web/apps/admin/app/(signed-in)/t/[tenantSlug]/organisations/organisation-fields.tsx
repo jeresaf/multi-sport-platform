@@ -129,7 +129,7 @@ export function OrganisationFields({
             error={errors.country?.message}
             {...register("country")}
           >
-            {edit ? null : <option value="">Your organisation&apos;s country</option>}
+            {edit ? null : <option value="">Your workspace&apos;s country</option>}
             {countryOptions.map((country) => (
               <option key={country.code} value={country.code}>
                 {country.name}

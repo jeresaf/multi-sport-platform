@@ -539,7 +539,9 @@ Members & roles (invite, assign roles with scopes) · Sports (enable within enti
   `venue.read`; without it the field says "Choosing a venue needs access to the venues."); archived venues aren't
   listed and a closed one is shown with "Closed: it can't be a primary venue." and can't be chosen. **Choose {name}**
   takes one, **No primary venue** clears it; each choice is announced and the focus goes back to the search. A venue
-  closed since it was found (`ORGANISATION_PRIMARY_VENUE_UNAVAILABLE`) is said under the field.
+  closed since it was found (`ORGANISATION_PRIMARY_VENUE_UNAVAILABLE` on `primaryVenueId`) is said under the field, as an
+  alert. On Edit, the saved venue removed by mistake can be chosen again from the search, closed or not (the server
+  doesn't check the venue an organisation already has; review #140 Q1). A long venue name wraps in its button.
 - **The duplicate warning** (D13, between "Where it is" and "Contact and description"): the venue form's, through the
   shared `components/registry/use-duplicate-review.ts`. It asks once there is a type and a name with a letter or
   digit, 300 ms after a name, the type or the city changes; the evidence reads "Same name", "Names N% alike", "Same
@@ -550,8 +552,11 @@ Members & roles (invite, assign roles with scopes) · Sports (enable within enti
   opened on (`If-Match`), the country and the slug; a conflict shows "This record changed since you opened it" with
   **Reload**. The current primary venue stays chosen whatever its status until it is cleared or replaced. The warning
   runs once a name, the type or the city changes (loosely, as venues': case and spacing), the organisation itself left
-  out (owner, T6b plan; against Q56's default).
-- Screenshots: not taken in this task (see the PR).
+  out (owner, T6b plan; against Q56's default). The email is checked as the server checks it (one `@` with text on
+  both sides, no spaces), so an address the server took can be saved again (review #140 R3). Add's country choice
+  reads "Your workspace's country".
+- Screenshots `organisation-edit`, `organisation-primary-venue`, `add-organisation-duplicates` (CI's `screenshots`
+  artifact).
 
 ### Competitions
 - **Competition list** and **competition detail** (Overview · Editions · History).
