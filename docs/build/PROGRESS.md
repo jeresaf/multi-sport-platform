@@ -7,8 +7,10 @@ at the start of every review.
 
 - **Current slice:** S07 — Organisations, teams and venues (docs/build/slices/S07-organisations-teams-venues.md,
   written by the S06 slice review). S00–S06 are done
-- **Current task:** — (S07-T6c-1 in review: #142)
-- **Next:** S07-T6c-2a — Add team, Edit details, Rename
+- **Current task:** S07-T6c-2a — Add team, Edit details, Rename (plan approved 2026-11-26: Rename on its own page;
+  one shared registry search field for the organisation and home venue pickers and the primary venue; an Add team
+  link on the organisation's Teams tab; one PR)
+- **Next:** S07-T6c-2b — Names & IDs, the logo and the badge
 - **Blocked on:** —
 
 ## Next up
