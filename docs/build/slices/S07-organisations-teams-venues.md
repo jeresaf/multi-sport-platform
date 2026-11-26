@@ -748,4 +748,5 @@ The rest of S06's tech debt has its own trigger in PROGRESS.md ("From S06").
   status dialogs say when a move frees or takes a place under `MAX_TEAMS`; at the limit the server's
   `ENTITLEMENT_QUOTA_EXCEEDED` detail shows in the dialog. Colours are swatches painted only for a `#RRGGBB` value,
   with the hex as text. The venue and organisation Teams tabs now link each team. `lib/team-category.ts` gained the
-  category code lists and `genderLabel`. No backend change.
+  category code lists and `genderLabel` (the filter's "Men / Boys", "Women / Girls", "Mixed"; owner, #142). No backend
+  change.

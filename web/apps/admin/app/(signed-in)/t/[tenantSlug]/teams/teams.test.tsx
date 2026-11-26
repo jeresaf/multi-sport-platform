@@ -121,8 +121,8 @@ describe("teams directory", () => {
     const gender = screen.getByLabelText("Gender");
     expect(within(gender).getAllByRole("option").map((option) => option.textContent)).toEqual([
       "Any gender",
-      "Men",
-      "Women",
+      "Men / Boys",
+      "Women / Girls",
       "Mixed",
     ]);
     const age = within(screen.getByLabelText("Age group")).getAllByRole("option").map((option) => option.textContent);

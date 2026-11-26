@@ -563,7 +563,7 @@ Members & roles (invite, assign roles with scopes) · Sports (enable within enti
 - **Teams** (`/t/{slug}/teams`, `team.read`), in the Registry group between Organisations and Venues: sorted by name
   and category, 25 a page with **Show more**. **Search** (name, alias or external identifier) follows the typing after
   a 300 ms pause; **Sport** (every published variant, named from its definition: a team stays listed under a sport the
-  tenant has since disabled), **Gender**, **Age group**, **Level** and **Status** (default "All but archived") change
+  tenant has since disabled), **Gender** ("Men / Boys", "Women / Girls", "Mixed": a youth team reads Boys or Girls; owner, #142), **Age group**, **Level** and **Status** (default "All but archived") change
   at once. All six are in the address. Columns: name (the short name under it), category ("Under-17 Boys", "Senior
   Men · Reserve"), sport, organisation (a link with `organisation.read`; "Independent" without one), status; on a phone
   they stack under the name. No organisation filter: the organisation's Teams tab lists its teams (owner, T6c plan).

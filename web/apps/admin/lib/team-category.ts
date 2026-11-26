@@ -77,7 +77,12 @@ export const ageGroups = [
 ] as const satisfies readonly AgeGroup[];
 export const teamLevels = ["FIRST", "RESERVE", "DEVELOPMENT", "ACADEMY"] as const satisfies readonly TeamLevel[];
 
-/** A gender category on its own (a filter, without an age group): "Men", "Women", "Mixed". */
+/**
+ * A gender category on its own (a filter, without an age group): "Men / Boys", "Women / Girls", "Mixed". Both words,
+ * as a youth team reads "Boys" or "Girls" and a filter on `MEN` finds it (owner, #142).
+ */
 export function genderLabel(gender: GenderCategory): string {
-  return genderCategoryLabel(gender, "SENIOR");
+  return gender === "MIXED"
+    ? genderCategoryLabel(gender, "SENIOR")
+    : `${genderCategoryLabel(gender, "SENIOR")} / ${genderCategoryLabel(gender, "U17")}`;
 }
