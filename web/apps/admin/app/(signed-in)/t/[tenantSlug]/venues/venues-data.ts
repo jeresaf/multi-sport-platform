@@ -4,6 +4,7 @@
 // Every field a venue read answers is public or internal; none is personal, so nothing here is read on its own.
 import type { components } from "@msp/api-client";
 import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { NamesAndIdsApi } from "@/components/registry/names-and-ids/names-and-ids-data";
 import { call, isApiProblem } from "@/lib/api";
 import { ifMatch } from "@/lib/concurrency";
 import { useTenantWorkspace } from "@/lib/tenant-workspace";
@@ -223,4 +224,34 @@ export function reviewCandidates(error: unknown): VenueDuplicateCandidate[] | nu
   }
   const candidates = (error.problem as { candidates?: VenueDuplicateCandidate[] | null }).candidates;
   return candidates ?? [];
+}
+
+/** Names & IDs' calls for a venue (`venue.alias.*`, `venue.external_id.*`), each from the version its dialog opened on. */
+export function useVenueNamesApi(venueId: string): NamesAndIdsApi<Venue> {
+  const { client } = useTenantWorkspace();
+  const keep = useKeepVenue();
+  const reload = useReloadVenue(venueId);
+  const path = (opened: OpenedVenue) => ({ path: { venueId: opened.id }, header: ifMatch(opened.version) });
+  return {
+    addIdentifier: (opened, body) =>
+      call(client.POST("/api/admin/v1/venues/{venueId}/external-identifiers", { params: path(opened), body })),
+    endIdentifier: (opened, identifierId, body) =>
+      call(
+        client.POST("/api/admin/v1/venues/{venueId}/external-identifiers/{identifierId}/end", {
+          params: { ...path(opened), path: { venueId: opened.id, identifierId } },
+          body,
+        }),
+      ),
+    addAlias: (opened, body) =>
+      call(client.POST("/api/admin/v1/venues/{venueId}/aliases", { params: path(opened), body })),
+    removeAlias: (opened, aliasId, reason) =>
+      call(
+        client.POST("/api/admin/v1/venues/{venueId}/aliases/{aliasId}/remove", {
+          params: { ...path(opened), path: { venueId: opened.id, aliasId } },
+          body: { reason },
+        }),
+      ),
+    keep,
+    reload,
+  };
 }
