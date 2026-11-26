@@ -1,8 +1,8 @@
 "use client";
 
 // The venue header's actions: Edit details (S07 D11) and the status moves (S07 D12; state-machines.md, Venue). Every
-// move needs a reason (audit `REQUIRED_WITH_REASON`). Only the moves the machine allows from the venue's status are offered; unarchiving goes back
-// to the status the venue had before it was archived, read from its history.
+// move needs a reason (audit `REQUIRED_WITH_REASON`). Only the moves the machine allows from the venue's status are
+// offered; unarchiving goes back to the status the venue had before it was archived, read from its history.
 import { Button } from "@msp/ui/components/button";
 import { Pencil } from "lucide-react";
 import Link from "next/link";
@@ -95,6 +95,7 @@ const targets: Readonly<Record<Exclude<VenueMove, "unarchive">, VenueStatus>> = 
 };
 
 const noteId = "venue-actions-note";
+const editNoteId = "venue-edit-note";
 /** The header's status badge, focused after a move. */
 export const venueStatusId = "venue-status";
 
@@ -112,7 +113,8 @@ export function VenueActions({ venue }: Readonly<{ venue: Venue }>) {
     return null;
   }
   const moves = movesOffered ? venueMovesOffered(venue.status) : [];
-  const note = refusal ?? edit.reason;
+  // Each disabled control points at its own reason; one note when both are unavailable for the same one (#138 N2).
+  const editNote = edit.reason !== null && edit.reason !== refusal ? edit.reason : null;
   const disabled = refusal === null ? {} : { disabled: true, "aria-describedby": noteId };
 
   return (
@@ -126,7 +128,7 @@ export function VenueActions({ venue }: Readonly<{ venue: Venue }>) {
             </Link>
           </Button>
         ) : edit.reason ? (
-          <Button variant="outline" disabled aria-describedby={noteId}>
+          <Button variant="outline" disabled aria-describedby={editNote ? editNoteId : noteId}>
             <Pencil aria-hidden="true" />
             Edit details
           </Button>
@@ -142,7 +144,8 @@ export function VenueActions({ venue }: Readonly<{ venue: Venue }>) {
           </Button>
         ))}
       </div>
-      {note ? <UnavailableNote id={noteId} reason={note} /> : null}
+      {refusal ? <UnavailableNote id={noteId} reason={refusal} /> : null}
+      {editNote ? <UnavailableNote id={editNoteId} reason={editNote} /> : null}
       <p role="status" className="sr-only">
         {announcement}
       </p>

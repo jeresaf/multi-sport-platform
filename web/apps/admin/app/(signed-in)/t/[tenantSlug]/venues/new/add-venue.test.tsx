@@ -30,12 +30,12 @@ function open(answers: Answers = {}, capabilities: Parameters<typeof venueAnswer
     "POST /api/admin/v1/venues": { status: 201, body: added },
     ...answers,
   });
-  renderWithQuery(
+  const { queryClient } = renderWithQuery(
     <TenantWorkspaceLayout>
       <AddVenuePage />
     </TenantWorkspaceLayout>,
   );
-  return requests;
+  return Object.assign(requests, { queryClient });
 }
 
 const type = (label: string | RegExp, value: string) =>
@@ -223,6 +223,33 @@ describe("Add venue", () => {
     await waitFor(() => expect(creates(requests)).toHaveLength(2));
     expect(creates(requests)[1]!.body).toMatchObject({ duplicatesReviewed: true, duplicateReason: null });
     await waitFor(() => expect(navigation.push).toHaveBeenCalled());
+  });
+
+  it("marks the duplicate checks it kept stale once a venue is added, so the next check finds it", async () => {
+    const requests = open();
+    await fill();
+    await waitFor(() => expect(checks(requests).length).toBeGreaterThan(0));
+    expect(requests.queryClient.getQueryCache().findAll({ queryKey: ["venue-duplicates"] }).length).toBeGreaterThan(0);
+    save();
+    await waitFor(() => expect(navigation.push).toHaveBeenCalled());
+    const kept = requests.queryClient.getQueryCache().findAll({ queryKey: ["venue-duplicates"] });
+    expect(kept.every((query) => query.state.isInvalidated)).toBe(true);
+  });
+
+  it("shows a refused web address in the form's alert: Add has no field for it", async () => {
+    open({
+      "POST /api/admin/v1/venues": {
+        status: 422,
+        body: problem("VENUE_SLUG_TAKEN", 422, {
+          detail: "Another venue has this web address.",
+          errors: [{ field: "slug", code: "VENUE_SLUG_TAKEN" }],
+        }),
+      },
+    });
+    await fill();
+    save();
+    expect(await screen.findByText("That didn't work")).toBeTruthy();
+    expect(screen.queryByLabelText("Web address")).toBeNull();
   });
 
   it("checks the coordinates in pairs and in range before asking", async () => {

@@ -2,6 +2,7 @@
 // named from their definitions; only for whoever holds `venue.read`, and without a change control for a viewer.
 import { act, cleanup, fireEvent, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { readOnlyCapabilities } from "@/test/capabilities";
 import { fakeApi, renderWithQuery, type Answers } from "@/test/render";
 import { bukoto, kisaasi, listItem, listPage, metroArena, venueAnswers } from "@/test/venues";
 import TenantWorkspaceLayout from "../layout";
@@ -18,7 +19,7 @@ vi.mock("next/navigation", () => ({
 
 const viewer = ["venue.read", "sport.read", "tenant.settings.read"];
 
-function open(actions = viewer, answers: Answers = {}) {
+function open(actions: Parameters<typeof venueAnswers>[0] = viewer, answers: Answers = {}) {
   const requests = fakeApi({
     ...venueAnswers(actions),
     "GET /api/admin/v1/venues": listPage([bukoto, kisaasi, metroArena].map(listItem)),
@@ -130,8 +131,24 @@ describe("venues directory", () => {
     open();
     await screen.findByRole("link", { name: "Bukoto Community Stadium" });
     const main = screen.getByRole("heading", { level: 1, name: "Venues" }).closest("section")!;
-    // Only Show more's kind of button would appear; a viewer gets no create, edit or status control.
+    // Only Show more's kind of button would appear; a viewer gets no create, edit or status control (Add venue is a
+    // link when allowed, so both roles are checked: review #138 R1).
     expect(within(main).queryAllByRole("button")).toEqual([]);
+    expect(within(main).queryByRole("link", { name: "Add venue" })).toBeNull();
+  });
+
+  it("offers Add venue to whoever may add venues, and disables it with the reason on a read-only tenant", async () => {
+    open([...viewer, "venue.create", "venue.duplicate_check"]);
+    const add = await screen.findByRole("link", { name: "Add venue" });
+    expect(add.getAttribute("href")).toBe("/t/kmsa/venues/new");
+    cleanup();
+
+    open(readOnlyCapabilities(viewer, ["venue.create", "venue.duplicate_check"]));
+    const disabled = await screen.findByRole("button", { name: "Add venue" });
+    expect(disabled).toHaveProperty("disabled", true);
+    expect(disabled.getAttribute("aria-describedby")).toBe("add-venue-unavailable");
+    expect(document.getElementById("add-venue-unavailable")?.textContent).toMatch(/read-only/i);
+    expect(screen.queryByRole("link", { name: "Add venue" })).toBeNull();
   });
 
   it("refuses whoever doesn't hold venue.read, without asking for the venues", async () => {

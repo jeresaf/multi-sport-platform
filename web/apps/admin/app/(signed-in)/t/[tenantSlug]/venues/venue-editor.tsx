@@ -100,6 +100,7 @@ export function VenueEditor({
 }>) {
   const { tenant, can } = useTenantWorkspace();
   const edit = venue !== undefined;
+  const apiFields = venueApiFields(edit);
   const form = useForm<VenueValues, unknown, VenueValues>({
     resolver: zodResolver(venueSchema(edit)),
     defaultValues: initial,
@@ -196,12 +197,13 @@ export function VenueEditor({
             stop(currentKey, "Someone added a venue that may match. Review the list before saving.");
             return;
           }
-          applyFieldErrors(error, venueApiFields, form.setError);
+          applyFieldErrors(error, apiFields, form.setError);
         },
       },
     );
   });
 
+  const busy = save.isPending || checking;
   const venueHref = (id: string) => `${tenantPath(tenant.slug)}/venues/${id}`;
   const reviewRefusal = save.isError && reviewCandidates(save.error) !== null;
   const warning =
@@ -215,9 +217,10 @@ export function VenueEditor({
         onDecisionChange={decide}
         canOpen={can("venue.read")}
         error={panelMessage}
+        // The save has taken the decision as it was: no change to it until the save answers (#138 N4).
+        disabled={busy}
       />
     ) : null;
-  const busy = save.isPending || checking;
   const count = shown.length === 1 ? "1 venue" : `${shown.length} venues`;
 
   return (
@@ -228,13 +231,13 @@ export function VenueEditor({
       </p>
       {isConcurrencyConflict(save.error) && onReload ? (
         <ConflictAlert onReload={onReload} />
-      ) : save.isError && !reviewRefusal && needsAlert(save.error, venueApiFields) ? (
+      ) : save.isError && !reviewRefusal && needsAlert(save.error, apiFields) ? (
         <ProblemAlert error={save.error} />
       ) : null}
       <VenueFields form={form} edit={edit} warning={warning} />
       <div className="flex flex-wrap gap-3">
         <Button type="submit" disabled={busy}>
-          {save.isPending ? pendingLabel : submitLabel}
+          {checking ? "Checking…" : save.isPending ? pendingLabel : submitLabel}
         </Button>
         <Button asChild variant="outline">
           <Link href={cancelHref}>Cancel</Link>

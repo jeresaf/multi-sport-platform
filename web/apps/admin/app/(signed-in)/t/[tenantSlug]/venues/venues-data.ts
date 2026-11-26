@@ -160,7 +160,10 @@ export function unarchiveTo(changes: readonly VenueStatusChange[]): VenueStatus 
 /** The venue as a dialog first showed it: what a change is based on. */
 export type OpenedVenue = Pick<Venue, "id" | "version">;
 
-/** Keeps the venue a change answered, and marks the directory and the history stale. */
+/**
+ * Keeps the venue a change answered and marks the directory, the history and the duplicate checks kept stale: a
+ * venue just added or renamed must be found by the next check (#138 R3).
+ */
 export function useKeepVenue() {
   const { tenant } = useTenantWorkspace();
   const queryClient = useQueryClient();
@@ -168,6 +171,8 @@ export function useKeepVenue() {
     queryClient.setQueryData(venueQueryKey(tenant.tenantId, venue.id), venue);
     void queryClient.invalidateQueries({ queryKey: ["venues", tenant.tenantId] });
     void queryClient.invalidateQueries({ queryKey: venueStatusChangesQueryKey(tenant.tenantId, venue.id) });
+    // Stale, not read now: the next live check or save check asks again.
+    void queryClient.invalidateQueries({ queryKey: ["venue-duplicates", tenant.tenantId], refetchType: "none" });
   };
 }
 
@@ -243,7 +248,8 @@ export function reviewCandidates(error: unknown): VenueDuplicateCandidate[] | nu
     return null;
   }
   const candidates = (error.problem as { candidates?: VenueDuplicateCandidate[] | null }).candidates;
-  return candidates ?? [];
+  // Without a list there is nothing to review: the refusal shows as it is (#138 N3).
+  return candidates?.length ? candidates : null;
 }
 
 /** Names & IDs' calls for a venue (`venue.alias.*`, `venue.external_id.*`), each from the version its dialog opened on. */

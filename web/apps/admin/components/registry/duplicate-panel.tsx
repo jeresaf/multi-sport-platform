@@ -3,6 +3,7 @@
 // The lighter duplicate warning of organisations, teams and venues (S07 D13, D23): no check token and no remembered
 // decision. The form shows the records that may be the one typed, each with **Open**; **This is a different one** lets
 // the save go on with `duplicatesReviewed` and an optional reason the audit trail keeps.
+import type { components } from "@msp/api-client";
 import { Alert, AlertDescription, AlertTitle } from "@msp/ui/components/alert";
 import { Badge } from "@msp/ui/components/badge";
 import { Button } from "@msp/ui/components/button";
@@ -16,7 +17,7 @@ import { StatusBadge } from "@/components/status-badge";
 /** DuplicateDecision's and the change requests' reason limit on the server. */
 export const duplicateReasonMaxLength = 500;
 
-export type DuplicateConfidence = "EXACT_IDENTIFIER" | "LIKELY" | "POSSIBLE";
+export type DuplicateConfidence = components["schemas"]["DuplicateConfidence"];
 
 /** A candidate as the panel shows it: the area's own facts and evidence, already in words. */
 export type PanelCandidate = {
@@ -52,8 +53,10 @@ export const DuplicatePanel = forwardRef<
     canOpen: boolean;
     /** Said under the list when the save was refused until the list is reviewed. */
     error?: string | null;
+    /** While a save is under way: the decision it took can't change. */
+    disabled?: boolean;
   }>
->(function DuplicatePanel({ noun, candidates, decision, onDecisionChange, canOpen, error }, ref) {
+>(function DuplicatePanel({ noun, candidates, decision, onDecisionChange, canOpen, error, disabled = false }, ref) {
   const headingId = useId();
   const reasonId = useId();
   const count = candidates.length === 1 ? `1 ${noun}` : `${candidates.length} ${noun}s`;
@@ -119,6 +122,7 @@ export const DuplicatePanel = forwardRef<
             <Label htmlFor={reasonId}>Why is it different? (optional)</Label>
             <Textarea
               id={reasonId}
+              disabled={disabled}
               value={decision.reason}
               maxLength={duplicateReasonMaxLength}
               aria-describedby={`${reasonId}-hint`}
@@ -128,7 +132,13 @@ export const DuplicatePanel = forwardRef<
               Kept in the audit trail with your name. Don&apos;t include personal details.
             </p>
           </div>
-          <Button type="button" variant="outline" className="justify-self-start" onClick={() => onDecisionChange(undecided)}>
+          <Button
+            type="button"
+            variant="outline"
+            className="justify-self-start"
+            disabled={disabled}
+            onClick={() => onDecisionChange(undecided)}
+          >
             Undo
           </Button>
         </div>
@@ -138,6 +148,7 @@ export const DuplicatePanel = forwardRef<
             type="button"
             variant="outline"
             className="justify-self-start"
+            disabled={disabled}
             aria-describedby={error ? `${headingId}-error` : undefined}
             onClick={() => onDecisionChange({ reviewed: true, reason: decision.reason })}
           >

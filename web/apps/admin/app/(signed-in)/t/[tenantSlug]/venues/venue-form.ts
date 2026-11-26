@@ -221,8 +221,18 @@ export function changesComparedFields(opened: VenueValues, values: VenueValues):
   );
 }
 
-/** The API's names for the form's fields (`errors[].field`); a refused sport or surface is named by its index. */
-export const venueApiFields: ApiFields<VenueValues> = {
+/**
+ * The API's names for the form's fields (`errors[].field`); a refused sport or surface is named by its index. Add has no
+ * web address field, so its `slug` refusal goes to the form's alert instead of a field nobody sees (#138 R2).
+ */
+export function venueApiFields(edit: boolean): ApiFields<VenueValues> {
+  if (edit) {
+    return allVenueApiFields;
+  }
+  return Object.fromEntries(Object.entries(allVenueApiFields).filter(([api]) => api !== "slug"));
+}
+
+const allVenueApiFields: ApiFields<VenueValues> = {
   name: "name",
   shortName: "shortName",
   type: "type",

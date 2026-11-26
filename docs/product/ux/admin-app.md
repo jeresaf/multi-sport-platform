@@ -477,7 +477,9 @@ Members & roles (invite, assign roles with scopes) · Sports (enable within enti
   venue plus the **Web address** (the slug: lower case, digits and single hyphens, not shaped like an ID), in any
   status. The `PUT` sends the version the page opened on (`If-Match`) and the venue's country; a conflict shows "This
   record changed since you opened it" with **Reload**. The warning runs only once the name, the city or the
-  coordinates change, and never lists the venue itself.
+  coordinates change, and never lists the venue itself. "Change" is judged loosely here (case and spacing only);
+  the server compares name and city keys, which also ignore accents and punctuation, so a punctuation-only fix may
+  show the warning although the server wouldn't check it, and the decision then sent is ignored (review #138 Q1).
 - **Names & IDs** (`venue.alias.add`/`.remove`, `venue.external_id.add`/`.end`): the aliases (any kind; removed ones
   not listed) with **Add alias** and **Remove** (a reason required), then the external identifiers (ended ones
   included) with **Add identifier** (authority code in capitals, value, valid from no later than today) and **End**

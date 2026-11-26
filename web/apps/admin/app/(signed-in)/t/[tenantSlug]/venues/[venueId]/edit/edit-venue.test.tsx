@@ -100,22 +100,34 @@ describe("Edit venue details", () => {
     expect(puts(requests)[0]!.body).toMatchObject({ name: "Kisaasi Community Stadium", duplicatesReviewed: true });
   });
 
-  it("says the venue changed since it was opened, and Reload reads it again", async () => {
+  it("says the venue changed since it was opened; Reload starts over from the venue as it is now", async () => {
+    // The first read is version 4; after the conflict, someone else's change (version 5) is read.
+    let current = bukoto;
+    let conflict = true;
     const requests = open({
-      [`PUT ${venuePath}`]: { status: 409, body: problem("VENUE_CONCURRENCY_CONFLICT", 409) },
+      [`GET ${venuePath}`]: () => ({ status: 200, body: current }),
+      [`PUT ${venuePath}`]: (request) =>
+        conflict
+          ? { status: 409, body: problem("VENUE_CONCURRENCY_CONFLICT", 409) }
+          : { status: 200, body: { ...current, ...(request.body as object), version: 6 } },
     });
     await type("Region (optional)", "Central Region");
     save();
     expect(await screen.findByText("This record changed since you opened it")).toBeTruthy();
-    const readsBefore = requests.filter((request) => request.method === "GET" && request.path === venuePath).length;
+
+    current = { ...bukoto, region: "Kampala Central", version: 5 };
+    conflict = false;
     fireEvent.click(screen.getByRole("button", { name: "Reload" }));
-    await waitFor(() =>
-      expect(requests.filter((request) => request.method === "GET" && request.path === venuePath).length).toBe(
-        readsBefore + 1,
-      ),
-    );
-    expect(await field("Region (optional)")).toHaveProperty("value", "Central");
+    // The form shows the venue as read again, not what was typed before.
+    await waitFor(async () => expect(await field("Region (optional)")).toHaveProperty("value", "Kampala Central"));
+    await type("Capacity (optional)", "3200");
+    save();
+    await waitFor(() => expect(puts(requests)).toHaveLength(2));
+    const second = puts(requests)[1]!;
+    expect(second.headers.get("If-Match")).toBe('"5"');
+    expect(second.body).toMatchObject({ region: "Kampala Central", capacity: 3200 });
   });
+
 
   it("checks the web address, and shows a taken one under it", async () => {
     const requests = open({
