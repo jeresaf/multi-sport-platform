@@ -107,11 +107,13 @@ describe("Venue page", () => {
     expect(within(overview).getAllByText("None").length).toBe(3); // short name, surfaces, sports
   });
 
-  it("lists the teams that call it home, asked by the venue's id", async () => {
+  it("lists the teams that call it home, asked by the venue's id, each linking to its page", async () => {
     navigation.search = "tab=teams";
     const requests = open();
     await loaded();
-    const row = (await screen.findByText("Ntinda Swifts FC")).closest("tr")!;
+    const link = await screen.findByRole("link", { name: "Ntinda Swifts FC" });
+    expect(link.getAttribute("href")).toBe(`/t/kmsa/teams/${homeTeam.id}`);
+    const row = link.closest("tr")!;
     const cells = within(row).getAllByRole("cell").map((cell) => cell.textContent);
     expect(cells).toEqual(["Under-17 Girls", "Ringball sevens", "Ntinda Swifts SC", "Active"]);
     const teams = requests.find((request) => request.path === "/api/admin/v1/teams")!;

@@ -173,6 +173,16 @@ describe("Organisation page", () => {
     const row = (await screen.findByText("Ntinda Swifts FC")).closest("tr")!;
     await within(row).findAllByText("Ringball sevens");
     expect(within(row).getAllByRole("cell").map((cell) => cell.textContent)).toEqual(["Senior Women", "Ringball sevens", "Active"]);
+    // Without team.read the name isn't a link.
+    expect(within(row).queryByRole("link")).toBeNull();
+    cleanup();
+
+    navigation.search = "tab=teams";
+    open(organisation({ teams: [swiftsWomen] }), [...registrar, "team.read"]);
+    await loaded();
+    expect((await screen.findByRole("link", { name: "Ntinda Swifts FC" })).getAttribute("href")).toBe(
+      `/t/kmsa/teams/${swiftsWomen.id}`,
+    );
     cleanup();
 
     open(ntinda);

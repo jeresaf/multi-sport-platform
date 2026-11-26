@@ -453,8 +453,7 @@ Members & roles (invite, assign roles with scopes) · Sports (enable within enti
   then the tabs
   in `?tab=`: **Overview** (name, short name, type, capacity, surfaces, sports; address, city, region, country,
   coordinates with **Open in a map** (OpenStreetMap, a new tab), time zone), **Teams** (the teams whose home venue it
-  is, archived ones left out, with category, sport, organisation and status; needs `team.read`; the names become links
-  with the team screens, T6c), **History** (the status changes, newest first, as People's), **Names & IDs** (below).
+  is, archived ones left out, with category, sport, organisation and status; needs `team.read`; each name opens the team, S07-T6c-1), **History** (the status changes, newest first, as People's), **Names & IDs** (below).
 - **Status moves** (`venue.status.change`, a reason required): from Active **Mark unavailable**, **Close venue**,
   **Archive**; from Temporarily unavailable **Mark available**, **Close venue**, **Archive**; from Closed **Reopen**,
   **Archive**; from Archived **Unarchive**, which names the status it goes back to (the one before archiving, from the
@@ -504,8 +503,8 @@ Members & roles (invite, assign roles with scopes) · Sports (enable within enti
   organisations, each a link with its status when not active, and **Set parent** or **Change parent**; a dissolved or
   archived parent stays linked, and the Overview says so: "… is archived. It stays the parent until the parent is
   changed or removed."), **Teams** (its
-  teams but archived ones, with category, sport named from its definition and status; the names become links with the
-  team screens, T6c) and **History** (the status changes, then the parent links with their dates and reasons, the
+  teams but archived ones, with category, sport named from its definition and status; with `team.read` each name opens the
+  team, S07-T6c-1) and **History** (the status changes, then the parent links with their dates and reasons, the
   current one first).
 - **Status moves** (`organisation.status.change`, a reason required): from Active **Make inactive**, **Suspend**,
   **Dissolve**, **Archive**; from Inactive **Reactivate**, **Suspend**, **Dissolve**, **Archive**; from Suspended
@@ -558,6 +557,33 @@ Members & roles (invite, assign roles with scopes) · Sports (enable within enti
   reads "Your workspace's country".
 - Screenshots `organisation-edit`, `organisation-primary-venue`, `add-organisation-duplicates` (CI's `screenshots`
   artifact).
+
+#### As built (S07-T6c-1, Teams)
+
+- **Teams** (`/t/{slug}/teams`, `team.read`), in the Registry group between Organisations and Venues: sorted by name
+  and category, 25 a page with **Show more**. **Search** (name, alias or external identifier) follows the typing after
+  a 300 ms pause; **Sport** (every published variant, named from its definition: a team stays listed under a sport the
+  tenant has since disabled), **Gender** ("Men / Boys", "Women / Girls", "Mixed": a youth team reads Boys or Girls; owner, #142), **Age group**, **Level** and **Status** (default "All but archived") change
+  at once. All six are in the address. Columns: name (the short name under it), category ("Under-17 Boys", "Senior
+  Men · Reserve"), sport, organisation (a link with `organisation.read`; "Independent" without one), status; on a phone
+  they stack under the name. No organisation filter: the organisation's Teams tab lists its teams (owner, T6c plan).
+  **Add team** comes with T6c-2a.
+- **A team** (`/t/{slug}/teams/{id}`): the header (logo, or its initials in a square; name, status, category and
+  sport; the status moves), then the tabs in `?tab=`: **Overview** (Team: name, short name, name since, sport, age
+  group, gender, level, code, motto, founded; Organisation and ground: the organisation and the home venue, links with
+  their read actions; Colours: each a swatch with its hex) and **History** (the status changes, newest first, then the
+  former names with the dates each was used, its short name and code). Players and Staff are S08's and aren't shown;
+  Names & IDs and the logo and badge come with T6c-2b.
+- **Status moves** (`team.status.change`, a reason required): from Active **Make inactive**, **Suspend**, **Disband**,
+  **Archive**; from Inactive **Reactivate**, **Suspend**, **Disband**, **Archive**; from Suspended **Make inactive**,
+  **Lift suspension**, **Disband**, **Archive**; from Disbanded **Reform**, **Archive**; from Archived **Unarchive**,
+  which names the status it goes back to. Disbanding, and archiving a team that isn't disbanded, say they free a place under the plan's team limit;
+  reforming, and unarchiving to an active, inactive or suspended status, say the team counts again. At the limit the
+  dialog stays open with the server's "Your plan allows N teams." The dialog sends the version it opened on and offers
+  **Reload** on a conflict; a saved move is announced and the focus goes to the status. A viewer sees no control; on a
+  read-only tenant the moves are disabled with the reason.
+- Team names in a venue's and an organisation's Teams tabs open the team.
+- Screenshots `teams`, `team-overview`, `team-history`, `team-status-dialog`, `team-youth`.
 
 #### As built (S07-T6b-2b, Names & IDs and the logo)
 

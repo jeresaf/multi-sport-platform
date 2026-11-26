@@ -77,7 +77,10 @@ test("a tenant's members see its subscription, and the banner while it ends, in 
   await expect(page.getByRole("main").getByRole("listitem").filter({ hasText: "Enabled sports" })).toContainText(
     "Used: 0 of 3 sports",
   );
-  await expect(page.getByRole("listitem").filter({ has: page.getByText("Teams", { exact: true }) })).toContainText("Used: 0 of 120 teams");
+  // In the page, not the navigation's "Teams" entry (S07-T6c-1).
+  await expect(page.getByRole("main").getByRole("listitem").filter({ has: page.getByText("Teams", { exact: true }) })).toContainText(
+    "Used: 0 of 120 teams",
+  );
   await expect(page.getByRole("listitem").filter({ has: page.getByText("Active editions", { exact: true }) })).toContainText(
     "Usage: not measured yet",
   );

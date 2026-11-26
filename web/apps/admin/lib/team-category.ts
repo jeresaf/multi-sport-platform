@@ -50,3 +50,39 @@ export function teamCategoryLabel(team: { genderCategory: GenderCategory; ageGro
   const category = `${ageGroupLabel(team.ageGroup)} ${genderCategoryLabel(team.genderCategory, team.ageGroup)}`;
   return team.level === "FIRST" ? category : `${category} · ${teamLevelLabel(team.level)}`;
 }
+
+/** The category codes in the filters' and the form's order (D7). */
+export const genderCategories = ["MEN", "WOMEN", "MIXED"] as const satisfies readonly GenderCategory[];
+export const ageGroups = [
+  "SENIOR",
+  "U6",
+  "U7",
+  "U8",
+  "U9",
+  "U10",
+  "U11",
+  "U12",
+  "U13",
+  "U14",
+  "U15",
+  "U16",
+  "U17",
+  "U18",
+  "U19",
+  "U20",
+  "U21",
+  "U22",
+  "U23",
+  "VETERANS",
+] as const satisfies readonly AgeGroup[];
+export const teamLevels = ["FIRST", "RESERVE", "DEVELOPMENT", "ACADEMY"] as const satisfies readonly TeamLevel[];
+
+/**
+ * A gender category on its own (a filter, without an age group): "Men / Boys", "Women / Girls", "Mixed". Both words,
+ * as a youth team reads "Boys" or "Girls" and a filter on `MEN` finds it (owner, #142).
+ */
+export function genderLabel(gender: GenderCategory): string {
+  return gender === "MIXED"
+    ? genderCategoryLabel(gender, "SENIOR")
+    : `${genderCategoryLabel(gender, "SENIOR")} / ${genderCategoryLabel(gender, "U17")}`;
+}
