@@ -740,3 +740,12 @@ The rest of S06's tech debt has its own trigger in PROGRESS.md ("From S06").
   team logo and badge too; a file over 2 MB is refused before sending, the 64 px minimum is the server's
   (`MEDIA_IMAGE_TOO_SMALL` on `file`). The chosen-file preview moved to `components/use-chosen-file.ts`, which People's
   photo control uses too; People's photo control is otherwise unchanged. No backend change.
+- **T6c-1 (team screens: directory, team page, status):** T6c is three PRs (owner, plan 2026-11-26): T6c-1 the
+  navigation entry, the directory, the team page (Overview, History) and the status moves; T6c-2a Add team, Edit
+  details and Rename with the duplicate panel; T6c-2b Names & IDs, the logo and the badge. The directory filters by
+  search, sport, gender, age group, level and status (no organisation filter: the organisation's Teams tab, owner); its
+  sport filter lists every published variant as venues' does. History shows the former names with their dates. The
+  status dialogs say when a move frees or takes a place under `MAX_TEAMS`; at the limit the server's
+  `ENTITLEMENT_QUOTA_EXCEEDED` detail shows in the dialog. Colours are swatches painted only for a `#RRGGBB` value,
+  with the hex as text. The venue and organisation Teams tabs now link each team. `lib/team-category.ts` gained the
+  category code lists and `genderLabel`. No backend change.
