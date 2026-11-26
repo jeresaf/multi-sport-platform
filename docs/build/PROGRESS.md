@@ -7,15 +7,16 @@ at the start of every review.
 
 - **Current slice:** S07 — Organisations, teams and venues (docs/build/slices/S07-organisations-teams-venues.md,
   written by the S06 slice review). S00–S06 are done
-- **Current task:** — (S07-T6a-1 in review: #136)
-- **Next:** S07-T6a-2 — Venue forms and Names & IDs
+- **Current task:** S07-T6a-2 — Venue forms (Add venue, Edit details, the duplicate panel) and Names & IDs. Owner,
+  plan 2026-11-26: one PR; Names & IDs as shared components in `components/registry` (People's tab unchanged, its
+  move is tech debt); the slug is edited on Edit details only (Add leaves it to the server, D9)
+- **Next:** S07-T6b — Organisation screens
 - **Blocked on:** —
 
 ## Next up
 
-1. S07-T6a-2 — Venue forms (add, edit, the duplicate panel) and Names & IDs
-2. S07-T6b — Organisation screens
-3. S07-T6c — Team screens (T6c-1, T6c-2)
+1. S07-T6b — Organisation screens
+2. S07-T6c — Team screens (T6c-1, T6c-2)
 
 ## Log
 
