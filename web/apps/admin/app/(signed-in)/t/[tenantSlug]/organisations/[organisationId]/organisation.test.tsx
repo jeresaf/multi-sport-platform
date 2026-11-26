@@ -213,6 +213,19 @@ describe("Organisation page", () => {
     await loaded();
     await screen.findByRole("link", { name: "Ntinda Swifts FC" });
     expect(screen.queryByRole("link", { name: "Add team" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Add team" })).toBeNull();
+    cleanup();
+
+    // On a read-only tenant: disabled, with the reason beside it, as the directory's (review #143 N1).
+    navigation.search = "tab=teams";
+    open(
+      organisation({ teams: [swiftsWomen] }),
+      readOnlyCapabilities([...reads, "team.read"], ["team.create", "team.duplicate_check"]),
+    );
+    await loaded();
+    const button = await screen.findByRole("button", { name: "Add team" });
+    expect(button).toHaveProperty("disabled", true);
+    expect(document.getElementById(button.getAttribute("aria-describedby")!)?.textContent).toMatch(/read-only/i);
   });
 
   it("shows the status history and the parent links with their dates and reasons", async () => {

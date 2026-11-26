@@ -5,7 +5,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import { StatusBadge } from "@/components/status-badge";
+import { UnavailableNote } from "@/components/unavailable-note";
 import { RowName, wide } from "@/components/viewer/facts";
+import { actionAccess } from "@/lib/action-access";
 import { humanizeCode } from "@/lib/codes";
 import { teamCategoryLabel } from "@/lib/team-category";
 import { useTenantWorkspace } from "@/lib/tenant-workspace";
@@ -21,22 +23,33 @@ import { acceptsNewChildren, type Organisation } from "../organisations-data";
  * team with the organisation chosen (owner, T6c-2a plan), while it can take a team (not dissolved or archived, D6).
  */
 export function TeamsTab({ organisation }: Readonly<{ organisation: Organisation }>) {
-  const { tenant, can } = useTenantWorkspace();
+  const { tenant, can, unavailable } = useTenantWorkspace();
   const sports = useSportVariants();
   const sportName = (code: string) =>
     sports.data?.items.find((item) => item.variant === code)?.name ?? humanizeCode(code);
-  // Offered only when it would work: the add page says why otherwise (a read-only tenant, say).
-  const add =
-    acceptsNewChildren(organisation.status) && addTeamActions.every((action) => can(action)) ? (
+  // As the directory's: a link when it would work, disabled with the reason when it is only unavailable now (a
+  // read-only tenant, say), nothing for a viewer or an organisation that can't take a team.
+  const access = actionAccess(addTeamActions, can, unavailable);
+  const add = !acceptsNewChildren(organisation.status) ? null : access.allowed ? (
+    <div>
+      <Button asChild variant="outline">
+        <Link href={`${tenantPath(tenant.slug)}/teams/new?organisationId=${organisation.id}`}>
+          <Plus aria-hidden="true" />
+          Add team
+        </Link>
+      </Button>
+    </div>
+  ) : access.reason ? (
+    <div className="grid gap-2">
       <div>
-        <Button asChild variant="outline">
-          <Link href={`${tenantPath(tenant.slug)}/teams/new?organisationId=${organisation.id}`}>
-            <Plus aria-hidden="true" />
-            Add team
-          </Link>
+        <Button variant="outline" disabled aria-describedby="organisation-add-team-unavailable">
+          <Plus aria-hidden="true" />
+          Add team
         </Button>
       </div>
-    ) : null;
+      <UnavailableNote id="organisation-add-team-unavailable" reason={access.reason} />
+    </div>
+  ) : null;
   if (organisation.teams.length === 0) {
     return (
       <>
