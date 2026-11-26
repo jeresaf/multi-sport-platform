@@ -711,3 +711,12 @@ The rest of S06's tech debt has its own trigger in PROGRESS.md ("From S06").
   and T6c too; People's identifiers tab is unchanged (owner: moving it onto the shared one is tech debt).
   `lib/action-access.ts` generalises Edit details' access rule; `components/checkbox-group.tsx` holds the surfaces
   and sports. No backend change.
+- **T6b-1 (organisation screens: directory, detail, status, parent):** T6b is two PRs (owner, plan 2026-11-26): T6b-1 the
+  navigation entry, the directory, the organisation page (Overview, Teams, History), the status moves and the parent;
+  T6b-2 Add and Edit with the duplicate panel, Names & IDs and the logo control. The Teams tab reads the
+  organisation's `teams` (not paged). The parent dialog searches `GET /organisations?q=` (archived ones aren't
+  listed); the organisation itself, its current parent and its direct members aren't offered, a dissolved one is shown
+  disabled, and a deeper descendant is the server's `ORGANISATION_PARENT_CYCLE`, shown under the choice. A parent
+  change marks every kept organisation read stale (the new parent's children change too). The header's logo is
+  `components/registry/record-logo.tsx` (initials without one), for teams too. Q56: the organisation's Edit runs the
+  live check as venues' (owner, plan 2026-11-26; T6b-2). No backend change.
