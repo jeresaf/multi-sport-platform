@@ -14,6 +14,7 @@ import { humanizeCode } from "@/lib/codes";
 import { useTenantWorkspace } from "@/lib/tenant-workspace";
 import { tenantPath } from "@/lib/workspace";
 import { useVenue, useVenueStatusChanges, type Venue } from "../venues-data";
+import { NamesTab } from "./names-tab";
 import { OverviewTab } from "./overview-tab";
 import { TeamsTab } from "./teams-tab";
 import { VenueActions, venueStatusId } from "./venue-actions";
@@ -26,14 +27,15 @@ const venueTabs = [
   { value: "overview", label: "Overview", content: OverviewTab },
   { value: "teams", label: "Teams", content: TeamsTab },
   { value: "history", label: "History", content: HistoryTab },
+  { value: "names", label: "Names & IDs", content: NamesTab },
 ] as const satisfies ReadonlyArray<{ value: string; label: string; content: (props: { venue: Venue }) => ReactNode }>;
 
 type VenueTab = (typeof venueTabs)[number]["value"];
 
 /**
  * Registry → Venues → a venue (S07 D23): the header (name, status, type and city, the status moves), then the tabs
- * Overview, Teams (the teams that call it home) and History. The tab is in the address (`?tab=`). Names & IDs and Edit
- * details come with T6a-2.
+ * Overview, Teams (the teams that call it home), History and Names & IDs (aliases and external identifiers). The tab is
+ * in the address (`?tab=`). Edit details has a page of its own (`edit`).
  */
 export default function VenuePage() {
   const { venueId } = useParams<{ venueId: string }>();

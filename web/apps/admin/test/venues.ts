@@ -106,6 +106,23 @@ export function venueAnswers(capabilities: string[] | TenantCapabilities): Answe
     },
     "GET /api/admin/v1/tenant/settings": settings,
     "GET /api/public/v1/reference/countries": listPage([{ code: "UG", alpha3Code: "UGA", numericCode: "800", name: "Uganda" }]),
+    "GET /api/public/v1/reference/time-zones": {
+      status: 200,
+      body: { items: [{ code: "Africa/Kampala", countryCode: "UG" }, { code: "Africa/Nairobi", countryCode: "KE" }] },
+    },
     "GET /api/admin/v1/sports": { status: 200, body: { items: [ringballVariant] } },
   };
+}
+
+/** A venue the duplicate check answers (D13), from the venue it names. */
+export function candidate(
+  shown: Venue,
+  confidence: "LIKELY" | "POSSIBLE" = "LIKELY",
+  evidence: Array<{ code: string; value: string | null }> = [
+    { code: "SAME_NAME_KEY", value: null },
+    { code: "SAME_CITY", value: null },
+  ],
+) {
+  const { id: venueId, name, type, city, status } = shown;
+  return { venueId, name, type, city, status, confidence, evidence };
 }

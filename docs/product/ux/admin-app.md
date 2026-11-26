@@ -442,23 +442,53 @@ Members & roles (invite, assign roles with scopes) · Sports (enable within enti
   the API), and the second tenant's owner (Francolin Schools Sports Circle) seeing none of the people. The audit
   trail keeps the reasons. Screenshots `add-person-likely-match` and `person-archived-roles`.
 
-#### As built (S07-T6a-1, Venues: directory, detail, status)
+#### As built (S07-T6a, Venues)
 
 - **Venues** (`/t/{slug}/venues`, `venue.read`), in the Registry group after People: sorted by name, 25 a page with
   **Show more**. **Search** (name or alias by prefix or similarity, an external identifier exactly) and **City** follow
   the typing after a 300 ms pause; **Status** (default "All but archived") and **Sport** (every published variant: a
   ground can host a sport the tenant doesn't run yet, S07 D3) change at once. All four are in the address. Columns:
   name, type, city and country, sports (named from their definitions), status; on a phone they stack under the name.
-- **A venue** (`/t/{slug}/venues/{id}`): the header (name, status, type and city, the status moves), then the tabs
+- **A venue** (`/t/{slug}/venues/{id}`): the header (name, status, type and city, **Edit details**, the status moves),
+  then the tabs
   in `?tab=`: **Overview** (name, short name, type, capacity, surfaces, sports; address, city, region, country,
   coordinates with **Open in a map** (OpenStreetMap, a new tab), time zone), **Teams** (the teams whose home venue it
   is, archived ones left out, with category, sport, organisation and status; needs `team.read`; the names become links
-  with the team screens, T6c), **History** (the status changes, newest first, as People's).
+  with the team screens, T6c), **History** (the status changes, newest first, as People's), **Names & IDs** (below).
 - **Status moves** (`venue.status.change`, a reason required): from Active **Mark unavailable**, **Close venue**,
   **Archive**; from Temporarily unavailable **Mark available**, **Close venue**, **Archive**; from Closed **Reopen**,
   **Archive**; from Archived **Unarchive**, which names the status it goes back to (the one before archiving, from the
   history). A viewer sees no control; on a read-only tenant the moves are disabled with the reason.
-- Add venue, Edit details and Names & IDs come with T6a-2.
+- **Add venue** (`/t/{slug}/venues/new`, `venue.create` and `venue.duplicate_check`; the directory's button, disabled
+  with the reason on a read-only tenant): three groups — the venue (name, short name, type, capacity), where it is
+  (address, city or town, region, country, time zone, latitude and longitude, both or neither) and playing areas
+  (surfaces, up to 5; the sports it can host: every published variant, named from its definition). The time zone
+  starts as the organisation's; the country is the organisation's unless one is chosen. No web address: the server
+  proposes one from the name (S07 D9; owner, T6a-2 plan). Saved, the venue opens.
+- **The duplicate warning** (S07 D13, a panel between "Where it is" and "Playing areas"): 300 ms after the name, the
+  city or the coordinates change, `POST …/venues/duplicate-check` lists the venues that may be the same, each with how
+  sure (Likely, Possibly), its type, city and status, why it matches (same name, names N% alike, same city, about N m
+  away) and **Open {name}**. The save waits until the user opens one or presses **This is a different one** (with
+  **Undo** and an optional reason the audit trail keeps); a venue that appears after that shows the choice again. A
+  save the server sends back (`VENUE_DUPLICATE_REVIEW_REQUIRED`: someone added a match meanwhile) shows the server's
+  list with "Someone added a venue that may match", and moves the focus to the panel. The panel
+  (`components/registry/duplicate-panel.tsx`) is shared with the organisation and team forms.
+- **Edit details** (`/t/{slug}/venues/{id}/edit`, `venue.update` and `venue.duplicate_check`): every field of Add
+  venue plus the **Web address** (the slug: lower case, digits and single hyphens, not shaped like an ID), in any
+  status. The `PUT` sends the version the page opened on (`If-Match`) and the venue's country; a conflict shows "This
+  record changed since you opened it" with **Reload**. The warning runs only once the name, the city or the
+  coordinates change, and never lists the venue itself. "Change" is judged loosely here (case and spacing only);
+  the server compares name and city keys, which also ignore accents and punctuation, so a punctuation-only fix may
+  show the warning although the server wouldn't check it, and the decision then sent is ignored (review #138 Q1).
+- **Names & IDs** (`venue.alias.add`/`.remove`, `venue.external_id.add`/`.end`): the aliases (any kind; removed ones
+  not listed) with **Add alias** and **Remove** (a reason required), then the external identifiers (ended ones
+  included) with **Add identifier** (authority code in capitals, value, valid from no later than today) and **End**
+  (last day valid, optional reason). Each dialog sends the version it opened on and offers **Reload** on a conflict.
+  A closed or archived venue takes no new one ("… is closed: no new one can be added."); its aliases can still be
+  removed and its identifiers ended. The tab and its dialogs (`components/registry/names-and-ids/`) are shared with
+  the organisation and team screens; People's tab stays its own (owner, T6a-2 plan).
+- Screenshots `venues`, `venue-overview`, `venue-teams`, `venue-history`, `venue-status-dialog`, `venue-names`,
+  `venue-identifier-dialog`, `venue-edit`, `add-venue-duplicates`.
 
 ### Competitions
 - **Competition list** and **competition detail** (Overview · Editions · History).

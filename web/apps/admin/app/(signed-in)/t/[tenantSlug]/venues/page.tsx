@@ -4,6 +4,7 @@ import { Button } from "@msp/ui/components/button";
 import { Input } from "@msp/ui/components/input";
 import { Label } from "@msp/ui/components/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@msp/ui/components/table";
+import { Plus } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -13,13 +14,15 @@ import { ProblemAlert } from "@/components/problem-alert";
 import { SelectField } from "@/components/select-field";
 import { StatusBadge } from "@/components/status-badge";
 import { ForbiddenView } from "@/components/status-page";
+import { UnavailableNote } from "@/components/unavailable-note";
 import { RowName, orNone, wide } from "@/components/viewer/facts";
+import { actionAccess } from "@/lib/action-access";
 import { humanizeCode } from "@/lib/codes";
 import { useCountries } from "@/lib/reference-data";
 import { useTenantWorkspace } from "@/lib/tenant-workspace";
 import { tenantPath } from "@/lib/workspace";
 import { useSportVariants } from "../sports/sports-data";
-import { useVenues, venueFilters, venueStatuses, type VenueFilters } from "./venues-data";
+import { addVenueActions, useVenues, venueFilters, venueStatuses, type VenueFilters } from "./venues-data";
 
 /** How long the search and the city wait after the last key before they ask. */
 const searchDelay = 300;
@@ -32,7 +35,8 @@ type Typed = { q: string; city: string };
  * them. The sport filter lists every published variant: a ground can host a sport the tenant doesn't run yet (D3).
  */
 export default function VenuesPage() {
-  const { tenant, can } = useTenantWorkspace();
+  const { tenant, can, unavailable } = useTenantWorkspace();
+  const add = actionAccess(addVenueActions, can, unavailable);
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
@@ -92,10 +96,26 @@ export default function VenuesPage() {
 
   return (
     <section className="grid grid-cols-[minmax(0,1fr)] gap-6">
-      <header className="grid gap-1">
-        <h1 className="text-2xl font-semibold">Venues</h1>
-        <p className="text-muted-foreground">The grounds, halls and courts where your organisation&apos;s contests are played.</p>
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div className="grid gap-1">
+          <h1 className="text-2xl font-semibold">Venues</h1>
+          <p className="text-muted-foreground">The grounds, halls and courts where your organisation&apos;s contests are played.</p>
+        </div>
+        {add.allowed ? (
+          <Button asChild>
+            <Link href={`${tenantPath(tenant.slug)}/venues/new`}>
+              <Plus aria-hidden="true" />
+              Add venue
+            </Link>
+          </Button>
+        ) : add.reason ? (
+          <Button disabled aria-describedby="add-venue-unavailable">
+            <Plus aria-hidden="true" />
+            Add venue
+          </Button>
+        ) : null}
       </header>
+      {add.reason ? <UnavailableNote id="add-venue-unavailable" reason={add.reason} /> : null}
 
       <form
         role="search"

@@ -3,8 +3,9 @@
 // Registry → Venues data (S07 D19, D23): the directory, a venue, its status history and the teams that call it home.
 // Every field a venue read answers is public or internal; none is personal, so nothing here is read on its own.
 import type { components } from "@msp/api-client";
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { call } from "@/lib/api";
+import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { NamesAndIdsApi } from "@/components/registry/names-and-ids/names-and-ids-data";
+import { call, isApiProblem } from "@/lib/api";
 import { ifMatch } from "@/lib/concurrency";
 import { useTenantWorkspace } from "@/lib/tenant-workspace";
 
@@ -14,8 +15,41 @@ export type Venue = Schemas["VenueResponse"];
 export type VenueStatus = Schemas["VenueStatus"];
 export type VenueType = Schemas["VenueType"];
 export type VenueSurface = Schemas["VenueSurface"];
+export type CreateVenueRequest = Schemas["CreateVenueRequest"];
+export type UpdateVenueRequest = Schemas["UpdateVenueRequest"];
+export type CheckVenueDuplicatesRequest = Schemas["CheckVenueDuplicatesRequest"];
 
 export const venueStatuses: readonly VenueStatus[] = ["ACTIVE", "TEMPORARILY_UNAVAILABLE", "CLOSED", "ARCHIVED"];
+
+/** D3's venue types, in the form's order. */
+export const venueTypes = [
+  "STADIUM",
+  "ARENA",
+  "SPORTS_GROUND",
+  "FIELD",
+  "COURT",
+  "INDOOR_HALL",
+  "TRACK",
+  "MULTI_SPORT_COMPLEX",
+  "SCHOOL_GROUND",
+  "OTHER",
+] as const satisfies readonly VenueType[];
+
+/** D3's surfaces, in the form's order. */
+export const venueSurfaces = [
+  "NATURAL_GRASS",
+  "ARTIFICIAL_TURF",
+  "HYBRID_GRASS",
+  "HARDWOOD",
+  "SYNTHETIC_COURT",
+  "CONCRETE",
+  "CLAY",
+  "SAND",
+  "OTHER",
+] as const satisfies readonly VenueSurface[];
+
+export type VenueDuplicateCandidate = Schemas["VenueDuplicateCandidateResponse"];
+export type VenueDuplicateEvidence = Schemas["VenueDuplicateEvidence"];
 
 /** The directory's search and filters, as the address holds them; a missing one is the API's default. */
 export type VenueFilters = {
@@ -52,11 +86,13 @@ export function venueQueryKey(tenantId: string, venueId: string) {
   return ["venue", tenantId, venueId] as const;
 }
 
-export function useVenue(venueId: string) {
+/** `fresh`: read again on opening even when a read is kept (Edit details starts from the venue as it is now). */
+export function useVenue(venueId: string, fresh = false) {
   const { tenant, client, can } = useTenantWorkspace();
   return useQuery({
     queryKey: venueQueryKey(tenant.tenantId, venueId),
     queryFn: () => call(client.GET("/api/admin/v1/venues/{venueId}", { params: { path: { venueId } } })),
+    refetchOnMount: fresh ? "always" : true,
     enabled: can("venue.read"),
   });
 }
@@ -124,7 +160,10 @@ export function unarchiveTo(changes: readonly VenueStatusChange[]): VenueStatus 
 /** The venue as a dialog first showed it: what a change is based on. */
 export type OpenedVenue = Pick<Venue, "id" | "version">;
 
-/** Keeps the venue a change answered, and marks the directory and the history stale. */
+/**
+ * Keeps the venue a change answered and marks the directory, the history and the duplicate checks kept stale: a
+ * venue just added or renamed must be found by the next check (#138 R3).
+ */
 export function useKeepVenue() {
   const { tenant } = useTenantWorkspace();
   const queryClient = useQueryClient();
@@ -132,6 +171,8 @@ export function useKeepVenue() {
     queryClient.setQueryData(venueQueryKey(tenant.tenantId, venue.id), venue);
     void queryClient.invalidateQueries({ queryKey: ["venues", tenant.tenantId] });
     void queryClient.invalidateQueries({ queryKey: venueStatusChangesQueryKey(tenant.tenantId, venue.id) });
+    // Stale, not read now: the next live check or save check asks again.
+    void queryClient.invalidateQueries({ queryKey: ["venue-duplicates", tenant.tenantId], refetchType: "none" });
   };
 }
 
@@ -156,4 +197,87 @@ export function useChangeVenueStatus(venue: OpenedVenue) {
       ),
     onSuccess: keep,
   });
+}
+
+/** Whether the user may add a venue: the create and its live check (D13: granted together). */
+export const addVenueActions = ["venue.create", "venue.duplicate_check"] as const;
+
+/** Edit details: the update and the live check of a changed name, city or coordinates. */
+export const editVenueActions = ["venue.update", "venue.duplicate_check"] as const;
+
+const duplicatesStaleTime = 60 * 1000;
+const duplicatesQueryKey = (tenantId: string, key: string) => ["venue-duplicates", tenantId, key] as const;
+
+/**
+ * The venues that may be the one typed (D13), asked once `request` is set; `exceptId` leaves the venue being edited
+ * out (the check doesn't know it). Kept for a minute: the same input asks again only after that.
+ */
+export function useVenueDuplicates(request: CheckVenueDuplicatesRequest | null, key: string, exceptId?: string) {
+  const { tenant, client, can } = useTenantWorkspace();
+  return useQuery({
+    queryKey: duplicatesQueryKey(tenant.tenantId, key),
+    queryFn: () => call(client.POST("/api/admin/v1/venues/duplicate-check", { body: request! })),
+    enabled: request !== null && can("venue.duplicate_check"),
+    staleTime: duplicatesStaleTime,
+    // The list stays while the next input is checked, so the warning doesn't flicker away and back.
+    placeholderData: keepPreviousData,
+    select: (answer) => answer.candidates.filter((candidate) => candidate.venueId !== exceptId),
+  });
+}
+
+/**
+ * The check for exactly this input, now (the save's: the live list may still answer earlier typing). Shares the live
+ * warning's cache, so an input already checked isn't asked again.
+ */
+export function useCheckVenueDuplicatesNow(exceptId?: string) {
+  const { tenant, client } = useTenantWorkspace();
+  const queryClient = useQueryClient();
+  return async (request: CheckVenueDuplicatesRequest, key: string): Promise<VenueDuplicateCandidate[]> => {
+    const answer = await queryClient.fetchQuery({
+      queryKey: duplicatesQueryKey(tenant.tenantId, key),
+      queryFn: () => call(client.POST("/api/admin/v1/venues/duplicate-check", { body: request })),
+      staleTime: duplicatesStaleTime,
+    });
+    return answer.candidates.filter((candidate) => candidate.venueId !== exceptId);
+  };
+}
+
+/** The venues the save's `VENUE_DUPLICATE_REVIEW_REQUIRED` names (its Problem Details' `candidates`), or null. */
+export function reviewCandidates(error: unknown): VenueDuplicateCandidate[] | null {
+  if (!isApiProblem(error, "VENUE_DUPLICATE_REVIEW_REQUIRED")) {
+    return null;
+  }
+  const candidates = (error.problem as { candidates?: VenueDuplicateCandidate[] | null }).candidates;
+  // Without a list there is nothing to review: the refusal shows as it is (#138 N3).
+  return candidates?.length ? candidates : null;
+}
+
+/** Names & IDs' calls for a venue (`venue.alias.*`, `venue.external_id.*`), each from the version its dialog opened on. */
+export function useVenueNamesApi(venueId: string): NamesAndIdsApi<Venue> {
+  const { client } = useTenantWorkspace();
+  const keep = useKeepVenue();
+  const reload = useReloadVenue(venueId);
+  const path = (opened: OpenedVenue) => ({ path: { venueId: opened.id }, header: ifMatch(opened.version) });
+  return {
+    addIdentifier: (opened, body) =>
+      call(client.POST("/api/admin/v1/venues/{venueId}/external-identifiers", { params: path(opened), body })),
+    endIdentifier: (opened, identifierId, body) =>
+      call(
+        client.POST("/api/admin/v1/venues/{venueId}/external-identifiers/{identifierId}/end", {
+          params: { ...path(opened), path: { venueId: opened.id, identifierId } },
+          body,
+        }),
+      ),
+    addAlias: (opened, body) =>
+      call(client.POST("/api/admin/v1/venues/{venueId}/aliases", { params: path(opened), body })),
+    removeAlias: (opened, aliasId, reason) =>
+      call(
+        client.POST("/api/admin/v1/venues/{venueId}/aliases/{aliasId}/remove", {
+          params: { ...path(opened), path: { venueId: opened.id, aliasId } },
+          body: { reason },
+        }),
+      ),
+    keep,
+    reload,
+  };
 }
