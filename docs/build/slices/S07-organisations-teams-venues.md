@@ -724,3 +724,10 @@ The rest of S06's tech debt has its own trigger in PROGRESS.md ("From S06").
   Q1). A saved
   parent change is announced and the focus goes to the Structure heading. Q56: the organisation's Edit runs the
   live check as venues' (owner, plan 2026-11-26; T6b-2). No backend change.
+- **T6b-2a (organisation screens: Add organisation, Edit details):** T6b-2 is two PRs (owner, plan 2026-11-26): T6b-2a
+  Add and Edit; T6b-2b Names & IDs and the logo control. The live duplicate review moved from `VenueEditor` into
+  `components/registry/use-duplicate-review.ts`, which venues and organisations use and teams (T6c) will (owner); the
+  venue tests are unchanged. The primary venue is found by a search of `GET /venues?q=` with `venue.read` (owner): a
+  closed venue is shown but not offered, the saved one is kept whatever its status, and the server's
+  `ORGANISATION_PRIMARY_VENUE_UNAVAILABLE` (no field) is shown under the venue field. Add sends no slug and no country
+  unless chosen; Edit sends both. The duplicate panel's heading now says "an organisation". No backend change.

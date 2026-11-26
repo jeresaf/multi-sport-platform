@@ -35,8 +35,8 @@ export default function EditOrganisationPage() {
   const { allowed, reason } = actionAccess(editOrganisationActions, can, unavailable);
   const queryClient = useQueryClient();
   const organisation = useOrganisation(organisationId, true);
-  // The form starts once the organisation has been read since the page opened (a cached one may be older than its version)
-  // and never resets what is being typed; only Reload starts it over (as People's Edit details, review #113 R3).
+  // The form starts once the organisation has been read since the page opened (a cached one may be older than its
+  // version) and never resets what is being typed; only Reload starts it over (as People's Edit details, #113 R3).
   const [started, setStarted] = useState(false);
   const [reloading, setReloading] = useState(false);
   if (!started && !reloading && organisation.isFetchedAfterMount && organisation.isSuccess && !organisation.isFetching) {
