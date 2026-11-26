@@ -772,4 +772,31 @@ test("screenshots of the team screens", async ({ page, request }) => {
   await expect(page.getByText("Under-17 Boys", { exact: false }).first()).toBeVisible();
   await expect(loading(page)).toHaveCount(0);
   await shoot(page, "team-youth", [phone, ...widths]);
+
+  // Edit details and Rename of the suspended first team (S07-T6c-2a): the sport and name shown, not edited; the new
+  // name from a day, its short name and code prefilled.
+  await page.goto(`/t/${tenant.slug}/teams/${weavers.id}`);
+  await page.getByRole("link", { name: "Edit details" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Edit details" })).toBeVisible();
+  await expect(page.getByLabel("Web address")).not.toHaveValue("");
+  await expect(loading(page)).toHaveCount(0);
+  await shoot(page, "team-edit", [phone, ...widths]);
+  await page.goto(`/t/${tenant.slug}/teams/${weavers.id}`);
+  await page.getByRole("link", { name: "Rename" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Rename" })).toBeVisible();
+  await expect(page.getByLabel("Short name (optional)")).toHaveValue("Meteors");
+  await page.getByLabel("New name", { exact: true }).fill("Mutundwe Mighty Meteors FC");
+  await shoot(page, "team-rename", [phone, ...widths]);
+
+  // Add team from the club's Teams tab, the club chosen; the club's first team's name is warned of.
+  await page.goto(`/t/${tenant.slug}/organisations/${club.id}?tab=teams`);
+  await page.getByRole("link", { name: "Add team" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Add team" })).toBeVisible();
+  await page.getByLabel("Name", { exact: true }).fill("Mutundwe Meteors FC");
+  await page.getByLabel("Age group").selectOption("SENIOR");
+  await page.getByLabel("Gender").selectOption("MEN");
+  const warning = page.getByRole("region", { name: "Is this a team you already have?" });
+  await expect(warning.getByRole("link", { name: "Open Mutundwe Meteors FC" })).toBeVisible();
+  await warning.scrollIntoViewIfNeeded();
+  await shoot(page, "add-team-duplicates", [phone, ...widths]);
 });
