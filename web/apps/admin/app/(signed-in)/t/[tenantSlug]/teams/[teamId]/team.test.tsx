@@ -78,7 +78,7 @@ describe("Team page", () => {
     expect(within(overview).getByText("MUT")).toBeTruthy();
     expect(within(overview).getByText("Higher together")).toBeTruthy();
     expect(within(overview).getByText("2018")).toBeTruthy();
-    expect(within(overview).getByRole("link", { name: "Mutundwe Meteors SC" }).getAttribute("href")).toBe(
+    expect(within(overview).getByRole("link", { name: "Mutundwe Meteors FC" }).getAttribute("href")).toBe(
       `/t/kmsa/organisations/${meteors.organisation!.id}`,
     );
     expect(within(overview).getByRole("link", { name: "Bukoto Community Stadium" }).getAttribute("href")).toBe(
@@ -115,7 +115,8 @@ describe("Team page", () => {
     open(meteors, ["team.read", "sport.read", "tenant.settings.read"]);
     await loaded();
     const overview = screen.getByRole("tabpanel");
-    expect(within(overview).getByText("Mutundwe Meteors SC")).toBeTruthy();
+    // The team's name and its club's (the same words), neither a link.
+    expect(within(overview).getAllByText("Mutundwe Meteors FC")).toHaveLength(2);
     expect(within(overview).getByText("Bukoto Community Stadium")).toBeTruthy();
     expect(within(overview).queryAllByRole("link")).toEqual([]);
   });
@@ -271,6 +272,21 @@ describe("Team status moves", () => {
     expect(/team limit/.test(description.textContent ?? "")).toBe(counts);
     confirm("Unarchive", "Archived by mistake.");
     expect((await sentTo(requests, statusPath(archived))).body).toEqual({ status: before, reason: "Archived by mistake." });
+  });
+
+  it("says archiving frees a place under the team limit only for a team that counts toward it", async () => {
+    open(meteors);
+    await loaded();
+    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+    expect(within(dialog()).getByText(/frees a place under your plan's team limit/)).toBeTruthy();
+    cleanup();
+
+    // A disbanded team no longer counts: archiving it frees nothing.
+    open(kingfishers);
+    await loaded(kingfishers);
+    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+    expect(within(dialog()).getByText(/leaves the directory/)).toBeTruthy();
+    expect(within(dialog()).queryByText(/team limit/)).toBeNull();
   });
 
   it("offers Reload after a concurrency conflict", async () => {

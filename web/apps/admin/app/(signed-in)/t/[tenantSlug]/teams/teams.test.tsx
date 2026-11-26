@@ -35,7 +35,9 @@ function open(actions: string[] = viewer, answers: Answers = {}) {
 
 const directoryRequests = (requests: ReturnType<typeof open>) =>
   requests.filter((request) => request.path === "/api/admin/v1/teams");
-const rowOf = (name: string) => screen.getByRole("link", { name }).closest("tr")!;
+// The first link of a name is the team's own (Mutundwe Meteors FC is also its club's name).
+const rowOf = (name: string) => screen.getAllByRole("link", { name })[0]!.closest("tr")!;
+const teamHref = (id: string) => `/t/kmsa/teams/${id}`;
 
 beforeEach(() => {
   navigation.search = "";
@@ -52,16 +54,19 @@ describe("teams directory", () => {
   it("lists teams with their short name, category, sport, organisation and status, each linking to its page", async () => {
     const requests = open();
 
-    const link = await screen.findByRole("link", { name: "Mutundwe Meteors FC" });
-    expect(link.getAttribute("href")).toBe(`/t/kmsa/teams/${meteors.id}`);
+    const [link] = await screen.findAllByRole("link", { name: "Mutundwe Meteors FC" });
+    expect(link!.getAttribute("href")).toBe(teamHref(meteors.id));
     expect(within(rowOf("Mutundwe Meteors FC")).getByText("Meteors")).toBeTruthy();
     // The sport is named from its definition once the variants are read.
     await within(rowOf("Mutundwe Meteors FC")).findAllByText("Ringball sevens");
     const cells = within(rowOf("Mutundwe Meteors FC")).getAllByRole("cell").map((cell) => cell.textContent);
-    expect(cells).toEqual(["Senior Men", "Ringball sevens", "Mutundwe Meteors SC", "Active"]);
-    expect(
-      within(rowOf("Mutundwe Meteors FC")).getAllByRole("link", { name: "Mutundwe Meteors SC" })[0]!.getAttribute("href"),
-    ).toBe(`/t/kmsa/organisations/${meteors.organisation!.id}`);
+    expect(cells).toEqual(["Senior Men", "Ringball sevens", "Mutundwe Meteors FC", "Active"]);
+    const clubLinks = within(rowOf("Mutundwe Meteors FC"))
+      .getAllByRole("link", { name: "Mutundwe Meteors FC" })
+      .map((item) => item.getAttribute("href"))
+      .filter((href) => href !== teamHref(meteors.id));
+    expect(clubLinks.length).toBeGreaterThan(0);
+    expect(new Set(clubLinks)).toEqual(new Set([`/t/kmsa/organisations/${meteors.organisation!.id}`]));
     expect(within(rowOf("Seeta Sparrows FC Under-17")).getAllByRole("cell")[0]?.textContent).toBe("Under-17 Boys");
     const independent = within(rowOf("Kireka Kingfishers FC Reserves")).getAllByRole("cell");
     expect(independent.map((cell) => cell.textContent)).toEqual([
@@ -78,16 +83,18 @@ describe("teams directory", () => {
 
   it("names the organisation without a link for whoever can't read organisations", async () => {
     open(["team.read", "sport.read", "tenant.settings.read"]);
-    await screen.findByRole("link", { name: "Mutundwe Meteors FC" });
-    expect(within(rowOf("Mutundwe Meteors FC")).queryByRole("link", { name: "Mutundwe Meteors SC" })).toBeNull();
-    expect(within(rowOf("Mutundwe Meteors FC")).getAllByText("Mutundwe Meteors SC").length).toBeGreaterThan(0);
+    await screen.findAllByRole("link", { name: "Mutundwe Meteors FC" });
+    const row = rowOf("Mutundwe Meteors FC");
+    // Only the team's own link: the club is named as text.
+    expect(within(row).getAllByRole("link").map((item) => item.getAttribute("href"))).toEqual([teamHref(meteors.id)]);
+    expect(within(row).getAllByRole("cell")[2]?.textContent).toBe("Mutundwe Meteors FC");
   });
 
   it("asks with the search and filters in the address, and leaves out a category or status the API doesn't know", async () => {
     navigation.search = "q=Seeta&variant=RINGBALL_SEVENS&genderCategory=MEN&ageGroup=U17&level=FIRST&status=DISBANDED";
     const requests = open();
 
-    await screen.findByRole("link", { name: "Mutundwe Meteors FC" });
+    await screen.findAllByRole("link", { name: "Mutundwe Meteors FC" });
     expect(Object.fromEntries(new URLSearchParams(directoryRequests(requests)[0]!.search))).toEqual({
       q: "Seeta",
       variant: "RINGBALL_SEVENS",
@@ -102,13 +109,13 @@ describe("teams directory", () => {
 
     navigation.search = "genderCategory=OPEN&ageGroup=U99&level=FOURTH&status=MERGED";
     const second = open();
-    await screen.findByRole("link", { name: "Mutundwe Meteors FC" });
+    await screen.findAllByRole("link", { name: "Mutundwe Meteors FC" });
     expect(directoryRequests(second)[0]?.search).toBe("");
   });
 
   it("offers the sports from their definitions and the categories in words", async () => {
     open();
-    await screen.findByRole("link", { name: "Mutundwe Meteors FC" });
+    await screen.findAllByRole("link", { name: "Mutundwe Meteors FC" });
     const sport = await screen.findByLabelText("Sport");
     expect(within(sport).getAllByRole("option").map((option) => option.textContent)).toEqual(["Any sport", "Ringball sevens"]);
     const gender = screen.getByLabelText("Gender");
@@ -125,7 +132,7 @@ describe("teams directory", () => {
 
   it("writes a filter at once and the search once typing pauses", async () => {
     open();
-    await screen.findByRole("link", { name: "Mutundwe Meteors FC" });
+    await screen.findAllByRole("link", { name: "Mutundwe Meteors FC" });
 
     fireEvent.change(screen.getByLabelText("Level"), { target: { value: "RESERVE" } });
     expect(navigation.replace).toHaveBeenLastCalledWith("/t/kmsa/teams?level=RESERVE", { scroll: false });
@@ -168,7 +175,7 @@ describe("teams directory", () => {
 
   it("shows a viewer the directory without a change control", async () => {
     open();
-    await screen.findByRole("link", { name: "Mutundwe Meteors FC" });
+    await screen.findAllByRole("link", { name: "Mutundwe Meteors FC" });
     const main = screen.getByRole("heading", { level: 1, name: "Teams" }).closest("section")!;
     expect(within(main).queryAllByRole("button")).toEqual([]);
   });

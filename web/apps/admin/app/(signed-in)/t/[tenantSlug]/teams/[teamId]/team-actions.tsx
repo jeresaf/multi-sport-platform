@@ -29,6 +29,7 @@ export type TeamMove = "activate" | "deactivate" | "suspend" | "lift" | "disband
 type MoveWords = { label: string; description: string; done: string; destructive?: boolean };
 
 const takesPlace = "It counts toward your plan's team limit again.";
+const freesPlace = "It frees a place under your plan's team limit.";
 
 export const teamMoves: Readonly<Record<TeamMove, MoveWords>> = {
   activate: {
@@ -67,7 +68,7 @@ export const teamMoves: Readonly<Record<TeamMove, MoveWords>> = {
   archive: {
     label: "Archive",
     description:
-      "It leaves the directory and the public site and frees a place under your plan's team limit. The record and its history stay and can still be corrected. It can be unarchived.",
+      "It leaves the directory and the public site. The record and its history stay and can still be corrected. It can be unarchived.",
     done: "archived",
   },
   unarchive: {
@@ -194,10 +195,13 @@ function MoveDialog({
   const history = useTeamStatusChanges(team.id);
   const before = move === "unarchive" ? unarchiveTo(history.data?.items ?? []) : null;
   const target = move === "unarchive" ? before : targets[move];
+  // Only a team that counts toward the limit frees a place by archiving: a disbanded one already has (D14).
   const description =
     move === "unarchive" && before
       ? `It goes back to ${humanizeCode(before).toLowerCase()}, the status it had before it was archived.${counted(before) ? ` ${takesPlace}` : ""}`
-      : words.description;
+      : move === "archive" && counted(team.status)
+        ? `${words.description} ${freesPlace}`
+        : words.description;
   return (
     <ActionDialog
       open

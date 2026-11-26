@@ -577,7 +577,7 @@ Members & roles (invite, assign roles with scopes) · Sports (enable within enti
 - **Status moves** (`team.status.change`, a reason required): from Active **Make inactive**, **Suspend**, **Disband**,
   **Archive**; from Inactive **Reactivate**, **Suspend**, **Disband**, **Archive**; from Suspended **Make inactive**,
   **Lift suspension**, **Disband**, **Archive**; from Disbanded **Reform**, **Archive**; from Archived **Unarchive**,
-  which names the status it goes back to. Disbanding and archiving say they free a place under the plan's team limit;
+  which names the status it goes back to. Disbanding, and archiving a team that isn't disbanded, say they free a place under the plan's team limit;
   reforming, and unarchiving to an active, inactive or suspended status, say the team counts again. At the limit the
   dialog stays open with the server's "Your plan allows N teams." The dialog sends the version it opened on and offers
   **Reload** on a conflict; a saved move is announced and the focus goes to the status. A viewer sees no control; on a

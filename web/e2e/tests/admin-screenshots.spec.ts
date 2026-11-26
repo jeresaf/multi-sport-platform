@@ -665,11 +665,11 @@ test("screenshots of the organisation screens", async ({ page, request }) => {
 });
 
 test("screenshots of the team screens", async ({ page, request }) => {
-  // A club, its ground and three teams made through the API on a tenant of this run's own (the demo data is S07-T7's):
+  // A club (pilot-customer.md: its first team has its name), its ground and three teams made through the API on a tenant of this run's own (the demo data is S07-T7's):
   // a renamed team with every field and a status change, a youth team with only what is required, and a disbanded
   // independent one.
   test.slow();
-  const tenant = await ownTenant(request, "weaver-sports", "Mutundwe Weaver Sports Club");
+  const tenant = await ownTenant(request, "mousebird-sports", "Mousebird Sports Club");
   const owner = { email: personEmail("brian.ssemakula", tenant.slug), password: newPassword() };
   await acceptByApi(request, await inviteOwnerOf(request, tenant.id, owner.email), owner.password);
   await signInByApi(request, owner.email, owner.password);
@@ -683,8 +683,8 @@ test("screenshots of the team screens", async ({ page, request }) => {
     expect(sent.status(), `${path}: ${await sent.text()}`).toBe(status);
     return (await sent.json()) as { id: string; version: number };
   };
-  const club = await send("/api/admin/v1/organisations", { type: "CLUB", displayName: "Mutundwe Meteors SC", city: "Kampala" }, 201);
-  const ground = await send("/api/admin/v1/venues", { name: "Mutundwe Hill Ground", type: "SPORTS_GROUND", city: "Kampala", timeZone: "Africa/Kampala" }, 201);
+  const club = await send("/api/admin/v1/organisations", { type: "CLUB", displayName: "Mutundwe Meteors FC", city: "Kampala" }, 201);
+  const ground = await send("/api/admin/v1/venues", { name: "Seeta Hill Sports Field", type: "SPORTS_GROUND", city: "Mukono", timeZone: "Africa/Kampala" }, 201);
   const weavers = await send(
     "/api/admin/v1/teams",
     {
@@ -734,7 +734,8 @@ test("screenshots of the team screens", async ({ page, request }) => {
   await expect(loading(page)).toHaveCount(0);
   await shoot(page, "teams", [phone, ...widths]);
 
-  await page.getByRole("link", { name: "Mutundwe Meteors FC", exact: true }).click();
+  // The first link of the name is the team's; the club, with the same name, is linked in its row too.
+  await page.getByRole("link", { name: "Mutundwe Meteors FC", exact: true }).first().click();
   await expect(page.getByRole("heading", { level: 1, name: "Mutundwe Meteors FC" })).toBeVisible();
   await expect(page.getByText("Higher together")).toBeVisible();
   await expect(loading(page)).toHaveCount(0);

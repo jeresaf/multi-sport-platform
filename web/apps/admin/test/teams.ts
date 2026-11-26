@@ -1,4 +1,4 @@
-// Team test data (S07 T6c): KMSA's teams from pilot-customer.md, playing the test-only sport (sport-definitions.ts),
+// Team test data (S07 T6c): KMSA's teams from pilot-customer.md (a club's first team has the club's name), playing the test-only sport (sport-definitions.ts),
 // and the answers the team screens need. Each test file mocks `next/navigation` itself.
 import type { components } from "@msp/api-client";
 import { listPage, me, venueAnswers } from "./venues";
@@ -31,7 +31,7 @@ export function team(overrides: Partial<Team> = {}): Team {
     secondaryColour: "#f2c230",
     tertiaryColour: null,
     foundedYear: 2018,
-    organisation: { id: "0199a3f0-0000-7000-8000-0000000000e5", displayName: "Mutundwe Meteors SC", slug: "mutundwe-meteors-sc" },
+    organisation: { id: "0199a3f0-0000-7000-8000-0000000000e5", displayName: "Mutundwe Meteors FC", slug: "mutundwe-meteors-fc" },
     homeVenue: { id: "0199a3f0-0000-7000-8000-0000000000b1", name: "Bukoto Community Stadium", slug: "bukoto-community-stadium" },
     status: "ACTIVE",
     logo: null,
