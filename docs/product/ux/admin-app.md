@@ -540,7 +540,8 @@ Members & roles (invite, assign roles with scopes) · Sports (enable within enti
   listed and a closed one is shown with "Closed: it can't be a primary venue." and can't be chosen. **Choose {name}**
   takes one, **No primary venue** clears it; each choice is announced and the focus goes back to the search. A venue
   closed since it was found (`ORGANISATION_PRIMARY_VENUE_UNAVAILABLE` on `primaryVenueId`) is said under the field, as an
-  alert. On Edit, the saved venue removed by mistake can be chosen again from the search, closed or not (the server
+  alert, in the form's own words: "This venue has been closed or archived since you chose it. Choose another venue, or
+  no primary venue." (owner, review #140 N5). On Edit, the saved venue removed by mistake can be chosen again from the search, closed or not (the server
   doesn't check the venue an organisation already has; review #140 Q1). A long venue name wraps in its button.
 - **The duplicate warning** (D13, between "Where it is" and "Contact and description"): the venue form's, through the
   shared `components/registry/use-duplicate-review.ts`. It asks once there is a type and a name with a letter or

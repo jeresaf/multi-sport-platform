@@ -72,7 +72,8 @@ export function PrimaryVenueField({
     <fieldset className="grid gap-2" aria-describedby={[`${id}-hint`, errorId].filter(Boolean).join(" ")}>
       <legend className="mb-2 text-sm font-medium">Primary venue (optional)</legend>
       <p id={`${id}-hint`} className="text-sm text-muted-foreground">
-        Where it is based or usually plays. Closed venues can&apos;t be chosen.
+        Where it is based or usually plays. Closed venues can&apos;t be chosen
+        {saved ? ", except the one it already has." : "."}
       </p>
       <div
         ref={shownChoice}

@@ -253,8 +253,9 @@ describe("Add organisation", () => {
     save();
     const venueField = screen.getByRole("group", { name: "Primary venue (optional)" });
     // Read out as an alert: the form's own alert isn't shown for it (pre-review 3).
+    // In the form's own words, not the API's (#140 N5).
     expect((await within(venueField).findByRole("alert")).textContent).toBe(
-      "The primary venue must be a venue of the tenant that isn't closed or archived.",
+      "This venue has been closed or archived since you chose it. Choose another venue, or no primary venue.",
     );
     expect(screen.queryByText("That didn't work")).toBeNull();
     cleanup();

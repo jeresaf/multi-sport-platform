@@ -9,6 +9,7 @@ import { ConflictAlert } from "@/components/conflict-alert";
 import { ProblemAlert } from "@/components/problem-alert";
 import { DuplicatePanel, type DuplicateDecision, type PanelCandidate } from "@/components/registry/duplicate-panel";
 import { useDuplicateReview } from "@/components/registry/use-duplicate-review";
+import { isApiProblem } from "@/lib/api";
 import { humanizeCode } from "@/lib/codes";
 import { isConcurrencyConflict } from "@/lib/concurrency";
 import { applyFieldErrors, needsAlert } from "@/lib/form-errors";
@@ -61,6 +62,10 @@ function toPanelCandidate(candidate: OrganisationDuplicateCandidate, href: strin
     href,
   };
 }
+
+/** The venue field's words for `ORGANISATION_PRIMARY_VENUE_UNAVAILABLE`. */
+export const venueUnavailableMessage =
+  "This venue has been closed or archived since you chose it. Choose another venue, or no primary venue.";
 
 export type OrganisationSave = { values: OrganisationValues; decision: DuplicateDecision };
 
@@ -134,9 +139,14 @@ export function OrganisationEditor({
         { values, decision },
         {
           onError: (error) => {
-            // A venue closed or archived since it was found is refused on `primaryVenueId`: under the venue field.
-            if (!refusedForReview(error)) {
-              applyFieldErrors(error, apiFields, form.setError);
+            if (refusedForReview(error)) {
+              return;
+            }
+            applyFieldErrors(error, apiFields, form.setError);
+            // A venue closed or archived since it was found is refused on `primaryVenueId`. The API's message speaks
+            // to API clients ("a venue of the tenant"); the form says what happened and what to do (#140 N5).
+            if (isApiProblem(error, "ORGANISATION_PRIMARY_VENUE_UNAVAILABLE")) {
+              form.setError("primaryVenueId", { type: "server", message: venueUnavailableMessage });
             }
           },
         },
