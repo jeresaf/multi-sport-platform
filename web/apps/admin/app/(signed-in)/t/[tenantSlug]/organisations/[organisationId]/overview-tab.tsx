@@ -2,7 +2,7 @@
 
 import { Button } from "@msp/ui/components/button";
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { StatusBadge } from "@/components/status-badge";
 import { UnavailableNote } from "@/components/unavailable-note";
 import { Facts, ViewerSection } from "@/components/viewer/facts";
@@ -18,6 +18,19 @@ const linkClass = "break-words text-primary underline-offset-4 hover:underline";
 /** Only a web address is a link (never `javascript:` or another scheme a stored value could carry). */
 const webLink = /^https?:\/\//i;
 const parentNoteId = "organisation-parent-note";
+/** The Structure heading, focused after a parent change (the button that opened the dialog may be disabled now). */
+const structureHeadingId = "organisation-structure";
+
+/**
+ * Why a dissolved or archived parent is still shown (D5, T2c-2): the link stays, whatever the parent's status, until
+ * it is changed or removed here.
+ */
+export function staleParentNote(parent: { displayName: string; status: string }): string | null {
+  if (parent.status !== "DISSOLVED" && parent.status !== "ARCHIVED") {
+    return null;
+  }
+  return `${parent.displayName} is ${humanizeCode(parent.status).toLowerCase()}. It stays the parent until you change or remove it.`;
+}
 
 /** A record's link with its status beside it when it isn't active (a suspended parent, a dissolved child). */
 function RecordLink({ href, name, status }: Readonly<{ href: string; name: string; status: string }>) {
@@ -40,6 +53,8 @@ export function OverviewTab({ organisation }: Readonly<{ organisation: Organisat
   const { tenant, can, unavailable } = useTenantWorkspace();
   const countries = useCountries();
   const [changing, setChanging] = useState(false);
+  const [announcement, setAnnouncement] = useState("");
+  const saved = useRef(false);
   const root = tenantPath(tenant.slug);
   const country = countries.data?.items.find((item) => item.code === organisation.country)?.name ?? organisation.country;
   const organisationHref = (id: string) => `${root}/organisations/${id}`;
@@ -99,17 +114,22 @@ export function OverviewTab({ organisation }: Readonly<{ organisation: Organisat
           ]}
         />
       </ViewerSection>
-      <ViewerSection title="Structure">
+      <ViewerSection title="Structure" headingId={structureHeadingId}>
         <Facts
           items={[
             [
               "Parent",
               organisation.parent ? (
-                <RecordLink
-                  href={organisationHref(organisation.parent.id)}
-                  name={organisation.parent.displayName}
-                  status={organisation.parent.status}
-                />
+                <span className="grid gap-1">
+                  <RecordLink
+                    href={organisationHref(organisation.parent.id)}
+                    name={organisation.parent.displayName}
+                    status={organisation.parent.status}
+                  />
+                  {staleParentNote(organisation.parent) ? (
+                    <span className="text-sm text-muted-foreground">{staleParentNote(organisation.parent)}</span>
+                  ) : null}
+                </span>
               ) : (
                 "None"
               ),
@@ -142,8 +162,29 @@ export function OverviewTab({ organisation }: Readonly<{ organisation: Organisat
             {parentNote ? <UnavailableNote id={parentNoteId} reason={parentNote} /> : null}
           </div>
         ) : null}
+        <p role="status" className="sr-only">
+          {announcement}
+        </p>
       </ViewerSection>
-      {changing ? <ParentDialog organisation={organisation} onClose={() => setChanging(false)} /> : null}
+      {changing ? (
+        <ParentDialog
+          organisation={organisation}
+          onClose={() => setChanging(false)}
+          onSaved={(message) => {
+            saved.current = true;
+            setAnnouncement(message);
+            setChanging(false);
+          }}
+          onCloseAutoFocus={(event) => {
+            const target = saved.current ? document.getElementById(structureHeadingId) : null;
+            saved.current = false;
+            if (target) {
+              event.preventDefault();
+              target.focus();
+            }
+          }}
+        />
+      ) : null}
     </>
   );
 }

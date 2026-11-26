@@ -5,6 +5,8 @@
 import { errorMessage } from "@msp/api-client/errors";
 import { act, cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type { QueryClient } from "@tanstack/react-query";
+import { createQueryClient } from "@/lib/query-client";
 import { readOnlyCapabilities } from "@/test/capabilities";
 import {
   academy,
@@ -17,6 +19,7 @@ import {
   seeta,
   summary,
 } from "@/test/organisations";
+import { tenantId } from "@/test/venues";
 import { fakeApi, problem, renderWithQuery, type Answers, type RecordedRequest } from "@/test/render";
 import TenantWorkspaceLayout from "../../layout";
 import type { Organisation, OrganisationStatus } from "../organisations-data";
@@ -55,7 +58,12 @@ const swiftsWomen = {
   status: "ACTIVE",
 } as const;
 
-function open(shown: Organisation = ntinda, capabilities: Parameters<typeof organisationAnswers>[0] = registrar, answers: Answers = {}) {
+function open(
+  shown: Organisation = ntinda,
+  capabilities: Parameters<typeof organisationAnswers>[0] = registrar,
+  answers: Answers = {},
+  queryClient?: QueryClient,
+) {
   navigation.organisationId = shown.id;
   const requests = fakeApi({
     ...organisationAnswers(capabilities),
@@ -69,6 +77,7 @@ function open(shown: Organisation = ntinda, capabilities: Parameters<typeof orga
     <TenantWorkspaceLayout>
       <OrganisationPage />
     </TenantWorkspaceLayout>,
+    queryClient,
   );
   return requests;
 }
@@ -117,6 +126,20 @@ describe("Organisation page", () => {
     // A member that isn't active says so; colour alone never does.
     expect(within(members).getByText("Suspended")).toBeTruthy();
     expect(screen.getByRole("img", { name: "No logo for Ntinda Swifts SC" })).toBeTruthy();
+  });
+
+  it.each(["ARCHIVED", "DISSOLVED"] as const)("explains that a parent that is %s stays the parent until changed", async (status) => {
+    open(organisation({ parent: { ...summary(kisaasi), status } }));
+    await loaded();
+    const overview = screen.getByRole("tabpanel");
+    expect(
+      within(overview).getByText(`Kisaasi Kestrels SC is ${status.toLowerCase()}. It stays the parent until you change or remove it.`),
+    ).toBeTruthy();
+    cleanup();
+
+    open(organisation({ parent: { ...summary(kisaasi), status: "SUSPENDED" } }));
+    await loaded();
+    expect(screen.queryByText(/stays the parent until/)).toBeNull();
   });
 
   it("says what isn't recorded, and links only a web address", async () => {
@@ -265,7 +288,7 @@ describe("Organisation status moves", () => {
     });
     await loaded(archived);
     fireEvent.click(screen.getByRole("button", { name: "Unarchive" }));
-    expect(await within(dialog()).findByText(/goes back to dissolved/)).toBeTruthy();
+    expect((await within(dialog()).findByText(/goes back to dissolved/)).textContent).toMatch(/Its teams keep their own statuses/);
     fireEvent.change(within(dialog()).getByLabelText("Reason"), { target: { value: "Archived by mistake." } });
     fireEvent.click(within(dialog()).getByRole("button", { name: "Unarchive" }));
     expect((await sentTo(requests, statusPath)).body).toEqual({ status: "DISSOLVED", reason: "Archived by mistake." });
@@ -277,6 +300,8 @@ describe("Organisation status moves", () => {
     });
     await loaded();
     fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+    // Archiving doesn't archive its teams either (RULE-ORG-005; review #139 R1).
+    expect(within(dialog()).getByText(/Its teams keep their own statuses/)).toBeTruthy();
     fireEvent.change(within(dialog()).getByLabelText("Reason"), { target: { value: "Merged with another record." } });
     fireEvent.click(within(dialog()).getByRole("button", { name: "Archive" }));
     expect(await within(dialog()).findByText("This record changed since you opened it")).toBeTruthy();
@@ -326,6 +351,11 @@ describe("Organisation parent", () => {
     expect(request.headers.get("If-Match")).toBe('"3"');
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect(await screen.findByRole("button", { name: "Change parent" })).toBeTruthy();
+    // Announced, and the focus on the Structure heading (the button may be disabled after a change; #139 N2).
+    expect(screen.getAllByRole("status").map((item) => item.textContent)).toContain(
+      "Ntinda Swifts SC: parent changed to Kisaasi Kestrels SC.",
+    );
+    await waitFor(() => expect(document.activeElement?.id).toBe("organisation-structure"));
   });
 
   it("clears the parent with No parent", async () => {
@@ -363,18 +393,21 @@ describe("Organisation parent", () => {
     expect([errorMessage("ORGANISATION_PARENT_CYCLE"), "It is below this organisation."]).toContain(shown);
   });
 
-  it("offers a dissolved organisation no new parent, only removing the one it has", async () => {
-    open(organisation({ status: "DISSOLVED" }));
+  it.each([
+    ["DISSOLVED", "Dissolved"],
+    ["ARCHIVED", "Archived"],
+  ] as const)("offers a %s organisation no new parent, only removing the one it has", async (status, label) => {
+    open(organisation({ status }));
     await loaded();
     const set = screen.getByRole("button", { name: "Set parent" });
     expect(set.hasAttribute("disabled")).toBe(true);
-    expect(document.getElementById(set.getAttribute("aria-describedby") ?? "")?.textContent).toMatch(
-      /Dissolved: it can't take a parent/,
+    expect(document.getElementById(set.getAttribute("aria-describedby") ?? "")?.textContent).toContain(
+      `${label}: it can't take a parent.`,
     );
     cleanup();
 
-    const requests = open(organisation({ status: "DISSOLVED", parent: summary(kisaasi) }), registrar, {
-      [`POST ${parentPath}`]: { status: 200, body: organisation({ status: "DISSOLVED", version: 4 }) },
+    const requests = open(organisation({ status, parent: summary(kisaasi) }), registrar, {
+      [`POST ${parentPath}`]: { status: 200, body: organisation({ status, version: 4 }) },
     });
     await loaded();
     fireEvent.click(screen.getByRole("button", { name: "Remove parent" }));
@@ -386,7 +419,7 @@ describe("Organisation parent", () => {
   });
 
   it("offers Reload after a concurrency conflict", async () => {
-    open(organisation({ parent: summary(kisaasi) }), registrar, {
+    const requests = open(organisation({ parent: summary(kisaasi) }), registrar, {
       [`POST ${parentPath}`]: { status: 409, body: problem("ORGANISATION_CONCURRENCY_CONFLICT", 409) },
     });
     await loaded();
@@ -395,5 +428,50 @@ describe("Organisation parent", () => {
     fireEvent.change(within(dialog()).getByLabelText("Reason"), { target: { value: "Now independent." } });
     fireEvent.click(within(dialog()).getByRole("button", { name: "Save parent" }));
     expect(await within(dialog()).findByText("This record changed since you opened it")).toBeTruthy();
+    fireEvent.click(within(dialog()).getByRole("button", { name: "Reload" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    await waitFor(() =>
+      expect(requests.filter((item) => item.method === "GET" && item.path === `/api/admin/v1/organisations/${ntinda.id}`).length).toBe(2),
+    );
+  });
+
+  it("leaves out its current parent, and lists nothing once the search is cleared", async () => {
+    open(organisation({ parent: summary(kisaasi) }));
+    await loaded();
+    fireEvent.click(screen.getByRole("button", { name: "Change parent" }));
+    await search("Ntinda");
+    expect(await within(dialog()).findByLabelText(/Ntinda Swifts Academy/)).toBeTruthy();
+    // Its current parent would change nothing (review #139 R2).
+    expect(within(dialog()).queryByLabelText("Kisaasi Kestrels SC")).toBeNull();
+    expect(within(dialog()).getByLabelText("No parent")).toBeTruthy();
+    expect(within(dialog()).getByText("2 found.")).toBeTruthy();
+
+    // An earlier search's list isn't kept as the answer to an empty box (#139 N1).
+    await search("");
+    expect(within(dialog()).queryByLabelText(/Ntinda Swifts Academy/)).toBeNull();
+    expect(within(dialog()).queryByText(/found\./)).toBeNull();
+  });
+
+  it("marks every other organisation read stale after a parent change: the earlier and the new parent's members change", async () => {
+    const queryClient = createQueryClient();
+    const kept = (id: string) => ["organisation", tenantId, id] as const;
+    queryClient.setQueryData(kept(kisaasi.id), kisaasi);
+    queryClient.setQueryData(kept(academy.id), academy);
+    const requests = open(organisation({ parent: summary(kisaasi) }), registrar, {
+      [`POST ${parentPath}`]: { status: 200, body: organisation({ parent: summary(academy), version: 4 }) },
+    }, queryClient);
+    await loaded();
+    expect(queryClient.getQueryState(kept(kisaasi.id))?.isInvalidated).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: "Change parent" }));
+    await search("Ntinda");
+    fireEvent.click(await within(dialog()).findByLabelText(/Ntinda Swifts Academy/));
+    fireEvent.change(within(dialog()).getByLabelText("Reason"), { target: { value: "Moved under the academy." } });
+    fireEvent.click(within(dialog()).getByRole("button", { name: "Save parent" }));
+    await sentTo(requests, parentPath);
+    await waitFor(() => expect(queryClient.getQueryState(kept(kisaasi.id))?.isInvalidated).toBe(true));
+    expect(queryClient.getQueryState(kept(academy.id))?.isInvalidated).toBe(true);
+    // Its own read is the answer, kept as it is.
+    expect(queryClient.getQueryState(kept(ntinda.id))?.isInvalidated).toBe(false);
+    expect((queryClient.getQueryData(kept(ntinda.id)) as Organisation).parent?.id).toBe(academy.id);
   });
 });

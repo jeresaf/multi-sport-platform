@@ -44,7 +44,19 @@ const schema = z.object({
 type Values = z.infer<typeof schema>;
 const fields: Readonly<Record<string, keyof Values>> = { parentId: "parentId", reason: "reason" };
 
-export function ParentDialog({ organisation, onClose }: Readonly<{ organisation: Organisation; onClose: () => void }>) {
+export function ParentDialog({
+  organisation,
+  onClose,
+  onSaved,
+  onCloseAutoFocus,
+}: Readonly<{
+  organisation: Organisation;
+  onClose: () => void;
+  /** After the save: what to announce (the dialog closes). */
+  onSaved: (announcement: string) => void;
+  /** Where focus goes when the dialog closes (by default, back to what opened it). */
+  onCloseAutoFocus?: (event: Event) => void;
+}>) {
   // The version the dialog opened on: a change is based on what the user saw.
   const [opened] = useState<OpenedOrganisation>(() => ({ id: organisation.id, version: organisation.version }));
   const set = useSetOrganisationParent(opened);
@@ -63,17 +75,30 @@ export function ParentDialog({ organisation, onClose }: Readonly<{ organisation:
   const candidates = useParentCandidates(q);
   const children = new Set(organisation.children.map((child) => child.id));
   // Itself, its current parent (nothing would change) and its direct children (a cycle) aren't choices.
-  const found = (candidates.data?.items ?? []).filter(
-    (item) => item.id !== organisation.id && item.id !== organisation.parent?.id && !children.has(item.id),
-  );
+  // The answer for the text shown: none for an empty box, and an earlier search's kept list (`keepPreviousData`)
+  // is still shown while the new one is asked, but isn't described as the answer to it.
+  const found =
+    q === ""
+      ? []
+      : (candidates.data?.items ?? []).filter(
+          (item) => item.id !== organisation.id && item.id !== organisation.parent?.id && !children.has(item.id),
+        );
+  const searching = q !== "" && (candidates.isPending || candidates.isPlaceholderData);
+  const answered = q !== "" && candidates.isSuccess && !candidates.isPlaceholderData;
   // Read out as the answer changes (a live region), not only when it is looked at.
-  const announcement =
-    q !== "" && candidates.isSuccess ? (found.length === 0 ? "No organisation found." : `${found.length} found.`) : "";
+  const announcement = answered ? (found.length === 0 ? "No organisation found." : `${found.length} found.`) : "";
 
   const submit = form.handleSubmit(({ parentId, reason }) =>
     set.mutate(
       { parentId: parentId === noParent ? null : parentId, reason: reason.trim() },
-      { onSuccess: onClose, onError: (error) => applyFieldErrors(error, fields, form.setError) },
+      {
+        onSuccess: () =>
+          onSaved(
+            parentId === noParent
+              ? `${organisation.displayName}: parent removed.`
+              : `${organisation.displayName}: parent changed to ${chosenName ?? "the organisation chosen"}.`,
+          ),
+        onError: (error) => applyFieldErrors(error, fields, form.setError) },
     ),
   );
 
@@ -104,6 +129,7 @@ export function ParentDialog({ organisation, onClose }: Readonly<{ organisation:
         void reload();
         onClose();
       }}
+      onCloseAutoFocus={onCloseAutoFocus}
     >
       {clearOnly ? null : (
         <div className="grid gap-2">
@@ -151,9 +177,9 @@ export function ParentDialog({ organisation, onClose }: Readonly<{ organisation:
               // The chosen one stays offered while another search is typed.
               <Choice id={`parent-${field.value}`} checked onChange={() => undefined} label={chosenName} />
             ) : null}
-            {q !== "" && candidates.isPending ? <Loading /> : null}
+            {searching ? <Loading /> : null}
             {candidates.isError ? <ProblemAlert error={candidates.error} /> : null}
-            {q !== "" && candidates.isSuccess && found.length === 0 ? (
+            {answered && found.length === 0 ? (
               <p className="text-sm text-muted-foreground">No organisation found for “{q}”.</p>
             ) : null}
             {found.map((item) => {

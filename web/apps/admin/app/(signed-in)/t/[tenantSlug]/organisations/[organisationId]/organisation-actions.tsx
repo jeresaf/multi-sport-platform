@@ -60,12 +60,12 @@ export const organisationMoves: Readonly<Record<OrganisationMove, MoveWords>> = 
   archive: {
     label: "Archive",
     description:
-      "It leaves the directory and the public site. The record and its history stay and can still be corrected. It can be unarchived.",
+      `It leaves the directory and the public site. The record and its history stay and can still be corrected. It can be unarchived. ${teamsKeep}`,
     done: "archived",
   },
   unarchive: {
     label: "Unarchive",
-    description: "It goes back to the status it had before it was archived.",
+    description: `It goes back to the status it had before it was archived. ${teamsKeep}`,
     done: "unarchived",
   },
 };
@@ -183,7 +183,7 @@ function MoveDialog({
   const target = move === "unarchive" ? before : targets[move];
   const description =
     move === "unarchive" && before
-      ? `It goes back to ${humanizeCode(before).toLowerCase()}, the status it had before it was archived.`
+      ? `It goes back to ${humanizeCode(before).toLowerCase()}, the status it had before it was archived. ${teamsKeep}`
       : words.description;
   return (
     <ActionDialog
