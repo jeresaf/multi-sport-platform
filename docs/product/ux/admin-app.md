@@ -490,6 +490,42 @@ Members & roles (invite, assign roles with scopes) · Sports (enable within enti
 - Screenshots `venues`, `venue-overview`, `venue-teams`, `venue-history`, `venue-status-dialog`, `venue-names`,
   `venue-identifier-dialog`, `venue-edit`, `add-venue-duplicates`.
 
+#### As built (S07-T6b-1, Organisations)
+
+- **Organisations** (`/t/{slug}/organisations`, `organisation.read`), in the Registry group between People and Venues:
+  sorted by name, 25 a page with **Show more**. **Search** (name, alias or external identifier) follows the typing
+  after a 300 ms pause; **Type** and **Status** (default "All but archived") change at once. All three are in the
+  address. Columns: name (the short name under it), type, place (city and country, or the country alone), status; on
+  a phone they stack under the name. Add organisation comes with T6b-2.
+- **An organisation** (`/t/{slug}/organisations/{id}`): the header (logo, or its initials in a square without one;
+  name, status, type and city; the status moves), then the tabs in `?tab=`: **Overview** (Organisation: name, legal
+  name, short name, type, founded, description; Contact: city, country, website (a link only for an `http(s)` address,
+  in a new tab), email, phone, primary venue (a link with `venue.read`); Structure: the parent and the member
+  organisations, each a link with its status when not active, and **Set parent** or **Change parent**; a dissolved or
+  archived parent stays linked, and the Overview says so: "… is archived. It stays the parent until the parent is
+  changed or removed."), **Teams** (its
+  teams but archived ones, with category, sport named from its definition and status; the names become links with the
+  team screens, T6c) and **History** (the status changes, then the parent links with their dates and reasons, the
+  current one first).
+- **Status moves** (`organisation.status.change`, a reason required): from Active **Make inactive**, **Suspend**,
+  **Dissolve**, **Archive**; from Inactive **Reactivate**, **Suspend**, **Dissolve**, **Archive**; from Suspended
+  **Make inactive**, **Lift suspension**, **Dissolve**, **Archive**; from Dissolved **Archive**; from Archived
+  **Unarchive**, which names the status it goes back to (a dissolved organisation stays dissolved). Each dialog says
+  the teams keep their own statuses. A viewer sees no control; on a read-only tenant the moves are disabled with the
+  reason.
+- **Set parent / Change parent** (`organisation.parent.set`, a reason required): **Find the parent** searches the
+  directory 300 ms after the typing pauses (archived ones aren't listed) and lists the matches as choices with their
+  type and city; the organisation itself, its current parent and its direct members aren't offered, and a dissolved one
+  is shown unavailable ("Dissolved: it can't take member organisations."). With a parent, **No parent** clears it. A
+  member further down is refused by the server and the refusal shows under the choice. A cleared search lists nothing,
+  and while a new search is asked the earlier list stays without being announced as its answer. The dialog sends the
+  version it opened on and offers **Reload** on a conflict. A saved change is announced ("…: parent changed to …",
+  "…: parent removed.") and the focus goes to the Structure heading. A dissolved or archived organisation takes no new parent: without one,
+  **Set parent** is disabled with "Dissolved: it can't take a parent." (or "Archived: …"); with one, **Remove parent**
+  offers only **No parent**, without the search.
+- Screenshots `organisations`, `organisation-overview`, `organisation-teams`, `organisation-status-dialog`,
+  `organisation-history`, `organisation-parent-dialog`.
+
 ### Competitions
 - **Competition list** and **competition detail** (Overview · Editions · History).
 - **New competition wizard** — short, because operating happens in the edition dashboard:

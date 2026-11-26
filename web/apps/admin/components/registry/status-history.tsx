@@ -1,6 +1,6 @@
 "use client";
 
-// A registry record's status history (people, venues; organisations and teams in T6b, T6c): every move, newest first,
+// A registry record's status history (people, venues, organisations; teams in T6c): every move, newest first,
 // with its time in the tenant's zone and its reason. On a phone the time and reason stack under the change.
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@msp/ui/components/table";
 import { Loading } from "@/components/loading";
