@@ -1,8 +1,8 @@
 "use client";
 
 // Registry → Organisations data (S07 D19, D23): the directory, an organisation, its status history and parent
-// links, the status moves, the parent, Add and Edit's duplicate check, Names & IDs and the logo. Every field an organisation read answers is
-// public or internal; none is personal.
+// links, the status moves, the parent, Add and Edit's duplicate check, Names & IDs and the logo. Every field an
+// organisation read answers is public or internal; none is personal.
 import type { components } from "@msp/api-client";
 import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { call, isApiProblem } from "@/lib/api";

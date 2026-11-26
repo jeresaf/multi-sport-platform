@@ -75,7 +75,7 @@ export function RecordImageControl<R extends OpenedRecord>({
   // Each button points to its own reason; one note when both have the same (a read-only tenant).
   const notes = [
     setOffered && setReason !== null ? { id: `${noteId}-set`, reason: setReason } : null,
-    removeOffered && removeReason !== null && removeReason !== setReason
+    removeOffered && removeReason !== null && (!setOffered || removeReason !== setReason)
       ? { id: `${noteId}-remove`, reason: removeReason }
       : null,
   ].filter((note) => note !== null);
@@ -238,7 +238,12 @@ function RemoveImageDialog<R extends OpenedRecord>({
       open
       onOpenChange={onOpenChange}
       title={`Remove the ${config.image} of ${config.name}`}
-      description={`The ${config.image} is no longer shown, here or on the public site. A new one can be added later.`}
+      description={
+        // A record that takes no new image (dissolved, archived) can't have one added later.
+        config.closedNote === null
+          ? `The ${config.image} is no longer shown, here or on the public site. A new one can be added later.`
+          : `The ${config.image} is no longer shown, here or on the public site.`
+      }
       confirmLabel={`Remove ${config.image}`}
       destructive
       pending={remove.isPending}

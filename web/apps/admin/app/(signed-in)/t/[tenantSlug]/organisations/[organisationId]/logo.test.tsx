@@ -220,6 +220,9 @@ describe("Organisation logo", () => {
       `Ntinda Swifts SC is ${word}: no new logo can be added.`,
     );
     expect(screen.getByRole("button", { name: "Remove logo" })).toHaveProperty("disabled", false);
+    // No new one can follow: the removal doesn't promise one (pre-review 3).
+    fireEvent.click(screen.getByRole("button", { name: "Remove logo" }));
+    expect(within(dialog()).getByText("The logo is no longer shown, here or on the public site.")).toBeTruthy();
   });
 
   it("disables both with the reason on a read-only tenant", async () => {
