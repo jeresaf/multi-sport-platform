@@ -15,6 +15,8 @@ import { useTenantWorkspace } from "@/lib/tenant-workspace";
 import { tenantPath } from "@/lib/workspace";
 import { useOrganisation, type Organisation } from "../organisations-data";
 import { HistoryTab } from "./history-tab";
+import { LogoControl } from "./logo-control";
+import { NamesTab } from "./names-tab";
 import { OrganisationActions, organisationStatusId } from "./organisation-actions";
 import { OverviewTab } from "./overview-tab";
 import { TeamsTab } from "./teams-tab";
@@ -23,6 +25,7 @@ const organisationTabs = [
   { value: "overview", label: "Overview", content: OverviewTab },
   { value: "teams", label: "Teams", content: TeamsTab },
   { value: "history", label: "History", content: HistoryTab },
+  { value: "names", label: "Names & IDs", content: NamesTab },
 ] as const satisfies ReadonlyArray<{
   value: string;
   label: string;
@@ -33,8 +36,8 @@ type OrganisationTab = (typeof organisationTabs)[number]["value"];
 
 /**
  * Registry → Organisations → an organisation (S07 D23): the header (logo, name, status, type and city, the status
- * moves), then the tabs Overview (with the parent and member organisations), Teams and History. The tab is in the
- * address (`?tab=`). Names & IDs and Edit details come with T6b-2.
+ * moves and Edit details, the logo control), then the tabs Overview (with the parent and member organisations), Teams,
+ * History and Names & IDs (aliases and external identifiers). The tab is in the address (`?tab=`).
  */
 export default function OrganisationPage() {
   const { organisationId } = useParams<{ organisationId: string }>();
@@ -93,6 +96,7 @@ export default function OrganisationPage() {
           </div>
         </div>
         <OrganisationActions organisation={data} />
+        <LogoControl organisation={data} />
       </header>
 
       <Tabs value={tab} onValueChange={changeTab} className="min-w-0">

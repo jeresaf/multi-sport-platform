@@ -620,6 +620,39 @@ test("screenshots of the organisation screens", async ({ page, request }) => {
   await choose.scrollIntoViewIfNeeded();
   await shoot(page, "organisation-primary-venue", [phone, ...widths]);
 
+  // The logo and Names & IDs (S07-T6b-2b): the logo dialog with its preview, the header with the saved logo, and the
+  // club's former name and registration number (added through the API).
+  await page.goto(`/t/${tenant.slug}/organisations/${club.id}`);
+  await page.getByRole("button", { name: "Add logo" }).click();
+  await page
+    .getByRole("dialog")
+    .getByLabel("Logo")
+    .setInputFiles({ name: "ntinda-swifts.png", mimeType: "image/png", buffer: placeholderPng(320) });
+  await expect(page.getByRole("dialog").getByRole("img", { name: "The chosen logo" })).toBeVisible();
+  await shoot(page, "organisation-logo-dialog", [phone, ...widths]);
+  await page.getByRole("dialog").getByRole("button", { name: "Add logo" }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.getByRole("img", { name: "Logo of Ntinda Swifts SC" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Change logo" })).toBeVisible();
+  const current = (await (await request.get(`/api/admin/v1/organisations/${club.id}`, { headers })).json()) as {
+    version: number;
+  };
+  const aliased = await request.post(`/api/admin/v1/organisations/${club.id}/aliases`, {
+    data: { name: "Ntinda Swallows SC", kind: "FORMER_NAME" },
+    headers: { ...headers, "If-Match": `"${current.version}"` },
+  });
+  expect(aliased.status(), await aliased.text()).toBe(200);
+  const identified = await request.post(`/api/admin/v1/organisations/${club.id}/external-identifiers`, {
+    data: { authority: "KMSA_CLUB_NO", value: "C-0117", validFrom: "2021-02-01" },
+    headers: { ...headers, "If-Match": `"${((await aliased.json()) as { version: number }).version}"` },
+  });
+  expect(identified.status(), await identified.text()).toBe(200);
+  await page.goto(`/t/${tenant.slug}/organisations/${club.id}?tab=names`);
+  await expect(page.getByText("C-0117").first()).toBeVisible();
+  await expect(page.getByRole("img", { name: "Logo of Ntinda Swifts SC" })).toBeVisible();
+  await expect(loading(page)).toHaveCount(0);
+  await shoot(page, "organisation-names", [phone, ...widths]);
+
   // Add organisation with a name the tenant already has: the live warning lists it.
   await page.goto(`/t/${tenant.slug}/organisations/new`);
   await page.getByLabel("Name", { exact: true }).fill("Ntinda Swifts SC");

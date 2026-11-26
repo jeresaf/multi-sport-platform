@@ -1,12 +1,14 @@
 "use client";
 
 // Registry → Organisations data (S07 D19, D23): the directory, an organisation, its status history and parent
-// links, the status moves, the parent, and Add and Edit's duplicate check. Every field an organisation read answers is
-// public or internal; none is personal.
+// links, the status moves, the parent, Add and Edit's duplicate check, Names & IDs and the logo. Every field an
+// organisation read answers is public or internal; none is personal.
 import type { components } from "@msp/api-client";
 import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { call, isApiProblem } from "@/lib/api";
 import { ifMatch } from "@/lib/concurrency";
+import type { RecordImageApi } from "@/components/registry/image-control";
+import type { NamesAndIdsApi } from "@/components/registry/names-and-ids/names-and-ids-data";
 import { useTenantWorkspace } from "@/lib/tenant-workspace";
 
 type Schemas = components["schemas"];
@@ -286,4 +288,74 @@ export function useVenueChoices(q: string) {
     enabled: q !== "" && can("venue.read"),
     placeholderData: keepPreviousData,
   });
+}
+
+/** Names & IDs' calls (D10): each from the version its dialog opened on, answering the organisation as changed. */
+export function useOrganisationNamesApi(organisationId: string): NamesAndIdsApi<Organisation> {
+  const { client } = useTenantWorkspace();
+  const keep = useKeepOrganisation();
+  const reload = useReloadOrganisation(organisationId);
+  const params = (opened: OpenedOrganisation) => ({
+    path: { organisationId: opened.id },
+    header: ifMatch(opened.version),
+  });
+  return {
+    addIdentifier: (opened, body) =>
+      call(
+        client.POST("/api/admin/v1/organisations/{organisationId}/external-identifiers", {
+          params: params(opened),
+          body,
+        }),
+      ),
+    endIdentifier: (opened, identifierId, body) =>
+      call(
+        client.POST("/api/admin/v1/organisations/{organisationId}/external-identifiers/{identifierId}/end", {
+          params: { ...params(opened), path: { organisationId: opened.id, identifierId } },
+          body,
+        }),
+      ),
+    addAlias: (opened, body) =>
+      call(client.POST("/api/admin/v1/organisations/{organisationId}/aliases", { params: params(opened), body })),
+    removeAlias: (opened, aliasId, reason) =>
+      call(
+        client.POST("/api/admin/v1/organisations/{organisationId}/aliases/{aliasId}/remove", {
+          params: { ...params(opened), path: { organisationId: opened.id, aliasId } },
+          body: { reason },
+        }),
+      ),
+    keep,
+    reload,
+  };
+}
+
+/**
+ * The logo's calls (D15, T4b): set is multipart with one file in `file`, remove a `DELETE`; both from the version the
+ * dialog opened on.
+ */
+export function useOrganisationLogoApi(organisationId: string): RecordImageApi<Organisation> {
+  const { client } = useTenantWorkspace();
+  const keep = useKeepOrganisation();
+  const reload = useReloadOrganisation(organisationId);
+  const params = (opened: OpenedOrganisation) => ({
+    path: { organisationId: opened.id },
+    header: ifMatch(opened.version),
+  });
+  return {
+    set: (opened, file) => {
+      const form = new FormData();
+      form.append("file", file);
+      return call(
+        client.PUT("/api/admin/v1/organisations/{organisationId}/logo", {
+          params: params(opened),
+          body: {},
+          // FormData goes as it is: the browser sets the multipart Content-Type and its boundary.
+          bodySerializer: () => form,
+        }),
+      );
+    },
+    remove: (opened) =>
+      call(client.DELETE("/api/admin/v1/organisations/{organisationId}/logo", { params: params(opened) })),
+    keep,
+    reload,
+  };
 }

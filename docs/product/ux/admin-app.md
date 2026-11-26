@@ -559,6 +559,26 @@ Members & roles (invite, assign roles with scopes) · Sports (enable within enti
 - Screenshots `organisation-edit`, `organisation-primary-venue`, `add-organisation-duplicates` (CI's `screenshots`
   artifact).
 
+#### As built (S07-T6b-2b, Names & IDs and the logo)
+
+- **Names & IDs** (`?tab=names`): the shared `components/registry/names-and-ids/` tab of venues (T6a-2) with the
+  organisation's words: aliases of any kind (former name, nickname, another spelling; up to 120 characters, the display
+  name's limit) with **Add alias** and **Remove** (a reason required), and the external identifiers, ended ones
+  included, with **Add identifier** (e.g. `KMSA_CLUB_NO` or `COMPANY_REG_NO`) and **End**. A dissolved or archived
+  organisation takes no new one ("Ntinda Swifts SC is dissolved: no new one can be added."), but its aliases can be
+  removed and its identifiers ended. Each dialog sends the version it opened on and offers **Reload** on a conflict;
+  the API's refusals (`ORGANISATION_ALIAS_EXISTS`, `ORGANISATION_EXTERNAL_ID_EXISTS`, …) show under their fields.
+- **The logo** (header, under the actions; owner, T6b-2b plan: beside the logo it changes, as People's photo):
+  **Add logo** or **Change logo** (`organisation.logo.set`) opens a dialog with one file (PNG, JPEG or WebP up to 2 MB,
+  at least 64 px on the shorter side; a PNG keeps its transparency) and a preview; a file over 2 MB is refused before it
+  is sent, and the API's refusal of the file (`MEDIA_TYPE_NOT_ALLOWED`, `MEDIA_TOO_LARGE`, `MEDIA_IMAGE_TOO_SMALL`)
+  shows under it and clears it; the storage quota is the dialog's alert. **Remove logo** (`organisation.logo.remove`)
+  confirms first. A change is announced ("Logo added.") and the focus goes to Add or Change logo. A dissolved or
+  archived organisation gets no new logo (the button disabled with "… is dissolved: no new logo can be added."); its
+  logo can be removed in any status. A viewer sees the logo without a control. The control is
+  `components/registry/image-control.tsx` (`RecordImageControl`), for a team's logo and badge too (T6c-2).
+- Screenshots `organisation-logo-dialog`, `organisation-names` (CI's `screenshots` artifact).
+
 ### Competitions
 - **Competition list** and **competition detail** (Overview · Editions · History).
 - **New competition wizard** — short, because operating happens in the edition dashboard:
