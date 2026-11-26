@@ -4,6 +4,7 @@ import { Button } from "@msp/ui/components/button";
 import { Input } from "@msp/ui/components/input";
 import { Label } from "@msp/ui/components/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@msp/ui/components/table";
+import { Plus } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -13,12 +14,15 @@ import { ProblemAlert } from "@/components/problem-alert";
 import { SelectField } from "@/components/select-field";
 import { StatusBadge } from "@/components/status-badge";
 import { ForbiddenView } from "@/components/status-page";
+import { UnavailableNote } from "@/components/unavailable-note";
 import { RowName, wide } from "@/components/viewer/facts";
+import { actionAccess } from "@/lib/action-access";
 import { humanizeCode } from "@/lib/codes";
 import { useCountries } from "@/lib/reference-data";
 import { useTenantWorkspace } from "@/lib/tenant-workspace";
 import { tenantPath } from "@/lib/workspace";
 import {
+  addOrganisationActions,
   organisationFilters,
   organisationPlace,
   organisationStatuses,
@@ -33,10 +37,11 @@ const searchDelay = 300;
 /**
  * Registry → Organisations (S07 D23): the tenant's clubs, schools, federations and other bodies sorted by name,
  * searched by name, alias or external identifier and filtered by type and status. The search and filters are in the
- * address, so going back from an organisation keeps them. Add organisation comes with T6b-2.
+ * address, so going back from an organisation keeps them. **Add organisation** needs the create and its live check.
  */
 export default function OrganisationsPage() {
-  const { tenant, can } = useTenantWorkspace();
+  const { tenant, can, unavailable } = useTenantWorkspace();
+  const add = actionAccess(addOrganisationActions, can, unavailable);
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
@@ -92,10 +97,26 @@ export default function OrganisationsPage() {
 
   return (
     <section className="grid grid-cols-[minmax(0,1fr)] gap-6">
-      <header className="grid gap-1">
-        <h1 className="text-2xl font-semibold">Organisations</h1>
-        <p className="text-muted-foreground">The clubs, schools and other bodies whose teams take part in your competitions.</p>
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div className="grid gap-1">
+          <h1 className="text-2xl font-semibold">Organisations</h1>
+          <p className="text-muted-foreground">The clubs, schools and other bodies whose teams take part in your competitions.</p>
+        </div>
+        {add.allowed ? (
+          <Button asChild>
+            <Link href={`${tenantPath(tenant.slug)}/organisations/new`}>
+              <Plus aria-hidden="true" />
+              Add organisation
+            </Link>
+          </Button>
+        ) : add.reason ? (
+          <Button disabled aria-describedby="add-organisation-unavailable">
+            <Plus aria-hidden="true" />
+            Add organisation
+          </Button>
+        ) : null}
       </header>
+      {add.reason ? <UnavailableNote id="add-organisation-unavailable" reason={add.reason} /> : null}
 
       <form
         role="search"

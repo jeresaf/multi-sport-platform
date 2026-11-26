@@ -6,7 +6,7 @@
 // server sends back for review shows the server's list. The area supplies its request, its call and its candidates' IDs.
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { undecided, type DuplicateDecision } from "@/components/registry/duplicate-panel";
+import { article, undecided, type DuplicateDecision } from "@/components/registry/duplicate-panel";
 import { useTenantWorkspace } from "@/lib/tenant-workspace";
 
 /** How long the live warning waits after the last key, as the directories' search does. */
@@ -161,5 +161,3 @@ export function useDuplicateReview<TValues, TRequest, TCandidate>(
     submit,
   };
 }
-
-const article = (noun: string) => (/^[aeiou]/i.test(noun) ? "an" : "a");

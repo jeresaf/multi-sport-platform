@@ -1,10 +1,10 @@
 "use client";
 
 // Registry → Organisations data (S07 D19, D23): the directory, an organisation, its status history and parent links,
-// the status moves and the parent. Every field an organisation read answers is public or internal; none is personal.
+// the status moves, the parent, and Add and Edit's duplicate check. Every field an organisation read answers is public or internal; none is personal.
 import type { components } from "@msp/api-client";
 import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { call } from "@/lib/api";
+import { call, isApiProblem } from "@/lib/api";
 import { ifMatch } from "@/lib/concurrency";
 import { useTenantWorkspace } from "@/lib/tenant-workspace";
 
@@ -14,6 +14,11 @@ export type Organisation = Schemas["OrganisationResponse"];
 export type OrganisationStatus = Schemas["OrganisationStatus"];
 export type OrganisationType = Schemas["OrganisationType"];
 export type OrganisationParentLink = Schemas["OrganisationParentLinkResponse"];
+export type CreateOrganisationRequest = Schemas["CreateOrganisationRequest"];
+export type UpdateOrganisationRequest = Schemas["UpdateOrganisationRequest"];
+export type CheckOrganisationDuplicatesRequest = Schemas["CheckOrganisationDuplicatesRequest"];
+export type OrganisationDuplicateCandidate = Schemas["OrganisationDuplicateCandidateResponse"];
+export type OrganisationDuplicateEvidence = Schemas["OrganisationDuplicateEvidence"];
 
 export const organisationStatuses: readonly OrganisationStatus[] = [
   "ACTIVE",
@@ -91,12 +96,14 @@ export function organisationQueryKey(tenantId: string, organisationId: string) {
   return ["organisation", tenantId, organisationId] as const;
 }
 
-export function useOrganisation(organisationId: string) {
+/** `fresh`: read again on opening even when a read is kept (Edit details starts from the organisation as it is now). */
+export function useOrganisation(organisationId: string, fresh = false) {
   const { tenant, client, can } = useTenantWorkspace();
   return useQuery({
     queryKey: organisationQueryKey(tenant.tenantId, organisationId),
     queryFn: () =>
       call(client.GET("/api/admin/v1/organisations/{organisationId}", { params: { path: { organisationId } } })),
+    refetchOnMount: fresh ? "always" : true,
     enabled: can("organisation.read"),
   });
 }
@@ -193,6 +200,11 @@ export function useKeepOrganisation() {
     });
     void queryClient.invalidateQueries({ queryKey: statusChangesQueryKey(tenant.tenantId, organisation.id) });
     void queryClient.invalidateQueries({ queryKey: parentLinksQueryKey(tenant.tenantId, organisation.id) });
+    // A kept duplicate check may no longer answer as it did (a name changed): asked again when next needed.
+    void queryClient.invalidateQueries({
+      queryKey: [organisationDuplicatesQueryName, tenant.tenantId],
+      refetchType: "none",
+    });
   };
 }
 
@@ -232,5 +244,45 @@ export function useSetOrganisationParent(organisation: OpenedOrganisation) {
         }),
       ),
     onSuccess: keep,
+  });
+}
+
+/** Whether the user may add an organisation: the create and its live check (D13: granted together). */
+export const addOrganisationActions = ["organisation.create", "organisation.duplicate_check"] as const;
+
+/** Edit details: the update and the live check of a changed name, type or city. */
+export const editOrganisationActions = ["organisation.update", "organisation.duplicate_check"] as const;
+
+/** The live warning's cache (`useDuplicateReview`): a save marks it stale. */
+export const organisationDuplicatesQueryName = "organisation-duplicates";
+
+/** The organisations that may be the one typed (D13): the check's answer, strongest first. */
+export function useCheckOrganisationDuplicates() {
+  const { client } = useTenantWorkspace();
+  return async (request: CheckOrganisationDuplicatesRequest): Promise<OrganisationDuplicateCandidate[]> =>
+    (await call(client.POST("/api/admin/v1/organisations/duplicate-check", { body: request }))).candidates;
+}
+
+/** The organisations the save's `ORGANISATION_DUPLICATE_REVIEW_REQUIRED` names (its `candidates`), or null. */
+export function reviewCandidates(error: unknown): OrganisationDuplicateCandidate[] | null {
+  if (!isApiProblem(error, "ORGANISATION_DUPLICATE_REVIEW_REQUIRED")) {
+    return null;
+  }
+  const candidates = (error.problem as { candidates?: OrganisationDuplicateCandidate[] | null }).candidates;
+  // Without a list there is nothing to review: the refusal shows as it is.
+  return candidates?.length ? candidates : null;
+}
+
+/**
+ * The venues a search for the primary venue finds (the form's venue field): the first page for the text, archived ones
+ * left out (the venue directory's default). Asked once there is text and only with `venue.read`.
+ */
+export function useVenueChoices(q: string) {
+  const { tenant, client, can } = useTenantWorkspace();
+  return useQuery({
+    queryKey: ["venues", tenant.tenantId, { q, purpose: "primary-venue" }],
+    queryFn: () => call(client.GET("/api/admin/v1/venues", { params: { query: { q } } })),
+    enabled: q !== "" && can("venue.read"),
+    placeholderData: keepPreviousData,
   });
 }
