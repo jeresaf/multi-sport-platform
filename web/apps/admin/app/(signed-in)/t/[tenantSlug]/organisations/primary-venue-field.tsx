@@ -40,15 +40,18 @@ export function PrimaryVenueField({
   const [typed, setTyped] = useState("");
   const [q, setQ] = useState("");
   const [chosenName, setChosenName] = useState<string | null>(null);
-  // A choice removes the button that made it: the focus goes back to the search, and the choice is announced.
+  // A choice removes the button that made it: the focus goes back to the search (or, without one, to the choice
+  // shown), and the choice is announced, not the search it ended (pre-review 1, 2).
   const [said, setSaid] = useState("");
   const search = useRef<HTMLInputElement>(null);
+  const shownChoice = useRef<HTMLDivElement>(null);
   const choose = (venueId: string, venueName: string | null, message: string) => {
     onChange(venueId);
     setChosenName(venueName);
     setTyped("");
+    setQ("");
     setSaid(message);
-    search.current?.focus();
+    (search.current ?? shownChoice.current)?.focus();
   };
   useEffect(() => {
     const text = typed.trim();
@@ -71,21 +74,26 @@ export function PrimaryVenueField({
       <p id={`${id}-hint`} className="text-sm text-muted-foreground">
         Where it is based or usually plays. Closed venues can&apos;t be chosen.
       </p>
-      {name ? (
-        <div className="flex min-h-11 flex-wrap items-center gap-2">
-          <span className="font-medium break-words">{name}</span>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => choose("", null, "No primary venue.")}
-          >
-            <X aria-hidden="true" />
-            No primary venue
-          </Button>
-        </div>
-      ) : (
-        <p className="text-sm">None chosen.</p>
-      )}
+      <div
+        ref={shownChoice}
+        tabIndex={-1}
+        className="flex min-h-11 flex-wrap items-center gap-2 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        {name ? (
+          <>
+            <span className="font-medium break-words">{name}</span>
+            <Button type="button" variant="outline" onClick={() => choose("", null, "No primary venue.")}>
+              <X aria-hidden="true" />
+              No primary venue
+            </Button>
+          </>
+        ) : (
+          <span className="text-sm">None chosen.</span>
+        )}
+      </div>
+      <p role="status" className="sr-only">
+        {announcement}
+      </p>
       {canSearch ? (
         <div className="grid gap-2">
           <Label htmlFor={`${id}-search`}>{name ? "Find another venue" : "Find a venue"}</Label>
@@ -101,9 +109,6 @@ export function PrimaryVenueField({
             placeholder="Name, alias or identifier"
             autoComplete="off"
           />
-          <p role="status" className="sr-only">
-            {announcement}
-          </p>
           {searching ? <Loading /> : null}
           {choices.isError ? <ProblemAlert error={choices.error} /> : null}
           {answered && found.length === 0 ? (
@@ -141,7 +146,8 @@ export function PrimaryVenueField({
         <p className="text-sm text-muted-foreground">Choosing a venue needs access to the venues.</p>
       )}
       {error ? (
-        <p id={errorId} className="text-sm text-destructive">
+        // An alert: the server's refusal of the venue suppresses the form's alert, so it is read out here (pre-review 3).
+        <p id={errorId} role="alert" className="text-sm text-destructive">
           {error}
         </p>
       ) : null}

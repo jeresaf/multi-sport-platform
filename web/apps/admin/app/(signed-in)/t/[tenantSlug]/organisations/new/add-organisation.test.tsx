@@ -2,7 +2,7 @@
 // the city; the save waits for "This is a different one" and then sends `duplicatesReviewed`; a save the server sends
 // back for review shows its list; the primary venue is found by a search (a closed one can't be chosen); Add sends no
 // slug and no country unless one was chosen. The warning's finer rules are the shared hook's (the venue tests).
-import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readOnlyCapabilities } from "@/test/capabilities";
 import { candidate, kisaasi, listPage, ntinda, organisation, organisationAnswers } from "@/test/organisations";
@@ -64,6 +64,7 @@ const panel = () => screen.getByRole("region", { name: panelName });
 afterEach(() => {
   navigation.push.mockReset();
   cleanup();
+  vi.useRealTimers();
   vi.unstubAllGlobals();
 });
 
@@ -87,6 +88,10 @@ describe("Add organisation", () => {
     fireEvent.click(await screen.findByRole("button", { name: `Choose ${bukoto.name}` }));
     expect(await screen.findByText(bukoto.name)).toBeTruthy();
     expect(document.activeElement).toBe(screen.getByLabelText("Find another venue"));
+    // The choice is announced, not the search it ended (pre-review 1).
+    const venueStatus = within(screen.getByRole("group", { name: "Primary venue (optional)" })).getByRole("status");
+    expect(venueStatus.textContent).toBe(`${bukoto.name} chosen as the primary venue.`);
+    expect(screen.queryByRole("list", { name: "Venues found" })).toBeNull();
     save();
 
     await waitFor(() => expect(creates(requests)).toHaveLength(1));
@@ -164,9 +169,11 @@ describe("Add organisation", () => {
   });
 
   it("asks nothing until there is a type and a name with a letter or digit", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     const requests = open();
     fireEvent.change(await screen.findByLabelText("Name"), { target: { value: "Kiwatule Kites FC" } });
-    await new Promise((resolve) => setTimeout(resolve, 400));
+    // Past the warning's 300 ms pause: the clock is moved on, not waited for.
+    await act(() => vi.advanceTimersByTimeAsync(400));
     expect(checks(requests)).toHaveLength(0);
     type("Type", "CLUB");
     await waitFor(() => expect(checks(requests)).toHaveLength(1));
@@ -212,10 +219,12 @@ describe("Add organisation", () => {
     expect(kept.every((query) => query.state.isInvalidated)).toBe(true);
   });
 
-  it("checks the founding year, the website and the email before saving", async () => {
+  it("checks the founding year (up to the tenant's year), the website and the email before saving", async () => {
+    // 31 December, 22:00 in Kampala (UTC+3): the tenant's year has already turned.
+    vi.useFakeTimers({ shouldAdvanceTime: true, now: new Date("2026-12-31T22:00:00Z") });
     const requests = open();
     await fill();
-    const year = new Date().getFullYear();
+    const year = 2027;
     type("Founded (optional)", String(year + 1));
     type("Website (optional)", "kiwatule-kites.example");
     type("Email (optional)", "office at kites");
@@ -238,9 +247,10 @@ describe("Add organisation", () => {
     fireEvent.click(await screen.findByRole("button", { name: `Choose ${bukoto.name}` }));
     save();
     const venueField = screen.getByRole("group", { name: "Primary venue (optional)" });
-    expect(
-      await within(venueField).findByText("This venue is closed or archived now. Choose another, or no primary venue."),
-    ).toBeTruthy();
+    // Read out as an alert: the form's own alert isn't shown for it (pre-review 3).
+    expect((await within(venueField).findByRole("alert")).textContent).toBe(
+      "This venue is closed or archived now. Choose another, or no primary venue.",
+    );
     expect(screen.queryByText("That didn't work")).toBeNull();
     cleanup();
 

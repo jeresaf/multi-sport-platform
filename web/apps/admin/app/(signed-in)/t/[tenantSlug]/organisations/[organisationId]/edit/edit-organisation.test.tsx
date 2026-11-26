@@ -3,7 +3,7 @@
 // (owner, T6b plan), which leaves the organisation itself out; a conflict says "This record changed since you opened
 // it" and offers Reload; the primary venue it has stays, whatever its status, until removed; a viewer sees no Edit
 // details.
-import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readOnlyCapabilities } from "@/test/capabilities";
 import { candidate, kisaasi, ntinda, organisationAnswers } from "@/test/organisations";
@@ -51,6 +51,7 @@ const checks = (requests: RecordedRequest[]) =>
 afterEach(() => {
   navigation.push.mockReset();
   cleanup();
+  vi.useRealTimers();
   vi.unstubAllGlobals();
 });
 
@@ -111,9 +112,11 @@ describe("Edit organisation details", () => {
   });
 
   it("checks a change of type too, but not a change of the description", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     const requests = open();
     await type("Description (optional)", "A community club.");
-    await new Promise((resolve) => setTimeout(resolve, 400));
+    // Past the warning's 300 ms pause: the clock is moved on, not waited for.
+    await act(() => vi.advanceTimersByTimeAsync(400));
     expect(checks(requests)).toHaveLength(0);
     await type("Type", "ACADEMY");
     await waitFor(() => expect(checks(requests)).toHaveLength(1));
@@ -153,6 +156,18 @@ describe("Edit organisation details", () => {
     fireEvent.click(within(venueField).getByRole("button", { name: "No primary venue" }));
     expect(within(venueField).getByText("None chosen.")).toBeTruthy();
     expect(document.activeElement).toBe(screen.getByLabelText("Find a venue"));
+    save();
+    await waitFor(() => expect(puts(requests)).toHaveLength(1));
+    expect(puts(requests)[0]!.body).toMatchObject({ primaryVenueId: null });
+  });
+
+  it("without access to the venues, still removes the primary venue, announced, with the focus kept in the field", async () => {
+    const requests = open({}, ["organisation.read", "tenant.settings.read", "organisation.update", "organisation.duplicate_check"]);
+    const venueField = await screen.findByRole("group", { name: "Primary venue (optional)" });
+    expect(within(venueField).getByText("Choosing a venue needs access to the venues.")).toBeTruthy();
+    fireEvent.click(within(venueField).getByRole("button", { name: "No primary venue" }));
+    expect(within(venueField).getByRole("status").textContent).toBe("No primary venue.");
+    expect(document.activeElement?.textContent).toBe("None chosen.");
     save();
     await waitFor(() => expect(puts(requests)).toHaveLength(1));
     expect(puts(requests)[0]!.body).toMatchObject({ primaryVenueId: null });

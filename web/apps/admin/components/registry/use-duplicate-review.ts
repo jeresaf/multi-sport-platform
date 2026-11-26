@@ -37,7 +37,7 @@ export type DuplicateReviewOptions<TValues, TRequest, TCandidate> = Readonly<{
 
 /**
  * `watched` is the form's current values (what the live warning follows). `submit` runs the save: `send` gets the
- * decision to send and `refused`, which takes a failure and says whether it was the server's review list (then shown).
+ * decision to send and `refusedForReview`, which takes a failure and says whether it was the server's review list (then shown).
  */
 export function useDuplicateReview<TValues, TRequest, TCandidate>(
   watched: TValues,
