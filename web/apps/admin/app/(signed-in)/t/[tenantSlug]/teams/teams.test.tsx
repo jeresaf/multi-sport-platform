@@ -3,7 +3,7 @@
 // viewer.
 import { act, cleanup, fireEvent, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { kingfishers, listItem, listPage, meteors, sparrows, teamAnswers } from "@/test/teams";
+import { kingfishers, listItem, listPage, meteors, nightingales, sparrows, teamAnswers } from "@/test/teams";
 import { fakeApi, problem, renderWithQuery, type Answers } from "@/test/render";
 import TenantWorkspaceLayout from "../layout";
 import TeamsPage from "./page";
@@ -22,7 +22,7 @@ const viewer = ["team.read", "organisation.read", "sport.read", "tenant.settings
 function open(actions: string[] = viewer, answers: Answers = {}) {
   const requests = fakeApi({
     ...teamAnswers(actions),
-    "GET /api/admin/v1/teams": listPage([meteors, sparrows, kingfishers].map(listItem)),
+    "GET /api/admin/v1/teams": listPage([meteors, sparrows, kingfishers, nightingales].map(listItem)),
     ...answers,
   });
   renderWithQuery(
@@ -68,13 +68,15 @@ describe("teams directory", () => {
     expect(clubLinks.length).toBeGreaterThan(0);
     expect(new Set(clubLinks)).toEqual(new Set([`/t/kmsa/organisations/${meteors.organisation!.id}`]));
     expect(within(rowOf("Seeta Sparrows FC Under-17")).getAllByRole("cell")[0]?.textContent).toBe("Under-17 Boys");
-    const independent = within(rowOf("Kireka Kingfishers FC Reserves")).getAllByRole("cell");
-    expect(independent.map((cell) => cell.textContent)).toEqual([
+    const reserves = within(rowOf("Kireka Kingfishers FC Reserves")).getAllByRole("cell");
+    expect(reserves.map((cell) => cell.textContent)).toEqual([
       "Senior Men · Reserve",
       "Ringball sevens",
-      "Independent",
+      "Kireka Kingfishers FC",
       "Disbanded",
     ]);
+    const independent = within(rowOf("Nsambya Nightingales")).getAllByRole("cell");
+    expect(independent.map((cell) => cell.textContent)).toEqual(["Veterans Mixed", "Ringball sevens", "Independent", "Active"]);
     // No search or filter: the API's defaults (every status but archived).
     expect(directoryRequests(requests)[0]?.search).toBe("");
     // The navigation's entry, under Registry.

@@ -4,10 +4,14 @@
 // everything without a change control, and the Players and Staff tabs aren't shown before S08.
 import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type { QueryClient } from "@tanstack/react-query";
+import { createQueryClient } from "@/lib/query-client";
 import { readOnlyCapabilities } from "@/test/capabilities";
-import { created, kingfishers, meteors, sparrows, statusChange, team, teamAnswers } from "@/test/teams";
+import { created, kingfishers, meteors, nightingales, sparrows, statusChange, team, teamAnswers } from "@/test/teams";
+import { tenantId } from "@/test/venues";
 import { fakeApi, problem, renderWithQuery, type Answers, type RecordedRequest } from "@/test/render";
 import TenantWorkspaceLayout from "../../layout";
+import { organisationQueryKey } from "../../organisations/organisations-data";
 import type { Team, TeamStatus } from "../teams-data";
 import TeamPage from "./page";
 
@@ -23,7 +27,12 @@ vi.mock("next/navigation", () => ({
 const reads = ["team.read", "organisation.read", "venue.read", "sport.read", "tenant.settings.read"];
 const registrar = [...reads, "team.status.change"];
 
-function open(shown: Team = meteors, capabilities: Parameters<typeof teamAnswers>[0] = registrar, answers: Answers = {}) {
+function open(
+  shown: Team = meteors,
+  capabilities: Parameters<typeof teamAnswers>[0] = registrar,
+  answers: Answers = {},
+  queryClient?: QueryClient,
+) {
   navigation.teamId = shown.id;
   const requests = fakeApi({
     ...teamAnswers(capabilities),
@@ -35,6 +44,7 @@ function open(shown: Team = meteors, capabilities: Parameters<typeof teamAnswers
     <TenantWorkspaceLayout>
       <TeamPage />
     </TenantWorkspaceLayout>,
+    queryClient,
   );
   return requests;
 }
@@ -94,10 +104,16 @@ describe("Team page", () => {
   });
 
   it("says what isn't recorded, names youth categories in words and an independent team as such", async () => {
-    open(kingfishers);
-    await loaded(kingfishers);
+    open(nightingales);
+    await loaded(nightingales);
     let overview = screen.getByRole("tabpanel");
     expect(within(overview).getByText("Independent")).toBeTruthy();
+    expect(within(overview).getByText("Veterans")).toBeTruthy();
+    cleanup();
+
+    open(kingfishers);
+    await loaded(kingfishers);
+    overview = screen.getByRole("tabpanel");
     expect(within(overview).getByText("Reserve")).toBeTruthy();
     cleanup();
 
@@ -232,6 +248,33 @@ describe("Team status moves", () => {
     expect(moveButtons()).toEqual(["Reform", "Archive"]);
   });
 
+  it("marks stale every read that lists the team or counts it: the directories, its organisation and the subscription", async () => {
+    const queryClient = createQueryClient();
+    const kept = [
+      ["teams", tenantId, {}],
+      ["teams", tenantId, { homeVenueId: meteors.homeVenue!.id }],
+      organisationQueryKey(tenantId, meteors.organisation!.id),
+      ["tenant-subscription", tenantId],
+    ] as const;
+    for (const key of kept) {
+      queryClient.setQueryData(key, { kept: true });
+    }
+    const requests = open(
+      meteors,
+      registrar,
+      { [`POST ${statusPath()}`]: { status: 200, body: team({ status: "ARCHIVED", version: 6 }) } },
+      queryClient,
+    );
+    await loaded();
+    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+    confirm("Archive", "Duplicate record.");
+    await sentTo(requests, statusPath());
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    for (const key of kept) {
+      expect(queryClient.getQueryState(key)?.isInvalidated, JSON.stringify(key)).toBe(true);
+    }
+  });
+
   it("reforms a disbanded team as active, and at the plan's team limit shows the limit with the dialog still open", async () => {
     const requests = open(kingfishers, registrar, {
       [`POST ${statusPath(kingfishers)}`]: {
@@ -247,6 +290,28 @@ describe("Team status moves", () => {
       status: "ACTIVE",
       reason: "The reserve side plays again this season.",
     });
+    expect(await within(dialog()).findByText(/Your plan allows 40 teams\./)).toBeTruthy();
+  });
+
+  it("unarchives to a status that counts, and at the plan's team limit shows the limit with the dialog still open", async () => {
+    const archived = team({ status: "ARCHIVED" });
+    const requests = open(archived, registrar, {
+      [`GET /api/admin/v1/teams/${archived.id}/status-changes`]: {
+        status: 200,
+        body: {
+          items: [statusChange("0199a3f0-0000-7000-8000-0000000000c3", "INACTIVE", "ARCHIVED", "Old record.", "2026-11-20T09:00:00Z"), created],
+        },
+      },
+      [`POST ${statusPath(archived)}`]: {
+        status: 403,
+        body: problem("ENTITLEMENT_QUOTA_EXCEEDED", 403, { detail: "Your plan allows 40 teams." }),
+      },
+    });
+    await loaded(archived);
+    fireEvent.click(screen.getByRole("button", { name: "Unarchive" }));
+    await within(dialog()).findByText(/goes back to inactive/);
+    confirm("Unarchive", "Archived by mistake.");
+    expect((await sentTo(requests, statusPath(archived))).body).toEqual({ status: "INACTIVE", reason: "Archived by mistake." });
     expect(await within(dialog()).findByText(/Your plan allows 40 teams\./)).toBeTruthy();
   });
 

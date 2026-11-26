@@ -77,10 +77,22 @@ export const kingfishers = team({
   shortName: null,
   slug: "kireka-kingfishers-fc-reserves",
   level: "RESERVE",
-  organisation: null,
+  organisation: { id: "0199a3f0-0000-7000-8000-0000000000e6", displayName: "Kireka Kingfishers FC", slug: "kireka-kingfishers-fc" },
   homeVenue: null,
   formerNames: [],
   status: "DISBANDED",
+});
+/** A team without an organisation (D22: a test case, not demo data; pilot-customer.md lists the name). */
+export const nightingales = team({
+  id: "0199a3f0-0000-7000-8000-0000000000f4",
+  name: "Nsambya Nightingales",
+  shortName: null,
+  slug: "nsambya-nightingales",
+  genderCategory: "MIXED",
+  ageGroup: "VETERANS",
+  organisation: null,
+  homeVenue: null,
+  formerNames: [],
 });
 
 export function listItem(shown: Team): TeamListItem {

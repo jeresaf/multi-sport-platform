@@ -122,8 +122,8 @@ export function unarchiveTo(changes: readonly StatusChange[]): TeamStatus | null
 export type OpenedTeam = Pick<Team, "id" | "version">;
 
 /**
- * Keeps the team a change answered and marks the directories that list teams stale (the team directory, a venue's
- * home teams) and the organisation it belongs to (its Teams tab reads the organisation).
+ * Keeps the team a change answered and marks stale the directories that list teams (the team directory, a venue's
+ * home teams), the organisation it belongs to (its Teams tab reads the organisation) and the subscription's team count.
  */
 export function useKeepTeam() {
   const { tenant } = useTenantWorkspace();
@@ -132,6 +132,8 @@ export function useKeepTeam() {
     queryClient.setQueryData(teamQueryKey(tenant.tenantId, team.id), team);
     void queryClient.invalidateQueries({ queryKey: ["teams", tenant.tenantId] });
     void queryClient.invalidateQueries({ queryKey: teamStatusChangesQueryKey(tenant.tenantId, team.id) });
+    // A move can change the `MAX_TEAMS` count the Subscription page shows (D14), as members' and sports' changes do.
+    void queryClient.invalidateQueries({ queryKey: ["tenant-subscription", tenant.tenantId] });
     if (team.organisation) {
       void queryClient.invalidateQueries({ queryKey: organisationQueryKey(tenant.tenantId, team.organisation.id) });
     }

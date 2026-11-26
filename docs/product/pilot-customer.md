@@ -164,7 +164,8 @@ Club** (`bee-eater-sports`), **Crane Netball Club** (`crane-netball`), **Hammerk
 (`hammerkop-sports`), **Wagtail Junior Sports Club** (`wagtail-juniors`), **Bulbul Sports Club**
 (`bulbul-sports`), **Barbet Sports Club** (`barbet-sports`), **Hoopoe Sports Club** (`hoopoe-sports`) and **Firefinch Sports Club**
 (`firefinch-sports`, the organisation screenshots, S07-T6b) and **Mousebird Sports Club** (`mousebird-sports`, the team
-screenshots, S07-T6c-1); the S06 slice demo uses **Coucal Sports Club** (`coucal-sports`) and
+screenshots, S07-T6c-1, with the independent test team **Nsambya Nightingales**: a team without an organisation is
+a test case, not demo data, D22); the S06 slice demo uses **Coucal Sports Club** (`coucal-sports`) and
 **Francolin Schools Sports Circle** (`francolin-schools`). They are never seeded; e2e runs make each slug and name run-unique.
 
 ## Privacy notes for this persona

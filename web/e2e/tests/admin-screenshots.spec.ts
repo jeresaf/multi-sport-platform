@@ -666,8 +666,8 @@ test("screenshots of the organisation screens", async ({ page, request }) => {
 
 test("screenshots of the team screens", async ({ page, request }) => {
   // A club (pilot-customer.md: its first team has its name), its ground and three teams made through the API on a tenant of this run's own (the demo data is S07-T7's):
-  // a renamed team with every field and a status change, a youth team with only what is required, and a disbanded
-  // independent one.
+  // a renamed team with every field and a status change, a youth team with only what is required, a disbanded reserve
+  // side of another club and an independent team.
   test.slow();
   const tenant = await ownTenant(request, "mousebird-sports", "Mousebird Sports Club");
   const owner = { email: personEmail("brian.ssemakula", tenant.slug), password: newPassword() };
@@ -719,9 +719,23 @@ test("screenshots of the team screens", async ({ page, request }) => {
     { variant: sport.variant, name: "Mutundwe Meteors FC Under-17", genderCategory: "MEN", ageGroup: "U17", organisationId: club.id },
     201,
   );
+  const kireka = await send("/api/admin/v1/organisations", { type: "CLUB", displayName: "Kireka Kingfishers FC", city: "Kampala" }, 201);
   const reserves = await send(
     "/api/admin/v1/teams",
-    { variant: sport.variant, name: "Kireka Kingfishers FC Reserves", genderCategory: "MEN", ageGroup: "SENIOR", level: "RESERVE" },
+    {
+      variant: sport.variant,
+      name: "Kireka Kingfishers FC Reserves",
+      genderCategory: "MEN",
+      ageGroup: "SENIOR",
+      level: "RESERVE",
+      organisationId: kireka.id,
+    },
+    201,
+  );
+  // An independent team: a test case, not a club's side (D22).
+  await send(
+    "/api/admin/v1/teams",
+    { variant: sport.variant, name: "Nsambya Nightingales", genderCategory: "MIXED", ageGroup: "VETERANS" },
     201,
   );
   await send(`/api/admin/v1/teams/${reserves.id}/status`, { status: "DISBANDED", reason: "Folded into the first team." }, 200, reserves.version);
