@@ -1,0 +1,39 @@
+{
+  "_comment": "Demo organisations (S07 D22; docs/product/pilot-customer.md). Every name is invented. KMSA's clubs of the seed set (the four multi-sport clubs, then the football, rugby and basketball clubs) and ELSSC's four schools. 'primaryVenue' names a venue of demo-venues.json. Created through organisation.create as the system, each with a generated placeholder logo; an organisation is found again by its display name.",
+  "tenants": [
+    {
+      "slug": "kmsa",
+      "organisations": [
+        { "displayName": "Ntinda Swifts SC", "legalName": "Ntinda Swifts Sports Club", "shortName": "Ntinda Swifts", "type": "CLUB", "city": "Kampala", "foundedYear": 1998, "primaryVenue": "Bukoto Community Stadium" },
+        { "displayName": "Kisaasi Kestrels SC", "legalName": "Kisaasi Kestrels Sports Club", "shortName": "Kisaasi Kestrels", "type": "CLUB", "city": "Kampala", "foundedYear": 2004, "primaryVenue": "Kisaasi Recreation Ground" },
+        { "displayName": "Kololo Kudus Club", "shortName": "Kololo Kudus", "type": "CLUB", "city": "Kampala", "foundedYear": 1991, "primaryVenue": "Ggaba Lakeside Rugby Ground" },
+        { "displayName": "Naguru Nightjars Club", "shortName": "Naguru Nightjars", "type": "CLUB", "city": "Kampala", "foundedYear": 2009, "primaryVenue": "Metro Indoor Arena" },
+        { "displayName": "Bukoto Comets FC", "type": "CLUB", "city": "Kampala", "foundedYear": 2001, "primaryVenue": "Bukoto Community Stadium" },
+        { "displayName": "Kansanga Harriers FC", "type": "CLUB", "city": "Kampala", "foundedYear": 2006, "primaryVenue": "Bukoto Community Stadium" },
+        { "displayName": "Nakawa Nomads FC", "type": "CLUB", "city": "Kampala", "foundedYear": 1995, "primaryVenue": "Kisaasi Recreation Ground" },
+        { "displayName": "Kireka Kingfishers FC", "type": "CLUB", "city": "Wakiso", "foundedYear": 2010, "primaryVenue": "Kisaasi Recreation Ground" },
+        { "displayName": "Bunga Breakers FC", "type": "CLUB", "city": "Kampala", "foundedYear": 2020 },
+        { "displayName": "Seeta Sparrows FC", "type": "CLUB", "city": "Mukono", "foundedYear": 2012, "primaryVenue": "Seeta Hill Sports Field" },
+        { "displayName": "Kyebando Ravens FC", "type": "CLUB", "city": "Kampala", "foundedYear": 2003, "primaryVenue": "Kisaasi Recreation Ground" },
+        { "displayName": "Mutundwe Meteors FC", "type": "CLUB", "city": "Kampala", "foundedYear": 2018, "primaryVenue": "Bukoto Community Stadium" },
+        { "displayName": "Ggaba Gulls RFC", "type": "CLUB", "city": "Kampala", "foundedYear": 1999, "primaryVenue": "Ggaba Lakeside Rugby Ground" },
+        { "displayName": "Muyenga Mambas RFC", "type": "CLUB", "city": "Kampala", "foundedYear": 2007, "primaryVenue": "Ggaba Lakeside Rugby Ground" },
+        { "displayName": "Mutungo Marlins RFC", "type": "CLUB", "city": "Kampala", "foundedYear": 2011, "primaryVenue": "Ggaba Lakeside Rugby Ground" },
+        { "displayName": "Bugolobi Bison", "type": "CLUB", "city": "Kampala", "foundedYear": 2013, "primaryVenue": "Metro Indoor Arena" },
+        { "displayName": "Muyenga Monarchs", "type": "CLUB", "city": "Kampala", "foundedYear": 2005, "primaryVenue": "Metro Indoor Arena" },
+        { "displayName": "Kansanga Kites", "type": "CLUB", "city": "Kampala", "foundedYear": 2015, "primaryVenue": "Metro Indoor Arena" },
+        { "displayName": "Lubaga Lynx", "type": "CLUB", "city": "Kampala", "foundedYear": 2008, "primaryVenue": "Metro Indoor Arena" },
+        { "displayName": "Kira Ibis", "type": "CLUB", "city": "Kira", "foundedYear": 2017, "primaryVenue": "Metro Indoor Arena" }
+      ]
+    },
+    {
+      "slug": "elssc",
+      "organisations": [
+        { "displayName": "Lakeshore High School", "type": "SCHOOL", "city": "Jinja", "foundedYear": 1964, "primaryVenue": "Lakeshore High School Playing Fields" },
+        { "displayName": "Mabira Hills College", "type": "SCHOOL", "city": "Lugazi", "foundedYear": 1987 },
+        { "displayName": "Riverside Secondary School", "type": "SCHOOL", "city": "Jinja", "foundedYear": 1972 },
+        { "displayName": "Sunrise Academy", "type": "SCHOOL", "city": "Mukono", "foundedYear": 2002 }
+      ]
+    }
+  ]
+}

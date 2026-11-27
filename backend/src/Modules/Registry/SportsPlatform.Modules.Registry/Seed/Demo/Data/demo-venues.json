@@ -1,0 +1,73 @@
+{
+  "_comment": "Demo venues (S07 D22; docs/product/pilot-customer.md). Every place is invented, so no venue has coordinates. Supported sports are listed only where football is played: rugby and basketball join when S15 and S16 publish their definitions. Created through venue.create as the system; a venue is found again by name.",
+  "tenants": [
+    {
+      "slug": "kmsa",
+      "venues": [
+        {
+          "name": "Bukoto Community Stadium",
+          "shortName": "Bukoto Stadium",
+          "type": "STADIUM",
+          "addressLine": "Bukoto",
+          "city": "Kampala",
+          "timeZone": "Africa/Kampala",
+          "capacity": 3000,
+          "surfaces": ["NATURAL_GRASS"],
+          "supportedVariants": ["FOOTBALL_ASSOCIATION"]
+        },
+        {
+          "name": "Kisaasi Recreation Ground",
+          "type": "SPORTS_GROUND",
+          "addressLine": "Kisaasi",
+          "city": "Kampala",
+          "timeZone": "Africa/Kampala",
+          "capacity": 800,
+          "surfaces": ["NATURAL_GRASS"],
+          "supportedVariants": ["FOOTBALL_ASSOCIATION"]
+        },
+        {
+          "name": "Ggaba Lakeside Rugby Ground",
+          "type": "SPORTS_GROUND",
+          "addressLine": "Ggaba",
+          "city": "Kampala",
+          "timeZone": "Africa/Kampala",
+          "capacity": 1200,
+          "surfaces": ["NATURAL_GRASS"]
+        },
+        {
+          "name": "Metro Indoor Arena",
+          "type": "ARENA",
+          "addressLine": "Naguru",
+          "city": "Kampala",
+          "timeZone": "Africa/Kampala",
+          "capacity": 1500,
+          "surfaces": ["HARDWOOD"]
+        },
+        {
+          "name": "Seeta Hill Sports Field",
+          "type": "FIELD",
+          "addressLine": "Seeta",
+          "city": "Mukono",
+          "timeZone": "Africa/Kampala",
+          "capacity": 500,
+          "surfaces": ["NATURAL_GRASS"],
+          "supportedVariants": ["FOOTBALL_ASSOCIATION"]
+        }
+      ]
+    },
+    {
+      "slug": "elssc",
+      "venues": [
+        {
+          "name": "Lakeshore High School Playing Fields",
+          "type": "SCHOOL_GROUND",
+          "city": "Jinja",
+          "timeZone": "Africa/Kampala",
+          "capacity": 400,
+          "surfaces": ["NATURAL_GRASS"],
+          "supportedVariants": ["FOOTBALL_ASSOCIATION"]
+        }
+      ]
+    }
+  ]
+}

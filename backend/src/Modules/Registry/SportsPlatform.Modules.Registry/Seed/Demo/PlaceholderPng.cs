@@ -30,6 +30,25 @@ internal static class PlaceholderPng
         return Write(size, size, (x, y) => (x - centre) * (x - centre) + (y - centre) * (y - centre) < radius * radius ? disc : background);
     }
 
+    /// <summary>
+    /// A <paramref name="size"/> × <paramref name="size"/> shield with a stripe on a plain background, standing in for
+    /// an organisation's logo or a team's badge (S07 D22): never a real club's.
+    /// </summary>
+    public static byte[] Logo(int size, int palette)
+    {
+        var (shield, background) = _palettes[Math.Abs(palette % _palettes.Length)];
+        byte[] stripe = [250, 250, 250];
+        double left = size * 0.2, right = size * 0.8, top = size * 0.15, shoulder = size * 0.55, tip = size * 0.88;
+        var centre = size / 2.0;
+        return Write(size, size, (x, y) =>
+        {
+            // A rectangle down to the shoulder, then narrowing to the tip.
+            var halfWidth = y < shoulder ? (right - left) / 2 : (right - left) / 2 * (tip - y) / (tip - shoulder);
+            var inside = y >= top && y < tip && Math.Abs(x - centre) < halfWidth;
+            return !inside ? background : Math.Abs(y - (size * 0.42)) < size * 0.06 ? stripe : shield;
+        });
+    }
+
     /// <summary>A page with grey ruled lines and a title bar, standing in for a scanned consent form.</summary>
     public static byte[] Form()
     {
