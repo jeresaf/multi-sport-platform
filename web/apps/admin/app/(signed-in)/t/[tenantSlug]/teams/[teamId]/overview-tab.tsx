@@ -16,7 +16,7 @@ const linkClass = "break-words text-primary underline-offset-4 hover:underline";
 /**
  * Overview (S07 D23): what the team is (sport named from its definition, category, code, motto, founded, since when it
  * has its name), where it belongs (its organisation, or independent; its home venue) and its colours as swatches with
- * their hex. The logo and badge controls come with T6c-2b.
+ * their hex, and the badge (the logo is the header's; both are changed from the header).
  */
 export function OverviewTab({ team }: Readonly<{ team: Team }>) {
   const { tenant, can } = useTenantWorkspace();
@@ -76,6 +76,15 @@ export function OverviewTab({ team }: Readonly<{ team: Team }>) {
             ],
           ]}
         />
+      </ViewerSection>
+      <ViewerSection title="Badge">
+        {team.badge === null ? (
+          <p className="text-muted-foreground">None</p>
+        ) : (
+          // A signed URL on the API's host, changing as it expires: not something Next's image optimiser can cache.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={team.badge.mediumUrl} alt={`Badge of ${team.name}`} className="size-24 rounded-md border object-contain" />
+        )}
       </ViewerSection>
       <ViewerSection title="Colours">
         <Facts items={colours.map(([label, colour]) => [label, colour ? <ColourSwatch colour={colour} /> : "None"] as const)} />

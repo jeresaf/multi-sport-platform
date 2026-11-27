@@ -1,7 +1,8 @@
 // Registry → Teams → a team (S07 T6c-1): Overview with its category, organisation, home venue and colours, the
 // status and former-name history, the status moves the machine allows, each with a required reason and the version
 // its dialog opened on; reforming at the plan's team limit shows the limit; a conflict offers Reload; a viewer sees
-// everything without a change control, and the Players and Staff tabs aren't shown before S08.
+// everything without a change control, and the Players and Staff tabs aren't shown before S08 (Names & IDs is
+// T6c-2b's).
 import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { QueryClient } from "@tanstack/react-query";
@@ -123,8 +124,8 @@ describe("Team page", () => {
     expect(within(overview).getByText("Under-17")).toBeTruthy();
     expect(within(overview).getByText("Boys")).toBeTruthy();
     expect(within(overview).getByText("Not recorded")).toBeTruthy();
-    // No home venue, short name, code, motto or colour.
-    expect(within(overview).getAllByText("None").length).toBe(7);
+    // No home venue, short name, code, motto, badge or colour.
+    expect(within(overview).getAllByText("None").length).toBe(8);
   });
 
   it("names the organisation and the venue without links for whoever can't read them", async () => {
@@ -175,10 +176,10 @@ describe("Team page", () => {
     expect(screen.getByText("Seeta Sparrows FC Under-17 has had no other name.")).toBeTruthy();
   });
 
-  it("shows Overview and History only: Players and Staff come with team memberships", async () => {
+  it("shows Overview, History and Names & IDs only: Players and Staff come with team memberships", async () => {
     open();
     await loaded();
-    expect(screen.getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Overview", "History"]);
+    expect(screen.getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Overview", "History", "Names & IDs"]);
   });
 
   it("answers an unknown team with Not found", async () => {
