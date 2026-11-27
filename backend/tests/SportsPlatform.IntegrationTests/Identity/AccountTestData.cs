@@ -63,12 +63,14 @@ internal static partial class AccountTestData
         return Uri.UnescapeDataString(match.Groups["token"].Value);
     }
 
-    /// <summary>Delivers the outbox (twice: audit entries are messages a consumer appends).</summary>
+    /// <summary>Delivers the outbox in rounds, since a consumer appends messages (audit entries) of its own.</summary>
     public static async Task DeliverOutboxAsync(IServiceProvider services, CancellationToken cancellationToken)
     {
+        // Until a round finds nothing (a DEMO seed writes more than a batch); bounded in case a consumer keeps failing.
         var processor = services.GetRequiredService<OutboxProcessor>();
-        await processor.ProcessOnceAsync(cancellationToken);
-        await processor.ProcessOnceAsync(cancellationToken);
+        for (var batch = 0; batch < 50 && await processor.ProcessOnceAsync(cancellationToken) > 0; batch++)
+        {
+        }
     }
 
     [GeneratedRegex(@"/reset-password\?token=(?<token>[^\s&]+)")]
