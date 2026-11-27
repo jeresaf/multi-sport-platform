@@ -414,8 +414,8 @@ Deliver:
   docs (D24); slice acceptance with its evidence.
 
 Acceptance:
-- [ ] `seed --category DEMO` twice gives KMSA its clubs, five venues and football teams, and ELSSC its schools, venue
-      and teams, with no change on the second run (test).
+- [x] `seed --category DEMO` twice gives KMSA its clubs, five venues and football teams, and ELSSC its schools, venue
+      and teams, with no change on the second run (test). (T7a `DemoRegistrySeederTests`.)
 - [ ] The slice demo runs in CI.
 
 ## Carried over from S06 (slice review 2026-11-21)
@@ -775,3 +775,15 @@ The rest of S06's tech debt has its own trigger in PROGRESS.md ("From S06").
   `RecordImageControl`s (`team-logo`, `team-badge`) in the header under the actions, as the organisation's logo (owner,
   plan 2026-11-27); the header shows the logo, Overview the badge ("None" without one). `acceptsNewChildren` mirrors
   `Team.EnsureAcceptsNewChildren`. T6 is complete. No backend change.
+- **T7a (DEMO venues, organisations and teams):** T7 is two PRs (owner, plan 2026-11-27): T7a the seeders, T7b the
+  slice demo e2e, D24's docs and the slice close. `registry.demo.venues` (order 30), `registry.demo.organisations`
+  (31) and `registry.demo.teams` (32) read `demo-venues.json`, `demo-organisations.json` and `demo-teams.json` (embedded,
+  beside `demo-people.json`) and share `DemoRegistryData` (loading, the active tenant, validation as the endpoint, the
+  refusal message). Each create runs without `duplicatesReviewed`: the data expects no warning, so one stops the run
+  with the candidates. Venues and organisations are found again by name key, teams by variant, category and a current
+  or former name of the club (the earliest created), so a rename made in the demo doesn't create the team again.
+  Organisations and teams name their venue and organisation by name, resolved in the tenant when created. The teams
+  file groups teams by club (the club's name, codes, colours, ground and founded year); a club with `firstName` is
+  created under it and renamed from `nameSince`. `PlaceholderPng.Logo` draws a shield for logos and badges. Steps after
+  create: the organisation's logo; the team's rename, badge, then archiving. `RegistryTestData` is unchanged (S07's
+  tests use the API helpers; owner, plan).

@@ -7,13 +7,14 @@ at the start of every review.
 
 - **Current slice:** S07 — Organisations, teams and venues (docs/build/slices/S07-organisations-teams-venues.md,
   written by the S06 slice review). S00–S06 are done
-- **Current task:** — (S07-T6c-2b in review: #144)
-- **Next:** S07-T7 — Demo data and slice close
+- **Current task:** S07-T7a — DEMO venues, organisations and teams (T7 in two PRs: T7a the seeders, T7b the slice
+  demo e2e, docs and slice close)
+- **Next:** S07-T7b — Slice demo e2e, docs and slice close
 - **Blocked on:** —
 
 ## Next up
 
-1. S07-T7 — Demo data and slice close
+1. S07-T7b — Slice demo e2e (`admin-registry-demo`), D24 docs, slice acceptance and close
 
 ## Log
 
@@ -157,6 +158,14 @@ at the start of every review.
 | 2026-11-27 | S07-T6c-2b | #144 | Admin web: Registry → Teams, the rest of D23. **Names & IDs** (`?tab=names`): the shared `NamesAndIdsTab` with the team's config (`team.alias.*`, `team.external_id.*`; nicknames and spellings only, a former name comes from Rename and is in History; 120 characters; closed with "… is disbanded: no new one can be added." for a disbanded or archived team, whose aliases can still be removed and identifiers ended). **Logo and badge**: two shared `RecordImageControl`s (`team-logo`, `team-badge`; `team.logo.*`, `team.badge.*`) in the header under the actions; the header shows the logo, Overview a **Badge** section ("None" without one). `acceptsNewChildren` and `closedNote` in `teams-data.ts` mirror `Team.EnsureAcceptsNewChildren`. Screenshots `team-badge-dialog`, `team-images`, `team-names`. T6 acceptance complete | Owner (plan 2026-11-27): both image controls in the header, not under Overview (see Deviations). No backend change, actions, errors, events, migrations or dependencies. `team.test.tsx`: the third tab and Overview's badge "None" updated on purpose. Size: about 200 production and 450 test lines. Pre-review (ready, no blocker or major): `closedNote` moved beside `acceptsNewChildren`, the badge `<img>`'s reason, the read-only note asserted; not changed: the header's repeated read-only notes (as the organisation's). Review (subagent, approve with nits): R1 comment lines wrapped at 120 (the page's, and two test headers) |
 
 ## Deviations from spec (agreed)
+
+- **S07-T7 (owner, plan 2026-11-27):** two PRs (T7a the DEMO seeders, T7b the e2e, docs and slice close). Q51's
+  default confirmed (football teams only; rugby and basketball clubs and venues seeded without teams). D22's
+  "`RegistryTestData` gains organisations, teams and venues" isn't done: S07's tests already create them through the
+  API helpers (`VenueRequests`, `OrganisationRequests`, `TeamRequests`). Every demo organisation gets a placeholder
+  logo and every Senior Men team but Bunga Breakers FC a badge (the slice demo uploads Bunga's); Bunga Breakers FC
+  has no home venue for the same reason. A team is found again by a current or former name, so a demo rename doesn't
+  make the next run create it again. Capacities other than Bukoto's 3,000 are invented.
 
 - **S07-T6c-2a (owner, plan 2026-11-26):** Rename is its own page (`/teams/{id}/rename`), not a dialog; the
   organisation's Teams tab offers Add team with the organisation chosen (beyond D23). One PR (approved in the
