@@ -82,7 +82,7 @@ export function OverviewTab({ team }: Readonly<{ team: Team }>) {
           <p className="text-muted-foreground">None</p>
         ) : (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={team.badge.mediumUrl} alt={`Badge of ${team.name}`} className="size-24 object-contain" />
+          <img src={team.badge.mediumUrl} alt={`Badge of ${team.name}`} className="size-24 rounded-md border object-contain" />
         )}
       </ViewerSection>
       <ViewerSection title="Colours">

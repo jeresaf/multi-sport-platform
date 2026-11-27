@@ -792,6 +792,41 @@ test("screenshots of the team screens", async ({ page, request }) => {
   await expect(page.getByRole("region", { name: "Is this a team you already have?" })).toHaveCount(0);
   await shoot(page, "team-rename", [phone, ...widths]);
 
+  // The logo, the badge and Names & IDs (S07-T6c-2b): the badge dialog with its preview, the header and Overview with
+  // the saved logo and badge, and a nickname and a registration number (added through the API).
+  await page.goto(`/t/${tenant.slug}/teams/${weavers.id}`);
+  for (const image of ["logo", "badge"] as const) {
+    await page.getByRole("button", { name: `Add ${image}` }).click();
+    await page
+      .getByRole("dialog")
+      .getByLabel(image === "logo" ? "Logo" : "Badge")
+      .setInputFiles({ name: `mutundwe-meteors-${image}.png`, mimeType: "image/png", buffer: placeholderPng(320) });
+    await expect(page.getByRole("dialog").getByRole("img", { name: `The chosen ${image}` })).toBeVisible();
+    if (image === "badge") {
+      await shoot(page, "team-badge-dialog", [phone, ...widths]);
+    }
+    await page.getByRole("dialog").getByRole("button", { name: `Add ${image}` }).click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: `Change ${image}` })).toBeVisible();
+  }
+  await expect(page.getByRole("img", { name: "Logo of Mutundwe Meteors FC" })).toBeVisible();
+  await expect(page.getByRole("img", { name: "Badge of Mutundwe Meteors FC" })).toBeVisible();
+  await expect(loading(page)).toHaveCount(0);
+  await shoot(page, "team-images", [phone, ...widths]);
+  const imaged = (await (await request.get(`/api/admin/v1/teams/${weavers.id}`, { headers })).json()) as { version: number };
+  const nicknamed = await send(`/api/admin/v1/teams/${weavers.id}/aliases`, { name: "The Meteors", kind: "NICKNAME" }, 200, imaged.version);
+  await send(
+    `/api/admin/v1/teams/${weavers.id}/external-identifiers`,
+    { authority: "KMSA_TEAM_NO", value: "T-0231", validFrom: "2024-02-01" },
+    200,
+    nicknamed.version,
+  );
+  await page.goto(`/t/${tenant.slug}/teams/${weavers.id}?tab=names`);
+  await expect(page.getByText("T-0231").first()).toBeVisible();
+  await expect(page.getByText("The Meteors").first()).toBeVisible();
+  await expect(loading(page)).toHaveCount(0);
+  await shoot(page, "team-names", [phone, ...widths]);
+
   // Add team from the club's Teams tab, the club chosen; the club's first team's name is warned of.
   await page.goto(`/t/${tenant.slug}/organisations/${club.id}?tab=teams`);
   await page.getByRole("link", { name: "Add team" }).click();

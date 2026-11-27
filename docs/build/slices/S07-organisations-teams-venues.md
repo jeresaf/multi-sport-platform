@@ -403,10 +403,10 @@ Deliver:
   capability; Vitest for forms, warnings and dialogs; screenshots.
 
 Acceptance:
-- [ ] The duplicate warning shows the candidates and lets the user open one or go on; a conflict shows "This record
+- [x] The duplicate warning shows the candidates and lets the user open one or go on; a conflict shows "This record
       changed since you opened it" (Vitest).
-- [ ] The team form lists only enabled sports; labels come from definitions; no sport word in web code (ESLint rule).
-- [ ] A viewer sees the directories and details without any change control (Vitest).
+- [x] The team form lists only enabled sports; labels come from definitions; no sport word in web code (ESLint rule).
+- [x] A viewer sees the directories and details without any change control (Vitest).
 
 ### T7 — Demo data and slice close (~2 PRs, about 1,000 lines)
 Deliver:
@@ -769,3 +769,9 @@ The rest of S06's tech debt has its own trigger in PROGRESS.md ("From S06").
   words; `ENTITLEMENT_QUOTA_EXCEEDED` shows in the alert. `ColourSwatch` moved to `components/registry/colour-swatch.tsx`. The
   Overview's and the form's section reads "Organisation and home venue" (was "… and ground", a sport-flavoured word).
   No backend change.
+- **T6c-2b (team screens: Names & IDs, the logo and the badge):** one PR (owner, plan 2026-11-27). Names & IDs is the
+  shared `NamesAndIdsTab` with the team's config: nicknames and spellings only (a former name comes from Rename and is
+  in History), 120 characters, closed when disbanded or archived. The logo and badge controls are two shared
+  `RecordImageControl`s (`team-logo`, `team-badge`) in the header under the actions, as the organisation's logo (owner,
+  plan 2026-11-27); the header shows the logo, Overview the badge ("None" without one). `acceptsNewChildren` mirrors
+  `Team.EnsureAcceptsNewChildren`. T6 is complete. No backend change.
