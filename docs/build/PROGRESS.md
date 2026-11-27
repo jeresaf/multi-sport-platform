@@ -7,14 +7,14 @@ at the start of every review.
 
 - **Current slice:** S07 — Organisations, teams and venues (docs/build/slices/S07-organisations-teams-venues.md,
   written by the S06 slice review). S00–S06 are done
-- **Current task:** — (S07-T6c-2a in review: #143)
-- **Next:** S07-T6c-2b — Names & IDs, the logo and the badge
+- **Current task:** S07-T6c-2b — Team screens: Names & IDs, the logo and the badge (plan approved 2026-11-27: both
+  image controls in the header under the actions, as the organisation's; Overview shows the badge)
+- **Next:** S07-T7 — Demo data and slice close
 - **Blocked on:** —
 
 ## Next up
 
-1. S07-T6c-2b — Team screens: Names & IDs, the logo and the badge (the last of T6c's three PRs, owner, plan 2026-11-26)
-2. S07-T7 — Demo data and slice close
+1. S07-T7 — Demo data and slice close
 
 ## Log
 
