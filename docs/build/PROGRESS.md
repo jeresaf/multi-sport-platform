@@ -7,8 +7,7 @@ at the start of every review.
 
 - **Current slice:** S07 — Organisations, teams and venues (docs/build/slices/S07-organisations-teams-venues.md,
   written by the S06 slice review). S00–S06 are done
-- **Current task:** S07-T6c-2b — Team screens: Names & IDs, the logo and the badge (plan approved 2026-11-27: both
-  image controls in the header under the actions, as the organisation's; Overview shows the badge)
+- **Current task:** — (S07-T6c-2b in review)
 - **Next:** S07-T7 — Demo data and slice close
 - **Blocked on:** —
 
@@ -162,6 +161,9 @@ at the start of every review.
   organisation's Teams tab offers Add team with the organisation chosen (beyond D23). One PR (approved in the
   plan); it grew to about 2,050 production lines, reported to the owner before `/finish-task`, with Rename offered as
   a split.
+
+- **S07-T6c-2b (owner, plan 2026-11-27):** the team's logo and badge controls are in the page header under the
+  actions, as the organisation's logo control, not under Overview as D23 lists them; Overview shows the badge image.
 
 - **S07-T6b-2b (owner, plan 2026-11-26):** the organisation's logo control is in the page header under the actions,
   beside the logo it changes (as People's photo), not under Overview as D23 lists it. Teams (T6c-2) do the same.

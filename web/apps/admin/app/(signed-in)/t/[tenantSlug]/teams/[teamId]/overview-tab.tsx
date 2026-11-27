@@ -81,6 +81,7 @@ export function OverviewTab({ team }: Readonly<{ team: Team }>) {
         {team.badge === null ? (
           <p className="text-muted-foreground">None</p>
         ) : (
+          // A signed URL on the API's host, changing as it expires: not something Next's image optimiser can cache.
           // eslint-disable-next-line @next/next/no-img-element
           <img src={team.badge.mediumUrl} alt={`Badge of ${team.name}`} className="size-24 rounded-md border object-contain" />
         )}

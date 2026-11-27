@@ -3,8 +3,7 @@
 import { NamesAndIdsTab } from "@/components/registry/names-and-ids/names-and-ids-tab";
 import type { NamesAndIdsConfig } from "@/components/registry/names-and-ids/names-and-ids-data";
 import { limits } from "../team-form";
-import { acceptsNewChildren, useTeamNamesApi, type Team } from "../teams-data";
-import { closedNote } from "./image-controls";
+import { closedNote, useTeamNamesApi, type Team } from "../teams-data";
 
 const actions = {
   addIdentifier: "team.external_id.add",
@@ -24,7 +23,7 @@ export function NamesTab({ team }: Readonly<{ team: Team }>) {
     name: team.name,
     noun: "team",
     actions,
-    closedNote: acceptsNewChildren(team.status) ? null : closedNote(team, "one"),
+    closedNote: closedNote(team, "one"),
     aliasKinds: ["NICKNAME", "SPELLING"],
     aliasNameMaxLength: limits.name,
     authorityExamples: "KMSA_TEAM_NO or LEAGUE_REG_NO",

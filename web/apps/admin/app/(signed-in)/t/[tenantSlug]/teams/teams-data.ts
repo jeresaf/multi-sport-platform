@@ -9,6 +9,7 @@ import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClie
 import type { RecordImageApi } from "@/components/registry/image-control";
 import type { NamesAndIdsApi } from "@/components/registry/names-and-ids/names-and-ids-data";
 import { call, isApiProblem } from "@/lib/api";
+import { humanizeCode } from "@/lib/codes";
 import { ifMatch } from "@/lib/concurrency";
 import { formatDay } from "@/lib/entitlements";
 import {
@@ -135,6 +136,16 @@ export function unarchiveTo(changes: readonly StatusChange[]): TeamStatus | null
  */
 export function acceptsNewChildren(status: TeamStatus): boolean {
   return status !== "DISBANDED" && status !== "ARCHIVED";
+}
+
+/**
+ * Why the team takes no new child, or null when it takes one ("Bunga Lakeside FC is disbanded: no new badge can be
+ * added."); `what` is the child in words ("badge", or "one" for a name or identifier).
+ */
+export function closedNote(team: Pick<Team, "name" | "status">, what: string): string | null {
+  return acceptsNewChildren(team.status)
+    ? null
+    : `${team.name} is ${humanizeCode(team.status).toLowerCase()}: no new ${what} can be added.`;
 }
 
 /** The team as a dialog first showed it: what a change is based on. */

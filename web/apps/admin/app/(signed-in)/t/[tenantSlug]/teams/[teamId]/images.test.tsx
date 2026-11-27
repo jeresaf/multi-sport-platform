@@ -179,7 +179,9 @@ describe("Team logo and badge", () => {
   it("disables both controls with the reason on a read-only tenant", async () => {
     open(withBoth, readOnlyCapabilities(reads, changes));
     for (const name of ["Change logo", "Remove logo", "Change badge", "Remove badge"]) {
-      expect(await screen.findByRole("button", { name })).toHaveProperty("disabled", true);
+      const button = await screen.findByRole("button", { name });
+      expect(button).toHaveProperty("disabled", true);
+      expect(document.getElementById(button.getAttribute("aria-describedby")!)?.textContent).toMatch(/read-only/i);
     }
   });
 

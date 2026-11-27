@@ -1,13 +1,7 @@
 "use client";
 
 import { RecordImageControl, type RecordImageConfig } from "@/components/registry/image-control";
-import { humanizeCode } from "@/lib/codes";
-import { acceptsNewChildren, useTeamImageApi, type Team, type TeamImage } from "../teams-data";
-
-/** Why a disbanded or archived team takes no new child ("Bunga Lakeside FC is disbanded: no new badge can be added."). */
-export function closedNote(team: Pick<Team, "name" | "status">, what: string): string {
-  return `${team.name} is ${humanizeCode(team.status).toLowerCase()}: no new ${what} can be added.`;
-}
+import { closedNote, useTeamImageApi, type Team, type TeamImage } from "../teams-data";
 
 function TeamImageControl({ team, image }: Readonly<{ team: Team; image: TeamImage }>) {
   const api = useTeamImageApi(team.id, image);
@@ -17,7 +11,7 @@ function TeamImageControl({ team, image }: Readonly<{ team: Team; image: TeamIma
     name: team.name,
     actions: { set: `team.${image}.set`, remove: `team.${image}.remove` },
     hasImage: team[image] !== null,
-    closedNote: acceptsNewChildren(team.status) ? null : closedNote(team, image),
+    closedNote: closedNote(team, image),
   };
   return <RecordImageControl record={team} config={config} api={api} />;
 }
