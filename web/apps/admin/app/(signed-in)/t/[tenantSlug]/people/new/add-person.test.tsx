@@ -115,6 +115,7 @@ beforeEach(() => navigation.push.mockReset());
 
 afterEach(() => {
   cleanup();
+  vi.useRealTimers();
   vi.unstubAllGlobals();
 });
 
@@ -202,10 +203,14 @@ describe("add person: no one matches", () => {
   });
 
   it("doesn't let an identifier start later than the tenant's today (Q46)", async () => {
+    // 22:00 UTC: Kampala (UTC+3) is already on the next day, so the cap must be the tenant's date, not UTC's. The
+    // settings are read only with `tenant.settings.read`; without it the page falls back to UTC.
+    vi.useFakeTimers({ shouldAdvanceTime: true, now: new Date("2026-11-26T22:00:00Z") });
     const today = todayIn("Africa/Kampala");
+    expect(today).toBe("2026-11-27");
     const day = new Date(`${today}T00:00:00Z`);
     day.setUTCDate(day.getUTCDate() + 1);
-    const requests = open(actions, {
+    const requests = open([...actions, "tenant.settings.read"], {
       "GET /api/admin/v1/tenant/settings": { status: 200, body: { timeZone: "Africa/Kampala", version: "1" } },
     });
     await submitDetails(() => {

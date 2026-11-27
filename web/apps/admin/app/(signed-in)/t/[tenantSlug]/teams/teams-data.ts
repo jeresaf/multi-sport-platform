@@ -1,12 +1,13 @@
 "use client";
 
-// Registry → Teams data (S07 D19, D23): the directory, a team, its status history and the status moves. Every field a
-// team read answers is public or internal; none is personal. Add, Edit, Rename (T6c-2a), Names & IDs and the images
-// (T6c-2b) come next.
+// Registry → Teams data (S07 D19, D23): the directory, a team, its status history, the status moves, Add, Edit details
+// and Rename with their duplicate check, and the organisation and venue searches the form chooses from. Every field a
+// team read answers is public or internal; none is personal. Names & IDs and the images (T6c-2b) come next.
 import type { components } from "@msp/api-client";
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { call } from "@/lib/api";
+import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { call, isApiProblem } from "@/lib/api";
 import { ifMatch } from "@/lib/concurrency";
+import { formatDay } from "@/lib/entitlements";
 import {
   ageGroups,
   genderCategories,
@@ -24,6 +25,12 @@ export type Team = Schemas["TeamResponse"];
 export type TeamStatus = Schemas["TeamStatus"];
 export type TeamFormerName = Schemas["TeamFormerNameResponse"];
 type StatusChange = Schemas["TeamStatusChangeResponse"];
+export type CreateTeamRequest = Schemas["CreateTeamRequest"];
+export type UpdateTeamRequest = Schemas["UpdateTeamRequest"];
+export type RenameTeamRequest = Schemas["RenameTeamRequest"];
+export type CheckTeamDuplicatesRequest = Schemas["CheckTeamDuplicatesRequest"];
+export type TeamDuplicateCandidate = Schemas["TeamDuplicateCandidateResponse"];
+export type TeamDuplicateEvidence = Schemas["TeamDuplicateEvidence"];
 
 export const teamStatuses: readonly TeamStatus[] = ["ACTIVE", "INACTIVE", "SUSPENDED", "DISBANDED", "ARCHIVED"];
 
@@ -69,11 +76,13 @@ export function teamQueryKey(tenantId: string, teamId: string) {
   return ["team", tenantId, teamId] as const;
 }
 
-export function useTeam(teamId: string) {
+/** `fresh`: read again on opening even when a read is kept (Edit details and Rename start from the team as it is now). */
+export function useTeam(teamId: string, fresh = false) {
   const { tenant, client, can } = useTenantWorkspace();
   return useQuery({
     queryKey: teamQueryKey(tenant.tenantId, teamId),
     queryFn: () => call(client.GET("/api/admin/v1/teams/{teamId}", { params: { path: { teamId } } })),
+    refetchOnMount: fresh ? "always" : true,
     enabled: can("team.read"),
   });
 }
@@ -86,8 +95,7 @@ export function useTeamStatusChanges(teamId: string) {
   const { tenant, client, can } = useTenantWorkspace();
   return useQuery({
     queryKey: teamStatusChangesQueryKey(tenant.tenantId, teamId),
-    queryFn: () =>
-      call(client.GET("/api/admin/v1/teams/{teamId}/status-changes", { params: { path: { teamId } } })),
+    queryFn: () => call(client.GET("/api/admin/v1/teams/{teamId}/status-changes", { params: { path: { teamId } } })),
     enabled: can("team.read"),
   });
 }
@@ -123,12 +131,13 @@ export type OpenedTeam = Pick<Team, "id" | "version">;
 
 /**
  * Keeps the team a change answered and marks stale the directories that list teams (the team directory, a venue's
- * home teams), the organisation it belongs to (its Teams tab reads the organisation) and the subscription's team count.
+ * home teams), the organisation it belongs to and the one it left (their Teams tabs read the organisation), the
+ * subscription's team count and the kept duplicate checks.
  */
 export function useKeepTeam() {
   const { tenant } = useTenantWorkspace();
   const queryClient = useQueryClient();
-  return (team: Team) => {
+  return (team: Team, leftOrganisationId?: string | null) => {
     queryClient.setQueryData(teamQueryKey(tenant.tenantId, team.id), team);
     void queryClient.invalidateQueries({ queryKey: ["teams", tenant.tenantId] });
     void queryClient.invalidateQueries({ queryKey: teamStatusChangesQueryKey(tenant.tenantId, team.id) });
@@ -137,6 +146,11 @@ export function useKeepTeam() {
     if (team.organisation) {
       void queryClient.invalidateQueries({ queryKey: organisationQueryKey(tenant.tenantId, team.organisation.id) });
     }
+    if (leftOrganisationId && leftOrganisationId !== team.organisation?.id) {
+      void queryClient.invalidateQueries({ queryKey: organisationQueryKey(tenant.tenantId, leftOrganisationId) });
+    }
+    // A kept duplicate check may no longer answer as it did (a name or category changed): asked again when next needed.
+    void queryClient.invalidateQueries({ queryKey: [teamDuplicatesQueryName, tenant.tenantId], refetchType: "none" });
   };
 }
 
@@ -163,6 +177,107 @@ export function useChangeTeamStatus(team: OpenedTeam) {
           body: { status, reason },
         }),
       ),
-    onSuccess: keep,
+    onSuccess: (changed) => keep(changed),
   });
+}
+
+/** Whether the user may add a team: the create and its live check (D13: granted together). */
+export const addTeamActions = ["team.create", "team.duplicate_check"] as const;
+
+/** Edit details: the update and the live check of a changed short name, category or organisation. */
+export const editTeamActions = ["team.update", "team.duplicate_check"] as const;
+
+/** Rename: the rename and the live check of the new names. */
+export const renameTeamActions = ["team.rename", "team.duplicate_check"] as const;
+
+/** The day after an ISO day ("2026-11-26" → "2026-11-27"). */
+export function nextDay(day: string): string {
+  const date = new Date(`${day}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + 1);
+  return date.toISOString().slice(0, 10);
+}
+
+/**
+ * Why a team can't be renamed today (the tenant's date), or null: not while disbanded or archived (`TEAM_DISBANDED`,
+ * `TEAM_ARCHIVED`), and not on the day its name began, as the new name's first day must come after it (D8).
+ */
+export function renameRefusal(team: Pick<Team, "name" | "status" | "nameSince">, today: string): string | null {
+  if (team.status === "ARCHIVED") {
+    return `${team.name} is archived: unarchive it before renaming it.`;
+  }
+  if (team.status === "DISBANDED") {
+    return `${team.name} is disbanded: reform it before renaming it.`;
+  }
+  if (team.nameSince >= today) {
+    return `${team.name} has had its name since ${formatDay(team.nameSince)}: it can be renamed from ${formatDay(nextDay(team.nameSince))}.`;
+  }
+  return null;
+}
+
+/** The live warning's cache (`useDuplicateReview`): a save marks it stale. */
+export const teamDuplicatesQueryName = "team-duplicates";
+
+/** The teams that may be the one typed (D13): the check's answer, strongest first. */
+export function useCheckTeamDuplicates() {
+  const { client } = useTenantWorkspace();
+  return async (request: CheckTeamDuplicatesRequest): Promise<TeamDuplicateCandidate[]> =>
+    (await call(client.POST("/api/admin/v1/teams/duplicate-check", { body: request }))).candidates;
+}
+
+/** The teams the save's `TEAM_DUPLICATE_REVIEW_REQUIRED` names (its `candidates`), or null. */
+export function reviewCandidates(error: unknown): TeamDuplicateCandidate[] | null {
+  if (!isApiProblem(error, "TEAM_DUPLICATE_REVIEW_REQUIRED")) {
+    return null;
+  }
+  const candidates = (error.problem as { candidates?: TeamDuplicateCandidate[] | null }).candidates;
+  // Without a list there is nothing to review: the refusal shows as it is.
+  return candidates?.length ? candidates : null;
+}
+
+/**
+ * The organisations a search for the team's organisation finds: the first page for the text, archived ones left out
+ * (the directory's default). Asked once there is text and only with `organisation.read`.
+ */
+export function useOrganisationChoices(q: string) {
+  const { tenant, client, can } = useTenantWorkspace();
+  return useQuery({
+    queryKey: ["organisations", tenant.tenantId, { q, purpose: "team-organisation" }],
+    queryFn: () => call(client.GET("/api/admin/v1/organisations", { params: { query: { q } } })),
+    enabled: q !== "" && can("organisation.read"),
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** Rename (D8) from the version the page opened on; the old name becomes a former name (History). */
+export function useRenameTeam(team: OpenedTeam) {
+  const { client } = useTenantWorkspace();
+  const keep = useKeepTeam();
+  return useMutation({
+    mutationFn: (body: RenameTeamRequest) =>
+      call(
+        client.POST("/api/admin/v1/teams/{teamId}/rename", {
+          params: { path: { teamId: team.id }, header: ifMatch(team.version) },
+          body,
+        }),
+      ),
+    onSuccess: (renamed) => keep(renamed),
+  });
+}
+
+const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Add team's organisation to start with (`?organisationId=`, from the organisation's Teams tab): read when the ID is
+ * well formed and the user may read organisations. `wanted` says whether there is one to wait for.
+ */
+export function usePresetOrganisation(organisationId: string) {
+  const { tenant, client, can } = useTenantWorkspace();
+  const wanted = uuid.test(organisationId) && can("organisation.read");
+  const query = useQuery({
+    queryKey: organisationQueryKey(tenant.tenantId, organisationId),
+    queryFn: () =>
+      call(client.GET("/api/admin/v1/organisations/{organisationId}", { params: { path: { organisationId } } })),
+    enabled: wanted,
+  });
+  return { ...query, wanted };
 }

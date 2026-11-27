@@ -190,6 +190,8 @@ describe("Edit organisation details", () => {
     await type("Find a venue", "Bukoto");
     const choose = await within(venueField).findByRole("button", { name: `Choose ${bukoto.name}` });
     expect(choose).toHaveProperty("disabled", false);
+    // Its facts beside it, not the closed venue's refusal (pre-review T6c-2a, 2).
+    expect(document.getElementById(choose.getAttribute("aria-describedby")!)?.textContent).toBe("Stadium · Kampala");
     fireEvent.click(choose);
     expect(within(venueField).getByText(bukoto.name)).toBeTruthy();
   });

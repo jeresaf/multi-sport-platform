@@ -189,6 +189,45 @@ describe("Organisation page", () => {
     expect(await screen.findByText("Ntinda Swifts SC has no teams yet.")).toBeTruthy();
   });
 
+  it("offers Add team with the organisation chosen while it can take a team", async () => {
+    const adds = [...registrar, "team.read", "team.create", "team.duplicate_check"];
+    navigation.search = "tab=teams";
+    open(organisation({ teams: [swiftsWomen] }), adds);
+    await loaded();
+    const ntindaId = organisation().id;
+    expect((await screen.findByRole("link", { name: "Add team" })).getAttribute("href")).toBe(
+      `/t/kmsa/teams/new?organisationId=${ntindaId}`,
+    );
+    cleanup();
+
+    // Not without the create, and not for a dissolved organisation (D6).
+    navigation.search = "tab=teams";
+    open(organisation({ teams: [swiftsWomen] }), [...registrar, "team.read"]);
+    await loaded();
+    await screen.findByRole("link", { name: "Ntinda Swifts FC" });
+    expect(screen.queryByRole("link", { name: "Add team" })).toBeNull();
+    cleanup();
+
+    navigation.search = "tab=teams";
+    open(organisation({ teams: [swiftsWomen], status: "DISSOLVED" }), adds);
+    await loaded();
+    await screen.findByRole("link", { name: "Ntinda Swifts FC" });
+    expect(screen.queryByRole("link", { name: "Add team" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Add team" })).toBeNull();
+    cleanup();
+
+    // On a read-only tenant: disabled, with the reason beside it, as the directory's (review #143 N1).
+    navigation.search = "tab=teams";
+    open(
+      organisation({ teams: [swiftsWomen] }),
+      readOnlyCapabilities([...reads, "team.read"], ["team.create", "team.duplicate_check"]),
+    );
+    await loaded();
+    const button = await screen.findByRole("button", { name: "Add team" });
+    expect(button).toHaveProperty("disabled", true);
+    expect(document.getElementById(button.getAttribute("aria-describedby")!)?.textContent).toMatch(/read-only/i);
+  });
+
   it("shows the status history and the parent links with their dates and reasons", async () => {
     navigation.search = "tab=history";
     open(ntinda, registrar, {
