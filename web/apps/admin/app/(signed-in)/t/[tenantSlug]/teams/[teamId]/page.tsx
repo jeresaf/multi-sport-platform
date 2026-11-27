@@ -38,7 +38,8 @@ type TeamTab = (typeof teamTabs)[number]["value"];
 /**
  * Registry → Teams → a team (S07 D23): the header (logo or initials, name, status, category and sport, the status
  * moves, the logo and badge controls), then the tabs Overview (category, organisation, home venue, colours, code,
- * motto, the badge), History (status and former names) and Names & IDs (aliases, external identifiers). The tab is in the address (`?tab=`).
+ * motto, the badge), History (status and former names) and Names & IDs (aliases, external identifiers). The tab is in
+ * the address (`?tab=`).
  */
 export default function TeamPage() {
   const { teamId } = useParams<{ teamId: string }>();

@@ -1,7 +1,8 @@
 // Registry → Teams → a team (S07 T6c-1): Overview with its category, organisation, home venue and colours, the
 // status and former-name history, the status moves the machine allows, each with a required reason and the version
 // its dialog opened on; reforming at the plan's team limit shows the limit; a conflict offers Reload; a viewer sees
-// everything without a change control, and the Players and Staff tabs aren't shown before S08 (Names & IDs is T6c-2b's).
+// everything without a change control, and the Players and Staff tabs aren't shown before S08 (Names & IDs is
+// T6c-2b's).
 import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { QueryClient } from "@tanstack/react-query";

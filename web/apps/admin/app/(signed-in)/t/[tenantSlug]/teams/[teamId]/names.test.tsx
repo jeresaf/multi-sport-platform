@@ -1,8 +1,8 @@
-// Registry → Teams → a team → Names & IDs (S07 T6c-2b, D10): the nicknames and spellings and the external identifiers,
-// ended ones included; an alias added (never a former name: those come from a rename) or removed with a reason and an
-// identifier added or ended, each from the version its dialog opened on; a conflict offers Reload; a disbanded or
-// archived team takes no new one but its aliases can still be removed and its identifiers ended; a viewer sees the
-// lists without a change control.
+// Registry → Teams → a team → Names & IDs (S07 T6c-2b, D10): the nicknames and spellings and the external
+// identifiers, ended ones included; an alias added (never a former name: those come from a rename) or removed with a
+// reason and an identifier added or ended, each from the version its dialog opened on; a conflict offers Reload; a
+// disbanded or archived team takes no new one but its aliases can still be removed and its identifiers ended; a viewer
+// sees the lists without a change control.
 import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readOnlyCapabilities } from "@/test/capabilities";
