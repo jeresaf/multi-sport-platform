@@ -2,9 +2,12 @@
 
 // Registry → Teams data (S07 D19, D23): the directory, a team, its status history, the status moves, Add, Edit details
 // and Rename with their duplicate check, and the organisation and venue searches the form chooses from. Every field a
-// team read answers is public or internal; none is personal. Names & IDs and the images (T6c-2b) come next.
+// team read answers is public or internal; none is personal. Names & IDs (aliases and external identifiers) and the
+// logo and badge (T6c-2b) change the team as children of it.
 import type { components } from "@msp/api-client";
 import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { RecordImageApi } from "@/components/registry/image-control";
+import type { NamesAndIdsApi } from "@/components/registry/names-and-ids/names-and-ids-data";
 import { call, isApiProblem } from "@/lib/api";
 import { ifMatch } from "@/lib/concurrency";
 import { formatDay } from "@/lib/entitlements";
@@ -124,6 +127,14 @@ export function teamMovesFrom(status: TeamStatus): TeamStatus[] {
 export function unarchiveTo(changes: readonly StatusChange[]): TeamStatus | null {
   const archived = changes.find((change) => change.toStatus === "ARCHIVED");
   return archived?.fromStatus ?? null;
+}
+
+/**
+ * Whether the team takes a new child (D10): an alias, an identifier, a logo or a badge. A disbanded or archived team
+ * doesn't (`TEAM_DISBANDED`, `TEAM_ARCHIVED`); removing and ending work in any status.
+ */
+export function acceptsNewChildren(status: TeamStatus): boolean {
+  return status !== "DISBANDED" && status !== "ARCHIVED";
 }
 
 /** The team as a dialog first showed it: what a change is based on. */
@@ -280,4 +291,69 @@ export function usePresetOrganisation(organisationId: string) {
     enabled: wanted,
   });
   return { ...query, wanted };
+}
+
+/**
+ * Names & IDs' calls (D10, T3c, T3d): nicknames and spellings are added and removed (a former name only comes from a
+ * rename), identifiers added and ended; each from the version the dialog opened on.
+ */
+export function useTeamNamesApi(teamId: string): NamesAndIdsApi<Team> {
+  const { client } = useTenantWorkspace();
+  const keep = useKeepTeam();
+  const reload = useReloadTeam(teamId);
+  const params = (opened: OpenedTeam) => ({ path: { teamId: opened.id }, header: ifMatch(opened.version) });
+  return {
+    addIdentifier: (opened, body) =>
+      call(client.POST("/api/admin/v1/teams/{teamId}/external-identifiers", { params: params(opened), body })),
+    endIdentifier: (opened, identifierId, body) =>
+      call(
+        client.POST("/api/admin/v1/teams/{teamId}/external-identifiers/{identifierId}/end", {
+          params: { ...params(opened), path: { teamId: opened.id, identifierId } },
+          body,
+        }),
+      ),
+    addAlias: (opened, body) =>
+      call(client.POST("/api/admin/v1/teams/{teamId}/aliases", { params: params(opened), body })),
+    removeAlias: (opened, aliasId, reason) =>
+      call(
+        client.POST("/api/admin/v1/teams/{teamId}/aliases/{aliasId}/remove", {
+          params: { ...params(opened), path: { teamId: opened.id, aliasId } },
+          body: { reason },
+        }),
+      ),
+    keep: (team) => keep(team),
+    reload,
+  };
+}
+
+/** A team's two images (D15). */
+export type TeamImage = "logo" | "badge";
+
+/**
+ * The logo's or badge's calls (D15, T4b): set is multipart with one file in `file`, remove a `DELETE`; both from the
+ * version the dialog opened on.
+ */
+export function useTeamImageApi(teamId: string, image: TeamImage): RecordImageApi<Team> {
+  const { client } = useTenantWorkspace();
+  const keep = useKeepTeam();
+  const reload = useReloadTeam(teamId);
+  const params = (opened: OpenedTeam) => ({ path: { teamId: opened.id }, header: ifMatch(opened.version) });
+  const upload = (file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    // FormData goes as it is: the browser sets the multipart Content-Type and its boundary.
+    return { body: {}, bodySerializer: () => form };
+  };
+  return {
+    set: (opened, file) =>
+      image === "logo"
+        ? call(client.PUT("/api/admin/v1/teams/{teamId}/logo", { params: params(opened), ...upload(file) }))
+        : call(client.PUT("/api/admin/v1/teams/{teamId}/badge", { params: params(opened), ...upload(file) })),
+    remove: (opened) =>
+      image === "logo"
+        ? call(client.DELETE("/api/admin/v1/teams/{teamId}/logo", { params: params(opened) }))
+        : call(client.DELETE("/api/admin/v1/teams/{teamId}/badge", { params: params(opened) })),
+    keep: (team) => keep(team),
+    reload,
+  };
 }

@@ -17,14 +17,16 @@ import { tenantPath } from "@/lib/workspace";
 import { useSportVariants } from "../../sports/sports-data";
 import { useTeam, type Team } from "../teams-data";
 import { HistoryTab } from "./history-tab";
+import { TeamImageControls } from "./image-controls";
+import { NamesTab } from "./names-tab";
 import { OverviewTab } from "./overview-tab";
 import { TeamActions, teamStatusId } from "./team-actions";
 
-// Players and Staff are S08's (team memberships): their tabs aren't shown until then (non-negotiable 13). Names & IDs
-// comes with T6c-2b.
+// Players and Staff are S08's (team memberships): their tabs aren't shown until then (non-negotiable 13).
 const teamTabs = [
   { value: "overview", label: "Overview", content: OverviewTab },
   { value: "history", label: "History", content: HistoryTab },
+  { value: "names", label: "Names & IDs", content: NamesTab },
 ] as const satisfies ReadonlyArray<{
   value: string;
   label: string;
@@ -35,8 +37,8 @@ type TeamTab = (typeof teamTabs)[number]["value"];
 
 /**
  * Registry → Teams → a team (S07 D23): the header (logo or initials, name, status, category and sport, the status
- * moves), then the tabs Overview (category, organisation, home venue, colours, code, motto) and History (status and
- * former names). The tab is in the address (`?tab=`).
+ * moves, the logo and badge controls), then the tabs Overview (category, organisation, home venue, colours, code,
+ * motto, the badge), History (status and former names) and Names & IDs (aliases, external identifiers). The tab is in the address (`?tab=`).
  */
 export default function TeamPage() {
   const { teamId } = useParams<{ teamId: string }>();
@@ -95,6 +97,7 @@ export default function TeamPage() {
           </div>
         </div>
         <TeamActions team={data} />
+        <TeamImageControls team={data} />
       </header>
 
       <Tabs value={tab} onValueChange={changeTab} className="min-w-0">
