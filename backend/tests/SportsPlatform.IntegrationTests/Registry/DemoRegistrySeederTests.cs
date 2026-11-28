@@ -6,9 +6,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using SportsPlatform.BuildingBlocks.Actors;
 using SportsPlatform.BuildingBlocks.Auditing;
-using SportsPlatform.BuildingBlocks.Persistence.Messaging;
 using SportsPlatform.BuildingBlocks.Persistence.Seeding;
 using SportsPlatform.IntegrationTests.Audit;
+using SportsPlatform.IntegrationTests.Identity;
 using SportsPlatform.IntegrationTests.Infrastructure;
 using SportsPlatform.IntegrationTests.Tenancy;
 using SportsPlatform.Modules.Platform.Domain.Audit;
@@ -17,6 +17,7 @@ using SportsPlatform.Modules.Registry.Domain.People;
 using SportsPlatform.Modules.Registry.Domain.Teams;
 using SportsPlatform.Modules.Registry.Domain.Venues;
 using SportsPlatform.Modules.Registry.Seed.Demo;
+using SportsPlatform.Modules.Tenancy.Domain.Subscriptions;
 using SportsPlatform.Modules.Tenancy.Seed.Demo;
 using ITeamDirectory = SportsPlatform.Modules.Registry.Contracts.Teams.ITeamDirectory;
 
@@ -159,7 +160,7 @@ public sealed class DemoRegistrySeederTests(PostgresFixture fixture) : DatabaseT
             // As the slice demo does: Bunga Breakers FC is now Bunga Lakeside FC.
             var bunga = await context.Set<Team>().Include(t => t.Aliases)
                 .SingleAsync(t => t.Name == "Bunga Breakers FC" && t.AgeGroup == AgeGroup.Senior, Ct);
-            bunga.Rename("Bunga Lakeside FC", "Bunga Lakeside", "BUN", new DateOnly(2026, 1, 1), new DateOnly(2026, 10, 17)).IsSuccess.ShouldBeTrue();
+            bunga.Rename("Bunga Lakeside FC", "Bunga Lakeside", "BUN", new DateOnly(2026, 1, 1), TenantCalendar.Today(App.Clock, "Africa/Kampala")).IsSuccess.ShouldBeTrue();
             await context.SaveChangesAsync(Ct);
         }
 
@@ -262,11 +263,7 @@ public sealed class DemoRegistrySeederTests(PostgresFixture fixture) : DatabaseT
 
     private async Task<List<AuditEntry>> RegistryAuditEntriesAsync()
     {
-        // The seed writes more audit entries than one outbox batch: process until nothing is left.
-        var processor = App.Services.GetRequiredService<OutboxProcessor>();
-        for (var batch = 0; batch < 40 && await processor.ProcessOnceAsync(Ct) > 0; batch++)
-        {
-        }
+        await AccountTestData.DeliverOutboxAsync(App.Services, Ct);
 
         string[] prefixes = ["venue.", "organisation.", "team."];
         return [.. (await AuditTestData.EntriesAsync(App.Services, Ct)).Where(e => prefixes.Any(p => e.ActionCode.StartsWith(p, StringComparison.Ordinal)))];

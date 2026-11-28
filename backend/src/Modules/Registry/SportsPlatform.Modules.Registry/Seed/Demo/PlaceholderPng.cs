@@ -5,8 +5,9 @@ using System.Text;
 namespace SportsPlatform.Modules.Registry.Seed.Demo;
 
 /// <summary>
-/// Generated placeholder images for the demo people (S06 D23): never a photo of anyone. PNG written by hand (no image
-/// library: SkiaSharp is Platform media's alone), as e2e's <c>placeholderPng</c>. Platform stores them as any upload.
+/// Generated placeholder images for the demo people (S06 D23) and the organisations' logos and teams' badges (S07 D22):
+/// never a photo of anyone or a real club's emblem. PNG written by hand (no image library: SkiaSharp is Platform media's
+/// alone), as e2e's <c>placeholderPng</c>. Platform stores them as any upload.
 /// </summary>
 internal static class PlaceholderPng
 {

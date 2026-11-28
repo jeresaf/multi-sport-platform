@@ -149,12 +149,13 @@ lacks. Teams are football only until S15 and S16 publish rugby and basketball.
 - **KMSA organisations (20 clubs, each with a placeholder logo):** the four multi-sport clubs, the eight football
   clubs, the three rugby clubs and the five basketball clubs of the table above, with cities and primary venues.
   Bunga Breakers FC has no primary venue.
-- **KMSA teams (25):** the 10 Metro Football League teams (Senior Men: Ntinda Swifts FC, Kisaasi Kestrels FC and
+- **KMSA teams (25: 24 that count, and an archived reserve team):** the 10 Metro Football League teams (Senior Men: Ntinda Swifts FC, Kisaasi Kestrels FC and
   the eight football clubs), 6 women's teams (Ntinda Swifts, Kisaasi Kestrels, Bukoto Comets, Kansanga Harriers,
   Nakawa Nomads, Kyebando Ravens) and 8 under-17 teams (Ntinda Swifts, Kisaasi Kestrels, Bukoto Comets, Kansanga
   Harriers, Nakawa Nomads, Kireka Kingfishers, Bunga Breakers, Seeta Sparrows), each under its club with the club's
   colours and ground. **Mutundwe Meteors FC** was "Mutundwe Weavers FC" from 2018-01-01 and is renamed from
-  2026-01-01 (a former name with its dates). **Kireka Kingfishers FC** Senior Men Reserve is archived ("Folded into
+  2026-01-01 (a former name with its dates; the dates are fixed, not relative to the seed date, so the rename needs a
+  seed date after 2026-01-01). **Kireka Kingfishers FC** Senior Men Reserve is archived ("Folded into
   the first team"); 24 teams count toward `MAX_TEAMS`. Every Senior Men team but **Bunga Breakers FC** (named so since
   2020-01-01, no badge and no home venue: the slice demo adds them) has a placeholder badge.
 - **ELSSC:** Lakeshore High School Playing Fields (Jinja); its four schools (`SCHOOL`: Lakeshore High School,
