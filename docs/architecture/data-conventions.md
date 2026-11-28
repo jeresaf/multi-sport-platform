@@ -365,6 +365,13 @@ creates (never TRUNCATE). Each table gets one policy, set in the migration that 
   skipped, as for the invitations, but the run is recorded, so it is seeded only when the seeder next runs (changed
   data or `seed --reset`). Photos and consent forms are generated placeholder PNGs
   (`PlaceholderPng`; SkiaSharp stays in Platform media).
+  Seeded venues, organisations and teams (S07 D22): `registry.demo.venues` (30), `registry.demo.organisations` (31)
+  and `registry.demo.teams` (32), in that order because organisations and teams name venues and organisations (by
+  name in the files, resolved when created). Each create runs without `duplicatesReviewed`: the data expects no
+  warning, so one stops the run with its candidates. Venues and organisations are found again by name key, teams by
+  variant, category and a current or former name (so a rename made since doesn't create the team again); a run only
+  adds a missing logo, badge, rename or archived status. Logos and badges are placeholder shields
+  (`PlaceholderPng.Logo`). Neither deactivates; a tenant that isn't `ACTIVE` is skipped, as for people.
 
 ## CI checks (automate as they become relevant)
 

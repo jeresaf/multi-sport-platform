@@ -115,7 +115,7 @@ creates each person through the duplicate check and `person.create` as the syste
 evidence, photos and lifecycle through the Registry's commands. Birth dates are ages on the seed date, so minors stay
 minors whenever the demo is seeded; a twin, or the second of a decided pair, gets the first one's date. A tenant that
 isn't `ACTIVE` when the seed runs is skipped until the next `seed --reset` (or a change to the data). Photos and consent forms are generated placeholder images, never photos of anyone;
-guardians' contacts are `example.com` addresses. Clubs are noted in the file for S08's teams; no team exists yet.
+guardians' contacts are `example.com` addresses. Clubs are noted in the file for S08's team memberships (the teams are seeded since S07, nobody is in one yet).
 
 - **KMSA (40):** 26 players of the Metro Football League clubs and the Ntinda Swifts women, among them
   **John Ssekandi** (Ntinda Swifts, striker; the demo's likely match), **Mariam Nankya** (Kisaasi Kestrels women;
@@ -133,6 +133,36 @@ No public profile is on. Officials' licence dates are fixed (Denis Opoka's 2027-
 they show as expired once that day has passed. A person is found again by name: a run only adds what a seeded person
 lacks (a profile, a consent, its form, a photo, the archived status). A person renamed, archived or marked deceased by
 hand can't be completed that way (the run stops or the duplicate check disagrees): run `seed --reset`.
+
+**Demo venues, organisations and teams (S07 D22).** Three DEMO seeders (`registry.demo.venues`,
+`registry.demo.organisations`, `registry.demo.teams`, from `demo-venues.json`, `demo-organisations.json` and
+`demo-teams.json` beside `demo-people.json`) create them through `venue.create`, `organisation.create` and
+`team.create` as the system, in that order, then the placeholder logos and badges, the rename and the archiving
+through their own commands. The data expects no duplicate warning; a warning stops the run naming the record. A
+record is found again by name (a team by variant, category and a current or former name), and a run only adds what it
+lacks. Teams are football only until S15 and S16 publish rugby and basketball.
+
+- **KMSA venues (5):** the five above, `Africa/Kampala`, no coordinates (the places are invented); football listed
+  at Bukoto Community Stadium (stadium, 3,000 seats), Kisaasi Recreation Ground (800) and Seeta Hill Sports Field
+  (Mukono, 500); Ggaba Lakeside Rugby Ground (1,200) and Metro Indoor Arena (Naguru, hardwood, 1,500) list no sport
+  yet.
+- **KMSA organisations (20 clubs, each with a placeholder logo):** the four multi-sport clubs, the eight football
+  clubs, the three rugby clubs and the five basketball clubs of the table above, with cities and primary venues.
+  Bunga Breakers FC has no primary venue.
+- **KMSA teams (25: 24 that count, and an archived reserve team):** the 10 Metro Football League teams (Senior Men: Ntinda Swifts FC, Kisaasi Kestrels FC and
+  the eight football clubs), 6 women's teams (Ntinda Swifts, Kisaasi Kestrels, Bukoto Comets, Kansanga Harriers,
+  Nakawa Nomads, Kyebando Ravens) and 8 under-17 teams (Ntinda Swifts, Kisaasi Kestrels, Bukoto Comets, Kansanga
+  Harriers, Nakawa Nomads, Kireka Kingfishers, Bunga Breakers, Seeta Sparrows), each under its club with the club's
+  colours and ground. **Mutundwe Meteors FC** was "Mutundwe Weavers FC" from 2018-01-01 and is renamed from
+  2026-01-01 (a former name with its dates; the dates are fixed, not relative to the seed date, so the rename needs a
+  seed date after 2026-01-01). **Kireka Kingfishers FC** Senior Men Reserve is archived ("Folded into
+  the first team"); 24 teams count toward `MAX_TEAMS`. Every Senior Men team but **Bunga Breakers FC** (named so since
+  2020-01-01, no badge and no home venue: the slice demo adds them) has a placeholder badge.
+- **ELSSC:** Lakeshore High School Playing Fields (Jinja); its four schools (`SCHOOL`: Lakeshore High School,
+  Mabira Hills College, Riverside Secondary School, Sunrise Academy), each with a placeholder logo; an under-16 boys'
+  and an under-16 girls' team for each (8).
+
+Kiwatule Meadow Ground and Bunga Lakeside FC aren't seeded: the slice demo adds the venue and the new name.
 
 ## Second tenant (isolation and multi-tenant demos)
 

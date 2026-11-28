@@ -1,0 +1,136 @@
+{
+  "_comment": "Demo teams (S07 D22; docs/product/pilot-customer.md), football only until S15 and S16 publish rugby and basketball. Each club lists its teams by category; the name, colours and home venue are the club's. 'organisation' names an organisation of demo-organisations.json, 'homeVenue' a venue of demo-venues.json. KMSA: the 10 Metro Football League teams (Senior Men), 6 women's and 8 under-17 teams; Mutundwe Meteors FC was 'Mutundwe Weavers FC' from 2018 and is renamed from 2026-01-01 ('firstName'); Kireka Kingfishers FC's reserve team is archived. Bunga Breakers FC has no badge and no home venue: the slice demo adds them. ELSSC: under-16 boys' and girls' teams of its four schools. Created through team.create as the system; a team is found again by its variant, category and name (current or former).",
+  "tenants": [
+    {
+      "slug": "kmsa",
+      "variant": "FOOTBALL_ASSOCIATION",
+      "clubs": [
+        {
+          "organisation": "Ntinda Swifts SC", "name": "Ntinda Swifts FC", "shortName": "Ntinda Swifts", "code": "NTS",
+          "primaryColour": "#1F4E9C", "secondaryColour": "#FFFFFF", "homeVenue": "Bukoto Community Stadium", "foundedYear": 1998,
+          "teams": [
+            { "genderCategory": "MEN", "ageGroup": "SENIOR", "badge": true },
+            { "genderCategory": "WOMEN", "ageGroup": "SENIOR" },
+            { "genderCategory": "MEN", "ageGroup": "U17" }
+          ]
+        },
+        {
+          "organisation": "Kisaasi Kestrels SC", "name": "Kisaasi Kestrels FC", "shortName": "Kisaasi Kestrels", "code": "KIS",
+          "primaryColour": "#B3261E", "secondaryColour": "#F2C14E", "homeVenue": "Kisaasi Recreation Ground", "foundedYear": 2004,
+          "teams": [
+            { "genderCategory": "MEN", "ageGroup": "SENIOR", "badge": true },
+            { "genderCategory": "WOMEN", "ageGroup": "SENIOR" },
+            { "genderCategory": "MEN", "ageGroup": "U17" }
+          ]
+        },
+        {
+          "organisation": "Bukoto Comets FC", "name": "Bukoto Comets FC", "shortName": "Bukoto Comets", "code": "BUK",
+          "primaryColour": "#E07A1F", "secondaryColour": "#1B1B1B", "homeVenue": "Bukoto Community Stadium", "foundedYear": 2001,
+          "teams": [
+            { "genderCategory": "MEN", "ageGroup": "SENIOR", "badge": true },
+            { "genderCategory": "WOMEN", "ageGroup": "SENIOR" },
+            { "genderCategory": "MEN", "ageGroup": "U17" }
+          ]
+        },
+        {
+          "organisation": "Kansanga Harriers FC", "name": "Kansanga Harriers FC", "shortName": "Kansanga Harriers", "code": "KAN",
+          "primaryColour": "#2E7D32", "secondaryColour": "#FFFFFF", "homeVenue": "Bukoto Community Stadium", "foundedYear": 2006,
+          "teams": [
+            { "genderCategory": "MEN", "ageGroup": "SENIOR", "badge": true },
+            { "genderCategory": "WOMEN", "ageGroup": "SENIOR" },
+            { "genderCategory": "MEN", "ageGroup": "U17" }
+          ]
+        },
+        {
+          "organisation": "Nakawa Nomads FC", "name": "Nakawa Nomads FC", "shortName": "Nakawa Nomads", "code": "NAK",
+          "primaryColour": "#6A1B9A", "secondaryColour": "#FFFFFF", "homeVenue": "Kisaasi Recreation Ground", "foundedYear": 1995,
+          "teams": [
+            { "genderCategory": "MEN", "ageGroup": "SENIOR", "badge": true },
+            { "genderCategory": "WOMEN", "ageGroup": "SENIOR" },
+            { "genderCategory": "MEN", "ageGroup": "U17" }
+          ]
+        },
+        {
+          "organisation": "Kireka Kingfishers FC", "name": "Kireka Kingfishers FC", "shortName": "Kireka Kingfishers", "code": "KIR",
+          "primaryColour": "#0277BD", "secondaryColour": "#F57C00", "homeVenue": "Kisaasi Recreation Ground", "foundedYear": 2010,
+          "teams": [
+            { "genderCategory": "MEN", "ageGroup": "SENIOR", "badge": true },
+            { "genderCategory": "MEN", "ageGroup": "SENIOR", "level": "RESERVE", "archiveReason": "Folded into the first team" },
+            { "genderCategory": "MEN", "ageGroup": "U17" }
+          ]
+        },
+        {
+          "organisation": "Bunga Breakers FC", "name": "Bunga Breakers FC", "shortName": "Bunga Breakers", "code": "BUN",
+          "primaryColour": "#00838F", "secondaryColour": "#FFFFFF", "foundedYear": 2020, "nameSince": "2020-01-01",
+          "teams": [
+            { "genderCategory": "MEN", "ageGroup": "SENIOR" },
+            { "genderCategory": "MEN", "ageGroup": "U17" }
+          ]
+        },
+        {
+          "organisation": "Seeta Sparrows FC", "name": "Seeta Sparrows FC", "shortName": "Seeta Sparrows", "code": "SEE",
+          "primaryColour": "#8D6E63", "secondaryColour": "#FFF8E1", "homeVenue": "Seeta Hill Sports Field", "foundedYear": 2012,
+          "teams": [
+            { "genderCategory": "MEN", "ageGroup": "SENIOR", "badge": true },
+            { "genderCategory": "MEN", "ageGroup": "U17" }
+          ]
+        },
+        {
+          "organisation": "Kyebando Ravens FC", "name": "Kyebando Ravens FC", "shortName": "Kyebando Ravens", "code": "KYE",
+          "primaryColour": "#212121", "secondaryColour": "#C62828", "homeVenue": "Kisaasi Recreation Ground", "foundedYear": 2003,
+          "teams": [
+            { "genderCategory": "MEN", "ageGroup": "SENIOR", "badge": true },
+            { "genderCategory": "WOMEN", "ageGroup": "SENIOR" }
+          ]
+        },
+        {
+          "organisation": "Mutundwe Meteors FC", "name": "Mutundwe Meteors FC", "shortName": "Mutundwe Meteors", "code": "MUT",
+          "primaryColour": "#283593", "secondaryColour": "#FFD54F", "homeVenue": "Bukoto Community Stadium", "foundedYear": 2018,
+          "nameSince": "2026-01-01",
+          "firstName": { "name": "Mutundwe Weavers FC", "shortName": "Mutundwe Weavers", "code": "MUW", "nameSince": "2018-01-01" },
+          "teams": [
+            { "genderCategory": "MEN", "ageGroup": "SENIOR", "badge": true, "slug": "mutundwe-meteors-fc-senior-men" }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "elssc",
+      "variant": "FOOTBALL_ASSOCIATION",
+      "clubs": [
+        {
+          "organisation": "Lakeshore High School", "name": "Lakeshore High School", "shortName": "Lakeshore", "code": "LHS",
+          "primaryColour": "#1565C0", "secondaryColour": "#FFFFFF", "homeVenue": "Lakeshore High School Playing Fields",
+          "teams": [
+            { "genderCategory": "MEN", "ageGroup": "U16" },
+            { "genderCategory": "WOMEN", "ageGroup": "U16" }
+          ]
+        },
+        {
+          "organisation": "Mabira Hills College", "name": "Mabira Hills College", "shortName": "Mabira Hills", "code": "MHC",
+          "primaryColour": "#2E7D32", "secondaryColour": "#FDD835",
+          "teams": [
+            { "genderCategory": "MEN", "ageGroup": "U16" },
+            { "genderCategory": "WOMEN", "ageGroup": "U16" }
+          ]
+        },
+        {
+          "organisation": "Riverside Secondary School", "name": "Riverside Secondary School", "shortName": "Riverside", "code": "RSS",
+          "primaryColour": "#00695C", "secondaryColour": "#FFFFFF",
+          "teams": [
+            { "genderCategory": "MEN", "ageGroup": "U16" },
+            { "genderCategory": "WOMEN", "ageGroup": "U16" }
+          ]
+        },
+        {
+          "organisation": "Sunrise Academy", "name": "Sunrise Academy", "shortName": "Sunrise", "code": "SUN",
+          "primaryColour": "#EF6C00", "secondaryColour": "#4E342E",
+          "teams": [
+            { "genderCategory": "MEN", "ageGroup": "U16" },
+            { "genderCategory": "WOMEN", "ageGroup": "U16" }
+          ]
+        }
+      ]
+    }
+  ]
+}

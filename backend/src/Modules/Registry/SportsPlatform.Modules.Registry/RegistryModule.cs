@@ -241,6 +241,9 @@ public sealed class RegistryModule : IModule
         services.AddSingleton<IValidator<EndVenueExternalIdentifierRequest>, EndVenueExternalIdentifierRequestValidator>();
 
         services.AddSeeder<DemoPeopleSeeder>();
+        services.AddSeeder<DemoVenueSeeder>();
+        services.AddSeeder<DemoOrganisationSeeder>();
+        services.AddSeeder<DemoTeamSeeder>();
     }
 
     public void MapEndpoints(ApiEndpointGroups groups)
